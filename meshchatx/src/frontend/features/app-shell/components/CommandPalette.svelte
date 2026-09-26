@@ -164,12 +164,14 @@
                 window as unknown as { api?: { get: (url: string, config?: unknown) => Promise<{ data: unknown }> } }
             ).api;
             if (!api) return;
-            const [peerResponse, contactResponse] = await Promise.all([
+            const [peerResult, contactResult] = await Promise.allSettled([
                 api.get("/api/v1/announces", {
                     params: { aspect: "lxmf.delivery", limit: 20 },
                 }),
                 api.get("/api/v1/telephone/contacts"),
             ]);
+            const peerResponse = peerResult.status === "fulfilled" ? peerResult.value : undefined;
+            const contactResponse = contactResult.status === "fulfilled" ? contactResult.value : undefined;
             const pData = peerResponse?.data as { announces?: PeerAnnounce[] } | undefined;
             peers = pData?.announces || [];
 
