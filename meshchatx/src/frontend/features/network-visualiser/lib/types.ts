@@ -2,7 +2,7 @@
 
 export type RendererMode = "vis" | "webgl";
 export type EngineMode = "checking" | "wasm" | "fallback" | "webgl";
-export type ViewMode = "flat" | "planet";
+export type ViewMode = "flat" | "planet" | "radial";
 export type PreferredRenderer = "auto" | "webgl" | "vis";
 
 export interface PathTableEntry {

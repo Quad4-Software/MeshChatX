@@ -8,7 +8,7 @@
 
 import { EDGE_STRIDE, NODE_STRIDE } from "./networkVisualiserWebGL.js";
 
-export type VisualiserViewMode = "flat" | "planet";
+export type VisualiserViewMode = "flat" | "planet" | "radial";
 export type Vec3 = { x: number; y: number; z: number };
 export type ClipPoint = { x: number; y: number; z: number; w: number };
 export type ClipLine = { x1: number; y1: number; w1: number; x2: number; y2: number; w2: number };
@@ -101,6 +101,7 @@ export type SpriteScratch = {
 
 export const PLANET_VIEW = "planet";
 export const FLAT_VIEW = "flat";
+export const RADIAL_VIEW = "radial";
 
 export const PLANET_FOV_Y = (48 * Math.PI) / 180;
 export const PLANET_NEAR = 0.18;
@@ -156,7 +157,10 @@ let spriteScratch: SpriteScratch[] = [];
 let worldScratch: WorldScratch[] = [];
 
 export function normalizeVisualiserViewMode(raw: unknown): VisualiserViewMode {
-    return raw === PLANET_VIEW ? PLANET_VIEW : FLAT_VIEW;
+    if (raw === PLANET_VIEW || raw === RADIAL_VIEW) {
+        return raw;
+    }
+    return FLAT_VIEW;
 }
 
 export function isPlanetInterfaceKind(kind: number): boolean {

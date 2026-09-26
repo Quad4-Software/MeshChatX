@@ -3,6 +3,7 @@
 import GlobalState from "../../../js/GlobalState.js";
 import {
     loadVisualiserDisplayPrefs,
+    normalizeVisualiserViewMode,
     persistVisualiserAutoReload,
     persistVisualiserLiveLayout,
     persistVisualiserRenderer,
@@ -13,6 +14,7 @@ import { HOP_MAX_FILTER_STORAGE_KEY } from "./constants.js";
 
 export {
     loadVisualiserDisplayPrefs,
+    normalizeVisualiserViewMode,
     persistVisualiserAutoReload,
     persistVisualiserLiveLayout,
     persistVisualiserRenderer,

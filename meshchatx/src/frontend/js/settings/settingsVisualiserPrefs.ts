@@ -12,7 +12,7 @@ const KEY_VIEW_MODE = "meshchatx.visualiser.viewMode";
 export const VISUALISER_DISPLAY_PREFS_CHANGED = "visualiser-display-prefs-changed";
 
 export type VisualiserRendererPref = "auto" | "webgl" | "vis";
-export type VisualiserViewModePref = "flat" | "planet";
+export type VisualiserViewModePref = "flat" | "planet" | "radial";
 
 export type VisualiserDisplayPrefs = {
     showDisabledInterfaces: boolean;
@@ -28,7 +28,7 @@ export type PersistEmitOpts = {
 };
 
 export const VISUALISER_RENDERER_OPTIONS: VisualiserRendererPref[] = ["auto", "webgl", "vis"];
-export const VISUALISER_VIEW_MODE_OPTIONS: VisualiserViewModePref[] = ["flat", "planet"];
+export const VISUALISER_VIEW_MODE_OPTIONS: VisualiserViewModePref[] = ["flat", "planet", "radial"];
 
 function readBool(key: string, defaultValue: boolean): boolean {
     try {
@@ -62,7 +62,10 @@ export function normalizeVisualiserRenderer(raw: unknown): VisualiserRendererPre
 }
 
 export function normalizeVisualiserViewMode(raw: unknown): VisualiserViewModePref {
-    return raw === "planet" ? "planet" : "flat";
+    if (raw === "planet" || raw === "radial") {
+        return raw;
+    }
+    return "flat";
 }
 
 function readViewMode(): VisualiserViewModePref {

@@ -85,4 +85,14 @@ describe("NetworkVisualiserToolbar.svelte", () => {
         const { container } = renderToolbar({ engineMode: "webgl" });
         expect(container.querySelector("#visualiser-view-planet")).toBeTruthy();
     });
+
+    it("shows the radial view button and emits radial on click", async () => {
+        const onupdateviewmode = vi.fn();
+        const { container } = renderToolbar({ engineMode: "webgl", viewMode: "radial", onupdateviewmode });
+        const radial = container.querySelector("#visualiser-view-radial");
+        expect(radial).toBeTruthy();
+        expect(radial?.getAttribute("aria-pressed")).toBe("true");
+        await fireEvent.click(radial);
+        expect(onupdateviewmode).toHaveBeenCalledWith("radial");
+    });
 });

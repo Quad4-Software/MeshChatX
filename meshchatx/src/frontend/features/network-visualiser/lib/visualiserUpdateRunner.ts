@@ -128,6 +128,8 @@ export interface RenderGraphOptions {
     isDarkMode: boolean;
     currentLOD: string;
     batterySaverPrefs?: { enabled?: boolean; maxVisualiserInterfaces?: number };
+    radial?: boolean;
+    resetCamera?: boolean;
     webglEngine?: any;
     network?: any;
     nodes: DataSet<any>;
@@ -154,6 +156,8 @@ export async function renderVisualiserGraph(options: RenderGraphOptions): Promis
         isDarkMode,
         currentLOD,
         batterySaverPrefs,
+        radial,
+        resetCamera,
         webglEngine,
         network,
         nodes,
@@ -185,6 +189,7 @@ export async function renderVisualiserGraph(options: RenderGraphOptions): Promis
         isDarkMode,
         currentLOD,
         batterySaverPrefs,
+        radial,
     });
 
     attachAnnounceMetaToNodes(graph.nodes || [], announces);
@@ -192,7 +197,7 @@ export async function renderVisualiserGraph(options: RenderGraphOptions): Promis
     if (!isCurrentRun()) return;
 
     if (webglEngine) {
-        webglEngine.setGraph(graph.nodes, graph.edges);
+        webglEngine.setGraph(graph.nodes, graph.edges, { preserveCamera: resetCamera !== true });
         const fps = typeof webglEngine.getFps === "function" ? webglEngine.getFps() : 0;
         onDisplayCounts?.(graph.nodes.length, graph.edges.length, fps);
         return;
@@ -213,6 +218,11 @@ export async function renderVisualiserGraph(options: RenderGraphOptions): Promis
     }
 
     if (!isCurrentRun()) return;
+
+    if (resetCamera === true) {
+        network?.fit?.();
+    }
+
     onDisplayCounts?.(nodes.length, edges.length, 0);
 
     if (graph.icon_queue && graph.icon_queue.length > 0) {

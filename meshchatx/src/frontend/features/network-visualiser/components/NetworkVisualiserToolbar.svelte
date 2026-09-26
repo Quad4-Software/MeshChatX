@@ -173,6 +173,17 @@
                             >
                                 {t("visualiser.view_mode_planet")}
                             </button>
+                            <button
+                                id="visualiser-view-radial"
+                                type="button"
+                                class="rounded-md px-2.5 py-1 text-[11px] font-bold {viewMode === 'radial'
+                                    ? 'bg-white text-blue-600 shadow-xs dark:bg-zinc-700 dark:text-blue-300'
+                                    : 'text-sem-fg-muted'}"
+                                aria-pressed={viewMode === "radial" ? "true" : "false"}
+                                onclick={() => onupdateviewmode?.("radial")}
+                            >
+                                {t("visualiser.view_mode_radial")}
+                            </button>
                         </div>
                     </div>
                 {/if}

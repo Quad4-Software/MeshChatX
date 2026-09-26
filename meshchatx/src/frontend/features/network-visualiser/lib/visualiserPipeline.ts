@@ -165,6 +165,8 @@ export async function executeVisualiserRender(options: {
     enablePhysics: boolean;
     physicsPausedForDrag: boolean;
     didDisableStabilization: boolean;
+    radial?: boolean;
+    resetCamera?: boolean;
     onStatusChange: (status: string) => void;
     onChunkNodes: (count: number) => void;
     onDisplayCounts: (nodes: number, edges: number, fps: number) => void;
@@ -189,6 +191,8 @@ export async function executeVisualiserRender(options: {
         enablePhysics,
         physicsPausedForDrag,
         didDisableStabilization,
+        radial,
+        resetCamera,
         onStatusChange,
         onChunkNodes,
         onDisplayCounts,
@@ -224,6 +228,8 @@ export async function executeVisualiserRender(options: {
             isDarkMode: resolveVisualiserIsDark(),
             currentLOD,
             batterySaverPrefs,
+            radial,
+            resetCamera,
             webglEngine,
             network,
             nodes,
