@@ -52,6 +52,7 @@ const appBuildTimeIso = new Date().toISOString();
 // They run on the default forks pool in a dedicated project.
 const WINDOW_REPLACING_TESTS = [
     "tests/frontend/apiClientCsrfRecovery.test.js",
+    "tests/frontend/AppVersionReload.test.js",
     "tests/frontend/apiClientMutationTimeout.test.js",
     "tests/frontend/AuthPage.test.js",
     "tests/frontend/BergamotBacking.test.js",

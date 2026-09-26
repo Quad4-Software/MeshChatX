@@ -317,6 +317,7 @@ class LiveTransport {
                 // so its initial connected/ready events reach consumers while
                 // WebSocket events keep flowing. WS forwards drop on success.
                 this._forwardFrom(session);
+                session.on("disconnected", () => this._handleWtDisconnected(session));
                 await session.connect({
                     url: this._serverInfo.url,
                     certSha256B64: this._serverInfo.cert_sha256_b64,
@@ -369,6 +370,30 @@ class LiveTransport {
         this._usingWt = false;
         this._active = WebSocketConnection;
         return { transport: "websocket", fellBack: this._fallbackNotified };
+    }
+
+    /**
+     * The WT session has no reconnect machinery of its own. On session death
+     * hand the channel back to WebSocketConnection, whose backoff, foreground
+     * listeners, and resync semantics take over.
+     */
+    _handleWtDisconnected(session: WebTransportLiveSession): void {
+        if (this._wt !== session || !this._usingWt) {
+            return;
+        }
+        this._clearForwards(session);
+        session.destroy();
+        this._wt = null;
+        this._usingWt = false;
+        this._active = WebSocketConnection;
+        setWsLiveSendBridge(null);
+        this._forwardFrom(WebSocketConnection);
+        this._boundWs = true;
+        this._fallbackNotified = true;
+        this.emit("transport_fallback", { from: "webtransport", to: "websocket" });
+        // Flag the next open as a reconnect so consumers run their resync.
+        WebSocketConnection._pendingReconnectUi = true;
+        void WebSocketConnection.connect();
     }
 
     send(message: string): boolean {
@@ -425,6 +450,7 @@ class LiveTransport {
         // after a shell restart produced a deaf channel.
         this._boundWs = false;
         this._usingWt = false;
+        this._fallbackNotified = false;
         this._active = WebSocketConnection;
         WebSocketConnection.destroy();
     }
