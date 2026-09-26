@@ -316,6 +316,10 @@ from meshchatx.src.backend.sticker_utils import (
     validate_export_document,
 )
 from meshchatx.src.backend.telemetry_utils import Telemeter
+from meshchatx.src.backend.database.telemetry import (
+    TELEMETRY_MAX_FUTURE_SEC,
+    TELEMETRY_MAX_PAST_SEC,
+)
 from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
 from meshchatx.src.backend.websocket_config_guard import (
     sanitize_websocket_config_update,
@@ -609,8 +613,9 @@ class ReticulumMeshChat(
         self.download_id_counter = 0
         self.download_id_lock = asyncio.Lock()
 
-        # page -> file grants for local anti-deep-linking
-        self._page_file_grants: dict[int, dict] = {}
+        # page -> file grants for local anti-deep-linking, keyed by a
+        # random per-connection token (see _page_file_grant_key)
+        self._page_file_grants: dict[object, dict] = {}
 
         self.identity_manager = IdentityManager(self.storage_dir, identity_file_path)
         from meshchatx.src.backend.translation_pack_manager import (

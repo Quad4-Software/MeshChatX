@@ -427,7 +427,12 @@ async def apply_config_update(app: Any, data):
 
     if "auth_enabled" in data:
         value = app._parse_bool(data["auth_enabled"])
+        previous_auth_enabled = app.config.auth_enabled.get()
         app.config.auth_enabled.set(value)
+        if value != previous_auth_enabled:
+            # Sessions minted under the previous auth posture must not
+            # survive the toggle.
+            app._bump_auth_session_epoch()
 
         # if disabling auth, also remove the password hash from config
         if not value:
@@ -439,6 +444,7 @@ async def apply_config_update(app: Any, data):
             # authentication.
             if not app._oidc_ready():
                 app.config.auth_password_hash.set(None)
+                app._bump_auth_session_epoch()
 
     if "oidc_enabled" in data:
         app.config.oidc_enabled.set(app._parse_bool(data["oidc_enabled"]))

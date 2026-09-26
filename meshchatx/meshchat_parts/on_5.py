@@ -14,6 +14,10 @@ import LXMF
 import RNS
 
 from meshchatx.src.backend.async_utils import AsyncUtils
+from meshchatx.src.backend.database.telemetry import (
+    TELEMETRY_MAX_FUTURE_SEC,
+    TELEMETRY_MAX_PAST_SEC,
+)
 from meshchatx.src.backend.lxmf_utils import (
     compute_lxmf_conversation_unread_from_latest_row,
     convert_db_lxmf_message_to_dict,
@@ -566,6 +570,15 @@ class On5Mixin:
             if unpacked:
                 timestamp = timestamp_override or (
                     unpacked["time"]["utc"] if "time" in unpacked else int(time.time())
+                )
+                # Remote-controlled timestamps: clamp to a sane window
+                # around now so a peer cannot poison ordering with absurd
+                # values or flood the UNIQUE(destination_hash, timestamp)
+                # key space.
+                now_ts = time.time()
+                timestamp = min(
+                    max(timestamp, now_ts - TELEMETRY_MAX_PAST_SEC),
+                    now_ts + TELEMETRY_MAX_FUTURE_SEC,
                 )
 
                 # physical link info

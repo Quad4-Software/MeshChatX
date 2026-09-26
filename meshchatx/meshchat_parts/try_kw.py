@@ -5,6 +5,7 @@ slices of the original file; do not edit ordering casually.
 """
 
 import re
+import secrets
 import time
 
 
@@ -61,6 +62,23 @@ class TryKwMixin:
             links.add(path)
         return links
 
+    @staticmethod
+    def _page_file_grant_key(client, *, create: bool = True):
+        # CPython recycles id() once a WebSocketResponse is collected, so a
+        # new socket could inherit stale grants within the TTL. Grants are
+        # keyed by the random token init_client_runtime stamps at upgrade;
+        # the lazy fallback covers clients that bypassed it.
+        token = getattr(client, "_meshchatx_page_grant_token", None)
+        if not token:
+            if not create:
+                return id(client)
+            token = secrets.token_hex(16)
+            try:
+                client._meshchatx_page_grant_token = token
+            except (AttributeError, TypeError):
+                return id(client)
+        return token
+
     def _register_page_file_grant(
         self,
         client,
@@ -70,7 +88,7 @@ class TryKwMixin:
         ttl: float = 300,
     ) -> None:
         """Remember the files a client is allowed to fetch from a page."""
-        key = id(client)
+        key = self._page_file_grant_key(client)
         now = time.time()
         # Prune expired entries and old clients.
         self._page_file_grants = {
@@ -88,7 +106,10 @@ class TryKwMixin:
 
     def _clear_page_file_grants_for_client(self, client) -> None:
         """Drop all page-file grants held by a disconnected client."""
-        self._page_file_grants.pop(id(client), None)
+        self._page_file_grants.pop(
+            self._page_file_grant_key(client, create=False),
+            None,
+        )
 
     @staticmethod
     def _normalize_grant_page_path(destination_hash: bytes, page_path: str) -> str:
@@ -106,7 +127,7 @@ class TryKwMixin:
         file_path: str,
     ) -> bool:
         """Check whether a client may fetch a file from a recently loaded page."""
-        key = id(client)
+        key = self._page_file_grant_key(client, create=False)
         grant = self._page_file_grants.get(key)
         if not grant or grant.get("expires", 0) <= time.time():
             return False

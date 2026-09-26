@@ -419,10 +419,20 @@ class GetMixin:
             if hasattr(self, "identity") and self.identity
             else None
         )
-        deleted = self.identity_manager.delete_identity(identity_hash, current_hash)
-        if deleted:
-            self._evict_cached_identity_context(identity_hash)
-        return deleted
+        # Tear down the live context before removing its storage so
+        # background threads and the LXMF router stop touching on-disk
+        # state first. Skip eviction when the delete will be refused
+        # (invalid hash or the active identity) so a rejected request
+        # cannot kill a live context.
+        canonical = normalize_identity_storage_hash(identity_hash)
+        current_canonical = normalize_identity_storage_hash(current_hash or "")
+        if canonical and canonical != current_canonical:
+            ctx = self.contexts.get(canonical)
+            if ctx is not None:
+                self._evict_cached_identity_context(identity_hash)
+                if getattr(ctx, "running", False):
+                    raise ValueError("Identity is still running")
+        return self.identity_manager.delete_identity(identity_hash, current_hash)
 
     def restore_identity_from_bytes(
         self,
@@ -955,7 +965,8 @@ class GetMixin:
         return bool(
             session.get("authenticated", False)
             and identity_hash
-            and session.get("identity_hash") == identity_hash,
+            and session.get("identity_hash") == identity_hash
+            and self._auth_session_epoch_valid(session),
         )
 
     # convert database lxmf message to a dictionary

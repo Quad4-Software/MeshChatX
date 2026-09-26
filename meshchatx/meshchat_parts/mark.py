@@ -60,6 +60,7 @@ from meshchatx.src.path_utils import (
     safe_path_under_dir,
 )
 from meshchatx.src.ssl_self_signed import generate_ssl_certificate
+from meshchatx.src.version import __version__ as app_version
 
 from ..meshchat_shared import (
     _create_reticulum_instance,
@@ -250,6 +251,7 @@ class MarkMixin:
             payload = {
                 "status": "failed",
                 "stage": "failed",
+                "version": app_version,
                 "network_ready": False,
                 "network_degraded": True,
                 "ui_ready": True,
@@ -274,6 +276,7 @@ class MarkMixin:
         return {
             "status": "ok" if ready else "starting",
             "stage": stage,
+            "version": app_version,
             "network_ready": ready,
             "network_degraded": False,
             "ui_ready": True if ready else bool(self._ui_ready),
@@ -427,6 +430,7 @@ class MarkMixin:
                 bcrypt.gensalt(),
             ).decode("utf-8")
             ctx.config.auth_password_hash.set(password_hash)
+            self._bump_auth_session_epoch()
 
     def _finish_deferred_startup_services(self) -> None:
         """Start non-critical services after network_ready is published."""
@@ -631,6 +635,32 @@ class MarkMixin:
         if hasattr(self, "page_node_manager"):
             self.page_node_manager.teardown()
 
+        # Cancel fire-and-forget propagation node request tasks before
+        # context teardown: an in-flight request would otherwise touch
+        # ctx.message_router after the context is gone. Tasks may live on
+        # per-identity background loops, so cross-loop cancellation goes
+        # through call_soon_threadsafe and the wait is bounded.
+        prop_tasks = [
+            task for task in self._propagation_node_request_tasks if not task.done()
+        ]
+        if prop_tasks:
+            current_loop = asyncio.get_running_loop()
+            for task in prop_tasks:
+                try:
+                    task_loop = task.get_loop()
+                    if task_loop is current_loop:
+                        task.cancel()
+                    elif task_loop.is_running():
+                        task_loop.call_soon_threadsafe(task.cancel)
+                except Exception:
+                    pass
+            deadline = time.monotonic() + 5.0
+            while time.monotonic() < deadline:
+                if all(task.done() for task in prop_tasks):
+                    break
+                await asyncio.sleep(0.05)
+            self._propagation_node_request_tasks.difference_update(prop_tasks)
+
         for identity_hash in list(self.contexts.keys()):
             ctx = self.contexts.get(identity_hash)
             if ctx is None:
@@ -758,6 +788,7 @@ class MarkMixin:
             sqlite_unavailable_middleware,
             auth_middleware,
             mime_type_middleware,
+            cache_control_middleware,
             security_middleware,
             csrf_middleware,
             ip_allowlist_middleware,
@@ -822,10 +853,21 @@ class MarkMixin:
                 self.session_secret_key = secrets.token_urlsafe(32)
 
             try:
-                with open(session_secret_path, "w") as f:
+                # The secret signs/encrypts session cookies; other local users
+                # must not read it (forged cookies would bypass auth).
+                fd = os.open(
+                    session_secret_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600
+                )
+                with os.fdopen(fd, "w") as f:
                     f.write(self.session_secret_key)
             except Exception as e:
                 print(f"Failed to write session secret to {session_secret_path}: {e}")
+
+        # Tighten a preexisting loose file left by older versions.
+        try:
+            os.chmod(session_secret_path, 0o600)
+        except OSError:
+            pass
 
         # ensure it's also in the current config for consistency when identity is ready
         if self.config is not None:
@@ -881,6 +923,7 @@ class MarkMixin:
                 sqlite_unavailable_middleware,
                 auth_middleware,
                 mime_type_middleware,
+                cache_control_middleware,
                 security_middleware,
                 csrf_middleware,
                 ip_allowlist_middleware,
@@ -939,11 +982,10 @@ class MarkMixin:
                 "/meshchatx-docs/",
                 dm.meshchatx_docs_dir,
                 name="meshchatx_docs_storage",
-                follow_symlinks=True,
             )
 
         if os.path.exists(public_dir):
-            app.router.add_static("/", public_dir, name="static", follow_symlinks=True)
+            app.router.add_static("/", public_dir, name="static")
         else:
             print(f"Warning: Static files directory not found at {public_dir}")
 
