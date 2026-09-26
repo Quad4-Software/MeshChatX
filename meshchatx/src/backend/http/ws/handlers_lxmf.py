@@ -354,6 +354,18 @@ async def handle_lxm_generate_paper_uri(app, client, data):
     title = data.get("title", "")
 
     if not destination_hash or not content:
+        # Always answer so callers do not wait on a reply that never comes.
+        AsyncUtils.run_async(
+            client.send_str(
+                json.dumps(
+                    {
+                        "type": "lxm.generate_paper_uri.result",
+                        "status": "error",
+                        "message": "Error generating paper message: destination_hash and content are required",
+                    },
+                ),
+            ),
+        )
         return
 
     try:
@@ -366,7 +378,11 @@ async def handle_lxm_generate_paper_uri(app, client, data):
                 destination_hash,
             )
             if announce and announce.get("identity_public_key"):
-                destination_identity = RNS.Identity.from_bytes(
+                from meshchatx.src.backend.lxmf_utils import (
+                    _identity_from_public_key_bytes,
+                )
+
+                destination_identity = _identity_from_public_key_bytes(
                     base64.b64decode(announce["identity_public_key"]),
                 )
 
