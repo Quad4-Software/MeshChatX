@@ -32,7 +32,7 @@ secretGroup = 1
 entropy = 3.0
 
     # Known placeholder values used in docs, defaults, and fixtures.
-    [rules.allowlist]
+    [[rules.allowlists]]
     stopWords = [
         "changeme",
         "password",
@@ -47,7 +47,7 @@ entropy = 3.0
 
 # Test fixtures deliberately carry fake credentials; a real secret in a
 # test still trips the rns-identity rules above, which stay global.
-[allowlist]
+[[allowlists]]
 description = "Vendored, generated, and test fixture content"
 paths = [
     '''(?i)node_modules''',
@@ -57,16 +57,37 @@ paths = [
     '''(?i)storage/''',
     '''meshchatx/public/''',
     '''meshchatx/src/frontend/public/''',
-    # Generated sha256 content manifest, not credentials.
-    '''electron/backend-manifest\.json''',
 ]
 regexes = [
     # Repeating dummy hex used by test fixtures.
     '''(?i)^(aabbccddeeff00112233445566778899)+$''',
     # Classic placeholder password and the ifac test netkey.
     '''(?i)^(hunter2pass|asty8vT8spXNQdCnPVMATbCKkwUxuzG9)$''',
-    # Python release GPG public key fingerprints pinned in
-    # scripts/ci/setup-python.sh (public key material, not secrets).
-    '''^A035C8C19219BA821ECEA86B64E628F8D684696D$''',
-    '''^E3FF2839C048B25C084DEBE9B26995E310250568$''',
+]
+
+[[allowlists]]
+description = "File-content SHA256 hashes in generated manifests"
+paths = ['''backend-manifest\.json''', '''tree-manifest.*\.json''']
+
+[[allowlists]]
+description = "Public GPG key fingerprints (python.org release verification)"
+regexTarget = "match"
+regexes = [
+    '''A035C8C19219BA821ECEA86B64E628F8D684696D''',
+    '''E3FF2839C048B25C084DEBE9B26995E310250568''',
+]
+
+[[allowlists]]
+description = "Deterministic test fixture values (RNS hashes, interface keys)"
+regexTarget = "match"
+regexes = [
+    '''aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899''',
+    '''asty8vT8spXNQdCnPVMATbCKkwUxuzG9''',
+]
+
+[[allowlists]]
+description = "Fixture directories may carry test secrets on purpose"
+paths = [
+    '''tests/.*/fixtures/.*''',
+    '''\.gitleaks\.toml''',
 ]

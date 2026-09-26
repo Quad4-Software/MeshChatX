@@ -38,7 +38,7 @@ env:
     NODE_VERSION: "24"
     UV_VERSION: "0.11.15"
     PNPM_VERSION: "11.1.2"
-    TRIVY_VERSION: "0.69.3"
+    TRIVY_VERSION: "0.74.0"
 
 jobs:
     dependency-audit:
@@ -89,7 +89,7 @@ jobs:
     secret-scan:
         name: Secret scan (gitleaks)
         runs-on: ubuntu-latest
-        timeout-minutes: 15
+        timeout-minutes: 20
         permissions:
             contents: read
         steps:
@@ -103,11 +103,24 @@ jobs:
                   persist-credentials: false
                   fetch-depth: 0
 
-            - name: Setup gitleaks
+            - name: Install gitleaks
               run: sh scripts/ci/setup-gitleaks.sh
 
-            - name: Scan git history for secrets
-              run: gitleaks git --config .gitleaks.toml --redact .
+            - name: Fetch base ref for diff scan
+              if: github.event_name == 'pull_request'
+              env:
+                  PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+              run: git fetch origin "+refs/heads/${PR_BASE_REF}:refs/remotes/origin/${PR_BASE_REF}"
+
+            - name: Scan PR commit range
+              if: github.event_name == 'pull_request'
+              env:
+                  PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+              run: gitleaks git --no-banner --exit-code 1 --log-opts="origin/${PR_BASE_REF}..HEAD" .
+
+            - name: Scan full history
+              if: github.event_name != 'pull_request'
+              run: gitleaks git --no-banner --exit-code 1 .
 
     workflow-audit:
         name: Workflow audit (zizmor)
