@@ -233,7 +233,7 @@ def test_emergency_mode_memory_concurrency(mock_rns, temp_dir):
             "meshchatx.src.backend.identity_context.core.IdentityContext.start_background_threads",
         ),
         patch("meshchatx.src.backend.identity_context.core.create_lxmf_router"),
-        patch("meshchatx.meshchat.WebAudioBridge"),
+        patch("meshchatx.meshchat.LazyWebAudioBridge"),
         patch("meshchatx.meshchat.memory_log_handler"),
     ):
         app = ReticulumMeshChat(
