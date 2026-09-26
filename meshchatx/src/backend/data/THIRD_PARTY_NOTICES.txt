@@ -88,9 +88,6 @@ multidict 6.7.1
 numpy 2.4.6
   License: BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0
   Author: Travis E. Oliphant et al.
-ply 3.11
-  License: BSD
-  Author: David Beazley
 propcache 0.5.2
   License: Apache-2.0
   Author: Andrew Svetlov
