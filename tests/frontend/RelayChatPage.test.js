@@ -334,6 +334,27 @@ describe("RelayChatPage.svelte", () => {
         });
     });
 
+    it("stays on the discovery view after adding a discovered hub", async () => {
+        axiosMock.post.mockResolvedValueOnce({ data: { hub: makeHub({ name: "Heard Hub" }) } });
+        const { component, getByText } = render(RelayChatPage);
+        await waitFor(() => expect(getByText(t("relay_chat.tab_discovery"))).toBeTruthy());
+        const tab = getByText(t("relay_chat.tab_discovery")).closest("button");
+        await fireEvent.click(tab);
+        await waitFor(() => expect(tab.getAttribute("aria-selected")).toBe("true"));
+
+        await component.addFromDiscovery(makeAnnounce());
+        await waitFor(() => {
+            expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/rrc/hubs", {
+                hub_hash: makeAnnounce().destination_hash,
+                name: "Heard Hub",
+                dest_name: "rrc.hub",
+                connect: true,
+            });
+        });
+        // Adding must stay on discovery so several hubs can be added in a row.
+        expect(tab.getAttribute("aria-selected")).toBe("true");
+    });
+
     it("switches to host view when clicking host button", async () => {
         const { getByText } = render(RelayChatPage);
 
