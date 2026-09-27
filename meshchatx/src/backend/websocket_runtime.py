@@ -672,13 +672,14 @@ async def broadcast_to_websocket_clients(app, data, *, _skip_coalesce: bool = Fa
             if seq_state is not None:
                 await seq_state.stamp(payload_obj)
             data = json.dumps(payload_obj)
+        text = data if isinstance(data, str) else json.dumps(data)
         targets = [c for c in app.websocket_clients if client_allows_topic(c, topic)]
 
         async def _send_one(websocket_client):
             try:
                 await send_str_on_client_loop(
                     websocket_client,
-                    data,
+                    text,
                     timeout=WS_BROADCAST_SEND_TIMEOUT_SEC,
                 )
                 touch_client_activity(websocket_client)
