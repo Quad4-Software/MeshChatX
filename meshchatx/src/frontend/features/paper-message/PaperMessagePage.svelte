@@ -26,6 +26,7 @@
     let destinationHash = $state("");
     let title = $state("");
     let content = $state("");
+    let generateTimeout: ReturnType<typeof setTimeout> | null = null;
     let isGenerating = $state(false);
     let generatedUri = $state<string | null>(null);
     let ingestUri = $state("");
@@ -43,6 +44,10 @@
 
     async function onGeneratePaperUriResult(json: LxmGeneratePaperUriWsResult): Promise<void> {
         isGenerating = false;
+        if (generateTimeout != null) {
+            clearTimeout(generateTimeout);
+            generateTimeout = null;
+        }
         if (json.status === "success") {
             generatedUri = json.uri || null;
             await tick();
@@ -66,7 +71,7 @@
         }
         isGenerating = true;
         generatedUri = null;
-        WebSocketConnection.send(
+        const sent = WebSocketConnection.send(
             JSON.stringify({
                 type: "lxm.generate_paper_uri",
                 destination_hash: destinationHash,
@@ -74,6 +79,18 @@
                 title,
             })
         );
+        if (!sent) {
+            isGenerating = false;
+            ToastUtils.error(t("messages.failed_generate_paper_uri"));
+            return;
+        }
+        // A dropped reply must not leave the button disabled forever.
+        if (generateTimeout != null) {
+            clearTimeout(generateTimeout);
+        }
+        generateTimeout = setTimeout(() => {
+            isGenerating = false;
+        }, 30000);
     }
 
     function ingestPaperMessage(): void {
@@ -235,6 +252,7 @@
         return () => {
             offWsEvent("lxm.generate_paper_uri.result", onGeneratePaperUriResult);
             offWsEvent("lxm.ingest_uri.result", onIngestUriResult);
+            if (generateTimeout != null) clearTimeout(generateTimeout);
             stopIngestScanner();
         };
     });

@@ -167,6 +167,24 @@
     } = $props();
 
     const rawContent = $derived(String(rawMessageData.content || ""));
+    const rawMessageJsonPreview = $derived.by(() => {
+        const d: Record<string, unknown> = { ...rawMessageData };
+        const c = d.content;
+        if (typeof c === "string" && c.length > MESSAGE_BODY_MAX_DISPLAY_CHARS) {
+            d.content = `[Omitted ${c.length} characters. Use Copy full text above]`;
+        }
+        // Pending outbound placeholders can carry data: preview URLs in
+        // fields; cap the blob so a multi-MB string never hits the <pre>.
+        const fieldsJson = JSON.stringify(d.fields ?? null);
+        if (fieldsJson.length > MESSAGE_BODY_MAX_DISPLAY_CHARS) {
+            d.fields = `[Omitted ${fieldsJson.length} characters of field data]`;
+        }
+        try {
+            return JSON.stringify(d, null, 2);
+        } catch {
+            return String(rawMessageData);
+        }
+    });
 </script>
 
 <ConversationImageLightbox
@@ -243,7 +261,7 @@
 <ConversationRawMessageModal
     open={isRawMessageModalOpen}
     {rawMessageData}
-    rawMessageJsonPreview={JSON.stringify(rawMessageData, null, 2)}
+    {rawMessageJsonPreview}
     isBodyOversized={rawContent.length > MESSAGE_BODY_MAX_DISPLAY_CHARS}
     bodyCharCount={rawContent.length}
     hasStoredPath={rawMessageData.path_hops_at_send != null || Boolean(rawMessageData.path_interface_at_send)}

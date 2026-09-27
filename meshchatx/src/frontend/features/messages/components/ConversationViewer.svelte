@@ -199,6 +199,8 @@
     });
     let generatedPaperMessageUri = $state<string | null>(null);
     let isPaperMessageResultModalOpen = $state(false);
+    let isGeneratingPaperMessage = $state(false);
+    let paperGenerateTimeout: ReturnType<typeof setTimeout> | null = null;
     let isShareContactModalOpen = $state(false);
     let contactsSearch = $state("");
     let isTelemetryHistoryModalOpen = $state(false);
@@ -227,6 +229,12 @@
     });
 
     const selectedHash = $derived(String(selectedPeer?.destination_hash || ""));
+    // Paper URIs carry text content only; the backend drops empty payloads,
+    // so require real text rather than canSendMessage which also allows
+    // attachment-only compositions.
+    const canGeneratePaperMessage = $derived(
+        Boolean(selectedPeer) && Boolean(newMessageText.trim()) && !isGeneratingPaperMessage
+    );
     const identityKey = $derived(String(config?.identity_hash || myLxmfAddressHash || "_"));
     const selectedMessages = $derived(visibleConversationItems(chatItems, selectedHash, showTelemetryInChat));
     const filteredContacts = $derived(filterContactsList(contacts, contactsSearch));
@@ -342,6 +350,10 @@
         void loadTranslateOptions();
         return () => {
             unmounted = true;
+            if (paperGenerateTimeout != null) {
+                clearTimeout(paperGenerateTimeout);
+                paperGenerateTimeout = null;
+            }
             onviewerReady?.(null);
             for (const [type, handler] of wsHandlers) offWsEvent(type, handler);
             GlobalEmitter.off("websocket-reconnected", softResync);
@@ -1039,6 +1051,11 @@
     }
 
     function onPaperResult(payload: Record<string, unknown>) {
+        isGeneratingPaperMessage = false;
+        if (paperGenerateTimeout != null) {
+            clearTimeout(paperGenerateTimeout);
+            paperGenerateTimeout = null;
+        }
         if (payload.status === "success" && typeof payload.uri === "string") {
             generatedPaperMessageUri = payload.uri;
             isPaperMessageResultModalOpen = true;
@@ -1112,7 +1129,24 @@
     }
 
     function generatePaperMessage() {
-        generatePaperMessagePayload(selectedHash, newMessageText);
+        if (!canGeneratePaperMessage) {
+            return;
+        }
+        isGeneratingPaperMessage = true;
+        const sent = generatePaperMessagePayload(selectedHash, newMessageText);
+        if (!sent) {
+            isGeneratingPaperMessage = false;
+            ToastUtils.error(t("messages.failed_generate_paper_uri"));
+            return;
+        }
+        // The backend sends no result for invalid requests, so do not leave
+        // the flag set forever if the reply never arrives.
+        if (paperGenerateTimeout != null) {
+            clearTimeout(paperGenerateTimeout);
+        }
+        paperGenerateTimeout = setTimeout(() => {
+            isGeneratingPaperMessage = false;
+        }, 30000);
     }
 </script>
 
@@ -1192,6 +1226,7 @@
             {translateOptions}
             {hasTranslator}
             onjobCreated={handleJobCreated}
+            {canGeneratePaperMessage}
             onsendpapercompose={generatePaperMessage}
             onscrolltobottom={() => void scrollMessagesToBottom()}
         />

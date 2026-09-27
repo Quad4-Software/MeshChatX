@@ -56,6 +56,7 @@
     let newContactInput = $state("");
     let isScannerDialogOpen = $state(false);
     let pendingLxmaImport = $state(false);
+    let lxmaImportTimeout: ReturnType<typeof setTimeout> | null = null;
     let isImportDialogOpen = $state(false);
     let importError: string | null = $state(null);
     let contextMenu: {
@@ -148,6 +149,17 @@
         try {
             const result = await addContactFromInput(newContactInput, newContactName, {
                 setPendingLxma: (v) => (pendingLxmaImport = v),
+                armPendingLxmaTimeout: () => {
+                    // No result arrives when the request is dropped, so bound
+                    // the wait instead of leaving the submit button spinning.
+                    if (lxmaImportTimeout != null) clearTimeout(lxmaImportTimeout);
+                    lxmaImportTimeout = setTimeout(() => {
+                        if (pendingLxmaImport) {
+                            pendingLxmaImport = false;
+                            isSubmitting = false;
+                        }
+                    }, 30000);
+                },
                 onAdded: async () => {
                     isAddDialogOpen = false;
                     pendingLxmaImport = false;
@@ -168,6 +180,10 @@
     async function onLxmIngestUriResult(json: { status?: string; ingest_type?: string; message?: string }) {
         if (!pendingLxmaImport) return;
         pendingLxmaImport = false;
+        if (lxmaImportTimeout != null) {
+            clearTimeout(lxmaImportTimeout);
+            lxmaImportTimeout = null;
+        }
         isSubmitting = false;
         if (json.status === "success" && json.ingest_type === "lxma_contact") {
             ToastUtils.success(json.message || t("contacts.contact_added"));
@@ -224,6 +240,7 @@
         return () => {
             offWsEvent("lxm.ingest_uri.result", onLxmIngestUriResult);
             GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, onIdentitySwitched);
+            if (lxmaImportTimeout != null) clearTimeout(lxmaImportTimeout);
         };
     });
 </script>

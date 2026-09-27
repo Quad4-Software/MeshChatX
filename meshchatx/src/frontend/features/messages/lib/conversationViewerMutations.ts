@@ -427,16 +427,18 @@ export async function addSharedContactEntry(opts: {
     }
 }
 
-export function generatePaperMessagePayload(destinationHash: string, text: string): void {
+export function generatePaperMessagePayload(destinationHash: string, text: string): boolean {
     if (!destinationHash || !text.trim()) {
-        return;
+        return false;
     }
-    WebSocketConnection.send(
-        JSON.stringify({
-            type: "lxm.generate_paper_uri",
-            destination_hash: destinationHash,
-            content: text,
-        })
+    return Boolean(
+        WebSocketConnection.send(
+            JSON.stringify({
+                type: "lxm.generate_paper_uri",
+                destination_hash: destinationHash,
+                content: text,
+            })
+        )
     );
 }
 

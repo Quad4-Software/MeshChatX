@@ -1066,7 +1066,13 @@
     async function ingestPaperMessage() {
         if (!ingestUri) return;
         try {
-            WebSocketConnection.send(JSON.stringify({ type: "lxm.ingest_uri", uri: ingestUri }));
+            const sent = WebSocketConnection.send(
+                JSON.stringify({ type: "lxm.ingest_uri", uri: ingestUri })
+            );
+            if (!sent) {
+                ToastUtils.error(t("messages.failed_send_ingest"));
+                return;
+            }
             isIngestModalOpen = false;
         } catch {
             ToastUtils.error(t("messages.failed_send_ingest"));

@@ -13,7 +13,9 @@ describe("MiniChat.svelte", () => {
             get: vi.fn(() => Promise.resolve({ data: { lxmf_messages: [] } })),
             post: vi.fn(() =>
                 Promise.resolve({
-                    data: { lxmf_message: { hash: "abc", content: "hello", created_at: 99 } },
+                    data: {
+                        lxmf_message: { hash: "abc", content: "hello", timestamp: 1700000000 },
+                    },
                 })
             ),
         };
@@ -56,5 +58,36 @@ describe("MiniChat.svelte", () => {
             expect(bubbles.at(-1).textContent.trim()).toBe("hello");
             expect(bubbles[0].textContent.trim()).toBe("msg-1");
         });
+    });
+
+    it("renders epoch-seconds timestamps for freshly sent messages", async () => {
+        const { container } = renderMiniChat();
+        await waitFor(() => expect(axiosMock.get).toHaveBeenCalled());
+
+        const input = container.querySelector("input[type=text]");
+        await fireEvent.input(input, { target: { value: "hello" } });
+        await fireEvent.click(container.querySelector("button[aria-label]"));
+
+        // created_at is an ISO string; the fetch path returns epoch seconds,
+        // so the local append must use msg.timestamp or formatTime breaks.
+        await waitFor(() => {
+            const times = [...container.querySelectorAll(".text-\\[8px\\]")];
+            expect(times.some((el) => el.textContent.trim().length > 0)).toBe(true);
+        });
+    });
+
+    it("surfaces a send failure when the response has no lxmf_message", async () => {
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        const errSpy = vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
+        axiosMock.post.mockResolvedValueOnce({ data: {} });
+        const { container } = renderMiniChat();
+        await waitFor(() => expect(axiosMock.get).toHaveBeenCalled());
+
+        const input = container.querySelector("input[type=text]");
+        await fireEvent.input(input, { target: { value: "hello" } });
+        await fireEvent.click(container.querySelector("button[aria-label]"));
+
+        await waitFor(() => expect(errSpy).toHaveBeenCalled());
+        errSpy.mockRestore();
     });
 });

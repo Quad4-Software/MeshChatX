@@ -119,8 +119,12 @@ export async function savePreferredPropagationNodeHash(
 
 export async function flushArchivedPages(): Promise<void> {
     if (!(await DialogUtils.confirm(t("settings.flush_archived_pages_confirm")))) return;
-    WebSocketConnection.send(JSON.stringify({ type: "nomadnet.page.archive.flush" }));
-    ToastUtils.success(t("settings.archived_pages_flushed"));
+    const sent = WebSocketConnection.send(JSON.stringify({ type: "nomadnet.page.archive.flush" }));
+    if (sent) {
+        ToastUtils.success(t("settings.archived_pages_flushed"));
+    } else {
+        ToastUtils.error(t("settings.archived_pages_flush_failed"));
+    }
 }
 
 export async function revokeTelemetryTrust(contact: any, api = window.api): Promise<boolean> {

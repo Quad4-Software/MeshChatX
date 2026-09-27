@@ -3912,7 +3912,7 @@
     "settings": {
         "shortcut_saved": "快捷键已保存",
         "shortcut_deleted": "快捷键已删除",
-        "archived_pages_flushed": "已冲出存档页面 。",
+        "archived_pages_flushed": "已冲出存档页面 。",        "archived_pages_flush_failed": "清空存档页面失败",
         "flush_archived_pages_confirm": "删除所有已归档页面？此操作无法撤销。",
         "outbound_bubble_color": "发出气泡颜色",
         "failed_bubble_color": "失败气泡颜色",
@@ -4740,7 +4740,7 @@
         "translate_target_invalid": "请选择与源语言不同的目标语言",
         "failed_add_contact": "添加联系人失败",
         "ingesting_paper_message": "正在摄取纸质消息...",
-        "failed_ingest_paper": "摄取纸质消息失败",
+        "failed_ingest_paper": "摄取纸质消息失败",        "failed_generate_paper_uri": "生成纸面消息失败",
         "paper_message_detected": "检测到纸质消息",
         "paper_message_detected_desc": "此消息包含可导入会话的已签名 LXMF URI。",
         "paper_message_ingest": "导入消息",

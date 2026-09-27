@@ -36,6 +36,7 @@
         config = null as Record<string, unknown> | null,
         translateOptions = [] as LangOption[],
         hasTranslator = false,
+        canGeneratePaperMessage = false,
         text = $bindable(""),
         replyingTo = $bindable(null as ViewerChatItem | null),
         onjobCreated,
@@ -50,6 +51,7 @@
         config?: Record<string, unknown> | null;
         translateOptions?: LangOption[];
         hasTranslator?: boolean;
+        canGeneratePaperMessage?: boolean;
         text?: string;
         replyingTo?: ViewerChatItem | null;
         onjobCreated?: (job: OutboundJob, optimistic: ReturnType<typeof optimisticMessage>) => void;
@@ -411,6 +413,7 @@
         ontoggleemojipicker={() => pickerHost?.toggleEmojiPicker()}
         ontogglelocation={toggleLocation}
         ontoggletranslate={() => pickerHost?.toggleTranslate()}
+        canGeneratePaperMessage={canGeneratePaperMessage}
         onsendpapercompose={() => onsendpapercompose?.()}
         onenter={composeEnter}
         onshiftenter={() => {

@@ -12,6 +12,7 @@
         compact = false,
         sendingTooltip = "Resolving route to peer (finding path). This can take a while on first contact or after links change. Paths are remembered until they expire.",
         canOpenSendMenu = false,
+        canGeneratePaper = false,
         onsend,
         ondeliverymethodchanged,
         onsendcommandorrequest,
@@ -23,6 +24,7 @@
         compact?: boolean;
         sendingTooltip?: string;
         canOpenSendMenu?: boolean;
+        canGeneratePaper?: boolean;
         onsend?: () => void;
         ondeliverymethodchanged?: (method: string | null) => void;
         onsendcommandorrequest?: () => void;
@@ -223,7 +225,7 @@
                     <button
                         type="button"
                         class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap disabled:opacity-50"
-                        disabled={!canSendMessage}
+                        disabled={!canGeneratePaper}
                         onclick={() => {
                             onsendpapercompose?.();
                             isShowingMenu = false;

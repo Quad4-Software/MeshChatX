@@ -3,6 +3,7 @@
 <script lang="ts">
     import { tick } from "svelte";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import ToastUtils from "../../../js/ToastUtils.js";
     import { t } from "../../../js/i18n.js";
 
     interface Props {
@@ -59,26 +60,30 @@
                 },
             });
             const msg = response?.data?.lxmf_message;
-            if (msg) {
-                messages = [
-                    ...messages,
-                    {
-                        hash: msg.hash,
-                        content: msg.content,
-                        is_outbound: true,
-                        timestamp: msg.created_at,
-                        fields: msg.fields,
-                    },
-                ];
-                // Match the fetch window so the panel does not grow forever.
-                if (messages.length > 40) {
-                    messages = messages.slice(messages.length - 40);
-                }
+            if (!msg) {
+                throw new Error("send response missing lxmf_message");
+            }
+            messages = [
+                ...messages,
+                {
+                    hash: msg.hash,
+                    content: msg.content,
+                    is_outbound: true,
+                    // epoch seconds, same shape the fetch path returns;
+                    // created_at is an ISO string and breaks formatTime.
+                    timestamp: msg.timestamp,
+                    fields: msg.fields,
+                },
+            ];
+            // Match the fetch window so the panel does not grow forever.
+            if (messages.length > 40) {
+                messages = messages.slice(messages.length - 40);
             }
             newMessage = "";
             scrollToBottom();
         } catch (e) {
             console.error("Failed to send message", e);
+            ToastUtils.error(t("messages.failed_to_send"));
         } finally {
             sending = false;
         }

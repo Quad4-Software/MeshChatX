@@ -3914,7 +3914,7 @@
     "settings": {
         "shortcut_saved": "Verknüpfung gespeichert",
         "shortcut_deleted": "Verknüpfung gelöscht",
-        "archived_pages_flushed": "Archivierte Seiten geleert.",
+        "archived_pages_flushed": "Archivierte Seiten geleert.",        "archived_pages_flush_failed": "Archivierte Seiten konnten nicht geleert werden",
         "flush_archived_pages_confirm": "Alle archivierten Seiten löschen? Das kann nicht rückgängig gemacht werden.",
         "outbound_bubble_color": "Ausgehende Farbe",
         "failed_bubble_color": "Fehlerfarbe",
@@ -4742,7 +4742,7 @@
         "translate_target_invalid": "Wählen Sie eine andere Zielsprache als die Quelle",
         "failed_add_contact": "Kontakt konnte nicht hinzugefügt werden",
         "ingesting_paper_message": "Papier-Nachricht wird erfasst...",
-        "failed_ingest_paper": "Papiernachricht konnte nicht eingelesen werden",
+        "failed_ingest_paper": "Papiernachricht konnte nicht eingelesen werden",        "failed_generate_paper_uri": "Papiernachricht konnte nicht erstellt werden",
         "paper_message_detected": "Papiernachricht erkannt",
         "paper_message_detected_desc": "Diese Nachricht enthält eine signierte LXMF-URI, die du in deine Unterhaltungen einlesen kannst.",
         "paper_message_ingest": "Nachricht einlesen",

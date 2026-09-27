@@ -27,6 +27,7 @@
         audio = null as AudioAttachment | null,
         replyingTo = null as ReplyPreview | null,
         canSendMessage = false,
+        canGeneratePaperMessage = false,
         compactSendLayout = false,
         isRecordingAudioAttachment = false,
         audioAttachmentRecordingDuration = "0:00",
@@ -65,6 +66,7 @@
         audio?: AudioAttachment | null;
         replyingTo?: ReplyPreview | null;
         canSendMessage?: boolean;
+        canGeneratePaperMessage?: boolean;
         compactSendLayout?: boolean;
         isRecordingAudioAttachment?: boolean;
         audioAttachmentRecordingDuration?: string;
@@ -296,6 +298,7 @@
                     compact={compactSendLayout}
                     {sendingTooltip}
                     canOpenSendMenu={true}
+                    canGeneratePaper={canGeneratePaperMessage}
                     onsend={() => onsend?.()}
                     ondeliverymethodchanged={(m) => {
                         deliveryMethod = m;

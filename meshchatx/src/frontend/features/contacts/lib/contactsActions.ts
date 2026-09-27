@@ -32,6 +32,7 @@ export type ContactActionRecord = Record<string, unknown> & {
 
 export type AddContactHooks = {
     setPendingLxma: (v: boolean) => void;
+    armPendingLxmaTimeout?: () => void;
     onAdded: () => Promise<void>;
 };
 
@@ -77,8 +78,18 @@ export async function addContactFromInput(
 ): Promise<{ pending: boolean; added?: boolean }> {
     const lxmaData = parseLxmaUri(input);
     if (lxmaData) {
+        const sent = WebSocketConnection.send(
+            JSON.stringify({ type: "lxm.ingest_uri", uri: lxmaData.normalizedUri })
+        );
+        if (!sent) {
+            hooks.setPendingLxma(false);
+            ToastUtils.error(t("contacts.failed_add_contact"));
+            return { pending: false };
+        }
+        // Only mark the import pending once the request is on the wire; the
+        // caller bounds the wait so a dropped reply cannot spin forever.
         hooks.setPendingLxma(true);
-        WebSocketConnection.send(JSON.stringify({ type: "lxm.ingest_uri", uri: lxmaData.normalizedUri }));
+        hooks.armPendingLxmaTimeout?.();
         ToastUtils.info(t("contacts.importing_lxma"));
         return { pending: true };
     }
