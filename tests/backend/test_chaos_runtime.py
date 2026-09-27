@@ -168,7 +168,9 @@ async def test_hotswap_identity_lock_serializes(mock_rns, temp_dir):
 
 
 @pytest.mark.asyncio
-async def test_reload_reticulum_lock_serializes(mock_rns, temp_dir):
+async def test_reload_reticulum_lock_serializes(mock_rns, temp_dir, monkeypatch):
+    from meshchatx.src.backend.lifecycle import reticulum_reload
+
     app = ReticulumMeshChat(
         identity=mock_rns["id_instance"],
         storage_dir=temp_dir,
@@ -177,7 +179,7 @@ async def test_reload_reticulum_lock_serializes(mock_rns, temp_dir):
     in_flight = 0
     max_in_flight = 0
 
-    async def fake_locked():
+    async def fake_locked(_app):
         nonlocal in_flight, max_in_flight
         in_flight += 1
         max_in_flight = max(max_in_flight, in_flight)
@@ -185,7 +187,10 @@ async def test_reload_reticulum_lock_serializes(mock_rns, temp_dir):
         in_flight -= 1
         return "reloaded"
 
-    app._reload_reticulum_locked = fake_locked
+    # On next the reload body is the lifecycle free function, imported per
+    # call inside reload_reticulum(), so patching the module attribute is
+    # the equivalent seam for dev's _reload_reticulum_locked.
+    monkeypatch.setattr(reticulum_reload, "reload_reticulum_instance", fake_locked)
     results = await asyncio.gather(
         app.reload_reticulum(),
         app.reload_reticulum(),

@@ -296,7 +296,7 @@ class _FakeApp:
 
 @pytest.mark.asyncio
 async def test_broadcast_releases_lock_while_sends_are_in_flight():
-    """A stalled client send must not hold the broadcast lock."""
+    """Fan-out holds the lock for ordering, then releases it on completion."""
     slow = _FakeWsClient(delay=0.3)
     app = _FakeApp([slow])
 
@@ -309,10 +309,14 @@ async def test_broadcast_releases_lock_while_sends_are_in_flight():
         async with app._websocket_broadcast_lock:
             return True
 
-    # If the lock were held across send_str, this would wait out the stall.
-    assert await asyncio.wait_for(_try_lock(), timeout=0.1) is True
+    # The lock serializes stamping and sends so seq order matches the order
+    # clients observe, so a contender waits out the in-flight send.
+    with pytest.raises(TimeoutError):
+        await asyncio.wait_for(_try_lock(), timeout=0.1)
     await task
     assert slow.sent
+    # After completion the lock is free again.
+    assert await asyncio.wait_for(_try_lock(), timeout=0.1) is True
 
 
 @pytest.mark.asyncio
