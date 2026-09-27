@@ -65,6 +65,7 @@
     },
     {
         "name": "Heltec LoRa32 v4",
+        "id": 195,
         "platform": 128,
         "firmware_filename": "rnode_firmware_heltec32v4pa.zip",
         "flash_config": {
@@ -79,6 +80,7 @@
         },
         "models": [
             {
+                "id": 200,
                 "name": "868 MHz / 915 MHz / 923 MHz with PA",
                 "mapped_id": null,
                 "flash_config": null,
