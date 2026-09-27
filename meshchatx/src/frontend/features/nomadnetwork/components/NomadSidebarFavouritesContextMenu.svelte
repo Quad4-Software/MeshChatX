@@ -148,7 +148,7 @@
             class="w-full text-left px-3 py-1.5 text-xs hover:bg-sem-surface-muted flex items-center gap-2"
             onclick={() => {
                 navigator.clipboard.writeText(targetFavourite.destination_hash);
-                ToastUtils.success("Address copied to clipboard");
+                ToastUtils.success(t("nomadnet.address_copied"));
                 onclose?.();
             }}
         >
@@ -160,7 +160,7 @@
             class="w-full text-left px-3 py-1.5 text-xs hover:bg-sem-surface-muted flex items-center gap-2"
             onclick={() => {
                 navigator.clipboard.writeText(`nomadnet://${targetFavourite.destination_hash}`);
-                ToastUtils.success("Link copied to clipboard");
+                ToastUtils.success(t("nomadnet.link_copied"));
                 onclose?.();
             }}
         >

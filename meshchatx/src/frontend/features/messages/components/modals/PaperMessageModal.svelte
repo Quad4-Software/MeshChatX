@@ -161,7 +161,7 @@
         if (!dataUrl) return;
         const printWindow = window.open("", "_blank");
         if (!printWindow) {
-            ToastUtils.error("Pop-up blocked. Please allow pop-ups to print.");
+            ToastUtils.error(t("messages.paper_popup_blocked"));
             return;
         }
         printWindow.document.write(`

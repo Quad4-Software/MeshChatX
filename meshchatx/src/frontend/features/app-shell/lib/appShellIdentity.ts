@@ -179,7 +179,7 @@ export async function copyValue(state: AppShellState, value: string, label: stri
     }
     try {
         await navigator.clipboard.writeText(value);
-        ToastUtils.success(`${label} copied`);
+        ToastUtils.success(t("common.copied_label_to_clipboard", { label }));
     } catch {
         ToastUtils.success(value);
     }

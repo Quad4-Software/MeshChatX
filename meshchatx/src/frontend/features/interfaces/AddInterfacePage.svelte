@@ -440,7 +440,7 @@
             newInterfaceName = name;
             applyConfig(iface);
         } catch (err: any) {
-            ToastUtils.showError(err?.message || "Failed to load interface for editing");
+            ToastUtils.showError(err?.message || t("interfaces.load_failed"));
         }
     }
 
@@ -622,7 +622,7 @@
             height: prefill.height ?? null,
         };
         applyConfig(config);
-        ToastUtils.success("Discovered interface settings prefilled");
+        ToastUtils.success(t("interfaces.discovered_prefilled"));
     }
 
     async function quickAddInterfaceFromConfig(config: Record<string, any>) {
@@ -630,19 +630,19 @@
             return;
         }
         if (config.type === "I2PInterface") {
-            ToastUtils.error("I2P interface import not supported via discovered prefill");
+            ToastUtils.error(t("interfaces.i2p_prefill_unsupported"));
             return;
         }
         isSaving = true;
         try {
             const payload = buildPayloadFromImportedConfig(config);
             await window.api.post("/api/v1/reticulum/interfaces/add", payload);
-            ToastUtils.showSuccess(`Imported interface "${config.name}"`);
+            ToastUtils.showSuccess(t("interfaces.imported_name", { name: config.name }));
             GlobalState.hasPendingInterfaceChanges = true;
             GlobalState.modifiedInterfaceNames.add(config.name);
             navigateBack();
         } catch (err: any) {
-            ToastUtils.showError(err?.message || "Failed to import interface");
+            ToastUtils.showError(err?.message || t("interfaces.import_failed"));
         } finally {
             isSaving = false;
         }
@@ -659,7 +659,7 @@
         }
 
         if (form.fixedMtu != null && Number(form.fixedMtu) < 500) {
-            ToastUtils.error("Fixed MTU must be at least 500 bytes");
+            ToastUtils.error(t("interfaces.fixed_mtu_min", { min: 500 }));
             return;
         }
 
@@ -668,7 +668,7 @@
             form.httpMode === "client" &&
             (!form.httpServerUrl || !form.httpServerUrl.trim())
         ) {
-            ToastUtils.error("Server URL is required");
+            ToastUtils.error(t("interfaces.http_tunnel_server_url_required"));
             return;
         }
 
@@ -682,7 +682,7 @@
         if (newInterfaceType === "I2PInterface") {
             const validPeers = form.i2pPeers.map((p) => String(p).trim()).filter(Boolean);
             if (validPeers.length === 0) {
-                ToastUtils.error("I2P peers list cannot be empty");
+                ToastUtils.error(t("interfaces.i2p_peers_required"));
                 return;
             }
         }
@@ -743,9 +743,9 @@
             await saveInterfaceApi(newInterfaceName.trim(), payload, isEditingInterface);
 
             if (isEditingInterface) {
-                ToastUtils.showSuccess(`Saved interface "${newInterfaceName.trim()}"`);
+                ToastUtils.showSuccess(t("interfaces.saved_name", { name: newInterfaceName.trim() }));
             } else {
-                ToastUtils.showSuccess(`Created interface "${newInterfaceName.trim()}"`);
+                ToastUtils.showSuccess(t("interfaces.created_name", { name: newInterfaceName.trim() }));
             }
 
             GlobalState.hasPendingInterfaceChanges = true;
@@ -762,7 +762,7 @@
         savingDiscovery = true;
         try {
             await saveDiscoveryConfigApi(reticulumDiscovery);
-            ToastUtils.showSuccess("Discovery listener preferences saved");
+            ToastUtils.showSuccess(t("interfaces.discovery_settings_saved"));
         } catch (err: any) {
             ToastUtils.showError(err?.message || "Failed to save discovery preferences");
         } finally {
@@ -774,7 +774,7 @@
         customIsBusy = true;
         try {
             await uploadInterfaceModuleApi(file, form.customOverwrite);
-            ToastUtils.showSuccess(`Installed interface module ${file.name}`);
+            ToastUtils.showSuccess(t("interfaces.module_installed_name", { name: file.name }));
             await loadInstalledModules();
         } catch (err: any) {
             ToastUtils.showError(err?.message || "Failed to upload module");
@@ -787,7 +787,7 @@
         if (!confirm(`Delete custom interface module ${typeName}?`)) return;
         try {
             await deleteInterfaceModuleApi(typeName);
-            ToastUtils.showSuccess(`Deleted module ${typeName}`);
+            ToastUtils.showSuccess(t("interfaces.module_deleted_name", { name: typeName }));
             await loadInstalledModules();
         } catch (err: any) {
             ToastUtils.showError(err?.message || "Failed to delete module");

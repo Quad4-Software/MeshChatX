@@ -116,7 +116,7 @@
                 onclick={(e) => {
                     e.stopPropagation();
                     navigator.clipboard.writeText(fav.destination_hash);
-                    ToastUtils.success("Address copied to clipboard");
+                    ToastUtils.success(t("nomadnet.address_copied"));
                 }}
                 role="button"
                 tabindex="0"

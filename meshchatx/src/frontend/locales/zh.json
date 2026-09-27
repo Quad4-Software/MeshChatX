@@ -749,7 +749,8 @@
         "copy_text": "复制文本",
         "settings": "设置",
         "saved": "已保存",
-        "copy_failed": "复制失败"
+        "copy_failed": "复制失败",
+        "copied_label_to_clipboard": "{label} copied to clipboard"
     },
     "rncp": {
         "file_transfer": "文件传输",
@@ -1817,7 +1818,9 @@
         "search_failed": "搜索失败。请检查网络连接后重试。",
         "manifest_warning": "无法读取文档索引文件。将显示可用文件，但不按章节分组。",
         "failed_upload_alert": "上传文档失败：{message}",
-        "empty_state_hint": "上传 Reticulum 手册 ZIP 以便离线查看。发行版在构建时打包离线副本。"
+        "empty_state_hint": "上传 Reticulum 手册 ZIP 以便离线查看。发行版在构建时打包离线副本。",
+        "delete_version_failed": "Failed to delete version",
+        "version_deleted": "Version {version} deleted"
     },
     "rnstatus": {
         "network_diagnostics": "网络诊断",
@@ -2205,7 +2208,9 @@
         "move_to_section": "移动到分组",
         "export_section": "导出分组",
         "delete_section": "删除分组",
-        "add_section_prompt": "输入新分组名称"
+        "add_section_prompt": "输入新分组名称",
+        "address_copied": "Address copied to clipboard",
+        "link_copied": "Link copied to clipboard"
     },
     "gifs": {
         "settings_title": "GIF",
@@ -3030,7 +3035,23 @@
         "kernel_iface_loading": "加载中…",
         "kernel_iface_picker_help": "“设备”为可选，填写一个内核网卡名，或留空仅按 Listen IP 绑定。点击一行填入输入框。",
         "auto_iface_ifname_chips_hint": "本机接口：点击可在上方字段中添加或移除名称。",
-        "aware_permission_failed": "无法在此设备上请求附近设备权限。"
+        "aware_permission_failed": "无法在此设备上请求附近设备权限。",
+        "no_config_entry": "No config entry available for this interface",
+        "config_entry_copied": "Config entry copied to clipboard",
+        "discovered_prefilled": "Discovered interface settings prefilled",
+        "i2p_prefill_unsupported": "I2P interface import not supported via discovered prefill",
+        "enabled_name": "Enabled {name}",
+        "disabled_name": "Disabled {name}",
+        "deleted_name": "Deleted {name}",
+        "exported_name": "Exported {name}",
+        "export_all_success": "Exported all interfaces",
+        "imported_name": "Imported interface {name}",
+        "saved_name": "Saved interface {name}",
+        "created_name": "Created interface {name}",
+        "module_installed_name": "Installed interface module {name}",
+        "module_deleted_name": "Deleted module {name}",
+        "load_failed": "Failed to load interface for editing",
+        "import_failed": "Failed to import interface"
     },
     "about": {
         "title": "关于",
@@ -3621,7 +3642,9 @@
         "location_unavailable": "位置不可用",
         "export_failed": "导出失败",
         "coords_copied": "坐标已复制到剪贴板",
-        "geo_parse_failed": "无法解析该位置"
+        "geo_parse_failed": "无法解析该位置",
+        "bearing_result": "Bearing: {deg} deg ({cardinal})",
+        "mapped_nodes": "Mapped {count} discovered nodes"
     },
     "call": {
         "phone": "电话",
@@ -4089,8 +4112,7 @@
         "search_placeholder": "搜索设置...",
         "no_search_results": "没有与您搜索匹配的设置",
         "try_different_search": "请尝试其他搜索词",
-        "clear_search": "清除搜索",
-        "archived_pages_flush_failed": "清空存档页面失败"
+        "clear_search": "清除搜索"
     },
     "android_storage": {
         "setup_title": "选择MeshChatX存储数据的位置",
@@ -4859,7 +4881,11 @@
         "message_not_found_in_cache": "缓存中未找到消息",
         "scroll_to_bottom": "滚动到底部",
         "copied_to_clipboard": "已复制到剪贴板",
-        "failed_generate_paper_uri": "生成纸面消息失败"
+        "paper_popup_blocked": "Pop-up blocked. Please allow pop-ups to print.",
+        "invalid_manual_coordinates": "Invalid manual coordinates in settings",
+        "command_or_request_sent": "Command or request sent",
+        "unsupported_image_quality": "Unsupported image quality: {quality}",
+        "command_or_request_failed": "Failed to send command/request: {error}"
     },
     "command_palette": {
         "open_hint": "搜索与命令 (Ctrl+K)",
@@ -5102,8 +5128,7 @@
         "collapse_reason": "隐藏失败详情",
         "status_label": "状态",
         "reason_label": "原因",
-        "checks_completed": "所有检查已成功通过。",
-        "cbor_roundtrip": "CBOR Roundtrip"
+        "checks_completed": "所有检查已成功通过。"
     },
     "interface": {
         "disable": "禁用",

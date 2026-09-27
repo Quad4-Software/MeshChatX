@@ -749,7 +749,8 @@
         "copy_text": "Copia testo",
         "settings": "Impostazioni",
         "saved": "Salvato",
-        "copy_failed": "Copia non riuscita"
+        "copy_failed": "Copia non riuscita",
+        "copied_label_to_clipboard": "{label} copied to clipboard"
     },
     "rncp": {
         "file_transfer": "Trasferimento File",
@@ -1817,7 +1818,9 @@
         "search_failed": "Ricerca non riuscita. Controlla la connessione e riprova.",
         "manifest_warning": "Impossibile leggere il file indice della documentazione. Vengono mostrati i file disponibili senza raggruppamento per sezione.",
         "failed_upload_alert": "Caricamento della documentazione non riuscito: {message}",
-        "empty_state_hint": "Carica uno ZIP del manuale Reticulum per consultarlo offline. Le release includono una copia offline inclusa nel build."
+        "empty_state_hint": "Carica uno ZIP del manuale Reticulum per consultarlo offline. Le release includono una copia offline inclusa nel build.",
+        "delete_version_failed": "Failed to delete version",
+        "version_deleted": "Version {version} deleted"
     },
     "rnstatus": {
         "network_diagnostics": "Diagnostica di Rete",
@@ -2205,7 +2208,9 @@
         "move_to_section": "Sposta nella sezione",
         "export_section": "Esporta sezione",
         "delete_section": "Elimina sezione",
-        "add_section_prompt": "Inserisci il nome della nuova sezione"
+        "add_section_prompt": "Inserisci il nome della nuova sezione",
+        "address_copied": "Address copied to clipboard",
+        "link_copied": "Link copied to clipboard"
     },
     "gifs": {
         "settings_title": "GIF",
@@ -3030,7 +3035,23 @@
         "kernel_iface_loading": "Caricamento…",
         "kernel_iface_picker_help": "Il dispositivo è facoltativo: un solo nome di interfaccia del kernel, o lascia vuoto e lega solo con l'IP di ascolto. Clic su una riga per compilare.",
         "auto_iface_ifname_chips_hint": "Interfacce su questo host: clic per aggiungere o rimuovere nomi nel campo sopra.",
-        "aware_permission_failed": "Impossibile richiedere l'autorizzazione per i dispositivi nelle vicinanze su questo dispositivo."
+        "aware_permission_failed": "Impossibile richiedere l'autorizzazione per i dispositivi nelle vicinanze su questo dispositivo.",
+        "no_config_entry": "No config entry available for this interface",
+        "config_entry_copied": "Config entry copied to clipboard",
+        "discovered_prefilled": "Discovered interface settings prefilled",
+        "i2p_prefill_unsupported": "I2P interface import not supported via discovered prefill",
+        "enabled_name": "Enabled {name}",
+        "disabled_name": "Disabled {name}",
+        "deleted_name": "Deleted {name}",
+        "exported_name": "Exported {name}",
+        "export_all_success": "Exported all interfaces",
+        "imported_name": "Imported interface {name}",
+        "saved_name": "Saved interface {name}",
+        "created_name": "Created interface {name}",
+        "module_installed_name": "Installed interface module {name}",
+        "module_deleted_name": "Deleted module {name}",
+        "load_failed": "Failed to load interface for editing",
+        "import_failed": "Failed to import interface"
     },
     "about": {
         "title": "Informazioni",
@@ -3621,7 +3642,9 @@
         "location_unavailable": "Posizione non disponibile",
         "export_failed": "Esportazione non riuscita",
         "coords_copied": "Coordinate copiate negli appunti",
-        "geo_parse_failed": "Impossibile risolvere la posizione"
+        "geo_parse_failed": "Impossibile risolvere la posizione",
+        "bearing_result": "Bearing: {deg} deg ({cardinal})",
+        "mapped_nodes": "Mapped {count} discovered nodes"
     },
     "call": {
         "phone": "Telefono",
@@ -4089,8 +4112,7 @@
         "search_placeholder": "Cerca impostazioni...",
         "no_search_results": "Nessuna impostazione corrisponde alla ricerca",
         "try_different_search": "Prova con una ricerca diversa",
-        "clear_search": "Cancella ricerca",
-        "archived_pages_flush_failed": "Impossibile svuotare le pagine archiviate"
+        "clear_search": "Cancella ricerca"
     },
     "android_storage": {
         "setup_title": "Scegli dove MeshChatX archivia i dati",
@@ -4859,7 +4881,11 @@
         "message_not_found_in_cache": "Messaggio non trovato nella cache",
         "scroll_to_bottom": "Scorri in basso",
         "copied_to_clipboard": "Copiato negli appunti",
-        "failed_generate_paper_uri": "Generazione del messaggio cartaceo non riuscita"
+        "paper_popup_blocked": "Pop-up blocked. Please allow pop-ups to print.",
+        "invalid_manual_coordinates": "Invalid manual coordinates in settings",
+        "command_or_request_sent": "Command or request sent",
+        "unsupported_image_quality": "Unsupported image quality: {quality}",
+        "command_or_request_failed": "Failed to send command/request: {error}"
     },
     "command_palette": {
         "open_hint": "Ricerca e comandi (Ctrl+K)",
@@ -5102,8 +5128,7 @@
         "collapse_reason": "Nascondi dettagli dell’errore",
         "status_label": "Stato",
         "reason_label": "Motivo",
-        "checks_completed": "Tutti i controlli sono stati superati con successo.",
-        "cbor_roundtrip": "CBOR Roundtrip"
+        "checks_completed": "Tutti i controlli sono stati superati con successo."
     },
     "interface": {
         "disable": "Disabilita",

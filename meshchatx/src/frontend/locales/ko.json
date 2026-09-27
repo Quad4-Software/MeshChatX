@@ -749,7 +749,8 @@
         "copy_text": "텍스트 복사",
         "settings": "설정",
         "saved": "저장됨",
-        "copy_failed": "복사 실패"
+        "copy_failed": "복사 실패",
+        "copied_label_to_clipboard": "{label} copied to clipboard"
     },
     "rncp": {
         "file_transfer": "파일 전송",
@@ -1817,7 +1818,9 @@
         "search_failed": "검색에 실패했습니다. 연결을 확인하고 다시 시도하세요.",
         "manifest_warning": "문서 색인 파일을 읽을 수 없습니다. 섹션 그룹화 없이 사용 가능한 파일을 표시합니다.",
         "failed_upload_alert": "문서 업로드 실패: {message}",
-        "empty_state_hint": "Reticulum 매뉴얼 ZIP을 업로드하면 오프라인에서 볼 수 있습니다. 릴리스에는 패키징 시점에 빌드된 오프라인 사본이 포함되어 있습니다."
+        "empty_state_hint": "Reticulum 매뉴얼 ZIP을 업로드하면 오프라인에서 볼 수 있습니다. 릴리스에는 패키징 시점에 빌드된 오프라인 사본이 포함되어 있습니다.",
+        "delete_version_failed": "Failed to delete version",
+        "version_deleted": "Version {version} deleted"
     },
     "rnstatus": {
         "network_diagnostics": "네트워크 진단",
@@ -2205,7 +2208,9 @@
         "move_to_section": "섹션으로 이동",
         "export_section": "섹션 내보내기",
         "delete_section": "섹션 삭제",
-        "add_section_prompt": "새 섹션 이름 입력"
+        "add_section_prompt": "새 섹션 이름 입력",
+        "address_copied": "Address copied to clipboard",
+        "link_copied": "Link copied to clipboard"
     },
     "gifs": {
         "settings_title": "GIF",
@@ -3030,7 +3035,23 @@
         "kernel_iface_loading": "불러오는 중…",
         "kernel_iface_picker_help": "기기는 선택 사항입니다: 커널 인터페이스 이름을 하나 입력하거나, 비워 두면 수신 IP만으로 바인딩합니다. 행을 클릭하면 필드가 채워집니다.",
         "auto_iface_ifname_chips_hint": "이 호스트의 인터페이스: 클릭하여 위 필드에 이름을 추가하거나 제거합니다.",
-        "aware_permission_failed": "이 기기에서 주변 기기 권한을 요청할 수 없습니다."
+        "aware_permission_failed": "이 기기에서 주변 기기 권한을 요청할 수 없습니다.",
+        "no_config_entry": "No config entry available for this interface",
+        "config_entry_copied": "Config entry copied to clipboard",
+        "discovered_prefilled": "Discovered interface settings prefilled",
+        "i2p_prefill_unsupported": "I2P interface import not supported via discovered prefill",
+        "enabled_name": "Enabled {name}",
+        "disabled_name": "Disabled {name}",
+        "deleted_name": "Deleted {name}",
+        "exported_name": "Exported {name}",
+        "export_all_success": "Exported all interfaces",
+        "imported_name": "Imported interface {name}",
+        "saved_name": "Saved interface {name}",
+        "created_name": "Created interface {name}",
+        "module_installed_name": "Installed interface module {name}",
+        "module_deleted_name": "Deleted module {name}",
+        "load_failed": "Failed to load interface for editing",
+        "import_failed": "Failed to import interface"
     },
     "about": {
         "title": "정보",
@@ -3621,7 +3642,9 @@
         "location_unavailable": "위치를 사용할 수 없습니다",
         "export_failed": "내보내기 실패",
         "coords_copied": "좌표가 클립보드에 복사되었습니다",
-        "geo_parse_failed": "해당 위치를 확인할 수 없습니다"
+        "geo_parse_failed": "해당 위치를 확인할 수 없습니다",
+        "bearing_result": "Bearing: {deg} deg ({cardinal})",
+        "mapped_nodes": "Mapped {count} discovered nodes"
     },
     "call": {
         "phone": "전화",
@@ -4089,8 +4112,7 @@
         "search_placeholder": "설정 검색...",
         "no_search_results": "검색과 일치하는 설정이 없습니다",
         "try_different_search": "다른 검색어로 시도해 보세요",
-        "clear_search": "검색 지우기",
-        "archived_pages_flush_failed": "보관된 페이지 비우기에 실패했습니다"
+        "clear_search": "검색 지우기"
     },
     "android_storage": {
         "setup_title": "MeshChatX 데이터 저장 위치 선택",
@@ -4859,7 +4881,11 @@
         "message_not_found_in_cache": "캐시에서 메시지를 찾을 수 없습니다",
         "scroll_to_bottom": "맨 아래로 스크롤",
         "copied_to_clipboard": "클립보드에 복사되었습니다",
-        "failed_generate_paper_uri": "종이 메시지 생성에 실패했습니다"
+        "paper_popup_blocked": "Pop-up blocked. Please allow pop-ups to print.",
+        "invalid_manual_coordinates": "Invalid manual coordinates in settings",
+        "command_or_request_sent": "Command or request sent",
+        "unsupported_image_quality": "Unsupported image quality: {quality}",
+        "command_or_request_failed": "Failed to send command/request: {error}"
     },
     "command_palette": {
         "open_hint": "검색 및 명령 (Ctrl+K)",
@@ -5102,8 +5128,7 @@
         "collapse_reason": "실패 세부 정보 숨기기",
         "status_label": "상태",
         "reason_label": "사유",
-        "checks_completed": "모든 검사가 성공적으로 통과되었습니다.",
-        "cbor_roundtrip": "CBOR Roundtrip"
+        "checks_completed": "모든 검사가 성공적으로 통과되었습니다."
     },
     "interface": {
         "disable": "비활성화",

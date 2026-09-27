@@ -340,10 +340,10 @@
             await enableInterfaceApi(name);
             GlobalState.hasPendingInterfaceChanges = true;
             GlobalState.modifiedInterfaceNames.add(name);
-            ToastUtils.showSuccess(`Enabled ${name}`);
+            ToastUtils.showSuccess(t("interfaces.enabled_name", { name }));
             loadInterfaces();
         } catch (err: any) {
-            ToastUtils.showError(err?.message || `Failed to enable ${name}`);
+            ToastUtils.showError(err?.message || t("interfaces.failed_enable"));
         }
     }
 
@@ -352,10 +352,10 @@
             await disableInterfaceApi(name);
             GlobalState.hasPendingInterfaceChanges = true;
             GlobalState.modifiedInterfaceNames.add(name);
-            ToastUtils.showSuccess(`Disabled ${name}`);
+            ToastUtils.showSuccess(t("interfaces.disabled_name", { name }));
             loadInterfaces();
         } catch (err: any) {
-            ToastUtils.showError(err?.message || `Failed to disable ${name}`);
+            ToastUtils.showError(err?.message || t("interfaces.failed_disable"));
         }
     }
 
@@ -365,10 +365,10 @@
             await deleteInterfaceApi(name);
             GlobalState.hasPendingInterfaceChanges = true;
             GlobalState.modifiedInterfaceNames.delete(name);
-            ToastUtils.showSuccess(`Deleted ${name}`);
+            ToastUtils.showSuccess(t("interfaces.deleted_name", { name }));
             loadInterfaces();
         } catch (err: any) {
-            ToastUtils.showError(err?.message || `Failed to delete ${name}`);
+            ToastUtils.showError(err?.message || t("interfaces.failed_delete"));
         }
     }
 
@@ -376,9 +376,9 @@
         try {
             const data = await exportInterfaceApi(name);
             await DownloadUtils.downloadFile(`interface-${name}.json`, data);
-            ToastUtils.showSuccess(`Exported ${name}`);
+            ToastUtils.showSuccess(t("interfaces.exported_name", { name }));
         } catch (err: any) {
-            ToastUtils.showError(err?.message || `Failed to export ${name}`);
+            ToastUtils.showError(err?.message || t("interfaces.failed_export_single"));
         }
     }
 
@@ -386,9 +386,9 @@
         try {
             const data = await exportAllInterfacesApi();
             await DownloadUtils.downloadFile("interfaces-all.json", data);
-            ToastUtils.showSuccess("Exported all interfaces");
+            ToastUtils.showSuccess(t("interfaces.export_all_success"));
         } catch (err: any) {
-            ToastUtils.showError(err?.message || "Failed to export interfaces");
+            ToastUtils.showError(err?.message || t("interfaces.failed_export_all"));
         }
     }
 
@@ -467,11 +467,11 @@
     function handleCopyDiscoveredConfig(iface: DiscoveredInterface) {
         openDiscoveryActionKey = null;
         if (!iface || !iface.config_entry) {
-            ToastUtils.error("No config entry available for this interface");
+            ToastUtils.error(t("interfaces.no_config_entry"));
             return;
         }
         navigator.clipboard.writeText(iface.config_entry);
-        ToastUtils.success("Config entry copied to clipboard");
+        ToastUtils.success(t("interfaces.config_entry_copied"));
     }
 
     async function handleAddToList(iface: DiscoveredInterface, action: "allow" | "block") {
@@ -520,7 +520,7 @@
 
     function handleCopyText(text: string, label: string) {
         navigator.clipboard.writeText(text);
-        ToastUtils.showSuccess(`Copied ${label} to clipboard`);
+        ToastUtils.showSuccess(t("common.copied_label_to_clipboard", { label }));
     }
 
     function handleGoToMap(iface: DiscoveredInterface) {
