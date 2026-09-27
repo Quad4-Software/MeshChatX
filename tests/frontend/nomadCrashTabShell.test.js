@@ -23,6 +23,15 @@ describe("nomadCrashTabShell", () => {
         expect(url).toContain("nomad-crash-tab.html");
     });
 
+    it("pins the crash-tab URL to the build so stale heuristic caches miss", () => {
+        // In dev __APP_BUILD_TIME__ may be undefined; the URL must still work.
+        const url = nomadCrashTabRendererUrl();
+        expect(url.startsWith("/") || url.startsWith("http")).toBe(true);
+        if (typeof __APP_BUILD_TIME__ !== "undefined" && __APP_BUILD_TIME__) {
+            expect(url).toContain(`v=${encodeURIComponent(__APP_BUILD_TIME__)}`);
+        }
+    });
+
     it("clamps document width so pages do not spawn a body x-scrollbar", () => {
         expect(crashTabHtml).toContain("overflow-x: hidden");
         expect(crashTabHtml).toContain("max-width: 100%");

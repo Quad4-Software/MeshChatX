@@ -5,6 +5,7 @@ import {
     isolateNomadLinksInHtml,
     renderNomadPageByPath,
     renderNomadPageByPathAsync,
+    stripDomClobberingAttributes,
 } from "../../../js/NomadPageRenderer.js";
 import Utils from "../../../js/Utils.js";
 import type { ArchiveItem, NomadRenderOptions } from "./types.js";
@@ -104,12 +105,16 @@ export function renderContentByPath(
         if (dest) {
             out = isolateNomadLinksInHtml(out, dest);
         }
-        return out;
+        return stripDomClobberingAttributes(out);
     }
-    return renderNomadPageByPath(pathPart, content, {}, MicronParser, {
-        ...renderOptions,
-        nomadDestinationHash: dest || renderOptions.nomadDestinationHash,
-    });
+    // Remote markup rendered into the main document must not carry
+    // id/name attributes that could clobber window globals.
+    return stripDomClobberingAttributes(
+        renderNomadPageByPath(pathPart, content, {}, MicronParser, {
+            ...renderOptions,
+            nomadDestinationHash: dest || renderOptions.nomadDestinationHash,
+        })
+    );
 }
 
 /** Render preview snippet HTML safely */
@@ -175,13 +180,15 @@ export async function renderFullContentAsync(
             if (dest) {
                 out = isolateNomadLinksInHtml(out, dest);
             }
-            return out;
+            return stripDomClobberingAttributes(out);
         }
-        return await renderNomadPageByPathAsync(pathPart, archive.content, {}, MicronParser, {
-            ...renderOptions,
-            nomad_micron_wasm_use: wasmActive,
-            nomadDestinationHash: dest || renderOptions.nomadDestinationHash,
-        });
+        return stripDomClobberingAttributes(
+            await renderNomadPageByPathAsync(pathPart, archive.content, {}, MicronParser, {
+                ...renderOptions,
+                nomad_micron_wasm_use: wasmActive,
+                nomadDestinationHash: dest || renderOptions.nomadDestinationHash,
+            })
+        );
     } catch (e) {
         console.error("Archive render failed", e);
         return escapeHtml(archive.content);

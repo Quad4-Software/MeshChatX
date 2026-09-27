@@ -635,6 +635,10 @@
     async function startBearingFromMyLocation() {
         if (!map) return;
         const loc = await resolveMyLocationWgs84({ config: GlobalState.config as any, telemetryList });
+        // the map may have been torn down while the lookup was in flight
+        if (!map) {
+            return;
+        }
         if (!loc) {
             ToastUtils.warning(t("map.location_not_determined"));
             return;

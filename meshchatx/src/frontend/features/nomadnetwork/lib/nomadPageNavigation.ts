@@ -17,6 +17,11 @@ export function parseNomadUrl(rawUrl: string): { destinationHash: string | null;
     if (cleaned.includes(":/page/")) {
         const parts = cleaned.split(":/page/");
         const hash = parts[0].trim();
+        // ensure destination is hex encoded so a path that merely contains
+        // ":/page/" is not parsed as a mesh destination
+        if (!/^[a-fA-F0-9]{32}$/.test(hash)) {
+            return { destinationHash: null, pagePath: null };
+        }
         const path = parts[1] ? `/page/${parts[1].trim()}` : DEFAULT_PAGE_PATH;
         return { destinationHash: hash || null, pagePath: path };
     }
@@ -32,6 +37,9 @@ export function parseNomadUrl(rawUrl: string): { destinationHash: string | null;
     if (cleaned.includes(":")) {
         const parts = cleaned.split(":");
         const hash = parts[0].trim();
+        if (!/^[a-fA-F0-9]{32}$/.test(hash)) {
+            return { destinationHash: null, pagePath: null };
+        }
         const rest = parts.slice(1).join(":").trim();
         const path = rest.startsWith("/page/") ? rest : rest ? `/page/${rest.replace(/^\/+/, "")}` : DEFAULT_PAGE_PATH;
         return { destinationHash: hash || null, pagePath: path };

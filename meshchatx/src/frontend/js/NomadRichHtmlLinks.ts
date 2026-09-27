@@ -130,7 +130,14 @@ export function handleRichHtmlLinkClick(event: MouseEvent, options: RichHtmlLink
     ) {
         stopEvent(event);
         const raw = fragHref.slice(1);
-        scrollToElementId(decodeURIComponent(raw), scrollRoot);
+        let id = raw;
+        try {
+            id = decodeURIComponent(raw);
+        } catch {
+            // malformed percent escapes in remote content must not throw
+            return true;
+        }
+        scrollToElementId(id, scrollRoot);
         return true;
     }
 
