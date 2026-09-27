@@ -21,6 +21,8 @@
         { key: "read_write_good", labelKey: "selftest.read_write" },
         { key: "identity_good", labelKey: "selftest.identity_good" },
         { key: "imports_good", labelKey: "selftest.imports_good" },
+        { key: "umsgpack_roundtrip", labelKey: "selftest.umsgpack_roundtrip" },
+        { key: "cbor_roundtrip", labelKey: "selftest.cbor_roundtrip" },
         { key: "storage_lock_good", labelKey: "selftest.storage_lock_good" },
         { key: "temp_fs_good", labelKey: "selftest.temp_fs_good" },
         { key: "public_assets_good", labelKey: "selftest.public_assets_good" },
