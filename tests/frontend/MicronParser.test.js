@@ -291,11 +291,12 @@ Content at depth 1`;
                 expect(html).toContain("/file/harbour.webp");
             });
 
-            it("falls back to a normal link for non-webp images", () => {
+            it("renders a placeholder for a /file non-webp image", () => {
                 const markup = "`[River valley`:/file/harbour.jpg`img=1]";
                 const html = parser.convertMicronToHtml(markup);
-                expect(html).not.toContain('class="mu-image"');
-                expect(html).toContain('class="Mu-nl"');
+                expect(html).toContain('class="mu-image"');
+                expect(html).toContain('data-mu-image-url=":/file/harbour.jpg"');
+                expect(html).toContain('data-mu-image-alt="River valley"');
             });
 
             it("renders a placeholder for a /media non-webp image", () => {
@@ -354,6 +355,54 @@ Content at depth 1`;
                 expect(html).toContain('data-mu-image-w="8192"');
                 expect(html).toContain('data-mu-image-h="8192"');
                 expect(html).toContain('data-mu-image-s="104857600"');
+            });
+
+            it("renders a placeholder for a NomadNet 1.4 `(alt`props`url) image line", () => {
+                const markup =
+                    "`(rrc-client.jpg`w=n`a=l`:/media/img/forum/40155dab9a63966cfa6288f65a0d8aa3.webp)";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('class="mu-image"');
+                expect(html).toContain('data-mu-image-alt="rrc-client.jpg"');
+                expect(html).toContain(
+                    'data-mu-image-path=":/media/img/forum/40155dab9a63966cfa6288f65a0d8aa3.webp"'
+                );
+                expect(html).toContain('data-mu-image-a="left"');
+                expect(html).toContain("Load image");
+            });
+
+            it("supports percent widths on `( ) image lines", () => {
+                const markup = "`(Meezenest logo`w=25%`a=c`:/media/gfx/logo.webp)";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('class="mu-image"');
+                expect(html).toContain('data-mu-image-w="25%"');
+                expect(html).toContain('data-mu-image-a="center"');
+                expect(html).toContain('data-mu-image-path=":/media/gfx/logo.webp"');
+            });
+
+            it("supports absolute hash and keyed `( ) image URLs", () => {
+                const markup =
+                    "`(Map`w=400`k=map1`9ce92808be498e9e05590ff27cbfdfe4:/media/m.png)";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('class="mu-image"');
+                expect(html).toContain('data-mu-image-w="400"');
+                expect(html).toContain('data-mu-image-k="map1"');
+                expect(html).toContain(
+                    'data-mu-image-path="9ce92808be498e9e05590ff27cbfdfe4:/media/m.png"'
+                );
+            });
+
+            it("allows an empty alt on `( ) image lines", () => {
+                const markup = "`(`:/media/x.webp)";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('class="mu-image"');
+                expect(html).toContain('data-mu-image-path=":/media/x.webp"');
+            });
+
+            it("renders `( lines with no image url as normal text", () => {
+                const markup = "`(not an image line)";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).not.toContain('class="mu-image"');
+                expect(html).toContain("not an image line");
             });
 
             it("truncates long alt text", () => {
