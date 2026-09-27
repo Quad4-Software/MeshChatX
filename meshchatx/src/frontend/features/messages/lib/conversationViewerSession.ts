@@ -203,7 +203,9 @@ export async function runLoadPreviousPage(opts: {
             peerHash,
             myLxmfAddressHash,
             afterId,
-            prefetchedData ?? undefined
+            prefetchedData ?? undefined,
+            // Reactions on this page may target messages loaded earlier.
+            chatItems.map((item) => item.lxmf_message)
         );
         if (!sameHash(peerHash, currentSelectedHash)) {
             return null;

@@ -17,7 +17,7 @@ export function reactionEmojiFromLxmfMessageFields(fields) {
     return "";
 }
 
-export function mergeLxmfReactionRowsIntoMessages(messages) {
+export function mergeLxmfReactionRowsIntoMessages(messages, extraTargets?: any[] | null) {
     if (!Array.isArray(messages)) {
         return [];
     }
@@ -37,14 +37,31 @@ export function mergeLxmfReactionRowsIntoMessages(messages) {
         }
     }
     const byHash = new Map(parents.map((p) => [String(p.hash || "").toLowerCase(), p]));
+    // extraTargets are already-loaded messages (e.g. earlier pages of the open
+    // conversation) that reactions in this batch may point at. They are merged
+    // in place so a cross-page reaction is not silently dropped.
+    const extraByHash = new Map<string, any>();
+    if (Array.isArray(extraTargets)) {
+        for (const target of extraTargets) {
+            if (target && typeof target === "object" && target.hash != null && target.hash !== "") {
+                extraByHash.set(String(target.hash).toLowerCase(), target);
+            }
+        }
+    }
     for (const r of reactions) {
         const targetId = r.reaction_to;
         if (!targetId) {
             continue;
         }
-        const parent = byHash.get(String(targetId).toLowerCase());
+        let parent = byHash.get(String(targetId).toLowerCase());
         if (!parent) {
-            continue;
+            parent = extraByHash.get(String(targetId).toLowerCase());
+            if (!parent) {
+                continue;
+            }
+            if (!Array.isArray(parent.reactions)) {
+                parent.reactions = [];
+            }
         }
         const sender = String(r.reaction_sender || r.source_hash || "");
         const emoji = typeof r.reaction_emoji === "string" ? r.reaction_emoji : "";
