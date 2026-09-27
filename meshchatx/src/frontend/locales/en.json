@@ -749,7 +749,8 @@
         "copy_text": "Copy Text",
         "settings": "Settings",
         "saved": "Saved",
-        "copy_failed": "Copy failed"
+        "copy_failed": "Copy failed",
+        "copied_label_to_clipboard": "{label} copied to clipboard"
     },
     "rncp": {
         "file_transfer": "File Transfer",
@@ -1604,8 +1605,7 @@
             "nfc_reading": "Reader active. Hold the devices back to back.",
             "nfc_join_this": "Join this network",
             "nfc_failed": "NFC operation failed",
-            "satellite_hint": "This device can fall back to a satellite link. It is a slow, metered IP path. Keep interface bitrate and announce caps low on links that might use it.",
-            "permission_failed": "Could not request the Nearby devices permission on this device."
+            "satellite_hint": "This device can fall back to a satellite link. It is a slow, metered IP path. Keep interface bitrate and announce caps low on links that might use it."
         },
         "rnpath_trace": {
             "title": "RNS Path Trace",
@@ -1818,7 +1818,9 @@
         "search_failed": "Search failed. Check your connection and try again.",
         "manifest_warning": "The documentation index file could not be read. Showing available files without section grouping.",
         "failed_upload_alert": "Failed to upload documentation: {message}",
-        "empty_state_hint": "Upload a Reticulum manual ZIP to view it offline. Releases ship a bundled offline copy built at packaging time."
+        "empty_state_hint": "Upload a Reticulum manual ZIP to view it offline. Releases ship a bundled offline copy built at packaging time.",
+        "delete_version_failed": "Failed to delete version",
+        "version_deleted": "Version {version} deleted"
     },
     "rnstatus": {
         "network_diagnostics": "Network Diagnostics",
@@ -2206,7 +2208,9 @@
         "move_to_section": "Move to Section",
         "export_section": "Export Section",
         "delete_section": "Delete Section",
-        "add_section_prompt": "Enter new section name"
+        "add_section_prompt": "Enter new section name",
+        "address_copied": "Address copied to clipboard",
+        "link_copied": "Link copied to clipboard"
     },
     "gifs": {
         "settings_title": "GIFs",
@@ -3032,7 +3036,22 @@
         "kernel_iface_loading": "Loading…",
         "kernel_iface_picker_help": "Device is optional: one kernel interface name, or leave empty to bind using Listen IP only. Click a row to fill the field.",
         "auto_iface_ifname_chips_hint": "This host's interfaces: click to add or remove names in the field above.",
-        "aware_permission_failed": "Could not request the Nearby devices permission on this device."
+        "no_config_entry": "No config entry available for this interface",
+        "config_entry_copied": "Config entry copied to clipboard",
+        "discovered_prefilled": "Discovered interface settings prefilled",
+        "i2p_prefill_unsupported": "I2P interface import not supported via discovered prefill",
+        "enabled_name": "Enabled {name}",
+        "disabled_name": "Disabled {name}",
+        "deleted_name": "Deleted {name}",
+        "exported_name": "Exported {name}",
+        "export_all_success": "Exported all interfaces",
+        "imported_name": "Imported interface {name}",
+        "saved_name": "Saved interface {name}",
+        "created_name": "Created interface {name}",
+        "module_installed_name": "Installed interface module {name}",
+        "module_deleted_name": "Deleted module {name}",
+        "load_failed": "Failed to load interface for editing",
+        "import_failed": "Failed to import interface"
     },
     "about": {
         "title": "About",
@@ -3623,7 +3642,9 @@
         "location_unavailable": "Location unavailable",
         "export_failed": "Export failed",
         "coords_copied": "Coordinates copied to clipboard",
-        "geo_parse_failed": "Could not resolve that location"
+        "geo_parse_failed": "Could not resolve that location",
+        "bearing_result": "Bearing: {deg} deg ({cardinal})",
+        "mapped_nodes": "Mapped {count} discovered nodes"
     },
     "call": {
         "phone": "Phone",
@@ -4091,8 +4112,7 @@
         "search_placeholder": "Search settings...",
         "no_search_results": "No settings found matching your search",
         "try_different_search": "Try a different search query",
-        "clear_search": "Clear search",
-        "archived_pages_flush_failed": "Failed to flush archived pages"
+        "clear_search": "Clear search"
     },
     "android_storage": {
         "setup_title": "Choose where MeshChatX stores data",
@@ -4861,7 +4881,11 @@
         "message_not_found_in_cache": "Message not found in cache",
         "scroll_to_bottom": "Scroll to bottom",
         "copied_to_clipboard": "Copied to clipboard",
-        "failed_generate_paper_uri": "Failed to generate paper message"
+        "paper_popup_blocked": "Pop-up blocked. Please allow pop-ups to print.",
+        "invalid_manual_coordinates": "Invalid manual coordinates in settings",
+        "command_or_request_sent": "Command or request sent",
+        "unsupported_image_quality": "Unsupported image quality: {quality}",
+        "command_or_request_failed": "Failed to send command/request: {error}"
     },
     "command_palette": {
         "open_hint": "Search and commands (Ctrl+K)",
@@ -5104,8 +5128,7 @@
         "collapse_reason": "Hide failure details",
         "status_label": "Status",
         "reason_label": "Reason",
-        "checks_completed": "All checks passed successfully.",
-        "cbor_roundtrip": "CBOR Roundtrip"
+        "checks_completed": "All checks passed successfully."
     },
     "interface": {
         "disable": "Disable",

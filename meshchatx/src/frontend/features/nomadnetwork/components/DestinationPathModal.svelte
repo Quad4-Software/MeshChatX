@@ -25,7 +25,7 @@
     function copyDestinationHash() {
         if (!destinationHash) return;
         navigator.clipboard.writeText(destinationHash);
-        ToastUtils.success("Address copied to clipboard");
+        ToastUtils.success(t("nomadnet.address_copied"));
     }
 </script>
 

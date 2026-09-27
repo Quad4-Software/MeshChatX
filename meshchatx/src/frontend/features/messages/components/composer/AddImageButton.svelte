@@ -77,7 +77,7 @@
                 onaddimage?.(file);
                 break;
             default:
-                ToastUtils.warning(`Unsupported image quality: ${selectedImageQuality}`);
+                ToastUtils.warning(t("messages.unsupported_image_quality", { quality: selectedImageQuality }));
                 break;
         }
         clearImageInput();

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
+import { t } from "../../../js/i18n.js";
 import ToastUtils from "../../../js/ToastUtils.js";
 import Utils from "../../../js/Utils.js";
 import type { PaperPrintOptions } from "./types.js";
@@ -17,7 +18,7 @@ export function printPaperQr({ canvas, destinationHash = "" }: PaperPrintOptions
     }
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-        ToastUtils.error("Pop-up blocked. Please allow pop-ups to print.");
+        ToastUtils.error(t("messages.paper_popup_blocked"));
         return false;
     }
     const safeDataUrl = Utils.escapeHtml(dataUrl);

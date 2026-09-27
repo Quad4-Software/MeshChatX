@@ -118,7 +118,7 @@
                     onclick={(e) => {
                         e.stopPropagation();
                         navigator.clipboard.writeText(node.destination_hash);
-                        ToastUtils.success("Address copied to clipboard");
+                        ToastUtils.success(t("nomadnet.address_copied"));
                     }}
                     role="button"
                     tabindex="0"
@@ -163,7 +163,7 @@
                         class="w-full text-left px-3 py-1.5 text-xs hover:bg-sem-surface-muted flex items-center gap-2"
                         onclick={() => {
                             navigator.clipboard.writeText(node.destination_hash);
-                            ToastUtils.success("Address copied to clipboard");
+                            ToastUtils.success(t("nomadnet.address_copied"));
                         }}
                     >
                         <MaterialDesignIcon iconName="content-copy" class="size-4" />
@@ -174,7 +174,7 @@
                         class="w-full text-left px-3 py-1.5 text-xs hover:bg-sem-surface-muted flex items-center gap-2"
                         onclick={() => {
                             navigator.clipboard.writeText(`nomadnet://${node.destination_hash}`);
-                            ToastUtils.success("Link copied to clipboard");
+                            ToastUtils.success(t("nomadnet.link_copied"));
                         }}
                     >
                         <MaterialDesignIcon iconName="link" class="size-4" />

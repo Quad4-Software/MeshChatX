@@ -749,7 +749,8 @@
         "copy_text": "Kopioi teksti",
         "settings": "Asetukset",
         "saved": "Tallennettu",
-        "copy_failed": "Kopiointi epäonnistui"
+        "copy_failed": "Kopiointi epäonnistui",
+        "copied_label_to_clipboard": "{label} copied to clipboard"
     },
     "rncp": {
         "file_transfer": "Tiedostonsiirto",
@@ -1604,8 +1605,7 @@
             "nfc_reading": "Lukija aktiivinen. Pidä laitteet selästä vastakkain.",
             "nfc_join_this": "Liity tähän verkkoon",
             "nfc_failed": "NFC-toiminto epäonnistui",
-            "satellite_hint": "Tämä laite voi turvautua satelliittiyhteyteen. Se on hidas, mitattu IP-reitti. Pidä rajapinnan bittinopeus ja announce-rajat alhaisina linkeillä, jotka saattavat käyttää sitä.",
-            "permission_failed": "Lähilaitteiden lupaa ei voitu pyytää tällä laitteella."
+            "satellite_hint": "Tämä laite voi turvautua satelliittiyhteyteen. Se on hidas, mitattu IP-reitti. Pidä rajapinnan bittinopeus ja announce-rajat alhaisina linkeillä, jotka saattavat käyttää sitä."
         },
         "rnpath_trace": {
             "title": "RNS-polun jäljitys",
@@ -1818,7 +1818,9 @@
         "search_failed": "Haku epäonnistui. Tarkista yhteys ja yritä uudelleen.",
         "manifest_warning": "Dokumentaatioindeksiä ei voitu lukea. Näytetään saatavilla olevat tiedostot ilman osioryhmittelyä.",
         "failed_upload_alert": "Dokumentaation lataus epäonnistui: {message}",
-        "empty_state_hint": "Tuo Reticulum-ohjekirjan ZIP paikallista käyttöä varten. Julkaisut sisältävät buildissa pakatun offline-kopion."
+        "empty_state_hint": "Tuo Reticulum-ohjekirjan ZIP paikallista käyttöä varten. Julkaisut sisältävät buildissa pakatun offline-kopion.",
+        "delete_version_failed": "Failed to delete version",
+        "version_deleted": "Version {version} deleted"
     },
     "rnstatus": {
         "network_diagnostics": "Verkkodiagnostiikka",
@@ -2206,7 +2208,9 @@
         "move_to_section": "Siirrä osioon",
         "export_section": "Vie osio",
         "delete_section": "Poista osio",
-        "add_section_prompt": "Anna uuden osion nimi"
+        "add_section_prompt": "Anna uuden osion nimi",
+        "address_copied": "Address copied to clipboard",
+        "link_copied": "Link copied to clipboard"
     },
     "gifs": {
         "settings_title": "GIFit",
@@ -3032,7 +3036,22 @@
         "kernel_iface_loading": "Ladataan…",
         "kernel_iface_picker_help": "Laite on valinnainen: yksi ytimen sovitinnimi, tai jätä tyhjäksi sitoaksesi ainoastaan kuuntelu-IP:n välityksellä. Klikkaa riviä täyttääksesi kentän.",
         "auto_iface_ifname_chips_hint": "Tämän isännän sovittimet: klikkaa lisätäksesi tai poistaaksesi nimiä yllä olevista kentistä.",
-        "aware_permission_failed": "Lähilaitteiden lupaa ei voitu pyytää tällä laitteella."
+        "no_config_entry": "No config entry available for this interface",
+        "config_entry_copied": "Config entry copied to clipboard",
+        "discovered_prefilled": "Discovered interface settings prefilled",
+        "i2p_prefill_unsupported": "I2P interface import not supported via discovered prefill",
+        "enabled_name": "Enabled {name}",
+        "disabled_name": "Disabled {name}",
+        "deleted_name": "Deleted {name}",
+        "exported_name": "Exported {name}",
+        "export_all_success": "Exported all interfaces",
+        "imported_name": "Imported interface {name}",
+        "saved_name": "Saved interface {name}",
+        "created_name": "Created interface {name}",
+        "module_installed_name": "Installed interface module {name}",
+        "module_deleted_name": "Deleted module {name}",
+        "load_failed": "Failed to load interface for editing",
+        "import_failed": "Failed to import interface"
     },
     "about": {
         "title": "Tietoja",
@@ -3623,7 +3642,9 @@
         "location_unavailable": "Sijainti ei ole käytettävissä",
         "export_failed": "Vienti epäonnistui",
         "coords_copied": "Koordinaatit kopioitu leikepöydälle",
-        "geo_parse_failed": "Sijaintia ei voitu selvittää"
+        "geo_parse_failed": "Sijaintia ei voitu selvittää",
+        "bearing_result": "Bearing: {deg} deg ({cardinal})",
+        "mapped_nodes": "Mapped {count} discovered nodes"
     },
     "call": {
         "phone": "Puhelin",
@@ -4091,8 +4112,7 @@
         "search_placeholder": "Hae asetuksista...",
         "no_search_results": "Hakua vastaavia asetuksia ei löytynyt",
         "try_different_search": "Kokeile toista hakuehtoa",
-        "clear_search": "Tyhjennä haku",
-        "archived_pages_flush_failed": "Arkiston tyhjennys epäonnistui"
+        "clear_search": "Tyhjennä haku"
     },
     "android_storage": {
         "setup_title": "Valitse, mihin MeshChatX tallentaa tiedot",
@@ -4861,7 +4881,11 @@
         "message_not_found_in_cache": "Viestiä ei löytynyt välimuistista",
         "scroll_to_bottom": "Vieritä alas",
         "copied_to_clipboard": "Kopioitu leikepöydälle",
-        "failed_generate_paper_uri": "Paperiviestin luonti epäonnistui"
+        "paper_popup_blocked": "Pop-up blocked. Please allow pop-ups to print.",
+        "invalid_manual_coordinates": "Invalid manual coordinates in settings",
+        "command_or_request_sent": "Command or request sent",
+        "unsupported_image_quality": "Unsupported image quality: {quality}",
+        "command_or_request_failed": "Failed to send command/request: {error}"
     },
     "command_palette": {
         "open_hint": "Haku ja komennot (Ctrl+K)",
@@ -5104,8 +5128,7 @@
         "collapse_reason": "Piilota virheen tiedot",
         "status_label": "Tila",
         "reason_label": "Syy",
-        "checks_completed": "Kaikki tarkistukset suoritettiin onnistuneesti.",
-        "cbor_roundtrip": "CBOR Roundtrip"
+        "checks_completed": "Kaikki tarkistukset suoritettiin onnistuneesti."
     },
     "interface": {
         "disable": "Älä käytä",

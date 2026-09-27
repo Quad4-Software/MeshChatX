@@ -609,7 +609,7 @@
         const lonLat1 = toLonLat(startMapCoord);
         const lonLat2 = toLonLat(endMapCoord);
         const az = calculateAzimuth(lonLat1[0], lonLat1[1], lonLat2[0], lonLat2[1]);
-        ToastUtils.success(`Bearing: ${az.deg}° (${az.cardinal})`);
+        ToastUtils.success(t("map.bearing_result", { deg: az.deg, cardinal: az.cardinal }));
         removeBearingPreview();
         stopBearingMode();
     }
@@ -1052,7 +1052,7 @@
             discoveredSource.clear();
             discoveredSource.addFeatures(createDiscoveredFeatures(withLoc));
             discoveredVisible = true;
-            ToastUtils.success(`Mapped ${withLoc.length} discovered nodes`);
+            ToastUtils.success(t("map.mapped_nodes", { count: withLoc.length }));
         } catch {
             ToastUtils.error(t("map.failed_fetch_nodes"));
         }

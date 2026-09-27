@@ -236,10 +236,10 @@
         try {
             await deleteDocsVersion(version);
             await fetchStatus();
-            ToastUtils.success(`Version ${version} deleted`);
+            ToastUtils.success(t("docs.version_deleted", { version }));
         } catch (error: any) {
             console.error("Failed to delete docs version:", error);
-            ToastUtils.error("Failed to delete version: " + (error.response?.data?.error || error.message));
+            ToastUtils.error(t("docs.delete_version_failed") + ": " + (error.response?.data?.error || error.message));
         }
     }
 

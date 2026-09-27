@@ -180,7 +180,7 @@
             const lat = parseFloat(String(config?.location_manual_lat ?? ""));
             const lon = parseFloat(String(config?.location_manual_lon ?? ""));
             if (isNaN(lat) || isNaN(lon)) {
-                ToastUtils.error("Invalid manual coordinates in settings", 5000, toastKey);
+                ToastUtils.error(t("messages.invalid_manual_coordinates"), 5000, toastKey);
                 return;
             }
             appendLocationMapUri(lat, lon);
@@ -308,10 +308,10 @@
             });
             text = "";
             pendingSendAsCommandOrRequest = false;
-            ToastUtils.success("Command or request sent");
+            ToastUtils.success(t("messages.command_or_request_sent"));
         } catch (e) {
             console.log(e);
-            ToastUtils.error(`Failed to send command/request: ${(e as Error)?.message || e}`);
+            ToastUtils.error(t("messages.command_or_request_failed", { error: (e as Error)?.message || e }));
         }
     }
 

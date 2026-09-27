@@ -749,7 +749,8 @@
         "copy_text": "Metni Kopyala",
         "settings": "Ayarlar",
         "saved": "Kaydedildi",
-        "copy_failed": "Kopyalama başarısız oldu"
+        "copy_failed": "Kopyalama başarısız oldu",
+        "copied_label_to_clipboard": "{label} copied to clipboard"
     },
     "rncp": {
         "file_transfer": "Dosya Aktarımı",
@@ -1817,7 +1818,9 @@
         "search_failed": "Arama başarısız oldu. Bağlantını kontrol edip tekrar dene.",
         "manifest_warning": "Belge dizin dosyası okunamadı. Mevcut dosyalar bölüm gruplaması olmadan gösteriliyor.",
         "failed_upload_alert": "Belgeler yüklenemedi: {message}",
-        "empty_state_hint": "Çevrimdışı görüntülemek için bir Reticulum kılavuz ZIP'i yükleyin. Sürümler, paketleme sırasında oluşturulan paketlenmiş bir çevrimdışı kopyayla gelir."
+        "empty_state_hint": "Çevrimdışı görüntülemek için bir Reticulum kılavuz ZIP'i yükleyin. Sürümler, paketleme sırasında oluşturulan paketlenmiş bir çevrimdışı kopyayla gelir.",
+        "delete_version_failed": "Failed to delete version",
+        "version_deleted": "Version {version} deleted"
     },
     "rnstatus": {
         "network_diagnostics": "Ağ Tanılaması",
@@ -2205,7 +2208,9 @@
         "move_to_section": "Bölüme Taşı",
         "export_section": "Bölümü Dışa Aktar",
         "delete_section": "Bölümü Sil",
-        "add_section_prompt": "Yeni bölüm adını girin"
+        "add_section_prompt": "Yeni bölüm adını girin",
+        "address_copied": "Address copied to clipboard",
+        "link_copied": "Link copied to clipboard"
     },
     "gifs": {
         "settings_title": "GIF'ler",
@@ -3030,7 +3035,23 @@
         "kernel_iface_loading": "Yükleniyor…",
         "kernel_iface_picker_help": "Cihaz isteğe bağlıdır: bir çekirdek arayüz adı veya yalnızca Dinleme IP'siyle bağlanmak için boş bırakın. Alanı doldurmak için bir satıra tıklayın.",
         "auto_iface_ifname_chips_hint": "Bu ana makinenin arayüzleri: yukarıdaki alana ad eklemek veya çıkarmak için tıklayın.",
-        "aware_permission_failed": "Bu cihazda Yakındaki cihazlar izni istenemedi."
+        "aware_permission_failed": "Bu cihazda Yakındaki cihazlar izni istenemedi.",
+        "no_config_entry": "No config entry available for this interface",
+        "config_entry_copied": "Config entry copied to clipboard",
+        "discovered_prefilled": "Discovered interface settings prefilled",
+        "i2p_prefill_unsupported": "I2P interface import not supported via discovered prefill",
+        "enabled_name": "Enabled {name}",
+        "disabled_name": "Disabled {name}",
+        "deleted_name": "Deleted {name}",
+        "exported_name": "Exported {name}",
+        "export_all_success": "Exported all interfaces",
+        "imported_name": "Imported interface {name}",
+        "saved_name": "Saved interface {name}",
+        "created_name": "Created interface {name}",
+        "module_installed_name": "Installed interface module {name}",
+        "module_deleted_name": "Deleted module {name}",
+        "load_failed": "Failed to load interface for editing",
+        "import_failed": "Failed to import interface"
     },
     "about": {
         "title": "Hakkında",
@@ -3621,7 +3642,9 @@
         "location_unavailable": "Konum kullanılamıyor",
         "export_failed": "Dışa aktarma başarısız oldu",
         "coords_copied": "Koordinatlar panoya kopyalandı",
-        "geo_parse_failed": "Bu konum çözümlenemedi"
+        "geo_parse_failed": "Bu konum çözümlenemedi",
+        "bearing_result": "Bearing: {deg} deg ({cardinal})",
+        "mapped_nodes": "Mapped {count} discovered nodes"
     },
     "call": {
         "phone": "Telefon",
@@ -4089,8 +4112,7 @@
         "search_placeholder": "Ayarları ara...",
         "no_search_results": "Aramanla eşleşen ayar bulunamadı",
         "try_different_search": "Farklı bir arama sorgusu dene",
-        "clear_search": "Aramayı temizle",
-        "archived_pages_flush_failed": "Arşivlenen sayfalar temizlenemedi"
+        "clear_search": "Aramayı temizle"
     },
     "android_storage": {
         "setup_title": "MeshChatX'in verileri nerede saklayacağını seç",
@@ -4859,7 +4881,11 @@
         "message_not_found_in_cache": "İleti önbellekte bulunamadı",
         "scroll_to_bottom": "En alta kaydır",
         "copied_to_clipboard": "Panoya kopyalandı",
-        "failed_generate_paper_uri": "Kağıt mesaj oluşturulamadı"
+        "paper_popup_blocked": "Pop-up blocked. Please allow pop-ups to print.",
+        "invalid_manual_coordinates": "Invalid manual coordinates in settings",
+        "command_or_request_sent": "Command or request sent",
+        "unsupported_image_quality": "Unsupported image quality: {quality}",
+        "command_or_request_failed": "Failed to send command/request: {error}"
     },
     "command_palette": {
         "open_hint": "Ara ve komutlar (Ctrl+K)",
@@ -5102,8 +5128,7 @@
         "collapse_reason": "Başarısızlık ayrıntılarını gizle",
         "status_label": "Durum",
         "reason_label": "Neden",
-        "checks_completed": "Tüm kontroller başarıyla geçti.",
-        "cbor_roundtrip": "CBOR Roundtrip"
+        "checks_completed": "Tüm kontroller başarıyla geçti."
     },
     "interface": {
         "disable": "Devre dışı bırak",
