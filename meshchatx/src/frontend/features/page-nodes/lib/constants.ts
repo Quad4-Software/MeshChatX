@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 /** Default periodic announce interval in seconds (15 minutes) */
-export const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
+export const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 21600;
 
 /** Minimum allowed announce interval in minutes */
 export const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;

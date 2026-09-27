@@ -16,7 +16,7 @@ export const BTN_DANGER_SM =
 export const NAME_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899"];
 
 export const LOAD_PREVIOUS_SCROLL_EDGE_PX = 200;
-export const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
+export const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 21600;
 export const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
 export const ANNOUNCE_INTERVAL_MAX_MINUTES = 1440;
 export const MIN_VIRTUAL_RELAY_ENTRIES = 150;

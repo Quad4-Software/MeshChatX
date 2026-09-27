@@ -9,7 +9,7 @@ export const MAX_MAP_ZOOM = 19;
 export const MIN_MAP_ZOOM = 0;
 
 export const MAP_DATA_ASPECT = "map-data-v1";
-export const MAP_ANNOUNCE_INTERVAL = 900;
+export const MAP_ANNOUNCE_INTERVAL = 21600;
 
 export const MAX_EXPORT_TILES = 200000;
 export const WORLD_MBTILES_BBOX: [number, number, number, number] = [-180, -85.051129, 180, 85.051129];

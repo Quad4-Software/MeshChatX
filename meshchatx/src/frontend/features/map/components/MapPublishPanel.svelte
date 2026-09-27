@@ -4,6 +4,7 @@
     import { onMount } from "svelte";
     import ToastUtils from "../../../js/ToastUtils.js";
     import { t } from "../../../js/i18n.js";
+    import { MAP_ANNOUNCE_INTERVAL } from "../lib/constants.js";
 
     interface Props {
         drawSource?: any;
@@ -13,7 +14,7 @@
 
     let displayName = $state("Maps");
     let announceEnabled = $state(false);
-    let announceInterval = $state(900);
+    let announceInterval = $state(MAP_ANNOUNCE_INTERVAL);
     let published = $state<any[]>([]);
     let strippedPreview = $state<string[]>([]);
     let publishing = $state(false);
@@ -58,7 +59,7 @@
             const s = status.data || {};
             displayName = s.display_name || "Maps";
             announceEnabled = Boolean(s.announce_enabled);
-            announceInterval = s.announce_interval || 900;
+            announceInterval = s.announce_interval || MAP_ANNOUNCE_INTERVAL;
             const listed = await api.get("/api/v1/map/data/published");
             published = listed.data?.maps || [];
         } catch {
