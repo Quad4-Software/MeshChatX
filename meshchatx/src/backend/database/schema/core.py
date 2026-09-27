@@ -2,7 +2,7 @@
 
 import re
 
-from ..provider import DatabaseProvider
+from meshchatx.src.backend.database.provider import DatabaseProvider
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 

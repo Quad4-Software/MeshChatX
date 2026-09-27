@@ -666,8 +666,7 @@ def cmd_apply(args: argparse.Namespace) -> int:
                 if e2 and e2[0] == "import":
                     shared_ids.add(id(e2[1]))
             first = min(
-                [node.lineno]
-                + [d.lineno for d in getattr(node, "decorator_list", [])]
+                [node.lineno] + [d.lineno for d in getattr(node, "decorator_list", [])]
             )
             shared_body.append(
                 _slice(lines, _attached_comment_start(lines, first), node.end_lineno)

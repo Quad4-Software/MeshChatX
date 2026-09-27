@@ -1354,7 +1354,9 @@ def _identity_from_public_key_bytes(public_key: bytes) -> RNS.Identity | None:
     return identity
 
 
-def rebuild_paper_uri_from_db_lxmf_message(app, db_row) -> tuple[str | None, str | None]:
+def rebuild_paper_uri_from_db_lxmf_message(
+    app, db_row
+) -> tuple[str | None, str | None]:
     """Rebuild an lxm:// paper URI for a stored outbound message.
 
     The router only keeps packed bytes while a message is queued, so delivered

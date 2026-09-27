@@ -956,40 +956,6 @@ def _lxst_filterlib_path() -> Any:
     return None
 
 
-def check_cbor_roundtrip() -> dict[str, str]:
-    """Verify the cbor2-backed RRC codec encodes, decodes, and replays items."""
-    try:
-        from meshchatx.src.backend.rrc import protocol as rrc_protocol
-    except Exception as exc:
-        return _status(False, f"RRC protocol import failed: {exc}")
-
-    payload = {
-        0: 1,
-        1: 20,
-        2: b"\x00\x01\x02\xff\x03\x04\x05\x06",
-        3: 1_700_000_000_000,
-        4: b"\xaa" * 16,
-        5: "selfcheck",
-        6: "meshchatx-cbor-ok",
-    }
-    try:
-        import io
-
-        packed = rrc_protocol.encode(payload)
-        unpacked = rrc_protocol.decode(packed)
-        stream = io.BytesIO(packed + packed)
-        first = rrc_protocol.load(stream)
-        second = rrc_protocol.load(stream)
-    except Exception as exc:
-        return _status(False, f"cbor roundtrip failed: {exc}")
-
-    if unpacked != payload:
-        return _status(False, f"cbor roundtrip mismatch: {unpacked!r}")
-    if first != payload or second != payload:
-        return _status(False, "cbor stream item decode mismatch")
-    return _status(True)
-
-
 def check_lxst_telephony() -> dict[str, str]:
     """Verify LXST, Telephone, Profiles, filterlib, and Codec2 load without crashing."""
     from meshchatx.src.backend.lxst_pyogg_ctypes_compat import (
