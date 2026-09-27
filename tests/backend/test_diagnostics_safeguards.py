@@ -154,7 +154,7 @@ class TestCrashRecoveryThreadHook(unittest.TestCase):
         orig_default = sys.__excepthook__
         sys.__excepthook__ = fake_default
         try:
-            self.recovery._handling = True
+            self.recovery._local.handling = True
             self.recovery.handle_exception(
                 ValueError,
                 ValueError("x"),
@@ -164,7 +164,7 @@ class TestCrashRecoveryThreadHook(unittest.TestCase):
             self.assertEqual(calls["default"], 1)
         finally:
             sys.__excepthook__ = orig_default
-            self.recovery._handling = False
+            self.recovery._local.handling = False
 
 
 class TestHealthMonitorStop(unittest.TestCase):
