@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: 0BSD
 
-import { apiPath } from "./constants.js";
-
 export type FatalErrorKind = "frontend" | "backend";
 
 export type FatalErrorRecord = {
@@ -41,35 +39,6 @@ export function buildFatalErrorRecord(
 
 export function reportFatalError(payload: Partial<FatalErrorRecord> & { kind: FatalErrorKind; message: string }): void {
     fatalErrorState.active = buildFatalErrorRecord(payload);
-    void recordFatalErrorLocally(fatalErrorState.active);
-}
-
-export async function recordFatalErrorLocally(
-    record: FatalErrorRecord | null | undefined
-): Promise<Record<string, unknown> | null> {
-    if (!record || typeof window === "undefined" || !window.api?.post) {
-        return null;
-    }
-    try {
-        const response = await window.api.post(apiPath("/bug-reports/local"), {
-            title: record.title || record.message,
-            description: record.details || record.context || "",
-            exception: {
-                type: record.kind === "backend" ? "BackendError" : "FrontendError",
-                value: record.message,
-                stack: record.stack || "",
-            },
-            source: record.kind === "backend" ? "backend" : "frontend",
-            kind: "exception",
-            meta: {
-                context: record.context || "",
-            },
-            force: true,
-        });
-        return response?.data || null;
-    } catch {
-        return null;
-    }
 }
 
 export function reportBootFailure(

@@ -7,11 +7,11 @@ export function registerPluginsFeature(): void {
         id: "plugins",
         routes: [
             {
-                name: "plugin-mcx-bugs",
-                path: "/plugins/com.meshchatx.mcx-bugs",
+                name: "plugin-mcx-hello",
+                path: "/plugins/com.meshchatx.mcx-hello",
                 mount: "svelte",
                 load: () => import("./PluginPage.svelte"),
-                routeProps: { pluginId: "com.meshchatx.mcx-bugs" },
+                routeProps: { pluginId: "com.meshchatx.mcx-hello" },
             },
             {
                 name: "plugin-view",

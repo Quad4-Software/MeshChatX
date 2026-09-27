@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
-import { formatFatalErrorReport, recordFatalErrorLocally, type FatalErrorRecord } from "../../../js/fatalErrorState.js";
+import { formatFatalErrorReport, type FatalErrorRecord } from "../../../js/fatalErrorState.js";
 import { copyTextToClipboard } from "../../../js/clipboardUtils.js";
-import { BUGS_PLUGIN_FALLBACK_HASH, BUGS_PLUGIN_ROUTE_NAME } from "./constants.js";
 
 export interface FatalErrorSummary {
     kind: "backend" | "frontend";
@@ -34,34 +33,6 @@ export function resolveFatalErrorSummary(
         detailBody,
         hasDetails,
     };
-}
-
-/**
- * Save report locally and navigate to the bugs plugin
- */
-export async function reportFatalErrorLocally(
-    error: FatalErrorRecord | null | undefined,
-    router?: { push?: (target: { name: string }) => void }
-): Promise<boolean> {
-    if (!error) {
-        return false;
-    }
-    const normalized: FatalErrorRecord = {
-        ...error,
-        timestamp: typeof error.timestamp === "number" ? error.timestamp : Date.now(),
-    };
-    const result = await recordFatalErrorLocally(normalized);
-    if (!result?.ok) {
-        return false;
-    }
-    try {
-        router?.push?.({ name: BUGS_PLUGIN_ROUTE_NAME });
-    } catch {
-        if (typeof window !== "undefined") {
-            window.location.hash = BUGS_PLUGIN_FALLBACK_HASH;
-        }
-    }
-    return true;
 }
 
 /**
