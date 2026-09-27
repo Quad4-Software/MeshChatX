@@ -104,7 +104,7 @@
     // Bounds the in-memory window during deep scroll-back. Dropped tail entries
     // are refetched when the user scrolls back to the newest edge.
     const MAX_RELAY_MESSAGES = 2000;
-    const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
+    const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 21600;
 
     const isPopoutMode = $derived(isPopout === true || getCurrentRoute()?.meta?.isPopout === true);
 
