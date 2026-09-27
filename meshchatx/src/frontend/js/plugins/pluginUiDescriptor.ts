@@ -128,18 +128,30 @@ export function validateUiDescriptor(descriptor: unknown, options: UiValidateOpt
         if (Array.isArray(record.items)) {
             childLists.push(record.items);
         }
-        if (Array.isArray(record.tabs)) {
-            childLists.push(record.tabs);
+        // tabs entries are {id, label} definitions, not nodes.
+        // panels entries are {id, children} containers, or a node when type is set.
+        if (type === "tabs" && Array.isArray(record.panels)) {
+            for (const panel of record.panels) {
+                if (panel && typeof panel === "object" && !Array.isArray(panel)) {
+                    if (panel.type) {
+                        childLists.push([panel]);
+                    } else if (Array.isArray(panel.children)) {
+                        childLists.push(panel.children);
+                    }
+                }
+            }
         }
-        if (Array.isArray(record.panels)) {
-            childLists.push(record.panels);
-        }
-        if (Array.isArray(record.rows)) {
+        if (type === "table" && Array.isArray(record.rows)) {
             for (const row of record.rows) {
-                if (Array.isArray(row)) {
-                    childLists.push(row);
-                } else if (row && typeof row === "object" && Array.isArray((row as { cells?: unknown }).cells)) {
-                    childLists.push((row as { cells: unknown[] }).cells);
+                const cells = Array.isArray(row)
+                    ? row
+                    : row && typeof row === "object" && Array.isArray((row as { cells?: unknown }).cells)
+                      ? (row as { cells: unknown[] }).cells
+                      : null;
+                if (cells) {
+                    // Cells may be primitives rendered as text; only node
+                    // objects get walked.
+                    childLists.push(cells.filter((cell) => cell && typeof cell === "object"));
                 }
             }
         }

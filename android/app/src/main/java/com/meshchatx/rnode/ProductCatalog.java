@@ -123,14 +123,20 @@ public final class ProductCatalog {
         JSONArray arr = new JSONArray(json);
         List<Product> products = new ArrayList<>();
         for (int i = 0; i < arr.length(); i++) {
-            JSONObject obj = arr.getJSONObject(i);
+            JSONObject obj = arr.optJSONObject(i);
+            if (obj == null || !obj.has("name") || !obj.has("id") || !obj.has("platform")) {
+                continue;
+            }
             Map<String, String> flashFiles = readFlashFiles(obj.optJSONObject("flash_config"));
             String flashSize = readFlashSize(obj.optJSONObject("flash_config"));
             List<Model> models = new ArrayList<>();
             JSONArray modelsArr = obj.optJSONArray("models");
             if (modelsArr != null) {
                 for (int j = 0; j < modelsArr.length(); j++) {
-                    JSONObject m = modelsArr.getJSONObject(j);
+                    JSONObject m = modelsArr.optJSONObject(j);
+                    if (m == null || !m.has("id") || !m.has("name")) {
+                        continue;
+                    }
                     Integer mapped = m.has("mapped_id") && !m.isNull("mapped_id")
                         ? m.getInt("mapped_id")
                         : null;

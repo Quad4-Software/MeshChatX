@@ -244,6 +244,8 @@ export async function requestNearbyPermission(state: NearbyState, bridge: Androi
             await loadCapabilities(state, bridge);
         } else if (result === "settings") {
             ToastUtils.warning(t("tools.nearby.permission_settings"));
+        } else if (result !== "requested") {
+            ToastUtils.warning(t("tools.nearby.permission_failed"));
         }
     } finally {
         state.requestingPermission = false;

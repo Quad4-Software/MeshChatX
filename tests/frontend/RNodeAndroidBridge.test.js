@@ -150,6 +150,36 @@ describe("AndroidBridge", () => {
         expect(ab.setRemoteBackendUrlAndRestart("http://192.168.1.10:9337")).toBe("unsupported");
     });
 
+    it("still reaches the bridge when the wrapper lives in reactive state", async () => {
+        // Framework reactive wrappers (Vue reactive(), Svelte $state) proxy
+        // nested objects lazily on access. The WebView only invokes bridge
+        // methods on the injected object itself, so a proxied receiver used
+        // to throw and safeCall returned a silent "unsupported".
+        const rawBridge = {};
+        const needsRaw = (name, value) =>
+            vi.fn(function () {
+                if (this !== rawBridge) {
+                    throw new Error("Java bridge method can't be invoked on a non-injected object");
+                }
+                return value;
+            });
+        rawBridge.hasNearbyWifiPermissions = needsRaw("hasNearbyWifiPermissions", false);
+        rawBridge.requestNearbyWifiPermissions = needsRaw("requestNearbyWifiPermissions", "requested");
+        rawBridge.openRNodeFlasher = needsRaw("openRNodeFlasher", "ok");
+        // Emulate a reactive wrapper: property reads return wrapped objects.
+        const proxied = new Proxy(new AndroidBridge(rawBridge, {}), {
+            get(target, prop) {
+                const v = Reflect.get(target, prop, target);
+                return v && typeof v === "object" ? new Proxy(v, {}) : v;
+            },
+        });
+        expect(proxied.hasPermission(AndroidBridge.PERM_NEARBY_WIFI)).toBe(false);
+        await expect(proxied.requestPermission(AndroidBridge.PERM_NEARBY_WIFI)).resolves.toBe("requested");
+        expect(proxied.openRNodeFlasher()).toBe(true);
+        expect(rawBridge.requestNearbyWifiPermissions).toHaveBeenCalled();
+        expect(rawBridge.openRNodeFlasher).toHaveBeenCalled();
+    });
+
     it("remote backend helpers delegate to the bridge", () => {
         const bridge = {
             getRemoteBackendUrl: vi.fn().mockReturnValue("http://192.168.1.10:9337"),

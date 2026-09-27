@@ -12,6 +12,43 @@ import { isKnownHostWidget } from "../../meshchatx/src/frontend/js/plugins/plugi
 import { getThemeSnapshot } from "../../meshchatx/src/frontend/theme/themeEngine.js";
 
 describe("pluginUiDescriptor", () => {
+    it("accepts tabs panels as {id, children} containers", () => {
+        const ok = validateUiDescriptor({
+            type: "tabs",
+            active: "issues",
+            tabs: [{ id: "issues", label: "Issues" }],
+            panels: [
+                {
+                    id: "issues",
+                    children: [{ type: "text", value: "hi" }],
+                },
+            ],
+        });
+        expect(ok.ok).toBe(true);
+    });
+
+    it("accepts primitive table cells alongside node cells", () => {
+        const ok = validateUiDescriptor({
+            type: "table",
+            columns: ["Title", "Status"],
+            rows: [
+                ["a crash", { type: "badge", variant: "warning", label: "new" }],
+                [{ type: "text", value: "x" }, "plain"],
+            ],
+        });
+        expect(ok.ok).toBe(true);
+    });
+
+    it("still rejects unknown types nested inside panels", () => {
+        const bad = validateUiDescriptor({
+            type: "tabs",
+            tabs: [{ id: "a", label: "A" }],
+            panels: [{ id: "a", children: [{ type: "script" }] }],
+        });
+        expect(bad.ok).toBe(false);
+        expect(String(bad.error)).toMatch(/Unknown UI node type/);
+    });
+
     it("accepts known vocabulary and rejects unknown types", () => {
         expect(KNOWN_NODE_TYPES).toContain("tabs");
         expect(KNOWN_NODE_TYPES).toContain("table");

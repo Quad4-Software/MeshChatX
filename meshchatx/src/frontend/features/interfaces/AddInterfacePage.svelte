@@ -347,6 +347,8 @@
                 await loadLocalLinkCapabilities();
             } else if (result === "settings") {
                 ToastUtils.warning(t("tools.nearby.permission_settings"));
+            } else if (result !== "requested") {
+                ToastUtils.warning(t("interfaces.aware_permission_failed"));
             }
         } finally {
             awarePermissionRequesting = false;
