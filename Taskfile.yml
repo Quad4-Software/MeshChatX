@@ -432,13 +432,11 @@ tasks:
 
     test:be:cov:
         desc: Backend tests with coverage floor (xdist worker data merged from temp-tests/coverage)
-        env:
-            MESHCHAT_COVERAGE_FLOOR: "{{.COVERAGE_FLOOR | default 60}}"
         cmds:
             - rm -f .coverage temp-tests/coverage/.coverage*
             - uv run pytest tests/backend -n auto {{.PYTEST_ARGS | default ""}} --cov=meshchatx/src/backend --cov-report=
             - uv run coverage combine temp-tests/coverage
-            - uv run coverage report --include="meshchatx/src/backend/*" --fail-under={{.MESHCHAT_COVERAGE_FLOOR}}
+            - 'uv run coverage report --include="meshchatx/src/backend/*" --fail-under={{.COVERAGE_FLOOR | default 60}}'
             - uv run python scripts/ci/coverage-floors.py
 
     test:be:perf:
