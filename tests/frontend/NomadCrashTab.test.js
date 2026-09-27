@@ -159,6 +159,75 @@ describe("NomadCrashTab.svelte", () => {
         });
     });
 
+    it("retries the frame boot a few times before surfacing the hung overlay", async () => {
+        vi.useFakeTimers();
+        try {
+            const onhung = vi.fn();
+            const { baseElement } = render(NomadCrashTab, {
+                path: "aabb:/page/index.mu",
+                content: ">#!\n# Hi",
+                active: true,
+                onhung,
+            });
+            const frame = baseElement.querySelector("iframe");
+            const firstSrc = frame.getAttribute("src");
+
+            // The boot watchdog reloads the frame at 8s and 16s, then
+            // exhaustion surfaces 'hung' around 24s.
+            await vi.advanceTimersByTimeAsync(8000);
+            expect(frame.getAttribute("src")).not.toBe(firstSrc);
+            await vi.advanceTimersByTimeAsync(8000);
+            expect(onhung).not.toHaveBeenCalled();
+            await vi.advanceTimersByTimeAsync(9000);
+            expect(onhung).toHaveBeenCalledTimes(1);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("clears the boot watchdog once the frame reports ready", async () => {
+        vi.useFakeTimers();
+        try {
+            const onhung = vi.fn();
+            const { baseElement } = render(NomadCrashTab, {
+                path: "aabb:/page/index.mu",
+                // Empty content keeps the render deadline parked so the boot
+                // watchdog is the only timer under test.
+                content: "",
+                active: true,
+                onhung,
+            });
+            const frame = baseElement.querySelector("iframe");
+            const firstSrc = frame.getAttribute("src");
+            const fakeWindow = {
+                // Answer liveness pings so only the boot watchdog is tested.
+                postMessage: (msg) => {
+                    postMessageSpy(msg);
+                    if (msg?.type === "ping") {
+                        dispatchFrameMessage(fakeWindow, {
+                            channel: NOMAD_CRASH_TAB_CHANNEL,
+                            type: "pong",
+                            id: msg.id,
+                        });
+                    }
+                },
+            };
+            Object.defineProperty(frame, "contentWindow", {
+                configurable: true,
+                get: () => fakeWindow,
+            });
+            dispatchFrameMessage(fakeWindow, {
+                channel: NOMAD_CRASH_TAB_CHANNEL,
+                type: "ready",
+            });
+            await vi.advanceTimersByTimeAsync(60000);
+            expect(onhung).not.toHaveBeenCalled();
+            expect(frame.getAttribute("src")).toBe(firstSrc);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it("handles frame navigation messages", async () => {
         const onnavigate = vi.fn();
         const { baseElement } = render(NomadCrashTab, {

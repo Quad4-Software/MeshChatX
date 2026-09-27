@@ -80,6 +80,13 @@
         /transform|translate|scale|rotate|inset|^top$|^left$|^right$|^bottom$|width|height|margin|padding|gap|flex|grid/;
     /** How long the rect poll keeps running after the last geometry transition. */
     const RECT_POLL_TAIL_MS = 700;
+    /**
+     * A frame whose boot never posts ready poisons every render until a
+     * manual reload. Retry the boot a few times before surfacing the crash
+     * overlay.
+     */
+    const FRAME_BOOT_WATCHDOG_MS = 8000;
+    const MAX_FRAME_BOOT_RETRIES = 2;
 
     let hostEl = $state<HTMLDivElement | null>(null);
     let frame = $state<HTMLIFrameElement | null>(null);
@@ -97,6 +104,8 @@
     let frameRect = $state({ left: 0, top: 0, width: 0, height: 0 });
     let rectPollUntil = 0;
     let rectPollRaf: number | null = null;
+    let bootWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
+    let frameBootRetries = 0;
     let fieldContextMenu = $state({ show: false, justOpened: false, x: 0, y: 0 });
     let fieldContextMenuEl = $state<HTMLDivElement | null>(null);
     let fieldContextMenuCaret: ContextMenuCaret | null = $state(null);
@@ -272,6 +281,41 @@
         lastPostedRenderKey = "";
         frameSrc = `${nomadCrashTabRendererUrl()}?t=${Date.now()}`;
         watchdog.recordPong();
+        armBootWatchdog();
+    }
+
+    function clearBootWatchdog() {
+        if (bootWatchdogTimer != null) {
+            clearTimeout(bootWatchdogTimer);
+            bootWatchdogTimer = null;
+        }
+    }
+
+    function armBootWatchdog() {
+        clearBootWatchdog();
+        bootWatchdogTimer = setTimeout(() => {
+            bootWatchdogTimer = null;
+            if (frameReady) {
+                return;
+            }
+            if (livenessPaused || isDocumentHidden() || !active) {
+                // Retry the boot once the tab returns instead of firing
+                // reloads into a frozen frame.
+                armBootWatchdog();
+                return;
+            }
+            if (frameBootRetries >= MAX_FRAME_BOOT_RETRIES) {
+                // Boot retries exhausted: the frame genuinely cannot boot.
+                if (status === "loading" || status === "rendering") {
+                    status = "hung";
+                    framePainted = false;
+                    onhung?.();
+                }
+                return;
+            }
+            frameBootRetries += 1;
+            reloadFrame();
+        }, FRAME_BOOT_WATCHDOG_MS);
     }
 
     export function abortRender() {
@@ -298,6 +342,8 @@
         handleCrashTabMessage(event, frame, {
             onReady: () => {
                 frameReady = true;
+                frameBootRetries = 0;
+                clearBootWatchdog();
                 lastPostedRenderKey = "";
                 deadline.clear();
                 status = skipRenderUntilPropChange ? "aborted" : "ready";
@@ -560,11 +606,15 @@
         if (content && status === "loading") {
             armDeadline();
         }
+        if (!frameReady) {
+            armBootWatchdog();
+        }
     });
 
     onDestroy(() => {
         watchdog.stop();
         deadline.clear();
+        clearBootWatchdog();
         rectPollUntil = 0;
         if (rectPollRaf != null && typeof cancelAnimationFrame === "function") {
             cancelAnimationFrame(rectPollRaf);
