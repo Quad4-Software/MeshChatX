@@ -1,6 +1,6 @@
 {
   "version": "1.2.0",
-  "wasm": "sha384-bUBUbxvjUtIo2IyhMst9u2dFmesG9Mcssw5XkCIj6W6DrE1NrR5j2wevnfVm88cW",
+  "wasm": "sha384-BwnBaI3DFy8UYkYT+L32EIfngOf6zeHOY2uqcRtdzlQyqYgePBjpUN9ySdOFpsRb",
   "wasmExec": "sha384-PWCs+V4BDf9yY1yjkD/p+9xNEs4iEbuvq+HezAOJiY3XL5GI6VyJXMsvnjiwNbce",
   "wasmExecSource": "/usr/lib/go/lib/wasm/wasm_exec.js"
 }

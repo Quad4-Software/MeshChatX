@@ -36,11 +36,62 @@ func TestComputeUpdatesLow(t *testing.T) {
 	}
 }
 
+func TestComputeUpdatesRestoresSemanticColor(t *testing.T) {
+	fs := 0.0
+	semantic := map[string]any{
+		"border":     "#10b981",
+		"background": "#ecfdf5",
+		"highlight":  map[string]any{"border": "#10b981", "background": "#ecfdf5"},
+		"hover":      map[string]any{"border": "#10b981", "background": "#ecfdf5"},
+	}
+	stamped := map[string]any{
+		"border":     "#3b82f6",
+		"background": "#eff6ff",
+		"highlight":  map[string]any{"border": "#3b82f6", "background": "#eff6ff"},
+		"hover":      map[string]any{"border": "#3b82f6", "background": "#eff6ff"},
+	}
+	// Node parked at low: dot shape, hidden font, generic blue color.
+	nodes := []lod.NodeIn{{
+		ID:            "n1",
+		Shape:         "dot",
+		Size:          10,
+		OriginalShape: "circularImage",
+		OriginalSize:  25,
+		OriginalColor: semantic,
+		Color:         stamped,
+		Font:          &lod.FontIn{Size: &fs},
+	}}
+	for _, level := range []string{"medium", "high"} {
+		out := lod.ComputeUpdates(nodes, level, false)
+		if len(out) != 1 {
+			t.Fatalf("%s: expected 1 update, got %#v", level, out)
+		}
+		if out[0].Color == nil || out[0].Color["border"] != "#10b981" {
+			t.Fatalf("%s: semantic color not restored: %#v", level, out[0].Color)
+		}
+	}
+	// A node already at high emits no patch once color matches too.
+	size := 11.0
+	nodes[0].Shape = "circularImage"
+	nodes[0].Size = 25
+	nodes[0].Color = semantic
+	nodes[0].Font = &lod.FontIn{Size: &size}
+	if out := lod.ComputeUpdates(nodes, "high", false); len(out) != 0 {
+		t.Fatalf("expected no updates, got %#v", out)
+	}
+}
+
 func TestComputeUpdatesNoChange(t *testing.T) {
 	sz := 10.0
 	fs := 0.0
+	lowBlue := map[string]any{
+		"border":     "#3b82f6",
+		"background": "#eff6ff",
+		"highlight":  map[string]any{"border": "#3b82f6", "background": "#eff6ff"},
+		"hover":      map[string]any{"border": "#3b82f6", "background": "#eff6ff"},
+	}
 	nodes := []lod.NodeIn{
-		{ID: "n1", Shape: "dot", Size: 10, OriginalShape: "circularImage", OriginalSize: 25, Font: &lod.FontIn{Size: &fs}},
+		{ID: "n1", Shape: "dot", Size: 10, OriginalShape: "circularImage", OriginalSize: 25, Color: lowBlue, Font: &lod.FontIn{Size: &fs}},
 	}
 	out := lod.ComputeUpdates(nodes, "low", false)
 	_ = sz

@@ -23,6 +23,7 @@ export interface BasicVisualiserData {
     config: VisualiserConfig | null;
     interfaces: InterfaceEntry[];
     discoveredInterfaces: DiscoveredInterfaceEntry[];
+    discoveredActive: DiscoveredActiveEntry[];
     conversations: Record<string, ConversationEntry>;
 }
 
@@ -49,6 +50,7 @@ export async function fetchBasicVisualiserData(signal?: AbortSignal): Promise<Ba
             config: null,
             interfaces: [],
             discoveredInterfaces: [],
+            discoveredActive: [],
             conversations: {},
         };
     }
@@ -65,6 +67,8 @@ export async function fetchBasicVisualiserData(signal?: AbortSignal): Promise<Ba
         const interfaces = (ifaceRes as { data?: { interfaces?: InterfaceEntry[] } } | null)?.data?.interfaces || [];
         const discoveredInterfaces =
             (discRes as { data?: { interfaces?: DiscoveredInterfaceEntry[] } } | null)?.data?.interfaces || [];
+        const discoveredActive =
+            (discRes as { data?: { active?: DiscoveredActiveEntry[] } } | null)?.data?.active || [];
         const rawConvs =
             (convRes as { data?: { conversations?: ConversationEntry[] } } | null)?.data?.conversations || [];
 
@@ -79,14 +83,15 @@ export async function fetchBasicVisualiserData(signal?: AbortSignal): Promise<Ba
             config,
             interfaces,
             discoveredInterfaces,
+            discoveredActive,
             conversations,
         };
     } catch (e) {
         if (window.api?.isCancel?.(e)) {
-            return { config: null, interfaces: [], discoveredInterfaces: [], conversations: {} };
+            return { config: null, interfaces: [], discoveredInterfaces: [], discoveredActive: [], conversations: {} };
         }
         console.error("Failed to fetch basic visualiser data", e);
-        return { config: null, interfaces: [], discoveredInterfaces: [], conversations: {} };
+        return { config: null, interfaces: [], discoveredInterfaces: [], discoveredActive: [], conversations: {} };
     }
 }
 

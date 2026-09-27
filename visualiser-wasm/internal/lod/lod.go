@@ -11,6 +11,7 @@ type NodeIn struct {
 	Size          float64        `json:"size"`
 	OriginalShape string         `json:"_originalShape"`
 	OriginalSize  float64        `json:"_originalSize"`
+	OriginalColor map[string]any `json:"_originalColor"`
 	Color         map[string]any `json:"color"`
 	Font          *FontIn        `json:"font"`
 }
@@ -106,6 +107,7 @@ func propsFor(n *NodeIn, level string, fontMe, fontPeer, blue map[string]any) Up
 		u.Shape = shape
 		u.Size = originalSizePtr(n)
 		u.Font = fontSize0
+		u.Color = semanticColor(n)
 	default:
 		shape := n.OriginalShape
 		if shape == "" {
@@ -118,8 +120,18 @@ func propsFor(n *NodeIn, level string, fontMe, fontPeer, blue map[string]any) Up
 		} else {
 			u.Font = fontPeer
 		}
+		u.Color = semanticColor(n)
 	}
 	return u
+}
+
+// semanticColor is the theme color the node was built with. Low LOD stamps a
+// generic blue over it, so medium/high must hand the original back.
+func semanticColor(n *NodeIn) map[string]any {
+	if n.OriginalColor != nil {
+		return n.OriginalColor
+	}
+	return n.Color
 }
 
 func originalSizePtr(n *NodeIn) *float64 {
@@ -170,7 +182,35 @@ func changed(n *NodeIn, next Update) bool {
 			}
 		}
 	}
+	if next.Color != nil && !sameColor(next.Color, n.Color) {
+		return true
+	}
 	return false
+}
+
+// sameColor reports whether two vis-network color maps carry the same values.
+// Nested maps (highlight, hover) are compared recursively.
+func sameColor(a, b map[string]any) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k, av := range a {
+		bv, ok := b[k]
+		if !ok {
+			return false
+		}
+		if am, isMap := av.(map[string]any); isMap {
+			bm, ok := bv.(map[string]any)
+			if !ok || !sameColor(am, bm) {
+				return false
+			}
+			continue
+		}
+		if av != bv {
+			return false
+		}
+	}
+	return true
 }
 
 func nodeColor(border, background string) map[string]any {

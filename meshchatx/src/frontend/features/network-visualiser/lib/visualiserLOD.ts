@@ -37,12 +37,15 @@ export function visibleLabelIds(
         if (!p) continue;
         const dom = (network as any).canvasToDOM(p);
         const fontSize = n.id === "me" ? 16 : 11;
+        // vis-network scales label font by camera zoom, so the collision
+        // boxes must scale too or they under-cover at high zoom and
+        // overlapping labels pass the test.
         items.push({
             id: n.id,
             sx: dom.x,
-            sy: dom.y + (Number(n.size) || 10) * scale + 4 + fontSize * 0.6,
-            w: String(label).length * fontSize * 0.56,
-            h: fontSize * 1.35,
+            sy: dom.y + (Number(n.size) || 10) * scale + 4 + fontSize * 0.6 * scale,
+            w: String(label).length * fontSize * 0.56 * scale,
+            h: fontSize * 1.35 * scale,
             pri:
                 n.id === "me"
                     ? 0

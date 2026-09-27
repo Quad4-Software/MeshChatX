@@ -147,10 +147,17 @@ func Settle(req Request) Result {
 		maxSpeed = 18
 	}
 
-	bodies := make([]body, n)
+	// Duplicate ids collapse to the first occurrence. A last-wins index would
+	// leave earlier duplicates with stale positions and velocities forever
+	// once results are written back through the id map.
+	bodies := make([]body, 0, n)
 	index := make(map[string]int, n)
+	srcIndex := make([]int, 0, n)
 	for i := range req.Nodes {
 		nd := &req.Nodes[i]
+		if _, dup := index[nd.ID]; dup {
+			continue
+		}
 		mass := nd.Mass
 		if mass <= 0 {
 			mass = 1
@@ -159,7 +166,9 @@ func Settle(req Request) Result {
 		if radius <= 0 {
 			radius = DefaultMinSep * 0.5
 		}
-		bodies[i] = body{
+		index[nd.ID] = len(bodies)
+		srcIndex = append(srcIndex, i)
+		bodies = append(bodies, body{
 			id:     nd.ID,
 			x:      nd.X,
 			y:      nd.Y,
@@ -168,9 +177,9 @@ func Settle(req Request) Result {
 			mass:   mass,
 			fixed:  nd.Fixed || nd.ID == "me",
 			radius: radius,
-		}
-		index[nd.ID] = i
+		})
 	}
+	nb := len(bodies)
 
 	type spring struct {
 		a, b int
@@ -192,9 +201,18 @@ func Settle(req Request) Result {
 	}
 
 	cellSize := DefaultCellSize
+	fx := make([]float64, nb)
+	fy := make([]float64, nb)
+	buckets := make(map[[2]int][]int, nb/2+1)
 	for step := 0; step < iters; step++ {
-		fx := make([]float64, n)
-		fy := make([]float64, n)
+		for i := range fx {
+			fx[i] = 0
+			fy[i] = 0
+		}
+		// Reset lengths but keep bucket capacity across iterations.
+		for k := range buckets {
+			buckets[k] = buckets[k][:0]
+		}
 
 		// Weak pull toward origin keeps the mesh centred.
 		for i := range bodies {
@@ -206,7 +224,6 @@ func Settle(req Request) Result {
 		}
 
 		// Grid-bucketed repulsion (near O(n) average).
-		buckets := make(map[[2]int][]int, n/2+1)
 		for i := range bodies {
 			cx := int(math.Floor(bodies[i].x / cellSize))
 			cy := int(math.Floor(bodies[i].y / cellSize))
@@ -296,12 +313,10 @@ func Settle(req Request) Result {
 		out.Positions[bodies[i].id] = XY{X: bodies[i].x, Y: bodies[i].y}
 		// Write velocities back onto the request nodes when ids match so
 		// live layout can carry momentum across Tick frames.
-		if idx, ok := index[bodies[i].id]; ok {
-			req.Nodes[idx].X = bodies[i].x
-			req.Nodes[idx].Y = bodies[i].y
-			req.Nodes[idx].Vx = bodies[i].vx
-			req.Nodes[idx].Vy = bodies[i].vy
-		}
+		req.Nodes[srcIndex[i]].X = bodies[i].x
+		req.Nodes[srcIndex[i]].Y = bodies[i].y
+		req.Nodes[srcIndex[i]].Vx = bodies[i].vx
+		req.Nodes[srcIndex[i]].Vy = bodies[i].vy
 	}
 	out.Iterations = iters
 	return out

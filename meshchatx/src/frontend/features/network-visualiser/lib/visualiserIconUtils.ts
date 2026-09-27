@@ -36,6 +36,32 @@ export function getMdiIconSvg(iconName: string, foregroundColor: string): string
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="${foregroundColor}" d="${iconPath}"/></svg>`;
 }
 
+/**
+ * toBlob can yield null (empty or tainted canvas) and createObjectURL can
+ * throw; resolving null keeps the icon queue from stalling on a promise that
+ * never settles.
+ */
+function canvasToIconUrl(
+    canvas: HTMLCanvasElement,
+    cacheKey: string,
+    iconCache: Record<string, string>,
+    resolve: (url: string | null) => void
+): void {
+    canvas.toBlob((blob) => {
+        try {
+            if (!blob) {
+                resolve(null);
+                return;
+            }
+            const blobUrl = URL.createObjectURL(blob);
+            iconCache[cacheKey] = blobUrl;
+            resolve(blobUrl);
+        } catch {
+            resolve(null);
+        }
+    }, "image/png");
+}
+
 export async function createIconImage(
     iconName: string,
     foregroundColor: string,
@@ -130,15 +156,7 @@ export async function createIconImage(
 
             URL.revokeObjectURL(url);
 
-            canvas.toBlob((blob) => {
-                if (!blob) {
-                    resolve(null);
-                    return;
-                }
-                const blobUrl = URL.createObjectURL(blob);
-                iconCache[cacheKey] = blobUrl;
-                resolve(blobUrl);
-            }, "image/png");
+            canvasToIconUrl(canvas, cacheKey, iconCache, resolve);
         };
 
         img.onerror = () => {
@@ -148,15 +166,7 @@ export async function createIconImage(
                 return;
             }
             URL.revokeObjectURL(url);
-            canvas.toBlob((blob) => {
-                if (!blob) {
-                    resolve(null);
-                    return;
-                }
-                const blobUrl = URL.createObjectURL(blob);
-                iconCache[cacheKey] = blobUrl;
-                resolve(blobUrl);
-            }, "image/png");
+            canvasToIconUrl(canvas, cacheKey, iconCache, resolve);
         };
 
         img.src = url;

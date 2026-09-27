@@ -16,6 +16,7 @@ import type {
     AnnounceEntry,
     InterfaceEntry,
     DiscoveredInterfaceEntry,
+    DiscoveredActiveEntry,
     ConversationEntry,
     VisualiserConfig,
 } from "./types.js";
@@ -36,6 +37,7 @@ export interface LoadVisualiserDataResult {
     config: VisualiserConfig | null;
     interfaces: InterfaceEntry[];
     discoveredInterfaces: DiscoveredInterfaceEntry[];
+    discoveredActive: DiscoveredActiveEntry[];
     conversations: Record<string, ConversationEntry>;
     pathTable: PathTableEntry[];
     announces: Record<string, AnnounceEntry>;
@@ -71,6 +73,7 @@ export async function loadInitialVisualiserData(
         config: basic.config,
         interfaces: basic.interfaces,
         discoveredInterfaces: basic.discoveredInterfaces,
+        discoveredActive: basic.discoveredActive,
         conversations: basic.conversations,
         pathTable,
         announces,
@@ -117,6 +120,7 @@ export interface RenderGraphOptions {
     config: VisualiserConfig | null;
     interfaces: InterfaceEntry[];
     discoveredInterfaces: DiscoveredInterfaceEntry[];
+    discoveredActive?: DiscoveredActiveEntry[];
     pathTable: PathTableEntry[];
     announces: Record<string, AnnounceEntry>;
     conversations: Record<string, ConversationEntry>;
@@ -128,6 +132,11 @@ export interface RenderGraphOptions {
     isDarkMode: boolean;
     currentLOD: string;
     batterySaverPrefs?: { enabled?: boolean; maxVisualiserInterfaces?: number };
+    iconCache?: Record<string, string>;
+    iconGeneration?: number;
+    // Skip live engine positions: when leaving radial the live snapshot is
+    // still the ring layout, and it must not win over cached positions.
+    skipLivePositionOverlay?: boolean;
     radial?: boolean;
     resetCamera?: boolean;
     webglEngine?: any;
@@ -145,6 +154,7 @@ export async function renderVisualiserGraph(options: RenderGraphOptions): Promis
         config,
         interfaces,
         discoveredInterfaces,
+        discoveredActive,
         pathTable,
         announces,
         conversations,
@@ -156,6 +166,9 @@ export async function renderVisualiserGraph(options: RenderGraphOptions): Promis
         isDarkMode,
         currentLOD,
         batterySaverPrefs,
+        iconCache,
+        iconGeneration,
+        skipLivePositionOverlay,
         radial,
         resetCamera,
         webglEngine,
@@ -169,8 +182,8 @@ export async function renderVisualiserGraph(options: RenderGraphOptions): Promis
 
     const posById = collectVisualiserPositions({
         cachedPositions,
-        webglEngine,
-        network,
+        webglEngine: skipLivePositionOverlay ? null : webglEngine,
+        network: skipLivePositionOverlay ? null : network,
         existingNodeIds: nodes.getIds() as string[],
     });
 
@@ -189,6 +202,9 @@ export async function renderVisualiserGraph(options: RenderGraphOptions): Promis
         isDarkMode,
         currentLOD,
         batterySaverPrefs,
+        discoveredActive,
+        iconCache,
+        iconGeneration,
         radial,
     });
 

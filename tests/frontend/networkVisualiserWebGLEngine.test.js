@@ -595,6 +595,45 @@ describe("createVisualiserWebGLEngine interactions", () => {
         });
     });
 
+    it("latches scene failure and stops the frame loop when WASM dies", async () => {
+        engine.destroy();
+        engine = null;
+        clearSceneGlobals();
+        installSceneReadyStubs({
+            meshchatxVisualiserSceneSet: () => JSON.stringify({ ok: true, nodes: 0, edges: 0 }),
+            meshchatxVisualiserSceneGetDrawBuffers: () => {
+                throw new Error("wasm dead");
+            },
+        });
+        globalThis.meshchatxVisualiserSceneResize = vi.fn();
+        const onSceneFailure = vi.fn();
+        canvas = makeCanvas(stubGl());
+        engine = createVisualiserWebGLEngine(canvas, {
+            getLiveLayout: () => false,
+            isDark: () => false,
+            onSceneFailure,
+        });
+        await new Promise((resolve) => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(resolve);
+            });
+        });
+        expect(onSceneFailure).toHaveBeenCalledTimes(1);
+        // The loop is dead: a redraw request must not resurrect it.
+        engine.requestRedraw();
+        await new Promise((resolve) => {
+            requestAnimationFrame(resolve);
+        });
+        expect(onSceneFailure).toHaveBeenCalledTimes(1);
+    });
+
+    it("setGraph throws and latches failure when SceneSet dies", () => {
+        globalThis.meshchatxVisualiserSceneSet = () => {
+            throw new Error("wasm dead");
+        };
+        expect(() => engine.setGraph([{ id: "me", group: "me", x: 0, y: 0 }], [], {})).toThrow(/SceneSet failed/);
+    });
+
     it("setGraph applies kind default icons when image missing", async () => {
         vi.stubGlobal(
             "fetch",

@@ -113,6 +113,7 @@ export type VisualiserWebGLEngineHooks = {
     isDark: () => boolean;
     onNodeActivate?: (id: string, meta: NodeMeta | null) => void;
     onHover?: (id: string | null, meta: NodeMeta | null, cssX: number, cssY: number) => void;
+    onSceneFailure?: (err: Error) => void;
 };
 
 export type GraphViewOpts = {
@@ -456,6 +457,9 @@ export function createVisualiserWebGLEngine(
     let rafId: number | null = null;
     let running = true;
     let dirty = true;
+    // Set when a WASM scene call dies for good (for example a Go panic).
+    // Stops the RAF loop instead of clearing the canvas every frame forever.
+    let sceneFailed = false;
     let pointerMode: "drag" | "pan" | "pinch" | null = null;
     let lastX = 0;
     let lastY = 0;
@@ -492,6 +496,23 @@ export function createVisualiserWebGLEngine(
         } catch (e) {
             console.warn("Visualiser scene call failed:", name, e);
             return null;
+        }
+    }
+
+    /**
+     * Latch the scene as dead and tell the host so it can fall back to the
+     * vis-network renderer. Runs at most once per engine instance.
+     */
+    function failScene(err: unknown): void {
+        if (sceneFailed) return;
+        sceneFailed = true;
+        dirty = false;
+        if (typeof hooks.onSceneFailure === "function") {
+            try {
+                hooks.onSceneFailure(err instanceof Error ? err : new Error(String(err)));
+            } catch (e) {
+                console.warn("Visualiser scene failure hook failed:", e);
+            }
         }
     }
 
@@ -582,7 +603,12 @@ export function createVisualiserWebGLEngine(
             | null
             | undefined;
         if (!got || got.ok === false) {
-            throw new Error(got?.error || "SceneSet failed");
+            // A dead WASM program throws inside the export, which the loader
+            // reports as null. Latch the failure so the RAF loop stops, then
+            // let the error reach the caller unchanged.
+            const err = new Error(got?.error || "SceneSet failed");
+            failScene(err);
+            throw err;
         }
         nodeCount = got.nodes || 0;
         edgeCount = got.edges || 0;
@@ -662,7 +688,7 @@ export function createVisualiserWebGLEngine(
     }
 
     function frame(): void {
-        if (!running) return;
+        if (!running || sceneFailed) return;
         rafId = requestAnimationFrame(frame);
         const live = typeof hooks.getLiveLayout === "function" ? hooks.getLiveLayout() : false;
         if (live && pointerMode !== "drag" && !isPlanet()) {
@@ -685,6 +711,8 @@ export function createVisualiserWebGLEngine(
         } | null;
         if (!buf || buf.ok === false) {
             renderer.clearBackground(dark);
+            dirty = false;
+            failScene(new Error("Visualiser scene draw buffers unavailable"));
             return;
         }
         const sceneCount = buf.nodes && buf.nodes.length ? Math.floor(buf.nodes.length / SCENE_NODE_STRIDE) : 0;

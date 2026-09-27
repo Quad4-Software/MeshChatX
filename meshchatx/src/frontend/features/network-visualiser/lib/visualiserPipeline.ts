@@ -6,6 +6,7 @@ import type {
     VisualiserConfig,
     InterfaceEntry,
     DiscoveredInterfaceEntry,
+    DiscoveredActiveEntry,
     ConversationEntry,
     PathTableEntry,
     AnnounceEntry,
@@ -24,6 +25,7 @@ export interface VisualiserDataState {
     config: VisualiserConfig | null;
     interfaces: InterfaceEntry[];
     discoveredInterfaces: DiscoveredInterfaceEntry[];
+    discoveredActive: DiscoveredActiveEntry[];
     conversations: Record<string, ConversationEntry>;
     pathTable: PathTableEntry[];
     announces: Record<string, AnnounceEntry>;
@@ -35,6 +37,7 @@ export function createInitialVisualiserDataState(): VisualiserDataState {
         config: null,
         interfaces: [],
         discoveredInterfaces: [],
+        discoveredActive: [],
         conversations: {},
         pathTable: [],
         announces: {},
@@ -95,6 +98,7 @@ export async function executeVisualiserUpdate(options: {
         config: initial.config,
         interfaces: initial.interfaces,
         discoveredInterfaces: initial.discoveredInterfaces,
+        discoveredActive: initial.discoveredActive,
         conversations: initial.conversations,
         pathTable: initial.pathTable,
         announces: initial.announces,
@@ -158,6 +162,9 @@ export async function executeVisualiserRender(options: {
     hopMaxFilter: number | null;
     currentLOD: string;
     batterySaverPrefs: any;
+    iconCache?: Record<string, string>;
+    iconGeneration?: number;
+    skipLivePositionOverlay?: boolean;
     webglEngine: any;
     network: Network | null;
     nodes: DataSet<any>;
@@ -184,6 +191,9 @@ export async function executeVisualiserRender(options: {
         hopMaxFilter,
         currentLOD,
         batterySaverPrefs,
+        iconCache,
+        iconGeneration,
+        skipLivePositionOverlay,
         webglEngine,
         network,
         nodes,
@@ -217,6 +227,7 @@ export async function executeVisualiserRender(options: {
             config: state.config,
             interfaces: state.interfaces,
             discoveredInterfaces: state.discoveredInterfaces,
+            discoveredActive: state.discoveredActive,
             pathTable: state.pathTable,
             announces: state.announces,
             conversations: state.conversations,
@@ -228,6 +239,9 @@ export async function executeVisualiserRender(options: {
             isDarkMode: resolveVisualiserIsDark(),
             currentLOD,
             batterySaverPrefs,
+            iconCache,
+            iconGeneration,
+            skipLivePositionOverlay,
             radial,
             resetCamera,
             webglEngine,
