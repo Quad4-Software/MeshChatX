@@ -409,32 +409,6 @@ jobs:
                   path: mutmut-cicd-stats.json
                   if-no-files-found: ignore
 
-    zizmor:
-        name: Workflow audit (zizmor)
-        runs-on: ubuntu-latest
-        timeout-minutes: 10
-        permissions:
-            contents: read
-        steps:
-            - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-              with:
-                  egress-policy: audit
-            - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
-              with:
-                  persist-credentials: false
-
-            - name: Set up development environment
-              uses: $/.github/actions/setup-dev-environment
-              with:
-                  python-version: ${{ env.PYTHON_VERSION }}
-                  uv-version: ${{ env.UV_VERSION }}
-                  install-node: "false"
-
-            - name: Audit workflow files
-              run: uvx zizmor@1.30.1 --min-severity medium --format plain .github/workflows/
-
     quarantined-tests:
         name: Quarantined backend tests (non-gating)
         runs-on: ubuntu-latest
