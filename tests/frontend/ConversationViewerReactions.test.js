@@ -92,4 +92,48 @@ describe("ConversationViewer reactions", () => {
 
         expect(result).toEqual({ items: current, changed: false, incoming: false });
     });
+
+    it("removes only the pending placeholder matching a delivered outbound message", () => {
+        const current = [
+            {
+                type: "lxmf_message",
+                is_outbound: true,
+                lxmf_message: {
+                    hash: "pending-1",
+                    content: "first",
+                    destination_hash: peerHash,
+                    source_hash: myHash,
+                },
+            },
+            {
+                type: "lxmf_message",
+                is_outbound: true,
+                lxmf_message: {
+                    hash: "pending-2",
+                    content: "second",
+                    destination_hash: peerHash,
+                    source_hash: myHash,
+                },
+            },
+        ];
+
+        const result = applyWsMessage(
+            current,
+            {
+                hash: "real-1",
+                content: "first",
+                destination_hash: peerHash,
+                source_hash: myHash,
+            },
+            peerHash,
+            myHash
+        );
+
+        const hashes = result.items.map((item) => item.lxmf_message.hash);
+        expect(hashes).toContain("real-1");
+        // The other in-flight send keeps its bubble so a later failure can
+        // still mark it failed and offer retry.
+        expect(hashes).toContain("pending-2");
+        expect(hashes).not.toContain("pending-1");
+    });
 });

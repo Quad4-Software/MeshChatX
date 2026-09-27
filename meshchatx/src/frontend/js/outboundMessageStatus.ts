@@ -80,9 +80,11 @@ export function outboundBubbleStatusTitleKey(lxmfMessage: OutboundLxmfStatusFiel
 }
 
 /**
- * Failed outbound bubbles always use the hard-fail badge (red + waiting for announce).
- * Kept as a named helper so ConversationMessageEntry call sites stay stable.
+ * An opportunistic message that reached state sent was handed to the transport
+ * but has no path to the peer yet; the backend still treats it as in-flight
+ * and marks it failed on restart. The UI shows a deferred badge instead of
+ * implying the send completed.
  */
-export function isOpportunisticDeferredDelivery(_lxmfMessage?: OutboundLxmfStatusFields | null): boolean {
-    return false;
+export function isOpportunisticDeferredDelivery(lxmfMessage?: OutboundLxmfStatusFields | null): boolean {
+    return lxmfMessage?.state === "sent" && lxmfMessage?.method === "opportunistic";
 }

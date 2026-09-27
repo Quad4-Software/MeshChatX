@@ -319,9 +319,13 @@
             return;
         }
         if (!canSendMessage || !selectedHash) return;
+        // Pin the peer this send was started for. The snapshot awaits
+        // file/image/audio reads; bail if the composer was cleared or the
+        // peer changed while they were in flight so jobs never mix peers.
+        const composePeerHash = selectedHash;
         try {
             const job = await buildOutboundJob({
-                destinationHash: selectedHash,
+                destinationHash: composePeerHash,
                 deliveryMethod,
                 text,
                 files,
@@ -334,6 +338,7 @@
                     DialogUtils.confirm(t("messages.send_oversized_confirm", { size: String(size) })),
             });
             if (!job) return;
+            if (selectedHash !== composePeerHash || !canSendMessage) return;
             const optimistic = optimisticMessage(job, peerPathNeedsRefresh(peerPathSnapshot));
             clear();
             onjobCreated?.(job, optimistic);

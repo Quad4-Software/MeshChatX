@@ -211,6 +211,13 @@
     let audioAttachmentCache = $state.raw<Record<string, string>>({});
     let audioAttachmentOrder: string[] = [];
     let audioDownloadInFlight = new Set<string>();
+    let markReadQueued = false;
+    let markReadTarget:
+        | Conversation
+        | Peer
+        | { destination_hash?: string; is_unread?: boolean }
+        | null
+        | undefined = null;
     let blockedDestinations = $state<unknown[]>(GlobalState.blockedDestinations);
 
     $effect(() => {
@@ -343,6 +350,7 @@
             // (the send POST already ran); just stop touching view state.
             outboundQueue.clear();
             if (openedPeerHash) saveDraft(openedPeerHash, openedIdentityKey, newMessageText);
+            markReadTarget = null;
             clearAudioAttachmentCache(audioAttachmentOrder, audioAttachmentCache);
             audioAttachmentCache = {};
             audioAttachmentOrder = [];
@@ -539,7 +547,16 @@
         if (!peerHash) return;
         try {
             const seq = ++requestSequence;
-            const page = await fetchConversationPage(window.api, peerHash, myLxmfAddressHash, null);
+            const page = await fetchConversationPage(
+                window.api,
+                peerHash,
+                myLxmfAddressHash,
+                null,
+                undefined,
+                // Reactions arriving with the resync may target messages
+                // painted from earlier pages.
+                chatItems.map((item) => item.lxmf_message)
+            );
             if (seq !== requestSequence) return;
             if (!sameHash(selectedHash, peerHash)) return;
             // Refresh the warm-start stash so the next open paints the
@@ -585,11 +602,29 @@
         if (appended) trimChatWindowHead();
         if (result.incoming) {
             const conversation = conversations.find((candidate) => sameHash(candidate.destination_hash, selectedHash));
-            await markConversationAsRead(conversation || selectedPeer || { destination_hash: selectedHash }, {
-                force: true,
-            });
+            scheduleMarkSelectedPeerRead(conversation || selectedPeer || { destination_hash: selectedHash });
         }
         if (autoScrollOnNewMessage) void scrollMessagesToBottom();
+    }
+
+    function scheduleMarkSelectedPeerRead(
+        target: Conversation | Peer | { destination_hash?: string; is_unread?: boolean } | null | undefined
+    ) {
+        // Force mark even when local is_unread is still false. Delivery bumps the
+        // nav badge from the server before the conversation list refreshes.
+        // A resync merges messages in one synchronous pass, so queueing on a
+        // microtask collapses the burst into a single POST.
+        markReadTarget = target;
+        if (markReadQueued) return;
+        markReadQueued = true;
+        void Promise.resolve().then(() => {
+            markReadQueued = false;
+            const pending = markReadTarget;
+            markReadTarget = null;
+            if (pending && !unmounted) {
+                void markConversationAsRead(pending, { force: true });
+            }
+        });
     }
 
     async function onDelivery(payload: Record<string, unknown>) {
@@ -1013,6 +1048,11 @@
     }
 
     function handleJobCreated(job: OutboundJob, pending: ReturnType<typeof optimisticMessage>) {
+        // The composer pinned the destination when the send started; if the
+        // peer switched while the job snapshot awaited file/image/audio
+        // reads, drop it rather than painting the bubble into another
+        // conversation.
+        if (!sameHash(job.destinationHash, selectedHash)) return;
         chatItems = chatItems.concat({
             type: "lxmf_message",
             is_outbound: true,

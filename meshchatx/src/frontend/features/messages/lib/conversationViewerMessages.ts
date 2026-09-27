@@ -35,7 +35,8 @@ export async function fetchConversationPage(
     peerHash: string,
     myHash: string,
     afterId: number | null,
-    prefetchedData?: unknown
+    prefetchedData?: unknown,
+    extraReactionTargets?: LxmfMessage[]
 ): Promise<ConversationPage> {
     const paintedFromCache = prefetchedData !== undefined && prefetchedData !== null;
     const data = paintedFromCache
@@ -50,7 +51,9 @@ export async function fetchConversationPage(
               })) as { data?: unknown }
           ).data;
     const raw = asMessages((data as { lxmf_messages?: unknown } | undefined)?.lxmf_messages);
-    const merged = mergeLxmfReactionRowsIntoMessages(raw) as LxmfMessage[];
+    // extraReactionTargets are already-loaded messages from earlier pages of
+    // the open conversation; reactions in this batch may point at them.
+    const merged = mergeLxmfReactionRowsIntoMessages(raw, extraReactionTargets) as LxmfMessage[];
     return {
         items: merged.map((message) => toChatItem(message, myHash)).reverse(),
         hasMore: raw.length >= CONVERSATION_MESSAGES_PAGE_SIZE,
@@ -109,6 +112,27 @@ export function visibleConversationItems(
     });
 }
 
+/**
+ * Loose identity for matching a pending outbound placeholder to the real
+ * message the server later reports. Pending rows have no real hash, so
+ * destination + reply + trimmed content + media shape stand in.
+ */
+export function outboundPendingMatchKey(lxmfMessage: LxmfMessage | null | undefined): string | null {
+    if (!lxmfMessage) {
+        return null;
+    }
+    const dest = String(lxmfMessage.destination_hash || "").toLowerCase();
+    const content = String(lxmfMessage.content || "").trim();
+    const reply = String(lxmfMessage.reply_to_hash || "").toLowerCase();
+    const image = lxmfMessage.fields?.image;
+    let media = "";
+    if (image && typeof image === "object") {
+        const img = image as { image_type?: unknown; image_size?: unknown };
+        media = `img:${img.image_type || ""}:${img.image_size || 0}`;
+    }
+    return `${dest}|${reply}|${content}|${media}`;
+}
+
 export function applyWsMessage(
     current: ViewerChatItem[],
     message: LxmfMessage,
@@ -146,13 +170,18 @@ export function applyWsMessage(
 
     let items = current;
     if (outbound) {
-        items = items.filter(
-            (item) =>
-                !(
-                    String(item.lxmf_message.hash || "").startsWith("pending-") &&
-                    sameHash(item.lxmf_message.destination_hash, peerHash)
-                )
-        );
+        // Only the placeholder matching this message is removed. Other
+        // in-flight sends for this peer keep their bubble so a later
+        // failure can still mark it failed and offer retry.
+        const matchKey = outboundPendingMatchKey(message);
+        items = items.filter((item) => {
+            const hash = String(item.lxmf_message.hash || "");
+            if (!hash.startsWith("pending-") || !sameHash(item.lxmf_message.destination_hash, peerHash)) {
+                return true;
+            }
+            const key = outboundPendingMatchKey(item.lxmf_message);
+            return !key || key !== matchKey;
+        });
     }
     return { items: items.concat(toChatItem(message, myHash)), changed: true, incoming };
 }
