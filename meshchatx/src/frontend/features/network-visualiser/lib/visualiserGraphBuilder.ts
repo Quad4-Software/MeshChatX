@@ -195,11 +195,7 @@ export function buildVisualiserGraph(options: {
         for (const disc of discoveredInterfaces) {
             const discId = `discovered~${disc.discovery_hash || disc.name}`;
             const discLabel = disc.name || disc.reachable_on || "Unknown";
-            if (
-                !matchesSearch(discLabel) &&
-                !matchesSearch(disc.reachable_on) &&
-                !matchesSearch(disc.transport_id)
-            ) {
+            if (!matchesSearch(discLabel) && !matchesSearch(disc.reachable_on) && !matchesSearch(disc.transport_id)) {
                 continue;
             }
             const isConnected =
@@ -283,10 +279,7 @@ export function buildVisualiserGraph(options: {
         const localNodes: any[] = [];
         const localEdges: any[] = [];
         const posByIdRef = positionsIn;
-        const pickStablePosition = (
-            id: string,
-            initial: () => { x: number; y: number }
-        ): { x: number; y: number } => {
+        const pickStablePosition = (id: string, initial: () => { x: number; y: number }): { x: number; y: number } => {
             const prev = posByIdRef[id];
             if (prev && Number.isFinite(prev.x) && Number.isFinite(prev.y)) {
                 return { x: prev.x, y: prev.y };

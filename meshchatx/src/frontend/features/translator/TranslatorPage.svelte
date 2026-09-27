@@ -221,6 +221,7 @@
                             type="button"
                             class="p-2 rounded-lg border border-sem-border bg-sem-surface text-sem-fg hover:bg-sem-surface-muted"
                             title={t("translator.swap_languages")}
+                            aria-label={t("translator.swap_languages")}
                             onclick={swapLanguages}
                         >
                             <MaterialDesignIcon iconName="swap-horizontal" class="size-5" />

@@ -81,7 +81,6 @@ describe("fatalErrorActions", () => {
         expect(copySpy).toHaveBeenCalled();
         copySpy.mockRestore();
     });
-
 });
 
 describe("FatalErrorPage.svelte", () => {
@@ -131,8 +130,7 @@ describe("FatalErrorPage.svelte", () => {
         });
 
         render(FatalErrorPage, {
-            props: {
-            },
+            props: {},
         });
 
         expect(screen.getByText("Fatal error")).toBeTruthy();
@@ -178,5 +176,4 @@ describe("FatalErrorPage.svelte", () => {
 
         copySpy.mockRestore();
     });
-
 });

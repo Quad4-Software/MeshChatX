@@ -358,14 +358,11 @@ Content at depth 1`;
             });
 
             it("renders a placeholder for a NomadNet 1.4 `(alt`props`url) image line", () => {
-                const markup =
-                    "`(rrc-client.jpg`w=n`a=l`:/media/img/forum/40155dab9a63966cfa6288f65a0d8aa3.webp)";
+                const markup = "`(rrc-client.jpg`w=n`a=l`:/media/img/forum/40155dab9a63966cfa6288f65a0d8aa3.webp)";
                 const html = parser.convertMicronToHtml(markup);
                 expect(html).toContain('class="mu-image"');
                 expect(html).toContain('data-mu-image-alt="rrc-client.jpg"');
-                expect(html).toContain(
-                    'data-mu-image-path=":/media/img/forum/40155dab9a63966cfa6288f65a0d8aa3.webp"'
-                );
+                expect(html).toContain('data-mu-image-path=":/media/img/forum/40155dab9a63966cfa6288f65a0d8aa3.webp"');
                 expect(html).toContain('data-mu-image-a="left"');
                 expect(html).toContain("Load image");
             });
@@ -380,15 +377,12 @@ Content at depth 1`;
             });
 
             it("supports absolute hash and keyed `( ) image URLs", () => {
-                const markup =
-                    "`(Map`w=400`k=map1`9ce92808be498e9e05590ff27cbfdfe4:/media/m.png)";
+                const markup = "`(Map`w=400`k=map1`9ce92808be498e9e05590ff27cbfdfe4:/media/m.png)";
                 const html = parser.convertMicronToHtml(markup);
                 expect(html).toContain('class="mu-image"');
                 expect(html).toContain('data-mu-image-w="400"');
                 expect(html).toContain('data-mu-image-k="map1"');
-                expect(html).toContain(
-                    'data-mu-image-path="9ce92808be498e9e05590ff27cbfdfe4:/media/m.png"'
-                );
+                expect(html).toContain('data-mu-image-path="9ce92808be498e9e05590ff27cbfdfe4:/media/m.png"');
             });
 
             it("allows an empty alt on `( ) image lines", () => {

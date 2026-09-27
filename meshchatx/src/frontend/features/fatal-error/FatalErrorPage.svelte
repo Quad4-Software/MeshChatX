@@ -6,10 +6,7 @@
     import { t } from "../../js/i18n.js";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import { FATAL_ERROR_COPY_RESET_MS } from "./lib/constants.js";
-    import {
-        copyFatalErrorReport,
-        resolveFatalErrorSummary,
-    } from "./lib/fatalErrorActions.js";
+    import { copyFatalErrorReport, resolveFatalErrorSummary } from "./lib/fatalErrorActions.js";
 
     interface Props {
         error?: FatalErrorRecord | null;

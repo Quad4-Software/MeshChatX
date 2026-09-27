@@ -101,7 +101,10 @@ describe("identity switch and settings UI contracts", () => {
             "utf8"
         );
         expect(src).toContain('GlobalEmitter.on("identity-switched"');
-        expect(src).toMatch(/on\("identity-switched"[\s\S]*loadConfig/);
+        // The handler indirection (onIdentitySwitchReload -> loadConfig)
+        // satisfies the contract, so match through the handler body.
+        expect(src).toMatch(/on\("identity-switched"[\s\S]*?onIdentitySwitchReload/);
+        expect(src).toMatch(/onIdentitySwitchReload\(\)[\s\S]*?loadConfig\(\)/);
     });
 
     it("AboutPage listens for identity-switched and refreshes backups/snapshots", () => {

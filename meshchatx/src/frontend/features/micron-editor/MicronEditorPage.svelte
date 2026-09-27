@@ -46,8 +46,8 @@
     let showPublishMenu = $state(false);
     let showPublishSiteModal = $state(false);
     let pageNodes = $state<PageNodeItem[]>([]);
-const publishTargets = createPublishTargetStore();
-        let publishBusy = $state(false);
+    const publishTargets = createPublishTargetStore();
+    let publishBusy = $state(false);
     let lastPublished = $state<LastPublishedInfo | null>(null);
 
     let useWasm = $state(false);
@@ -416,12 +416,7 @@ const publishTargets = createPublishTargetStore();
                     });
                     lastSavedName = (response.data as { name?: string })?.name || page.name;
                     savedNames.push(lastSavedName);
-                    rememberPublishTarget(
-                        publishTargets,
-                        running,
-                        { id: page.tabId, name: page.label },
-                        lastSavedName
-                    );
+                    rememberPublishTarget(publishTargets, running, { id: page.tabId, name: page.label }, lastSavedName);
                     published++;
                 } catch {
                     failedPages.push(page.name);

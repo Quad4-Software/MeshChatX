@@ -78,9 +78,7 @@ export async function addContactFromInput(
 ): Promise<{ pending: boolean; added?: boolean }> {
     const lxmaData = parseLxmaUri(input);
     if (lxmaData) {
-        const sent = WebSocketConnection.send(
-            JSON.stringify({ type: "lxm.ingest_uri", uri: lxmaData.normalizedUri })
-        );
+        const sent = WebSocketConnection.send(JSON.stringify({ type: "lxm.ingest_uri", uri: lxmaData.normalizedUri }));
         if (!sent) {
             hooks.setPendingLxma(false);
             ToastUtils.error(t("contacts.failed_add_contact"));
