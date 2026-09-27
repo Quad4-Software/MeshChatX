@@ -3,9 +3,10 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.telephone_manager import core as _core
+
 # ruff: noqa: F403
 from meshchatx.src.backend.telephone_manager.core import *
-from meshchatx.src.backend.telephone_manager import core as _core
 
 
 def __getattr__(name: str):

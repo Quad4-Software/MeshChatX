@@ -89,7 +89,7 @@ def _pip_spec_stem(spec: str) -> str:
 def _pypi_project_json(canonical_name: str) -> dict[str, Any] | None:
     safe = urllib.parse.quote(canonical_name)
     url = f"https://pypi.org/pypi/{safe}/json"
-    req = urllib.request.Request(url, headers={"User-Agent": _PYPI_USER_AGENT})
+    req = urllib.request.Request(url, headers={"User-Agent": _PYPI_USER_AGENT})  # noqa: S310 - pinned https PyPI endpoint
     try:
         with urllib.request.urlopen(req, timeout=90) as resp:  # nosec: BAN-B310 - pinned https PyPI endpoint  # noqa: S310
             return json.loads(resp.read().decode("utf-8"))
