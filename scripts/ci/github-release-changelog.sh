@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Print a "## Changelog" section for a GitHub release tag.
+# Print changelog commit entries for a GitHub release tag (no heading; the
+# caller wraps the output, e.g. inside a <details> block).
 #
 # Usage:
 #   sh scripts/ci/github-release-changelog.sh <tag>
@@ -32,8 +33,6 @@ else
 	)"
 fi
 
-echo "## Changelog"
-echo
 if [[ -n "$PREV" ]]; then
 	# Prefer grouped notes from git-cliff when the binary is installed;
 	# fall back to the flat sha-subject list otherwise.

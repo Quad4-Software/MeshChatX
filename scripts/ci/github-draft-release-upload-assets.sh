@@ -133,18 +133,28 @@ mapfile -t files < <(find "$STAGE" -type f)
         release_ver="${TAG#v}"
         release_notes=$(extract_changelog_notes "$release_ver")
         if [ -n "$release_notes" ]; then
-            echo "## Release Notes"
+            echo "<details open>"
+            echo "<summary><strong>Release Notes</strong></summary>"
             echo
             echo "$release_notes"
+            echo
+            echo "</details>"
             echo
         fi
     fi
 
-    # Commit list since previous tag, then checksums / verify.
+    # Commit list since previous tag, then checksums / verify. Sections are
+    # wrapped in <details> so GitHub renders them collapsible; blank lines
+    # around the markdown inside each block are required for rendering.
+    echo "<details>"
+    echo "<summary><strong>Changelog</strong></summary>"
+    echo
     bash "$ROOT/scripts/ci/github-release-changelog.sh" "$TAG"
+    echo "</details>"
     echo
 
-    echo "## SHA256 Checksums"
+    echo "<details>"
+    echo "<summary><strong>SHA256 Checksums</strong></summary>"
     echo
     echo "| Asset | SHA256 |"
     echo "|-------|--------|"
@@ -153,12 +163,16 @@ mapfile -t files < <(find "$STAGE" -type f)
         hash=$(sha256sum "$f" | awk '{print $1}')
         printf "| %s | \`%s\` |\n" "$b" "$hash"
     done
+    echo "</details>"
     echo
-    echo "## Verification"
+
+    echo "<details>"
+    echo "<summary><strong>Verification</strong></summary>"
     echo
     echo "- **Cosign bundles** (\`.cosign.bundle\`) are attached for keyless sigstore verification."
     echo "- **SLSA provenance** (\`.intoto.jsonl\`) is available for supply-chain attestation."
     echo "- Or verify manually using the SHA256 table above."
+    echo "</details>"
 } > "$notes_file"
 
 if [[ "$NOTES_ONLY" == "1" ]]; then
