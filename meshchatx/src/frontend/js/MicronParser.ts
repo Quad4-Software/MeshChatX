@@ -32,6 +32,15 @@ function clampMicronImageNumber(value, max) {
     return Math.min(Math.floor(n), max);
 }
 
+// NomadNet 1.4.x accepts percent dimensions like w=25% alongside pixel counts.
+function clampMicronImageDimension(value, max) {
+    if (typeof value === "string" && /^\d{1,3}%$/.test(value.trim())) {
+        const pct = parseInt(value.trim(), 10);
+        return pct > 0 && pct <= 100 ? `${pct}%` : null;
+    }
+    return clampMicronImageNumber(value, max);
+}
+
 function sanitizeMicronImageString(value, maxLen, pattern: RegExp | null = null) {
     if (typeof value !== "string") {
         return "";
@@ -54,8 +63,8 @@ function truncateMicronImageAlt(value) {
 function parseMicronImageOptions(fields) {
     const options: {
         img: boolean;
-        w: number | null;
-        h: number | null;
+        w: number | string | null;
+        h: number | string | null;
         size: number | null;
         key: string;
         align: string;
@@ -87,9 +96,9 @@ function parseMicronImageOptions(fields) {
             if (k === "img") {
                 options.img = ["1", "true", "yes"].includes(v.toLowerCase());
             } else if (k === "w") {
-                options.w = clampMicronImageNumber(v, MICRON_IMAGE_MAX_WIDTH);
+                options.w = clampMicronImageDimension(v, MICRON_IMAGE_MAX_WIDTH);
             } else if (k === "h") {
-                options.h = clampMicronImageNumber(v, MICRON_IMAGE_MAX_HEIGHT);
+                options.h = clampMicronImageDimension(v, MICRON_IMAGE_MAX_HEIGHT);
             } else if (k === "s") {
                 options.size = clampMicronImageNumber(v, MICRON_IMAGE_MAX_SIZE_HINT);
             } else if (k === "k") {
@@ -909,7 +918,7 @@ export default class MicronParser extends BaseMicronParser {
                 return null;
             }
         } else if (path.startsWith("file/")) {
-            if (!/\.webp$/i.test(path)) {
+            if (!/\.(webp|png|jpe?g|bmp|gif|tiff)$/i.test(path)) {
                 return null;
             }
         } else {
@@ -962,6 +971,34 @@ export default class MicronParser extends BaseMicronParser {
             }
         }
         return linkData;
+    }
+
+    // Whole-line image markup `(alt`w=..`h=..`a=..`url). The final `)`
+    // terminates the construct; fields between alt and url carry properties.
+    parseImageLine(line) {
+        if (typeof line !== "string" || !line.startsWith("`(")) {
+            return null;
+        }
+        const endpos = line.lastIndexOf(")");
+        if (endpos <= 2) {
+            return null;
+        }
+        const fields = line.substring(2, endpos).split("`");
+        if (fields.length < 2) {
+            return null;
+        }
+        const alt = fields[0].trim();
+        const rawUrl = fields[fields.length - 1].trim().replace(/^nomadnetwork:\/\//i, "");
+        const imagePath = MicronParser.extractMicronImageFilePath(rawUrl);
+        if (!imagePath) {
+            return null;
+        }
+        return this.createImagePlaceholder({
+            alt: truncateMicronImageAlt(alt),
+            rawUrl,
+            imagePath,
+            imageOptions: parseMicronImageOptions(fields.slice(1, -1)),
+        });
     }
 
     appendOutput(container, parts, state, inheritedFg = state.default_fg) {
@@ -1025,9 +1062,9 @@ export default class MicronParser extends BaseMicronParser {
         div.setAttribute("aria-label", alt);
 
         if (opts.w != null) {
-            div.style.width = String(opts.w) + "px";
+            div.style.width = typeof opts.w === "string" ? opts.w : String(opts.w) + "px";
         }
-        if (opts.h != null) {
+        if (opts.h != null && typeof opts.h !== "string") {
             div.style.minHeight = String(opts.h) + "px";
         }
 
@@ -1076,6 +1113,11 @@ export default class MicronParser extends BaseMicronParser {
         state._line_is_heading = false;
         state._collapsible_pending = null;
         if (line.length > 0 && !state.literal) {
+            // NomadNet 1.4.x image lines: `(alt`w=..`h=..`a=..`url)
+            const imageEl = this.parseImageLine(line);
+            if (imageEl) {
+                return [imageEl];
+            }
             const partialMatch = line.trim().match(MicronParser.PARTIAL_LINE_REGEX);
             if (partialMatch) {
                 const dest = partialMatch[1];

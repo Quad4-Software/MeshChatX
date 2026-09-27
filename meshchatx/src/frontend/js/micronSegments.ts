@@ -21,7 +21,8 @@ export function splitMicronWasmSegments(markup): MicronSegment[] {
     let buf: string[] = [];
     for (const line of lines) {
         const trimmed = line.trim();
-        if (MICRON_PARTIAL_LINE_REGEX.test(trimmed)) {
+        const isImageLine = line.startsWith("`(") || trimmed.includes("`img=") || trimmed.includes(":/media/");
+        if (MICRON_PARTIAL_LINE_REGEX.test(trimmed) || isImageLine) {
             if (buf.length) {
                 segments.push({ type: "mu", text: buf.join("\n") });
                 buf = [];
