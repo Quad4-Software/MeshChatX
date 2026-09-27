@@ -8,8 +8,11 @@ mkdir -p /tmp/go-cache /tmp/go-tmp
 export GOCACHE="${GOCACHE:-/tmp/go-cache}"
 export GOTMPDIR="${GOTMPDIR:-/tmp/go-tmp}"
 
-PNPM_VERSION="${MESHCHATX_PNPM_VERSION:-11.1.2}"
+PNPM_VERSION="${MESHCHATX_PNPM_VERSION:-12.7.0}"
 
+# pnpm 12 ships native binaries; the corepack bundled with the Node image
+# resolves the old bin/pnpm.cjs layout and fails. Upgrade corepack first.
+npm install -g corepack@0.36.0
 corepack enable
 corepack prepare "pnpm@${PNPM_VERSION}" --activate
 pnpm config set verify-store-integrity true
