@@ -8,20 +8,17 @@
     import { FATAL_ERROR_COPY_RESET_MS } from "./lib/constants.js";
     import {
         copyFatalErrorReport,
-        reportFatalErrorLocally,
         resolveFatalErrorSummary,
     } from "./lib/fatalErrorActions.js";
 
     interface Props {
         error?: FatalErrorRecord | null;
         embedded?: boolean;
-        router?: { push?: (target: { name: string }) => void };
     }
 
-    let { error = null, embedded = false, router = undefined }: Props = $props();
+    let { error = null, embedded = false }: Props = $props();
 
     let copyLabel = $state(t("app.error_copy_details"));
-    let reportLabel = $state(t("app.error_report_locally"));
     const headingId = `fatal-error-title-${Math.random().toString(36).slice(2, 9)}`;
     const messageId = `fatal-error-message-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -32,16 +29,6 @@
 
     function onReload(): void {
         window.location.reload();
-    }
-
-    async function onReportLocal(): Promise<void> {
-        const ok = await reportFatalErrorLocally(effectiveError, router);
-        if (ok) {
-            ToastUtils.success(t("app.error_report_saved"));
-            reportLabel = t("app.error_report_saved");
-        } else {
-            ToastUtils.error(t("app.error_report_failed"));
-        }
     }
 
     async function onCopy(): Promise<void> {
@@ -104,10 +91,6 @@
             <button type="button" class="primary-chip" onclick={onReload}>
                 <MaterialDesignIcon iconName="refresh" class="size-4" />
                 {t("app.error_reload_page")}
-            </button>
-            <button type="button" class="secondary-chip" onclick={onReportLocal}>
-                <MaterialDesignIcon iconName="bug-outline" class="size-4" />
-                {reportLabel}
             </button>
             <button type="button" class="secondary-chip" onclick={onCopy}>
                 <MaterialDesignIcon iconName="content-copy" class="size-4" />

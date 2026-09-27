@@ -47,7 +47,7 @@ class TestPluginManagerInstall:
             manager.call_manager(plugin_id, "unknown.capability", {})
 
     def test_debug_log_read_redacts_secrets(self, tmp_path, monkeypatch):
-        # The manager prefers the process-global memory handler; clear it so
+        # The manager prefers the process-global memory handler. Clear it so
         # the fake database path is what the capability actually reads.
         from meshchatx.src.backend import persistent_log_handler as plh
 
