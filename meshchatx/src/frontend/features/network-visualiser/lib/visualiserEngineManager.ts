@@ -13,6 +13,7 @@ export function tryStartVisualiserWebGL(
         getIsDark: () => boolean;
         onNodeActivate: (id: string, meta: any) => void;
         onHover: (id: string | null, meta: any, x: number, y: number) => void;
+        onSceneFailure?: (err: Error) => void;
         viewMode: ViewMode;
     }
 ): { engine: any; success: boolean } {
@@ -25,6 +26,7 @@ export function tryStartVisualiserWebGL(
             isDark: () => options.getIsDark(),
             onNodeActivate: options.onNodeActivate,
             onHover: options.onHover,
+            onSceneFailure: options.onSceneFailure,
         });
         engine.setViewMode(options.viewMode);
         return { engine, success: true };

@@ -182,6 +182,69 @@ func TestTickSleepsWhenSettled(t *testing.T) {
 	}
 }
 
+func TestCameraRejectsNonFiniteInput(t *testing.T) {
+	s := New()
+	s.Set(SetRequest{
+		Width: 400, Height: 300, Zoom: 1,
+		Nodes: []Node{{ID: "a", X: 10, Y: 10, Kind: KindPeer}},
+	})
+	nan := math.NaN()
+	inf := math.Inf(1)
+
+	s.SetCamera(nan, 0, 1)
+	s.SetCamera(0, nan, 1)
+	s.SetCamera(0, 0, nan)
+	s.SetCamera(5, 6, 2)
+	s.PanBy(nan, 1)
+	s.PanBy(1, inf)
+	cam := s.Camera()
+	if cam.X != 5 || cam.Y != 6 || cam.Zoom != 2 {
+		t.Fatalf("non-finite camera input poisoned state: %+v", cam)
+	}
+
+	s.ZoomAt(nan, 0, 1.5)
+	s.ZoomAt(0, nan, 1.5)
+	s.ZoomAt(0, 0, nan)
+	s.ZoomAt(0, 0, inf)
+	if s.Camera().Zoom != 2 {
+		t.Fatalf("zoom poisoned: %+v", s.Camera())
+	}
+
+	if !s.DragStart("a") {
+		t.Fatal("drag start failed")
+	}
+	s.DragTo(nan, 100)
+	s.DragTo(100, inf)
+	if !isFiniteForTest(s.nodes[0].X) || !isFiniteForTest(s.nodes[0].Y) {
+		t.Fatalf("drag wrote non-finite position: %v %v", s.nodes[0].X, s.nodes[0].Y)
+	}
+}
+
+func TestSetSanitizesNodePositionsAndDedupes(t *testing.T) {
+	s := New()
+	s.Set(SetRequest{
+		Nodes: []Node{
+			{ID: "a", X: math.NaN(), Y: math.Inf(-1), Kind: KindPeer},
+			{ID: "a", X: 99, Y: 99, Kind: KindPeer},
+			{ID: "b", X: 5, Y: 5, Kind: KindPeer},
+		},
+	})
+	n, _ := s.Counts()
+	if n != 2 {
+		t.Fatalf("duplicate id should collapse to first, got %d nodes", n)
+	}
+	if s.nodes[0].X != 0 || s.nodes[0].Y != 0 {
+		t.Fatalf("non-finite position should reset to 0, got %v %v", s.nodes[0].X, s.nodes[0].Y)
+	}
+	if s.index["a"] != 0 {
+		t.Fatalf("index should point at the first occurrence, got %d", s.index["a"])
+	}
+}
+
+func isFiniteForTest(v float64) bool {
+	return !math.IsNaN(v) && !math.IsInf(v, 0)
+}
+
 func TestTickDoesNotExplode(t *testing.T) {
 	s := New()
 	s.Set(SetRequest{

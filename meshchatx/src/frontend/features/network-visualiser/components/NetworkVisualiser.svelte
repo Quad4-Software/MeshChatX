@@ -29,6 +29,9 @@
         type VisualiserDataState,
     } from "../lib/visualiserPipeline.js";
     import { bindVisualiserEvents } from "../lib/visualiserEvents.js";
+    import { VIZ_EDGE_SMOOTH } from "../lib/constants.js";
+    import ToastUtils from "../../../js/ToastUtils.js";
+    import { t } from "../../../js/i18n.js";
     import type { RendererMode, EngineMode, ViewMode, PreferredRenderer } from "../lib/types.js";
 
     let networkContainer = $state<HTMLDivElement | null>(null);
@@ -79,6 +82,9 @@
     let unbindEvents: (() => void) | null = null;
     let didInitRenderer = false;
     let resetCameraOnNextGraph = false;
+    // Set while a flat rebuild follows radial: the live position snapshot is
+    // still the ring layout and must not overwrite the cached force positions.
+    let leavingRadialLayout = false;
 
     let pathFetchConcurrency = $derived(pickAdaptiveFetchConcurrency());
 
@@ -100,6 +106,38 @@
         hopMaxFilter = readStoredHopMaxFilter();
     }
 
+    function onPrefsChanged() {
+        const prevRenderer = preferredRenderer;
+        const prevDisabled = showDisabledInterfaces;
+        const prevDiscovered = showDiscoveredInterfaces;
+        const prevViewMode = viewMode;
+        loadDisplayPrefs();
+        webglEngine?.setViewMode?.(viewMode);
+        const hasRenderer = webglEngine != null || network != null;
+        if (preferredRenderer !== prevRenderer) {
+            void reinitRenderer();
+            return;
+        }
+        if (viewMode !== prevViewMode && hasRenderer) {
+            // Same transition rules as onViewModeChange: preserve the force
+            // layout when entering radial, keep ring positions out of the
+            // cache when leaving it, then rebuild.
+            const wasRadial = prevViewMode === "radial";
+            if (viewMode === "radial") {
+                snapshotLivePositions();
+            }
+            leavingRadialLayout = wasRadial;
+            resetCameraOnNextGraph = true;
+            void processVisualization();
+            return;
+        }
+        const filtersChanged =
+            showDisabledInterfaces !== prevDisabled || showDiscoveredInterfaces !== prevDiscovered;
+        if (filtersChanged && hasRenderer) {
+            void processVisualization();
+        }
+    }
+
     function onUserHopMaxFilterChange(val: number | null) {
         if (val === hopMaxFilter) return;
         hopMaxFilter = val;
@@ -118,6 +156,7 @@
     function onViewModeChange(next: ViewMode) {
         const normalized = normalizeVisualiserViewMode(next);
         if (normalized === viewMode) return;
+        const hasRenderer = webglEngine != null || network != null;
         const wasRadial = viewMode === "radial";
         viewMode = normalized;
         persistVisualiserViewMode(normalized, { emit: false });
@@ -125,8 +164,37 @@
         // Radial swaps force layout for pinned hop rings, so switching to
         // or from it needs a rebuild plus a camera reset.
         if (normalized === "radial" || wasRadial) {
+            if (normalized === "radial" && hasRenderer) {
+                // Preserve the live force layout so flat can restore it on
+                // the way back instead of reopening on ring coordinates.
+                snapshotLivePositions();
+            }
+            leavingRadialLayout = wasRadial;
             resetCameraOnNextGraph = true;
             void processVisualization();
+        }
+    }
+
+    function snapshotLivePositions() {
+        if (webglEngine) {
+            const snap = webglEngine.getPositions() || {};
+            for (const [id, p] of Object.entries(snap)) {
+                if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+                    data.cachedPositions[id] = { x: p.x, y: p.y };
+                }
+            }
+            return;
+        }
+        if (!network || typeof network.getPositions !== "function") return;
+        const ids = nodes.getIds() as string[];
+        const snap = network.getPositions(ids);
+        if (snap) {
+            for (const id of ids) {
+                const p = snap[id];
+                if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+                    data.cachedPositions[id] = { x: p.x, y: p.y };
+                }
+            }
         }
     }
 
@@ -143,10 +211,10 @@
         await init({ skipWarm: true });
     }
 
-    async function init({ skipWarm = false } = {}) {
+    async function init({ skipWarm = false, forceVis = false } = {}) {
         const res = await setupVisualiserRenderer({
             skipWarm,
-            preferredRenderer,
+            preferredRenderer: forceVis ? "vis" : preferredRenderer,
             webglCanvas,
             networkContainer,
             nodes,
@@ -165,6 +233,7 @@
             onDragEnd: () => {
                 physicsPausedForDrag = false;
             },
+            onSceneFailure: onWebGLSceneFailure,
         });
         webglEngine = res.webglEngine;
         network = res.network;
@@ -179,6 +248,37 @@
         if (didInitRenderer || networkContainer == null) return;
         didInitRenderer = true;
         void init();
+    });
+
+    let didInitPhysicsWatcher = false;
+    $effect(() => {
+        const enabled = enablePhysics;
+        const mode = viewMode;
+        if (!didInitPhysicsWatcher) {
+            didInitPhysicsWatcher = true;
+            return;
+        }
+        // Ring coordinates must never enter the force-position cache: not
+        // while radial is active, and not during the radial-to-flat
+        // transition where the live snapshot is still the ring layout.
+        const skipSnapshot = mode === "radial" || leavingRadialLayout;
+        if (webglEngine) {
+            webglEngine.setLiveLayout?.(enabled);
+            if (!enabled && !skipSnapshot) {
+                snapshotLivePositions();
+            }
+            return;
+        }
+        if (!network || physicsPausedForDrag) return;
+        // Freeze current coordinates before stopping the solver so peers
+        // stay where the live layout left them.
+        if (!enabled && !skipSnapshot) {
+            snapshotLivePositions();
+        }
+        network.setOptions({
+            physics: { enabled: enabled && mode !== "radial" },
+            edges: { smooth: VIZ_EDGE_SMOOTH as any },
+        });
     });
 
     function scheduleUpdateLOD() {
@@ -285,6 +385,10 @@
         const radial = viewMode === "radial";
         const resetCamera = resetCameraOnNextGraph;
         resetCameraOnNextGraph = false;
+        // Leaving radial: the live snapshot is still the ring layout.
+        // Skip it so the cached force positions win the rebuild.
+        const skipLivePositionOverlay = leavingRadialLayout === true;
+        leavingRadialLayout = false;
 
         didDisableStabilization = await executeVisualiserRender({
             silent,
@@ -305,6 +409,9 @@
             enablePhysics: enablePhysics && !radial,
             physicsPausedForDrag,
             didDisableStabilization,
+            iconCache,
+            iconGeneration: iconManager.generation,
+            skipLivePositionOverlay,
             radial,
             resetCamera,
             onStatusChange: (status) => {
@@ -322,11 +429,22 @@
         });
     }
 
+    function onWebGLSceneFailure(err: unknown) {
+        if (rendererMode !== "webgl") return;
+        console.warn("WebGL scene failed, falling back to vis-network:", err);
+        teardownActiveRenderer();
+        if (preferredRenderer === "webgl") {
+            ToastUtils.warning(t("visualiser.renderer_webgl_unavailable"));
+        }
+        void init({ skipWarm: true, forceVis: true })
+            .catch((e) => console.warn("vis-network fallback failed:", e));
+    }
+
     onMount(() => {
         loadDisplayPrefs();
         unbindEvents = bindVisualiserEvents({
             onConfigUpdated: manualUpdate,
-            onPrefsChanged: loadDisplayPrefs,
+            onPrefsChanged: () => void onPrefsChanged(),
             onBatterySaverChanged: () => {
                 batterySaverPrefs = loadBatterySaverPrefs();
                 restartAutoReloadInterval();

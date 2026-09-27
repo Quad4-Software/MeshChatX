@@ -1,13 +1,21 @@
 // SPDX-License-Identifier: 0BSD
 
 import Utils from "../../../js/Utils.js";
-import { buildFullGraph, computeRadialPositions } from "../../../js/networkVisualiserPerf.js";
+import { isVisualiserWasmReady } from "../../../js/VisualiserWasmLoader.js";
+import {
+    buildFullGraph,
+    computeRadialPositions,
+    hashposXY,
+    layoutSpringLength,
+    VIZ_ANNOUNCE_ASPECTS,
+} from "../../../js/networkVisualiserPerf.js";
 import { DEFAULT_RETICULUM_LOGO_PATH, INTERFACE_CONNECTED_IMAGE, INTERFACE_DISCONNECTED_IMAGE } from "./constants.js";
 import type {
     PathTableEntry,
     AnnounceEntry,
     InterfaceEntry,
     DiscoveredInterfaceEntry,
+    DiscoveredActiveEntry,
     ConversationEntry,
     VisualiserConfig,
 } from "./types.js";
@@ -92,6 +100,9 @@ export function buildVisualiserGraph(options: {
     isDarkMode: boolean;
     currentLOD: string;
     batterySaverPrefs?: { enabled?: boolean; maxVisualiserInterfaces?: number };
+    discoveredActive?: DiscoveredActiveEntry[];
+    iconCache?: Record<string, string>;
+    iconGeneration?: number;
     radial?: boolean;
 }) {
     const {
@@ -175,15 +186,34 @@ export function buildVisualiserGraph(options: {
 
     const discPayload: any[] = [];
     if (showDiscoveredInterfaces) {
+        const activeEndpoints = new Set<string>();
+        for (const a of options.discoveredActive || []) {
+            const aHost = a.target_host || a.remote || a.listen_ip;
+            const aPort = a.target_port || a.listen_port;
+            if (aHost && aPort != null) activeEndpoints.add(`${aHost}:${aPort}`);
+        }
         for (const disc of discoveredInterfaces) {
-            const discName = disc.name || disc.reachable_on || disc.transport_id || disc.discovery_hash || "";
-            if (!matchesSearch(discName)) continue;
+            const discId = `discovered~${disc.discovery_hash || disc.name}`;
+            const discLabel = disc.name || disc.reachable_on || "Unknown";
+            if (
+                !matchesSearch(discLabel) &&
+                !matchesSearch(disc.reachable_on) &&
+                !matchesSearch(disc.transport_id)
+            ) {
+                continue;
+            }
+            const isConnected =
+                disc.reachable_on != null &&
+                disc.port != null &&
+                activeEndpoints.has(`${disc.reachable_on}:${disc.port}`);
             discPayload.push({
-                name: discName,
-                label: discName,
-                title: `Discovered: ${discName}\nType: ${disc.type || "Unknown"}\nHops: ${disc.hops ?? "Direct"}\nState: ${disc.status || "Discovered"}\nPort: ${disc.port || "Default"}`,
-                connected: false,
-                parent_interface: disc.reachable_on || null,
+                id: discId,
+                label: discLabel,
+                title: `Discovered: ${discLabel}\nType: ${disc.type || "Unknown"}\nHops: ${disc.hops ?? "?"}\nStatus: ${isConnected ? "Connected" : disc.status || "Available"}${disc.reachable_on ? `\nAddress: ${disc.reachable_on}:${disc.port}` : ""}`,
+                connected: isConnected,
+                hops: disc.hops ?? null,
+                reachable_on: disc.reachable_on ?? null,
+                transport_id: disc.transport_id ?? null,
             });
         }
     }
@@ -199,40 +229,309 @@ export function buildVisualiserGraph(options: {
               ...positions,
               ...computeRadialPositions({
                   interfaces: [...interfacesPayload.map((i) => i.name), ...pathOnlyPayload.map((i) => i.name)],
-                  discovered: discPayload.map((d) => d.name).filter(Boolean),
+                  discovered: discPayload.map((d) => d.id).filter(Boolean),
                   pathTable,
                   hopMax: hopMaxFilter,
               }),
           }
         : positions;
 
-    const graph = buildFullGraph({
-        myNode: { name: myName, title: myTitle, image: DEFAULT_RETICULUM_LOGO_PATH },
+    // WASM emits the whole graph; the JS fallback only emits path nodes,
+    // so me/ifaces/discovered are synthesized below. Keys match the
+    // visualiser-wasm FullRequest contract.
+    const fullReq = {
+        me_label: myName,
+        me_title: myTitle,
+        me_image: DEFAULT_RETICULUM_LOGO_PATH,
+        identity_hash: config?.identity_hash ?? "",
         interfaces: interfacesPayload,
-        pathOnlyInterfaces: pathOnlyPayload,
-        discoveredInterfaces: discPayload,
-        pathTable,
+        path_only_interfaces: pathOnlyPayload,
+        discovered: discPayload,
+        path_table: pathTable,
         announces: announcePayload,
         conversations: conversationPayload,
+        icon_cache: options.iconCache || {},
         positions: positionsIn,
-        isDarkMode,
-        currentLOD,
-        searchQuery,
-        hopMaxFilter,
-        connectedInterfaceImage: INTERFACE_CONNECTED_IMAGE,
-        disconnectedInterfaceImage: INTERFACE_DISCONNECTED_IMAGE,
-    });
+        hop_max: hopMaxFilter,
+        search: searchQuery,
+        dark_mode: isDarkMode,
+        lod: currentLOD,
+        aspects: [...VIZ_ANNOUNCE_ASPECTS],
+        queue_icons: currentLOD !== "low",
+        icon_generation: options.iconGeneration ?? 0,
+        show_discovered: showDiscoveredInterfaces,
+    };
 
-    // Radial pins every node so hop rings stay put under live layout
-    // and scene ticks.
-    if (radial) {
-        for (const node of graph.nodes || []) {
-            if (node) node.fixed = true;
+    const rawGraph = buildFullGraph(fullReq as any) as {
+        nodes?: any[];
+        edges?: any[];
+        layout_nodes?: any[];
+        layout_edges?: any[];
+        icon_queue?: any[];
+        processed_node_ids?: any[];
+        processed_edge_ids?: any[];
+    } | null;
+
+    let graphNodes = Array.isArray(rawGraph?.nodes) ? rawGraph.nodes : [];
+    let graphEdges = Array.isArray(rawGraph?.edges) ? rawGraph.edges : [];
+    let layoutNodes: any[] = Array.isArray(rawGraph?.layout_nodes) ? rawGraph.layout_nodes : [];
+    let layoutEdges: any[] = Array.isArray(rawGraph?.layout_edges) ? rawGraph.layout_edges : [];
+
+    // When WASM full-graph is unavailable, synthesize me/ifaces/discovered
+    // in JS. Mirrors visualiser-wasm internal/graph/full.go BuildFullGraph.
+    if (!isVisualiserWasmReady()) {
+        const localNodes: any[] = [];
+        const localEdges: any[] = [];
+        const posByIdRef = positionsIn;
+        const pickStablePosition = (
+            id: string,
+            initial: () => { x: number; y: number }
+        ): { x: number; y: number } => {
+            const prev = posByIdRef[id];
+            if (prev && Number.isFinite(prev.x) && Number.isFinite(prev.y)) {
+                return { x: prev.x, y: prev.y };
+            }
+            return initial();
+        };
+        let meAdded = false;
+        if (matchesSearch(myName) || matchesSearch(config?.identity_hash)) {
+            const mp = pickStablePosition("me", () => ({ x: 0, y: 0 }));
+            let meNode: any = {
+                id: "me",
+                group: "me",
+                size: 50,
+                _originalSize: 50,
+                shape: "circularImage",
+                _originalShape: "circularImage",
+                image: DEFAULT_RETICULUM_LOGO_PATH,
+                label: myName,
+                title: fullReq.me_title,
+                color: vizNodeColor("#3b82f6", isDarkMode ? "#1e40af" : "#eff6ff"),
+                font: { color: isDarkMode ? "#ffffff" : "#000000", size: 16, bold: true },
+                x: mp.x,
+                y: mp.y,
+            };
+            meNode = {
+                ...meNode,
+                _originalColor: meNode.color,
+                ...nodeLodProps(meNode, currentLOD, isDarkMode),
+            };
+            localNodes.push(meNode);
+            meAdded = true;
         }
-        for (const body of (graph as { layout_nodes?: Array<{ fixed?: boolean }> }).layout_nodes || []) {
-            if (body) body.fixed = true;
+        // New interfaces spread on a circle like the WASM builder.
+        const ifaceRadius = 210;
+        interfacesPayload.forEach((entry, j) => {
+            const angle = (j / interfacesPayload.length) * Math.PI * 2;
+            const pos = pickStablePosition(entry.name, () => ({
+                x: Math.cos(angle) * ifaceRadius,
+                y: Math.sin(angle) * ifaceRadius,
+            }));
+            let n: any = {
+                id: entry.name,
+                group: "interface",
+                label: entry.label,
+                title: entry.title,
+                size: 35,
+                _originalSize: 35,
+                shape: "circularImage",
+                _originalShape: "circularImage",
+                image: entry.online ? INTERFACE_CONNECTED_IMAGE : INTERFACE_DISCONNECTED_IMAGE,
+                color: entry.online
+                    ? vizNodeColor("#10b981", isDarkMode ? "#064e3b" : "#ecfdf5")
+                    : vizNodeColor("#ef4444", isDarkMode ? "#7f1d1d" : "#fef2f2"),
+                font: { color: isDarkMode ? "#ffffff" : "#000000", size: 12, bold: true },
+                x: pos.x,
+                y: pos.y,
+            };
+            n = { ...n, _originalColor: n.color, ...nodeLodProps(n, currentLOD, isDarkMode) };
+            localNodes.push(n);
+            if (meAdded) {
+                localEdges.push({
+                    id: `me~${entry.name}`,
+                    from: "me",
+                    to: entry.name,
+                    color: entry.online
+                        ? vizDirectEdgeColor(isDarkMode)
+                        : { color: isDarkMode ? "#f87171" : "#ef4444", opacity: 1 },
+                    width: 3,
+                    hidden: false,
+                });
+            }
+        });
+        pathOnlyPayload.forEach((entry, j) => {
+            const angle = (j / pathOnlyPayload.length) * Math.PI * 2;
+            const pos = pickStablePosition(entry.name, () => ({
+                x: Math.cos(angle) * ifaceRadius,
+                y: Math.sin(angle) * ifaceRadius,
+            }));
+            let n: any = {
+                id: entry.name,
+                group: "interface",
+                label: entry.label,
+                title: entry.title,
+                size: 35,
+                _originalSize: 35,
+                shape: "circularImage",
+                _originalShape: "circularImage",
+                image: INTERFACE_CONNECTED_IMAGE,
+                color: vizNodeColor("#10b981", isDarkMode ? "#064e3b" : "#ecfdf5"),
+                font: { color: isDarkMode ? "#ffffff" : "#000000", size: 12, bold: true },
+                x: pos.x,
+                y: pos.y,
+            };
+            n = { ...n, _originalColor: n.color, ...nodeLodProps(n, currentLOD, isDarkMode) };
+            localNodes.push(n);
+            if (meAdded) {
+                localEdges.push({
+                    id: `me~${entry.name}`,
+                    from: "me",
+                    to: entry.name,
+                    color: vizDirectEdgeColor(isDarkMode),
+                    width: 3,
+                    hidden: false,
+                });
+            }
+        });
+        if (showDiscoveredInterfaces) {
+            for (const disc of discPayload) {
+                if (hopMaxFilter != null && disc.hops != null && disc.hops > hopMaxFilter) continue;
+                const pos = pickStablePosition(disc.id, () => hashposXY(disc.id, 560, 240));
+                let n: any = {
+                    id: disc.id,
+                    group: "discovered",
+                    label: disc.label,
+                    title: disc.title,
+                    size: 25,
+                    _originalSize: 25,
+                    shape: "circularImage",
+                    _originalShape: "circularImage",
+                    image: disc.connected ? INTERFACE_CONNECTED_IMAGE : INTERFACE_DISCONNECTED_IMAGE,
+                    color: disc.connected
+                        ? vizNodeColor("#06b6d4", isDarkMode ? "#164e63" : "#ecfeff")
+                        : vizNodeColor("#64748b", isDarkMode ? "#1e293b" : "#f1f5f9"),
+                    font: { color: isDarkMode ? "#ffffff" : "#000000", size: 10 },
+                    x: pos.x,
+                    y: pos.y,
+                };
+                n = { ...n, _originalColor: n.color, ...nodeLodProps(n, currentLOD, isDarkMode) };
+                localNodes.push(n);
+                if (meAdded) {
+                    localEdges.push({
+                        id: `me~${disc.id}`,
+                        from: "me",
+                        to: disc.id,
+                        color: { color: isDarkMode ? "#155e75" : "#06b6d4", opacity: 0.35 },
+                        width: 1,
+                        hidden: false,
+                    });
+                }
+            }
         }
+        graphNodes = [...localNodes, ...graphNodes];
+        graphEdges = [...localEdges, ...graphEdges];
+        // Path edges can point at interface nodes the search filter dropped.
+        // Drop them before the layout edge list is built.
+        const mergedNodeIds = new Set<string>();
+        for (const n of graphNodes) {
+            if (n?.id) mergedNodeIds.add(n.id);
+        }
+        graphEdges = graphEdges.filter((e) => e && mergedNodeIds.has(e.from) && mergedNodeIds.has(e.to));
+        layoutNodes = graphNodes.map((n) => ({
+            id: n.id,
+            x: n.x,
+            y: n.y,
+            mass: n.group === "me" ? 4 : n.group === "interface" ? 2.5 : n.group === "discovered" ? 1.2 : 1,
+            fixed: radial || n.id === "me",
+            radius: Number.isFinite(n.size) ? n.size : 22,
+        }));
+        layoutEdges = graphEdges.map((e) => ({
+            from: e.from,
+            to: e.to,
+            length: layoutSpringLength(e.width),
+        }));
     }
 
-    return graph;
+    // Path edges can point at interface nodes the search filter dropped. A
+    // dangling endpoint breaks vis-network updates and skews the WebGL edge
+    // count, so drop those edges here.
+    const graphNodeIds = new Set<string>();
+    for (const n of graphNodes) {
+        if (n?.id) graphNodeIds.add(n.id);
+    }
+    graphEdges = graphEdges.filter((e) => e && graphNodeIds.has(e.from) && graphNodeIds.has(e.to));
+
+    // Radial pins every node so hop rings stay put under live layout and
+    // scene ticks. Flat must emit fixed explicitly: vis-network deep-merges
+    // node updates, so a stale fixed pin from radial would otherwise survive
+    // the switch back.
+    for (const node of graphNodes) {
+        if (node) node.fixed = radial || node.id === "me";
+    }
+    for (const body of layoutNodes) {
+        if (body) body.fixed = radial || body.id === "me";
+    }
+
+    return {
+        nodes: graphNodes,
+        edges: graphEdges,
+        layout_nodes: layoutNodes,
+        layout_edges: layoutEdges,
+        icon_queue: Array.isArray(rawGraph?.icon_queue) ? rawGraph.icon_queue : [],
+        processed_node_ids: Array.isArray(rawGraph?.processed_node_ids) ? rawGraph.processed_node_ids : [],
+        processed_edge_ids: Array.isArray(rawGraph?.processed_edge_ids) ? rawGraph.processed_edge_ids : [],
+    };
+}
+function vizNodeColor(border: string, background: string) {
+    return {
+        border,
+        background,
+        highlight: { border, background },
+        hover: { border, background },
+    };
+}
+
+function vizDirectEdgeColor(isDarkMode: boolean) {
+    return { color: isDarkMode ? "#34d399" : "#10b981", opacity: 1 };
+}
+
+/** LOD props for a synthesized node; mirrors computeLodUpdatesJs for one node. */
+function nodeLodProps(node: Record<string, any>, lod: string, isDarkMode: boolean): Record<string, any> {
+    const fontColor = isDarkMode ? "#ffffff" : "#000000";
+    const blueBorder = "#3b82f6";
+    const blueBg = isDarkMode ? "#1e40af" : "#eff6ff";
+
+    if (lod === "low") {
+        const isInterface = node.group === "interface";
+        const baseColor = isInterface && node.color ? node.color : vizNodeColor(blueBorder, blueBg);
+        return {
+            id: node.id,
+            shape: "dot",
+            size: node.id === "me" ? 15 : 10,
+            font: { size: 0 },
+            color: baseColor,
+        };
+    }
+    if (lod === "medium") {
+        const props: Record<string, any> = {
+            id: node.id,
+            shape: node._originalShape || "circularImage",
+            size: node._originalSize || (node.id === "me" ? 50 : 25),
+            font: { size: 0 },
+        };
+        // Low LOD stamps a generic blue over node.color; hand back the
+        // semantic color stashed at build time.
+        const semantic = node._originalColor || node.color;
+        if (semantic) props.color = semantic;
+        return props;
+    }
+    const props: Record<string, any> = {
+        id: node.id,
+        shape: node._originalShape || "circularImage",
+        size: node._originalSize || (node.id === "me" ? 50 : 25),
+        font: { size: node.id === "me" ? 16 : 11, color: fontColor },
+    };
+    const semantic = node._originalColor || node.color;
+    if (semantic) props.color = semantic;
+    return props;
 }

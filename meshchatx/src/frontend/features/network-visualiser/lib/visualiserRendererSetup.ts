@@ -28,6 +28,7 @@ export async function tryStartWebGL(params: {
     viewMode: ViewMode;
     onHover: (tooltip: { text: string; x: number; y: number } | null) => void;
     currentWebglEngine: any;
+    onSceneFailure?: (err: Error) => void;
 }): Promise<{ engine: any; rendererMode: RendererMode; engineMode: EngineMode; success: boolean }> {
     const result = tryStartVisualiserWebGL(params.webglCanvas, {
         getEnablePhysics: params.getEnablePhysics ?? (() => params.enablePhysics === true),
@@ -44,6 +45,7 @@ export async function tryStartWebGL(params: {
             }
         },
         viewMode: params.viewMode,
+        onSceneFailure: params.onSceneFailure,
     });
 
     if (result.success && result.engine) {
@@ -81,6 +83,7 @@ export async function setupVisualiserRenderer(params: {
     onZoom: () => void;
     onDragStart: () => void;
     onDragEnd: () => void;
+    onSceneFailure?: (err: Error) => void;
 }): Promise<{
     webglEngine: any;
     network: Network | null;
@@ -107,6 +110,7 @@ export async function setupVisualiserRenderer(params: {
             viewMode: params.viewMode,
             onHover: params.onHover,
             currentWebglEngine: params.currentWebglEngine,
+            onSceneFailure: params.onSceneFailure,
         });
         if (res.success) {
             webglEngine = res.engine;
