@@ -28,6 +28,9 @@ overrides:
     "@opentelemetry/core": ">=2.8.0"
     ansi-regex: ">=6.0.1"
     strip-ansi: "6.0.1"
+    # chokidar 4.x predates npm trusted publishing, so trustPolicy:
+    # no-downgrade rejects it. 5.0.0 ships provenance attestations.
+    chokidar: "5.0.0"
     "strip-ansi>ansi-regex": "5.0.1"
     braces: ">=3.0.3"
     brace-expansion: ">=5.0.9"
@@ -86,7 +89,7 @@ minimumReleaseAgeExclude:
 
 patchedDependencies:
     ol@10.10.0: patches/ol@10.10.0.patch
-    ol-mapbox-style@13.4.3: patches/ol-mapbox-style@13.4.3.patch
+    ol-mapbox-style@13.5.1: patches/ol-mapbox-style@13.5.1.patch
 
 peerDependencyRules:
     allowedVersions:
