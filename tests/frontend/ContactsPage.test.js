@@ -143,6 +143,22 @@ describe("ContactsPage.svelte", () => {
         expect(axiosMock.post).not.toHaveBeenCalled();
     });
 
+    it("does not mark lxma ingest pending when the socket send fails", async () => {
+        vi.mocked(WebSocketConnection.send).mockReturnValueOnce(false);
+        const hooks = {
+            setPendingLxma: vi.fn(),
+            armPendingLxmaTimeout: vi.fn(),
+            onAdded: vi.fn(async () => {}),
+        };
+        const result = await addContactFromInput(`lxma://${"f".repeat(32)}:${"1".repeat(128)}`, "", hooks);
+        expect(result.pending).toBe(false);
+        // A dropped send must not leave the submit button spinning or let a
+        // later unrelated ingest result close the dialog.
+        expect(hooks.setPendingLxma).not.toHaveBeenCalledWith(true);
+        expect(hooks.armPendingLxmaTimeout).not.toHaveBeenCalled();
+        expect(ToastUtils.error).toHaveBeenCalled();
+    });
+
     it("exports contacts via GET /api/v1/telephone/contacts/export", async () => {
         vi.stubGlobal(
             "Blob",

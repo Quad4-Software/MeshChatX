@@ -565,7 +565,13 @@ export function createConversationViewerActions(
             void deps.addContact(name, hash, lxmfAddress, lxstAddress, icon),
         ingestPaperMessage: (paperMessage: unknown, hash?: string) => {
             if (typeof paperMessage === "string" && paperMessage) {
-                WebSocketConnection.send(JSON.stringify({ type: "lxm.ingest_uri", uri: paperMessage }));
+                const sent = WebSocketConnection.send(
+                    JSON.stringify({ type: "lxm.ingest_uri", uri: paperMessage })
+                );
+                if (!sent) {
+                    ToastUtils.error(t("messages.failed_send_ingest"));
+                    return;
+                }
                 ToastUtils.loading(t("messages.paper_message_ingest"), 2000);
             }
             if (hash) {

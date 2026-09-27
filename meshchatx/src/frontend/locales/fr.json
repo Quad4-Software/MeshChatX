@@ -3914,7 +3914,7 @@
     "settings": {
         "shortcut_saved": "Raccourci enregistré",
         "shortcut_deleted": "Raccourci supprimé",
-        "archived_pages_flushed": "Pages archivées bouffées.",
+        "archived_pages_flushed": "Pages archivées bouffées.",        "archived_pages_flush_failed": "Échec du vidage des pages archivées",
         "flush_archived_pages_confirm": "Supprimer toutes les pages archivées ? Cette action est irréversible.",
         "outbound_bubble_color": "Couleur sortante",
         "failed_bubble_color": "Couleur d'échec",
@@ -4742,7 +4742,7 @@
         "translate_target_invalid": "Choisissez une langue cible différente de la source",
         "failed_add_contact": "Impossible d'ajouter le contact",
         "ingesting_paper_message": "ingérant un message papier...",
-        "failed_ingest_paper": "Échec de l'ingestion d'un message papier",
+        "failed_ingest_paper": "Échec de l'ingestion d'un message papier",        "failed_generate_paper_uri": "Échec de la génération du message papier",
         "paper_message_detected": "Message papier détecté",
         "paper_message_detected_desc": "Ce message contient un URI LXMF signé que vous pouvez ingérer dans vos conversations.",
         "paper_message_ingest": "Ingérer le message",

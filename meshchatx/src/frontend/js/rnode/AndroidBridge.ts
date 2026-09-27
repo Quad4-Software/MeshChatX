@@ -53,7 +53,9 @@ export default class AndroidBridge {
             if (this.bridge && typeof this.bridge === "object") {
                 this.bridge.__v_skip = true;
             }
-        } catch {}
+        } catch {
+            // already reactive-free or non-configurable
+        }
         for (const key of Object.getOwnPropertyNames(AndroidBridge.prototype)) {
             if (key !== "constructor" && typeof (this as any)[key] === "function") {
                 (this as any)[key] = (this as any)[key].bind(this);
