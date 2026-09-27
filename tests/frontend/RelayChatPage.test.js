@@ -217,6 +217,108 @@ describe("RelayChatPage.svelte", () => {
         expect(second.value).toBe("");
     });
 
+    it("does not request messages or read receipts for a removed hub", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        const confirmSpy = vi.spyOn(DialogUtils, "confirm").mockResolvedValue(true);
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        vi.spyOn(ToastUtils, "success").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
+
+        const { component } = render(RelayChatPage);
+        await waitFor(() => expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rrc/hubs"));
+        await component.selectRoom(HUB_HASH, "lobby");
+        axiosMock.get.mockClear();
+        axiosMock.post.mockClear();
+
+        let resolveDelete;
+        axiosMock.delete.mockImplementationOnce(() => new Promise((r) => (resolveDelete = r)));
+        const removal = component.removeHub({ hub_hash: HUB_HASH });
+        await waitFor(() => expect(axiosMock.delete).toHaveBeenCalled());
+
+        // A websocket event for the hub landing mid-delete must not hit the API.
+        component.onRrcMessage({
+            hub_hash: HUB_HASH,
+            room: "lobby",
+            message: { kind: "system", room: "lobby", text: "disconnected", ts: 2 },
+        });
+        await Promise.resolve();
+        expect(axiosMock.get).not.toHaveBeenCalledWith(
+            expect.stringContaining(`/rrc/hubs/${HUB_HASH}/rooms/lobby/messages`)
+        );
+        expect(axiosMock.post).not.toHaveBeenCalledWith(
+            expect.stringContaining(`/rrc/hubs/${HUB_HASH}/rooms/lobby/read`)
+        );
+
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({ data: { hubs: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        resolveDelete({ data: {} });
+        await removal;
+        await waitFor(() => expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rrc/hubs"));
+        confirmSpy.mockRestore();
+    });
+
+    it("does not request messages or read receipts for a removed room", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        const confirmSpy = vi.spyOn(DialogUtils, "confirmCustom").mockResolvedValue(true);
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        vi.spyOn(ToastUtils, "success").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
+
+        const { component } = render(RelayChatPage);
+        await waitFor(() => expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rrc/hubs"));
+        await component.selectRoom(HUB_HASH, "lobby");
+        axiosMock.get.mockClear();
+        axiosMock.post.mockClear();
+
+        let resolveDelete;
+        axiosMock.delete.mockImplementationOnce(() => new Promise((r) => (resolveDelete = r)));
+        const leaving = component.leaveRoom();
+        await waitFor(() => expect(axiosMock.delete).toHaveBeenCalled());
+
+        component.onRrcMessage({
+            hub_hash: HUB_HASH,
+            room: "lobby",
+            message: { kind: "msg", room: "lobby", src: "aabb", text: "late", ts: 2 },
+        });
+        await Promise.resolve();
+        expect(axiosMock.post).not.toHaveBeenCalledWith(
+            expect.stringContaining(`/rrc/hubs/${HUB_HASH}/rooms/lobby/read`)
+        );
+
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({ data: { hubs: [makeHub({ known_rooms: [], rooms: [] })] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        resolveDelete({ data: {} });
+        await leaving;
+        confirmSpy.mockRestore();
+    });
+
+    it("clears a stale selection when the hub disappears from the listing", async () => {
+        const { component, queryByText } = render(RelayChatPage);
+        await waitFor(() => expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rrc/hubs"));
+        await component.selectRoom(HUB_HASH, "lobby");
+
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({ data: { hubs: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        await component.fetchHubs();
+        // The cleared selection drops the hub from the sidebar and the open
+        // room view.
+        await waitFor(() => {
+            expect(queryByText("Test Hub")).toBeNull();
+        });
+    });
+
     it("switches to discovery view when clicking discovery button", async () => {
         const { getByText } = render(RelayChatPage);
 
