@@ -25,6 +25,22 @@ const DEFAULT_VITAL_BUDGETS = {
 };
 
 /**
+ * Observed (unthrottled) budgets for tests/ui/perf.spec.js. These guard
+ * real regressions, not absolute speed: cold FCP/LCP on a cache-disabled
+ * first load, SPA hash-route transition latency, and post-mount JS heap.
+ * Generous defaults keep shared CI runners from flapping; tighten per page
+ * only after a few recorded runs.
+ */
+const DEFAULT_PERF_BUDGETS = {
+    fcpMs: 4000,
+    lcpMs: 6000,
+    domContentLoadedMs: 4000,
+    loadMs: 9000,
+    navMs: 5000,
+    heapMb: 250,
+};
+
+/**
  * @typedef {object} UiPage
  * @property {string} id stable id for reports
  * @property {string} path hash route path, e.g. /messages
@@ -34,6 +50,7 @@ const DEFAULT_VITAL_BUDGETS = {
  * @property {boolean} [ci] include in CI lighthouse subset
  * @property {Partial<typeof DEFAULT_BUDGETS>} [budgets]
  * @property {Partial<typeof DEFAULT_VITAL_BUDGETS>} [vitals]
+ * @property {Partial<typeof DEFAULT_PERF_BUDGETS>} [perf]
  */
 
 /** @type {UiPage[]} */
@@ -77,12 +94,39 @@ const UI_PAGES = [
         ci: true,
     },
     {
+        id: "call",
+        path: "/call",
+        readyKind: "text",
+        ready: "Phonebook",
+    },
+    {
+        id: "relay-chat",
+        path: "/relay-chat",
+        readyKind: "role",
+        ready: "tab",
+        readyName: /Connect/i,
+    },
+    {
+        id: "nomadnetwork",
+        path: "/nomadnetwork",
+        readyKind: "placeholder",
+        ready: /favourites/i,
+    },
+    {
+        id: "bots",
+        path: "/bots",
+        readyKind: "heading",
+        ready: "LXMFy Bots",
+    },
+    {
         id: "map",
         path: "/map",
-        readyKind: "heading",
-        ready: "Map",
+        readyKind: "role",
+        ready: "tab",
+        readyName: /Map/,
         budgets: { performance: 40 },
         vitals: { lcp: 9000, si: 9000 },
+        perf: { lcpMs: 8000, heapMb: 350 },
     },
     {
         id: "identities",
@@ -99,8 +143,8 @@ const UI_PAGES = [
     {
         id: "documentation",
         path: "/documentation",
-        readyKind: "heading",
-        ready: "Documentation",
+        readyKind: "placeholder",
+        ready: "Search documentation...",
     },
     {
         id: "about",
@@ -111,8 +155,8 @@ const UI_PAGES = [
     {
         id: "tools",
         path: "/tools",
-        readyKind: "text",
-        ready: "Utilities",
+        readyKind: "placeholder",
+        ready: "Search tools...",
     },
     {
         id: "network-visualiser",
@@ -121,6 +165,7 @@ const UI_PAGES = [
         ready: "Reticulum Mesh",
         budgets: { performance: 35 },
         vitals: { lcp: 9000, si: 9000, tbt: 3000 },
+        perf: { lcpMs: 8000, navMs: 8000, heapMb: 350 },
     },
     {
         id: "archives",
@@ -144,6 +189,10 @@ function vitalBudgetsFor(page) {
     return { ...DEFAULT_VITAL_BUDGETS, ...page.vitals };
 }
 
+function perfBudgetsFor(page) {
+    return { ...DEFAULT_PERF_BUDGETS, ...page.perf };
+}
+
 function pagesForCi() {
     return UI_PAGES.filter((p) => p.ci);
 }
@@ -162,9 +211,11 @@ function resolvePages(opts = {}) {
 module.exports = {
     DEFAULT_BUDGETS,
     DEFAULT_VITAL_BUDGETS,
+    DEFAULT_PERF_BUDGETS,
     UI_PAGES,
     budgetsFor,
     vitalBudgetsFor,
+    perfBudgetsFor,
     pagesForCi,
     resolvePages,
 };

@@ -12,6 +12,8 @@
 // non-zero trend across cycles.
 
 const { test } = require("@playwright/test");
+const fs = require("fs");
+const path = require("path");
 const { dismissMapOnboardingTooltip } = require("../e2e/helpers");
 const { resolvePages } = require("./pages");
 const { seedUiSimulatedData } = require("./seed");
@@ -19,6 +21,7 @@ const { gotoUiPage } = require("./ready");
 
 const CYCLES = Number(process.env.MESHCHAT_HEAP_CYCLES || 5);
 const NEUTRAL_PATH = "/about";
+const REPORT_DIR = path.join(__dirname, "..", "..", "test-results", "heap");
 
 // Per-page growth budgets measured after CYCLES mount/unmount rounds. The
 // warm cycle absorbs one-time mount costs (including keepAlive pages), so a
@@ -141,6 +144,7 @@ test.describe("heap profile across pages", () => {
 
         const neutral = { id: "about", path: NEUTRAL_PATH, ready: "Active sessions" };
         const pages = resolvePages({
+            ciOnly: process.env.MESHCHAT_UI_CI === "1",
             ids: process.env.MESHCHAT_UI_PAGES
                 ? process.env.MESHCHAT_UI_PAGES.split(",")
                       .map((s) => s.trim())
@@ -185,6 +189,7 @@ test.describe("heap profile across pages", () => {
             });
         }
 
+        fs.mkdirSync(REPORT_DIR, { recursive: true });
         const failures = [];
         for (const row of report) {
             if (row.skipped) {
@@ -199,6 +204,10 @@ test.describe("heap profile across pages", () => {
                     `intervals ${String(row.intervals).padStart(3)} ` +
                     `rafs ${String(row.rafs).padStart(4)} ` +
                     `objurls ${String(row.objectUrls).padStart(4)}`
+            );
+            fs.writeFileSync(
+                path.join(REPORT_DIR, `${row.page}.json`),
+                JSON.stringify({ budgets: LIMITS, ...row }, null, 2)
             );
             const breaches = [];
             if (row.heapDelta > LIMITS.heapDelta)

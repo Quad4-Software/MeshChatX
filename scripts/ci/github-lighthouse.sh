@@ -20,5 +20,7 @@ export LH_DEBUG_PORT="${LH_DEBUG_PORT:-9222}"
 pnpm exec playwright install chromium --with-deps
 
 pnpm exec playwright test --config playwright.ui.config.js tests/ui/pages.smoke.spec.js
+pnpm exec playwright test --config playwright.ui.config.js tests/ui/perf.spec.js
 pnpm exec playwright test --config playwright.lighthouse.config.js
-MESHCHAT_UI_PROD=1 pnpm exec playwright test --config playwright.ui.config.js tests/ui/heap-profile.spec.js
+MESHCHAT_UI_PROD=1 MESHCHAT_HEAP_CYCLES="${MESHCHAT_HEAP_CYCLES:-3}" \
+    pnpm exec playwright test --config playwright.ui.config.js tests/ui/heap-profile.spec.js
