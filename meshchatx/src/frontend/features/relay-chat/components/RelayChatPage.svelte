@@ -2448,7 +2448,7 @@
         discovered = [...discovered];
     }
 
-    async function addFromDiscovery(node: RrcDiscoveredHub) {
+    export async function addFromDiscovery(node: RrcDiscoveredHub) {
         try {
             const response = await window.api.post(apiPath("/rrc/hubs"), {
                 hub_hash: node.destination_hash,
@@ -2463,7 +2463,8 @@
                 setSelectedHub(added.hub_hash);
                 expandedHubs[added.hub_hash] = true;
             }
-            view = "chat";
+            // Stay on the discovery view so several hubs can be added in a
+            // row; the row button flips to Open once the hub is added.
         } catch (e: any) {
             ToastUtils.error(e?.response?.data?.message || t("relay_chat.action_failed"));
         }
