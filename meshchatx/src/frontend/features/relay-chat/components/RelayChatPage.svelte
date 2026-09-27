@@ -190,8 +190,7 @@
     let showSearch = $state(false);
     let messageSearch = $state("");
     let memberDmLoadingHash = $state<string | null>(null);
-    let joinRoomName = $state("");
-    let joinRoomKey = $state("");
+    let joinRoomForms = $state<Record<string, { name: string; key: string }>>({});
 
     // Menus and modals
     let sidebarMenu = $state<{ show: boolean; x: number; y: number; hub: RrcHub | null; room: string | null }>({
@@ -613,8 +612,7 @@
         // stale ids.
         sidebarMenu = { show: false, x: 0, y: 0, hub: null, room: null };
         messageMenu = { show: false, x: 0, y: 0, msg: null };
-        joinRoomName = "";
-        joinRoomKey = "";
+        joinRoomForms = {};
         badKeyPromptInFlight = null;
         showMembers = false;
         showSearch = false;
@@ -1027,8 +1025,9 @@
         setSelectedHub(hub.hub_hash);
         expandedHubs[hub.hub_hash] = true;
         tick().then(() => {
-            const inputs = document.querySelectorAll<HTMLInputElement>("input[data-relay-join-input]");
-            inputs[inputs.length - 1]?.focus();
+            document
+                .querySelector<HTMLInputElement>(`input[data-rrc-join-name="${hub.hub_hash}"]`)
+                ?.focus();
         });
     }
 
@@ -1992,17 +1991,36 @@
         }
     }
 
+    // Precreate a form entry for every rendered hub so the sidebar never
+    // mutates $state inside a template expression.
+    $effect(() => {
+        for (const h of hubs) {
+            const hash = h?.hub_hash || "";
+            if (hash && !joinRoomForms[hash]) {
+                joinRoomForms[hash] = { name: "", key: "" };
+            }
+        }
+    });
+
+    function joinRoomForm(hub: RrcHub): { name: string; key: string } {
+        const hubHash = hub?.hub_hash || "";
+        if (!joinRoomForms[hubHash]) {
+            joinRoomForms[hubHash] = { name: "", key: "" };
+        }
+        return joinRoomForms[hubHash];
+    }
+
     async function joinRoom(hub: RrcHub) {
-        const roomN = joinRoomName.trim();
+        const form = joinRoomForm(hub);
+        const roomN = (form.name || "").trim();
         if (!roomN) {
             ToastUtils.warning(t("relay_chat.room_required"));
             return;
         }
-        const key = joinRoomKey.trim() || null;
+        const key = (form.key || "").trim() || null;
         const joined = await joinRoomByName(hub, roomN, { key });
         if (joined) {
-            joinRoomName = "";
-            joinRoomKey = "";
+            joinRoomForms[hub.hub_hash] = { name: "", key: "" };
         }
     }
 
@@ -2719,8 +2737,8 @@
                     {availableRoomsExpanded}
                     {availableRoomsRefreshing}
                     {showUnreadBadges}
-                    bind:joinRoomName
-                    bind:joinRoomKey
+                    {joinRoomForms}
+                    onensurejoinform={joinRoomForm}
                     onaddhub={openAddHub}
                     ontogglecollapse={toggleSidebarCollapsed}
                     ontogglehub={toggleHub}
