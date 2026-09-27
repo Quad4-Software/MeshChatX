@@ -183,6 +183,40 @@ describe("RelayChatPage.svelte", () => {
         });
     });
 
+    it("keeps join room inputs independent per hub", async () => {
+        const OTHER_HUB_HASH = "ffeeddccbbaa00112233445566778899";
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({
+                    data: { hubs: [makeHub(), makeHub({ hub_hash: OTHER_HUB_HASH, name: "Other Hub" })] },
+                });
+            }
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({ data: { hubs: [makeHostedHub()] } });
+            }
+            if (url === "/api/v1/rrc/discovery" || url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [makeAnnounce()], total_count: 1 } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const { container, getByText } = render(RelayChatPage);
+        await waitFor(() => expect(getByText("Other Hub")).toBeTruthy());
+
+        // The second hub is collapsed by default; expand it so both join
+        // forms render.
+        await fireEvent.click(getByText("Other Hub"));
+        await waitFor(() => {
+            expect(container.querySelectorAll("input[data-rrc-join-name]").length).toBe(2);
+        });
+
+        const first = container.querySelector(`input[data-rrc-join-name="${HUB_HASH}"]`);
+        const second = container.querySelector(`input[data-rrc-join-name="${OTHER_HUB_HASH}"]`);
+        await fireEvent.input(first, { target: { value: "alpha-room" } });
+        expect(first.value).toBe("alpha-room");
+        expect(second.value).toBe("");
+    });
+
     it("switches to discovery view when clicking discovery button", async () => {
         const { getByText } = render(RelayChatPage);
 

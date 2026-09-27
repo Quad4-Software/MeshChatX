@@ -27,8 +27,8 @@
         availableRoomsExpanded?: Record<string, boolean>;
         availableRoomsRefreshing?: Record<string, boolean>;
         showUnreadBadges?: boolean;
-        joinRoomName?: string;
-        joinRoomKey?: string;
+        joinRoomForms?: Record<string, { name: string; key: string }>;
+        onensurejoinform?: (hub: RrcHub) => void;
         formatHash?: (hash: string | null | undefined) => string;
         onaddhub?: () => void;
         ontogglecollapse?: () => void;
@@ -59,8 +59,8 @@
         availableRoomsExpanded = {},
         availableRoomsRefreshing = {},
         showUnreadBadges = true,
-        joinRoomName = $bindable(""),
-        joinRoomKey = $bindable(""),
+        joinRoomForms = {},
+        onensurejoinform,
         formatHash = (h) => h || "-",
         onaddhub,
         ontogglecollapse,
@@ -90,6 +90,14 @@
         "inline-flex items-center justify-center rounded-lg border border-sem-border bg-sem-canvas p-1.5 text-sem-fg transition hover:bg-sem-surface/60";
     const BTN_DANGER_SM =
         "inline-flex items-center justify-center rounded-lg border border-sem-border bg-sem-canvas p-1.5 text-sem-fg transition hover:border-sem-danger hover:text-sem-danger hover:bg-sem-danger/10";
+
+    // Ask the page to create a join form entry for every hub so the
+    // template only binds to existing reactive properties.
+    $effect(() => {
+        for (const h of hubs) {
+            onensurejoinform?.(h);
+        }
+    });
 
     let dragHubIndex = $state<number | null>(null);
     let dragRoomHubHash = $state<string | null>(null);
@@ -261,6 +269,7 @@
             </button>
 
             {#each hubs as hub, hubIndex (hub.hub_hash)}
+
                 <div
                     class="border-b border-sem-border/60 {dragHubIndex === hubIndex ? 'opacity-60' : ''}"
                     draggable="true"
@@ -499,37 +508,39 @@
                                 </div>
                             {/if}
 
-                            <form
-                                class="flex flex-col gap-1"
-                                onsubmit={(e) => {
-                                    e.preventDefault();
-                                    onjoinroom?.(hub);
-                                }}
-                            >
-                                <div class="flex gap-1">
+                            {#if joinRoomForms[hub.hub_hash]}
+                                <form
+                                    class="flex flex-col gap-1"
+                                    onsubmit={(e) => {
+                                        e.preventDefault();
+                                        onjoinroom?.(hub);
+                                    }}
+                                >
+                                    <div class="flex gap-1">
+                                        <input
+                                            bind:value={joinRoomForms[hub.hub_hash].name}
+                                            type="text"
+                                            data-rrc-join-name={hub.hub_hash}
+                                            placeholder={t("relay_chat.join_room_placeholder")}
+                                            class="min-w-0 flex-1 border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-hidden focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
+                                        />
+                                        <button
+                                            type="submit"
+                                            class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-sem-fg-muted transition-colors hover:bg-sem-surface/60 hover:text-sem-accent"
+                                            title={t("relay_chat.join_room")}
+                                        >
+                                            <MaterialDesignIcon iconName="plus" class="size-4" />
+                                        </button>
+                                    </div>
                                     <input
-                                        bind:value={joinRoomName}
-                                        type="text"
-                                        data-relay-join-input
-                                        placeholder={t("relay_chat.join_room_placeholder")}
-                                        class="min-w-0 flex-1 border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-hidden focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
+                                        bind:value={joinRoomForms[hub.hub_hash].key}
+                                        type="password"
+                                        placeholder={t("relay_chat.join_room_key_placeholder")}
+                                        autocomplete="off"
+                                        class="w-full rounded-lg border border-sem-border bg-sem-surface-muted px-2 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
                                     />
-                                    <button
-                                        type="submit"
-                                        class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-sem-fg-muted transition-colors hover:bg-sem-surface/60 hover:text-sem-accent"
-                                        title={t("relay_chat.join_room")}
-                                    >
-                                        <MaterialDesignIcon iconName="plus" class="size-4" />
-                                    </button>
-                                </div>
-                                <input
-                                    bind:value={joinRoomKey}
-                                    type="password"
-                                    placeholder={t("relay_chat.join_room_key_placeholder")}
-                                    autocomplete="off"
-                                    class="w-full rounded-lg border border-sem-border bg-sem-surface-muted px-2 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
-                                />
-                            </form>
+                                </form>
+                            {/if}
                         </div>
                     {/if}
                 </div>
