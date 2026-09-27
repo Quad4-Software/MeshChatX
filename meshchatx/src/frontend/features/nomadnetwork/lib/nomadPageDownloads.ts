@@ -63,6 +63,7 @@ export interface PageDownloadOptions {
     pagePath: string;
     fieldData?: unknown;
     isPrivate?: boolean;
+    requestId?: string | number | null;
 }
 
 /** Build outbound nomadnet.page.download payload (backend expects page_path). */
@@ -71,10 +72,11 @@ export function createPageDownloadPayload(
     pagePath = "/page/index.mu",
     isPrivate = false,
     _sequence = 1,
-    fieldData: unknown = null
+    fieldData: unknown = null,
+    requestId: string | number | null = null
 ) {
     if (typeof optionsOrHash === "string") {
-        return {
+        const payload: Record<string, unknown> = {
             type: "nomadnet.page.download",
             nomadnet_page_download: {
                 destination_hash: optionsOrHash,
@@ -83,8 +85,13 @@ export function createPageDownloadPayload(
                 private: Boolean(isPrivate),
             },
         };
+        if (requestId != null) {
+            payload.request_id = requestId;
+        }
+        return payload;
     }
-    return {
+    const reqId = optionsOrHash.requestId ?? requestId;
+    const payload: Record<string, unknown> = {
         type: "nomadnet.page.download",
         nomadnet_page_download: {
             destination_hash: optionsOrHash.destinationHash,
@@ -93,6 +100,10 @@ export function createPageDownloadPayload(
             private: Boolean(optionsOrHash.isPrivate ?? isPrivate),
         },
     };
+    if (reqId != null) {
+        payload.request_id = reqId;
+    }
+    return payload;
 }
 
 export function createPageDownloadRequestPayload(
@@ -100,9 +111,10 @@ export function createPageDownloadRequestPayload(
     pagePath = "/page/index.mu",
     isPrivate = false,
     sequence = 1,
-    fieldData: unknown = null
+    fieldData: unknown = null,
+    requestId: string | number | null = null
 ) {
-    return createPageDownloadPayload(optionsOrHash, pagePath, isPrivate, sequence, fieldData);
+    return createPageDownloadPayload(optionsOrHash, pagePath, isPrivate, sequence, fieldData, requestId);
 }
 
 export interface FileDownloadOptions {
@@ -110,6 +122,7 @@ export interface FileDownloadOptions {
     filePath: string;
     isPrivate?: boolean;
     data?: string | null;
+    requestId?: string | number | null;
 }
 
 export function createFileDownloadPayload(
@@ -117,34 +130,44 @@ export function createFileDownloadPayload(
     filePath = "",
     isPrivate = false,
     _identifyOnConnect = false,
-    data: string | null = null
+    data: string | null = null,
+    requestId: string | number | null = null
 ) {
     if (typeof optionsOrHash === "string") {
-        const payload: Record<string, unknown> = {
+        const body: Record<string, unknown> = {
             destination_hash: optionsOrHash,
             file_path: filePath,
             private: Boolean(isPrivate),
         };
         if (data) {
-            payload.data = data;
+            body.data = data;
         }
-        return {
+        const payload: Record<string, unknown> = {
             type: "nomadnet.file.download",
-            nomadnet_file_download: payload,
+            nomadnet_file_download: body,
         };
+        if (requestId != null) {
+            payload.request_id = requestId;
+        }
+        return payload;
     }
-    const payload: Record<string, unknown> = {
+    const body: Record<string, unknown> = {
         destination_hash: optionsOrHash.destinationHash,
         file_path: optionsOrHash.filePath,
         private: Boolean(optionsOrHash.isPrivate),
     };
     if (optionsOrHash.data) {
-        payload.data = optionsOrHash.data;
+        body.data = optionsOrHash.data;
     }
-    return {
+    const reqId = optionsOrHash.requestId ?? requestId;
+    const payload: Record<string, unknown> = {
         type: "nomadnet.file.download",
-        nomadnet_file_download: payload,
+        nomadnet_file_download: body,
     };
+    if (reqId != null) {
+        payload.request_id = reqId;
+    }
+    return payload;
 }
 
 export function createFileDownloadRequestPayload(
@@ -152,9 +175,10 @@ export function createFileDownloadRequestPayload(
     filePath = "",
     isPrivate = false,
     identifyOnConnect = false,
-    data: string | null = null
+    data: string | null = null,
+    requestId: string | number | null = null
 ) {
-    return createFileDownloadPayload(optionsOrHash, filePath, isPrivate, identifyOnConnect, data);
+    return createFileDownloadPayload(optionsOrHash, filePath, isPrivate, identifyOnConnect, data, requestId);
 }
 
 export function createCancelDownloadPayload(
@@ -244,7 +268,11 @@ export function sendNomadWs(payload: Record<string, unknown>): boolean {
     }
 }
 
-export type NomadChunkBuffers = Record<string | number, { chunks: Uint8Array[] }>;
+export type NomadChunkBuffers = Record<string | number, { chunks: Uint8Array[]; bytes?: number }>;
+
+// Bound on buffered download chunks per transfer. The backend caps pages
+// at 4 MiB of text (up to 16 MiB as UTF-8) and files at 10 MiB.
+export const NOMAD_DOWNLOAD_BUFFER_MAX_BYTES = 16 * 1024 * 1024;
 
 export function decodeBase64ToBytes(base64: string | null | undefined): Uint8Array {
     let binary = "";
@@ -277,8 +305,16 @@ export function appendDownloadChunk(
     if (downloadId == null) {
         return;
     }
-    const entry = chunkBuffers[downloadId] || { chunks: [] };
-    entry.chunks.push(decodeBase64ToBytes(chunkPayload?.chunk_b64));
+    const entry = chunkBuffers[downloadId] || { chunks: [], bytes: 0 };
+    const chunk = decodeBase64ToBytes(chunkPayload?.chunk_b64);
+    if ((entry.bytes || 0) + chunk.length > NOMAD_DOWNLOAD_BUFFER_MAX_BYTES) {
+        // Over the backend payload cap: drop the buffered chunks so a
+        // hostile or orphaned transfer cannot grow memory unbounded.
+        delete chunkBuffers[downloadId];
+        return;
+    }
+    entry.chunks.push(chunk);
+    entry.bytes = (entry.bytes || 0) + chunk.length;
     chunkBuffers[downloadId] = entry;
 }
 

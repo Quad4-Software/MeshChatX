@@ -26,6 +26,8 @@ export type NomadPageDownloadSnapshot = {
     currentPageDownloadId: number | string | null;
     pendingPageCancelWithoutId: boolean;
     currentFileDownloadId: number | string | null;
+    pageRequestId?: string | number | null;
+    fileRequestId?: string | number | null;
     nodeFilePath: string | null;
     nodePageContent: string | null;
     selectedNode: NomadNode | null;
@@ -40,6 +42,8 @@ export type NomadPageDownloadPatch = Partial<{
     currentPageDownloadId: number | string | null;
     pendingPageCancelWithoutId: boolean;
     currentFileDownloadId: number | string | null;
+    pageRequestId: string | number | null;
+    fileRequestId: string | number | null;
     downloadTotalBytes: number;
     downloadBytesReceived: number;
     nodePagePath: string | null;
@@ -91,11 +95,45 @@ export function onNomadPageDownloadEvent(access: NomadPageDownloadAccess, json: 
 
     if (body.status === "started") {
         if (s.pendingPageCancelWithoutId) {
-            access.apply({ pendingPageCancelWithoutId: false });
+            // Started events are broadcast to every tab; only treat this as
+            // the untagged transfer we sent a cancel for when it is the page
+            // this instance is showing.
+            const responsePagePath = `${body.destination_hash || ""}:${body.page_path || ""}`;
+            if (s.nodePagePath && responsePagePath === s.nodePagePath) {
+                access.apply({ pendingPageCancelWithoutId: false });
+                sendNomadWs(createCancelDownloadPayload(downloadId));
+            }
+            return;
+        }
+        const startedRequestId = json.request_id ?? body.request_id;
+        if (
+            s.pageRequestId != null &&
+            startedRequestId != null &&
+            String(s.pageRequestId) !== String(startedRequestId)
+        ) {
+            // Started belongs to a request this page superseded. Its backend
+            // transfer is orphaned; cancel it instead of tagging the new
+            // download id.
             sendNomadWs(createCancelDownloadPayload(downloadId));
             return;
         }
         access.apply({ currentPageDownloadId: downloadId ?? null });
+        return;
+    }
+
+    // Re-read the live ids: apply() during the started branch leaves the
+    // snapshot taken above stale.
+    const live = access.get();
+    // Drop events from a transfer this page superseded. Page events echo
+    // the request_id we sent, and a tagged transfer must see its own
+    // download id.
+    const pageEventRequestId = json.request_id ?? body.request_id;
+    if (
+        (live.pageRequestId != null &&
+            pageEventRequestId != null &&
+            String(live.pageRequestId) !== String(pageEventRequestId)) ||
+        (live.currentPageDownloadId != null && live.currentPageDownloadId !== downloadId)
+    ) {
         return;
     }
 
@@ -138,6 +176,10 @@ export function onNomadPageDownloadEvent(access: NomadPageDownloadAccess, json: 
     }
 
     if (body.status === "success" && body.is_archived_version) {
+        if (downloadId !== live.currentPageDownloadId) {
+            // Reply to a superseded or foreign archive load.
+            return;
+        }
         access.clearPageLoadTimeout();
         const dest = String(body.destination_hash || s.selectedNode?.destination_hash || "");
         const path = String(body.page_path || s.relativePagePath || DEFAULT_PAGE_PATH);
@@ -200,11 +242,32 @@ export function onNomadFileDownloadEvent(access: NomadPageDownloadAccess, json: 
     if (!body) return;
 
     if (body.status === "started") {
+        const fileStartedRequestId =
+            json.request_id ??
+            body.request_id ??
+            (body.data as Record<string, unknown> | undefined)?.request_id;
+        if (
+            (s.fileRequestId != null &&
+                fileStartedRequestId != null &&
+                String(s.fileRequestId) !== String(fileStartedRequestId)) ||
+            (s.currentFileDownloadId != null && s.currentFileDownloadId !== downloadId)
+        ) {
+            // Started belongs to a transfer this file slot replaced or to an
+            // older backend attempt. Cancel it so it cannot clobber the live
+            // download id.
+            sendNomadWs(createCancelDownloadPayload(downloadId));
+            return;
+        }
         access.apply({
             currentFileDownloadId: downloadId ?? null,
             isDownloadingNodeFile: true,
             nodeFilePath: String(body.file_path || ""),
         });
+        return;
+    }
+    const fileEventRequestId =
+        json.request_id ?? body.request_id ?? (body.data as Record<string, unknown> | undefined)?.request_id;
+    if (s.fileRequestId != null && fileEventRequestId != null && String(s.fileRequestId) !== String(fileEventRequestId)) {
         return;
     }
     if (s.currentFileDownloadId != null && downloadId != null && s.currentFileDownloadId !== downloadId) {
@@ -241,7 +304,7 @@ export function onNomadFileDownloadEvent(access: NomadPageDownloadAccess, json: 
         }
         access.apply({
             isDownloadingNodeFile: false,
-            currentFileDownloadId: null,
+            ...(s.currentFileDownloadId === downloadId ? { currentFileDownloadId: null } : {}),
         });
         const fileName = String(body.file_name || body.file_path || "download");
         if (fileBytesBase64) {
@@ -263,7 +326,7 @@ export function onNomadFileDownloadEvent(access: NomadPageDownloadAccess, json: 
         }
         access.apply({
             isDownloadingNodeFile: false,
-            currentFileDownloadId: null,
+            ...(s.currentFileDownloadId === downloadId ? { currentFileDownloadId: null } : {}),
         });
         ToastUtils.error(String(body.failure_reason || t("nomadnet.download_page_failed")));
     }

@@ -12,6 +12,7 @@ import {
     createArchiveLoadPayload,
     discardDownloadChunks,
     sendNomadWs,
+    NOMAD_DOWNLOAD_BUFFER_MAX_BYTES,
 } from "../../meshchatx/src/frontend/features/nomadnetwork/lib/nomadPageDownloads.ts";
 import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection.ts";
 
@@ -46,6 +47,15 @@ describe("nomadPageDownloads contract", () => {
             type: "nomadnet.download.cancel",
             download_id: 7,
         });
+    });
+
+    it("attaches a top-level request_id when supplied", () => {
+        const page = createPageDownloadPayload("aabbccddeeff00112233445566778899", "/page/a.mu", false, 1, null, "np-3");
+        expect(page.request_id).toBe("np-3");
+        const file = createFileDownloadPayload("aabbccddeeff00112233445566778899", "/file/a.bin", false, false, null, "nf-4");
+        expect(file.request_id).toBe("nf-4");
+        const bare = createPageDownloadPayload("aabbccddeeff00112233445566778899", "/page/a.mu");
+        expect(bare.request_id).toBeUndefined();
     });
 
     it("builds archives get and load payloads", () => {
@@ -96,5 +106,14 @@ describe("nomad chunk reassembly", () => {
         discardDownloadChunks(buffers, 9);
         expect(buffers[9]).toBeUndefined();
         expect(consumeDownloadChunksAsText(buffers, 9)).toBe("");
+    });
+
+    it("drops buffers once a transfer exceeds the byte cap", () => {
+        const buffers = {};
+        const nearCap = new Uint8Array(NOMAD_DOWNLOAD_BUFFER_MAX_BYTES);
+        appendDownloadChunk(buffers, 5, { chunk_b64: bytesToBase64(nearCap) });
+        expect(buffers[5]).toBeDefined();
+        appendDownloadChunk(buffers, 5, { chunk_b64: bytesToBase64(new Uint8Array([1])) });
+        expect(buffers[5]).toBeUndefined();
     });
 });

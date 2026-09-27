@@ -33,6 +33,7 @@
     import {
         createPageDownloadRequestPayload,
         createFileDownloadRequestPayload,
+        createCancelDownloadPayload,
         discardDownloadChunks,
         sendNomadWs,
         relativePagePathFromCombined,
@@ -112,6 +113,10 @@
     // the node list keep that list when the viewer closes.
     const startedWithDestination = untrack(() => Boolean((destinationHash || "").trim()));
 
+    // Bound the back-navigation stack so long sessions do not grow it
+    // without limit.
+    const NODE_PAGE_HISTORY_MAX = 100;
+
     let selectedNode = $state<NomadNode | null>(null);
     let nodePagePath = $state<string | null>(null);
     let nodePagePathUrlInput = $state<string>("");
@@ -158,6 +163,14 @@
     // Sent requests kept so a websocket reconnect can re-issue them.
     let inFlightPagePayload = $state<Record<string, unknown> | null>(null);
     let inFlightFilePayload = $state<Record<string, unknown> | null>(null);
+    // Correlates download requests with the request_id the backend echoes on
+    // every download event so stale transfers cannot feed a replacement.
+    let nomadRequestSeq = 0;
+    let inFlightPageRequestId: string | null = null;
+    let inFlightFileRequestId: string | null = null;
+    // Archive loads use client-supplied negative ids so they can never
+    // collide with backend-minted transfer ids.
+    let archiveDownloadSeq = 0;
 
     let contextMenu = $state<NomadContextMenuState>({
         show: false,
@@ -389,6 +402,9 @@
                 downloadBytesReceived = 0;
                 downloadTotalBytes = new TextEncoder().encode(cached).length;
                 currentPageDownloadId = null;
+                // In-flight image downloads belong to the previous page.
+                nomadImageLoader.cancelStaleDownloads();
+                nomadImageLoader.images = [];
                 nodePagePath = cacheKey;
                 nodePagePathUrlInput = nodePagePath;
                 lastLoadedKey = loadKey;
@@ -417,10 +433,17 @@
         downloadStartTime = Date.now();
         downloadBytesReceived = 0;
         downloadTotalBytes = 0;
+        // The superseded download still runs on the backend; cancel it so its
+        // late events cannot tag or fail the replacement transfer.
         if (currentPageDownloadId != null) {
             discardDownloadChunks(nomadPageDownloadChunkBuffers, currentPageDownloadId);
+            sendNomadWs(createCancelDownloadPayload(currentPageDownloadId));
         }
         currentPageDownloadId = null;
+        // Navigating away retires the previous page's image downloads so
+        // their events cannot write into this page's image slots.
+        nomadImageLoader.cancelStaleDownloads();
+        nomadImageLoader.images = [];
         nodePagePath = `${destHash}:${relativePath}`;
         nodePagePathUrlInput = nodePagePath;
 
@@ -430,11 +453,22 @@
             requestPageArchives(destHash, relativePath);
         }
 
-        const payload = createPageDownloadRequestPayload(destHash, relativePath, isPrivate);
+        // The backend echoes request_id on every event for this transfer,
+        // letting the handlers drop events from a superseded request.
+        inFlightPageRequestId = `np-${++nomadRequestSeq}`;
+        const payload = createPageDownloadRequestPayload(
+            destHash,
+            relativePath,
+            isPrivate,
+            1,
+            null,
+            inFlightPageRequestId
+        );
         const sent = sendNomadWs(payload);
         if (!sent) {
             if (seq !== pageRequestSequence) return;
             inFlightPagePayload = null;
+            inFlightPageRequestId = null;
             clearPageLoadTimeout();
             isLoadingNodePage = false;
             nodePageContent = t("nomadnet.failed_to_load_page");
@@ -462,6 +496,8 @@
             currentPageDownloadId,
             pendingPageCancelWithoutId,
             currentFileDownloadId,
+            pageRequestId: inFlightPageRequestId,
+            fileRequestId: inFlightFileRequestId,
             nodeFilePath,
             nodePageContent,
             selectedNode,
@@ -529,6 +565,7 @@
         const status = (json.nomadnet_page_download as Record<string, unknown> | null)?.status;
         if ((status === "success" || status === "failure") && !isLoadingNodePage && currentPageDownloadId == null) {
             inFlightPagePayload = null;
+            inFlightPageRequestId = null;
         }
     }
 
@@ -538,6 +575,7 @@
         const status = (json.nomadnet_file_download as Record<string, unknown> | null)?.status;
         if (status === "success" || status === "failure") {
             inFlightFilePayload = null;
+            inFlightFileRequestId = null;
         }
     }
 
@@ -581,7 +619,13 @@
             nodePagePath,
             relativePagePath,
             isPrivate,
-            pushHistory: (p) => pathHistory.push(p),
+            pushHistory: (p) => {
+                pathHistory.push(p);
+                // Cap history so long sessions do not grow it without bound.
+                if (pathHistory.length > NODE_PAGE_HISTORY_MAX) {
+                    pathHistory.splice(0, pathHistory.length - NODE_PAGE_HISTORY_MAX);
+                }
+            },
             selectNode: (n) => {
                 selectedNode = n;
             },
@@ -605,6 +649,8 @@
     function handleCancel() {
         inFlightPagePayload = null;
         inFlightFilePayload = null;
+        inFlightPageRequestId = null;
+        inFlightFileRequestId = null;
         cancelNomadActiveDownload(downloadAccess, { abortRender: () => rendererHost?.abortRender() });
     }
 
@@ -640,13 +686,31 @@
             return;
         }
         isArchiveDropdownOpen = false;
-        isLoadingNodePage = true;
-        isShowingArchivedVersion = false;
-        archivedAt = null;
+
+        // Same teardown as loadPage so an in-flight page load cannot
+        // overwrite the archived content, and image downloads for the live
+        // page do not feed the archived frame.
+        pageRequestSequence += 1;
+        pendingPageCancelWithoutId = false;
         pageRenderAborted = false;
+        isCrashTabRendering = false;
+        nomadImageLoader.cancelStaleDownloads();
+        nomadImageLoader.images = [];
         // The in-flight transfer becomes an archive load, which a reconnect
         // resend cannot replay.
         inFlightPagePayload = null;
+        inFlightPageRequestId = null;
+
+        const previousDownloadId = currentPageDownloadId;
+        if (previousDownloadId != null) {
+            currentPageDownloadId = null;
+            discardDownloadChunks(nomadPageDownloadChunkBuffers, previousDownloadId);
+            sendNomadWs(createCancelDownloadPayload(previousDownloadId));
+        }
+
+        isLoadingNodePage = true;
+        isShowingArchivedVersion = false;
+        archivedAt = null;
         armPageLoadTimeout();
 
         const archive = pageArchives.find((a) => String(a.id) === String(archiveId));
@@ -656,7 +720,9 @@
         }
 
         // Own the reply even when the local archive list is empty or stale.
-        const downloadId = Math.floor(Math.random() * 1000000);
+        // Negative ids can never collide with backend-minted transfer ids.
+        archiveDownloadSeq += 1;
+        const downloadId = -archiveDownloadSeq;
         currentPageDownloadId = downloadId;
         const sent = requestArchiveLoad(archiveId, downloadId);
         if (!sent) {
@@ -733,14 +799,23 @@
 
     function downloadPageToDisk() {
         if (selectedNode?.destination_hash && relativePagePath) {
+            // The backend echoes request_id on every event for this
+            // transfer, letting the handlers drop events from a superseded
+            // request for the same file.
+            inFlightFileRequestId = `nf-${++nomadRequestSeq}`;
             const payload = createFileDownloadRequestPayload(
                 selectedNode.destination_hash,
                 relativePagePath,
-                isPrivate
+                isPrivate,
+                false,
+                null,
+                inFlightFileRequestId
             );
             if (sendNomadWs(payload)) {
                 // kept so a websocket reconnect can re-issue this request
                 inFlightFilePayload = payload;
+            } else {
+                inFlightFileRequestId = null;
             }
         }
     }

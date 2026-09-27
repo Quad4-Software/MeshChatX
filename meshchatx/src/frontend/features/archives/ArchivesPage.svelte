@@ -49,6 +49,7 @@
     let isRecrawling = $state(false);
     let loadError = $state(false);
     let viewingArchive = $state<ArchiveItem | null>(null);
+    let archiveOpenSeq = 0;
     let renderedContent = $state("");
     let searchQuery = $state("");
     let nodeFilter = $state("");
@@ -182,25 +183,42 @@
     }
 
     async function openArchive(archive: ArchiveItem): Promise<void> {
+        // Sequence guard so rapid clicks resolve last-request-wins and a
+        // late response after closeViewer cannot reopen the viewer.
+        const seq = ++archiveOpenSeq;
         isLoadingViewer = true;
         viewingArchive = { ...archive, content: archive.content || null };
         try {
             const response = await window.api.get(`${API_NOMADNET_ARCHIVES}/${archive.id}`);
+            if (seq !== archiveOpenSeq) {
+                return;
+            }
             const full = (response.data as ArchiveItemApiResponse | undefined)?.archive;
             if (full) {
                 viewingArchive = full;
-                renderedContent = await renderFullContentAsync(full, nomadRenderOptions, nomadMicronWasmActive);
+                const rendered = await renderFullContentAsync(full, nomadRenderOptions, nomadMicronWasmActive);
+                if (seq !== archiveOpenSeq) {
+                    return;
+                }
+                renderedContent = rendered;
             }
         } catch (e) {
+            if (seq !== archiveOpenSeq) {
+                return;
+            }
             console.error("Failed to load archive:", e);
             ToastUtils.error(t("archives.failed_load"));
             viewingArchive = null;
         } finally {
-            isLoadingViewer = false;
+            if (seq === archiveOpenSeq) {
+                isLoadingViewer = false;
+            }
         }
     }
 
     function closeViewer(): void {
+        archiveOpenSeq += 1;
+        isLoadingViewer = false;
         viewingArchive = null;
         renderedContent = "";
     }
@@ -221,8 +239,17 @@
             const next = (response.data as ArchiveRecrawlApiResponse | undefined)?.archive;
             ToastUtils.success(t("archives.recrawl_done"));
             if (next) {
-                viewingArchive = next;
-                renderedContent = await renderFullContentAsync(next, nomadRenderOptions, nomadMicronWasmActive);
+                // Only refresh the viewer when it still shows the archive
+                // that was recrawled.
+                const viewingSame =
+                    viewingArchive != null &&
+                    ((archive.id != null && viewingArchive.id === archive.id) ||
+                        (viewingArchive.destination_hash === archive.destination_hash &&
+                            viewingArchive.page_path === archive.page_path));
+                if (viewingSame) {
+                    viewingArchive = next;
+                    renderedContent = await renderFullContentAsync(next, nomadRenderOptions, nomadMicronWasmActive);
+                }
                 const idx = archives.findIndex(
                     (a) => a.destination_hash === next.destination_hash && a.page_path === next.page_path
                 );
