@@ -191,6 +191,11 @@
     let messageSearch = $state("");
     let memberDmLoadingHash = $state<string | null>(null);
     let joinRoomForms = $state<Record<string, { name: string; key: string }>>({});
+    // Tombstones recorded at delete time keep in-flight websocket events
+    // for removed hubs/rooms from issuing requests that 404.
+    let removedHubHashes = $state<Record<string, boolean>>({});
+    let removedRoomKeys = $state<Record<string, boolean>>({});
+    let hubsLoaded = $state(false);
 
     // Menus and modals
     let sidebarMenu = $state<{ show: boolean; x: number; y: number; hub: RrcHub | null; room: string | null }>({
@@ -613,6 +618,9 @@
         sidebarMenu = { show: false, x: 0, y: 0, hub: null, room: null };
         messageMenu = { show: false, x: 0, y: 0, msg: null };
         joinRoomForms = {};
+        removedHubHashes = {};
+        removedRoomKeys = {};
+        hubsLoaded = false;
         badKeyPromptInFlight = null;
         showMembers = false;
         showSearch = false;
@@ -655,7 +663,7 @@
     async function softResyncOpenRoom() {
         const hubH = selectedHubHash;
         const roomN = selectedRoom;
-        if (!hubH || !roomN) {
+        if (!hubH || !roomN || isRoomGone(hubH, roomN)) {
             return;
         }
         const seq = roomSelectSequence;
@@ -1093,11 +1101,13 @@
         if (!confirmed) {
             return;
         }
+        removedRoomKeys[roomTrackKey(hub.hub_hash, roomN)] = true;
         try {
             await window.api.delete(apiPath(`/rrc/hubs/${hub.hub_hash}/rooms/${encodeURIComponent(roomN)}`));
             ToastUtils.success(t("relay_chat.left_room"));
             await fetchHubs();
         } catch (e: any) {
+            delete removedRoomKeys[roomTrackKey(hub.hub_hash, roomN)];
             ToastUtils.error(e?.response?.data?.message || t("relay_chat.action_failed"));
         }
     }
@@ -1770,10 +1780,12 @@
             return;
         }
         clearLocalRoomUnread(hubH, roomN);
-        try {
-            await window.api.post(apiPath(`/rrc/hubs/${hubH}/rooms/${encodeURIComponent(roomN)}/read`));
-        } catch {
-            // GET messages already marks active/read on the server. Ignore duplicate failures.
+        if (!isRoomGone(hubH, roomN)) {
+            try {
+                await window.api.post(apiPath(`/rrc/hubs/${hubH}/rooms/${encodeURIComponent(roomN)}/read`));
+            } catch {
+                // GET messages already marks active/read on the server. Ignore duplicate failures.
+            }
         }
         if (refreshHubs) {
             await fetchHubs();
@@ -1787,7 +1799,7 @@
     async function refreshMembers() {
         const hubH = selectedHubHash;
         const roomN = selectedRoom;
-        if (!hubH || !roomN) {
+        if (!hubH || !roomN || isRoomGone(hubH, roomN)) {
             return;
         }
         try {
@@ -1977,10 +1989,62 @@
 
     // --- hubs ---------------------------------------------------------------------
 
-    async function fetchHubs() {
+    // Rooms and hubs are deleted on the server while in-flight websocket
+    // events can still reference them. Tombstones recorded at delete time
+    // keep those stale callbacks from issuing requests that 404.
+    function roomTrackKey(hubH: string | null | undefined, roomN: string | null | undefined): string {
+        return `${hubH}:${String(roomN || "")
+            .trim()
+            .toLowerCase()}`;
+    }
+
+    function isHubGone(hubH: string | null | undefined): boolean {
+        if (!hubH) {
+            return true;
+        }
+        if (removedHubHashes[hubH]) {
+            return true;
+        }
+        return hubsLoaded && !hubs.some((h) => h.hub_hash === hubH);
+    }
+
+    function isRoomGone(hubH: string | null | undefined, roomN: string | null | undefined): boolean {
+        if (isHubGone(hubH)) {
+            return true;
+        }
+        if (removedRoomKeys[roomTrackKey(hubH, roomN)]) {
+            return true;
+        }
+        const hub = hubs.find((h) => h.hub_hash === hubH);
+        if (!hub || !Array.isArray(hub.known_rooms)) {
+            return false;
+        }
+        return !hub.known_rooms.includes(
+            String(roomN || "")
+                .trim()
+                .toLowerCase()
+        );
+    }
+
+    export async function fetchHubs() {
         try {
             const response = await window.api.get(apiPath("/rrc/hubs"));
             hubs = response.data?.hubs || [];
+            hubsLoaded = true;
+            // Tombstones only bridge the in-flight delete window; once a
+            // hub or room shows up in a fresh listing it is live again.
+            for (const hub of hubs) {
+                delete removedHubHashes[hub.hub_hash];
+                for (const room of hub.known_rooms || []) {
+                    delete removedRoomKeys[roomTrackKey(hub.hub_hash, room)];
+                }
+            }
+            // A hub deleted elsewhere leaves a stale selection behind;
+            // every message/read call for it would 404 until cleared.
+            if (selectedHubHash && !hubs.some((h) => h.hub_hash === selectedHubHash)) {
+                setSelectedHub(null);
+                selectedRoom = null;
+            }
             if (!selectedHubHash && hubs.length > 0) {
                 setSelectedHub(hubs[0].hub_hash);
                 expandedHubs[hubs[0].hub_hash] = true;
@@ -2132,7 +2196,7 @@
         }
     }
 
-    async function leaveRoom() {
+    export async function leaveRoom() {
         if (!selectedHub || !selectedRoom) {
             return;
         }
@@ -2142,6 +2206,7 @@
         }
         const roomN = selectedRoom;
         const draftHub = selectedHubHash;
+        removedRoomKeys[roomTrackKey(draftHub, roomN)] = true;
         try {
             await window.api.delete(apiPath(`/rrc/hubs/${selectedHubHash}/rooms/${encodeURIComponent(roomN)}`));
             // A left room is gone for good, so its draft goes with it.
@@ -2155,6 +2220,7 @@
             ToastUtils.success(t("relay_chat.left_room"));
             await fetchHubs();
         } catch (e: any) {
+            delete removedRoomKeys[roomTrackKey(draftHub, roomN)];
             ToastUtils.error(e?.response?.data?.message || t("relay_chat.action_failed"));
         }
     }
@@ -2228,11 +2294,12 @@
         }
     }
 
-    async function removeHub(hub: RrcHub) {
+    export async function removeHub(hub: RrcHub) {
         const confirmed = await DialogUtils.confirm(t("relay_chat.remove_hub_confirm"));
         if (!confirmed) {
             return;
         }
+        removedHubHashes[hub.hub_hash] = true;
         try {
             await window.api.delete(apiPath(`/rrc/hubs/${hub.hub_hash}`));
             if (selectedHubHash === hub.hub_hash) {
@@ -2241,6 +2308,7 @@
             ToastUtils.success(t("relay_chat.hub_removed"));
             await fetchHubs();
         } catch (e: any) {
+            delete removedHubHashes[hub.hub_hash];
             ToastUtils.error(e?.response?.data?.message || t("relay_chat.action_failed"));
         }
     }
@@ -2590,7 +2658,7 @@
         fetchHubs();
     }
 
-    function onRrcMessage(json: any) {
+    export function onRrcMessage(json: any) {
         if (json.message && json.message.kind === "error" && isBadKeyErrorText(json.message.text)) {
             void handleBadKeyError(json.hub_hash, json.room || json.message.room, json.message.text);
         }
