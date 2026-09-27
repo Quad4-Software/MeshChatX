@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { tick } from "svelte";
+    import { tick, untrack } from "svelte";
     import QRCode from "qrcode";
     import MaterialDesignIcon from "../../../../ui/svelte/MaterialDesignIcon.svelte";
     import ToastUtils from "../../../../js/ToastUtils.js";
@@ -22,8 +22,9 @@
 
     let uri = $state<string | null>(null);
     // No uri and no hash means there is nothing to load; show the
-    // unavailable state instead of a spinner that never clears.
-    let isLoading = $state(!initialUri && Boolean(messageHash));
+    // unavailable state instead of a spinner that never clears. Props are
+    // fixed for the modal's lifetime, so capture them without tracking.
+    let isLoading = $state(untrack(() => !initialUri && Boolean(messageHash)));
     let isSending = $state(false);
     let qrcode: HTMLCanvasElement | undefined = $state();
     let didInit = $state(false);

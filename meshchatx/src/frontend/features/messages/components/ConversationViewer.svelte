@@ -214,12 +214,8 @@
     let audioAttachmentOrder: string[] = [];
     let audioDownloadInFlight = new Set<string>();
     let markReadQueued = false;
-    let markReadTarget:
-        | Conversation
-        | Peer
-        | { destination_hash?: string; is_unread?: boolean }
-        | null
-        | undefined = null;
+    let markReadTarget: Conversation | Peer | { destination_hash?: string; is_unread?: boolean } | null | undefined =
+        null;
     let blockedDestinations = $state<unknown[]>(GlobalState.blockedDestinations);
 
     $effect(() => {

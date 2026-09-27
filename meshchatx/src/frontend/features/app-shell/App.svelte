@@ -53,7 +53,7 @@
     style={shell.shellCanvasStyle}
 >
     {#if shell.fatalError}
-        <FatalErrorPage error={shell.fatalError} {router} />
+        <FatalErrorPage error={shell.fatalError} />
     {/if}
 
     <AppShellBanners

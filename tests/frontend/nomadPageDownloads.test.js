@@ -50,9 +50,23 @@ describe("nomadPageDownloads contract", () => {
     });
 
     it("attaches a top-level request_id when supplied", () => {
-        const page = createPageDownloadPayload("aabbccddeeff00112233445566778899", "/page/a.mu", false, 1, null, "np-3");
+        const page = createPageDownloadPayload(
+            "aabbccddeeff00112233445566778899",
+            "/page/a.mu",
+            false,
+            1,
+            null,
+            "np-3"
+        );
         expect(page.request_id).toBe("np-3");
-        const file = createFileDownloadPayload("aabbccddeeff00112233445566778899", "/file/a.bin", false, false, null, "nf-4");
+        const file = createFileDownloadPayload(
+            "aabbccddeeff00112233445566778899",
+            "/file/a.bin",
+            false,
+            false,
+            null,
+            "nf-4"
+        );
         expect(file.request_id).toBe("nf-4");
         const bare = createPageDownloadPayload("aabbccddeeff00112233445566778899", "/page/a.mu");
         expect(bare.request_id).toBeUndefined();

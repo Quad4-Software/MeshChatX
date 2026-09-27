@@ -310,7 +310,13 @@ export function hashposXY(id: string, base: number, span: number): { x: number; 
 }
 
 /** Deterministic scatter position near a parent point; mirrors Go hashpos.Around. */
-export function hashposAround(id: string, px: number, py: number, base: number, span: number): { x: number; y: number } {
+export function hashposAround(
+    id: string,
+    px: number,
+    py: number,
+    base: number,
+    span: number
+): { x: number; y: number } {
     const a = hashAngle(id);
     const d = base + hash01(id, "r") * span;
     return { x: px + Math.cos(a) * d, y: py + Math.sin(a) * d };

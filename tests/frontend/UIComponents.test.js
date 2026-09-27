@@ -232,6 +232,7 @@ describe("SendMessageButton Component", () => {
             props: {
                 canSendMessage: true,
                 canOpenSendMenu: true,
+                canGeneratePaper: true,
                 isSendingMessage: false,
                 deliveryMethod: null,
             },

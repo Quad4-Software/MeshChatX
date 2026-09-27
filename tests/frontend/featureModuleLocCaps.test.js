@@ -29,6 +29,7 @@ const LEGACY_LEAF_ALLOWLIST = new Set([
     "NomadPageRendererHost.svelte", // nomad renderer host after Vue parity merge, follow-up split required
     "RelayChatModals.svelte", // relay modals after Vue parity merge, follow-up split required
     "RelayHubSidebar.svelte", // relay sidebar after Vue parity merge, follow-up split required
+    "NetworkVisualiser.svelte", // radial view + WASM/JS parity port, follow-up split required
 ]);
 
 /** Legacy page shells still above hard cap, follow-up split required. */
@@ -42,8 +43,8 @@ const LEGACY_PAGE_ALLOWLIST = new Set([
 
 /** Page shells restored for Vue parity, tracked under regression caps rather than hard 800. */
 const LEGACY_PAGE_REGRESSION = {
-    "NomadNetworkPage.svelte": 1078, // Svelte migration: page state + download handlers + reconnect resend
-    "RelayChatPage.svelte": 2900, // full Vue parity merge incl. host, moderation, bots, search, popout and resync
+    "NomadNetworkPage.svelte": 1153, // Vue parity + download event correlation and archive teardown port
+    "RelayChatPage.svelte": 3126, // Vue parity + identity-scoped prefs, per-hub join forms, tombstone guards
 };
 
 /** Pre-existing lib files over the cap. */
@@ -54,11 +55,12 @@ const LEGACY_LIB_ALLOWLIST = new Set([
     "conversationViewerActions.ts",
     "addInterfaceState.ts", // interface state after Vue parity merge, follow-up split required
     "conversationViewerMutations.ts", // viewer mutations after Vue parity merge, follow-up split required
+    "visualiserGraphBuilder.ts", // WASM/JS parity and LOD port, follow-up split required
 ]);
 
 /** Viewer shell still above 800 after host split, fail if it grows past restored Vue parity. */
 const LEGACY_SHELL_ALLOWLIST = new Set(["ConversationViewer.svelte"]);
-const LEGACY_SHELL_REGRESSION_CAP = 1250; // Svelte migration: ConversationViewer shell plus full Vue parity merge
+const LEGACY_SHELL_REGRESSION_CAP = 1321; // Vue parity + stale-send guards and resync-correctness port
 
 /**
  * Counts total lines using wc -l newline split convention.

@@ -243,9 +243,7 @@ export function onNomadFileDownloadEvent(access: NomadPageDownloadAccess, json: 
 
     if (body.status === "started") {
         const fileStartedRequestId =
-            json.request_id ??
-            body.request_id ??
-            (body.data as Record<string, unknown> | undefined)?.request_id;
+            json.request_id ?? body.request_id ?? (body.data as Record<string, unknown> | undefined)?.request_id;
         if (
             (s.fileRequestId != null &&
                 fileStartedRequestId != null &&
@@ -267,7 +265,11 @@ export function onNomadFileDownloadEvent(access: NomadPageDownloadAccess, json: 
     }
     const fileEventRequestId =
         json.request_id ?? body.request_id ?? (body.data as Record<string, unknown> | undefined)?.request_id;
-    if (s.fileRequestId != null && fileEventRequestId != null && String(s.fileRequestId) !== String(fileEventRequestId)) {
+    if (
+        s.fileRequestId != null &&
+        fileEventRequestId != null &&
+        String(s.fileRequestId) !== String(fileEventRequestId)
+    ) {
         return;
     }
     if (s.currentFileDownloadId != null && downloadId != null && s.currentFileDownloadId !== downloadId) {

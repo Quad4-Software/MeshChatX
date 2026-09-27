@@ -131,8 +131,7 @@
             void processVisualization();
             return;
         }
-        const filtersChanged =
-            showDisabledInterfaces !== prevDisabled || showDiscoveredInterfaces !== prevDiscovered;
+        const filtersChanged = showDisabledInterfaces !== prevDisabled || showDiscoveredInterfaces !== prevDiscovered;
         if (filtersChanged && hasRenderer) {
             void processVisualization();
         }
@@ -179,8 +178,9 @@
         if (webglEngine) {
             const snap = webglEngine.getPositions() || {};
             for (const [id, p] of Object.entries(snap)) {
-                if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
-                    data.cachedPositions[id] = { x: p.x, y: p.y };
+                const pos = p as { x?: unknown; y?: unknown } | null;
+                if (pos && Number.isFinite(pos.x) && Number.isFinite(pos.y)) {
+                    data.cachedPositions[id] = { x: pos.x as number, y: pos.y as number };
                 }
             }
             return;
@@ -436,8 +436,7 @@
         if (preferredRenderer === "webgl") {
             ToastUtils.warning(t("visualiser.renderer_webgl_unavailable"));
         }
-        void init({ skipWarm: true, forceVis: true })
-            .catch((e) => console.warn("vis-network fallback failed:", e));
+        void init({ skipWarm: true, forceVis: true }).catch((e) => console.warn("vis-network fallback failed:", e));
     }
 
     onMount(() => {

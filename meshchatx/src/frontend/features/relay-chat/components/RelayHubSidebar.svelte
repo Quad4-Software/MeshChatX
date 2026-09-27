@@ -269,7 +269,6 @@
             </button>
 
             {#each hubs as hub, hubIndex (hub.hub_hash)}
-
                 <div
                     class="border-b border-sem-border/60 {dragHubIndex === hubIndex ? 'opacity-60' : ''}"
                     draggable="true"

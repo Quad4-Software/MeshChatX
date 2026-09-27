@@ -413,7 +413,7 @@
         ontoggleemojipicker={() => pickerHost?.toggleEmojiPicker()}
         ontogglelocation={toggleLocation}
         ontoggletranslate={() => pickerHost?.toggleTranslate()}
-        canGeneratePaperMessage={canGeneratePaperMessage}
+        {canGeneratePaperMessage}
         onsendpapercompose={() => onsendpapercompose?.()}
         onenter={composeEnter}
         onshiftenter={() => {

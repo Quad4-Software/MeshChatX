@@ -35,7 +35,10 @@ export function createPublishTargetStore(): PublishTargetStore {
     return new Map();
 }
 
-export function publishTargetKey(node: PageNodeItem, tab: { id?: number; name?: string } | null | undefined): string | null {
+export function publishTargetKey(
+    node: PageNodeItem,
+    tab: { id?: number; name?: string } | null | undefined
+): string | null {
     const nodeId = node?.node_id;
     if (!nodeId || !tab) {
         return null;

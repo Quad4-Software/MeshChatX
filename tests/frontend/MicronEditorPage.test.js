@@ -173,18 +173,14 @@ describe("micronPublish utilities", () => {
     it("resolvePublishPageBase prompts with index as the default for an unset tab name", async () => {
         const DialogUtils = (await import("@/js/DialogUtils")).default;
         DialogUtils.prompt.mockResolvedValueOnce("custom_page");
-        await expect(resolvePublishPageBase({ name: "New Tab 1" }, ["index.mu"], "srv")).resolves.toBe(
-            "custom_page"
-        );
+        await expect(resolvePublishPageBase({ name: "New Tab 1" }, ["index.mu"], "srv")).resolves.toBe("custom_page");
         expect(DialogUtils.prompt).toHaveBeenCalledWith(expect.any(String), "index");
     });
 
     it("resolvePublishPageBase treats INDEX.MU case-insensitively", async () => {
         const DialogUtils = (await import("@/js/DialogUtils")).default;
         DialogUtils.prompt.mockResolvedValueOnce("other");
-        await expect(resolvePublishPageBase({ name: "New Tab 1" }, ["INDEX.MU"], "srv")).resolves.toBe(
-            "other"
-        );
+        await expect(resolvePublishPageBase({ name: "New Tab 1" }, ["INDEX.MU"], "srv")).resolves.toBe("other");
         expect(DialogUtils.prompt).toHaveBeenCalled();
     });
 

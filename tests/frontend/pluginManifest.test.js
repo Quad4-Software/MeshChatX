@@ -59,7 +59,6 @@ describe("pluginManifest", () => {
         expect(permissionLabel("custom:thing", (key) => key)).toBe("custom:thing");
     });
 
-
     it("accepts backend.type python", () => {
         const manifest = validatePluginManifest({
             id: "com.example.python",

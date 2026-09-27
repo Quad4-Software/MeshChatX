@@ -20,9 +20,7 @@ const IS_TOUCH =
 
 // contextmenu is included so a second right-click (or a long-press) outside a
 // floating panel dismisses it, matching platform menu behavior.
-export const DEFAULT_EVENTS: readonly string[] = IS_TOUCH
-    ? ["touchstart", "contextmenu"]
-    : ["click", "contextmenu"];
+export const DEFAULT_EVENTS: readonly string[] = IS_TOUCH ? ["touchstart", "contextmenu"] : ["click", "contextmenu"];
 
 export type ClickOutsideHandler = (event: Event) => void;
 export type ClickOutsideMiddleware = (event: Event) => unknown;

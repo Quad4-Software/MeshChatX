@@ -86,6 +86,7 @@ describe("ConversationViewer message contracts", () => {
                 hash: "pending-1",
                 source_hash: myHash,
                 destination_hash: peerHash,
+                content: "sent",
                 state: "sending",
             }),
         ];

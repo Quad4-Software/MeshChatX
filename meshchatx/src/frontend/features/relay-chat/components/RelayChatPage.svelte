@@ -726,7 +726,8 @@
         // Prefs loaded under the "_" fallback bucket must be re-read under the
         // real identity once it is known, or saved toggles never apply.
         unsubRelayIdentity = subscribeConfig(() => {
-            const hash = GlobalState.config?.identity_hash || "";
+            const hashRaw = GlobalState.config?.identity_hash;
+            const hash = typeof hashRaw === "string" ? hashRaw : "";
             // Only re-scope when the initial load fell back to "_". A
             // mid-session hash change while scoped to a real identity is
             // handled by onIdentitySwitched; re-beginning here would let a
@@ -739,8 +740,7 @@
             // so an existing identity's prefs are never overwritten.
             const fallback = loadRelayPrefs("_");
             const real = loadRelayPrefs(hash);
-            const realEmpty =
-                real.ignored.length === 0 && real.highlightWords.length === 0 && !real.hideJoinPart;
+            const realEmpty = real.ignored.length === 0 && real.highlightWords.length === 0 && !real.hideJoinPart;
             const fallbackHasPrefs =
                 fallback.ignored.length > 0 || fallback.highlightWords.length > 0 || fallback.hideJoinPart;
             identityScope.beginIdentity(hash);
@@ -1033,9 +1033,7 @@
         setSelectedHub(hub.hub_hash);
         expandedHubs[hub.hub_hash] = true;
         tick().then(() => {
-            document
-                .querySelector<HTMLInputElement>(`input[data-rrc-join-name="${hub.hub_hash}"]`)
-                ?.focus();
+            document.querySelector<HTMLInputElement>(`input[data-rrc-join-name="${hub.hub_hash}"]`)?.focus();
         });
     }
 
