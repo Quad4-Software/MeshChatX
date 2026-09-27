@@ -33,6 +33,7 @@ COPY electron/assets/css/electron-shell.src.css electron/assets/css/electron-she
 COPY scripts/pip_rns_remotes.py scripts/pip_rns_remotes.py
 COPY scripts/build/fetch_reticulum_manual.py scripts/build/fetch_reticulum_manual.py
 COPY scripts/build/generate-mdi-icons.mjs scripts/build/generate-mdi-icons.mjs
+COPY scripts/build/mdi-icon-scan.mjs scripts/build/mdi-icon-scan.mjs
 COPY scripts/build/generate_service_worker.mjs scripts/build/generate_service_worker.mjs
 COPY scripts/docker/build-frontend.sh scripts/docker/build-frontend.sh
 COPY docs ./docs
