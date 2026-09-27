@@ -21,6 +21,51 @@ export interface PublishSitePage {
     name: string;
     content: string;
     label: string;
+    tabId?: number;
+}
+
+/**
+ * Per-session map of which page name a tab was last published to on each
+ * node, so republishing the same tab updates that page instead of silently
+ * creating a sibling page and leaving index.mu stale.
+ */
+export type PublishTargetStore = Map<string, string>;
+
+export function createPublishTargetStore(): PublishTargetStore {
+    return new Map();
+}
+
+export function publishTargetKey(node: PageNodeItem, tab: { id?: number; name?: string } | null | undefined): string | null {
+    const nodeId = node?.node_id;
+    if (!nodeId || !tab) {
+        return null;
+    }
+    const tabKey = tab.id ?? tab.name;
+    if (tabKey === undefined || tabKey === null || String(tabKey).trim() === "") {
+        return null;
+    }
+    return `${nodeId}:${tabKey}`;
+}
+
+export function recallPublishTarget(
+    store: PublishTargetStore,
+    node: PageNodeItem,
+    tab: { id?: number; name?: string } | null | undefined
+): string | null {
+    const key = publishTargetKey(node, tab);
+    return key ? store.get(key) || null : null;
+}
+
+export function rememberPublishTarget(
+    store: PublishTargetStore,
+    node: PageNodeItem,
+    tab: { id?: number; name?: string } | null | undefined,
+    pageName: string
+): void {
+    const key = publishTargetKey(node, tab);
+    if (key && pageName) {
+        store.set(key, pageName);
+    }
 }
 
 export interface PublishSitePayload {
@@ -105,26 +150,40 @@ export async function resolvePublishPageBase(
     serverName: string
 ): Promise<string | null> {
     const pageNames = pageNamesFromList(existingPages);
-    const hasIndex = pageNames.includes("index.mu");
+    const hasIndex = pageNames.some((name) => String(name).toLowerCase() === "index.mu");
     if (!hasIndex) {
         return "index";
     }
     if (!isUnsetMicronTabName(tab.name)) {
         const base = tabNameToPageBase(tab);
-        return base || null;
-    }
-    const entered = await DialogUtils.prompt(t("tools.micron_editor.publish_prompt_name", { server: serverName }));
-    if (entered === null || !String(entered).trim()) {
-        return null;
-    }
-    let base = String(entered).trim().replace(/\s+/g, "_");
-    const lower = base.toLowerCase();
-    for (const ext of PAGE_EXTENSIONS) {
-        if (lower.endsWith(ext)) {
+        if (!base) {
+            return null;
+        }
+        // A tab whose name matches an existing page republishes to it.
+        const baseNames = pageNames.map((name) =>
+            String(name)
+                .toLowerCase()
+                .replace(/\.(mu|html|md|txt)$/, "")
+        );
+        if (baseNames.includes(base.toLowerCase())) {
             return base;
         }
+        // A named tab would otherwise silently create a sibling page and
+        // leave index.mu stale, so ask which page name to write.
+        return await promptForPageBase(serverName, base);
     }
-    return base || null;
+    return await promptForPageBase(serverName, "index");
+}
+
+async function promptForPageBase(serverName: string, defaultValue: string): Promise<string | null> {
+    const entered = await DialogUtils.prompt(
+        t("tools.micron_editor.publish_prompt_name", { server: serverName }),
+        defaultValue
+    );
+    if (entered == null || !String(entered).trim()) {
+        return null;
+    }
+    return String(entered).trim().replace(/\s+/g, "_") || null;
 }
 
 /**

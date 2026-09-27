@@ -26,6 +26,9 @@
         pageBaseWithExtension,
         pageNamesFromList,
         resolvePublishPageBase,
+        recallPublishTarget,
+        rememberPublishTarget,
+        createPublishTargetStore,
         type PublishSitePayload,
     } from "./lib/micronPublish.js";
     import type { LastPublishedInfo, MicronTab, PageNodeItem } from "./lib/types.js";
@@ -43,7 +46,8 @@
     let showPublishMenu = $state(false);
     let showPublishSiteModal = $state(false);
     let pageNodes = $state<PageNodeItem[]>([]);
-    let publishBusy = $state(false);
+const publishTargets = createPublishTargetStore();
+        let publishBusy = $state(false);
     let lastPublished = $state<LastPublishedInfo | null>(null);
 
     let useWasm = $state(false);
@@ -333,16 +337,23 @@
             if (!options.alreadyRunning) {
                 running = await ensureNodeRunning(node);
             }
-            const existingPages = await fetchNodePagesList(running.node_id);
-            const pageBase = await resolvePublishPageBase(tab, existingPages, running.name);
-            if (!pageBase) return;
-            const publishName = pageBaseWithExtension(pageBase, tab);
+            const rememberedName = recallPublishTarget(publishTargets, running, tab);
+            let publishName;
+            if (rememberedName) {
+                publishName = rememberedName;
+            } else {
+                const existingPages = await fetchNodePagesList(running.node_id);
+                const pageBase = await resolvePublishPageBase(tab, existingPages, running.name);
+                if (!pageBase) return;
+                publishName = pageBaseWithExtension(pageBase, tab);
+            }
             const response = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
                 name: publishName,
                 content: tab.content,
             });
             showPublishMenu = false;
             const savedName = (response.data as { name?: string })?.name || publishName;
+            rememberPublishTarget(publishTargets, running, tab, savedName);
             rememberPublished(running, savedName);
             await offerOpenInNomadNet(savedName, running.name);
         } catch (e: any) {
@@ -396,6 +407,7 @@
             let published = 0;
             const failedPages: string[] = [];
             let lastSavedName: string | null = null;
+            const savedNames: string[] = [];
             for (const page of pagesToPost) {
                 try {
                     const response = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
@@ -403,12 +415,23 @@
                         content: page.content,
                     });
                     lastSavedName = (response.data as { name?: string })?.name || page.name;
+                    savedNames.push(lastSavedName);
+                    rememberPublishTarget(
+                        publishTargets,
+                        running,
+                        { id: page.tabId, name: page.label },
+                        lastSavedName
+                    );
                     published++;
                 } catch {
                     failedPages.push(page.name);
                 }
             }
-            if (payload.generateIndex && running.destination_hash && published > 0) {
+            // An explicitly published index.mu always wins over the generated
+            // links page; otherwise the generateIndex option would overwrite
+            // the user's own landing page with a link list.
+            const hasExplicitIndex = savedNames.some((name) => String(name).toLowerCase() === "index.mu");
+            if (payload.generateIndex && running.destination_hash && published > 0 && !hasExplicitIndex) {
                 try {
                     const indexContent = buildSiteIndexPage(running.destination_hash, pagesToPost);
                     const indexRes = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
@@ -419,6 +442,8 @@
                 } catch {
                     console.error("Failed to publish generated index page");
                 }
+            } else if (hasExplicitIndex) {
+                lastSavedName = "index.mu";
             }
             showPublishSiteModal = false;
             if (lastSavedName) {
@@ -480,9 +505,15 @@
             let published = 0;
             let lastSavedName: string | null = null;
             for (const tab of tabs) {
-                const pageBase = await resolvePublishPageBase(tab, existingPages, running.name);
-                if (!pageBase) continue;
-                const publishName = pageBaseWithExtension(pageBase, tab);
+                const rememberedName = recallPublishTarget(publishTargets, running, tab);
+                let publishName;
+                if (rememberedName) {
+                    publishName = rememberedName;
+                } else {
+                    const pageBase = await resolvePublishPageBase(tab, existingPages, running.name);
+                    if (!pageBase) continue;
+                    publishName = pageBaseWithExtension(pageBase, tab);
+                }
                 try {
                     const response = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
                         name: publishName,
@@ -490,6 +521,7 @@
                     });
                     const savedName = (response.data as { name?: string })?.name || publishName;
                     lastSavedName = savedName;
+                    rememberPublishTarget(publishTargets, running, tab, savedName);
                     const pageNames = pageNamesFromList(existingPages);
                     existingPages = [...new Set([...pageNames, savedName])];
                     published++;

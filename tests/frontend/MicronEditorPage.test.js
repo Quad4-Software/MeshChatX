@@ -22,6 +22,10 @@ import {
     pageNamesFromList,
     resolvePublishPageBase,
     tabNameToPageBase,
+    createPublishTargetStore,
+    recallPublishTarget,
+    rememberPublishTarget,
+    publishTargetKey,
 } from "@/features/micron-editor/lib/micronPublish.ts";
 
 vi.mock("@/js/MicronStorage", () => ({
@@ -144,6 +148,58 @@ describe("micronPublish utilities", () => {
             running: false,
         });
         expect(started.running).toBe(true);
+    });
+
+    it("resolvePublishPageBase falls back to index when index.mu is absent", async () => {
+        await expect(resolvePublishPageBase({ name: "New Tab 1" }, [], "srv")).resolves.toBe("index");
+    });
+
+    it("resolvePublishPageBase reuses the tab name when that page exists", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        DialogUtils.prompt.mockClear();
+        await expect(
+            resolvePublishPageBase({ name: "About Page" }, ["index.mu", "About_Page.mu"], "srv")
+        ).resolves.toBe("About_Page");
+        expect(DialogUtils.prompt).not.toHaveBeenCalled();
+    });
+
+    it("resolvePublishPageBase prompts when a named tab would create a sibling page", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        DialogUtils.prompt.mockResolvedValueOnce("index");
+        await expect(resolvePublishPageBase({ name: "Main" }, ["index.mu"], "srv")).resolves.toBe("index");
+        expect(DialogUtils.prompt).toHaveBeenCalledWith(expect.any(String), "Main");
+    });
+
+    it("resolvePublishPageBase prompts with index as the default for an unset tab name", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        DialogUtils.prompt.mockResolvedValueOnce("custom_page");
+        await expect(resolvePublishPageBase({ name: "New Tab 1" }, ["index.mu"], "srv")).resolves.toBe(
+            "custom_page"
+        );
+        expect(DialogUtils.prompt).toHaveBeenCalledWith(expect.any(String), "index");
+    });
+
+    it("resolvePublishPageBase treats INDEX.MU case-insensitively", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        DialogUtils.prompt.mockResolvedValueOnce("other");
+        await expect(resolvePublishPageBase({ name: "New Tab 1" }, ["INDEX.MU"], "srv")).resolves.toBe(
+            "other"
+        );
+        expect(DialogUtils.prompt).toHaveBeenCalled();
+    });
+
+    it("remembers the page name a tab was last published to per node", () => {
+        const store = createPublishTargetStore();
+        const node = { node_id: "n1", name: "srv" };
+        const tab = { id: 7, name: "main" };
+        expect(recallPublishTarget(store, node, tab)).toBeNull();
+        rememberPublishTarget(store, node, tab, "about.mu");
+        expect(recallPublishTarget(store, node, tab)).toBe("about.mu");
+        // A different node or tab keys separately; unset keys never collide.
+        expect(recallPublishTarget(store, { node_id: "n2" }, tab)).toBeNull();
+        expect(recallPublishTarget(store, node, { id: 8, name: "other" })).toBeNull();
+        expect(publishTargetKey(node, { name: "" })).toBeNull();
+        expect(publishTargetKey(null, tab)).toBeNull();
     });
 
     it("parses nomad destination urls", () => {
