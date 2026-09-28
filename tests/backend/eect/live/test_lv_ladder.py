@@ -7,6 +7,7 @@ import os
 import secrets
 import subprocess
 import sys
+import time
 
 import pytest
 from aiohttp import web
@@ -112,3 +113,114 @@ def test_lv_l3_loopback_tcp():
     with eect_scenario("lv.l3.loopback_tcp") as (_s, _seed, _rng):
         result = self_check.check_loopback_tcp()
         assert result["status"] == "ok", result.get("reason")
+
+
+@pytest.mark.skipif(not _LIVE, reason="Set MESHCHAT_LIVE_VALIDATION=1 for LV L2+")
+@pytest.mark.integration
+@pytest.mark.usefixtures("require_loopback_tcp")
+def test_lv_l4_rrc_hub_roundtrip(tmp_path):
+    """Real RRC link: two processes, TCP pair, HELLO to WELCOME to room join."""
+    with eect_scenario("lv.l4.rrc_hub_roundtrip") as (_s, _seed, _rng):
+        port = 44271
+        root = os.path.abspath(".")
+
+        hub_script = (
+            "import sys, os, time, tempfile\n"
+            "import RNS\n"
+            "cfg = tempfile.mkdtemp(prefix='lv4_hub_')\n"
+            "conf = (\n"
+            "    '[reticulum]\\n'\n"
+            "    'enable_transport = False\\n'\n"
+            "    'share_instance = No\\n'\n"
+            "    '[interfaces]\\n'\n"
+            "    '  [[Hub Listener]]\\n'\n"
+            "    '    type = TCPServerInterface\\n'\n"
+            "    '    enabled = Yes\\n'\n"
+            "    '    listen_ip = 127.0.0.1\\n'\n"
+            f"    '    listen_port = {port}\\n')\n"
+            "with open(os.path.join(cfg, 'config'), 'w') as f:\n"
+            "    f.write(conf)\n"
+            "RNS.Reticulum(configdir=cfg, loglevel=RNS.LOG_WARNING)\n"
+            f"sys.path.insert(0, {root!r})\n"
+            "from meshchatx.src.backend.rrc.server import RRCHubServer\n"
+            "class _M:\n"
+            "    def _notify_change(self, *a, **k):\n"
+            "        pass\n"
+            "server = RRCHubServer(_M(), RNS.Identity(create_keys=True), name='LV Hub', announce=True)\n"
+            "server.configure_storage(tempfile.mkdtemp(prefix='lv4_hubdir_'))\n"
+            "server.register_room('lobby')\n"
+            "server.start()\n"
+            "print('HUB_HASH=' + server.dest_hash.hex(), flush=True)\n"
+            "time.sleep(90)\n"
+        )
+
+        client_script = (
+            "import sys, os, time, tempfile\n"
+            "import RNS\n"
+            "cfg = tempfile.mkdtemp(prefix='lv4_cli_')\n"
+            "conf = (\n"
+            "    '[reticulum]\\n'\n"
+            "    'enable_transport = False\\n'\n"
+            "    'share_instance = No\\n'\n"
+            "    '[interfaces]\\n'\n"
+            "    '  [[Hub Client]]\\n'\n"
+            "    '    type = TCPClientInterface\\n'\n"
+            "    '    enabled = Yes\\n'\n"
+            "    '    target_host = 127.0.0.1\\n'\n"
+            f"    '    target_port = {port}\\n')\n"
+            "with open(os.path.join(cfg, 'config'), 'w') as f:\n"
+            "    f.write(conf)\n"
+            "RNS.Reticulum(configdir=cfg, loglevel=RNS.LOG_WARNING)\n"
+            f"sys.path.insert(0, {root!r})\n"
+            "from meshchatx.src.backend.rrc.manager import RRCManager\n"
+            "mgr = RRCManager(identity=RNS.Identity(create_keys=True), storage_dir=tempfile.mkdtemp())\n"
+            f"hub = mgr.add_hub(bytes.fromhex('{{HUB_HASH}}'))\n"
+            "hub.connect()\n"
+            "deadline = time.monotonic() + 45\n"
+            "while time.monotonic() < deadline and not hub.welcomed:\n"
+            "    time.sleep(0.3)\n"
+            "print('WELCOMED=' + str(hub.welcomed), flush=True)\n"
+            "if hub.welcomed:\n"
+            "    hub.join_room('lobby')\n"
+            "    time.sleep(2)\n"
+            "    print('ROOMS=' + ','.join(sorted(hub.rooms)), flush=True)\n"
+        )
+
+        env = subprocess_test_env()
+        hub = subprocess.Popen(
+            [sys.executable, "-c", hub_script],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            env=env,
+        )
+        try:
+            hub_hash = None
+            deadline = time.monotonic() + 30
+            assert hub.stdout is not None
+            while time.monotonic() < deadline:
+                line = hub.stdout.readline()
+                if line.startswith("HUB_HASH="):
+                    hub_hash = line.strip().split("=", 1)[1]
+                    break
+                if hub.poll() is not None:
+                    break
+            assert hub_hash, "hub never announced its hash"
+
+            client = subprocess.run(
+                [sys.executable, "-c", client_script.replace("{HUB_HASH}", hub_hash)],
+                capture_output=True,
+                text=True,
+                timeout=90,
+                check=False,
+                env=env,
+            )
+            out = client.stdout + client.stderr
+            assert "WELCOMED=True" in out, out[-2000:]
+            assert "ROOMS=lobby" in out, out[-2000:]
+        finally:
+            hub.terminate()
+            try:
+                hub.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                hub.kill()
