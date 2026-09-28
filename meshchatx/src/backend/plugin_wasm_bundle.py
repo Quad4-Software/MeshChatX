@@ -165,7 +165,12 @@ def append_wasm_signature(wasm: bytes, signature: bytes) -> bytes:
 
 def validate_embedded_path(name: str) -> None:
     clean = os.path.normpath(name.replace("\\", "/")).replace("\\", "/")
-    if clean in {"", "."} or clean.startswith("..") or clean.startswith("/"):
+    if (
+        clean in {"", "."}
+        or clean.startswith("..")
+        or clean.startswith("/")
+        or ":" in clean
+    ):
         raise ValueError(f"invalid embedded path {name!r}")
 
 
@@ -178,6 +183,14 @@ def validate_embedded_bundle(bundle: WasmBundle) -> None:
         validate_embedded_path(name)
         if len(content.encode("utf-8")) > MAX_WASM_EMBEDDED_FILE:
             raise ValueError(f"embedded file {name!r} too large")
+    # The manifest's backend.entry is written verbatim by write_wasm_bundle,
+    # so it must satisfy the same embedded-path rules as the files map.
+    manifest = bundle.manifest if isinstance(bundle.manifest, dict) else {}
+    backend = manifest.get("backend") or {}
+    if isinstance(backend, dict):
+        entry = str(backend.get("entry") or "").strip()
+        if entry:
+            validate_embedded_path(entry)
 
 
 def bundle_wasm(
@@ -255,6 +268,7 @@ def write_wasm_bundle(dest: str, bundle: WasmBundle) -> None:
         backend_entry = str(backend.get("entry") or "").strip()
     if not backend_entry:
         backend_entry = "backend/plugin.wasm"
+    validate_embedded_path(backend_entry)
     backend_path = os.path.join(dest, backend_entry.replace("\\", "/"))
     os.makedirs(os.path.dirname(backend_path) or dest, exist_ok=True)
     runtime_wasm = _strip_bundle_metadata_sections(

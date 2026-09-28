@@ -24,6 +24,53 @@ from meshchatx.src.backend.sideband_plugins import (
 MAX_SIDEBAND_SCRIPT_BYTES = 1_000_000
 
 
+def _declared_plugin_type(source: str) -> str | None:
+    """Detect the declared plugin_class base type without executing code."""
+    import ast
+
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return None
+    plugin_class_name = None
+    classes = {}
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            bases = [
+                b.id if isinstance(b, ast.Name) else getattr(b, "attr", "")
+                for b in node.bases
+            ]
+            classes[node.name] = bases
+        elif isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name) and t.id == "plugin_class":
+                    if isinstance(node.value, ast.Name):
+                        plugin_class_name = node.value.id
+    if not plugin_class_name:
+        return None
+    # Chase a level of indirection (plugin_class = MyPlugin where MyPlugin subclasses X).
+    seen = set()
+    name = plugin_class_name
+    while name and name not in seen:
+        seen.add(name)
+        bases = classes.get(name) or []
+        for base in bases:
+            if base in (
+                "SidebandCommandPlugin",
+                "SidebandServicePlugin",
+                "SidebandTelemetryPlugin",
+            ):
+                return base
+        name = bases[0] if bases else None
+    if plugin_class_name in (
+        "SidebandCommandPlugin",
+        "SidebandServicePlugin",
+        "SidebandTelemetryPlugin",
+    ):
+        return plugin_class_name
+    return None
+
+
 class SidebandPluginLoader:
     def __init__(self, app: Any):
         self.app = app
@@ -209,6 +256,16 @@ class SidebandPluginLoader:
             self.loaded_plugins.append(entry)
             return
 
+        # Gate command plugins before exec: executing the module body runs
+        # arbitrary code, so checking after exec is not a real gate.
+        declared = _declared_plugin_type(source)
+        if declared == "SidebandCommandPlugin" and not config.get(
+            "command_plugins_enabled"
+        ):
+            entry["type"] = "command"
+            entry["error"] = "command plugins disabled"
+            self.loaded_plugins.append(entry)
+            return
         plugin_globals = {
             "SidebandServicePlugin": SidebandServicePlugin,
             "SidebandCommandPlugin": SidebandCommandPlugin,

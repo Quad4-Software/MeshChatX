@@ -808,7 +808,9 @@ def _build_command_line(exe: str, args: list[str]) -> str:
     def quote(part: str) -> str:
         if not part:
             return '""'
-        if any(ch in part for ch in (" ", "\t", '"')):
+        if any(ch in part for ch in (" ", "\t", '"', "\\")):
+            # MSVC quoting: escape " and any backslash run before a quote,
+            # including a trailing one (foo\ -> "foo\\").
             escaped = part.replace('"', '\\"')
             return f'"{escaped}"'
         return part

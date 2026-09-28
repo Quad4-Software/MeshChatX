@@ -51,8 +51,15 @@ def _load_json_publishers(path: str) -> list[TrustedPublisher]:
 
 
 def digest_user_trusted_publishers_raw(raw: bytes) -> str:
-    data = json.loads(raw.decode("utf-8"))
-    canonical = json.dumps(data, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    try:
+        data = json.loads(raw.decode("utf-8"))
+        canonical = json.dumps(data, separators=(",", ":"), sort_keys=True).encode(
+            "utf-8"
+        )
+    except (ValueError, UnicodeDecodeError):
+        # Corrupt file: hash the raw bytes so integrity checks still work and
+        # startup does not die inside digest computation.
+        canonical = raw
     return hashlib.sha256(canonical).hexdigest()
 
 
