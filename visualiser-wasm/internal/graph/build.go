@@ -165,11 +165,16 @@ func BuildPathGraph(req Request) Result {
 		conversations = map[string]Conversation{}
 	}
 
+	nodeSeen := make(map[string]struct{}, len(req.PathTable))
 	for i := range req.PathTable {
 		entry := &req.PathTable[i]
 		if entry.Hops == nil || entry.Hash == "" {
 			continue
 		}
+		if _, dup := nodeSeen[entry.Hash]; dup {
+			continue
+		}
+		nodeSeen[entry.Hash] = struct{}{}
 		if req.HopMax != nil && *entry.Hops > *req.HopMax {
 			continue
 		}
@@ -244,7 +249,7 @@ func BuildPathGraph(req Request) Result {
 }
 
 func resolvePosition(hash, iface string, pos map[string]XY) (float64, float64) {
-	if prev, ok := pos[hash]; ok {
+	if prev, ok := pos[hash]; ok && isFiniteXY(prev) {
 		return prev.X, prev.Y
 	}
 	if ip, ok := pos[iface]; ok {

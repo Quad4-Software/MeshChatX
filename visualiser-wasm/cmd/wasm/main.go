@@ -182,7 +182,7 @@ func sceneTickHandler(_ js.Value, args []js.Value) any {
 }
 
 func sceneResizeHandler(_ js.Value, args []js.Value) any {
-	if len(args) < 2 {
+	if len(args) < 2 || args[0].Type() != js.TypeNumber || args[1].Type() != js.TypeNumber {
 		return nil
 	}
 	visualiserScene.Resize(args[0].Float(), args[1].Float())
@@ -190,7 +190,7 @@ func sceneResizeHandler(_ js.Value, args []js.Value) any {
 }
 
 func sceneSetCameraHandler(_ js.Value, args []js.Value) any {
-	if len(args) < 3 {
+	if len(args) < 3 || args[0].Type() != js.TypeNumber || args[1].Type() != js.TypeNumber || args[2].Type() != js.TypeNumber {
 		return nil
 	}
 	visualiserScene.SetCamera(args[0].Float(), args[1].Float(), args[2].Float())
@@ -198,7 +198,7 @@ func sceneSetCameraHandler(_ js.Value, args []js.Value) any {
 }
 
 func scenePanByHandler(_ js.Value, args []js.Value) any {
-	if len(args) < 2 {
+	if len(args) < 2 || args[0].Type() != js.TypeNumber || args[1].Type() != js.TypeNumber {
 		return nil
 	}
 	visualiserScene.PanBy(args[0].Float(), args[1].Float())
@@ -206,7 +206,7 @@ func scenePanByHandler(_ js.Value, args []js.Value) any {
 }
 
 func sceneZoomAtHandler(_ js.Value, args []js.Value) any {
-	if len(args) < 3 {
+	if len(args) < 3 || args[0].Type() != js.TypeNumber || args[1].Type() != js.TypeNumber || args[2].Type() != js.TypeNumber {
 		return nil
 	}
 	visualiserScene.ZoomAt(args[0].Float(), args[1].Float(), args[2].Float())
@@ -214,7 +214,7 @@ func sceneZoomAtHandler(_ js.Value, args []js.Value) any {
 }
 
 func scenePickHandler(_ js.Value, args []js.Value) any {
-	if len(args) < 2 {
+	if len(args) < 2 || args[0].Type() != js.TypeNumber || args[1].Type() != js.TypeNumber {
 		return ""
 	}
 	maxDist := 14.0
@@ -232,7 +232,7 @@ func sceneDragStartHandler(_ js.Value, args []js.Value) any {
 }
 
 func sceneDragToHandler(_ js.Value, args []js.Value) any {
-	if len(args) < 2 {
+	if len(args) < 2 || args[0].Type() != js.TypeNumber || args[1].Type() != js.TypeNumber {
 		return nil
 	}
 	visualiserScene.DragTo(args[0].Float(), args[1].Float())

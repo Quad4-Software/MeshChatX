@@ -36,11 +36,29 @@ func Shorten(code string, lat, lng float64) (string, error) {
 	distance := math.Max(math.Abs(centerLat-lat), math.Abs(centerLng-lng))
 
 	for i := len(pairResolutions) - 2; i >= 1; i-- {
+		start := (i + 1) * 2
+		if start >= n {
+			continue
+		}
 		if distance < pairResolutions[i]*0.3 {
-			return string(upperBuf[(i+1)*2 : n]), nil
+			tail := upperBuf[start:n]
+			if !hasCodeChars(tail) {
+				// Never emit a bare separator/padding tail.
+				continue
+			}
+			return string(tail), nil
 		}
 	}
 	return string(upperBuf[:n]), nil
+}
+
+func hasCodeChars(b []byte) bool {
+	for i := range b {
+		if b[i] != Separator && b[i] != Padding {
+			return true
+		}
+	}
+	return false
 }
 
 // RecoverNearest recovers the nearest full Open Location Code from a short code and reference point.
@@ -72,7 +90,7 @@ func RecoverNearest(code string, lat, lng float64) (string, error) {
 		return code, err
 	}
 	write := padLen
-	for i := 0; i < len(code); i++ {
+	for i := 0; i < len(code) && write < MaxEncodedLen; i++ {
 		merged[write] = upper(code[i])
 		write++
 	}
