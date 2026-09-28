@@ -118,7 +118,7 @@ export function useNomadNodesList() {
             clearTimeout(nodesRefreshTimeout.value);
             nodesRefreshTimeout.value = null;
         }
-    })
+    });
 
     return {
         nodes,
