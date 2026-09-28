@@ -445,7 +445,7 @@ class MiscDAO:
                 ),
             )
             return
-        fields = {"updated_at": now}
+        fields: dict[str, object] = {"updated_at": now}
         if pages_indexed is not None:
             fields["pages_indexed"] = pages_indexed
         if last_request_at is not None:

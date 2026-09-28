@@ -35,7 +35,7 @@ try:
 except ImportError:  # pragma: no cover
     PathJailError = Exception
 
-    def resolve_user_path(*_a, **_k):
+    def resolve_user_path(*_a, **_k) -> str:
         raise PathJailError("path utils unavailable")
 
 
