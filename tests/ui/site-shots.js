@@ -1,4 +1,4 @@
-const { chromium } = require('playwright');
+const { chromium } = require('@playwright/test');
 (async () => {
   const pages = ['/', '/download/', '/roadmap/', '/changelog/', '/interfaces/', '/docs/overview/', '/branding/', '/git/'];
   const browser = await chromium.launch({ executablePath: '/usr/bin/chromium' });
