@@ -354,6 +354,7 @@ def test_get_or_create_mapping_reuses_row(tmp_path, db):
     mgr = ForwardingManager(db, str(tmp_path), delivery_callback=lambda m: None)
     fake_dest = MagicMock()
     fake_router = MagicMock()
+    fake_dest.hash.hex.return_value = PEER_ALIAS
     fake_router.register_delivery_identity.return_value = fake_dest
     identity = MagicMock()
     identity.hash.hex.return_value = PEER_ALIAS
@@ -380,7 +381,9 @@ def test_get_or_create_mapping_reuses_row(tmp_path, db):
 def test_get_or_create_mapping_holds_lock_during_create(tmp_path, db):
     mgr = ForwardingManager(db, str(tmp_path), delivery_callback=lambda m: None)
     fake_router = MagicMock()
-    fake_router.register_delivery_identity.return_value = MagicMock()
+    fake_dest = MagicMock()
+    fake_dest.hash.hex.return_value = PEER_ALIAS
+    fake_router.register_delivery_identity.return_value = fake_dest
     identity = MagicMock()
     identity.hash.hex.return_value = PEER_ALIAS
     identity.get_private_key.return_value = b"alias-key"
@@ -418,6 +421,7 @@ def test_get_or_create_mapping_stops_router_when_insert_fails(tmp_path, db):
     mgr = ForwardingManager(db, str(tmp_path), delivery_callback=lambda m: None)
     fake_dest = MagicMock()
     fake_router = MagicMock()
+    fake_dest.hash.hex.return_value = PEER_ALIAS
     fake_router.register_delivery_identity.return_value = fake_dest
     identity = MagicMock()
     identity.hash.hex.return_value = PEER_ALIAS
