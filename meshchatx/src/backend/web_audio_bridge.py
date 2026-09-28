@@ -360,6 +360,10 @@ class WebAudioBridge:
                 return
             if getattr(self.telephone_manager, "is_voicemail_session_active", False):
                 return
+            # Cheap is-checks: heal a transmit/receive patch that an LXST
+            # pipeline reconfiguration silently replaced mid-call.
+            self._ensure_remote_tx(tele)
+            self._ensure_rx_tee(tele)
             # Do not feed PCM while mic is muted or half-duplex PTT is released.
             if getattr(self.telephone_manager, "transmit_muted", False) is True:
                 return
@@ -385,17 +389,34 @@ class WebAudioBridge:
     async def _send_bytes_to_all(self, pcm_bytes: bytes):
         stale = []
         for ws in list(self.clients):
+            # Backpressure: if a send is still in flight for this client, keep
+            # only the newest frame. Audio tolerates drops; a slow socket must
+            # not serialize the 60fps feed or pile up tasks.
+            if getattr(ws, "_pcm_inflight", False):
+                ws._pcm_pending = pcm_bytes
+                continue
+            ws._pcm_inflight = True
             try:
-                await ws.send_bytes(pcm_bytes)
+                pending = pcm_bytes
+                while pending is not None:
+                    await ws.send_bytes(pending)
+                    pending = ws._pcm_pending
+                    ws._pcm_pending = None
             except Exception:
                 stale.append(ws)
+            finally:
+                ws._pcm_inflight = False
         for ws in stale:
             self.detach_client(ws)
 
     def _ensure_remote_tx(self, tele):
-        # Rebuild transmit path with websocket-backed source
-        if self.tx_source:
+        # Rebuild transmit path with websocket-backed source. A check on
+        # self.tx_source alone misses LXST reconfigurations (answer, profile
+        # switch, loudspeaker) that replace tele.audio_input and silently drop
+        # the patch, so verify it is still attached.
+        if self.tx_source and getattr(tele, "audio_input", None) is self.tx_source:
             return
+        self.tx_source = None
         # Do not create transmit source during voicemail
         if getattr(self.telephone_manager, "is_voicemail_session_active", False):
             return
@@ -416,8 +437,11 @@ class WebAudioBridge:
             )
 
     def _ensure_rx_tee(self, tele):
-        if self.rx_sink:
+        # Same reattachment check: audio_output can be replaced by LXST.
+        if self.rx_sink and getattr(tele, "audio_output", None) is self.rx_tee:
             return
+        self.rx_sink = None
+        self.rx_tee = None
         try:
             if not self.loop:
                 return
