@@ -46,6 +46,11 @@ Typical workflow:
 3. Start the node and announce it on the mesh.
 4. Share your destination hash so others can open /page/index.mu on your node.
 
+Pages are only reachable at /page/<name> and files at /file/<name>. Any other
+path fails like an unknown page on a remote node. Content dropped directly
+into the node's pages/ or files/ directories is picked up automatically
+within a few seconds, without restarting the node.
+
 ### Executable (dynamic) pages
 
 You can opt in per node to **executable pages**. When enabled:
