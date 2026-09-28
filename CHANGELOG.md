@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - Settings self-test gains a CBOR roundtrip check that exercises the RRC codec's encode, decode, and stream replay paths.
 - CI performance suite measures cold-load FCP, LCP, SPA route transition latency, API round-trip, and post-mount heap per page with per-page budgets, plus a heap-growth spec that fails when a page leaks listeners, timers, or nodes across mount/unmount cycles.
 - NomadNet: local page nodes rescan their pages and files directories on a timer and on each incoming link, so content dropped in externally is served without a restart and removed content stops answering. Matches upstream NomadNet's page_refresh_interval behavior.
+- Backend fault-injection suite covers malformed RRC wire traffic, reconnect timer storms, hub store corruption, page-node rescan failures, crawler garbage inputs, link-cache teardown errors, and callback exceptions.
 
 ### Security
 
@@ -46,6 +47,10 @@ All notable changes to this project will be documented in this file.
 - CI: alpine APKs are built without fpm and verified by actually installing them in an apk-tools container.
 - Locale files gained the missing aware/nearby permission strings in all 15 locales.
 - Backend: a wedged SQLite pool could leave every API call answering 503 until a manual restart. When WAL or SHM files get unlinked under open connections, every statement fails with a disk I/O error and per-connection retries never recover. The provider now spots failures that persist on fresh connections, resets the whole connection pool at once, and if that is not enough restarts the process. Restart attempts are bounded, so a permanently broken store keeps serving retryable 503s instead of crash-looping.
+- Relay chat: a malformed hub or client envelope could raise inside a packet handler and break session processing. Client and server dispatch now contain handler errors per packet, and the announce-reset and path-request rate limits use never-fired sentinels so the first retry is not skipped on hosts with low uptime.
+- HTTP: the safe file response raises a real error instead of asserting when aiohttp hands back no writer.
+- CI: Docker builds install pnpm 12 through npm since the pinned node image's corepack cannot shim its native binary, and the dev container does the same.
+- CI: the shared Node setup keys its corepack cache by runner architecture, so an arm64 pnpm binary can no longer be restored onto the x64 macOS build runner.
 
 ### Changed
 
