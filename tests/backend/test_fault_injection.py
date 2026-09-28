@@ -477,9 +477,7 @@ def test_rrc_server_handler_fault_is_contained():
     saved = server._handle_join
     server._handle_join = boom
     try:
-        env = proto.make_envelope(
-            proto.T_JOIN, src=sess.peer, room="lobby"
-        )
+        env = proto.make_envelope(proto.T_JOIN, src=sess.peer, room="lobby")
         server._on_packet(link, proto.encode(env))
     finally:
         server._handle_join = saved
