@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.9.2] - TBD [unreleased]
+## [4.9.2] - 2026-09-28 [released]
 
 ### Added
 
