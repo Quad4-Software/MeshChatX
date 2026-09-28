@@ -266,6 +266,8 @@ class TelephoneManager:
 
         self.call_start_time = None
         self.call_status_at_end = None
+        self._pending_incoming_caller = None
+        self._pre_hangup_status = None
         self.call_is_incoming = False
         self.call_was_established = False
         # Once-per-call latch so a duplicated ended event (local hangup plus
@@ -590,6 +592,8 @@ class TelephoneManager:
         self.call_is_incoming = False
         self.call_was_established = False
         self.call_stats = {}
+        self._pending_incoming_caller = None
+        self._pre_hangup_status = None
         self.ptt_active = False
         self.is_voicemail_session_active = False
         self._call_end_recorded = True
@@ -598,6 +602,9 @@ class TelephoneManager:
         self._update_initiation_status(None, None)
         if self.telephone:
             try:
+                # LXST resets call_status to Available inside hangup, so grab
+                # the in-call status now for the call-history record.
+                self._pre_hangup_status = self.telephone.call_status
                 self.telephone.hangup()
             except Exception as e:
                 RNS.log(f"TelephoneManager: Error during hangup: {e}", RNS.LOG_ERROR)
@@ -628,7 +635,12 @@ class TelephoneManager:
 
     def on_telephone_ringing(self, caller_identity: RNS.Identity):
         if self.initiation_status:
+            # Outbound dial in flight: still surface the incoming ring, but do
+            # not clobber the outbound bookkeeping.
             self._update_initiation_status("Ringing...")
+            self._pending_incoming_caller = caller_identity
+            if self.on_ringing_callback:
+                self.on_ringing_callback(caller_identity)
             return
 
         self.call_start_time = time.time()
@@ -662,7 +674,12 @@ class TelephoneManager:
         self._call_end_recorded = True
         # Capture status just before ending if possible, or use the last known status
         if self.telephone:
-            self.call_status_at_end = self.telephone.call_status
+            # Prefer the status captured before hangup() reset it.
+            pre = getattr(self, "_pre_hangup_status", None)
+            self.call_status_at_end = (
+                pre if pre is not None else self.telephone.call_status
+            )
+            self._pre_hangup_status = None
 
         # Ensure initiation status is cleared when call ends
         self._update_initiation_status(None, None)
@@ -906,8 +923,21 @@ class TelephoneManager:
             start_wait = time.time()
             cancel_requested = False
             # LXST telephone.call usually returns on establishment or timeout.
-            # We wait for it, but if status becomes established or ended, we can stop waiting.
+            # If it wedges mid-dial (no path, dead link), the deadline below
+            # breaks the wait so the phone cannot stay "Calling..." forever.
+            call_deadline = start_wait + max(timeout_seconds, 5.0) + 30.0
             while not call_task.done():
+                if time.time() > call_deadline:
+                    self._update_initiation_status(None, None)
+                    with contextlib.suppress(Exception):
+                        hangup_task = asyncio.create_task(
+                            asyncio.to_thread(self.telephone.hangup)
+                        )
+                        self._background_tasks.add(hangup_task)
+                        hangup_task.add_done_callback(
+                            self._background_tasks.discard,
+                        )
+                    return None
                 if self._is_initiation_cancelled():
                     cancel_requested = True
                     break
