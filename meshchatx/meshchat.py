@@ -1427,9 +1427,7 @@ class ReticulumMeshChat:
         self._teardown_all_contexts_for_reload()
         from meshchatx.src.backend.database.provider import DatabaseProvider
 
-        if DatabaseProvider._instance is not None:
-            DatabaseProvider._instance.close_all()
-            DatabaseProvider._instance = None
+        DatabaseProvider.close_all_instances()
         return db_path
 
     @staticmethod
@@ -3268,11 +3266,11 @@ class ReticulumMeshChat:
         canonical = normalize_identity_storage_hash(identity_hash)
         current_canonical = normalize_identity_storage_hash(current_hash or "")
         if canonical and canonical != current_canonical:
-            ctx = self.contexts.get(canonical)
-            if ctx is not None:
+            # A cached (non-active) context gets evicted and torn down before
+            # its storage is removed. The running check after teardown was
+            # dead code; eviction itself stops the context.
+            if canonical in self.contexts:
                 self._evict_cached_identity_context(identity_hash)
-                if getattr(ctx, "running", False):
-                    raise ValueError("Identity is still running")
         return self.identity_manager.delete_identity(identity_hash, current_hash)
 
     def restore_identity_from_bytes(
@@ -3979,10 +3977,20 @@ class ReticulumMeshChat:
             return
 
         crawler = getattr(ctx, "crawler_manager", None)
+        if crawler is not None:
+            crawler.own_destination_hashes = self._own_nomad_destination_hashes()
         task_id = task["id"]
         destination_hash = task["destination_hash"]
         page_path = task["page_path"]
         depth = int(task.get("depth") or 0)
+
+        if crawler and destination_hash in crawler.own_destination_hashes:
+            ctx.database.misc.update_crawl_task(
+                task_id,
+                status="cancelled",
+                updated_at=datetime.now(UTC),
+            )
+            return
 
         if crawler and crawler.is_opted_out(destination_hash):
             ctx.database.misc.update_crawl_task(
@@ -4067,6 +4075,7 @@ class ReticulumMeshChat:
             on_page_download_failure=on_failure,
             on_progress_update=on_progress,
             timeout=120,
+            max_bytes=2 * 1024 * 1024,
             reticulum=getattr(self, "reticulum", None),
             **nomad_link_identity_kwargs(
                 self,
@@ -4161,9 +4170,12 @@ class ReticulumMeshChat:
                 updated_at=datetime.now(UTC),
             )
             if crawler:
+                # A successful crawl clears the previous skipped_reason so the
+                # node is not reported as skipped after it worked.
                 crawler.database.misc.upsert_crawl_node_stats(
                     destination_hash,
                     pages_indexed=crawler.pages_indexed_for_node(destination_hash),
+                    clear_skipped_reason=True,
                 )
                 for child in crawler.discover_child_paths(
                     destination_hash,
@@ -5460,6 +5472,13 @@ class ReticulumMeshChat:
 
     # web server has shutdown, likely ctrl+c, but if we don't do the following, the script never exits
     async def shutdown(self, app):
+        # Flush pending coalesced websocket updates before any teardown so the
+        # last state changes are not silently dropped for connected clients.
+        with contextlib.suppress(Exception):
+            coalesce = getattr(self, "_ws_coalesce", None)
+            if coalesce is not None:
+                await coalesce.flush_now()
+
         # Always flush SQLite first. Signal handlers may have already done this.
         with contextlib.suppress(Exception):
             from meshchatx.src.backend.lifecycle.signal_shutdown import (
@@ -7299,6 +7318,20 @@ class ReticulumMeshChat:
     # to the following map:
     # - var_field1: 123
     # - var_field2: 456
+    def _own_nomad_destination_hashes(self) -> set:
+        manager = getattr(self, "page_node_manager", None)
+        if manager is None:
+            return set()
+        out = set()
+        for node in getattr(manager, "nodes", {}).values():
+            try:
+                h = node.get_destination_hash()
+            except Exception:
+                h = None
+            if h:
+                out.add(str(h).lower())
+        return out
+
     def archive_page(
         self,
         destination_hash: str,
@@ -7762,6 +7795,10 @@ class ReticulumMeshChat:
 
     async def _websocket_broadcast_coalesced(self, payload: dict) -> None:
         await self.websocket_broadcast(payload, _skip_coalesce=True)
+
+    async def _broadcast_websocket_message(self, data):
+        """Compatibility wrapper: older call sites predating the rename."""
+        await self.websocket_broadcast(data)
 
     async def websocket_broadcast(self, data, *, _skip_coalesce: bool = False):
         from meshchatx.src.backend.websocket_runtime import (
@@ -10345,12 +10382,16 @@ class ReticulumMeshChat:
         else:
             content_str = content or ""
         quoted_str = reply_quoted_content or ""
+        if isinstance(title, bytes):
+            title = title.decode("utf-8", errors="replace")
+        title_str = title or ""
         has_standard_reaction = (
             reaction_to_hash is not None and reaction_emoji is not None
         )
         is_reaction_only = bool(
             has_standard_reaction
             and not (content_str and content_str.strip())
+            and not (title_str and title_str.strip())
             and image_field is None
             and audio_field is None
             and file_attachments_field is None
@@ -11275,6 +11316,18 @@ class ReticulumMeshChat:
                     if not claimed:
                         continue
 
+                    # Count the attempt before parsing fields: a malformed
+                    # attachment must still spend resend budget, or it gets
+                    # reclaimed forever.
+                    attempt = next_attempt_count(failed_message.get("fields"))
+                    ctx.database.messages.set_message_fields_json(
+                        message_hash,
+                        fields_with_auto_resend_count(
+                            failed_message.get("fields"),
+                            attempt,
+                        ),
+                    )
+
                     # parse image field
                     image_field = None
                     if "image" in fields and isinstance(fields.get("image"), dict):
@@ -11308,15 +11361,6 @@ class ReticulumMeshChat:
                         file_attachments_field = LxmfFileAttachmentsField(
                             file_attachments,
                         )
-
-                    attempt = next_attempt_count(failed_message.get("fields"))
-                    ctx.database.messages.set_message_fields_json(
-                        message_hash,
-                        fields_with_auto_resend_count(
-                            failed_message.get("fields"),
-                            attempt,
-                        ),
-                    )
 
                     # send new message with failed message content
                     new_message = await self.send_message(
@@ -11725,9 +11769,26 @@ class ReticulumMeshChat:
         )
         grant["expires"] = now + ttl
         destinations = grant.setdefault("destinations", {})
+        # Bound per-client grant state: a crawler-scripted client must not
+        # grow this dict forever within the TTL.
+        while len(destinations) >= 64 and destination_hash.hex() not in destinations:
+            destinations.pop(next(iter(destinations)))
         dest_pages = destinations.setdefault(destination_hash.hex(), {})
         norm_path = self._normalize_grant_page_path(destination_hash, page_path)
+        while len(dest_pages) >= 64 and norm_path not in dest_pages:
+            dest_pages.pop(next(iter(dest_pages)))
         dest_pages[norm_path] = self._extract_page_file_links(page_content)
+
+    def _clear_active_downloads_for_client(self, client) -> None:
+        """Cancel nomad downloads whose callbacks would hit a dead client."""
+        for download_id, downloader in list(self.active_downloads.items()):
+            if getattr(downloader, "_meshchatx_client", None) is not client:
+                continue
+            self.active_downloads.pop(download_id, None)
+            cancel = getattr(downloader, "cancel", None)
+            if callable(cancel):
+                with contextlib.suppress(Exception):
+                    cancel()
 
     def _clear_page_file_grants_for_client(self, client) -> None:
         """Drop all page-file grants held by a disconnected client."""
