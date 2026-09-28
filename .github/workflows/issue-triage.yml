@@ -1,0 +1,110 @@
+# Triage helpers for incoming issues: applies platform/os/area labels parsed
+# from the issue template fields, and posts a one-time welcome comment.
+# Deliberately non-blocking: nothing here closes issues or demands anything
+# from the reporter.
+
+name: Issue triage
+
+on:
+    issues:
+        types:
+            - opened
+            - edited
+            - reopened
+
+permissions:
+    issues: write
+
+concurrency:
+    group: issue-triage-${{ github.event.issue.number }}
+    cancel-in-progress: true
+
+env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+    triage:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+
+            - name: Apply labels from template fields
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  ISSUE_NUMBER: ${{ github.event.issue.number }}
+                  ISSUE_TITLE: ${{ github.event.issue.title }}
+                  ISSUE_BODY: ${{ github.event.issue.body }}
+              run: |
+                  set -euo pipefail
+
+                  section() {
+                      # First non-empty line of the "### <name>" form section.
+                      printf '%s\n' "$ISSUE_BODY" | awk -v hdr="### $1" '
+                          $0 == hdr { grab = 1; next }
+                          grab && /^### / { grab = 0 }
+                          grab && NF { gsub(/^[ \t]+|[ \t]+$/, ""); print; exit }
+                      '
+                  }
+
+                  add_label() {
+                      # Create tolerantly so forks missing the labels still work.
+                      gh label create "$1" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || true
+                      gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
+                          --add-label "$1"
+                  }
+
+                  declare -A want=()
+                  case "$(section "Platform")" in
+                      "Desktop (Electron)") want["platform:desktop"]=1 ;;
+                      Android) want["platform:android"]=1 ;;
+                      "Web UI in a browser") want["platform:web"]=1 ;;
+                      "Headless server"*) want["platform:headless"]=1 ;;
+                  esac
+                  case "$(section "Operating system")" in
+                      Windows*) want["os:windows"]=1 ;;
+                      Linux) want["os:linux"]=1 ;;
+                      macOS) want["os:macos"]=1 ;;
+                      Android) want["os:android"]=1 ;;
+                  esac
+
+                  searchable="$ISSUE_TITLE
+                  $(section "What happened?")
+                  $(section "Steps to reproduce")
+                  $(section "Problem or use case")"
+                  match() { printf '%s\n' "$searchable" | grep -qiE "$1"; }
+
+                  match 'nomadnet|nomad net|micron|page node|mesh server|\.mu\b' && want["area:nomadnet"]=1 || true
+                  match 'voice ?mail|ringtone|lxst|codec|opus|voice|phone ?call|telephone' && want["area:calls"]=1 || true
+                  match 'lxmf|conversation|messages? (page|tab)|compose' && want["area:messaging"]=1 || true
+                  match 'interface|rnode|serial port|\bble\b|bluetooth|tcpclient|autointerface|backbone' && want["area:interfaces"]=1 || true
+                  match 'appimage|flatpak|\.deb\b|\.rpm\b|\.apk\b|\.dmg\b|packag|installer' && want["area:packaging"]=1 || true
+                  match '\bmap\b|telemetry|location|gps' && want["area:map"]=1 || true
+                  match 'plugin' && want["area:plugins"]=1 || true
+                  match '\brrc\b|relay chat|\bhub\b' && want["area:relay-chat"]=1 || true
+                  match 'crash|panic|traceback|hang(s|ing)?|freeze|frozen|not responding' && want["kind:crash"]=1 || true
+
+                  existing="$(gh issue view "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
+                      --json labels --jq '.labels[].name')"
+                  for label in "${!want[@]}"; do
+                      if ! printf '%s\n' "$existing" | grep -qxF "$label"; then
+                          add_label "$label"
+                      fi
+                  done
+
+            - name: Welcome comment on new issues
+              if: github.event.action == 'opened'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  ISSUE_NUMBER: ${{ github.event.issue.number }}
+                  IS_ENHANCEMENT: ${{ contains(github.event.issue.labels.*.name, 'enhancement') }}
+              run: |
+                  set -euo pipefail
+                  if [ "$IS_ENHANCEMENT" = "true" ]; then
+                      body="Thanks for the suggestion. It is on the triage list now and this issue will be updated if it gets picked up."
+                  else
+                      body="Thanks for the report. If you can attach backend logs (Settings > Debug Logs, the lines around the error) or a screenshot, that usually helps us pin it down faster. No pressure either way."
+                  fi
+                  gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "$body"
