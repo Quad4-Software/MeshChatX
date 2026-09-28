@@ -159,7 +159,8 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
     describe("nomad mesh file upload", () => {
         it("PageNode.add_file always writes binary data", () => {
             const src = readSource("meshchatx/src/backend/page_node.py");
-            expect(src).toContain('with open(file_path, "wb") as f:');
+            // Binary payload goes through the atomic writer, not a text-mode open.
+            expect(src).toContain("atomic_write_bytes(file_path, data)");
             expect(src).not.toMatch(/mode\s*=\s*["']wb["']\s*if\s*isinstance\(data,\s*bytes\)/);
         });
 
