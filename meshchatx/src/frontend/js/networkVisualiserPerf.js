@@ -665,7 +665,7 @@ export function computeClusterPositions(req) {
     }
 
     const TWO_PI = Math.PI * 2;
-    const GOLDEN = 2.39996322972865332;
+    const GOLDEN = 2.399963229728653;
     const baseRadius = 580;
     const ringStep = 250;
     for (const [hops, entries] of [...byHop.entries()].sort((a, b) => a[0] - b[0])) {
