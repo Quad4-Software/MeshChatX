@@ -75,7 +75,7 @@ function createRendererCrashHandler(deps) {
 
     function gpuCrashRecoveryAvailable() {
         // No window means headless mode, and an existing marker means the
-        // fallback was already attempted; relaunching again would loop.
+        // fallback was already attempted. Relaunching again would loop.
         const win = getMainWindow();
         if (!win || win.isDestroyed() || isQuiting()) {
             return false;

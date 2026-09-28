@@ -103,7 +103,7 @@ describe("TranslationService", () => {
 
         const refreshP = TranslationService.refreshPacks();
         await new Promise((r) => setTimeout(r, 0));
-        // refreshPacks is queued behind the in-flight translate; no delete yet.
+        // refreshPacks is queued behind the in-flight translate. No delete yet.
         expect(mockDelete).not.toHaveBeenCalled();
 
         resolveTranslate({ target: { text: "done" } });

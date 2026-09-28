@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
+import json
 import os
 import shutil
 import tempfile
@@ -272,6 +273,102 @@ class TestPageNodeManagerAnnounceSettings:
         assert calls == [mgr2.nodes["reload-cb"]]
 
 
+class TestPageNodeManagerAnnounceMigration:
+    def _write_config(self, mgr, node_id, interval, config_version=None):
+        node_dir = os.path.join(mgr.storage_dir, node_id)
+        os.makedirs(node_dir, exist_ok=True)
+        config = {
+            "node_id": node_id,
+            "name": "Stored Node",
+            "announce_enabled": True,
+            "announce_interval_seconds": interval,
+        }
+        if config_version is not None:
+            config["config_version"] = config_version
+        with open(os.path.join(node_dir, "config.json"), "w") as f:
+            json.dump(config, f)
+
+    def test_load_migrates_legacy_default_interval(self, storage_dir, mock_rns):
+        from meshchatx.src.backend.page_node import (
+            DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            PageNode,
+        )
+
+        mgr = _make_manager(storage_dir)
+        self._write_config(
+            mgr,
+            "legacy-default",
+            LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        )
+        mgr.load_nodes()
+
+        node = mgr.nodes["legacy-default"]
+        assert node.announce_interval_seconds == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+        config = PageNode.load_config(node.base_dir)
+        assert config["announce_interval_seconds"] == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+
+    def test_load_keeps_versioned_explicit_legacy_value(
+        self,
+        storage_dir,
+        mock_rns,
+    ):
+        from meshchatx.src.backend.page_node import (
+            LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            NODE_CONFIG_VERSION,
+        )
+
+        mgr = _make_manager(storage_dir)
+        self._write_config(
+            mgr,
+            "explicit-interval",
+            LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            config_version=NODE_CONFIG_VERSION,
+        )
+        mgr.load_nodes()
+        assert (
+            mgr.nodes["explicit-interval"].announce_interval_seconds
+            == LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+        )
+
+    def test_load_keeps_custom_interval(self, storage_dir, mock_rns):
+        mgr = _make_manager(storage_dir)
+        self._write_config(mgr, "custom-interval", 300)
+        mgr.load_nodes()
+        assert mgr.nodes["custom-interval"].announce_interval_seconds == 300
+
+    def test_load_migrates_v2_default_interval(self, storage_dir, mock_rns):
+        from meshchatx.src.backend.page_node import (
+            DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        )
+
+        mgr = _make_manager(storage_dir)
+        self._write_config(mgr, "v2-default", 3600, config_version=2)
+        mgr.load_nodes()
+        assert (
+            mgr.nodes["v2-default"].announce_interval_seconds
+            == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+        )
+
+    def test_load_keeps_explicit_interval_under_v2(self, storage_dir, mock_rns):
+        from meshchatx.src.backend.page_node import (
+            LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        )
+
+        mgr = _make_manager(storage_dir)
+        self._write_config(
+            mgr,
+            "v2-explicit",
+            LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            config_version=2,
+        )
+        mgr.load_nodes()
+        assert (
+            mgr.nodes["v2-explicit"].announce_interval_seconds
+            == LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+        )
+
+
 class TestPageNodeManagerRename:
     def test_rename_node(self, storage_dir, mock_rns):
         mgr = _make_manager(storage_dir)
@@ -341,7 +438,7 @@ class TestPageNodeNameLength:
         assert node.list_pages() == [{"name": "index.mu", "executable": False}]
 
     def test_add_page_and_file_on_windows_like_os(self, storage_dir, mock_rns):
-        """Windows has no os.pathconf; both pages and files must still save (issue 78)."""
+        """Windows has no os.pathconf. Both pages and files must still save (issue 78)."""
         mgr = _make_manager(storage_dir)
         node = mgr.create_node("Windows Fallback")
 

@@ -24,6 +24,7 @@ from meshchatx.src.backend.app_security_settings import (
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.csrf import validate_csrf_header
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
+from meshchatx.src.backend.demo_mode import demo_frame_ancestors
 from meshchatx.src.backend.http.db_availability import (
     DB_TEMPORARILY_UNAVAILABLE,
     exception_looks_like_missing_database,
@@ -77,7 +78,7 @@ def is_opaque_frame_cors_resource(path: str) -> bool:
 #   warnings when the API is disabled or behind a flag (brave-web-bluetooth-api,
 #   no Web Serial). Firefox does not implement bluetooth/usb policy tokens.
 # - speaker-selection: default allowlist is self. Chromium only recognizes the
-#   token when the SpeakerSelection runtime flag is on; Brave and some Chrome
+#   token when the SpeakerSelection runtime flag is on. Brave and some Chrome
 #   builds log "Unrecognized feature: speaker-selection" otherwise. CallPage
 #   setSinkId still works under the default.
 # Never send the legacy Feature-Policy header alongside Permissions-Policy.
@@ -94,7 +95,7 @@ def build_permissions_policy() -> str:
     Only declare tokens that major engines parse without console noise.
     microphone/camera: Chrome, Firefox FeaturePolicyUtils, Brave, Safari prompts.
     autoplay: Chromium family. Firefox treats autoplay as experimental and
-    ignores unknown tokens quietly in practice; default autoplay is also self.
+    ignores unknown tokens quietly in practice. Default autoplay is also self.
     """
     return ", ".join(_PERMISSIONS_POLICY_CORE)
 
@@ -126,7 +127,7 @@ def create_bad_request_middleware(app):
     """Map malformed request bodies on /api to HTTP 400.
 
     Handlers that already catch JSONDecodeError keep their custom error
-    payloads; this only covers the sites without a local guard. The catch
+    payloads. This only covers the sites without a local guard. The catch
     list is deliberately narrow so real handler bugs still surface as 500.
     """
 
@@ -393,7 +394,7 @@ def create_mime_type_middleware(app):
     return mime_type_middleware
 
 
-# Rolldown/Vite emit content-hashed bundles as name-<hash>.<ext>; the hash is
+# Rolldown/Vite emit content-hashed bundles as name-<hash>.<ext>. The hash is
 # a long base64url-ish segment directly before the extension dot.
 _HASHED_ASSET_NAME = re.compile(r"-[0-9A-Za-z_-]{8,}\.")
 
@@ -403,7 +404,7 @@ def create_cache_control_middleware(app):
 
     add_static only sends ETag + Last-Modified, which lets browsers and the
     Electron disk cache heuristically cache non-hashed subdocuments (for
-    example /nomad-crash-tab.html) for days past an update; the stale HTML
+    example /nomad-crash-tab.html) for days past an update. The stale HTML
     then references deleted hashed bundles and the frame dies silently.
     Hashed bundles are immutable, everything else must revalidate. Routes
     that set their own Cache-Control keep it.
@@ -416,7 +417,7 @@ def create_cache_control_middleware(app):
             return None
         path = request.path
         if path.startswith("/api/"):
-            # API payloads carry private data; shared/browser disk caches must
+            # API payloads carry private data. Shared/browser disk caches must
             # not retain them past the session. Routes that set their own
             # header (for example immutable attachment responses) keep it.
             if "Cache-Control" not in response.headers:
@@ -444,7 +445,12 @@ def create_security_middleware(app):
         response.headers["X-Content-Type-Options"] = "nosniff"
 
         # Allow framing for docs, rnode flasher, and Nomad crash-tab renderer.
-        if (
+        frame_ancestors = demo_frame_ancestors(app)
+        if frame_ancestors:
+            # CSP frame-ancestors carries the allowlist. X-Frame-Options DENY
+            # would override it in browsers that honour both headers.
+            pass
+        elif (
             request.path.startswith("/reticulum-docs/")
             or request.path.startswith("/rnode-flasher/")
             or is_nomad_crash_tab_resource(request.path)
@@ -625,6 +631,8 @@ def create_security_middleware(app):
             "object-src 'none'; "
             "base-uri 'self';"
         )
+        if frame_ancestors:
+            csp += f" frame-ancestors {' '.join(frame_ancestors)};"
         if path.startswith("/reticulum-docs/"):
             # Uploaded manuals are user-supplied HTML. The sandbox directive
             # forces an opaque origin even when a doc is opened top-level via

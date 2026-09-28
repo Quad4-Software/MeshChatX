@@ -3,7 +3,7 @@
 """WiFi Aware (NAN) interface for Reticulum on Android only.
 
 Loaded by RNS from the configured interfacepath as AwareInterface.py. The
-controller session lives in the Java AwareSession bridge; this module turns
+controller session lives in the Java AwareSession bridge. This module turns
 each established data-path socket into a spawned per-peer interface with the
 same HDLC framing as TCPClientInterface, so wire behaviour is identical.
 
@@ -59,7 +59,7 @@ class AwareInterface(Interface):
         self.initiator = False
         self.bitrate = self.BITRATE_GUESS
         self.max_peers = max(1, min(peers, self.MAX_PEERS_LIMIT))
-        # RNS config machinery sets these post-construction; provide defaults
+        # RNS config machinery sets these post-construction. Provide defaults
         # so spawned peers can be created before or without full config.
         if not hasattr(self, "mode"):
             self.mode = Interface.MODE_FULL
@@ -192,7 +192,7 @@ class AwareInterface(Interface):
     # ------------------------------------------------------------------
 
     def process_outgoing(self, data):
-        # The controller never carries packets itself; spawned peers do.
+        # The controller never carries packets itself. Spawned peers do.
         pass
 
     def received_announce(self, size=0, from_spawned=False):

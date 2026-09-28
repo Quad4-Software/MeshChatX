@@ -14,7 +14,7 @@ const DEFAULT_BUDGETS = {
  * Observed (unthrottled) budgets for tests/ui/perf.spec.js. These guard
  * real regressions, not absolute speed: cold FCP/LCP on a cache-disabled
  * first load, SPA hash-route transition latency, and post-mount JS heap.
- * Generous defaults keep shared CI runners from flapping; tighten per page
+ * Generous defaults keep shared CI runners from flapping. Tighten per page
  * only after a few recorded runs.
  */
 const DEFAULT_PERF_BUDGETS = {

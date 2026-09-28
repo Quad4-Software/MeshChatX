@@ -134,7 +134,7 @@ def test_count_export_tiles_stops_at_limit(mock_config, temp_dir):
     """Unbounded counting on a huge bbox would hang the event loop."""
     mm = MapManager(mock_config, temp_dir)
     bbox = [-180, -85.051129, 180, 85.051129]
-    # World coverage at zoom 0-10 is ~1.4M tiles; a bounded count must return
+    # World coverage at zoom 0-10 is ~1.4M tiles. A bounded count must return
     # limit + 1 immediately instead of enumerating the whole range.
     assert mm.count_export_tiles(bbox, 0, 10, limit=10) == 11
     assert mm.count_export_tiles(bbox, 0, 22, limit=MAX_EXPORT_TILES) == (

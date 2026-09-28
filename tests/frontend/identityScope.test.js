@@ -11,7 +11,7 @@ describe("useIdentityScope", () => {
     });
 
     it("an explicit hash wins over live config at load time", () => {
-        // The identity_switched payload is authoritative; the config store
+        // The identity_switched payload is authoritative. The config store
         // can lag the event.
         const scope = useIdentityScope({ getIdentityKey: () => "stale" });
         expect(scope.beginIdentity("idB")).toBe("idB");

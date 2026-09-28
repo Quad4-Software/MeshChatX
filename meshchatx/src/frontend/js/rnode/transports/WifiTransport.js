@@ -5,7 +5,7 @@ import Transport from "./Transport.js";
  *
  * Most RNode-derived ESP32 firmwares ship a small HTTP server that exposes
  * /update for in-place flashing of the main application image. This transport
- * does not provide a serial-style readable/writable pair; instead it exposes
+ * does not provide a serial-style readable/writable pair. Instead it exposes
  * upload(blob, onProgress) which performs an XMLHttpRequest multipart POST
  * with progress events and timeout handling.
  */

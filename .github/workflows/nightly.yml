@@ -1,7 +1,7 @@
 # Testing channel builds from dev: push a nightly-* tag when dev has new
 # commits since the last Testing prerelease, then dispatch build-release.yml.
 # Tag push alone does not start other workflows when using GITHUB_TOKEN
-# (GitHub Actions event loop prevention); workflow_dispatch is required.
+# (GitHub Actions event loop prevention). Workflow_dispatch is required.
 #
 # Product channel: Testing. Tag prefix stays nightly-* for download URL stability.
 #
@@ -21,6 +21,10 @@ concurrency:
 
 permissions:
     contents: read
+
+env:
+    PYTHON_VERSION: "3.14"
+    UV_VERSION: "0.11.15"
 
 jobs:
     metadata:
@@ -149,3 +153,58 @@ jobs:
                   MESHCHATX_KEEP_TESTING: "7"
                   MESHCHATX_KEEP_BETA: "5"
               run: bash scripts/ci/github-prune-channel-prereleases.sh
+
+    reproducibility:
+        name: Reproducible wheel build
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              with:
+                  persist-credentials: false
+            - name: Set up development environment
+              uses: $/.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+            - name: Build wheel twice and compare hashes
+              run: bash scripts/ci/reproducible-check.sh
+
+    devcontainer-smoke:
+        name: Offline dev container build
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              with:
+                  persist-credentials: false
+            - name: Build Dockerfile.dev
+              run: docker build -f docker/Dockerfile.dev -t meshchatx-dev:ci .
+
+    ci-metrics:
+        name: CI metrics summary
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        permissions:
+            actions: read
+            contents: read
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Summarize workflow durations and failure rates
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  METRICS_DAYS: "7"
+              run: bash scripts/ci/workflow-metrics.sh

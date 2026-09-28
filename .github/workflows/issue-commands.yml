@@ -1,0 +1,104 @@
+# Maintainer slash commands on issue comments.
+#
+#   /fixed [note]        label "fixed pending release" and ask the reporter
+#                        to retest after the next release
+#   /needs-info          label "needs info" and ask for logs or repro steps
+#
+# Only fires for comments by owners, members, or collaborators, so reporters
+# cannot trigger bot comments themselves.
+#
+# The scheduled job sweeps "fixed pending release" issues that have had no
+# activity for 14 days and closes them as completed. Any new comment bumps
+# the updated timestamp, so a reporter reply resets the clock.
+
+name: Issue commands
+
+on:
+    issue_comment:
+        types:
+            - created
+    schedule:
+        - cron: "0 4 * * *"
+    workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+    group: issue-commands-${{ github.event.issue.number }}
+    cancel-in-progress: false
+
+env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+    commands:
+        if: >-
+            github.event.issue.pull_request == null &&
+            contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+        permissions:
+            issues: write
+        runs-on: ubuntu-latest
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+
+            - name: Handle maintainer commands
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  ISSUE_NUMBER: ${{ github.event.issue.number }}
+                  COMMENT_BODY: ${{ github.event.comment.body }}
+              run: |
+                  set -euo pipefail
+                  first="$(printf '%s\n' "$COMMENT_BODY" | sed -n '1{s/^[[:space:]]*//;s/\r$//;p}')"
+                  case "$first" in
+                      "/fixed"|"/fixed "*)
+                          note="${first#/fixed}"
+                          note="${note# }"
+                          note="${note:0:300}"
+                          gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
+                              --add-label "fixed pending release"
+                          msg="A fix for this has been merged and will ship in the next release"
+                          if [ -n "$note" ]; then
+                              msg="$msg ($note)"
+                          fi
+                          msg="$msg. If it is still broken after updating, drop a comment and we will take another look."
+                          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "$msg"
+                          ;;
+                      "/needs-info"|"/needsinfo"|"/needs-info "*|"/needsinfo "*)
+                          gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
+                              --add-label "needs info"
+                          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body \
+                              "Could you add a bit more detail so we can reproduce this? The most useful things are the backend logs (Settings > Debug Logs, the lines around the error) and the exact steps that trigger it. The issue stays open meanwhile."
+                          ;;
+                  esac
+
+    close-fixed:
+        if: github.event_name != 'issue_comment'
+        permissions:
+            issues: write
+        runs-on: ubuntu-latest
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+
+            - name: Close quiet fixed-pending-release issues
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  DAYS: "14"
+              run: |
+                  set -euo pipefail
+                  cutoff="$(date -u -d "$DAYS days ago" +%Y-%m-%dT%H:%M:%SZ)"
+                  gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+                      --label "fixed pending release" --limit 200 \
+                      --json number,updatedAt \
+                      | jq -r --arg cutoff "$cutoff" \
+                        '.[] | select(.updatedAt < $cutoff) | .number' \
+                      | while read -r n; do
+                          gh issue comment "$n" --repo "$GITHUB_REPOSITORY" --body \
+                              "Closing this as completed since the fix shipped and there has been no response in $DAYS days. If the problem is still present on the latest release, comment here and we will reopen."
+                          gh issue close "$n" --repo "$GITHUB_REPOSITORY" --reason completed
+                      done

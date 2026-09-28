@@ -137,7 +137,7 @@ describe("RelayChatPage.vue", () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
 
-        // All tabs stay in the bar; bots and search collapse to icons below md
+        // All tabs stay in the bar. Bots and search collapse to icons below md
         // so the bar never scrolls horizontally on phones.
         const tabs = wrapper.findAll('[role="tab"]');
         expect(tabs).toHaveLength(5);
@@ -1032,6 +1032,7 @@ describe("RelayChatPage.vue", () => {
         axiosMock.post.mockResolvedValueOnce({ data: { hub: makeHub({ name: "Heard Hub" }) } });
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.discovered.length).toBe(1));
+        wrapper.vm.selectView("discovery");
 
         await wrapper.vm.addFromDiscovery(makeAnnounce());
 
@@ -1041,7 +1042,8 @@ describe("RelayChatPage.vue", () => {
             dest_name: "rrc.hub",
             connect: true,
         });
-        expect(wrapper.vm.view).toBe("chat");
+        // Adding must stay on discovery so several hubs can be added in a row.
+        expect(wrapper.vm.view).toBe("discovery");
     });
 
     it("upserts discovered hubs on an announce websocket event", async () => {
@@ -1613,7 +1615,7 @@ describe("RelayChatPage.vue", () => {
                     const hub = wrapper.vm.hubs.find((h) => h.hub_hash === HUB_HASH);
                     expect(hub.mention_rooms).toContain("other");
                 });
-                // A later fetchHubs replaces the hubs array; the client-side
+                // A later fetchHubs replaces the hubs array. The client-side
                 // flag must survive or the badge silently drops.
                 axiosMock.get.mockResolvedValueOnce({ data: { hubs: [makeHub()] } });
                 await wrapper.vm.fetchHubs();

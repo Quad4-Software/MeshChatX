@@ -620,7 +620,7 @@ class TestErrorResponseShape:
             extra={"status": "error", "code": 7},
         )
         body = json.loads(resp.text)
-        # Centralized shape carries error+code+message plus the custom key;
+        # Centralized shape carries error+code+message plus the custom key.
         # the caller's extra still merges fixed keys (code wins over the
         # http_NNN default).
         assert body == {

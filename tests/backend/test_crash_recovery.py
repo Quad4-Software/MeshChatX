@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: 0BSD
 
 import io
+import json
 import os
 import shutil
 import sqlite3
 import sys
 import tempfile
+import threading
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -159,17 +161,17 @@ class TestCrashRecovery(unittest.TestCase):
         self.assertIn("Asynchronous Initialization", causes[0]["description"])
 
     def test_heuristic_analysis_oom_priority(self):
-        """Verify that low memory increases OOM probability even with other errors."""
+        """Verify that low memory increases OOM score even with other errors."""
         exc_type = sqlite3.OperationalError
         exc_value = sqlite3.OperationalError("database is locked")
         # Scenario: Low memory + DB error
         diagnosis = {"low_memory": True, "available_mem_mb": 10}
 
         causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
-        # OOM should be prioritized or at least highly probable (85% in code)
+        # OOM should be prioritized or at least highly probable (85 score in code)
         oom_cause = next((c for c in causes if "OOM" in c["description"]), None)
         self.assertIsNotNone(oom_cause)
-        self.assertEqual(oom_cause["probability"], 85)
+        self.assertEqual(oom_cause["score"], 85)
 
     def test_heuristic_analysis_memoryerror(self):
         causes = self.recovery._analyze_cause(
@@ -179,7 +181,7 @@ class TestCrashRecovery(unittest.TestCase):
         )
         oom_cause = next((c for c in causes if "OOM" in c["description"]), None)
         self.assertIsNotNone(oom_cause)
-        self.assertEqual(oom_cause["probability"], 95)
+        self.assertEqual(oom_cause["score"], 95)
 
     def test_heuristic_analysis_rns_missing(self):
         """Verify high confidence for missing RNS config."""
@@ -189,7 +191,7 @@ class TestCrashRecovery(unittest.TestCase):
 
         causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
         self.assertEqual(causes[0]["description"], "Missing Reticulum Configuration")
-        self.assertEqual(causes[0]["probability"], 99)
+        self.assertEqual(causes[0]["score"], 99)
 
     def test_heuristic_analysis_permission_denied_priority(self):
         exc_type = PermissionError
@@ -198,7 +200,7 @@ class TestCrashRecovery(unittest.TestCase):
 
         causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
         self.assertEqual(causes[0]["description"], "Filesystem Permission Denied")
-        self.assertEqual(causes[0]["probability"], 99)
+        self.assertEqual(causes[0]["score"], 99)
 
     def test_run_diagnosis_permission_crash_context(self):
         output = io.StringIO()
@@ -248,7 +250,7 @@ class TestCrashRecovery(unittest.TestCase):
 
         causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
         self.assertEqual(causes[0]["description"], "LXMF Router Storage Failure")
-        self.assertEqual(causes[0]["probability"], 90)
+        self.assertEqual(causes[0]["score"], 90)
 
     def test_heuristic_analysis_rns_identity(self):
         """Test Reticulum identity failure detection."""
@@ -258,7 +260,7 @@ class TestCrashRecovery(unittest.TestCase):
 
         causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
         self.assertEqual(causes[0]["description"], "Reticulum Identity Load Failure")
-        self.assertEqual(causes[0]["probability"], 95)
+        self.assertEqual(causes[0]["score"], 95)
 
     def test_heuristic_analysis_interface_offline(self):
         """Test interface offline detection."""
@@ -275,7 +277,7 @@ class TestCrashRecovery(unittest.TestCase):
             None,
         )
         self.assertIsNotNone(offline_cause)
-        self.assertEqual(offline_cause["probability"], 85)
+        self.assertEqual(offline_cause["score"], 85)
 
     def test_advanced_math_output(self):
         # We don't want to actually sys.exit(1) in tests, so we mock it
@@ -313,7 +315,7 @@ class TestCrashRecovery(unittest.TestCase):
 
             causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
             self.assertEqual(causes[0]["description"], "Unsupported Python Environment")
-            self.assertEqual(causes[0]["probability"], 99)
+            self.assertEqual(causes[0]["score"], 99)
             self.assertIn(
                 "missing standard library features",
                 causes[0]["reasoning"].lower(),
@@ -335,7 +337,7 @@ class TestCrashRecovery(unittest.TestCase):
                 None,
             )
             self.assertIsNotNone(legacy_cause)
-            self.assertGreaterEqual(legacy_cause["probability"], 80)
+            self.assertGreaterEqual(legacy_cause["score"], 80)
             self.assertIn("Kernel detected: 3.10", legacy_cause["reasoning"])
 
     # ==================================================================
@@ -345,11 +347,15 @@ class TestCrashRecovery(unittest.TestCase):
     def test_install_sets_excepthook(self):
         """install() should set sys.excepthook to handle_exception."""
         original = sys.excepthook
+        original_unraisable = sys.unraisablehook
         try:
             self.recovery.install()
             self.assertEqual(sys.excepthook, self.recovery.handle_exception)
         finally:
             sys.excepthook = original
+            sys.unraisablehook = original_unraisable
+            self.recovery._prev_sys_hook = None
+            self.recovery._prev_unraisable_hook = None
 
     def test_disable_prevents_install(self):
         """After disable(), install() should not set the hook."""
@@ -512,6 +518,307 @@ class TestCrashRecovery(unittest.TestCase):
             self.assertTrue(called.get("invoked", False))
         finally:
             sys.__excepthook__ = original
+
+    # ==================================================================
+    # Hook lifecycle and report content regressions
+    # ==================================================================
+
+    def test_disable_restores_sys_excepthook(self):
+        """disable() must undo install() for sys.excepthook, not only threads."""
+        original = sys.excepthook
+        original_threading = threading.excepthook
+        original_unraisable = sys.unraisablehook
+        try:
+            self.recovery.install()
+            self.assertEqual(sys.excepthook, self.recovery.handle_exception)
+            self.recovery.disable()
+            self.assertIs(sys.excepthook, original)
+            self.assertIs(sys.unraisablehook, original_unraisable)
+        finally:
+            sys.excepthook = original
+            threading.excepthook = original_threading
+            sys.unraisablehook = original_unraisable
+
+    def test_handle_exception_skipped_when_disabled(self):
+        """A disabled recovery must not emit reports."""
+        self.recovery.enabled = False
+        output = io.StringIO()
+        original_stderr = sys.stderr
+        original_exit = sys.exit
+        sys.stderr = output
+        sys.exit = lambda x: None
+        try:
+            self.recovery.handle_exception(ValueError, ValueError("x"), None)
+        finally:
+            sys.stderr = original_stderr
+            sys.exit = original_exit
+        self.assertNotIn("APPLICATION CRASH DETECTED", output.getvalue())
+
+    def test_analyze_cause_never_empty(self):
+        """An unrecognized error must still list at least one candidate."""
+        causes = self.recovery._analyze_cause(
+            ValueError,
+            ValueError("totally unrecognized frobnicate failure"),
+            {},
+        )
+        self.assertTrue(len(causes) > 0)
+
+    def test_cross_loop_bound_message_maps_to_cross_loop_cause(self):
+        """'bound to a different event loop' is a cross-loop binding error."""
+        exc_value = RuntimeError(
+            "<asyncio.locks.Lock object [unlocked, waiters:1]> "
+            "is bound to a different event loop",
+        )
+        causes = self.recovery._analyze_cause(RuntimeError, exc_value, {})
+        self.assertTrue(len(causes) > 0)
+        top = causes[0]["description"]
+        self.assertIn("Cross-Loop", top)
+        self.assertNotIn("Initialization", top)
+
+    def test_persist_crash_stores_symptoms(self):
+        """Matched symptoms must reach crash_history, not an empty dict."""
+        inserted = []
+
+        class CrashHistory:
+            def insert_crash(self, **kwargs):
+                inserted.append(kwargs)
+
+            def cleanup_old(self, max_entries=200):
+                pass
+
+        db = MagicMock()
+        db.crash_history = CrashHistory()
+        db.config.get.return_value = None
+        self.recovery.set_database(db)
+
+        original_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            try:
+                raise ValueError("no running event loop in asyncio")
+            except ValueError:
+                self.recovery.handle_exception(*sys.exc_info(), exit_process=False)
+        finally:
+            sys.stderr = original_stderr
+
+        self.assertEqual(len(inserted), 1)
+        symptoms = inserted[0]["symptoms"]
+        self.assertIsInstance(symptoms, dict)
+        self.assertTrue(symptoms.get("async_in_msg"))
+
+    # ==================================================================
+    # Signatures, suppression, normalization, report files
+    # ==================================================================
+
+    def test_crash_signature_stable_for_same_site(self):
+        """Same raising frame must yield the same signature."""
+
+        def boom():
+            raise RuntimeError("same crash")
+
+        signatures = []
+        for _ in range(2):
+            try:
+                boom()
+            except RuntimeError:
+                signatures.append(
+                    self.recovery._crash_signature(*sys.exc_info()),
+                )
+        self.assertEqual(signatures[0], signatures[1])
+        self.assertEqual(len(signatures[0]), 16)
+
+    def test_repeat_signature_suppressed_but_persisted(self):
+        """A second same-signature crash prints one line, not a report."""
+        inserted = []
+
+        class CrashHistory:
+            def insert_crash(self, **kwargs):
+                inserted.append(kwargs)
+
+            def cleanup_old(self, max_entries=200):
+                pass
+
+            def get_recent_crashes(self, limit=200):
+                return []
+
+        db = MagicMock()
+        db.crash_history = CrashHistory()
+        db.config.get.return_value = None
+        self.recovery.set_database(db)
+
+        def boom():
+            raise ValueError("repeat crash")
+
+        original_stderr = sys.stderr
+        first = io.StringIO()
+        second = io.StringIO()
+        try:
+            sys.stderr = first
+            try:
+                boom()
+            except ValueError:
+                self.recovery.handle_exception(*sys.exc_info(), exit_process=False)
+            sys.stderr = second
+            try:
+                boom()
+            except ValueError:
+                self.recovery.handle_exception(*sys.exc_info(), exit_process=False)
+        finally:
+            sys.stderr = original_stderr
+
+        self.assertIn("APPLICATION CRASH DETECTED", first.getvalue())
+        self.assertIn("suppressed", second.getvalue())
+        self.assertNotIn("APPLICATION CRASH DETECTED", second.getvalue())
+        self.assertEqual(len(inserted), 2)
+        self.assertEqual(
+            inserted[0]["symptoms"].get("_signature"),
+            inserted[1]["symptoms"].get("_signature"),
+        )
+
+    def test_report_written_to_crash_reports_dir(self):
+        """Full report must land in storage_dir/crash_reports/."""
+        original_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            try:
+                raise RuntimeError("filed report crash")
+            except RuntimeError:
+                self.recovery.handle_exception(*sys.exc_info(), exit_process=False)
+        finally:
+            sys.stderr = original_stderr
+
+        report_dir = os.path.join(self.storage_dir, "crash_reports")
+        files = os.listdir(report_dir)
+        self.assertEqual(len(files), 1)
+        with open(os.path.join(report_dir, files[0])) as f:
+            content = f.read()
+        self.assertIn("APPLICATION CRASH DETECTED", content)
+        self.assertIn("Crash Signature:", content)
+
+    def test_probabilities_normalized_and_sorted(self):
+        """Shares are bounded by 100 and sorted by raw score."""
+        causes = self.recovery._analyze_cause(
+            MemoryError,
+            MemoryError("cannot allocate"),
+            {"low_memory": True},
+        )
+        total = sum(c["probability"] for c in causes)
+        self.assertLessEqual(total, 100)
+        scores = [c["score"] for c in causes]
+        self.assertEqual(scores, sorted(scores, reverse=True))
+        self.assertIn("OOM", causes[0]["description"])
+        # A dominant single cause still presents as dominant, not ~100%.
+        self.assertLess(causes[0]["probability"], 100)
+        self.assertGreater(
+            causes[0]["probability"],
+            causes[1]["probability"] if len(causes) > 1 else 0,
+        )
+
+    def test_traceback_frames_boost_matching_subsystem(self):
+        """A crash whose frames live in database/ should lift DB causes."""
+        src = "def f():\n    raise ValueError('generic failure')\nf()\n"
+        code = compile(
+            src,
+            "/pkg/meshchatx/src/backend/database/messages.py",
+            "exec",
+        )
+        causes = []
+        try:
+            exec(code, {})
+        except ValueError as exc:
+            causes = self.recovery._analyze_cause(
+                ValueError,
+                exc,
+                {},
+                exc_traceback=exc.__traceback__,
+            )
+        db_causes = [c for c in causes if "Database" in c["description"]]
+        self.assertTrue(db_causes)
+        self.assertGreaterEqual(db_causes[0]["score"], 50)
+
+    def test_asyncio_handler_routes_real_exceptions(self):
+        """Loop handler reports real exceptions and defers noise."""
+        loop = MagicMock()
+        output = io.StringIO()
+        original_stderr = sys.stderr
+        sys.stderr = output
+        try:
+            try:
+                raise ValueError("task blew up")
+            except ValueError as exc:
+                self.recovery.handle_asyncio_exception(
+                    loop,
+                    {"exception": exc},
+                )
+        finally:
+            sys.stderr = original_stderr
+        self.assertIn("APPLICATION CRASH DETECTED", output.getvalue())
+
+        loop.default_exception_handler.reset_mock()
+        self.recovery.handle_asyncio_exception(
+            loop,
+            {"message": "Task was destroyed but it is pending"},
+        )
+        loop.default_exception_handler.assert_called_once()
+
+    def test_unraisable_hook_routes_through_handler(self):
+        """sys.unraisablehook entries reach the diagnosis path."""
+        import types
+
+        output = io.StringIO()
+        original_stderr = sys.stderr
+        sys.stderr = output
+        try:
+            try:
+                raise ValueError("gc side failure")
+            except ValueError:
+                exc_type, exc_value, exc_tb = sys.exc_info()
+            args = types.SimpleNamespace(
+                exc_type=exc_type,
+                exc_value=exc_value,
+                exc_traceback=exc_tb,
+                err_msg=None,
+                object=None,
+            )
+            self.recovery._handle_unraisable(args)
+        finally:
+            sys.stderr = original_stderr
+        self.assertIn("APPLICATION CRASH DETECTED", output.getvalue())
+
+    def test_learned_weights_clamped_and_confident_only(self):
+        """Self-labeled priors must be bounded and confidence-gated."""
+        captured = {}
+
+        class Config:
+            def get(self, key):
+                return None
+
+            def set(self, key, value):
+                captured[key] = value
+
+        class CrashHistory:
+            def get_cause_frequencies(self, limit=50, min_probability=None):
+                assert min_probability == 60
+                return [
+                    {
+                        "diagnosed_cause": "SQLite Database Corruption",
+                        "count": 40,
+                    },
+                ]
+
+        db = MagicMock()
+        db.crash_history = CrashHistory()
+        db.config = Config()
+        self.recovery.set_database(db)
+
+        self.recovery._update_learned_weights()
+
+        weights = json.loads(captured["diagnostic_weights"])
+        # 40/42 confident hits would be ~0.95 unbounded; the guardrail caps
+        # learned drift at 4x the default prior (0.05 -> 0.20) and floors a
+        # cause with no hits at 0.25x its default (0.10 -> 0.025).
+        self.assertEqual(weights["DB_CORRUPTION"], 0.2)
+        self.assertEqual(weights["ASYNC_RACE"], 0.025)
 
 
 if __name__ == "__main__":

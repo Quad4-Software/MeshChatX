@@ -2016,7 +2016,7 @@ export default {
                 const response = await window.api.get(apiPath("/app/info"));
                 const info = response.data.app_info;
                 // A backend restart into a different build leaves cached shell
-                // assets stale; reload once rather than run a mixed-version UI.
+                // assets stale. Reload once rather than run a mixed-version UI.
                 const signature = info ? `${info.version || ""}|${info.git_commit || ""}` : "";
                 if (signature && this.bootVersionSignature == null) {
                     this.bootVersionSignature = signature;

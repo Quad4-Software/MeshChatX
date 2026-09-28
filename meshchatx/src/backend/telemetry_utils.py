@@ -51,7 +51,7 @@ class Telemeter:
                 return None
             latitude = struct.unpack("!i", packed[0])[0] / 1e6
             longitude = struct.unpack("!i", packed[1])[0] / 1e6
-            # int32-scaled fields can encode absurd values; reject out of
+            # int32-scaled fields can encode absurd values. Reject out of
             # range coordinates before they reach map projections.
             if not (-90.0 <= latitude <= 90.0 and -180.0 <= longitude <= 180.0):
                 return None

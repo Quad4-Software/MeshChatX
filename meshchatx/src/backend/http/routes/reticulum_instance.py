@@ -34,7 +34,7 @@ from meshchatx.src.path_utils import request_client_ip
 logger = logging.getLogger(__name__)
 
 # Keys in the Reticulum config whose values are secrets. Served only to
-# loopback clients or authenticated sessions; redacted otherwise so a LAN
+# loopback clients or authenticated sessions. Redacted otherwise so a LAN
 # bind with auth disabled cannot leak shared-instance or interface keys.
 SECRET_CONFIG_KEYS = {
     "rpc_key",
@@ -59,7 +59,7 @@ def _is_loopback_ip(ip: str) -> bool:
 def _request_may_receive_secrets(request, app) -> bool:
     """Decide whether the caller may see plaintext config secrets.
 
-    Loopback clients always may; when auth is enabled the session check in
+    Loopback clients always may. When auth is enabled the session check in
     auth middleware already ran, so reaching the handler means authenticated.
     Only an unauthenticated non-loopback caller (LAN bind + auth off) is denied.
     """

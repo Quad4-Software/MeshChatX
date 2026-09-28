@@ -67,7 +67,7 @@ def test_changelog_v4_8_5_uses_prior_stable_and_full_sha_bullets():
         pytest.skip("v4.8.4/v4.8.5 tags not available in this clone")
 
     out = _run(["bash", str(_CHANGELOG), "v4.8.5"]).stdout
-    # The script emits raw bullets; the draft script adds the heading and
+    # The script emits raw bullets. The draft script adds the heading and
     # wraps the block in a collapsible <details> section.
     assert not out.startswith("##")
     assert out.lstrip().startswith(("* ", "_No previous tag found"))

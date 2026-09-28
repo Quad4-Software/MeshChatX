@@ -27,7 +27,7 @@ Notes on behaviour:
   script controls $EDITOR. With --notes/--notes-file/--changelog a shim editor
   writes the notes file over rngit's template, which makes create fully
   non-interactive. With --edit the user's own $EDITOR opens instead.
-- The release identity defaults to rngit's own (~/.rngit/client_identity);
+- The release identity defaults to rngit's own (~/.rngit/client_identity).
   override with --identity or RNGIT_IDENTITY. --signer selects a different
   signing identity.
 - create signs every file in the artifacts directory and uploads it plus the
@@ -306,7 +306,7 @@ def cmd_release(args) -> int:
             fail("release published but manifest fetch returned nothing")
         manifest = manifests[0]
         if args.full_verify:
-            # The RSM is msgpack; artifact names appear as plain strings in it.
+            # The RSM is msgpack. Artifact names appear as plain strings in it.
             names = {
                 raw.decode()
                 for raw in re.findall(

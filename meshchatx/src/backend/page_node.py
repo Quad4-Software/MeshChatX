@@ -67,10 +67,26 @@ MEDIA_MAX_DIMENSION = 1920
 MEDIA_CONVERT_TIMEOUT_SECONDS = 10
 
 DEFAULT_ANNOUNCE_INTERVAL_SECONDS = constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS = (
+    constants.LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+)
 MIN_ANNOUNCE_INTERVAL_SECONDS = constants.MIN_ANNOUNCE_INTERVAL_SECONDS
 MAX_ANNOUNCE_INTERVAL_SECONDS = constants.MAX_ANNOUNCE_INTERVAL_SECONDS
+NODE_CONFIG_VERSION = 3
+
+# Announce interval that was the default when each config version was
+# written. Anything older than v1 (no config_version key) predates
+# versioning and shipped the 900 default.
+_ANNOUNCE_DEFAULT_BY_CONFIG_VERSION = {
+    2: 3600,
+}
 EXECUTABLE_PAGE_TIMEOUT_SECONDS = 15
 MAX_UNIQUE_REMOTE_HASHES = 4096
+
+# How often a running node rescans its content directories so pages and
+# files dropped in externally (Finder, editors) become reachable without
+# a restart, matching upstream NomadNet's page_refresh_interval behavior.
+CONTENT_SCAN_INTERVAL_SECONDS = 15
 
 PAGE_GENERATION_FAILED_MICRON = (
     ">Page Generation Failed\n\nThe page could not be generated.\n"
@@ -117,6 +133,30 @@ def normalize_announce_interval_seconds(
         MIN_ANNOUNCE_INTERVAL_SECONDS,
         min(MAX_ANNOUNCE_INTERVAL_SECONDS, seconds),
     )
+
+
+def resolve_persisted_announce_interval(config):
+    """Return the announce interval stored in a node config dict.
+
+    A stored value equal to the default that was in effect when the
+    config was written migrates to the current default, so existing
+    nodes inherit the slower cadence. Any other value is an explicit
+    choice and is kept as-is.
+    """
+    value = config.get("announce_interval_seconds")
+    try:
+        version = int(config.get("config_version") or 0)
+    except (TypeError, ValueError):
+        version = 0
+    if version >= NODE_CONFIG_VERSION:
+        return value
+    default_at_write = _ANNOUNCE_DEFAULT_BY_CONFIG_VERSION.get(
+        version,
+        LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+    )
+    if value == default_at_write:
+        return DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+    return value
 
 
 def normalize_page_filename(name: str) -> str:
@@ -354,6 +394,7 @@ class PageNode:
         self.last_announced_at = None
         self.on_announce = on_announce
         self._announce_timer = None
+        self._scan_timer = None
 
     def setup(self):
         """Create directories, load or create identity, set up RNS destination."""
@@ -389,13 +430,14 @@ class PageNode:
         if self.announce_enabled:
             self.announce()
         self._sync_announce_timer()
+        self._sync_scan_timer()
 
         return self.destination.hash.hex()
 
     def announce(self):
         """Broadcast this node's presence on the mesh."""
         if self.destination and self.running:
-            self._register_existing_files()
+            self._rescan_content()
             app_data = self.name.encode("utf-8")
             self.destination.announce(app_data=app_data)
             self._ensure_local_path()
@@ -437,6 +479,41 @@ class PageNode:
             self.announce()
         self._sync_announce_timer()
 
+    def _cancel_scan_timer(self):
+        """Cancel the pending content rescan timer, if any."""
+        timer = self._scan_timer
+        self._scan_timer = None
+        if timer is not None:
+            with contextlib.suppress(Exception):
+                timer.cancel()
+
+    def _sync_scan_timer(self):
+        """Reschedule the periodic content rescan timer."""
+        self._cancel_scan_timer()
+        if not self.running:
+            return
+        timer = threading.Timer(
+            CONTENT_SCAN_INTERVAL_SECONDS,
+            self._scan_timer_fire,
+        )
+        timer.daemon = True
+        self._scan_timer = timer
+        timer.start()
+
+    def _scan_timer_fire(self):
+        """Timer callback: rescan content dirs then reschedule."""
+        self._scan_timer = None
+        if not self.running:
+            return
+        with contextlib.suppress(Exception):
+            self._rescan_content()
+        self._sync_scan_timer()
+
+    def _rescan_content(self):
+        """Sync registered page and file handlers with what is on disk."""
+        self._register_existing_pages()
+        self._register_existing_files()
+
     def set_announce_settings(
         self,
         announce_enabled=None,
@@ -459,6 +536,7 @@ class PageNode:
         """Deregister handlers and clean up."""
         self.running = False
         self._cancel_announce_timer()
+        self._cancel_scan_timer()
         self._serve_started_at = None
         self._unique_remote_hashes.clear()
         if self.destination:
@@ -500,6 +578,10 @@ class PageNode:
         except Exception:
             pass
         link.set_link_closed_callback(self._link_closed)
+        # Pick up externally added pages and files before the peer's
+        # first request lands.
+        with contextlib.suppress(Exception):
+            self._rescan_content()
 
     def _link_closed(self, link):
         if link in self.active_links:
@@ -528,22 +610,32 @@ class PageNode:
         return f"/file/{file_name}"
 
     def _register_existing_pages(self):
-        """Scan pages directory and register a handler for each page."""
-        if not os.path.isdir(self.pages_dir):
-            return
-        for fname in os.listdir(self.pages_dir):
-            if self._jail_page_path(fname, must_exist=True) is None:
-                continue
-            self._register_page_handler(fname)
+        """Scan pages directory and sync page handlers with disk."""
+        live: set[str] = set()
+        if os.path.isdir(self.pages_dir):
+            for fname in os.listdir(self.pages_dir):
+                if self._jail_page_path(fname, must_exist=True) is None:
+                    continue
+                live.add(fname)
+                self._register_page_handler(fname)
+        for rpath in list(self._registered_page_paths):
+            name = rpath.removeprefix("/page/")
+            if name not in live:
+                self._deregister_page_handler(name)
 
     def _register_existing_files(self):
-        """Scan files directory and register a handler for each file."""
-        if not os.path.isdir(self.files_dir):
-            return
-        for fname in os.listdir(self.files_dir):
-            if self._jail_file_path(fname, must_exist=True) is None:
-                continue
-            self._register_file_handler(fname)
+        """Scan files directory and sync file handlers with disk."""
+        live: set[str] = set()
+        if os.path.isdir(self.files_dir):
+            for fname in os.listdir(self.files_dir):
+                if self._jail_file_path(fname, must_exist=True) is None:
+                    continue
+                live.add(fname)
+                self._register_file_handler(fname)
+        for rpath in list(self._registered_file_paths):
+            name = rpath.removeprefix("/file/")
+            if name not in live:
+                self._deregister_file_handler(name)
 
     def _register_page_handler(self, page_name):
         """Register a request handler for a specific page."""
@@ -701,7 +793,7 @@ class PageNode:
         except subprocess.TimeoutExpired:
             return _page_generation_error_bytes("The page script timed out.")
         except Exception as e:
-            # These bytes are served to the remote requester; internal
+            # These bytes are served to the remote requester. Internal
             # exception text can carry local paths, so keep it generic
             # and log the real error server-side.
             RNS.trace_exception(e)
@@ -1120,6 +1212,8 @@ class PageNode:
 
     def list_pages(self):
         """Return page metadata dicts with name and executable state."""
+        if self.running:
+            self._register_existing_pages()
         if not os.path.isdir(self.pages_dir):
             return []
         pages = []
@@ -1220,6 +1314,7 @@ class PageNode:
         config = {
             "node_id": self.node_id,
             "name": self.name,
+            "config_version": NODE_CONFIG_VERSION,
             "announce_enabled": self.announce_enabled,
             "announce_interval_seconds": self.announce_interval_seconds,
             "executable_pages_enabled": self.executable_pages_enabled,

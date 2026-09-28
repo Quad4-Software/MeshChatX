@@ -68,7 +68,7 @@ async def _send_nomad_file_bytes(
     request_id_fields: dict,
     extra: dict | None = None,
 ):
-    """Single-frame for small files; chunked frames for large ones."""
+    """Single-frame for small files. Chunked frames for large ones."""
     if len(file_bytes) > WS_NOMAD_FILE_MAX_BYTES:
         await client.send_str(
             json.dumps(
@@ -535,6 +535,28 @@ async def handle_nomadnet_file_download(app, client, data):
         )
         return
 
+    # The destination is a local node but did not serve this path, so the
+    # request would also fail over RNS. Answer immediately instead of
+    # attempting a doomed link to ourselves.
+    if app._has_running_local_page_node(destination_hash):
+        await client.send_str(
+            json.dumps(
+                {
+                    "type": WsInboundType.NOMADNET_FILE_DOWNLOAD,
+                    "download_id": 0,
+                    **rid,
+                    "nomadnet_file_download": {
+                        "status": "failure",
+                        "failure_reason": "file_not_found",
+                        "destination_hash": destination_hash.hex(),
+                        "file_path": file_path,
+                        **({"data": request_data} if request_data is not None else {}),
+                    },
+                },
+            ),
+        )
+        return
+
     # generate download id
     async with app.download_id_lock:
         app.download_id_counter += 1
@@ -655,7 +677,7 @@ async def handle_nomadnet_file_download(app, client, data):
         if isinstance(request_data, dict):
             media_payload.update(request_data)
         # Upstream NomadNet 1.4.x media handlers reject requests that carry
-        # no key at all; None is the accepted default when the micron image
+        # no key at all. None is the accepted default when the micron image
         # field k= is absent.
         media_payload.setdefault("key", None)
         rns_data = media_payload
@@ -716,7 +738,12 @@ async def handle_nomadnet_page_download(app, client, data):
         app.download_id_counter += 1
         download_id = app.download_id_counter
 
-    async def send_failure(reason: str, dest_hex: str = "", path: str = "") -> None:
+    async def send_failure(
+        reason: str,
+        dest_hex: str = "",
+        path: str = "",
+        has_archives: bool = False,
+    ) -> None:
         # Match other Nomad WS callbacks: fire-and-forget so MagicMock clients
         # in unit tests do not need to be awaitable.
         AsyncUtils.run_async(
@@ -731,7 +758,7 @@ async def handle_nomadnet_page_download(app, client, data):
                             "failure_reason": reason,
                             "destination_hash": dest_hex or (destination_hash or ""),
                             "page_path": path or (page_path or ""),
-                            "has_archives": False,
+                            "has_archives": has_archives,
                         },
                     },
                 ),
@@ -796,6 +823,29 @@ async def handle_nomadnet_page_download(app, client, data):
                 private=private,
                 request_id_fields=rid,
             ),
+        )
+        return
+
+    # The destination is a local node but did not serve this path, so the
+    # request would also fail over RNS. Answer immediately instead of
+    # attempting a doomed link to ourselves.
+    if app._has_running_local_page_node(destination_hash):
+        has_archives = False
+        if not private:
+            has_archives = (
+                len(
+                    app.get_archived_page_versions(
+                        destination_hash.hex(),
+                        page_path,
+                    ),
+                )
+                > 0
+            )
+        await send_failure(
+            "page_not_found",
+            destination_hash.hex(),
+            page_path,
+            has_archives,
         )
         return
 

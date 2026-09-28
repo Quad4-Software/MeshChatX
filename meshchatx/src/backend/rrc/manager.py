@@ -11,6 +11,7 @@ import bisect
 import contextlib
 import hashlib
 import os
+import random
 import re
 import threading
 import time
@@ -31,6 +32,34 @@ from meshchatx.src.path_utils import atomic_write_bytes
 DEFAULT_DEST_NAME = proto.DEFAULT_DEST_NAME
 SLOW_CHANNEL_BPS = 300
 _slow_connect_gate = threading.Semaphore(1)
+
+# Auto-reconnect backoff: starts at RECONNECT_BACKOFF_BASE_S, doubles per
+# failed attempt, and is capped at RECONNECT_BACKOFF_MAX_S with a random
+# jitter so large hub sets do not retry in lockstep.
+RECONNECT_BACKOFF_BASE_S = 2.0
+RECONNECT_BACKOFF_MAX_S = 900.0
+RECONNECT_BACKOFF_JITTER = 0.25
+
+# A hub announce proves the hub is alive, so it is worth retrying soon.
+# Announce-driven backoff resets are rate limited per hub so an announcing
+# but unreachable hub cannot pin the reconnect loop at the fastest tier.
+ANNOUNCE_RESET_MIN_INTERVAL_S = 300.0
+
+# Minimum interval between path requests sent to the same hub during
+# connect attempts.
+HUB_PATH_REQUEST_MIN_INTERVAL_S = 60.0
+
+# Delay between auto-connect starts so a large configured hub set does
+# not burst link requests at startup.
+AUTO_CONNECT_STAGGER_S = 0.25
+
+
+def _format_reconnect_delay(seconds):
+    if seconds >= 120:
+        return str(round(seconds / 60)) + "m"
+    return str(int(seconds)) + "s"
+
+
 BAD_KEY_MARKERS = ("bad key (+k)", "bad key")
 FORCED_LEAVE_MARKERS = ("kicked from", "banned from", "banned (kline)")
 JOIN_FATAL_MARKERS = ("banned from", "bad key", "invite-only")
@@ -105,6 +134,8 @@ class RRCHub:
         self._manual_disconnect = False
         self._reconnect_attempts = 0
         self._reconnect_timer = None
+        self._last_announce_reset = float("-inf")
+        self._last_path_request = float("-inf")
         self._had_session = False
         self._pending_pings = {}
         self._last_history_clean = 0
@@ -277,11 +308,20 @@ class RRCHub:
             self.status_text = text
         self.manager._notify_change(self)
 
-    def connect(self):
+    def connect(self, reset_attempts=True):
+        """Start a connect attempt.
+
+        A user or policy driven connect clears the retry counter so a hub
+        that decayed to a slow backoff retries immediately. Timer driven
+        reconnects call this with reset_attempts=False so the backoff can
+        keep growing across consecutive failures.
+        """
         with self._lock:
             if self.status in (RRCHub.STATUS_CONNECTING, RRCHub.STATUS_CONNECTED):
                 return
             self._manual_disconnect = False
+            if reset_attempts:
+                self._reconnect_attempts = 0
             if self._reconnect_timer is not None:
                 self._reconnect_timer.cancel()
                 self._reconnect_timer = None
@@ -293,6 +333,30 @@ class RRCHub:
 
         t = threading.Thread(target=self._connect_worker, daemon=True)
         t.start()
+
+    def note_hub_announce(self):
+        """Handle a fresh announce for this hub.
+
+        An announce proves the hub is still on the network, so decayed
+        backoff is reset and a pending slow retry is brought forward. The
+        reset is rate limited so a hub that announces regularly while its
+        listener is down cannot hold the backoff at the fastest tier.
+        """
+        with self._lock:
+            if self.status in (RRCHub.STATUS_CONNECTING, RRCHub.STATUS_CONNECTED):
+                return
+            if self._manual_disconnect or not self.auto_reconnect:
+                return
+            if self._reconnect_attempts <= 0:
+                return
+            now = time.monotonic()
+            if now - self._last_announce_reset < ANNOUNCE_RESET_MIN_INTERVAL_S:
+                return
+            self._last_announce_reset = now
+            self._reconnect_attempts = 0
+            reschedule = self._reconnect_timer is not None
+        if reschedule:
+            self._schedule_reconnect()
 
     def _connect_loopback(self, server):
         self._stop_hello.clear()
@@ -324,17 +388,22 @@ class RRCHub:
             try:
                 path_wait = timeout_s
                 if not RNS.Transport.has_path(self.hub_hash):
-                    RNS.Transport.request_path(self.hub_hash)
+                    now_m = time.monotonic()
+                    if (
+                        now_m - self._last_path_request
+                        >= HUB_PATH_REQUEST_MIN_INTERVAL_S
+                    ):
+                        self._last_path_request = now_m
+                        RNS.Transport.request_path(self.hub_hash)
                     try:
                         path_wait = path_response_window(self.hub_hash)
                     except Exception:
                         path_wait = float(RNS.Transport.PATH_REQUEST_TIMEOUT)
-                    deadline = time.monotonic() + path_wait
-                    while time.monotonic() < deadline:
-                        if RNS.Transport.has_path(self.hub_hash):
-                            break
-                        time.sleep(0.1)
 
+                # A single deadline covers both the path response and the
+                # identity recall: the announce that creates the path also
+                # delivers the identity, so a second full window is dead
+                # time on unreachable hubs.
                 hub_identity = None
                 deadline = time.monotonic() + path_wait
                 while time.monotonic() < deadline:
@@ -491,7 +560,14 @@ class RRCHub:
     def _schedule_reconnect(self):
         with self._lock:
             self._reconnect_attempts += 1
-            backoff = min(60.0, max(1.0, 2.0 ** min(self._reconnect_attempts, 6)))
+            backoff = min(
+                RECONNECT_BACKOFF_MAX_S,
+                RECONNECT_BACKOFF_BASE_S**self._reconnect_attempts,
+            )
+            backoff += random.uniform(  # noqa: S311 - retry jitter, not crypto
+                0.0,
+                backoff * RECONNECT_BACKOFF_JITTER,
+            )
             if self._reconnect_timer is not None:
                 self._reconnect_timer.cancel()
 
@@ -500,7 +576,7 @@ class RRCHub:
             self._reconnect_timer.start()
             self._set_status(
                 RRCHub.STATUS_DISCONNECTED,
-                "Reconnect in " + str(int(backoff)) + "s",
+                "Reconnect in " + _format_reconnect_delay(backoff),
             )
 
     def _fire_reconnect(self):
@@ -508,7 +584,7 @@ class RRCHub:
             self._reconnect_timer = None
             if self._manual_disconnect or not self.auto_reconnect:
                 return
-        self.connect()
+        self.connect(reset_attempts=False)
 
     def disconnect(self):
         self._stop_hello.set()
@@ -1049,7 +1125,10 @@ class RRCHub:
 
         handler = self._PACKET_HANDLERS.get(t)
         if handler is not None:
-            handler(self, env)
+            try:
+                handler(self, env)
+            except Exception as e:
+                self._log("packet handler failed: " + str(e), RNS.LOG_DEBUG)
 
     def _handle_ping(self, env):
         with contextlib.suppress(Exception):
@@ -1518,7 +1597,7 @@ class RRCHub:
                     self._record_notice(msg)
                 else:
                     # An oversized notice (eg a big /list) still carries the
-                    # same command responses; run it through the normal notice
+                    # same command responses. Run it through the normal notice
                     # path so room lists and /who results actually populate.
                     self._handle_notice(
                         {
@@ -1579,7 +1658,7 @@ class RRCHub:
         before_seq, when given, restricts results to messages recorded
         before that sequence number, letting callers page backwards through
         history. limit caps how many of the most recent matching messages
-        are returned; has_more reports whether older messages remain.
+        are returned. Has_more reports whether older messages remain.
         """
         msgs = self.get_messages(proto.normalize_room(room))
         if before_seq is not None:
@@ -1944,6 +2023,7 @@ class RRCManager:
         """Connect hubs that have auto-reconnect enabled (e.g. after startup load)."""
         with self._lock:
             hubs = [h for h in self.hubs if h.auto_reconnect]
+        started = 0
         for hub in hubs:
             with hub._lock:
                 if hub.status in (
@@ -1952,6 +2032,9 @@ class RRCManager:
                 ):
                     continue
             hub.connect()
+            started += 1
+            if started < len(hubs):
+                time.sleep(AUTO_CONNECT_STAGGER_S)
 
     def _load_hub_entry(self, e):
         if not isinstance(e, dict):

@@ -17,9 +17,9 @@ Metrics collected:
   - LIKE-search scaling
 
 Latency and single-thread throughput tests use fixed ceilings/floors. Message
-upsert throughput uses 300 ops/s locally; under CI a lower floor applies unless
+upsert throughput uses 300 ops/s locally. Under CI a lower floor applies unless
 MESHCHATX_PERF_MIN_MESSAGE_UPSERT_OPS is set. Concurrent writer tests use the
-same on non-CI hardware; under CI a lower throughput floor applies unless
+same on non-CI hardware. Under CI a lower throughput floor applies unless
 MESHCHATX_PERF_MIN_CONCURRENT_OPS is set.
 """
 
@@ -44,7 +44,7 @@ from meshchatx.src.backend.message_handler import MessageHandler
 def _min_message_upsert_throughput_ops():
     """Minimum single-thread upsert/update ops/s for regression tests.
 
-    Local runs use a strict floor (300). CI runners are often noisy; a dip
+    Local runs use a strict floor (300). CI runners are often noisy. A dip
     just below 300 is not a regression. Override with
     MESHCHATX_PERF_MIN_MESSAGE_UPSERT_OPS.
     """
@@ -63,7 +63,7 @@ def _min_concurrent_throughput_ops():
     """Minimum aggregate ops/s for concurrent writer tests.
 
     Local runs use a strict floor. CI runners are often CPU-starved or on slow
-    shared storage; wall-clock throughput there is not comparable to dev
+    shared storage. Wall-clock throughput there is not comparable to dev
     hardware. Override with MESHCHATX_PERF_MIN_CONCURRENT_OPS.
     """
     raw = os.environ.get("MESHCHATX_PERF_MIN_CONCURRENT_OPS")

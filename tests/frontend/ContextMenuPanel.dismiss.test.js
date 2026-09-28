@@ -62,7 +62,7 @@ describe("ContextMenuPanel dismissal", () => {
         other.dispatchEvent(new MouseEvent("touchstart", { bubbles: true }));
         expect(wrapper.vm.hits).toBe(2);
 
-        // Re-render swaps the binding object identity; listeners must not stack.
+        // Re-render swaps the binding object identity. Listeners must not stack.
         wrapper.vm.show = false;
         await wrapper.vm.$nextTick();
         wrapper.vm.show = true;

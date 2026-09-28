@@ -77,7 +77,7 @@ export function detectRasterTileProviderId(tileServerUrl) {
  */
 export function attributionForTileUrl(tileServerUrl) {
     // openfreemap serves style JSON, not raster tiles, so it is intentionally
-    // not part of detectRasterTileProviderId; match its host here instead.
+    // not part of detectRasterTileProviderId. Match its host here instead.
     const { host } = tileUrlParts(tileServerUrl);
     if (host === "tiles.openfreemap.org" || host.endsWith(".openfreemap.org")) {
         return TILE_PROVIDER_ATTRIBUTIONS.openfreemap;

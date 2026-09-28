@@ -47,7 +47,7 @@ function saveCloseSettings(storageDir, partial) {
         fs.mkdirSync(storageDir, { recursive: true });
         fs.writeFileSync(closeSettingsPath(storageDir), JSON.stringify(next, null, 2), "utf8");
     } catch {
-        // ignore persistence failures; in-memory choice still applies for this session
+        // ignore persistence failures. In-memory choice still applies for this session
     }
     return next;
 }

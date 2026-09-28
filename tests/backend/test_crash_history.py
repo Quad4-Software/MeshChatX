@@ -149,6 +149,8 @@ class TestBayesianWeightLearning(unittest.TestCase):
     def test_update_learned_weights_with_history(self):
         now = time.time()
         desc = CrashRecovery._cause_key_to_description("DB_CORRUPTION")
+        # Only confident diagnoses (>=60) feed the learner; low-confidence
+        # self-labels are ignored to avoid amplifying mistakes.
         for i in range(10):
             self.db.crash_history.insert_crash(
                 timestamp=now + i,
@@ -156,7 +158,7 @@ class TestBayesianWeightLearning(unittest.TestCase):
                 error_message="m",
                 diagnosed_cause=desc,
                 symptoms={},
-                probability=50,
+                probability=75,
                 entropy=0.0,
                 divergence=0.0,
             )

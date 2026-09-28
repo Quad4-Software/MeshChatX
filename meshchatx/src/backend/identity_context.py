@@ -4,8 +4,12 @@ import contextlib
 import gc
 import os
 import threading
+from typing import TYPE_CHECKING
 
 import RNS
+
+if TYPE_CHECKING:
+    from meshchatx.meshchat import ReticulumMeshChat
 
 from meshchatx.src.backend.announce_handler import AnnounceHandler
 from meshchatx.src.backend.announce_manager import AnnounceManager
@@ -50,7 +54,7 @@ from meshchatx.src.backend.voicemail_manager import VoicemailManager
 class IdentityContext:
     DEFERRED_SETUP_TEARDOWN_WAIT_S = 30
 
-    def __init__(self, identity: RNS.Identity, app):
+    def __init__(self, identity: RNS.Identity, app: "ReticulumMeshChat"):
         self.identity = identity
         self.app = app
         self.identity_hash = identity.hash.hex()
@@ -220,6 +224,15 @@ class IdentityContext:
                 self.app._run_startup_auto_recovery()
                 self.database.initialize()
                 self.database._tune_sqlite_pragmas()
+
+        if self.app is not None and getattr(self.app, "demo_mode", False):
+            try:
+                from meshchatx.src.backend.demo_seed import seed_demo_database
+
+                if seed_demo_database(self.app, self.database):
+                    print("Demo fixture seeded: announces and conversations.")
+            except Exception as exc:
+                print(f"Demo fixture seed skipped: {exc}")
 
         # 3. Initialize Config and core managers
         self.config = ConfigManager(self.database)

@@ -17,7 +17,7 @@ import { dedupeIconQueueEntries } from "../networkVisualiserPerf.js";
  * - options.getAbortSignal() returns the abort signal for the current run
  * - options.getNodes() returns the vis DataSet used on the canvas path
  * - options.getWebglEngine() returns the active WebGL engine or null
- * - options.createIconImage(name, fg, bg, size) renders one icon bitmap; the
+ * - options.createIconImage(name, fg, bg, size) renders one icon bitmap. The
  *   host delegates through the instance proxy so per-test overrides on
  *   wrapper.vm.createIconImage still apply
  * - options.yieldToMain() yields to the browser between icons

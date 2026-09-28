@@ -10,7 +10,7 @@ import { applyReticulumInstanceSettings, fetchReticulumInstanceSettings } from "
  * section of SettingsPage: instance state, saving flag, remote-management
  * allowlist text, and the redacted rpc_config snippet display.
  *
- * options.t is the host i18n function; options.getRpcKeyVisible reads the
+ * options.t is the host i18n function. Options.getRpcKeyVisible reads the
  * host toggle that controls whether the rpc_key line is redacted.
  */
 export function useReticulumInstance(options = {}) {

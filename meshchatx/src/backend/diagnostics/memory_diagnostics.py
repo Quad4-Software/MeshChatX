@@ -206,7 +206,7 @@ class MemoryDiagnostics:
         """Bound retained snapshots and GC records while preserving the baseline.
 
         The baseline (index 0) is always kept so diff_snapshots and
-        gc_stats deltas remain anchored to application start; only the
+        gc_stats deltas remain anchored to application start. Only the
         intermediate readings are evicted once the cap is exceeded.
         """
         if len(self._snapshots) > self._max_snapshots:

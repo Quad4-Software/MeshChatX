@@ -23,7 +23,7 @@ export function isCancel(error) {
 // by a frozen WebView cannot leave the UI waiting forever. The fetch itself
 // is never aborted: the server may already be processing the write, and
 // cancelling the connection could interrupt it mid-flight. A caller-provided
-// config.timeout (ms) overrides the default; 0 disables it.
+// config.timeout (ms) overrides the default. 0 disables it.
 const DEFAULT_MUTATION_TIMEOUT_MS = 120000;
 
 function fetchWithTimeout(url, init, timeoutMs) {
@@ -251,7 +251,7 @@ export function createApiClient(options = {}) {
             }
 
             // Demo read-only 403s are not auth failures. Config UI prefs are
-            // handled above; other mutations surface as normal errors.
+            // handled above. Other mutations surface as normal errors.
             if (
                 onAuthError &&
                 (response.status === 401 || response.status === 403) &&

@@ -25,7 +25,7 @@ def create_lxmf_router(
 ):
     """Construct an LXMF.LXMRouter without signal-handler crashes off the main thread.
 
-    signal.signal only works on the main thread; on workers it is temporarily
+    signal.signal only works on the main thread. On workers it is temporarily
     replaced with a no-op while the router is created.
     """
     if propagation_cost is None:

@@ -46,10 +46,6 @@
                     <MaterialDesignIcon icon-name="refresh" class="size-4" />
                     {{ $t("app.error_reload_page") }}
                 </button>
-                <button type="button" class="secondary-chip" @click="onReportLocal">
-                    <MaterialDesignIcon icon-name="bug-outline" class="size-4" />
-                    {{ reportLabel }}
-                </button>
                 <button type="button" class="secondary-chip" @click="onCopy">
                     <MaterialDesignIcon icon-name="content-copy" class="size-4" />
                     {{ copyLabel }}
@@ -63,7 +59,7 @@
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import ToastUtils from "../js/ToastUtils.js";
 import { copyTextToClipboard } from "../js/clipboardUtils.js";
-import { formatFatalErrorReport, recordFatalErrorLocally } from "../js/fatalErrorState.js";
+import { formatFatalErrorReport } from "../js/fatalErrorState.js";
 
 export default {
     name: "FatalErrorPage",
@@ -83,7 +79,6 @@ export default {
     data() {
         return {
             copyLabel: "",
-            reportLabel: "",
             headingId: `fatal-error-title-${Math.random().toString(36).slice(2, 9)}`,
             messageId: `fatal-error-message-${Math.random().toString(36).slice(2, 9)}`,
         };
@@ -107,25 +102,10 @@ export default {
     },
     created() {
         this.copyLabel = this.$t("app.error_copy_details");
-        this.reportLabel = this.$t("app.error_report_locally");
     },
     methods: {
         onReload() {
             window.location.reload();
-        },
-        async onReportLocal() {
-            const result = await recordFatalErrorLocally(this.error);
-            if (result?.ok) {
-                ToastUtils.success(this.$t("app.error_report_saved"));
-                this.reportLabel = this.$t("app.error_report_saved");
-                try {
-                    this.$router?.push?.({ name: "plugin-mcx-bugs" });
-                } catch {
-                    window.location.hash = "#/plugins/com.meshchatx.mcx-bugs";
-                }
-            } else {
-                ToastUtils.error(this.$t("app.error_report_failed"));
-            }
         },
         async onCopy() {
             const report = formatFatalErrorReport(this.error);

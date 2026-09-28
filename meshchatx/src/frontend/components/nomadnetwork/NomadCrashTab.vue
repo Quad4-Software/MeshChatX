@@ -83,6 +83,12 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 const WATCHDOG_MS = 12000;
 const PING_INTERVAL_MS = 2000;
 /**
+ * A frame whose boot never posts ready poisons every render until a manual
+ * reload. Retry the boot a few times before surfacing the crash overlay.
+ */
+const FRAME_BOOT_WATCHDOG_MS = 8000;
+const MAX_FRAME_BOOT_RETRIES = 2;
+/**
  * Coalesced wake after a freeze often skips the 1s watchdog ticks. Silence
  * larger than this is a stall, not a live hang.
  */
@@ -186,6 +192,8 @@ export default {
             renderDeadlineParked: false,
             renderDeadlineRemainingMs: 0,
             renderDeadlineArmedAt: 0,
+            bootWatchdogTimer: null,
+            frameBootRetries: 0,
             fieldContextMenu: {
                 show: false,
                 justOpened: false,
@@ -315,6 +323,9 @@ export default {
         } else if (this.active) {
             this.startWatchdog();
         }
+        if (!this.frameReady) {
+            this.armBootWatchdog();
+        }
         if (this.content && this.status === "loading") {
             this.armRenderDeadline();
         }
@@ -334,6 +345,7 @@ export default {
         }
         this.stopWatchdog();
         this.clearRenderDeadline();
+        this.clearBootWatchdog();
     },
     methods: {
         /**
@@ -598,6 +610,8 @@ export default {
             }
             if (data.type === "ready") {
                 this.frameReady = true;
+                this.frameBootRetries = 0;
+                this.clearBootWatchdog();
                 this.lastPostedRenderKey = "";
                 this.clearRenderDeadline();
                 this.status = this.skipRenderUntilPropChange ? "aborted" : "ready";
@@ -871,6 +885,38 @@ export default {
             };
             this._rectPollRaf = requestAnimationFrame(step);
         },
+        clearBootWatchdog() {
+            if (this.bootWatchdogTimer != null) {
+                clearTimeout(this.bootWatchdogTimer);
+                this.bootWatchdogTimer = null;
+            }
+        },
+        armBootWatchdog() {
+            this.clearBootWatchdog();
+            this.bootWatchdogTimer = setTimeout(() => {
+                this.bootWatchdogTimer = null;
+                if (this.frameReady) {
+                    return;
+                }
+                if (this.livenessPaused || this.isDocumentHidden() || !this.active) {
+                    // Retry the boot once the tab returns instead of firing
+                    // reloads into a frozen frame.
+                    this.armBootWatchdog();
+                    return;
+                }
+                if (this.frameBootRetries >= MAX_FRAME_BOOT_RETRIES) {
+                    // Boot retries exhausted: the frame genuinely cannot boot.
+                    if (this.status === "loading" || this.status === "rendering") {
+                        this.status = "hung";
+                        this.framePainted = false;
+                        this.$emit("hung");
+                    }
+                    return;
+                }
+                this.frameBootRetries += 1;
+                this.reloadFrame();
+            }, FRAME_BOOT_WATCHDOG_MS);
+        },
         reloadFrame() {
             this.clearRenderDeadline();
             this.status = "loading";
@@ -880,6 +926,7 @@ export default {
             this.frameSrc = `${nomadCrashTabRendererUrl()}?t=${Date.now()}`;
             this.frameGeneration += 1;
             this.lastPongAt = Date.now();
+            this.armBootWatchdog();
         },
         abortRender() {
             this.renderEpoch += 1;

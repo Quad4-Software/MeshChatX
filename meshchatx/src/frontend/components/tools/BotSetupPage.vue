@@ -37,8 +37,10 @@
                                 @click="selectTemplate(template)"
                             >
                                 <LxmfUserIcon
-                                    v-if="template.default_icon"
-                                    :icon-name="template.default_icon"
+                                    v-if="template.default_icon && template.default_icon.icon_name"
+                                    :icon-name="template.default_icon.icon_name"
+                                    :icon-foreground-colour="template.default_icon.fg_color"
+                                    :icon-background-colour="template.default_icon.bg_color"
                                     icon-class="size-9 shrink-0"
                                 />
                                 <div class="min-w-0">

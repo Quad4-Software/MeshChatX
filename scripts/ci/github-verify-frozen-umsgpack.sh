@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Verify cx_Freeze bundled RNS.vendor.umsgpack for LXMF/RNS ratchet persistence.
-# Bare "import umsgpack" is not a project dependency; the freeze must ship the
+# Bare "import umsgpack" is not a project dependency. The freeze must ship the
 # vendored module under RNS.vendor (GitHub issue 76).
 set -euo pipefail
 

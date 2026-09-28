@@ -206,7 +206,12 @@ def prune_remote_orphans(
     prefix: str,
     local_rels: set[str],
 ) -> None:
-    """Delete remote objects/deltas files missing from the local export."""
+    """Delete remote objects/deltas files missing from the local export.
+
+    Also prunes channel flatpakref files (meshchatx-<channel>.flatpakref)
+    that no longer exist locally, so a stale ref file cannot advertise a
+    branch that was never or is no longer published.
+    """
     base = base.rstrip("/")
     prefix = prefix.strip("/")
     remote = list_remote_files(base, access_key, prefix)
@@ -215,7 +220,17 @@ def prune_remote_orphans(
         if not remote_rel.startswith(f"{prefix}/"):
             continue
         under = remote_rel[len(prefix) + 1 :]
-        if not (under.startswith("repo/objects/") or under.startswith("repo/deltas/")):
+        channel_ref = (
+            under.startswith("meshchatx-")
+            and under.endswith(".flatpakref")
+            and under[len("meshchatx-") : -len(".flatpakref")]
+            in ("stable", "beta", "testing")
+        )
+        if not (
+            under.startswith("repo/objects/")
+            or under.startswith("repo/deltas/")
+            or channel_ref
+        ):
             continue
         if under in local_rels:
             continue
@@ -260,13 +275,26 @@ def upload_ostree_tree(
     local_set = set(rels)
     pool = upload_workers() if workers is None else max(1, min(workers, MAX_WORKERS))
 
+    # Content-addressed ostree objects are immutable by name: a remote path
+    # that exists is byte-identical, so skipping it avoids a rewrite that
+    # would cold-start the edge cache for that object. local_set keeps the
+    # full file set so orphan pruning does not delete skipped objects.
+    remote = list_remote_files(base, access_key, prefix)
+    before = len(rels)
+    rels = [
+        rel
+        for rel in rels
+        if not (rel.startswith("repo/objects/") and f"{prefix}/{rel}" in remote)
+    ]
+    skipped = before - len(rels)
+
     by_phase: dict[int, list[str]] = {}
     for rel in rels:
         by_phase.setdefault(upload_phase(rel), []).append(rel)
 
     print(
         f"bunny ostree upload: {len(rels)} files in {len(by_phase)} phases "
-        f"workers={pool}",
+        f"workers={pool} skipped={skipped} existing",
         flush=True,
     )
 

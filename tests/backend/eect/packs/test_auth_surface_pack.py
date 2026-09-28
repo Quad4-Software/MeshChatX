@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""AuthSurfacePack: mutating HTTP without CSRF must die; with CSRF must pass."""
+"""AuthSurfacePack: mutating HTTP without CSRF must die. With CSRF must pass."""
 
 from __future__ import annotations
 

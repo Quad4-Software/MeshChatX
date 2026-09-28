@@ -832,7 +832,7 @@ async def _start_login(client):
 
 
 async def _run_flow_to_callback(client, idp):
-    """Drive login + provider authorize; return the callback path."""
+    """Drive login + provider authorize. Return the callback path."""
     resp = await _start_login(client)
     assert resp.status == 302
     authorize_url = resp.headers["Location"]
@@ -1132,7 +1132,7 @@ async def test_oidc_callback_state_replay(mock_app, idp):
         resp = await client.get(callback_path, allow_redirects=False)
         assert resp.status == 302
         assert resp.headers["Location"] == "/"
-        # The session was rotated; the same code+state must not work twice.
+        # The session was rotated. The same code+state must not work twice.
         resp = await client.get(callback_path, allow_redirects=False)
         assert "oidc_error=invalid_state" in resp.headers["Location"]
 

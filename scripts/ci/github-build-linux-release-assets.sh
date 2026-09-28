@@ -188,7 +188,7 @@ if [ "${SKIP_ELECTRON:-0}" != 1 ]; then
             fi
             if [ -n "$_ctr" ]; then
                 # Release gate: apk-tools must accept the package. fpm-built
-                # apks were rejected by apk 2.x and 3.x alike; this catches
+                # apks were rejected by apk 2.x and 3.x alike. This catches
                 # format regressions before publish.
                 echo "Verifying apk installs under apk-tools..."
                 "$_ctr" run --rm -v "$PWD/dist:/p:ro" alpine:3.20 \
@@ -225,6 +225,12 @@ if [ "${TRIVY_SBOM:-1}" != 0 ] && command -v trivy >/dev/null 2>&1; then
     trivy fs --format cyclonedx --include-dev-deps --output release-assets/sbom.cyclonedx.json .
 else
     echo "Skipping SBOM (trivy not on PATH or TRIVY_SBOM=0)." >&2
+fi
+
+# Ship the curated OpenVEX document alongside the SBOM so downstream
+# scanners (grype --vex, Dependency-Track) can consume our triage notes.
+if [ -f security/openvex.json ]; then
+    cp -f security/openvex.json release-assets/openvex.json
 fi
 
 echo "github-build-linux-release-assets.sh: done; see ./release-assets/"

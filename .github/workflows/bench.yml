@@ -1,5 +1,5 @@
 # Benchmarks and integrity checks (path-filtered push to main branches and workflow_dispatch).
-# The suite runs 3 times; reported values are median-of-medians. A smart gate
+# The suite runs 3 times. Reported values are median-of-medians. A smart gate
 # (noise floor + absolute delta + adaptive ratio) decides regressions — flat
 # ratio alerts on sub-ms SQLite ops are useless on shared runners.
 #

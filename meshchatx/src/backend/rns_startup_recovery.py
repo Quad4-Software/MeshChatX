@@ -697,7 +697,7 @@ def create_reticulum_with_recovery(
                 break
             all_disabled.extend(disabled)
             print(
-                "Reticulum init failed; disabled "
+                "Reticulum init failed. Disabled "
                 f"{', '.join(disabled)} and retrying "
                 f"(attempt {attempt + 1}/{max_attempts}). "
                 f"Error: {exc}",

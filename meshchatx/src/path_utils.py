@@ -30,7 +30,7 @@ def is_path_within_dir(path: str, directory: str) -> bool:
 def is_under_root(candidate: str, root: str) -> bool:
     """Return True when candidate equals root or sits under root + os.sep.
 
-    Pure string check. Both paths must already be realpath-resolved; use
+    Pure string check. Both paths must already be realpath-resolved. Use
     is_path_within_dir for unresolved inputs. This is the membership test
     required by .agents/conventions/path-jail.md.
     """
@@ -89,7 +89,7 @@ def normalize_relpath(
 
     Rejects empty, NUL, absolute, drive-letter, and UNC inputs. os.path.normpath
     collapses internal dot-dot segments (a/../b becomes b) because the result
-    still stays under the jail root; strict=True instead rejects any literal
+    still stays under the jail root. Strict=True instead rejects any literal
     dot-dot segment for callers that treat them as hostile input.
 
     reserved_names / reserved_prefixes reject per-segment protocol sidecars
@@ -109,7 +109,7 @@ def normalize_relpath(
     if strict and ".." in relpath.replace("\\", "/").split("/"):
         raise PathJailError("path escape attempt", reason="escape")
 
-    # ntpath.normpath emits backslashes on Windows; re-normalize to forward
+    # ntpath.normpath emits backslashes on Windows. Re-normalize to forward
     # slashes so segment checks and callers behave identically cross-platform.
     cleaned = os.path.normpath(relpath.replace("\\", "/")).replace("\\", "/")
     if cleaned in (".", ""):
@@ -146,7 +146,7 @@ def resolve_under_root(
 
     Raises PathJailError on any rule failure. allow_root returns the root
     itself for empty input and permits results that equal the root.
-    must_exist requires os.path.lexists so a broken symlink still counts;
+    must_exist requires os.path.lexists so a broken symlink still counts.
     must_be_file requires a regular file. check_symlinked_parents re-verifies
     realpath of the parent directory for extra defense in depth on missing
     leaves (realpath already resolves symlinked parents, so this is belt and
@@ -239,7 +239,7 @@ def resolve_user_path(
 ) -> str:
     """Resolve an absolute-or-relative user path under a set of allowed roots.
 
-    Relative inputs join under default_root; expanduser handles tilde first.
+    Relative inputs join under default_root. Expanduser handles tilde first.
     The realpath result must stay under one of allowed_roots (roots are
     realpath-resolved too). forbidden_names rejects any resolved component
     (for example .ssh or .gnupg) and forbidden_prefixes rejects resolved paths
@@ -439,9 +439,9 @@ def atomic_write_bytes(
     The tmp sibling is created with tempfile.mkstemp (O_CREAT | O_EXCL)
     in the same directory so concurrent writers never share a tmp path
     and a planted symlink cannot redirect the write. fchmod pins mode
-    because mkstemp always creates 0o600; pass mode 0o600 for private
+    because mkstemp always creates 0o600. Pass mode 0o600 for private
     state anyway so it stays correct if the implementation changes.
-    fsync_dir fsyncs the parent directory after the rename; disable it
+    fsync_dir fsyncs the parent directory after the rename. Disable it
     on hot paths that accept losing the rename on power loss.
     """
     path = os.fspath(path)

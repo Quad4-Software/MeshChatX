@@ -266,7 +266,7 @@ export default class MicronParser extends BaseMicronParser {
      * strips name/id values that shadow DOM named properties (for example an
      * input named "action"), which silently breaks Micron field submission and
      * micron-anchor targets. Keep those attributes on the elements that need
-     * them; Micron output is not wrapped in a form, so clobbering does not
+     * them. Micron output is not wrapped in a form, so clobbering does not
      * apply here.
      */
     static getMicronSanitizer() {
@@ -889,7 +889,7 @@ export default class MicronParser extends BaseMicronParser {
     }
 
     // Whole-line image markup `(alt`w=..`h=..`a=..`url). The final `)`
-    // terminates the construct; fields between alt and url carry properties.
+    // terminates the construct. Fields between alt and url carry properties.
     parseImageLine(line) {
         if (typeof line !== "string" || !line.startsWith("`(")) {
             return null;
@@ -1023,7 +1023,7 @@ export default class MicronParser extends BaseMicronParser {
     }
 
     parseLine(line, state) {
-        // Upstream resets per-line fold state in parseLine; do the same before
+        // Upstream resets per-line fold state in parseLine. Do the same before
         // the partial intercept early-returns without reaching super.
         state._line_is_heading = false;
         state._collapsible_pending = null;
@@ -1207,7 +1207,7 @@ export default class MicronParser extends BaseMicronParser {
                     }
                 }
             } else if (tag === "INPUT" && (el.type === "text" || el.type === "password")) {
-                // Upstream may have set aria-label to the raw field name; prefer
+                // Upstream may have set aria-label to the raw field name. Prefer
                 // the prompt text when available, but never override explicit labels.
                 if (
                     !el.getAttribute("aria-labelledby") &&

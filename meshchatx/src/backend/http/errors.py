@@ -145,7 +145,7 @@ def http_error_from_exception(
     echo (they never embed paths). ValueError messages pass through since
     this codebase treats them as user-facing. OSError and anything else
     get a generic message so absolute paths, errno details, and stack
-    internals stay server-side; log the real exception at the call site.
+    internals stay server-side. Log the real exception at the call site.
     extra merges fixed keys into the payload (for example
     {"status": "error"} on routes that use that shape).
     """

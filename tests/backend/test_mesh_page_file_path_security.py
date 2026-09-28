@@ -191,8 +191,8 @@ class TestPageRespondersTraversal:
         out[0].close()
 
 
-def test_try_serve_local_helpers_strip_traversal():
-    """Local page-node serve uses basenames only; request paths must not escape dirs."""
+def _local_serve_app():
+    """Build a spec'd app mock hosting one fake page node."""
     from meshchatx.meshchat import ReticulumMeshChat
 
     app = MagicMock(spec=ReticulumMeshChat)
@@ -205,10 +205,20 @@ def test_try_serve_local_helpers_strip_traversal():
     node._stats = {"files_served": 0, "pages_served": 0}
     node.get_page_content = MagicMock(return_value="page ok")
     node.serve_page_content = MagicMock(return_value=b"page ok")
+    node.read_hosted_file = MagicMock(return_value=("blob.bin", b"data"))
+    node.serve_media = MagicMock(return_value=("image.webp", b"img"))
     app.page_node_manager = MagicMock()
     app.page_node_manager.nodes = {"1": node}
+    return app, node
 
+
+def test_try_serve_local_helpers_strip_traversal():
+    """Local page-node serving rejects traversal instead of flattening to basename."""
+    from meshchatx.meshchat import ReticulumMeshChat
+
+    app, node = _local_serve_app()
     dh = node.destination.hash
+
     file_out = ReticulumMeshChat._try_serve_local_page_node_file(
         app,
         dh,
@@ -222,8 +232,82 @@ def test_try_serve_local_helpers_strip_traversal():
         "/page/../../../x.mu",
         request_data={"var_x": "1"},
     )
+    assert page_out is None
+    node.serve_page_content.assert_not_called()
+
+
+def test_try_serve_local_page_node_serves_canonical_path():
+    from meshchatx.meshchat import ReticulumMeshChat
+
+    app, node = _local_serve_app()
+    dh = node.destination.hash
+    page_out = ReticulumMeshChat._try_serve_local_page_node(
+        app,
+        dh,
+        "/page/index.mu",
+        request_data={"var_x": "1"},
+    )
     node.serve_page_content.assert_called_once()
     called = node.serve_page_content.call_args
-    assert called.args[0] == "x.mu"
+    assert called.args[0] == "index.mu"
     assert called.kwargs.get("data") == {"var_x": "1"}
     assert page_out == "page ok"
+
+
+def test_try_serve_local_page_node_ignores_unknown_prefixes():
+    """Requests must use /page/<name>; any other prefix fails like remote dispatch."""
+    from meshchatx.meshchat import ReticulumMeshChat
+
+    app, node = _local_serve_app()
+    dh = node.destination.hash
+    for bad in (
+        "/anything/index.mu",
+        "/pages/index.mu",
+        "/index.mu",
+        "index.mu",
+        "/page/sub/dir.mu",
+        "/page/",
+        "/file/x.mu",
+    ):
+        assert ReticulumMeshChat._try_serve_local_page_node(app, dh, bad) is None, bad
+    node.serve_page_content.assert_not_called()
+
+
+def test_try_serve_local_page_node_file_ignores_unknown_prefixes():
+    from meshchatx.meshchat import ReticulumMeshChat
+
+    app, node = _local_serve_app()
+    dh = node.destination.hash
+    for bad in (
+        "/anything/blob.bin",
+        "/blob.bin",
+        "/file/sub/dir.bin",
+        "/page/index.mu",
+    ):
+        assert (
+            ReticulumMeshChat._try_serve_local_page_node_file(app, dh, bad) is None
+        ), bad
+    node.read_hosted_file.assert_not_called()
+
+    out = ReticulumMeshChat._try_serve_local_page_node_file(
+        app,
+        dh,
+        "/file/blob.bin",
+    )
+    assert out == ("blob.bin", b"data")
+    node.read_hosted_file.assert_called_once_with("blob.bin")
+
+
+def test_try_serve_local_page_node_file_routes_media():
+    from meshchatx.meshchat import ReticulumMeshChat
+
+    app, node = _local_serve_app()
+    dh = node.destination.hash
+    out = ReticulumMeshChat._try_serve_local_page_node_file(
+        app,
+        dh,
+        "/media/pic.png",
+    )
+    assert out == ("image.webp", b"img")
+    node.serve_media.assert_called_once_with("/media/pic.png")
+    node.read_hosted_file.assert_not_called()

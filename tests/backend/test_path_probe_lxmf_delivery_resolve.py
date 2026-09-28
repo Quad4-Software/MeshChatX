@@ -228,7 +228,7 @@ async def test_request_path_resend_uses_lxmf_delivery_lookup(mock_app):
 
 @pytest.mark.asyncio
 async def test_identity_lxmf_address_accepts_real_identity_hash(mock_app):
-    """RNS identity hashes are 16 bytes (32 hex); the endpoint must not 400.
+    """RNS identity hashes are 16 bytes (32 hex). The endpoint must not 400.
 
     RRC member rows carry peer identity hashes via identity.hash.hex(), which
     is 32 hex chars, so the members-panel DM flow depends on this.

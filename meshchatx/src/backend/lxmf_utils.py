@@ -57,7 +57,7 @@ def parse_stored_lxmf_fields(raw):
 
 def _bytes_to_message_hash_hex(value) -> str | None:
     if isinstance(value, bytes):
-        # LXMF message hashes are 32 bytes; destination-style 16-byte ids also appear.
+        # LXMF message hashes are 32 bytes. Destination-style 16-byte ids also appear.
         if len(value) not in (16, 32):
             return None
         return value.hex()
@@ -835,7 +835,7 @@ def convert_lxmf_message_to_dict(
 
         icon_field = getattr(LXMF, "FIELD_ICON_APPEARANCE", None)
         if icon_field is not None and field_type == icon_field:
-            # [name, fg bytes, bg bytes]; persist base64 so a later rebuild
+            # [name, fg bytes, bg bytes]. Persist base64 so a later rebuild
             # can re-emit the identical wire value.
             if isinstance(value, (list, tuple)) and len(value) >= 3:
                 name, fg, bg = value[0], value[1], value[2]
@@ -1221,7 +1221,7 @@ def lxmf_wire_fields_from_stored(fields: dict, db_row: dict | None = None) -> di
     """Rebuild raw LXMF wire fields from the converted dict stored in the DB.
 
     convert_lxmf_message_to_dict rewrites wire fields into named dict entries
-    with base64 bytes; this maps them back so a stored outbound message can be
+    with base64 bytes. This maps them back so a stored outbound message can be
     re-serialized (paper URI, resend). Keys are inserted in the same order
     send_message builds them, because the message hash covers the packed
     field order. Attachments stripped at save time are absent from the
@@ -1359,7 +1359,7 @@ def _identity_from_public_key_bytes(public_key: bytes) -> "RNS.Identity | None":
     Identity.load_public_key is documented as returning True/False, but
     current RNS releases return None on both success and failure. Treat a
     non-None identity.pub and a computed hash as success. Mirrors the same
-    helper in meshchat.py; duplicated here to avoid a circular import.
+    helper in meshchat.py. Duplicated here to avoid a circular import.
     """
     if not public_key:
         return None
@@ -1430,7 +1430,7 @@ def rebuild_paper_uri_from_db_lxmf_message(
         if isinstance(timestamp, (int, float)) and timestamp > 0:
             lxm.timestamp = timestamp
         uri = lxm.as_uri(finalise=False)
-        # The stored row must reproduce the original packed payload exactly;
+        # The stored row must reproduce the original packed payload exactly.
         # a hash drift means some wire data could not be reconstructed, so
         # returning the URI would hand out a different message.
         stored_hash = normalize_hex_identifier(db_row.get("hash"))

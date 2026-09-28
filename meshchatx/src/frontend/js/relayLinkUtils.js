@@ -76,7 +76,7 @@ export function parseMeshchatRelayUri(uri) {
 
 /**
  * Parse the short paste form rrc://<hub_hash>/<room>.
- * Room names are URL-decoded; names with slashes stay ambiguous and only the
+ * Room names are URL-decoded. Names with slashes stay ambiguous and only the
  * first path segment boundary separates hub from room.
  */
 export function parseRrcRelayUri(uri) {

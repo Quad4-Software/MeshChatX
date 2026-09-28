@@ -485,3 +485,119 @@ def test_status_serialization(tmp_path):
     assert data["status"] == RRCHub.STATUS_DISCONNECTED
     assert data["connected"] is False
     assert data["rooms"] == []
+
+
+def test_reconnect_backoff_grows_and_caps(tmp_path, monkeypatch):
+    """Reconnect delay doubles per failure and caps at the configured max."""
+    import meshchatx.src.backend.rrc.manager as rrc_manager
+
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    monkeypatch.setattr(rrc_manager.random, "uniform", lambda _a, _b: 0.0)
+    delays = []
+    try:
+        for _ in range(12):
+            hub._schedule_reconnect()
+            delays.append(hub._reconnect_timer.interval)
+    finally:
+        if hub._reconnect_timer is not None:
+            hub._reconnect_timer.cancel()
+            hub._reconnect_timer = None
+    assert delays[:5] == [2.0, 4.0, 8.0, 16.0, 32.0]
+    assert delays[-1] == rrc_manager.RECONNECT_BACKOFF_MAX_S
+    assert all(d <= rrc_manager.RECONNECT_BACKOFF_MAX_S for d in delays)
+    assert hub._reconnect_attempts == 12
+
+
+def test_manual_connect_resets_attempts(tmp_path, monkeypatch):
+    """A user driven connect clears the retry counter for a fast retry."""
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub._reconnect_attempts = 7
+    monkeypatch.setattr(hub, "_connect_worker", lambda: None)
+    hub.connect()
+    assert hub._reconnect_attempts == 0
+    assert hub.status == RRCHub.STATUS_CONNECTING
+
+
+def test_timer_reconnect_preserves_attempts(tmp_path, monkeypatch):
+    """Timer driven reconnects keep the counter so backoff can grow."""
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.auto_reconnect = True
+    hub._reconnect_attempts = 7
+    monkeypatch.setattr(hub, "_connect_worker", lambda: None)
+    hub._fire_reconnect()
+    assert hub._reconnect_attempts == 7
+    assert hub.status == RRCHub.STATUS_CONNECTING
+    assert "attempt 7" in hub.status_text
+
+
+def test_hub_announce_resets_and_rate_limits_backoff(tmp_path):
+    """A fresh hub announce brings forward a decayed retry, once per window."""
+    import threading
+
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.auto_reconnect = True
+    hub.status = RRCHub.STATUS_DISCONNECTED
+    hub._reconnect_attempts = 9
+    hub._reconnect_timer = threading.Timer(600, lambda: None)
+    try:
+        hub.note_hub_announce()
+        # The pending slow retry is rescheduled at the fastest tier.
+        assert hub._reconnect_attempts == 1
+        assert "2s" in hub.status_text
+        # A second announce inside the reset window must not reset again.
+        hub._reconnect_attempts = 9
+        hub.note_hub_announce()
+        assert hub._reconnect_attempts == 9
+    finally:
+        if hub._reconnect_timer is not None:
+            hub._reconnect_timer.cancel()
+            hub._reconnect_timer = None
+
+
+def test_hub_announce_ignored_when_connected_or_disabled(tmp_path):
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub._reconnect_attempts = 9
+
+    hub.status = RRCHub.STATUS_CONNECTED
+    hub.note_hub_announce()
+    assert hub._reconnect_attempts == 9
+
+    hub.status = RRCHub.STATUS_DISCONNECTED
+    hub.auto_reconnect = False
+    hub.note_hub_announce()
+    assert hub._reconnect_attempts == 9
+
+    hub.auto_reconnect = True
+    hub._manual_disconnect = True
+    hub.note_hub_announce()
+    assert hub._reconnect_attempts == 9
+
+
+def test_connect_worker_dedupes_path_requests(tmp_path, monkeypatch):
+    """Failed connects must not emit a path request every single attempt."""
+    import RNS
+
+    import meshchatx.src.backend.rrc.manager as rrc_manager
+
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.auto_reconnect = False
+    calls = []
+    monkeypatch.setattr(rrc_manager, "slowest_online_bitrate", lambda *a, **k: None)
+    monkeypatch.setattr(rrc_manager, "path_response_window", lambda *a, **k: 0.02)
+    monkeypatch.setattr(RNS.Transport, "has_path", lambda *a, **k: False)
+    monkeypatch.setattr(
+        RNS.Transport,
+        "request_path",
+        lambda *a, **k: calls.append(1),
+    )
+    monkeypatch.setattr(RNS.Identity, "recall", lambda *a, **k: None)
+    hub._connect_worker()
+    hub._connect_worker()
+    assert calls == [1]
+    assert hub.status == RRCHub.STATUS_FAILED

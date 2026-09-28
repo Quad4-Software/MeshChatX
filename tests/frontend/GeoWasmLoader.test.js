@@ -105,7 +105,7 @@ describe("GeoWasmLoader", () => {
 
         await expect(preloadGeoWasm()).resolves.toBe(false);
         expect(sawExecFetch).toBe(true);
-        // Stale node was removed; failed inject should not leave a blocking tag without Go.
+        // Stale node was removed. Failed inject should not leave a blocking tag without Go.
         const leftover = document.getElementById("meshchatx-geo-wasm-exec");
         expect(leftover === null || typeof globalThis.Go !== "undefined").toBe(true);
     });

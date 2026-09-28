@@ -8,6 +8,8 @@ import contextlib
 import re
 from typing import Any
 
+from meshchatx.src.backend import constants
+
 _LXMF_HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 _PROPAGATION_MODES = frozenset({"inherit", "manual", "autopeer", "none"})
 _SIDECAR_NAME = "meshchatx_bot_lxmf_config.json"
@@ -284,8 +286,12 @@ def resolve_effective_bot_lxmf_settings(
         settings["direct_delivery_retries"] = overrides["direct_delivery_retries"]
     if "opportunistic_sending" in overrides:
         settings["opportunistic_sending"] = overrides["opportunistic_sending"]
-    if "announce_interval_seconds" in overrides:
-        settings["announce"] = overrides["announce_interval_seconds"]
+    # Bots without an explicit override follow the shared 6 hour cadence
+    # instead of the lxmfy framework default of 10 minutes.
+    settings["announce"] = overrides.get(
+        "announce_interval_seconds",
+        constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+    )
     if "stamp_cost" in overrides:
         settings["stamp_cost"] = overrides["stamp_cost"]
 

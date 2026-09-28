@@ -16,6 +16,7 @@ from meshchatx.src.backend.http.errors import (
     http_not_found,
     http_payload_too_large,
 )
+from meshchatx.src.backend.http.safe_file_response import file_response
 from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_body_limited,
@@ -269,7 +270,7 @@ def register_plugins_routes(routes, app):
             return http_bad_request(str(e))
         except ValueError as e:
             return http_bad_request(str(e))
-        return web.FileResponse(
+        return file_response(
             path,
             headers={
                 "Cache-Control": "no-cache, no-store, must-revalidate",

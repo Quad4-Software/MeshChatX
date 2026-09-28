@@ -95,7 +95,6 @@ def test_get_package_version_resolves_rns_filesync_when_metadata_missing():
         "cryptography",
         "psutil",
         "websockets",
-        "ply",
         "bcrypt",
         "lxmfy",
         "rns-filesync",

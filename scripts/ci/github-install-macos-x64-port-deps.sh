@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install locked Python deps for the darwin-x64 cx_Freeze slice using MacPorts.
-# Intended for the GitHub-hosted macos-15-intel x86_64 runner; Homebrew no longer
+# Intended for the GitHub-hosted macos-15-intel x86_64 runner. Homebrew no longer
 # supports Intel macOS, so codec2, openssl, and libyaml come from MacPorts.
 set -euo pipefail
 
@@ -30,7 +30,7 @@ if ! command -v port >/dev/null 2>&1; then
 fi
 
 echo "github-install-macos-x64-port-deps: installing MacPorts deps" >&2
-# opus* / libogg / libvorbis / flac back the pyogg dylib normalization; the
+# opus* / libogg / libvorbis / flac back the pyogg dylib normalization. The
 # vendored set already matches x86_64, so this is belt-and-suspenders for
 # when upstream LXST changes the bundled arch mix.
 sudo port -N install codec2 libyaml openssl libopus opusfile libopusenc libogg libvorbis flac

@@ -584,7 +584,7 @@ function isAndroidWebViewShell() {
             return true;
         }
     } catch {
-        // Bridge object may be inaccessible; fall through to UA detection.
+        // Bridge object may be inaccessible. Fall through to UA detection.
     }
     try {
         const ua = navigator.userAgent || "";

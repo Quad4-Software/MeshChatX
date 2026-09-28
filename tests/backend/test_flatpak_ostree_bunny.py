@@ -124,6 +124,7 @@ def test_upload_ostree_tree_order_and_no_track_prune(
     with (
         patch.object(ostree_up, "put_file", side_effect=fake_put),
         patch.object(ostree_up, "prune_remote_orphans") as prune,
+        patch.object(ostree_up, "list_remote_files", return_value=set()),
     ):
         rc = ostree_up.upload_ostree_tree(
             root,
@@ -166,6 +167,7 @@ def test_upload_ostree_tree_phase_barrier_with_workers(
     with (
         patch.object(ostree_up, "put_file", side_effect=fake_put),
         patch.object(ostree_up, "prune_remote_orphans"),
+        patch.object(ostree_up, "list_remote_files", return_value=set()),
     ):
         rc = ostree_up.upload_ostree_tree(
             root,
@@ -182,7 +184,55 @@ def test_upload_ostree_tree_phase_barrier_with_workers(
     assert all("/repo/objects/" in u for u in puts[:3])
     assert puts[3].endswith("/flatpak/repo/config")
     assert puts[4].endswith("/flatpak/repo/summary")
-    assert puts[5].endswith("/flatpak/repo/summary.idx")
+
+
+def test_upload_skips_existing_content_addressed_objects(
+    ostree_up: ModuleType, tmp_path: Path
+) -> None:
+    """Remote repo/objects/* paths are byte-identical by name and skipped.
+
+    Skipped objects must still count as "local" for orphan pruning or every
+    existing object would be deleted after upload.
+    """
+    root = tmp_path
+    objs = root / "repo" / "objects"
+    for name in ("aa", "bb"):
+        d = objs / name
+        d.mkdir(parents=True)
+        (d / "obj").write_bytes(name.encode())
+    (root / "repo" / "config").write_text("mode=archive-z2\n", encoding="utf-8")
+    (root / "repo" / "summary").write_bytes(b"s")
+    (root / "repo" / "summary.idx").write_bytes(b"i")
+
+    remote = {"flatpak/repo/objects/aa/obj"}
+    puts: list[str] = []
+    pruned_local: list[set] = []
+
+    def fake_put(url, body, access_key, content_type, max_attempts=4):
+        puts.append(url)
+
+    def fake_prune(base, access_key, prefix, local_rels):
+        pruned_local.append(set(local_rels))
+
+    with (
+        patch.object(ostree_up, "put_file", side_effect=fake_put),
+        patch.object(ostree_up, "list_remote_files", return_value=remote),
+        patch.object(ostree_up, "prune_remote_orphans", side_effect=fake_prune),
+    ):
+        rc = ostree_up.upload_ostree_tree(
+            root,
+            "https://la.storage.bunnycdn.com/meshchatx",
+            "key",
+            prefix="flatpak",
+            prune_orphans=True,
+            workers=1,
+        )
+
+    assert rc == 0
+    assert not any("objects/aa" in u for u in puts)
+    assert any("objects/bb" in u for u in puts)
+    # Orphan pruning must see ALL local files, not just uploaded ones.
+    assert {"repo/objects/aa/obj", "repo/objects/bb/obj"} <= pruned_local[0]
 
 
 def test_workflow_flatpak_ostree_timeout_and_workers() -> None:
@@ -195,9 +245,14 @@ def test_workflow_flatpak_ostree_timeout_and_workers() -> None:
 def test_export_script_uses_cdn_meshchatx() -> None:
     text = _EXPORT.read_text(encoding="utf-8")
     assert "cdn.quad4.io/flatpak" in text
-    assert "meshchatx-stable.flatpakref" in text
-    assert "meshchatx-beta.flatpakref" in text
-    assert "meshchatx-testing.flatpakref" in text
+    # Channel flatpakrefs are generated per channel and gated on the branch
+    # actually existing in the repo so clients never fetch a ref file for
+    # a missing branch.
+    assert "meshchatx-${channel}.flatpakref" in text
+    assert "has_ref stable && add_channel stable" in text
+    assert "has_ref beta && add_channel beta" in text
+    assert "has_ref testing && add_channel testing" in text
+    assert "meshchatx.flatpakref" in text
     assert "github.io" not in text
     assert "PAGES_URL" not in text
     # Must not rename the import ref: that leaves ostree.ref-binding on
@@ -211,6 +266,45 @@ def test_export_script_uses_cdn_meshchatx() -> None:
     assert "ostree pull --repo=" in text
     assert "ostree refs --repo=" in text
     assert "ostree --repo=" not in text
+
+
+def test_prune_remote_orphans_removes_stale_channel_refs(
+    ostree_up: ModuleType,
+) -> None:
+    remote = {
+        "flatpak/meshchatx-testing.flatpakref",
+        "flatpak/meshchatx-beta.flatpakref",
+        "flatpak/meshchatx-stable.flatpakref",
+        "flatpak/meshchatx.flatpakref",
+        "flatpak/meshchatx.flatpakrepo",
+        "flatpak/index.html",
+        "flatpak/repo/objects/aa/obj",
+        "flatpak/repo/objects/zz/orphan",
+    }
+    local = {
+        "meshchatx-stable.flatpakref",
+        "meshchatx.flatpakref",
+        "meshchatx.flatpakrepo",
+        "index.html",
+        "repo/objects/aa/obj",
+    }
+    deleted = []
+    with (
+        patch.object(ostree_up, "list_remote_files", return_value=remote),
+        patch.object(
+            ostree_up, "delete_path", side_effect=lambda url, key: deleted.append(url)
+        ),
+    ):
+        ostree_up.prune_remote_orphans(
+            "https://storage.example/zone", "key", "flatpak", local
+        )
+    assert any("meshchatx-testing.flatpakref" in u for u in deleted)
+    assert any("meshchatx-beta.flatpakref" in u for u in deleted)
+    assert any("repo/objects/zz/orphan" in u for u in deleted)
+    # Files still present locally and non-channel root files stay put.
+    assert not any("meshchatx-stable.flatpakref" in u for u in deleted)
+    assert not any("meshchatx.flatpakrepo" in u for u in deleted)
+    assert not any(u.endswith("index.html") for u in deleted)
 
 
 def test_flatpak_build_sets_channel_branch() -> None:

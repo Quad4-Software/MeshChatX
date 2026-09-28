@@ -2072,7 +2072,7 @@ export default {
                 d.content = `[Omitted ${c.length} characters. Use Copy full text above]`;
             }
             // Pending outbound placeholders can carry data: preview URLs in
-            // fields; cap the blob so a multi-MB string never hits the <pre>.
+            // fields. Cap the blob so a multi-MB string never hits the <pre>.
             const fieldsJson = JSON.stringify(d.fields ?? null);
             if (fieldsJson.length > MESSAGE_BODY_MAX_DISPLAY_CHARS) {
                 d.fields = `[Omitted ${fieldsJson.length} characters of field data]`;
@@ -2298,7 +2298,7 @@ export default {
             return true;
         },
         canGeneratePaperMessage() {
-            // Paper URIs carry text content only; the backend drops empty
+            // Paper URIs carry text content only. The backend drops empty
             // payloads, so require real text rather than canSendMessage
             // which also allows attachment-only compositions.
             return Boolean(this.selectedPeer) && Boolean(this.newMessageText.trim()) && !this.isGeneratingPaperMessage;
@@ -2631,7 +2631,7 @@ export default {
         this.revokeNewMessageAudioPreview();
         this._unmounted = true;
         this._outboundQueue?.clear();
-        // Stop the recorder and release the mic; the resulting preview URL is
+        // Stop the recorder and release the mic. The resulting preview URL is
         // revoked once the stop settles, even when the stop itself fails.
         void Promise.resolve(this.stopRecordingAudioAttachment())
             .catch((e) => console.error(e))
@@ -3250,7 +3250,7 @@ export default {
                 this.saveDraft(dest, previousKey);
             }
             this.lxmfMessagesRequestSequence += 1;
-            // Queued sends were composed under the old identity; dropping them
+            // Queued sends were composed under the old identity. Dropping them
             // keeps a pending job from transmitting as the new identity.
             this._outboundQueue?.clear();
             this.chatItems = [];
@@ -3421,7 +3421,7 @@ export default {
                 }
 
                 // Keep the newest page warm so re-opening this peer paints
-                // instantly; live resync merges anything newer afterwards.
+                // instantly. Live resync merges anything newer afterwards.
                 // Cached pages are not restashed here: that would renew the
                 // stale TTL. softResyncOpenConversation stashes the fresh page.
                 if (this.oldestMessageId == null && !paintedFromCache) {
@@ -3757,7 +3757,7 @@ export default {
                 );
                 const myHash = (this.myLxmfAddressHash || "").toLowerCase();
                 let added = false;
-                // API returns newest-first; apply oldest-first so append order stays chronological.
+                // API returns newest-first. Apply oldest-first so append order stays chronological.
                 for (let i = lxmfMessages.length - 1; i >= 0; i--) {
                     const lxmfMessage = lxmfMessages[i];
                     if (!lxmfMessage?.hash) {
@@ -3785,7 +3785,7 @@ export default {
                     this.scrollMessagesToBottom();
                 }
             } catch {
-                // REST resync is best-effort; next delivery/WS event will catch up.
+                // REST resync is best-effort. Next delivery/WS event will catch up.
             }
         },
         async onLxmfDeliveryEvent(json) {
@@ -3901,7 +3901,7 @@ export default {
             }
 
             // Delivery events and resync merges can repeat a message that is
-            // already rendered; pushing it again would duplicate the bubble.
+            // already rendered. Pushing it again would duplicate the bubble.
             if (lxmfMessage.hash && this.isLxmfMessageInUi(lxmfMessage.hash)) {
                 return;
             }
@@ -4802,7 +4802,7 @@ export default {
                 return;
             }
             const base = { ...lxmfMessage };
-            // Open immediately with local data; the paper URI is optional and
+            // Open immediately with local data. The paper URI is optional and
             // must not block the modal behind a retried/slow request.
             this.rawMessageData = { ...base };
             this.isRawMessageModalOpen = true;
@@ -4828,7 +4828,7 @@ export default {
                     this.rawMessageData = { ...this.rawMessageData, raw_uri: rawUri };
                 }
             } catch {
-                // URI stays absent; raw view still works without it.
+                // URI stays absent. Raw view still works without it.
             }
         },
         async downloadAndDecodeAudio(chatItem) {
@@ -5920,7 +5920,7 @@ export default {
             if (contact.lxst_address) sharedString += ` [LXST: ${contact.lxst_address}]`;
             const icon = this.lxmfContactResolvedIcon(contact);
             if (icon.iconName) {
-                // Hex colours only; anything else is dropped rather than sent.
+                // Hex colours only. Anything else is dropped rather than sent.
                 const hex = (v) => (/^#[0-9a-f]{3,8}$/i.test(String(v || "").trim()) ? String(v).trim() : "");
                 const fg = hex(icon.foreground);
                 const bg = hex(icon.background);
@@ -6086,7 +6086,7 @@ export default {
                 if (!job) {
                     return;
                 }
-                // The snapshot awaits file/image/audio reads; bail if the peer
+                // The snapshot awaits file/image/audio reads. Bail if the peer
                 // changed while they were in flight so jobs never mix peers.
                 if (!this._hexEqual(this.selectedPeer?.destination_hash, composePeerHash)) {
                     return;
@@ -6231,7 +6231,7 @@ export default {
                         return;
                     }
                     if (job.dropped || this._unmounted) {
-                        // Accepted by the backend; leave it sent.
+                        // Accepted by the backend. Leave it sent.
                         return;
                     }
                     job.messageHash = response.data.lxmf_message.hash;

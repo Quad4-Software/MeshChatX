@@ -184,7 +184,7 @@ def reset_hostless_lxst_audio_for_tests() -> None:
 class WebAudioSource(LocalSource):
     """Injects PCM frames (int16 little-endian) received over websocket into the transmit mixer."""
 
-    # ~2.7s of 48 kHz mono int16; normal frames are tens of ms.
+    # ~2.7s of 48 kHz mono int16. Normal frames are tens of ms.
     MAX_PCM_BYTES = 256 * 1024
 
     def __init__(self, target_frame_ms: int, sink: Mixer):

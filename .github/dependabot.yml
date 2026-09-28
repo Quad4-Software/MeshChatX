@@ -22,7 +22,7 @@ updates:
           interval: weekly
       open-pull-requests-limit: 0
       # Pin slsa-github-generator by commit SHA (repo SHA-pinning required).
-      # Keep compile-generator: true in callers. Ignore Dependabot bumps here;
+      # Keep compile-generator: true in callers. Ignore Dependabot bumps here.
       # bump the SHA in workflows when upgrading SLSA intentionally.
       ignore:
           - dependency-name: "slsa-framework/slsa-github-generator"

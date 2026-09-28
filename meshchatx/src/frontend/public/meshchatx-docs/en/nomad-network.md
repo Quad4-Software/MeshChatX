@@ -25,7 +25,7 @@ Save frequent nodes as favourites. Link caching (nomadnet_cached_links) speeds u
 
 Browsing is anonymous by default (null identity on the RNS link), matching NomadNet. The fingerprint control is a sticky **Identify when connecting** toggle stored on the favourite. When it is on, MeshChatX calls `link.identify` with your identity before each page or file request on that node. Turning it off clears the cached link so the next visit is anonymous again. Private tabs never identify.
 
-Micron pages can embed images served from the node's media/ and file/ paths. The image icon in the toolbar sets a per-node loading policy (Inherit, Never, Manual, Auto, Always) on top of the global setting under Settings. It turns accent blue when the effective policy loads images on its own, meaning Auto or Always.
+Micron pages can embed images served from the node's media/ and file/ paths. Both the NomadNet 1.4 whole-line form `` `(alt`w=..`h=..`a=..`:/media/name.ext) `` and the `` `[alt`:/media/name.ext`img=1] `` link form are rendered. The image icon in the toolbar sets a per-node loading policy (Inherit, Never, Manual, Auto, Always) on top of the global setting under Settings. It turns accent blue when the effective policy loads images on its own, meaning Auto or Always.
 
 ## Archives
 
@@ -45,6 +45,11 @@ Typical workflow:
 2. Upload .mu, .md, .txt, or .html pages and optional files.
 3. Start the node and announce it on the mesh.
 4. Share your destination hash so others can open /page/index.mu on your node.
+
+Pages are only reachable at /page/<name> and files at /file/<name>. Any other
+path fails like an unknown page on a remote node. Content dropped directly
+into the node's pages/ or files/ directories is picked up automatically
+within a few seconds, without restarting the node.
 
 ### Executable (dynamic) pages
 
