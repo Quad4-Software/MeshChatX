@@ -89,6 +89,7 @@ class FileSyncService:
         self._links: dict[str, Any] = {}
         self._desired_peers: set[str] = set()
         self._incoming: dict[str, float] = {}
+        self._incoming_ttl_s = 300.0
         self._outgoing: dict[tuple[str, str], float] = {}
         self._resources: dict[tuple[str, str], Any] = {}
         self._browse_results: dict[str, list[dict[str, Any]]] = {}
@@ -599,16 +600,20 @@ class FileSyncService:
             elif action == "request_delta":
                 self._request_delta(link, safe)
 
+    def _incoming_fresh(self, filepath: str) -> bool:
+        ts = self._incoming.get(filepath)
+        return ts is not None and time.time() - ts < self._incoming_ttl_s
+
     def _request_file(self, link, filepath: str) -> None:
         with self._lock:
-            if filepath in self._incoming:
+            if self._incoming_fresh(filepath):
                 return
             self._incoming[filepath] = time.time()
         self._send(link, protocol.make_file_request(filepath))
 
     def _request_delta(self, link, filepath: str) -> None:
         with self._lock:
-            if filepath in self._incoming:
+            if self._incoming_fresh(filepath):
                 return
             self._incoming[filepath] = time.time()
         try:

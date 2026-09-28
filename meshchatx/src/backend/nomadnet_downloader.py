@@ -237,6 +237,7 @@ class NomadnetDownloader:
         self.request_receipt = None
         self.is_cancelled = False
         self._outcome_delivered = False
+        self._outcome_lock = threading.Lock()
         self.link = None
 
     def _emit_phase(self, phase: str) -> None:
@@ -258,9 +259,10 @@ class NomadnetDownloader:
             logger.warning("identify failed: %s", exc)
 
     def _deliver_failure(self, reason: str) -> None:
-        if self._outcome_delivered:
-            return
-        self._outcome_delivered = True
+        with self._outcome_lock:
+            if self._outcome_delivered:
+                return
+            self._outcome_delivered = True
         try:
             self._download_failure_callback(reason)
         except Exception:
@@ -542,11 +544,18 @@ class NomadnetDownloader:
         self._deliver_failure(reason)
         self._maybe_teardown_abandoned_link()
 
+    def _claim_outcome(self) -> bool:
+        """Atomically claim the single outcome slot across callback threads."""
+        with self._outcome_lock:
+            if self.is_cancelled or self._outcome_delivered:
+                return False
+            self._outcome_delivered = True
+            return True
+
     def on_response(self, request_receipt: RNS.RequestReceipt):
-        if self.is_cancelled or self._outcome_delivered:
+        if not self._claim_outcome():
             self._teardown_private_link()
             return
-        self._outcome_delivered = True
         logger.debug(
             "on_response called with type %s: %s",
             type(request_receipt),
@@ -558,10 +567,9 @@ class NomadnetDownloader:
             self._teardown_private_link()
 
     def on_failed(self, request_receipt=None):
-        if self.is_cancelled or self._outcome_delivered:
+        if not self._claim_outcome():
             self._teardown_private_link()
             return
-        self._outcome_delivered = True
         try:
             self._download_failure_callback("request_failed")
         finally:

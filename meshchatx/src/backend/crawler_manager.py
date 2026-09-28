@@ -258,6 +258,9 @@ class CrawlerManager:
     """Policy and queue helpers for identity-scoped Nomad crawling."""
 
     def __init__(self, database, config):
+        # Own page-node destination hashes; crawling our own nodes is wasted
+        # traffic and can self-propagate tasks.
+        self.own_destination_hashes: set[str] = set()
         self.database = database
         self.config = config
 
@@ -408,6 +411,17 @@ class CrawlerManager:
     def pages_indexed_for_node(self, destination_hash: str) -> int:
         return self.database.misc.count_archived_distinct_paths(destination_hash)
 
+    def _pages_claimed_for_node(self, destination_hash: str) -> int:
+        """Indexed pages plus open crawl tasks, so in-flight work counts."""
+        indexed = self.pages_indexed_for_node(destination_hash)
+        try:
+            pending = self.database.misc.count_open_crawl_tasks_for_node(
+                destination_hash
+            )
+        except Exception:
+            pending = 0
+        return indexed + pending
+
     def homepage_needs_refresh(self, destination_hash: str, page_path: str) -> bool:
         versions = self.database.misc.get_archived_page_versions(
             destination_hash,
@@ -443,6 +457,8 @@ class CrawlerManager:
         path = normalize_page_path(page_path)
         if not dest or len(dest) != 32:
             return False
+        if dest in self.own_destination_hashes:
+            return False
 
         ok, reason, hops = self.should_accept_node(dest)
         if not ok:
@@ -457,7 +473,7 @@ class CrawlerManager:
         if depth > self.max_depth:
             return False
 
-        if self.pages_indexed_for_node(dest) >= self.max_pages_per_node and depth > 0:
+        if depth > 0 and self._pages_claimed_for_node(dest) >= self.max_pages_per_node:
             return False
 
         if not force and not self.node_may_request_today(dest):
@@ -477,6 +493,12 @@ class CrawlerManager:
             if existing and existing.get("status") == "completed":
                 return False
 
+        # Re-queueing a live task must keep its retry budget; only completed
+        # or absent rows start at zero.
+        existing = self.database.misc.get_crawl_task(dest, path)
+        retry_count = 0
+        if existing and existing.get("status") != "completed":
+            retry_count = int(existing.get("retry_count") or 0)
         priority = self.priority_for(
             hops=hops,
             depth=depth,
@@ -486,7 +508,7 @@ class CrawlerManager:
             dest,
             path,
             status="pending",
-            retry_count=0,
+            retry_count=retry_count,
             depth=depth,
             priority=priority,
             reset_completed=force or self.homepage_needs_refresh(dest, path),
@@ -535,7 +557,7 @@ class CrawlerManager:
     ) -> list[str]:
         if parent_depth >= self.max_depth:
             return []
-        remaining = self.max_pages_per_node - self.pages_indexed_for_node(
+        remaining = self.max_pages_per_node - self._pages_claimed_for_node(
             destination_hash,
         )
         if remaining <= 0:
