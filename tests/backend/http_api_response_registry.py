@@ -321,12 +321,6 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         allow_statuses=(200, 400, 404),
         alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
     ),
-    HttpJsonContract(
-        "GET",
-        "/api/v1/announce",
-        ANNOUNCE_SINGLE_SCHEMA,
-        query={"aspect": "lxmf.delivery"},
-    ),
     HttpJsonContract("GET", "/api/v1/announces", ANNOUNCES_LIST_SCHEMA),
     HttpJsonContract(
         "GET",
