@@ -55,7 +55,6 @@ _REQUIRED_REPO_PATHS = [
     "package.json",
     "cx_setup.py",
     "Taskfile.yml",
-    ".agents/module-ownership.md",
     ".github/workflows/ci.yml",
     ".github/workflows/build-release.yml",
     ".github/workflows/native-build-dev.yml",
