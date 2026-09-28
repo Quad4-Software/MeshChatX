@@ -134,8 +134,8 @@ class RRCHub:
         self._manual_disconnect = False
         self._reconnect_attempts = 0
         self._reconnect_timer = None
-        self._last_announce_reset = 0.0
-        self._last_path_request = 0.0
+        self._last_announce_reset = float("-inf")
+        self._last_path_request = float("-inf")
         self._had_session = False
         self._pending_pings = {}
         self._last_history_clean = 0
@@ -1125,7 +1125,10 @@ class RRCHub:
 
         handler = self._PACKET_HANDLERS.get(t)
         if handler is not None:
-            handler(self, env)
+            try:
+                handler(self, env)
+            except Exception as e:
+                self._log("packet handler failed: " + str(e), RNS.LOG_DEBUG)
 
     def _handle_ping(self, env):
         with contextlib.suppress(Exception):
