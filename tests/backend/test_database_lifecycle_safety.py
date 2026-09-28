@@ -28,8 +28,9 @@ def temp_dir():
 def reset_provider():
     DatabaseProvider._instance = None
     yield
-    if DatabaseProvider._instance is not None:
-        DatabaseProvider._instance.close_all()
+    for inst in list(DatabaseProvider._instances.values()):
+        inst.close_all()
+    DatabaseProvider._instances.clear()
     DatabaseProvider._instance = None
 
 
@@ -39,17 +40,23 @@ def test_provider_path_switch_does_not_deadlock(temp_dir):
     DatabaseProvider.get_instance(db_path_a)
     provider_b = DatabaseProvider.get_instance(db_path_b)
     assert provider_b.db_path == db_path_b
-    DatabaseProvider._instance.close_all()
+    provider_b.close_all()
 
 
-def test_provider_path_switch_calls_close_all(temp_dir):
+def test_provider_path_switch_keeps_live_provider(temp_dir):
     db_path_a = os.path.join(temp_dir, "a.db")
     db_path_b = os.path.join(temp_dir, "b.db")
     provider_a = DatabaseProvider.get_instance(db_path_a)
+    provider_a.execute("CREATE TABLE keep (id INTEGER PRIMARY KEY)")
+    provider_a.execute("INSERT INTO keep (id) VALUES (1)")
+    conn_a = provider_a.connection
     with patch.object(provider_a, "close_all") as mock_close:
-        DatabaseProvider.get_instance(db_path_b)
-        mock_close.assert_called_once()
-    DatabaseProvider._instance.close_all()
+        provider_b = DatabaseProvider.get_instance(db_path_b)
+        mock_close.assert_not_called()
+    assert provider_b is not provider_a
+    assert provider_b.db_path == db_path_b
+    row = conn_a.execute("SELECT id FROM keep").fetchone()
+    assert row[0] == 1
 
 
 def test_provider_close_all_does_not_close_other_providers(temp_dir):
@@ -482,3 +489,19 @@ class TestMeshchatRestoreFlow(unittest.TestCase):
             mock_restart.assert_called_once()
         finally:
             shutil.rmtree(temp)
+
+
+def test_provider_revives_after_shutdown(temp_dir):
+    db_path = os.path.join(temp_dir, "revive.db")
+    provider = DatabaseProvider.get_instance(db_path)
+    provider.execute("CREATE TABLE t (id INTEGER PRIMARY KEY)")
+    provider.close_all()
+    assert provider._closed
+    assert provider._wedge_suppressed
+    same = DatabaseProvider.get_instance(db_path)
+    assert same is provider
+    assert not same._closed
+    assert not same._wedge_suppressed
+    # Reaper restarts on reuse.
+    assert same._reaper_thread is not None or same._IDLE_CONNECTION_TIMEOUT_SECONDS <= 0
+    same.execute("INSERT INTO t (id) VALUES (1)")

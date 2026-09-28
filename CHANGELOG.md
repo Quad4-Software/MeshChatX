@@ -15,6 +15,28 @@ All notable changes to this project will be documented in this file.
 - NomadNet: image size hints now follow upstream semantics. A bare w=/h= number is a character cell count (columns and rows) instead of pixels, w=n renders at the image's native size, and percent values stay relative to the page as upstream intends. Matches markqvist's NomadNet ImageWidget behavior.
 - Issue triage: the welcome comment no longer asks reporters for logs or a screenshot when the issue body already contains an attachment or a filled-in logs section.
 
+### Security
+
+- Plugin install and preview paths now jail wasm backend entries under the plugin tree, bound extracted zip content by real bytes and file count instead of declared size, reject symlink members, and keep fallback wasm stubs out of the integrity-checked tree. A failed enable() rolls back to a clean disabled state.
+- RRC hub sessions that never send HELLO are reaped on a timeout so a peer cannot pin session slots, stale link-close callbacks no longer clear a live session's state, and a room-less forced-leave error preserves local room history instead of wiping it.
+- Reticulum config snapshots returned by the API redact secrets before serving, matching the redaction used by the live config view.
+- File sync incoming-file tracking expires and clears on link close so a dead link cannot pin a path against re-request forever.
+- Docs archive import streams members with a real-byte cap and skips symlink entries before anything reaches disk.
+
+### Fixed
+
+- Forwarding: replies sent to a forwarding alias now route back to the original sender. The mapping was keyed by the alias identity hash while replies arrive addressed to the alias destination hash, so the reply path never matched.
+- Messages: auto-resend no longer reclaims a malformed message forever. The attempt budget is spent before attachment parsing, so a bad base64 field cannot loop a resend.
+- Messages: local retention purge keys on when the row was written locally instead of the sender-controlled LXMF timestamp, so a peer can no longer age a message out instantly or keep it forever.
+- Telephone: an outgoing call that stalls mid-dial now times out and hangs up instead of leaving the phone stuck in Calling until teardown, and an incoming ring during a pending outbound call is surfaced instead of silently dropped.
+- Voicemail: the auto-answer timer is bound to the link instance it was scheduled for, the blocklist fails closed when lookup errors, and greeting recording writes to a temp file that only replaces the live greeting on success.
+- Web audio bridge reattaches after an LXST pipeline reconfiguration (answer, profile switch, loudspeaker toggle) instead of leaving mic and speaker paths silently disconnected, and per-client sends coalesce so one slow socket no longer stalls the whole 60fps feed.
+- Geo WASM: MGRS formatting for single-digit zones is correct, OLC shorten/recover no longer panics on edge-case codes, and NaN or non-finite coordinates cannot crash the runtime.
+- Visualiser WASM: the WebGL pick radius holds a screen-space minimum so clicks still land at high zoom, scene handlers validate argument types instead of calling Float on non-numbers, coincident layout nodes get a deterministic separation nudge, and duplicate edges are deduplicated.
+- Crawler: re-queued tasks keep their retry budget instead of resetting to zero, in-flight tasks count toward the per-node page cap, a successful crawl clears the previous skip reason, and a node's own page destinations are never queued for self-crawl.
+- Page nodes write pages and hosted files atomically and open served files with O_NOFOLLOW so a swapped symlink cannot redirect a served path after the jail check.
+- Media conversion holds a process-wide lock around the temporary-directory and environment window so concurrent conversions cannot clobber each other's temp settings.
+
 ## [4.9.2] - 2026-09-28 [released]
 
 ### Added

@@ -24,7 +24,7 @@ vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
 }));
 
 describe("App.vue sidebar announce and auto-announce interval", () => {
-    const axiosMock = { get: vi.fn(), patch: vi.fn() };
+    const axiosMock = { get: vi.fn(), post: vi.fn(), patch: vi.fn() };
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -39,10 +39,13 @@ describe("App.vue sidebar announce and auto-announce interval", () => {
     });
 
     it("sendAnnounce requests announce endpoint and refreshes config", async () => {
-        axiosMock.get.mockImplementation((url) => {
+        axiosMock.post.mockImplementation((url) => {
             if (url === "/api/v1/announce") {
                 return Promise.resolve({ data: {} });
             }
+            return Promise.resolve({ data: {} });
+        });
+        axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/config") {
                 return Promise.resolve({
                     data: {
@@ -64,19 +67,20 @@ describe("App.vue sidebar announce and auto-announce interval", () => {
 
         await App.methods.sendAnnounce.call(ctx);
 
-        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/announce");
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/announce");
         expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/config");
         expect(ToastUtils.success).toHaveBeenCalled();
         expect(ctx.config.last_announced_at).toBeDefined();
     });
 
     it("sendAnnounce surfaces failure toast on announce error", async () => {
-        axiosMock.get.mockImplementation((url) => {
+        axiosMock.post.mockImplementation((url) => {
             if (url === "/api/v1/announce") {
                 return Promise.reject(new Error("network"));
             }
             return Promise.resolve({ data: {} });
         });
+        axiosMock.get.mockImplementation((url) => Promise.resolve({ data: {} }));
 
         const ctx = {
             config: {},
