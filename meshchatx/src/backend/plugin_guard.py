@@ -79,6 +79,7 @@ def safe_extract_zip(zip_path: str, extract_dir: str) -> str:
     total_bytes = 0
     file_count = 0
     with zipfile.ZipFile(zip_path) as archive:
+        members = []
         for info in archive.infolist():
             if info.is_dir():
                 continue
@@ -86,13 +87,28 @@ def safe_extract_zip(zip_path: str, extract_dir: str) -> str:
                 raise PluginSecurityError("plugin archive contains unsafe paths")
             if _zip_info_is_symlink(info):
                 raise PluginSecurityError("plugin archive contains symbolic links")
-            total_bytes += info.file_size
             file_count += 1
             if file_count > MAX_EXTRACT_FILES:
                 raise PluginSecurityError("plugin archive contains too many files")
-            if total_bytes > MAX_EXTRACT_BYTES:
-                raise PluginSecurityError("plugin archive is too large when extracted")
-        archive.extractall(extract_dir)
+            members.append(info)
+        # Stream each member and count real decompressed bytes. The declared
+        # file_size is attacker-controlled metadata, so reading through a
+        # counting wrapper is the only honest bound (zip bombs lie).
+        for info in members:
+            target = os.path.join(extract_dir, info.filename)
+            os.makedirs(os.path.dirname(target) or extract_dir, exist_ok=True)
+            with archive.open(info) as src, open(target, "wb") as dst:
+                remaining = MAX_EXTRACT_BYTES - total_bytes + 1
+                while True:
+                    chunk = src.read(min(1 << 16, max(remaining, 1)))
+                    if not chunk:
+                        break
+                    total_bytes += len(chunk)
+                    if total_bytes > MAX_EXTRACT_BYTES:
+                        raise PluginSecurityError(
+                            "plugin archive is too large when extracted"
+                        )
+                    dst.write(chunk)
     reject_symlinks_in_tree(extract_dir)
     return resolve_plugin_root(extract_dir)
 

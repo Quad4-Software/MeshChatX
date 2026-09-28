@@ -12,6 +12,9 @@ from collections.abc import Iterable
 from meshchatx.src.backend.plugin_rsg import SignatureInfo, verify_rsg_payload
 
 PRIMARY_SIGNATURE_FILE = "meshchatx.plugin.rsg"
+MAX_CANONICAL_MEMBER_BYTES = 50 * 1024 * 1024
+MAX_CANONICAL_TOTAL_BYTES = 64 * 1024 * 1024
+
 SIGNATURE_FILE_NAMES = (PRIMARY_SIGNATURE_FILE,)
 FIXED_ZIP_DATE_TIME = (1980, 1, 1, 0, 0, 0)
 
@@ -65,7 +68,15 @@ def canonical_zip_payload_from_bytes(payload: bytes) -> bytes:
                 raise ValueError(f"zip path traversal: {info.filename}")
             if is_signature_basename(clean):
                 continue
-            entries[clean] = archive.read(info.filename)
+            # Stream with a hard byte cap: declared member sizes are metadata,
+            # so a zip bomb would otherwise decompress fully into memory.
+            with archive.open(info.filename) as src:
+                buf = src.read(MAX_CANONICAL_MEMBER_BYTES + 1)
+            if len(buf) > MAX_CANONICAL_MEMBER_BYTES:
+                raise ValueError(f"zip member too large: {info.filename}")
+            entries[clean] = buf
+            if sum(len(v) for v in entries.values()) > MAX_CANONICAL_TOTAL_BYTES:
+                raise ValueError("zip payload too large")
     return build_canonical_zip(entries)
 
 

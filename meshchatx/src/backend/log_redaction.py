@@ -30,6 +30,14 @@ _IPV4_RE = re.compile(
     r"\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b",
 )
 
+# IPv6 addresses (compressed and full forms). Conservative: at least one
+# hextet pair with a colon separator to avoid matching plain hex words.
+_IPV6_RE = re.compile(
+    r"\b(?:[0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{0,4}\b|"
+    r"\b(?:[0-9a-fA-F]{1,4}:){1,7}:\b|"
+    r"::(?:[0-9a-fA-F]{1,4}){1,7}\b",
+)
+
 # PEM private key / certificate blocks.
 _PEM_RE = re.compile(
     r"-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----",
@@ -62,6 +70,7 @@ def redact_diagnostic_text(text: str) -> str:
     out = _FULL_HEX_HASH_RE.sub(REDACTED, out)
     out = _EMAIL_RE.sub(REDACTED, out)
     out = _IPV4_RE.sub(REDACTED, out)
+    out = _IPV6_RE.sub(REDACTED, out)
     out = _BEARER_RE.sub(f"Bearer {REDACTED}", out)
     out = _BASIC_AUTH_RE.sub(f"Basic {REDACTED}", out)
     return _SECRET_ASSIGN_RE.sub(REDACTED, out)
