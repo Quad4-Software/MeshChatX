@@ -403,7 +403,8 @@ tasks:
 
     test:be:cov:
         desc: Backend tests with coverage floor (xdist worker data merged from temp-tests/coverage)
-        env:
+        vars:
+            # task env templates cannot see OS env vars; vars can
             MESHCHAT_COVERAGE_FLOOR: "{{.COVERAGE_FLOOR | default 60}}"
         cmds:
             - rm -f .coverage temp-tests/coverage/.coverage*
