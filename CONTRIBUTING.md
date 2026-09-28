@@ -106,6 +106,22 @@ You can attach the file using Sideband, Meshchat, MeshchatX, or any LXMF-capable
 
 Lastly, be patient.
 
+## Issue triage
+
+Automation in .github/workflows handles routine issue housekeeping:
+
+- New and edited issues get platform/os labels from the template fields and
+  area labels from keywords, plus a short welcome comment.
+- A push to master, dev, or next comments on open issues whose number appears
+  in a commit subject (#123), once per commit sha.
+- Maintainers can comment slash commands on an issue:
+  - `/fixed` or `/fixed vX.Y.Z` labels the issue `fixed pending release` and
+    asks the reporter to retest. Issues with that label and no activity for
+    14 days are closed as completed by a daily sweep.
+  - `/needs-info` labels the issue `needs info` and asks for logs or repro
+    steps.
+- Stale issues are marked after 60 days and closed 14 days later.
+
 ## Patch guidelines (LXMF)
 
 - Keep patches focused on a single change or fix.
