@@ -782,6 +782,77 @@ class TestPageNodeEdgeCases:
         node.list_files()
         assert "/file/dropped.bin" in node._registered_file_paths
 
+    def test_list_pages_registers_manually_added_pages(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        with open(os.path.join(node.pages_dir, "dropped.mu"), "wb") as f:
+            f.write(b"dropped")
+        assert "/page/dropped.mu" not in node._registered_page_paths
+        node.list_pages()
+        assert "/page/dropped.mu" in node._registered_page_paths
+
+    def test_announce_registers_manually_added_pages(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        with open(os.path.join(node.pages_dir, "dropped.mu"), "wb") as f:
+            f.write(b"dropped")
+        assert "/page/dropped.mu" not in node._registered_page_paths
+        node.announce()
+        assert "/page/dropped.mu" in node._registered_page_paths
+
+    def test_rescan_deregisters_externally_removed_content(
+        self,
+        node_dir,
+        mock_rns,
+    ):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.add_page("gone.mu", "x")
+        node.add_file("gone.bin", b"x")
+        assert "/page/gone.mu" in node._registered_page_paths
+        assert "/file/gone.bin" in node._registered_file_paths
+        os.remove(os.path.join(node.pages_dir, "gone.mu"))
+        os.remove(os.path.join(node.files_dir, "gone.bin"))
+        node._rescan_content()
+        assert "/page/gone.mu" not in node._registered_page_paths
+        assert "/file/gone.bin" not in node._registered_file_paths
+        _, _, mock_dest = mock_rns
+        mock_dest.deregister_request_handler.assert_any_call("/page/gone.mu")
+        mock_dest.deregister_request_handler.assert_any_call("/file/gone.bin")
+
+    def test_link_established_rescans_content(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        with open(os.path.join(node.pages_dir, "dropped.mu"), "wb") as f:
+            f.write(b"dropped")
+        assert "/page/dropped.mu" not in node._registered_page_paths
+        node._link_established(MagicMock())
+        assert "/page/dropped.mu" in node._registered_page_paths
+        node.teardown()
+
+    def test_scan_timer_fire_registers_manually_added_pages(
+        self,
+        node_dir,
+        mock_rns,
+    ):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        try:
+            with open(os.path.join(node.pages_dir, "dropped.mu"), "wb") as f:
+                f.write(b"dropped")
+            assert "/page/dropped.mu" not in node._registered_page_paths
+            node._scan_timer_fire()
+            assert "/page/dropped.mu" in node._registered_page_paths
+        finally:
+            node.teardown()
+
+    def test_teardown_cancels_scan_timer(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        assert node._scan_timer is not None
+        node.teardown()
+        assert node._scan_timer is None
+
     def test_path_traversal_blocked(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
         node.setup()
