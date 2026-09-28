@@ -6,7 +6,7 @@
 # Inside: task lint / task test:backend / task test:frontend work without
 # touching PyPI or npm because uv and pnpm caches are pre-populated.
 
-FROM python:3.14.4-bookworm
+FROM python:3.14.4-bookworm@sha256:786d12398a4b61918e68bc30d93d0bd679a95136bbbd1dbe4d96f116636516bc
 
 ARG NODE_VERSION=24.0.0
 ARG UV_VERSION=0.11.15
@@ -21,9 +21,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Node.js from the official tarball.
+ARG NODE_SHA256_X64=59b8af617dccd7f9f68cc8451b2aee1e86d6bd5cb92cd51dd6216a31b707efd7
+ARG NODE_SHA256_ARM64=d40ec7ffe0b82b02dce94208c84351424099bd70fa3a42b65c46d95322305040
 RUN arch="$(dpkg --print-architecture)" \
-    && case "$arch" in amd64) node_arch=x64 ;; arm64) node_arch=arm64 ;; *) echo "unsupported arch $arch"; exit 1 ;; esac \
+    && case "$arch" in \
+        amd64) node_arch=x64; node_sha="${NODE_SHA256_X64}" ;; \
+        arm64) node_arch=arm64; node_sha="${NODE_SHA256_ARM64}" ;; \
+        *) echo "unsupported arch $arch"; exit 1 ;; \
+    esac \
     && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${node_arch}.tar.xz" -o /tmp/node.tar.xz \
+    && echo "${node_sha}  /tmp/node.tar.xz" | sha256sum -c - \
     && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 \
     && rm /tmp/node.tar.xz \
     && npm install -g "pnpm@${PNPM_VERSION}"
