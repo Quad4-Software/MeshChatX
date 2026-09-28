@@ -562,7 +562,7 @@ class RRCHub:
             self._reconnect_attempts += 1
             backoff = min(
                 RECONNECT_BACKOFF_MAX_S,
-                RECONNECT_BACKOFF_BASE_S ** self._reconnect_attempts,
+                RECONNECT_BACKOFF_BASE_S**self._reconnect_attempts,
             )
             backoff += random.uniform(  # noqa: S311 - retry jitter, not crypto
                 0.0,
