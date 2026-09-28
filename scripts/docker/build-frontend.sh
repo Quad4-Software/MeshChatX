@@ -8,10 +8,13 @@ mkdir -p /tmp/go-cache /tmp/go-tmp
 export GOCACHE="${GOCACHE:-/tmp/go-cache}"
 export GOTMPDIR="${GOTMPDIR:-/tmp/go-tmp}"
 
-PNPM_VERSION="${MESHCHATX_PNPM_VERSION:-11.1.2}"
+# pnpm 12 ships a native binary with no bin/pnpm.cjs, which the corepack
+# bundled in the pinned node image cannot shim. Install through npm so the
+# platform-correct @pnpm/exe package is resolved.
+DEFAULT_PNPM="$(node -p 'require("./package.json").packageManager.split("@").pop()' 2>/dev/null || true)"
+PNPM_VERSION="${MESHCHATX_PNPM_VERSION:-${DEFAULT_PNPM:-12.7.0}}"
 
-corepack enable
-corepack prepare "pnpm@${PNPM_VERSION}" --activate
+npm install -g "pnpm@${PNPM_VERSION}"
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
 node scripts/ensure-micron-parser-package.js
