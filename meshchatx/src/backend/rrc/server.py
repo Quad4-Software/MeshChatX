@@ -567,7 +567,12 @@ class RRCHubServer:
                 extras = self._peer_cap_extras(ri.hash)
             outgoing = []
             if link not in extras:
-                self._route(link, sess, env, outgoing)
+                # A malformed envelope can raise inside a handler; contain
+                # it so one bad packet cannot kill the hub session loop.
+                try:
+                    self._route(link, sess, env, outgoing)
+                except Exception as e:
+                    self._log("packet route failed: " + str(e), RNS.LOG_DEBUG)
         for lnk in extras:
             with contextlib.suppress(Exception):
                 if hasattr(lnk, "teardown"):
