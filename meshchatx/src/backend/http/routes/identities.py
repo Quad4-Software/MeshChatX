@@ -179,7 +179,12 @@ def register_identities_routes(routes, app):
             )
             if not identity_hash:
                 return http_bad_request("Invalid identity hash")
-            if app.delete_identity(identity_hash):
+            async with app._identity_hotswap_lock:
+                deleted = await asyncio.to_thread(
+                    app.delete_identity,
+                    identity_hash,
+                )
+            if deleted:
                 return web.json_response(
                     {
                         "message": "Identity deleted successfully",

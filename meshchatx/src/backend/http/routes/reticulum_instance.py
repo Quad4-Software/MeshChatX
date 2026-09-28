@@ -873,7 +873,7 @@ def register_reticulum_instance_routes(routes, app):
 
     @routes.get(API_V1_PREFIX + "/reticulum/config/versions/{version_id}")
     async def reticulum_config_version_get(request):
-        """Return one snapshot including its raw config content."""
+        """Return one snapshot with secrets redacted like the live config view."""
         try:
             config_dir = app._normalize_reticulum_config_dir(
                 app.reticulum_config_dir,
@@ -883,6 +883,10 @@ def register_reticulum_instance_routes(routes, app):
             )
             if record is None:
                 return http_not_found("Config version not found")
+            record = dict(record)
+            content = record.get("content")
+            if isinstance(content, str):
+                record["content"] = _redact_config_secrets(content)
             return web.json_response({"version": record})
         except Exception as e:
             return http_error_from_exception(e, fallback_status=500)
