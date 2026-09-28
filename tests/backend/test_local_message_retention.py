@@ -67,10 +67,26 @@ def test_apply_deletes_and_prunes(_db_path):
         "attachments_stripped": 0,
     }
     db.messages.upsert_lxmf_message(
-        {**base, "hash": "a" * 32, "timestamp": old_ts},
+        {
+            **base,
+            "hash": "a" * 32,
+            "timestamp": old_ts,
+            "created_at": (
+                __import__("datetime").datetime.now(__import__("datetime").UTC)
+                - __import__("datetime").timedelta(seconds=10 * 86400)
+            ).isoformat(),
+        },
     )
     db.messages.upsert_lxmf_message(
-        {**base, "hash": "b" * 32, "timestamp": new_ts},
+        {
+            **base,
+            "hash": "b" * 32,
+            "timestamp": new_ts,
+            "created_at": (
+                __import__("datetime").datetime.now(__import__("datetime").UTC)
+                - __import__("datetime").timedelta(seconds=86400)
+            ).isoformat(),
+        },
     )
     db.provider.execute(
         "INSERT INTO lxmf_conversation_read_state (destination_hash) VALUES (?)",
@@ -107,9 +123,14 @@ def test_prune_clears_read_state_when_conversation_empty(_db_path):
     peer = "c" * 32
     h = "d" * 32
     old_ts = now - 3 * 86400
+    old_created = (
+        __import__("datetime").datetime.now(__import__("datetime").UTC)
+        - __import__("datetime").timedelta(seconds=3 * 86400)
+    ).isoformat()
     db.messages.upsert_lxmf_message(
         {
             "hash": h,
+            "created_at": old_created,
             "source_hash": peer,
             "destination_hash": peer,
             "peer_hash": peer,
@@ -198,6 +219,10 @@ def test_apply_calls_cancel_for_hex_hashes(_db_path):
             "content": "x",
             "fields": None,
             "timestamp": now - 5 * 86400,
+            "created_at": (
+                __import__("datetime").datetime.now(__import__("datetime").UTC)
+                - __import__("datetime").timedelta(seconds=5 * 86400)
+            ).isoformat(),
             "rssi": None,
             "snr": None,
             "quality": None,
@@ -278,10 +303,26 @@ def test_purge_messages_before_cutoff_and_count(_db_path):
         "attachments_stripped": 0,
     }
     db.messages.upsert_lxmf_message(
-        {**base, "hash": "d" * 32, "timestamp": now - 40 * 86400},
+        {
+            **base,
+            "hash": "d" * 32,
+            "timestamp": now - 40 * 86400,
+            "created_at": (
+                __import__("datetime").datetime.now(__import__("datetime").UTC)
+                - __import__("datetime").timedelta(seconds=40 * 86400)
+            ).isoformat(),
+        },
     )
     db.messages.upsert_lxmf_message(
-        {**base, "hash": "e" * 32, "timestamp": now - 5 * 86400},
+        {
+            **base,
+            "hash": "e" * 32,
+            "timestamp": now - 5 * 86400,
+            "created_at": (
+                __import__("datetime").datetime.now(__import__("datetime").UTC)
+                - __import__("datetime").timedelta(seconds=5 * 86400)
+            ).isoformat(),
+        },
     )
     cutoff = now - 30 * 86400
     assert db.messages.count_lxmf_messages_with_timestamp_before(cutoff) == 1
