@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [4.9.3] - TBD [unreleased]
 
+### Fixed
+
+- NomadNet: image size hints now follow upstream semantics. A bare w=/h= number is a character cell count (columns and rows) instead of pixels, w=n renders at the image's native size, and percent values stay relative to the page as upstream intends. Matches markqvist's NomadNet ImageWidget behavior.
+- Issue triage: the welcome comment no longer asks reporters for logs or a screenshot when the issue body already contains an attachment or a filled-in logs section.
+
 ## [4.9.2] - 2026-09-28 [released]
 
 ### Added
