@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Network visualiser gains a radial view mode that pins nodes on deterministic hop rings around the local node, plus screen-space label decluttering so dense zoomed views stay readable.
 - Settings self-test gains a CBOR roundtrip check that exercises the RRC codec's encode, decode, and stream replay paths.
 - CI performance suite measures cold-load FCP, LCP, SPA route transition latency, API round-trip, and post-mount heap per page with per-page budgets, plus a heap-growth spec that fails when a page leaks listeners, timers, or nodes across mount/unmount cycles.
+- NomadNet: local page nodes rescan their pages and files directories on a timer and on each incoming link, so content dropped in externally is served without a restart and removed content stops answering. Matches upstream NomadNet's page_refresh_interval behavior.
 
 ### Security
 
@@ -33,7 +34,9 @@ All notable changes to this project will be documented in this file.
 - Reticulum: a second AutoInterface bind failure left a zombie singleton that killed every in-process restart. Recovery now releases interface sockets and resets singleton state before rebinding, a colliding interface is rejected at add time, and a guidance notice reports auto-disabled interfaces.
 - NomadNet: image loading now parses the NomadNet 1.4 whole-line image syntax (paren links with `w`/`h`/`a`/`s`/`k`/`profile` fields and percent widths) and sends the `key` field the `/media` protocol requires. Verified live against `rns.recipes`.
 - NomadNet: page and file download events are correlated by request id so stale transfers cannot feed replacement entries, and archive navigation performs full teardown.
+- NomadNet: requesting an unknown page or file from a local node opened a doomed link to the node itself. Local serving now resolves only canonical /page, /file, and /media paths, and the download handlers fail fast instead, reporting archive availability for pages.
 - Relay chat: prefs and drafts are scoped per identity, so hide-join/part and ignore state apply once the identity hash resolves, hub switches reset room state, the composer clears before send to end double-send and lost-text races, and debounced config writes survive identity switches.
+- Relay chat: hub auto-reconnect retried on a 60 s backoff cap forever, so a large set of unreachable hubs produced a constant stream of link and path requests. Backoff now doubles per failure up to a 15 minute ceiling with jitter, startup connects are staggered, path requests dedupe per hub, and a fresh hub announce resets the backoff so a recovering hub reconnects quickly. Manual connects reset the counter for an immediate retry.
 - Service worker: subframe requests are excluded from the shell navigation strategy and only shell documents or extensionless SPA routes use the fallback slot, fixing the stale-cache stuck Loading page. Updates reload exactly once, WebTransport falls back to WebSocket on session death, and a version-mismatched backend triggers a reload after reconnect.
 - Backend: `websocket_broadcast` from foreign loops forwards onto the owning client's loop, the self-test endpoint runs off the event loop so its own probes cannot deadlock, and the Windows AppContainer probe wait is bounded.
 - Backend: deleting an identity tears down its live context first, telemetry per destination is capped, and in-flight propagation-node tasks are cancelled on shutdown.
