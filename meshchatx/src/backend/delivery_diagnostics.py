@@ -15,7 +15,10 @@ from meshchatx.src.backend.meshchat_utils import parse_lxmf_stamp_cost
 
 
 def _lxmf_delivery_hash_bytes_for_path(app, destination_hash_hex: str) -> bytes:
-    fallback = bytes.fromhex(destination_hash_hex)
+    try:
+        fallback = bytes.fromhex(str(destination_hash_hex).strip())
+    except (TypeError, ValueError):
+        return b""
     with contextlib.suppress(Exception):
         resolved_hex = app.get_lxmf_destination_hash_for_identity_hash(
             destination_hash_hex

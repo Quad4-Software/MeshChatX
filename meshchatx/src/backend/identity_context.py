@@ -1195,6 +1195,15 @@ class IdentityContext:
                 else:
                     self.integrity_manager.save_manifest(reason="shutdown")
             self.database = None
+            if db_path:
+                try:
+                    from meshchatx.src.backend.database.provider import (
+                        DatabaseProvider,
+                    )
+
+                    DatabaseProvider.drop_instance(db_path)
+                except Exception:
+                    pass
 
         if self.config:
             self.config = None

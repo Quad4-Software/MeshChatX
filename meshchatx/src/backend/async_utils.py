@@ -91,6 +91,21 @@ class AsyncUtils:
             future = asyncio.run_coroutine_threadsafe(coro, loop)
             with AsyncUtils._futures_lock:
                 AsyncUtils._pending_futures.append(future)
+            future.add_done_callback(AsyncUtils._forget_future)
+
+    @staticmethod
+    def _forget_future(future) -> None:
+        """Drop finished futures instead of waiting for the sweep threshold.
+
+        A future scheduled onto a loop that stops before running it stays
+        pending forever; without a done-callback it would pin its closure
+        chain indefinitely.
+        """
+        with AsyncUtils._futures_lock:
+            try:
+                AsyncUtils._pending_futures.remove(future)
+            except ValueError:
+                pass
 
     @staticmethod
     def spawn_background(coroutine: Coroutine):
@@ -142,6 +157,7 @@ class AsyncUtils:
                     loop,
                 )
                 AsyncUtils._pending_futures.append(future)
+                future.add_done_callback(AsyncUtils._forget_future)
                 if (
                     len(AsyncUtils._pending_futures)
                     >= AsyncUtils._FUTURES_SWEEP_THRESHOLD
