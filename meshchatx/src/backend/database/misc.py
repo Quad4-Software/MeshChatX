@@ -298,6 +298,17 @@ class MiscDAO:
             (destination_hash, page_path),
         )
 
+    def count_open_crawl_tasks_for_node(self, destination_hash):
+        row = self.provider.fetchone(
+            """
+            SELECT COUNT(*) AS n FROM crawl_tasks
+            WHERE destination_hash = ?
+              AND status IN ('pending', 'failed', 'crawling')
+            """,
+            (destination_hash,),
+        )
+        return int(row["n"] or 0) if row else 0
+
     def get_pending_crawl_tasks(self):
         return self.provider.fetchall(
             "SELECT * FROM crawl_tasks WHERE status = 'pending'",
@@ -411,6 +422,7 @@ class MiscDAO:
         last_rtt_ms=None,
         last_hops=None,
         skipped_reason=None,
+        clear_skipped_reason=False,
     ):
         now = datetime.now(UTC)
         existing = self.get_crawl_node_stats(destination_hash)
@@ -442,7 +454,9 @@ class MiscDAO:
             fields["last_rtt_ms"] = last_rtt_ms
         if last_hops is not None:
             fields["last_hops"] = last_hops
-        if skipped_reason is not None:
+        if clear_skipped_reason:
+            fields["skipped_reason"] = None
+        elif skipped_reason is not None:
             fields["skipped_reason"] = skipped_reason
         set_clause = ", ".join(f"{k} = ?" for k in fields)
         params = list(fields.values())

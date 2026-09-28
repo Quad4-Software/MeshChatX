@@ -5,6 +5,7 @@ import sqlite3
 import sys
 import threading
 import time
+import typing
 import weakref
 
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
@@ -40,7 +41,11 @@ _WEDGE_ESCALATE_DELAY = 30.0
 
 
 class DatabaseProvider:
+    # Per-path providers: a hotswap to another identity's database must not
+    # close the live provider mid-transaction. _instance remains an alias for
+    # the most recently requested provider for legacy callers and tests.
     _instance = None
+    _instances: typing.ClassVar[dict] = {}
     _lock = threading.RLock()
     _IDLE_REAP_INTERVAL_SECONDS = _IDLE_REAP_INTERVAL_SECONDS
     _IDLE_CONNECTION_TIMEOUT_SECONDS = _IDLE_CONNECTION_TIMEOUT_SECONDS
@@ -58,6 +63,7 @@ class DatabaseProvider:
         # reset (e.g. schedule a process restart). Called at most once.
         self.on_unrecoverable = None
         self._wedge_suppressed = False
+        self._closed = False
         self._persistent_failure_started = None
         self._persistent_failures = 0
         self._wedge_reset_at = 0.0
@@ -265,15 +271,56 @@ class DatabaseProvider:
     @classmethod
     def get_instance(cls, db_path=None):
         with cls._lock:
-            if cls._instance is None:
-                if db_path is None:
-                    msg = "Database path must be provided for the first initialization"
-                    raise ValueError(msg)
-                cls._instance = cls(db_path)
-            elif db_path is not None and cls._instance.db_path != db_path:
-                cls._instance.close_all()
-                cls._instance = cls(db_path)
-            return cls._instance
+            if db_path is None:
+                if len(cls._instances) == 1:
+                    cls._instance = next(iter(cls._instances.values()))
+                    return cls._instance
+                msg = "Database path must be provided for the first initialization"
+                raise ValueError(msg)
+            inst = cls._instances.get(db_path)
+            if inst is None:
+                inst = cls(db_path)
+                cls._instances[db_path] = inst
+            else:
+                inst._revive()
+            cls._instance = inst
+            return inst
+
+    @classmethod
+    def drop_instance(cls, db_path):
+        """Close and forget the provider for db_path (identity teardown)."""
+        with cls._lock:
+            inst = cls._instances.pop(db_path, None)
+            if cls._instance is inst:
+                cls._instance = next(iter(cls._instances.values()), None)
+        if inst is not None:
+            inst.close_all()
+
+    @classmethod
+    def close_all_instances(cls):
+        with cls._lock:
+            instances = list(cls._instances.values())
+            cls._instances.clear()
+            cls._instance = None
+        for inst in instances:
+            inst.close_all()
+
+    def _revive(self):
+        """Re-enable a provider whose handles were closed by a prior shutdown.
+
+        close_all() stops the reaper and suppresses wedge escalation; reusing
+        the same database path must restore both.
+        """
+        if not self._closed:
+            return
+        self._closed = False
+        self._wedge_suppressed = False
+        self._wedge_reset_at = 0.0
+        self._unrecoverable_notified = False
+        self._persistent_failure_started = None
+        self._persistent_failures = 0
+        self._reaper_stop.clear()
+        self._start_reaper()
 
     def _open_file_connection(self) -> sqlite3.Connection:
         if self.db_path is None:
@@ -539,6 +586,7 @@ class DatabaseProvider:
         return [dict(row) for row in rows]
 
     def close(self):
+        self._closed = True
         self._stop_reaper()
         # A provider being torn down must not escalate stale-handle errors
         # into a wedge reset or a process restart.
@@ -562,6 +610,7 @@ class DatabaseProvider:
             del self._local.connection
 
     def close_all(self):
+        self._closed = True
         self._stop_reaper()
         self._wedge_suppressed = True
         with self._lock:

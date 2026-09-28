@@ -45,11 +45,12 @@ class ForwardingManager:
                 alias_identity = RNS.Identity.from_bytes(private_key_bytes)
                 alias_hash = mapping["alias_hash"]
 
-                # create temp router for this alias
+                # create temp router for this alias (identity-hash dir, stable
+                # across the alias_hash->destination hash migration)
                 router_storage_path = os.path.join(
                     self.storage_path,
                     "forwarding",
-                    alias_hash,
+                    alias_identity.hash.hex(),
                 )
                 os.makedirs(router_storage_path, exist_ok=True)
 
@@ -69,10 +70,22 @@ class ForwardingManager:
                 alias_destination = router.register_delivery_identity(
                     identity=alias_identity,
                 )
+                # Replies are addressed to the alias DESTINATION hash, so the
+                # forwarding maps must key on it. Rows written before this
+                # stored the identity hash and were unreachable; heal them.
+                dest_hash = alias_destination.hash.hex()
+                if dest_hash != alias_hash:
+                    try:
+                        self.db.messages.update_forwarding_alias_hash(
+                            alias_hash,
+                            dest_hash,
+                        )
+                    except Exception:
+                        pass
 
                 with self._lock:
-                    self.forwarding_destinations[alias_hash] = alias_destination
-                    self.forwarding_routers[alias_hash] = router
+                    self.forwarding_destinations[dest_hash] = alias_destination
+                    self.forwarding_routers[dest_hash] = router
 
             except Exception as e:
                 print(f"Failed to load forwarding alias {mapping['alias_hash']}: {e}")
@@ -122,6 +135,9 @@ class ForwardingManager:
             alias_destination = router.register_delivery_identity(
                 identity=alias_identity,
             )
+            # Replies arrive addressed to the alias destination hash, so that
+            # is what the mapping must record (not the identity hash).
+            alias_dest_hash = alias_destination.hash.hex()
 
             private_key = alias_identity.get_private_key()
             if not private_key:
@@ -132,7 +148,7 @@ class ForwardingManager:
                 "alias_identity_private_key": base64.b64encode(
                     private_key,
                 ).decode(),
-                "alias_hash": alias_hash,
+                "alias_hash": alias_dest_hash,
                 "original_sender_hash": source_hash,
                 "final_recipient_hash": final_recipient_hash,
                 "original_destination_hash": original_destination_hash,
@@ -142,10 +158,10 @@ class ForwardingManager:
             except Exception:
                 # The destination is already registered with RNS, so undo
                 # the registration before propagating the failure.
-                self._stop_router(alias_hash, router)
+                self._stop_router(alias_dest_hash, router)
                 raise
-            self.forwarding_destinations[alias_hash] = alias_destination
-            self.forwarding_routers[alias_hash] = router
+            self.forwarding_destinations[alias_dest_hash] = alias_destination
+            self.forwarding_routers[alias_dest_hash] = router
             return data
 
     def announce_aliases(self):

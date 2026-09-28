@@ -203,7 +203,13 @@ class MessageDAO:
             raise ValueError("messages must be an array")
 
         for index, message in enumerate(messages):
-            normalized = self.normalize_lxmf_message_for_import(message)
+            try:
+                # Normalization must also be inside the guard: a row that
+                # raises there used to kill the whole import.
+                normalized = self.normalize_lxmf_message_for_import(message)
+            except Exception as exc:
+                errors.append({"index": index, "hash": None, "error": str(exc)})
+                continue
             if normalized is None:
                 skipped += 1
                 continue
@@ -421,9 +427,16 @@ class MessageDAO:
     def delete_conversation_summary(self, peer_hash):
         if not peer_hash or not isinstance(peer_hash, str):
             return
+        key = peer_hash.strip()
         self.provider.execute(
             "DELETE FROM lxmf_conversation_summaries WHERE peer_hash = ?",
-            (peer_hash.strip(),),
+            (key,),
+        )
+        # Orphaned viewed-state would resurrect unread markers if the peer
+        # hash is ever reused by a new conversation.
+        self.provider.execute(
+            "DELETE FROM notification_viewed_state WHERE destination_hash = ?",
+            (key,),
         )
 
     def set_lxmf_message_path_at_send_if_unset(
@@ -581,18 +594,26 @@ class MessageDAO:
 
     def list_message_hashes_with_timestamp_before(self, cutoff_ts: float) -> list[str]:
         rows = self.provider.fetchall(
-            "SELECT hash FROM lxmf_messages WHERE timestamp IS NOT NULL AND timestamp < ?",
-            (cutoff_ts,),
+            "SELECT hash, created_at FROM lxmf_messages WHERE created_at IS NOT NULL",
         )
-        return [r["hash"] for r in rows if r.get("hash")]
+        return [
+            r["hash"]
+            for r in rows
+            if r.get("hash")
+            and (ts := _lxmf_created_at_epoch(r.get("created_at"))) is not None
+            and ts < cutoff_ts
+        ]
 
     def count_lxmf_messages_with_timestamp_before(self, cutoff_ts: float) -> int:
-        row = self.provider.fetchone(
-            "SELECT COUNT(*) AS count FROM lxmf_messages "
-            "WHERE timestamp IS NOT NULL AND timestamp < ?",
-            (cutoff_ts,),
+        rows = self.provider.fetchall(
+            "SELECT created_at FROM lxmf_messages WHERE created_at IS NOT NULL",
         )
-        return int(row["count"]) if row and row["count"] is not None else 0
+        total = 0
+        for r in rows:
+            ts = _lxmf_created_at_epoch(r.get("created_at"))
+            if ts is not None and ts < cutoff_ts:
+                total += 1
+        return total
 
     def get_lxmf_messages_with_timestamp_before(
         self,
@@ -600,12 +621,16 @@ class MessageDAO:
         limit: int = 5000,
         offset: int = 0,
     ):
-        return self.provider.fetchall(
-            "SELECT * FROM lxmf_messages "
-            "WHERE timestamp IS NOT NULL AND timestamp < ? "
-            "ORDER BY id LIMIT ? OFFSET ?",
-            (cutoff_ts, limit, offset),
+        rows = self.provider.fetchall(
+            "SELECT * FROM lxmf_messages WHERE created_at IS NOT NULL ORDER BY id",
         )
+        out = [
+            r
+            for r in rows
+            if (ts := _lxmf_created_at_epoch(r.get("created_at"))) is not None
+            and ts < cutoff_ts
+        ]
+        return out[offset : offset + limit]
 
     def prune_conversation_metadata_for_peers_with_no_messages(self) -> None:
         self.provider.execute(
@@ -636,18 +661,24 @@ class MessageDAO:
     def delete_lxmf_messages_by_hashes(self, message_hashes):
         if not message_hashes:
             return
-        placeholders = ", ".join(["?"] * len(message_hashes))
-        peers = self.provider.fetchall(
-            f"SELECT DISTINCT peer_hash FROM lxmf_messages WHERE hash IN ({placeholders})",  # nosec: BAN-B608
-            tuple(message_hashes),
-        )
-        self.provider.execute(
-            f"DELETE FROM lxmf_messages WHERE hash IN ({placeholders})",  # nosec: BAN-B608
-            tuple(message_hashes),
-        )
-        self.refresh_conversation_summaries_for_peers(
-            [row["peer_hash"] for row in peers if row and row.get("peer_hash")],
-        )
+        # Chunk under SQLite's bound-parameter ceiling for large batches.
+        chunk_size = 500
+        peer_hashes = set()
+        for i in range(0, len(message_hashes), chunk_size):
+            chunk = message_hashes[i : i + chunk_size]
+            placeholders = ", ".join(["?"] * len(chunk))
+            peers = self.provider.fetchall(
+                f"SELECT DISTINCT peer_hash FROM lxmf_messages WHERE hash IN ({placeholders})",  # nosec: BAN-B608
+                tuple(chunk),
+            )
+            self.provider.execute(
+                f"DELETE FROM lxmf_messages WHERE hash IN ({placeholders})",  # nosec: BAN-B608
+                tuple(chunk),
+            )
+            peer_hashes.update(
+                row["peer_hash"] for row in peers if row and row.get("peer_hash")
+            )
+        self.refresh_conversation_summaries_for_peers(sorted(peer_hashes))
 
     def delete_lxmf_message_by_hash(self, message_hash):
         if isinstance(message_hash, str):
@@ -668,6 +699,7 @@ class MessageDAO:
             self.provider.execute("DELETE FROM lxmf_messages")
             self.provider.execute("DELETE FROM lxmf_conversation_read_state")
             self.provider.execute("DELETE FROM lxmf_conversation_summaries")
+            self.provider.execute("DELETE FROM notification_viewed_state")
 
     def get_all_lxmf_messages(self, limit=5000, offset=0):
         return self.provider.fetchall(
@@ -1168,6 +1200,12 @@ class MessageDAO:
                 (original_sender_hash, final_recipient_hash),
             )
         return None
+
+    def update_forwarding_alias_hash(self, old_hash, new_hash):
+        self.provider.execute(
+            "UPDATE lxmf_forwarding_mappings SET alias_hash = ? WHERE alias_hash = ?",
+            (new_hash, old_hash),
+        )
 
     def create_forwarding_mapping(self, data):
         # Ensure data is a dict if it's a sqlite3.Row
