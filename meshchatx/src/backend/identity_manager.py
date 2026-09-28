@@ -112,18 +112,22 @@ class IdentityManager:
 
             try:
                 temp_provider = DatabaseProvider(db_path)
-                temp_config_dao = ConfigDAO(temp_provider)
-                display_name = temp_config_dao.get("display_name", "Anonymous Peer")
-                icon_name = temp_config_dao.get("lxmf_user_icon_name")
-                icon_foreground_colour = temp_config_dao.get(
-                    "lxmf_user_icon_foreground_colour",
-                )
-                icon_background_colour = temp_config_dao.get(
-                    "lxmf_user_icon_background_colour",
-                )
-                lxmf_address = temp_config_dao.get("lxmf_address_hash")
-                lxst_address = temp_config_dao.get("lxst_address_hash")
-                temp_provider.close_all()
+                try:
+                    temp_config_dao = ConfigDAO(temp_provider)
+                    display_name = temp_config_dao.get(
+                        "display_name", "Anonymous Peer"
+                    )
+                    icon_name = temp_config_dao.get("lxmf_user_icon_name")
+                    icon_foreground_colour = temp_config_dao.get(
+                        "lxmf_user_icon_foreground_colour",
+                    )
+                    icon_background_colour = temp_config_dao.get(
+                        "lxmf_user_icon_background_colour",
+                    )
+                    lxmf_address = temp_config_dao.get("lxmf_address_hash")
+                    lxst_address = temp_config_dao.get("lxst_address_hash")
+                finally:
+                    temp_provider.close_all()
 
                 # Save metadata for next time
                 metadata = {
@@ -171,14 +175,15 @@ class IdentityManager:
         db_path = os.path.join(identity_dir, "database.db")
 
         new_provider = DatabaseProvider(db_path)
-        new_schema = DatabaseSchema(new_provider)
-        new_schema.initialize()
+        try:
+            new_schema = DatabaseSchema(new_provider)
+            new_schema.initialize()
 
-        if display_name:
-            new_config_dao = ConfigDAO(new_provider)
-            new_config_dao.set("display_name", display_name)
-
-        new_provider.close_all()
+            if display_name:
+                new_config_dao = ConfigDAO(new_provider)
+                new_config_dao.set("display_name", display_name)
+        finally:
+            new_provider.close_all()
 
         metadata_path = os.path.join(identity_dir, "metadata.json")
         existing_metadata = self._read_metadata_object(metadata_path)
