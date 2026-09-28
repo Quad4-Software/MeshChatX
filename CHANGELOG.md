@@ -4,8 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [4.9.3] - TBD [unreleased]
 
+### Changed
+
+- Visualiser: the radial view is replaced by a cluster view that groups peers into lobes around the interface that announced them, so the layout shows where traffic actually arrives from. Stored radial preferences upgrade to cluster.
+
 ### Fixed
 
+- Visualiser: WebGL live layout settles again. Tick damping and the per-step speed cap were tuned so nodes spread out and come to rest instead of ringing at equilibrium.
+- Map: dragging the settings window stays smooth now (backdrop blur is disabled for the drag) and the coordinates readout no longer re-renders the whole page on every pointer event.
 - NomadNet: image size hints now follow upstream semantics. A bare w=/h= number is a character cell count (columns and rows) instead of pixels, w=n renders at the image's native size, and percent values stay relative to the page as upstream intends. Matches markqvist's NomadNet ImageWidget behavior.
 - Issue triage: the welcome comment no longer asks reporters for logs or a screenshot when the issue body already contains an attachment or a filled-in logs section.
 
