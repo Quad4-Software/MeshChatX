@@ -126,13 +126,13 @@ func (s *Scene) Set(req SetRequest) {
 		if !isFinite(n.Y) {
 			n.Y = 0
 		}
-		if n.Mass <= 0 {
+		if !isFinite(n.Mass) || n.Mass <= 0 {
 			n.Mass = 1
 		}
-		if n.Size <= 0 {
+		if !isFinite(n.Size) || n.Size <= 0 {
 			n.Size = defaultSize(n.Kind)
 		}
-		if n.A <= 0 {
+		if !isFinite(n.A) || n.A <= 0 {
 			n.A = 1
 		}
 		if n.R == 0 && n.G == 0 && n.B == 0 {
@@ -392,7 +392,8 @@ func (s *Scene) PickNearest(screenX, screenY, maxDistPx float64) string {
 		dx := n.X - wx
 		dy := n.Y - wy
 		d2 := dx*dx + dy*dy
-		hitR := n.Size / s.zoom
+		// n.Size is a world-space radius; the renderer scales it by zoom.
+		hitR := n.Size
 		if hitR < maxWorld {
 			hitR = maxWorld
 		}

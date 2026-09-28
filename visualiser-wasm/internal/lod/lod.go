@@ -16,9 +16,10 @@ type NodeIn struct {
 	Font          *FontIn        `json:"font"`
 }
 
-// FontIn carries the current font size when present.
+// FontIn carries the current font size/color when present.
 type FontIn struct {
-	Size *float64 `json:"size"`
+	Size  *float64 `json:"size"`
+	Color string   `json:"color"`
 }
 
 // Update is a sparse vis-network node patch for one LOD change.
@@ -164,6 +165,15 @@ func changed(n *NodeIn, next Update) bool {
 		return true
 	}
 	if next.Font != nil {
+		if nc, ok := next.Font["color"]; ok {
+			var cur string
+			if n.Font != nil && n.Font.Color != "" {
+				cur = n.Font.Color
+			}
+			if s, ok := nc.(string); ok && s != cur {
+				return true
+			}
+		}
 		ns, ok := next.Font["size"]
 		if ok {
 			var cur float64

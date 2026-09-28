@@ -244,6 +244,17 @@ func Settle(req Request) Result {
 						}
 						dxp := bodies[i].x - bodies[j].x
 						dyp := bodies[i].y - bodies[j].y
+						if dxp == 0 && dyp == 0 {
+							// Coincident nodes have no separation direction, so
+							// every force below would be zero forever. Give each
+							// pair a deterministic push based on their ids.
+							h := uint32(2166136261)
+							for _, c := range bodies[i].id + bodies[j].id {
+								h = h*16777619 ^ uint32(c)
+							}
+							a := float64(h%6283) / 1000.0
+							dxp, dyp = math.Cos(a)*0.01, math.Sin(a)*0.01
+						}
 						dist2 := dxp*dxp + dyp*dyp + 0.01
 						dist := math.Sqrt(dist2)
 						inv := 1.0 / dist

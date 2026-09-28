@@ -14,8 +14,21 @@ func FormatSpaced(compactOrSpaced string) (string, error) {
 		return "", err
 	}
 	var b strings.Builder
-	prefix := encodedPrefixLen(p.Zone)
-	gzdLen := prefix - 2
+	// GZD width is the zone digits plus the band. Single-digit UTM zones
+	// (1-9) encode one digit, UPS encodes no zone at all.
+	zoneDigits := 0
+	if p.Zone != ZoneUPS {
+		if p.Zone >= 1 && p.Zone <= 9 {
+			zoneDigits = 1
+		} else {
+			zoneDigits = 2
+		}
+	}
+	gzdLen := zoneDigits + 1
+	prefix := gzdLen + 2
+	if len(data) < prefix {
+		return "", ErrInvalidMGRS
+	}
 	b.Write(data[:gzdLen])
 	b.WriteByte(' ')
 	b.WriteByte(p.Col)
