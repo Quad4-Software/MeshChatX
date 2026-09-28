@@ -697,6 +697,7 @@ async def handle_nomadnet_file_download(app, client, data):
         **nomad_link_identity_kwargs(app, destination_hash, private=private),
     )
     downloader.start_time = time.time()
+    downloader._meshchatx_client = client
     app.active_downloads[download_id] = downloader
 
     # notify client download started (await so phase updates cannot reorder ahead of started)
@@ -962,6 +963,7 @@ async def handle_nomadnet_page_download(app, client, data):
         max_bytes=WS_NOMAD_PAGE_MAX_CHARS,
         **nomad_link_identity_kwargs(app, destination_hash, private=private),
     )
+    downloader._meshchatx_client = client
     app.active_downloads[download_id] = downloader
 
     # notify client download started (await so phase updates cannot reorder ahead of started)

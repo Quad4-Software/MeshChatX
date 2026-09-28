@@ -876,7 +876,7 @@ export default {
         },
         async announceNow(showSuccessToast = true) {
             try {
-                await window.api.get(apiPath("/announce"));
+                await window.api.post(apiPath("/announce"));
                 if (showSuccessToast) {
                     ToastUtils.success(this.$t("tools.propagation_nodes.announce_triggered"));
                 }

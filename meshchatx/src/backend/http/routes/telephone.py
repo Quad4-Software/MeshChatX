@@ -333,6 +333,11 @@ def register_telephone_routes(routes, app):
             app.telephone_manager.request_hangup()
             return http_forbidden("Caller is banished")
 
+        # Only an incoming call that is still ringing may be answered; on an
+        # outbound or already-established call answer() is not meaningful.
+        if app.telephone_manager.telephone.call_status != 4:  # STATUS_RINGING
+            return http_bad_request("No ringing incoming call to answer")
+
         # answer call
         await asyncio.to_thread(
             app.telephone_manager.telephone.answer,

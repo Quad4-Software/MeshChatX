@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 def register_favourites_routes(routes, app):
     # announce
-    @routes.get(API_V1_PREFIX + "/announce")
+    @routes.post(API_V1_PREFIX + "/announce")
     async def announce_trigger(request):
         await app.announce()
 

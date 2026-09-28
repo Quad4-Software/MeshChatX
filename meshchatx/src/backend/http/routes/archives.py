@@ -345,6 +345,9 @@ def register_archives_routes(routes, app):
             page_path = (
                 app.config.nomad_default_page_path.get() if app.config else None
             ) or "/page/index.mu"
+        # Normalize once: everything downstream (download, archive, versions,
+        # queueing) must key on the same path, without the '`' version suffix.
+        page_path = page_path.split("`", 1)[0]
 
         crawler = (
             getattr(app.current_context, "crawler_manager", None)
@@ -373,7 +376,7 @@ def register_archives_routes(routes, app):
 
         downloader = NomadnetPageDownloader(
             destination_hash=bytes.fromhex(destination_hash),
-            page_path=page_path.split("`", 1)[0],
+            page_path=page_path,
             data=None,
             on_page_download_success=on_success,
             on_page_download_failure=on_failure,
