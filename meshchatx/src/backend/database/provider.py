@@ -206,6 +206,30 @@ class DatabaseProvider:
             + self._prune_idle_connections_unlocked()
         )
 
+    def _evict_lru_idle_unlocked(self, keep: int) -> int:
+        """Close least-recently-used idle connections to stay under keep.
+
+        Runs when the tracked count passes the soft cap. Only idle handles
+        (no active queries, not in a transaction) are evicted; owning
+        threads reopen transparently on next use.
+        """
+        candidates = sorted(
+            (
+                (meta.get("last_used", 0), conn)
+                for conn, meta in self._connection_meta.items()
+                if meta.get("active_count", 0) <= 0
+                and not conn.in_transaction
+                and self._connection_usable(conn)
+            ),
+            key=lambda row: row[0],
+        )
+        evict = min(len(candidates), max(0, len(self._connection_meta) - keep))
+        dropped = 0
+        for _last, conn in candidates[:evict]:
+            self._close_tracked_connection(conn)
+            dropped += 1
+        return dropped
+
     def _start_reaper(self) -> None:
         if self._IDLE_CONNECTION_TIMEOUT_SECONDS <= 0:
             return
@@ -340,11 +364,19 @@ class DatabaseProvider:
         self._local.generation = self._close_generation
         self._track_connection(conn)
         if len(self._connection_meta) > self._MAX_CONNECTIONS_SOFT:
-            logger.warning(
-                "SQLite connection count %s exceeds %s live-thread handles",
-                len(self._connection_meta),
-                self._MAX_CONNECTIONS_SOFT,
-            )
+            evicted = self._evict_lru_idle_unlocked(self._MAX_CONNECTIONS_SOFT)
+            if evicted:
+                logger.debug(
+                    "SQLite connection soft cap %s exceeded; evicted %s idle handles",
+                    self._MAX_CONNECTIONS_SOFT,
+                    evicted,
+                )
+            if len(self._connection_meta) > self._MAX_CONNECTIONS_SOFT:
+                logger.warning(
+                    "SQLite connection count %s exceeds %s live-thread handles",
+                    len(self._connection_meta),
+                    self._MAX_CONNECTIONS_SOFT,
+                )
         return conn
 
     @property
