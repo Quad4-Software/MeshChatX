@@ -189,6 +189,7 @@ export default {
         window.addEventListener("resize", this.drawWaveform);
     },
     beforeUnmount() {
+        this._unmounted = true;
         this.stopPlayback();
         window.removeEventListener("mousemove", this.handleDragging);
         window.removeEventListener("mouseup", this.stopDragging);
@@ -206,8 +207,16 @@ export default {
                 });
                 const arrayBuffer = response.data;
 
-                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (this._unmounted) {
+                    // Unmounted while awaiting the fetch: close immediately
+                    // instead of leaking the context.
+                    ctx.close();
+                    return;
+                }
+                this.audioContext = ctx;
                 this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                if (this._unmounted) return;
 
                 this.totalDuration = this.audioBuffer.duration;
                 this.startTime = 0;

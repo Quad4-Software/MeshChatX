@@ -1,7 +1,7 @@
 // @ts-check
 // SPDX-License-Identifier: 0BSD
 
-import { ref } from "vue";
+import { onUnmounted, ref } from "vue";
 
 import * as announcesApi from "../api/announces.js";
 
@@ -111,6 +111,14 @@ export function useNomadNodesList() {
             getNomadnetworkNodeAnnounces();
         }, 500);
     }
+
+    // A pending debounce must not fire after the component is gone.
+    onUnmounted(() => {
+        if (nodesRefreshTimeout.value) {
+            clearTimeout(nodesRefreshTimeout.value);
+            nodesRefreshTimeout.value = null;
+        }
+    })
 
     return {
         nodes,
