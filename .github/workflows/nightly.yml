@@ -145,6 +145,9 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
+                  # Scheduled/dispatch runs default to master; this workflow
+                  # tests the dev track.
+                  ref: dev
                   persist-credentials: false
 
             - name: Keep newest Testing prereleases
@@ -166,6 +169,9 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
+                  # Scheduled/dispatch runs default to master; this workflow
+                  # tests the dev track.
+                  ref: dev
                   persist-credentials: false
             - name: Set up development environment
               uses: $/.github/actions/setup-dev-environment
@@ -187,6 +193,9 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
+                  # Scheduled/dispatch runs default to master; this workflow
+                  # tests the dev track.
+                  ref: dev
                   persist-credentials: false
             - name: Build Dockerfile.dev
               run: docker build -f docker/Dockerfile.dev -t meshchatx-dev:ci .
@@ -206,6 +215,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
+                  ref: dev
                   persist-credentials: false
             - name: Summarize workflow durations and failure rates
               env:

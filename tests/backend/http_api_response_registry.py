@@ -23,7 +23,6 @@ from tests.backend.http_api_contract_runtime import HttpJsonContract
 from tests.backend.http_api_response_schemas import (
     ACCESS_ATTEMPTS_SCHEMA,
     ACTIVE_SESSIONS_SCHEMA,
-    ANNOUNCE_SINGLE_SCHEMA,
     ANNOUNCES_LIST_SCHEMA,
     BLACKHOLE_STATUS_SCHEMA,
     BLOCKED_DESTINATIONS_ENVELOPE_SCHEMA,
