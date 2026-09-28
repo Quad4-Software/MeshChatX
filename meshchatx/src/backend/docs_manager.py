@@ -25,6 +25,10 @@ MANIFEST_FILENAME = "manifest.json"
 DOC_FILE_SUFFIXES = (".md", ".txt")
 
 
+MAX_DOCS_ZIP_BYTES = 256 * 1024 * 1024
+MAX_DOCS_ZIP_FILES = 50_000
+
+
 def _docs_zip_member_is_safe(name: str) -> bool:
     return is_safe_archive_member(name)
 
@@ -883,11 +887,31 @@ class DocsManager:
 
             # Symlink entries must never land on disk: the version copy below
             # would follow them out of the docs tree.
+            # Bounded extraction: declared sizes are metadata, so count real
+            # bytes per member as they are written.
+            total_written = [0]
+
+            def _extract_capped(zip_ref_obj, info, dest_root):
+                name = info.filename
+                target = os.path.join(dest_root, name)
+                os.makedirs(os.path.dirname(target) or dest_root, exist_ok=True)
+                with zip_ref_obj.open(info) as src, open(target, "wb") as dst:
+                    while True:
+                        chunk = src.read(1 << 16)
+                        if not chunk:
+                            break
+                        total_written[0] += len(chunk)
+                        if total_written[0] > MAX_DOCS_ZIP_BYTES:
+                            raise ValueError("docs archive too large when extracted")
+                        dst.write(chunk)
+
             symlink_members = {
                 info.filename
                 for info in infos
                 if stat.S_ISLNK(info.external_attr >> 16)
             }
+            if len(infos) > MAX_DOCS_ZIP_FILES:
+                raise ValueError("docs archive has too many entries")
 
             namelist = zip_ref.namelist()
             root_folder = namelist[0].split("/")[0]
@@ -902,7 +926,7 @@ class DocsManager:
                         continue
                     if not _docs_zip_member_is_safe(member):
                         continue
-                    zip_ref.extract(member, temp_extract)
+                    _extract_capped(zip_ref, zip_ref.getinfo(member), temp_extract)
 
                 src_path = os.path.join(temp_extract, root_folder, "docs")
                 for item in os.listdir(src_path):
@@ -918,7 +942,11 @@ class DocsManager:
                     for m in namelist
                     if _docs_zip_member_is_safe(m) and m not in symlink_members
                 ]
-                zip_ref.extractall(temp_extract, members=safe_members)
+                for member in safe_members:
+                    info = zip_ref.getinfo(member)
+                    if info.is_dir():
+                        continue
+                    _extract_capped(zip_ref, info, temp_extract)
                 src_path = os.path.join(temp_extract, root_folder)
                 if os.path.exists(src_path) and os.path.isdir(src_path):
                     for item in os.listdir(src_path):

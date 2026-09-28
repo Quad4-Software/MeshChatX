@@ -34,6 +34,7 @@ from meshchatx.src.env_utils import env_snapshot, env_str
 from meshchatx.src.json_store import load_json, save_json
 from meshchatx.src.path_utils import (
     PathJailError,
+    atomic_write_bytes,
     is_under_root,
     resolve_under_root,
     safe_basename,
@@ -63,8 +64,23 @@ SUPPORTED_IMAGE_EXTENSIONS = frozenset(
 )
 
 MEDIA_QUALITY = 85
+_MEDIA_CONVERT_ENV_LOCK = threading.Lock()
 MEDIA_MAX_DIMENSION = 1920
 MEDIA_CONVERT_TIMEOUT_SECONDS = 10
+# Remote-controlled quality/dimension values are quantized onto a small
+# lattice so a peer cannot exhaust disk with one cache file per pair.
+MEDIA_QUALITY_LATTICE = (25, 50, 75, 90)
+MEDIA_DIMENSION_LATTICE = (256, 512, 1024, 1920)
+# Hard cap on cache files; oldest entries are evicted beyond it.
+MEDIA_CACHE_MAX_FILES = 512
+# tempfile.tempdir / os.environ are process-global, so every media convert
+# across every PageNode instance must serialize on one shared lock.
+_MEDIA_ENV_LOCK = threading.Lock()
+
+
+def _media_quantize(value, lattice):
+    return min(lattice, key=lambda v: abs(v - int(value)))
+
 
 DEFAULT_ANNOUNCE_INTERVAL_SECONDS = constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
 LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS = (
@@ -909,6 +925,14 @@ class PageNode:
         except PathJailError:
             return None
 
+    @staticmethod
+    def _open_jailed(path):
+        """Open a jailed path without following a swapped leaf symlink."""
+        flags = os.O_RDONLY
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        return os.fdopen(os.open(path, flags), "rb")
+
     def read_hosted_file(self, name):
         """Read a hosted file from the files jail.
 
@@ -918,7 +942,7 @@ class PageNode:
         if file_path is None:
             return None
         try:
-            with open(file_path, "rb") as f:
+            with self._open_jailed(file_path) as f:
                 file_bytes = f.read()
         except OSError:
             return None
@@ -936,7 +960,7 @@ class PageNode:
             if file_path is None:
                 return None
             try:
-                fh = open(file_path, "rb")
+                fh = self._open_jailed(file_path)
                 metadata = {"name": os.path.basename(file_path).encode("utf-8")}
                 self._stats["files_served"] += 1
                 return [fh, metadata]
@@ -986,6 +1010,22 @@ class PageNode:
                 continue
         return None
 
+    def _evict_media_cache(self):
+        try:
+            entries = [
+                os.path.join(self.media_cache_dir, name)
+                for name in os.listdir(self.media_cache_dir)
+            ]
+            files = [e for e in entries if os.path.isfile(e)]
+            if len(files) <= MEDIA_CACHE_MAX_FILES:
+                return
+            files.sort(key=lambda e: os.path.getmtime(e))
+            for path in files[: len(files) - MEDIA_CACHE_MAX_FILES]:
+                with contextlib.suppress(OSError):
+                    os.remove(path)
+        except OSError:
+            return
+
     def _media_cache_key(self, source_path, quality, max_dimension):
         try:
             with open(source_path, "rb") as f:
@@ -1005,29 +1045,36 @@ class PageNode:
         os.makedirs(self.media_cache_dir, exist_ok=True)
 
         env_keys = ("TMPDIR", "TMP", "TEMP", "MAGICK_TMPDIR", "MAGICK_TEMPORARY_PATH")
-        old_env = env_snapshot(env_keys)
-        old_tmpdir = tempfile.tempdir
-        tempfile.tempdir = self.media_cache_dir
-        for key in env_keys:
-            os.environ[key] = self.media_cache_dir
-        try:
-            tmp_path = convert_file_to_webp(
-                source_path,
-                quality=quality,
-                max_dimension=max_dimension,
-                timeout=MEDIA_CONVERT_TIMEOUT_SECONDS,
-            )
-        finally:
-            tempfile.tempdir = old_tmpdir
+        # tempfile.tempdir and os.environ are process-global: hold the lock for
+        # the whole window or concurrent conversions clobber each other (and
+        # every other tempfile user). The encoder child inherits env at spawn,
+        # so the window must cover the call, not just the assignment.
+        with _MEDIA_CONVERT_ENV_LOCK:
+            old_env = env_snapshot(env_keys)
+            old_tmpdir = tempfile.tempdir
+            tempfile.tempdir = self.media_cache_dir
             for key in env_keys:
-                old_value = old_env[key]
-                if old_value is None:
-                    os.environ.pop(key, None)
-                else:
-                    os.environ[key] = old_value
+                os.environ[key] = self.media_cache_dir
+            try:
+                tmp_path = convert_file_to_webp(
+                    source_path,
+                    quality=quality,
+                    max_dimension=max_dimension,
+                    timeout=MEDIA_CONVERT_TIMEOUT_SECONDS,
+                )
+            finally:
+                tempfile.tempdir = old_tmpdir
+                for key in env_keys:
+                    old_value = old_env[key]
+                    if old_value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = old_value
 
         if not tmp_path or not os.path.isfile(tmp_path):
             return None
+        self._evict_media_cache()
+
         try:
             os.replace(tmp_path, cache_path)
         except OSError:
@@ -1044,6 +1091,11 @@ class PageNode:
         """Return the cached WebP path for a media source, converting if needed."""
         if source_path is None:
             return None
+        quality = _media_quantize(max(1, min(100, int(quality))), MEDIA_QUALITY_LATTICE)
+        max_dimension = _media_quantize(
+            max(16, min(MEDIA_MAX_DIMENSION, int(max_dimension))),
+            MEDIA_DIMENSION_LATTICE,
+        )
         lower_name = os.path.basename(source_path).lower()
         is_webp = lower_name.endswith(".webp")
         if is_webp:
@@ -1133,10 +1185,16 @@ class PageNode:
                         max_dimension = int(max_dimension_raw)
                     except (TypeError, ValueError):
                         max_dimension = MEDIA_MAX_DIMENSION
-            # Clamp so arbitrary peer values cannot crash the converter or
+            # Quantize onto a fixed lattice so arbitrary peer values cannot
             # grow the media cache with one file per quality/dimension pair.
-            quality = max(1, min(100, quality))
-            max_dimension = max(16, min(MEDIA_MAX_DIMENSION, max_dimension))
+            quality = _media_quantize(
+                max(1, min(100, quality)),
+                MEDIA_QUALITY_LATTICE,
+            )
+            max_dimension = _media_quantize(
+                max(16, min(MEDIA_MAX_DIMENSION, max_dimension)),
+                MEDIA_DIMENSION_LATTICE,
+            )
 
             converted_path = self._get_converted_media_path(
                 source_path,
@@ -1182,8 +1240,7 @@ class PageNode:
         name = os.path.basename(page_path)
         if isinstance(content, str):
             content = content.encode("utf-8")
-        with open(page_path, "wb") as f:
-            f.write(content)
+        atomic_write_bytes(page_path, content)
         if executable is not None:
             self.set_page_executable(name, bool(executable))
         if self.running:
@@ -1247,8 +1304,7 @@ class PageNode:
             raise ValueError("invalid file name")
         if isinstance(data, str):
             data = data.encode("utf-8")
-        with open(file_path, "wb") as f:
-            f.write(data)
+        atomic_write_bytes(file_path, data)
         if self.running:
             self._register_file_handler(name)
         return name
