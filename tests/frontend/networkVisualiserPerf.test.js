@@ -5,7 +5,7 @@ import {
     buildPathGraph,
     buildPathGraphJs,
     computeLodUpdatesJs,
-    computeRadialPositions,
+    computeClusterPositions,
     declutterLabelBoxes,
     dedupeIconQueueEntries,
     dedupeIconQueueEntriesJs,
@@ -228,36 +228,51 @@ describe("networkVisualiserPerf", () => {
         expect(all.find((u) => u.id === "n2").font.size).toBe(11);
     });
 
-    it("computeRadialPositions lays out hop rings around me", () => {
-        const pos = computeRadialPositions({
-            interfaces: ["eth0"],
+    it("computeClusterPositions groups same-interface peers into lobes", () => {
+        const pos = computeClusterPositions({
+            interfaces: ["eth0", "wlan0"],
             discovered: ["discovered~x"],
             pathTable: [
                 { hash: "h1", interface: "eth0", hops: 1 },
                 { hash: "h2", interface: "eth0", hops: 1 },
                 { hash: "h3", interface: "eth0", hops: 3 },
+                { hash: "w1", interface: "wlan0", hops: 1 },
                 { hash: "h4", interface: "eth0", hops: null },
                 { hash: "h5", interface: "eth0", hops: 9 },
             ],
             hopMax: 4,
         });
         expect(pos.me).toEqual({ x: 0, y: 0 });
-        expect(Math.hypot(pos.eth0.x, pos.eth0.y)).toBeCloseTo(300, 1);
-        expect(Math.hypot(pos["discovered~x"].x, pos["discovered~x"].y)).toBeCloseTo(300, 1);
-        // Hop-1 ring at 560, hop-3 ring at 560 + 2 * 230 = 1020.
-        expect(Math.hypot(pos.h1.x, pos.h1.y)).toBeCloseTo(560, 1);
-        expect(Math.hypot(pos.h2.x, pos.h2.y)).toBeCloseTo(560, 1);
-        expect(Math.hypot(pos.h3.x, pos.h3.y)).toBeCloseTo(1020, 1);
+        expect(Math.hypot(pos.eth0.x, pos.eth0.y)).toBeCloseTo(320, 1);
+        expect(Math.hypot(pos["discovered~x"].x, pos["discovered~x"].y)).toBeCloseTo(320, 1);
+        // Hop-1 lobes centre on radius 580, hop-3 on 1080, plus bloom offset.
+        for (const id of ["h1", "h2", "w1"]) {
+            const d = Math.hypot(pos[id].x, pos[id].y);
+            expect(d).toBeGreaterThan(490);
+            expect(d).toBeLessThan(670);
+        }
+        const d3 = Math.hypot(pos.h3.x, pos.h3.y);
+        expect(d3).toBeGreaterThan(1020);
+        expect(d3).toBeLessThan(1140);
         // Hop-less and over-max entries get no position.
         expect(pos.h4).toBeUndefined();
         expect(pos.h5).toBeUndefined();
-        // Deterministic across calls.
-        const again = computeRadialPositions({
-            interfaces: ["eth0"],
+        // Same-interface hop-1 peers share a lobe: h1/h2 sit nearer to each
+        // other than to the wlan0 peer on the same ring.
+        const dist = (a, b) => Math.hypot(pos[a].x - pos[b].x, pos[a].y - pos[b].y);
+        expect(dist("h1", "h2")).toBeLessThan(dist("h1", "w1"));
+        expect(dist("h1", "h2")).toBeLessThan(dist("h2", "w1"));
+        // Deterministic across identical calls.
+        const again = computeClusterPositions({
+            interfaces: ["eth0", "wlan0"],
             discovered: ["discovered~x"],
             pathTable: [
                 { hash: "h1", interface: "eth0", hops: 1 },
+                { hash: "h2", interface: "eth0", hops: 1 },
                 { hash: "h3", interface: "eth0", hops: 3 },
+                { hash: "w1", interface: "wlan0", hops: 1 },
+                { hash: "h4", interface: "eth0", hops: null },
+                { hash: "h5", interface: "eth0", hops: 9 },
             ],
             hopMax: 4,
         });

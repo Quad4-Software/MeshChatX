@@ -650,7 +650,7 @@ describe("NetworkVisualiser.vue", () => {
         expect(processSpy).toHaveBeenCalledWith({ silent: true });
     });
 
-    it("radial view pins nodes on hop rings around me", async () => {
+    it("cluster view pins nodes in interface lobes around me", async () => {
         vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
         const wrapper = mountVisualiser();
         wrapper.vm.network = {
@@ -682,7 +682,7 @@ describe("NetworkVisualiser.vue", () => {
                 updated_at: new Date().toISOString(),
             },
         };
-        wrapper.vm.viewMode = "radial";
+        wrapper.vm.viewMode = "cluster";
         await wrapper.vm.processVisualization();
 
         const me = wrapper.vm.nodes.get("me");
@@ -691,16 +691,18 @@ describe("NetworkVisualiser.vue", () => {
         const n2 = wrapper.vm.nodes.get("node2");
         expect(me.x).toBe(0);
         expect(me.y).toBe(0);
-        expect(Math.hypot(iface.x, iface.y)).toBeCloseTo(300, 1);
-        expect(Math.hypot(n1.x, n1.y)).toBeCloseTo(560, 1);
-        expect(Math.hypot(n2.x, n2.y)).toBeCloseTo(790, 1);
+        expect(Math.hypot(iface.x, iface.y)).toBeCloseTo(320, 1);
+        expect(Math.hypot(n1.x, n1.y)).toBeGreaterThan(520);
+        expect(Math.hypot(n1.x, n1.y)).toBeLessThan(640);
+        expect(Math.hypot(n2.x, n2.y)).toBeGreaterThan(770);
+        expect(Math.hypot(n2.x, n2.y)).toBeLessThan(890);
         for (const n of wrapper.vm.nodes.get()) {
             expect(n.fixed).toBe(true);
         }
         wrapper.unmount();
     });
 
-    it("onViewModeChange to radial rebuilds the graph with a camera reset", async () => {
+    it("onViewModeChange to cluster rebuilds the graph with a camera reset", async () => {
         vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
         const wrapper = mountVisualiser();
         const proc = vi.spyOn(wrapper.vm, "processVisualization").mockResolvedValue();
@@ -708,11 +710,11 @@ describe("NetworkVisualiser.vue", () => {
         // Flat -> planet is render-only and must not rebuild.
         expect(proc).not.toHaveBeenCalled();
         expect(wrapper.vm.resetCameraOnNextGraph).toBe(false);
-        wrapper.vm.onViewModeChange("radial");
-        expect(wrapper.vm.viewMode).toBe("radial");
+        wrapper.vm.onViewModeChange("cluster");
+        expect(wrapper.vm.viewMode).toBe("cluster");
         expect(wrapper.vm.resetCameraOnNextGraph).toBe(true);
         expect(proc).toHaveBeenCalled();
-        // Leaving radial restores force layout, so it rebuilds too.
+        // Leaving cluster restores force layout, so it rebuilds too.
         wrapper.vm.resetCameraOnNextGraph = false;
         proc.mockClear();
         wrapper.vm.onViewModeChange("flat");

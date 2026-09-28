@@ -616,13 +616,15 @@ export function declutterLabelBoxes(items, spacing = 6) {
 }
 
 /**
- * Deterministic radial layout: me at the centre, interfaces and discovered
- * nodes on the first ring, then announce peers grouped into one ring per hop
- * count. Returns a positions map for injection into the graph builders.
+ * Deterministic cluster layout: me at the centre, interfaces and discovered
+ * nodes on the first ring, then announce peers grouped into lobes on each hop
+ * ring by the interface that reported them. Peers heard through one interface
+ * bloom together instead of spreading evenly, which shows where traffic
+ * actually arrives from. Positions are stable across rebuilds.
  * @param {{interfaces?: string[], discovered?: string[], pathTable?: object[], hopMax?: number|null}} req
  * @returns {Record<string, {x: number, y: number}>}
  */
-export function computeRadialPositions(req) {
+export function computeClusterPositions(req) {
     const positions = { me: { x: 0, y: 0 } };
     const inner = [];
     for (const id of req?.interfaces || []) {
@@ -631,11 +633,22 @@ export function computeRadialPositions(req) {
     for (const id of req?.discovered || []) {
         if (typeof id === "string" && id) inner.push(id);
     }
-    const innerRadius = 300;
+    const innerRadius = 320;
+    const innerAngle = new Map();
     inner.forEach((id, i) => {
         const a = (i / inner.length) * Math.PI * 2 - Math.PI / 2;
+        innerAngle.set(id, a);
         positions[id] = { x: Math.cos(a) * innerRadius, y: Math.sin(a) * innerRadius };
     });
+
+    // Deterministic per-hash jitter so clusters look organic instead of
+    // landing on perfect circles. Same input, same output, every build.
+    const jitter = (seed, scale) => {
+        const s = String(seed);
+        let h = 5381;
+        for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+        return ((h >>> 0) / 4294967295 - 0.5) * scale;
+    };
 
     const hopMax = req?.hopMax;
     const byHop = new Map();
@@ -650,19 +663,48 @@ export function computeRadialPositions(req) {
         }
         ring.push(entry);
     }
-    const baseRadius = 560;
-    const ringStep = 230;
+
+    const TWO_PI = Math.PI * 2;
+    const GOLDEN = 2.39996322972865332;
+    const baseRadius = 580;
+    const ringStep = 250;
     for (const [hops, entries] of [...byHop.entries()].sort((a, b) => a[0] - b[0])) {
-        // Sort by parent interface then hash so same-interface peers cluster.
-        entries.sort(
-            (a, b) =>
-                String(a.interface).localeCompare(String(b.interface)) || String(a.hash).localeCompare(String(b.hash))
-        );
         const r = baseRadius + (hops - 1) * ringStep;
-        const offset = ((hops * 137.508) % 360) * (Math.PI / 180);
-        entries.forEach((entry, i) => {
-            const a = offset + (i / entries.length) * Math.PI * 2;
-            positions[entry.hash] = { x: Math.cos(a) * r, y: Math.sin(a) * r };
+        // Group peers by ingress interface into lobes on this ring.
+        const groups = new Map();
+        for (const entry of entries) {
+            const key = typeof entry.interface === "string" && entry.interface ? entry.interface : "";
+            let g = groups.get(key);
+            if (!g) {
+                g = [];
+                groups.set(key, g);
+            }
+            g.push(entry);
+        }
+        // Lobe order follows the parent interface's inner-ring angle so a
+        // cluster lands in the same direction as its interface. Unknown
+        // interfaces land at the end.
+        const ordered = [...groups.entries()].sort(([ka], [kb]) => {
+            const a = innerAngle.has(ka) ? innerAngle.get(ka) : Infinity;
+            const b = innerAngle.has(kb) ? innerAngle.get(kb) : Infinity;
+            if (a !== b) return a - b;
+            return ka.localeCompare(kb);
+        });
+        // Each lobe is a compact golden-angle bloom centred on the ring, so
+        // large groups grow into dense petals instead of smearing around it.
+        ordered.forEach(([, g], gi) => {
+            const theta = -Math.PI / 2 + ((gi + 0.5) * TWO_PI) / ordered.length;
+            const cx = Math.cos(theta) * r;
+            const cy = Math.sin(theta) * r;
+            g.sort((a, b) => String(a.hash).localeCompare(String(b.hash)));
+            g.forEach((entry, i) => {
+                const a = i * GOLDEN + jitter(entry.hash, 0.4);
+                const rr = i === 0 ? 0 : 30 + 16 * Math.sqrt(i);
+                positions[entry.hash] = {
+                    x: cx + Math.cos(a) * rr + jitter(entry.hash + ":x", 30),
+                    y: cy + Math.sin(a) * rr + jitter(entry.hash + ":y", 30),
+                };
+            });
         });
     }
     return positions;
