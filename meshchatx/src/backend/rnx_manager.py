@@ -28,6 +28,18 @@ from meshchatx.src.json_store import load_json_required
 from meshchatx.src.path_utils import atomic_write_text
 
 try:
+    from meshchatx.src.path_utils import (
+        PathJailError,
+        resolve_user_path,
+    )
+except ImportError:  # pragma: no cover
+    PathJailError = Exception
+
+    def resolve_user_path(*_a, **_k):
+        raise PathJailError("path utils unavailable")
+
+
+try:
     import fcntl
     import pty
     import termios
@@ -342,7 +354,7 @@ class RNXSession:
 
         extra_args = (self.config.get("extra_args") or "").strip()
         if extra_args:
-            command.extend(shlex.split(extra_args))
+            raise ValueError("extra_args is not allowed")
 
         mode = self.mode
         if mode == "listen":
@@ -693,6 +705,41 @@ class RNXManager:
     def _store_path(self):
         return os.path.join(self.storage_dir, "rnx_sessions.json")
 
+    def resolve_allowed_path(self, user_path):
+        """Resolve a user path under storage or the shared Reticulum config dir."""
+        try:
+            return resolve_user_path(
+                user_path,
+                default_root=self.storage_dir,
+                allowed_roots=(self.storage_dir, self.reticulum_config_dir),
+                expanduser=True,
+                forbidden_names=frozenset({".ssh", ".gnupg"}),
+            )
+        except PathJailError:
+            return None
+
+    def sanitize_session_config(self, config):
+        """Fail closed on path overrides and reject free-form extra_args."""
+        if not isinstance(config, dict):
+            return {}
+        out = dict(config)
+        for key in ("config_path", "identity_path"):
+            raw = out.get(key)
+            if raw in (None, ""):
+                out.pop(key, None)
+                continue
+            if not isinstance(raw, str):
+                raise ValueError(f"Invalid {key}")
+            resolved = self.resolve_allowed_path(raw)
+            if resolved is None:
+                raise ValueError(f"{key} is outside the allowed directories")
+            out[key] = resolved
+        extra = out.get("extra_args")
+        if isinstance(extra, str) and extra.strip():
+            raise ValueError("extra_args is not allowed")
+        out.pop("extra_args", None)
+        return out
+
     def load(self):
         path = self._store_path()
         if not os.path.exists(path):
@@ -709,7 +756,11 @@ class RNXManager:
                 session_id = item.get("id")
                 if not isinstance(session_id, str) or not session_id.strip():
                     continue
-                session = RNXSession(self, session_id, item.get("config") or item)
+                try:
+                    cfg = self.sanitize_session_config(item.get("config") or item)
+                except ValueError:
+                    continue
+                session = RNXSession(self, session_id, cfg)
                 session.created_at = float(item.get("created_at") or session.created_at)
                 session.updated_at = float(item.get("updated_at") or session.updated_at)
                 session.status = RNXSession.STATUS_STOPPED
@@ -771,7 +822,9 @@ class RNXManager:
 
     def create_session(self, config):
         session_id = uuid.uuid4().hex
-        session = RNXSession(self, session_id, config or {})
+        session = RNXSession(
+            self, session_id, self.sanitize_session_config(config or {})
+        )
         with self._lock:
             self._sessions[session_id] = session
         self._on_session_change(session)

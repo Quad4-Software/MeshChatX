@@ -94,6 +94,7 @@ class RRCHub:
         self.name = name or RNS.prettyhexrep(hub_hash)
 
         self.link = None
+        self._expected_closed_link = None
         self.status = RRCHub.STATUS_DISCONNECTED
         self.status_text = "Disconnected"
         self.welcomed = False
@@ -144,7 +145,9 @@ class RRCHub:
         self.available_rooms = {}
         self.available_keyed_rooms = []
         self._silent_list_pending = 0
+        self._silent_list_deadline = 0.0
         self._silent_who_rooms = set()
+        self._silent_who_ts = {}
 
         self.nick_override = None
         self._pending_joins = set()
@@ -364,6 +367,7 @@ class RRCHub:
         server._attach_loopback(link, self.manager.identity)
         with self._lock:
             self._hub_identity_hash = server.identity.hash
+            self._expected_closed_link = None
             self.link = link
         self._set_status(RRCHub.STATUS_CONNECTING, "Connected locally, sending HELLO")
         self._hello_thread = threading.Thread(target=self._hello_loop, daemon=True)
@@ -450,6 +454,7 @@ class RRCHub:
             )
             link.set_packet_callback(lambda data, pkt: self._on_packet(data))
             with self._lock:
+                self._expected_closed_link = None
                 self.link = link
         except Exception as e:
             self._set_status(RRCHub.STATUS_FAILED, "Connect error: " + str(e))
@@ -505,6 +510,9 @@ class RRCHub:
         self._set_status(RRCHub.STATUS_FAILED, "WELCOME timeout")
         with self._lock:
             link = self.link
+            # The teardown callback may arrive later; mark it expected so
+            # _on_closed does not double-count this failure in the backoff.
+            self._expected_closed_link = link
         if link is not None:
             with contextlib.suppress(Exception):
                 link.teardown()
@@ -537,6 +545,10 @@ class RRCHub:
     def _on_closed(self, link):
         self._stop_hello.set()
         with self._lock:
+            if self.link is not None and link is not self.link:
+                # A stale teardown callback (late watchdog close or a racing
+                # reconnect) must not tear down the current live session.
+                return
             was_welcomed = self.welcomed
             rooms = list(self.rooms)
             manual = self._manual_disconnect
@@ -547,9 +559,17 @@ class RRCHub:
             self._resource_expectations.clear()
             self._pending_joins.clear()
             self._pending_parts.clear()
+            self._pending_pings.clear()
             self._silent_joins.clear()
             self._silent_who_rooms.clear()
-            should_reconnect = self.auto_reconnect and not self._manual_disconnect
+            self._silent_who_ts.clear()
+            self.nicks.clear()
+            expected = link is getattr(self, "_expected_closed_link", None)
+            if expected:
+                self._expected_closed_link = None
+            should_reconnect = (
+                self.auto_reconnect and not self._manual_disconnect and not expected
+            )
         if was_welcomed and rooms:
             text = "Disconnected from hub" if manual else "Connection lost"
             self._record_connection_event(text, rooms=rooms)
@@ -629,7 +649,11 @@ class RRCHub:
         chat history.
         """
         with self._lock:
+            now = time.monotonic()
+            if now > self._silent_list_deadline:
+                self._silent_list_pending = 0
             self._silent_list_pending += 1
+            self._silent_list_deadline = now + 60.0
         try:
             self.send_command("/list", room=None, record_local=False)
         except Exception:
@@ -1217,17 +1241,22 @@ class RRCHub:
             if silent:
                 self._silent_joins.discard(r)
 
-            self.rooms.add(r)
-            if r not in self.messages:
-                self.messages[r] = []
-            members = self.members.setdefault(r, set())
-            for h in body_hashes:
-                members.add(h)
-            if own_hash is not None:
-                members.add(own_hash)
+            # A hub that reports a join for a room we never entered must not
+            # create phantom membership/state here.
+            member = self_join or r in self.rooms
+            if member:
+                self.rooms.add(r)
+                if r not in self.messages:
+                    self.messages[r] = []
+                members = self.members.setdefault(r, set())
+                for h in body_hashes:
+                    members.add(h)
+                if own_hash is not None:
+                    members.add(own_hash)
 
             if (
-                (not self_join)
+                member
+                and (not self_join)
                 and isinstance(joiner_nick, str)
                 and joiner_nick
                 and len(body_hashes) == 1
@@ -1245,10 +1274,12 @@ class RRCHub:
                 try:
                     with self._lock:
                         self._silent_who_rooms.add(r)
+                    self._silent_who_ts[r] = time.monotonic()
                     self.send_command("/who " + r, room=r, record_local=False)
                 except Exception:
                     with self._lock:
                         self._silent_who_rooms.discard(r)
+                        self._silent_who_ts.pop(r, None)
             self.manager.save()
         else:
             joiner = None
@@ -1386,6 +1417,9 @@ class RRCHub:
                 self.available_keyed_rooms = sorted(
                     name for name, info in parsed.items() if info.get("has_key")
                 )
+                now = time.monotonic()
+                if now > self._silent_list_deadline:
+                    self._silent_list_pending = 0
                 silent = self._silent_list_pending > 0
                 if silent:
                     self._silent_list_pending -= 1
@@ -1410,9 +1444,19 @@ class RRCHub:
                         if ph.startswith(hash_bytes):
                             self.nicks[ph] = nick
                             break
+                # A stale silent marker must not swallow a manual /who reply.
+                stale = [
+                    k
+                    for k, ts in self._silent_who_ts.items()
+                    if time.monotonic() - ts > 60.0
+                ]
+                for k in stale:
+                    self._silent_who_rooms.discard(k)
+                    self._silent_who_ts.pop(k, None)
                 silent_who = who_room in self._silent_who_rooms
                 if silent_who:
                     self._silent_who_rooms.discard(who_room)
+                    self._silent_who_ts.pop(who_room, None)
             self.manager._notify_change(self)
             if silent_who:
                 return
@@ -1439,6 +1483,7 @@ class RRCHub:
         r = room.strip().lower() if isinstance(room, str) else None
         rollback_join = False
         leave_rooms = []
+        preserve_history = False
         with self._lock:
             if r:
                 if r in self._pending_joins and self.manager.is_fatal_join_error(
@@ -1462,6 +1507,9 @@ class RRCHub:
                     self.unread_counts.pop(r, None)
                     leave_rooms.append(r)
             elif self.manager.is_forced_leave_error(text):
+                # A bare forced-leave error names no room; keep the persisted
+                # history so one packet cannot wipe the whole archive.
+                preserve_history = True
                 leave_rooms = list(self.rooms)
                 self._pending_joins.clear()
                 self._silent_joins.clear()
@@ -1483,7 +1531,8 @@ class RRCHub:
                     self.messages.pop(room_name, None)
                     self.members.pop(room_name, None)
             for room_name in leave_rooms:
-                self._delete_history(room_name)
+                if not preserve_history:
+                    self._delete_history(room_name)
                 if self.manager.active_room_for(self) == room_name:
                     self.manager.set_active(self, None)
             self.manager.save()
@@ -1507,6 +1556,18 @@ class RRCHub:
                 return
             room = env.get(proto.K_ROOM)
             with self._lock:
+                # Expiry is otherwise only evaluated when a resource concludes,
+                # so a hub that never sends resources must not grow this dict.
+                now = time.monotonic()
+                expired = [
+                    k
+                    for k, v in self._resource_expectations.items()
+                    if v.get("expires", 0) < now
+                ]
+                for k in expired:
+                    self._resource_expectations.pop(k, None)
+                if len(self._resource_expectations) >= 256:
+                    return
                 self._resource_expectations[bytes(rid)] = {
                     "kind": kind,
                     "size": size,
@@ -1691,7 +1752,7 @@ class RRCManager:
         storage_dir,
         get_nickname=None,
         get_name_for_identity_hash=None,
-        history_per_room_cap=0,
+        history_per_room_cap=500,
         filter_loaded_history=True,
         ephemeral_notices=RRCHub.SYS_NOTICE_TIMEOUT,
         database=None,
