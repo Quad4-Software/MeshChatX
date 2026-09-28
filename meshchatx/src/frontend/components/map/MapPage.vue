@@ -3699,6 +3699,9 @@ export default {
                 rafId: null,
             };
             panel.style.willChange = "transform";
+            // backdrop-filter re-renders the blur against the moving canvas
+            // every frame, which is what makes the drag feel heavy.
+            panel.style.backdropFilter = "none";
         },
         settingsPanelDragClamped() {
             const d = this.settingsPanelDrag;
@@ -3765,6 +3768,7 @@ export default {
             if (panel) {
                 panel.style.transform = "";
                 panel.style.willChange = "";
+                panel.style.backdropFilter = "";
             }
             if (fin) {
                 this.settingsPanelPos = { left: fin.left, top: fin.top };
@@ -4410,7 +4414,13 @@ export default {
         handleMapPointerMove(evt) {
             if (!this.map) return;
             const lonLat = toLonLat(evt.coordinate);
-            this.cursorCoords = [lonLat[0], lonLat[1]];
+            // The readout cannot change faster than it is drawn. Throttle the
+            // reactive write or every pointer event re-renders the whole page.
+            const now = performance.now();
+            if (now - (this._lastCursorCoordsAt || 0) > 120) {
+                this._lastCursorCoordsAt = now;
+                this.cursorCoords = [lonLat[0], lonLat[1]];
+            }
             if (this.isBearingMode && !evt.dragging) {
                 this.updateBearingPointerUi(evt);
             }
