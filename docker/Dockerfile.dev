@@ -26,8 +26,7 @@ RUN arch="$(dpkg --print-architecture)" \
     && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${node_arch}.tar.xz" -o /tmp/node.tar.xz \
     && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 \
     && rm /tmp/node.tar.xz \
-    && corepack enable \
-    && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+    && npm install -g "pnpm@${PNPM_VERSION}"
 
 # uv from pinned GitHub release.
 RUN arch="$(uname -m)" \
