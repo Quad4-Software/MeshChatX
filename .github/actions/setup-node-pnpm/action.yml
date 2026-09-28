@@ -31,7 +31,9 @@ runs:
                   ~/.cache/node/corepack
                   ~/Library/Caches/node/corepack
                   ~/AppData/Local/node/corepack
-              key: corepack-${{ runner.os }}-${{ inputs.node-version }}-pnpm-${{ inputs.pnpm-version }}
+              # runner.arch matters: pnpm 12 ships a native binary, so an
+              # arm64 restore on an x64 macOS runner fails with bad CPU type.
+              key: corepack-${{ runner.os }}-${{ runner.arch }}-${{ inputs.node-version }}-pnpm-${{ inputs.pnpm-version }}
 
         - name: Enable pnpm (corepack)
           shell: bash
