@@ -269,6 +269,8 @@ class WebAudioBridge:
         self.rx_tee: Tee | None = None
         self._loop = None
         self.lock = threading.Lock()
+        # id(client) -> {"inflight": bool, "pending": bytes|None}
+        self._pcm_state: dict[int, dict] = {}
 
     @property
     def loop(self):
@@ -337,6 +339,7 @@ class WebAudioBridge:
         with self.lock:
             if client in self.clients:
                 self.clients.remove(client)
+            self._pcm_state.pop(id(client), None)
             if not self.clients and self.allow_fallback():
                 self._restore_host_audio()
 
@@ -360,10 +363,13 @@ class WebAudioBridge:
                 return
             if getattr(self.telephone_manager, "is_voicemail_session_active", False):
                 return
-            # Cheap is-checks: heal a transmit/receive patch that an LXST
-            # pipeline reconfiguration silently replaced mid-call.
-            self._ensure_remote_tx(tele)
-            self._ensure_rx_tee(tele)
+            # Heal patches an LXST reconfiguration silently replaced mid-call,
+            # but only when a patch exists: first-attach belongs to
+            # attach_client so a hostless stand-in is not swapped mid-frame.
+            if self.tx_source is not None:
+                self._ensure_remote_tx(tele)
+            if self.rx_sink is not None:
+                self._ensure_rx_tee(tele)
             # Do not feed PCM while mic is muted or half-duplex PTT is released.
             if getattr(self.telephone_manager, "transmit_muted", False) is True:
                 return
@@ -392,20 +398,21 @@ class WebAudioBridge:
             # Backpressure: if a send is still in flight for this client, keep
             # only the newest frame. Audio tolerates drops; a slow socket must
             # not serialize the 60fps feed or pile up tasks.
-            if getattr(ws, "_pcm_inflight", False):
-                ws._pcm_pending = pcm_bytes
+            st = self._pcm_state.setdefault(id(ws), {})
+            if st.get("inflight"):
+                st["pending"] = pcm_bytes
                 continue
-            ws._pcm_inflight = True
+            st["inflight"] = True
             try:
                 pending = pcm_bytes
                 while pending is not None:
                     await ws.send_bytes(pending)
-                    pending = ws._pcm_pending
-                    ws._pcm_pending = None
+                    pending = st.get("pending")
+                    st["pending"] = None
             except Exception:
                 stale.append(ws)
             finally:
-                ws._pcm_inflight = False
+                st["inflight"] = False
         for ws in stale:
             self.detach_client(ws)
 

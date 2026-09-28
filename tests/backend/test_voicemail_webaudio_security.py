@@ -34,6 +34,8 @@ def test_web_audio_bridge_push_client_frame_forwards_when_not_voicemail(pcm):
     bridge = WebAudioBridge(tele_mgr, MagicMock())
     mock_tx = MagicMock()
     bridge.tx_source = mock_tx
+    # Mark the patch as attached so the mid-call reattach check passes.
+    tele_mgr.telephone.audio_input = mock_tx
     try:
         bridge.push_client_frame(pcm)
     except Exception:

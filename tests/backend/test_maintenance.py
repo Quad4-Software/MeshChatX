@@ -17,11 +17,12 @@ class TestMaintenance(unittest.TestCase):
 
     def test_delete_all_lxmf_messages(self):
         self.messages_dao.delete_all_lxmf_messages()
-        self.assertEqual(self.provider.execute.call_count, 3)
+        self.assertEqual(self.provider.execute.call_count, 4)
         calls = self.provider.execute.call_args_list
         self.assertIn("DELETE FROM lxmf_messages", calls[0][0][0])
         self.assertIn("DELETE FROM lxmf_conversation_read_state", calls[1][0][0])
         self.assertIn("DELETE FROM lxmf_conversation_summaries", calls[2][0][0])
+        self.assertIn("DELETE FROM notification_viewed_state", calls[3][0][0])
 
     def test_delete_all_announces(self):
         # Test without aspect
