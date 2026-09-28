@@ -1,4 +1,4 @@
-const { chromium } = require('playwright');
+const { chromium } = require('@playwright/test');
 (async () => {
   const [url, out, theme='dark', w=1440, h=900] = process.argv.slice(2);
   const b = await chromium.launch({ executablePath: '/usr/bin/chromium' });
