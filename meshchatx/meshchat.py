@@ -3267,10 +3267,16 @@ class ReticulumMeshChat:
         current_canonical = normalize_identity_storage_hash(current_hash or "")
         if canonical and canonical != current_canonical:
             # A cached (non-active) context gets evicted and torn down before
-            # its storage is removed. The running check after teardown was
-            # dead code; eviction itself stops the context.
-            if canonical in self.contexts:
+            # its storage is removed.
+            ctx = self.contexts.get(canonical)
+            if ctx is not None:
                 self._evict_cached_identity_context(identity_hash)
+                # Eviction pops and tears down the context; if teardown
+                # failed to stop it, refuse to delete storage it may still
+                # be writing to.
+                if getattr(ctx, "running", False):
+                    msg = f"Identity {identity_hash} context still running"
+                    raise ValueError(msg)
         return self.identity_manager.delete_identity(identity_hash, current_hash)
 
     def restore_identity_from_bytes(
