@@ -2,6 +2,7 @@
 
 """Regression: Nomad net downloads must emit websocket started before scheduling download()."""
 
+import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock
 
@@ -209,6 +210,102 @@ async def test_nomadnet_media_download_routes_to_media_handler_with_key(
         "__init__",
         orig_init,
     )
+
+
+@pytest.mark.asyncio
+async def test_local_node_unknown_page_path_fails_fast(mock_app, monkeypatch):
+    """A local node must not flatten arbitrary prefixes to a page basename."""
+    dh = "ab" * 16
+    node = MagicMock()
+    node.running = True
+    node.destination = MagicMock()
+    node.destination.hash = bytes.fromhex(dh)
+    node.serve_page_content = MagicMock(return_value=None)
+    mock_app.page_node_manager.nodes = {"n1": node}
+
+    monkeypatch.setattr(
+        meshchat_module.AsyncUtils,
+        "run_async",
+        lambda coro: asyncio.ensure_future(coro),
+    )
+
+    events = []
+    mock_ws = MagicMock()
+    mock_ws.send_str = AsyncMock(
+        side_effect=lambda payload: events.append(json.loads(payload)),
+    )
+
+    await mock_app.on_websocket_data_received(
+        mock_ws,
+        {
+            "type": "nomadnet.page.download",
+            "nomadnet_page_download": {
+                "destination_hash": dh,
+                "page_path": "/anything/index.mu",
+                "field_data": None,
+            },
+        },
+    )
+
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
+
+    node.serve_page_content.assert_not_called()
+    failure = [
+        e
+        for e in events
+        if e.get("nomadnet_page_download", {}).get("status") == "failure"
+    ]
+    assert failure
+    assert failure[0]["nomadnet_page_download"]["failure_reason"] == ("page_not_found")
+    assert mock_app.active_downloads == {}
+
+
+@pytest.mark.asyncio
+async def test_local_node_unknown_file_path_fails_fast(mock_app, monkeypatch):
+    dh = "cd" * 16
+    node = MagicMock()
+    node.running = True
+    node.destination = MagicMock()
+    node.destination.hash = bytes.fromhex(dh)
+    node.read_hosted_file = MagicMock(return_value=None)
+    mock_app.page_node_manager.nodes = {"n1": node}
+
+    monkeypatch.setattr(
+        meshchat_module.AsyncUtils,
+        "run_async",
+        lambda coro: asyncio.ensure_future(coro),
+    )
+
+    events = []
+    mock_ws = MagicMock()
+    mock_ws.send_str = AsyncMock(
+        side_effect=lambda payload: events.append(json.loads(payload)),
+    )
+
+    await mock_app.on_websocket_data_received(
+        mock_ws,
+        {
+            "type": "nomadnet.file.download",
+            "nomadnet_file_download": {
+                "destination_hash": dh,
+                "file_path": "/anything/blob.bin",
+            },
+        },
+    )
+
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
+
+    node.read_hosted_file.assert_not_called()
+    failure = [
+        e
+        for e in events
+        if e.get("nomadnet_file_download", {}).get("status") == "failure"
+    ]
+    assert failure
+    assert failure[0]["nomadnet_file_download"]["failure_reason"] == ("file_not_found")
+    assert mock_app.active_downloads == {}
 
 
 @pytest.mark.asyncio
