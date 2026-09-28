@@ -5,7 +5,7 @@ import ssl
 import threading
 from collections import deque
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from queue import Empty, Queue
+from queue import Empty, Full, Queue
 from socketserver import ThreadingMixIn
 from urllib.parse import urlparse
 
@@ -64,7 +64,14 @@ class HDLC:
                 in_frame = True
                 escape = False
                 data_buffer = bytearray()
-            elif in_frame and len(data_buffer) < max_frame_len:
+            elif in_frame and len(data_buffer) >= max_frame_len:
+                # Oversized/aborted frame: drop it and resync on the next
+                # FLAG so a stuck sender cannot pin an unbounded remainder.
+                in_frame = False
+                escape = False
+                data_buffer = bytearray()
+                last_complete = i
+            elif in_frame:
                 if byte == HDLC.ESC:
                     escape = True
                 else:
@@ -386,6 +393,7 @@ class HTTPTunnelInterface(Interface):
         self.tls_ca_certs = tls_ca_certs
         self._tcp_accepts = 0
         self._http_requests = 0
+        self._send_queue_drops = 0
         self._stats_lock = threading.Lock()
         self._last_http_version = None
         self._client_requests = 0
@@ -398,7 +406,9 @@ class HTTPTunnelInterface(Interface):
             self._load_html_content()
 
         self._recv_queue = Queue()
-        self._send_queue = Queue()
+        # A client that stops polling would otherwise let outbound traffic
+        # accumulate without bound; drop the oldest packet on overflow.
+        self._send_queue = Queue(maxsize=256)
         self._stop_event = threading.Event()
         self._frame_remainder = b""
         self._frame_lock = threading.Lock()
@@ -823,7 +833,19 @@ class HTTPTunnelInterface(Interface):
                 )
                 return
 
-            self._send_queue.put(data)
+            try:
+                self._send_queue.put_nowait(data)
+            except Full:
+                try:
+                    self._send_queue.get_nowait()
+                except Empty:
+                    pass
+                try:
+                    self._send_queue.put_nowait(data)
+                except Full:
+                    pass
+                with self._stats_lock:
+                    self._send_queue_drops += 1
             self.txb += len(data)
 
     def detach(self):
