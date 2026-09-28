@@ -11621,6 +11621,15 @@ class ReticulumMeshChat:
             ),
         )
 
+    def _has_running_local_page_node(self, destination_hash) -> bool:
+        """Return whether the hash belongs to a running local page node."""
+        for node in self.page_node_manager.nodes.values():
+            if not node.running or not node.destination:
+                continue
+            if node.destination.hash == destination_hash:
+                return True
+        return False
+
     def _try_serve_local_page_node(
         self,
         destination_hash,
@@ -11633,17 +11642,22 @@ class ReticulumMeshChat:
 
         Returns the page content string, or None.
         """
-        from meshchatx.src.backend.page_node import _safe_mesh_file_basename
-
         for node in self.page_node_manager.nodes.values():
             if not node.running or not node.destination:
                 continue
             if node.destination.hash == destination_hash:
-                page_name = page_path.lstrip("/")
-                page_name = page_name.removeprefix("page/")
-                try:
-                    page_name = _safe_mesh_file_basename(page_name)
-                except ValueError:
+                # Match remote dispatch: only "/page/<name>" resolves.
+                # Any other prefix or nested path must fall through and
+                # fail the same way an unregistered request path would.
+                path = page_path
+                hash_prefix = f"{destination_hash.hex()}:"
+                if path.startswith(hash_prefix):
+                    path = path[len(hash_prefix) :]
+                page_name = path.lstrip("/")
+                if not page_name.startswith("page/"):
+                    return None
+                page_name = page_name[len("page/") :]
+                if not page_name or "/" in page_name or "\\" in page_name:
                     return None
                 raw = node.serve_page_content(
                     page_name,
@@ -11768,8 +11782,6 @@ class ReticulumMeshChat:
 
         Returns (file_name, file_bytes), or None.
         """
-        from meshchatx.src.backend.page_node import _safe_mesh_file_basename
-
         # Image downloads must be tied to a recently loaded page grant.
         if isinstance(request_data, dict) and request_data.get("image_id") is not None:
             if client is None or page_path is None:
@@ -11783,13 +11795,20 @@ class ReticulumMeshChat:
             if not node.running or not node.destination:
                 continue
             if node.destination.hash == destination_hash:
-                if file_path.startswith("/media/"):
-                    return node.serve_media(file_path)
-                file_name = file_path.lstrip("/")
-                file_name = file_name.removeprefix("file/")
-                try:
-                    file_name = _safe_mesh_file_basename(file_name)
-                except ValueError:
+                # Match remote dispatch: only "/media/<name>" and
+                # "/file/<name>" resolve. Any other prefix or nested path
+                # must fail the same way it would on a remote node.
+                path = file_path
+                hash_prefix = f"{destination_hash.hex()}:"
+                if path.startswith(hash_prefix):
+                    path = path[len(hash_prefix) :]
+                if path.startswith("/media/"):
+                    return node.serve_media(path)
+                file_name = path.lstrip("/")
+                if not file_name.startswith("file/"):
+                    return None
+                file_name = file_name[len("file/") :]
+                if not file_name or "/" in file_name or "\\" in file_name:
                     return None
                 return node.read_hosted_file(file_name)
         return None
