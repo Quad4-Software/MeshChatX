@@ -30,7 +30,9 @@ class SafeFileResponse(web.FileResponse):
         count: int,
     ) -> Any:
         writer = await super(web.FileResponse, self).prepare(request)
-        assert writer is not None
+        if writer is None:
+            msg = "response prepare returned no writer"
+            raise RuntimeError(msg)
         return await self._sendfile_fallback(writer, fobj, offset, count)
 
 
