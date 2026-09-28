@@ -11386,6 +11386,16 @@ class ReticulumMeshChat:
                 self.reticulum.drop_path(destination_hash)
             return
 
+        # A fresh announce proves the hub is still on the network. Let a
+        # configured hub reset its reconnect backoff so recovery is quick
+        # once a previously unreachable hub comes back.
+        rrc = ctx.rrc_manager
+        if rrc is not None:
+            with contextlib.suppress(Exception):
+                hub = rrc.find_hub_by_hex(destination_hash.hex())
+                if hub is not None:
+                    hub.note_hub_announce()
+
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
 
