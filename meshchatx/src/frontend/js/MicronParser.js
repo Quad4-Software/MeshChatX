@@ -29,13 +29,20 @@ function clampMicronImageNumber(value, max) {
     return Math.min(Math.floor(n), max);
 }
 
-// NomadNet 1.4.x accepts percent dimensions like w=25% alongside pixel counts.
-function clampMicronImageDimension(value, max) {
+// Upstream NomadNet ImageWidget sizing: a bare number is a character cell
+// count (columns for w, rows for h), "NN%" is a percent of the available
+// layout (page width for w, page height for h), and "n" means the image's
+// native resolution.
+function clampMicronImageDimension(value, max, unit, pctUnit) {
+    if (typeof value === "string" && value.trim().toLowerCase() === "n") {
+        return "auto";
+    }
     if (typeof value === "string" && /^\d{1,3}%$/.test(value.trim())) {
         const pct = parseInt(value.trim(), 10);
-        return pct > 0 && pct <= 100 ? `${pct}%` : null;
+        return pct > 0 && pct <= 100 ? `${pct}${pctUnit}` : null;
     }
-    return clampMicronImageNumber(value, max);
+    const n = clampMicronImageNumber(value, max);
+    return n == null ? null : `${n}${unit}`;
 }
 
 function sanitizeMicronImageString(value, maxLen, pattern = null) {
@@ -85,9 +92,9 @@ function parseMicronImageOptions(fields) {
             if (k === "img") {
                 options.img = ["1", "true", "yes"].includes(v.toLowerCase());
             } else if (k === "w") {
-                options.w = clampMicronImageDimension(v, MICRON_IMAGE_MAX_WIDTH);
+                options.w = clampMicronImageDimension(v, MICRON_IMAGE_MAX_WIDTH, "ch", "%");
             } else if (k === "h") {
-                options.h = clampMicronImageDimension(v, MICRON_IMAGE_MAX_HEIGHT);
+                options.h = clampMicronImageDimension(v, MICRON_IMAGE_MAX_HEIGHT, "lh", "vh");
             } else if (k === "s") {
                 options.size = clampMicronImageNumber(v, MICRON_IMAGE_MAX_SIZE_HINT);
             } else if (k === "k") {
@@ -977,10 +984,10 @@ export default class MicronParser extends BaseMicronParser {
         div.setAttribute("aria-label", alt);
 
         if (opts.w != null) {
-            div.style.width = typeof opts.w === "string" ? opts.w : String(opts.w) + "px";
+            div.style.width = typeof opts.w === "string" ? opts.w : String(opts.w) + "ch";
         }
-        if (opts.h != null && typeof opts.h !== "string") {
-            div.style.minHeight = String(opts.h) + "px";
+        if (opts.h != null) {
+            div.style.minHeight = typeof opts.h === "string" ? opts.h : String(opts.h) + "lh";
         }
 
         const meta = document.createElement("span");

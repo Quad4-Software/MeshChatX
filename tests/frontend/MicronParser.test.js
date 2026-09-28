@@ -274,8 +274,8 @@ Content at depth 1`;
                 expect(html).toContain('class="mu-image"');
                 expect(html).toContain('data-mu-image-url=":/file/harbour.webp"');
                 expect(html).toContain('data-mu-image-alt="River valley"');
-                expect(html).toContain('data-mu-image-w="400"');
-                expect(html).toContain('data-mu-image-h="267"');
+                expect(html).toContain('data-mu-image-w="400ch"');
+                expect(html).toContain('data-mu-image-h="267lh"');
                 expect(html).toContain('data-mu-image-s="18088"');
                 expect(html).toContain("River valley");
                 expect(html).toContain("17.7 kB");
@@ -352,8 +352,8 @@ Content at depth 1`;
             it("clamps oversized w/h/s values", () => {
                 const markup = "`[x`:/file/x.webp`img=1;w=999999;h=999999;s=999999999]";
                 const html = parser.convertMicronToHtml(markup);
-                expect(html).toContain('data-mu-image-w="8192"');
-                expect(html).toContain('data-mu-image-h="8192"');
+                expect(html).toContain('data-mu-image-w="8192ch"');
+                expect(html).toContain('data-mu-image-h="8192lh"');
                 expect(html).toContain('data-mu-image-s="104857600"');
             });
 
@@ -367,6 +367,7 @@ Content at depth 1`;
                     'data-mu-image-path=":/media/img/forum/40155dab9a63966cfa6288f65a0d8aa3.webp"'
                 );
                 expect(html).toContain('data-mu-image-a="left"');
+                expect(html).toContain('data-mu-image-w="auto"');
                 expect(html).toContain("Load image");
             });
 
@@ -384,7 +385,7 @@ Content at depth 1`;
                     "`(Map`w=400`k=map1`9ce92808be498e9e05590ff27cbfdfe4:/media/m.png)";
                 const html = parser.convertMicronToHtml(markup);
                 expect(html).toContain('class="mu-image"');
-                expect(html).toContain('data-mu-image-w="400"');
+                expect(html).toContain('data-mu-image-w="400ch"');
                 expect(html).toContain('data-mu-image-k="map1"');
                 expect(html).toContain(
                     'data-mu-image-path="9ce92808be498e9e05590ff27cbfdfe4:/media/m.png"'
