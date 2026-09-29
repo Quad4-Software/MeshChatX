@@ -65,6 +65,20 @@ test.describe("Live mesh e2e (real RNS peer)", () => {
 
     test("outbound LXMF reaches the real peer", async ({ request }) => {
         const peer = peerReady();
+        // Wait until the peer's announce is in the table so the send path is warm.
+        await expect
+            .poll(
+                async () => {
+                    const res = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/announces?limit=50`);
+                    if (!res.ok()) {
+                        return false;
+                    }
+                    const rows = (await res.json()).announces || [];
+                    return rows.some((a) => a.destination_hash === peer.lxmf_dest);
+                },
+                { timeout: 60000, intervals: [500, 1000, 2000] }
+            )
+            .toBe(true);
         const marker = `e2e-live-${Date.now()}`;
         const res = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/lxmf-messages/send`, {
             lxmf_message: {
@@ -275,5 +289,155 @@ test.describe("Live mesh traffic budget", () => {
         const after = await interfaceBytes(request);
         const delta = after.rx - before.rx + (after.tx - before.tx);
         expect(delta).toBeLessThan(2_000_000);
+    });
+});
+
+test.describe("Live mesh multi-hub RRC", () => {
+    test.setTimeout(300000);
+    test.skip(!peerReady(), "live peer subprocess not running");
+
+    test.beforeEach(async ({ request }) => {
+        await prepareE2eSession(request);
+    });
+
+    async function hubStatus(request, hubHash) {
+        const res = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs`);
+        if (!res.ok()) {
+            return null;
+        }
+        const body = await res.json();
+        const hub = (body.hubs || []).find((h) => h.hash === hubHash || h.hub_hash === hubHash);
+        return hub ? hub.status : null;
+    }
+
+    async function connectHub(request, hubHash) {
+        const add = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs`, {
+            hub_hash: hubHash,
+            name: `hub-${hubHash.slice(0, 6)}`,
+        });
+        expect(add.ok(), await add.text()).toBeTruthy();
+        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/connect`, {});
+        await expect
+            .poll(() => hubStatus(request, hubHash), { timeout: 120000, intervals: [1000, 2000, 3000] })
+            .toBe(2);
+    }
+
+    test("connect to all live hubs and echo in each room", async ({ request }) => {
+        const peer = peerReady();
+        const hubHashes = peer.hub_hashes || [peer.hub_hash];
+        expect(hubHashes.length).toBeGreaterThanOrEqual(3);
+
+        for (const hubHash of hubHashes) {
+            await connectHub(request, hubHash);
+        }
+
+        // Join lobby on every hub and send one message per hub.
+        for (const hubHash of hubHashes) {
+            const join = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms`, {
+                room: "lobby",
+            });
+            expect(join.ok(), await join.text()).toBeTruthy();
+        }
+
+        for (const [i, hubHash] of hubHashes.entries()) {
+            const marker = `e2e-multi-${i}-${Date.now()}`;
+            const send = await e2ePost(
+                request,
+                `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/lobby/messages`,
+                { text: marker }
+            );
+            expect(send.ok(), await send.text()).toBeTruthy();
+
+            await expect
+                .poll(
+                    async () => {
+                        const res = await request.get(
+                            `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/lobby/messages`
+                        );
+                        if (!res.ok()) {
+                            return null;
+                        }
+                        const body = await res.json();
+                        const mine = (body.messages || []).filter((r) => r.text === marker);
+                        return mine.length ? mine[mine.length - 1].delivery : null;
+                    },
+                    { timeout: 60000, intervals: [500, 1000, 2000] }
+                )
+                .toBe("sent");
+        }
+    });
+
+    test("second room on hub A isolates echo traffic", async ({ request }) => {
+        const peer = peerReady();
+        const hubHash = peer.hub_hashes?.[0] || peer.hub_hash;
+        await connectHub(request, hubHash);
+
+        const join = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms`, {
+            room: "test-room",
+        });
+        expect(join.ok(), await join.text()).toBeTruthy();
+
+        const marker = `e2e-room2-${Date.now()}`;
+        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/test-room/messages`, {
+            text: marker,
+        });
+        await expect
+            .poll(
+                async () => {
+                    const res = await request.get(
+                        `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/test-room/messages`
+                    );
+                    if (!res.ok()) {
+                        return null;
+                    }
+                    const body = await res.json();
+                    const mine = (body.messages || []).filter((r) => r.text === marker);
+                    return mine.length ? mine[mine.length - 1].delivery : null;
+                },
+                { timeout: 60000, intervals: [500, 1000, 2000] }
+            )
+            .toBe("sent");
+
+        // The message must not bleed into lobby history.
+        const lobby = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/lobby/messages`);
+        const lobbyBody = await lobby.json();
+        expect((lobbyBody.messages || []).some((r) => r.text === marker)).toBe(false);
+    });
+
+    test("disconnect and reconnect cycle keeps hub usable", async ({ request }) => {
+        const peer = peerReady();
+        const hubHash = peer.hub_hashes?.[1] || peer.hub_hash;
+        await connectHub(request, hubHash);
+
+        const off = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/disconnect`, {});
+        expect(off.ok(), await off.text()).toBeTruthy();
+        await expect.poll(() => hubStatus(request, hubHash), { timeout: 30000 }).toBe(0);
+
+        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/connect`, {});
+        await expect
+            .poll(() => hubStatus(request, hubHash), { timeout: 120000, intervals: [1000, 2000, 3000] })
+            .toBe(2);
+
+        const marker = `e2e-reconnect-${Date.now()}`;
+        const send = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/lobby/messages`, {
+            text: marker,
+        });
+        expect(send.ok(), await send.text()).toBeTruthy();
+        await expect
+            .poll(
+                async () => {
+                    const res = await request.get(
+                        `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/lobby/messages`
+                    );
+                    if (!res.ok()) {
+                        return null;
+                    }
+                    const body = await res.json();
+                    const mine = (body.messages || []).filter((r) => r.text === marker);
+                    return mine.length ? mine[mine.length - 1].delivery : null;
+                },
+                { timeout: 60000, intervals: [500, 1000, 2000] }
+            )
+            .toBe("sent");
     });
 });
