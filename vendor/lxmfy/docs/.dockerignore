@@ -1,0 +1,7 @@
+.git
+.gitea
+*.md
+build/doctrees
+build/epub
+build/latex
+build/text

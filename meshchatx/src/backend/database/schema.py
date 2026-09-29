@@ -763,6 +763,14 @@ class DatabaseSchema:
         if update_version:
             self._update_database_version_to(target)
 
+    def migrate_up_to(self, version: int) -> None:
+        """Apply migrations up to version (for fixtures and tests)."""
+        current = self.get_current_version()
+        self.migrate(current, target_version=version)
+
+    def _update_database_version(self):
+        self._update_database_version_to(self.LATEST_VERSION)
+
     def _update_database_version_to(self, version: int) -> None:
         self.provider.execute(
             """

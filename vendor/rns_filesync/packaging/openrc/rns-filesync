@@ -1,0 +1,24 @@
+#!/sbin/openrc-run
+
+description="RNS FileSync peer-to-peer directory sync"
+command="/usr/bin/rns-filesync"
+command_args="--config /var/lib/rns-filesync/config --rnsconfig /var/lib/rns-filesync/reticulum -d /var/lib/rns-filesync/sync --no-repl -q"
+command_user="rns-filesync:rns-filesync"
+command_background=yes
+pidfile="/run/rns-filesync.pid"
+directory="/var/lib/rns-filesync"
+
+export HOME=/var/lib/rns-filesync
+
+depend() {
+	need localmount
+	use net dns logger
+	after firewall
+}
+
+start_pre() {
+	checkpath -d -o rns-filesync:rns-filesync -m 0700 /var/lib/rns-filesync
+	checkpath -d -o rns-filesync:rns-filesync -m 0700 /var/lib/rns-filesync/config
+	checkpath -d -o rns-filesync:rns-filesync -m 0700 /var/lib/rns-filesync/reticulum
+	checkpath -d -o rns-filesync:rns-filesync -m 0700 /var/lib/rns-filesync/sync
+}

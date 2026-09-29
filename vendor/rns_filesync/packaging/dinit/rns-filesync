@@ -1,0 +1,9 @@
+# dinit service for rns-filesync (non-root).
+# Install to /etc/dinit.d/rns-filesync
+# Create user rns-filesync and state dirs under /var/lib/rns-filesync first.
+
+type = process
+command = /usr/bin/env HOME=/var/lib/rns-filesync /usr/bin/rns-filesync --config /var/lib/rns-filesync/config --rnsconfig /var/lib/rns-filesync/reticulum -d /var/lib/rns-filesync/sync --no-repl -q
+restart = true
+smooth-recovery = true
+runs-as = rns-filesync

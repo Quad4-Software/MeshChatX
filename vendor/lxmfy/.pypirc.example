@@ -1,0 +1,8 @@
+[distutils]
+index-servers = gitea
+
+[gitea]
+repository = https://git.quad4.io/api/packages/LXMFy/pypi
+username = {username}
+password = {password}
+

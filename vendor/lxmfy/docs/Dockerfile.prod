@@ -1,0 +1,42 @@
+FROM python:3.13-alpine AS builder
+
+WORKDIR /app
+
+COPY pyproject.toml poetry.lock ./
+
+RUN apk add --no-cache make gcc musl-dev && \
+    pip install --no-cache-dir poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install --with dev --no-interaction --no-root --no-cache
+
+ENV SPHINXBUILD=sphinx-build
+
+COPY source ./source
+COPY locales ./locales
+COPY Makefile ./
+
+RUN make html html-ru && \
+    apk del gcc musl-dev
+
+FROM nginx:alpine
+
+RUN addgroup -g 1001 -S nginx-user && \
+    adduser -u 1001 -S nginx-user -G nginx-user && \
+    mkdir -p /var/cache/nginx /var/log/nginx /var/run/nginx /usr/share/nginx/html && \
+    mkdir -p /tmp/nginx_client_temp /tmp/nginx_proxy_temp /tmp/nginx_fastcgi_temp /tmp/nginx_uwsgi_temp /tmp/nginx_scgi_temp && \
+    chown -R nginx-user:nginx-user /var/cache/nginx /var/log/nginx /var/run/nginx /usr/share/nginx/html && \
+    chown -R nginx-user:nginx-user /tmp/nginx_client_temp /tmp/nginx_proxy_temp /tmp/nginx_fastcgi_temp /tmp/nginx_uwsgi_temp /tmp/nginx_scgi_temp && \
+    rm -rf /usr/share/nginx/html/*
+
+COPY --from=builder /app/build/html /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
+
+RUN chown -R nginx-user:nginx-user /usr/share/nginx/html
+
+USER nginx-user
+
+RUN nginx -t
+
+EXPOSE 8080
+
+CMD ["nginx", "-g", "daemon off;"]
