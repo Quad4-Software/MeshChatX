@@ -583,3 +583,186 @@ test.describe("Live mesh restart and fault matrix", () => {
             .toBe(2);
     });
 });
+
+test.describe("Live mesh adversarial announce storm", () => {
+    test.setTimeout(240000);
+    test.skip(!peerReady(), "live peer subprocess not running");
+
+    const PEER_MODE = path.join(SHARE, "peer.mode");
+
+    test("announce storm keeps backend responsive and traffic bounded", async ({ request }) => {
+        const peer = peerReady();
+        const hubHash = peer.hub_hashes?.[0] || peer.hub_hash;
+
+        // Establish a connected hub first.
+        const add = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs`, {
+            hub_hash: hubHash,
+            name: "storm-hub",
+        });
+        expect(add.ok(), await add.text()).toBeTruthy();
+        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/connect`, {});
+        await expect
+            .poll(
+                async () => {
+                    const res = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs`);
+                    if (!res.ok()) {
+                        return null;
+                    }
+                    const body = await res.json();
+                    const hub = (body.hubs || []).find((h) => h.hash === hubHash || h.hub_hash === hubHash);
+                    return hub ? hub.status : null;
+                },
+                { timeout: 120000, intervals: [1000, 2000, 3000] }
+            )
+            .toBe(2);
+
+        const t0 = Date.now();
+        const b0 = await interfaceBytes(request);
+
+        // 40 synthetic hub announces on every peer tick for 25s. Mirrors the
+        // churn profile that produced the unbounded traffic incident.
+        fs.writeFileSync(PEER_MODE, "40");
+        await new Promise((r) => setTimeout(r, 25000));
+        fs.writeFileSync(PEER_MODE, "0");
+
+        // Backend must stay responsive under the storm.
+        const status = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/status`);
+        expect(status.ok()).toBeTruthy();
+        const hubs = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs`);
+        expect(hubs.ok()).toBeTruthy();
+
+        // Traffic bounded: storm announces are small; runaway re-announces or
+        // path storms would blow past 4MB in 25s.
+        const b1 = await interfaceBytes(request);
+        const total = b1.rx - b0.rx + (b1.tx - b0.tx);
+        console.log(`storm window: ${((Date.now() - t0) / 1000).toFixed(0)}s traffic=${total} bytes`);
+        expect(total).toBeLessThan(4 * 1024 * 1024);
+
+        // Path table must not grow unboundedly: at most the 40 storm
+        // destinations plus a margin.
+        const pt = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/path-table`);
+        if (pt.ok()) {
+            const body = await pt.json();
+            const size = (body.path_table || body || []).length;
+            expect(size).toBeLessThan(80);
+        }
+    });
+});
+
+const SHARE2 = process.env.E2E_PEER2_SHARE || "/tmp/meshchatx-e2e-peer2-share";
+
+function peer2Ready() {
+    const p = path.join(SHARE2, "peer_ready.json");
+    return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, "utf8")) : null;
+}
+
+test.describe("Live mesh two-peer isolation", () => {
+    test.setTimeout(300000);
+    test.skip(!peerReady() || !peer2Ready(), "second live peer not running");
+
+    test("LXMF delivered to the correct peer only", async ({ request }) => {
+        const p1 = peerReady();
+        const p2 = peer2Ready();
+        const m1 = `e2e-p1-${Date.now()}`;
+        const m2 = `e2e-p2-${Date.now()}`;
+
+        for (const [dest, marker] of [
+            [p1.lxmf_dest, m1],
+            [p2.lxmf_dest, m2],
+        ]) {
+            const res = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/lxmf-messages/send`, {
+                lxmf_message: { destination_hash: dest, content: marker },
+            });
+            expect(res.ok(), await res.text()).toBeTruthy();
+        }
+
+        // Wait for each peer inbox file to contain its own marker.
+        const inboxes = [
+            [path.join(SHARE, "peer_inbox.jsonl"), m1],
+            [path.join(SHARE2, "peer_inbox.jsonl"), m2],
+        ];
+        for (const [file, marker] of inboxes) {
+            await expect
+                .poll(
+                    () => {
+                        const lines = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+                        return lines.includes(marker);
+                    },
+                    { timeout: 120000, intervals: [1000, 2000, 3000] }
+                )
+                .toBe(true);
+        }
+
+        // Cross-isolation: each inbox must NOT contain the other marker.
+        const i1 = fs.readFileSync(path.join(SHARE, "peer_inbox.jsonl"), "utf8");
+        const i2 = fs.readFileSync(path.join(SHARE2, "peer_inbox.jsonl"), "utf8");
+        expect(i1.includes(m2)).toBeFalsy();
+        expect(i2.includes(m1)).toBeFalsy();
+    });
+
+    test("hubs on both peers connect and route independently", async ({ request }) => {
+        const p1 = peerReady();
+        const p2 = peer2Ready();
+        const h1 = p1.hub_hashes?.[0] || p1.hub_hash;
+        const h2 = p2.hub_hashes?.[0] || p2.hub_hash;
+        expect(h1).not.toBe(h2);
+
+        for (const h of [h1, h2]) {
+            const add = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs`, {
+                hub_hash: h,
+                name: `multi-${h.slice(0, 6)}`,
+            });
+            expect(add.ok(), await add.text()).toBeTruthy();
+            await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${h}/connect`, {});
+            await expect
+                .poll(
+                    async () => {
+                        const res = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs`);
+                        if (!res.ok()) {
+                            return null;
+                        }
+                        const body = await res.json();
+                        const hub = (body.hubs || []).find((x) => x.hash === h || x.hub_hash === h);
+                        return hub ? hub.status : null;
+                    },
+                    { timeout: 120000, intervals: [1000, 2000, 3000] }
+                )
+                .toBe(2);
+            await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${h}/rooms`, { room: "lobby" });
+        }
+
+        // Send a distinct marker to each hub and confirm each echo lands in
+        // the right room history only.
+        const markers = [
+            [h1, `e2e-mh1-${Date.now()}`],
+            [h2, `e2e-mh2-${Date.now()}`],
+        ];
+        for (const [h, marker] of markers) {
+            const send = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${h}/rooms/lobby/messages`, {
+                text: marker,
+            });
+            expect(send.ok(), await send.text()).toBeTruthy();
+            await expect
+                .poll(
+                    async () => {
+                        const res = await request.get(
+                            `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${h}/rooms/lobby/messages`
+                        );
+                        if (!res.ok()) {
+                            return null;
+                        }
+                        const body = await res.json();
+                        const mine = (body.messages || []).filter((r) => r.text === marker);
+                        return mine.length ? mine[mine.length - 1].delivery : null;
+                    },
+                    { timeout: 60000, intervals: [500, 1000, 2000] }
+                )
+                .toBe("sent");
+        }
+        // Room isolation across peers: h1 history must not contain h2 marker.
+        const h1msgs = await (
+            await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${h1}/rooms/lobby/messages`)
+        ).json();
+        expect((h1msgs.messages || []).some((r) => r.text === markers[1][1])).toBeFalsy();
+    });
+});
