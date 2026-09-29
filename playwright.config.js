@@ -17,7 +17,7 @@ module.exports = defineConfig({
     workers: 1,
     reporter: process.env.CI
         ? [
-              "line",
+              ["line"],
               [
                   "junit",
                   {
