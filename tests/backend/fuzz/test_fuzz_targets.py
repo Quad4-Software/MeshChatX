@@ -15,6 +15,11 @@ from pathlib import Path
 
 import pytest
 
+atheris = pytest.importorskip(
+    "atheris",
+    reason="atheris provides Linux wheels only",
+)
+
 FUZZ_DIR = Path(__file__).resolve().parent
 RUNS = int(os.environ.get("MESHCHAT_FUZZ_RUNS", "100000"))
 TIMEOUT = int(os.environ.get("MESHCHAT_FUZZ_TIMEOUT", "90"))
