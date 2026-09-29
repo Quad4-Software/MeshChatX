@@ -318,14 +318,14 @@ def test_auto_reconnect_storm_no_overlapping_workers(tmp_path, monkeypatch):
     state_lock = threading.Lock()
     real_worker = RRCHub._connect_worker
 
-    def counted_worker(self):
+    def counted_worker(self, epoch=None):
         key = id(self)
         with state_lock:
             in_flight[key] = in_flight.get(key, 0) + 1
             state["calls"] += 1
             state["max_per_hub"] = max(state["max_per_hub"], in_flight[key])
         try:
-            real_worker(self)
+            real_worker(self, epoch)
         finally:
             with state_lock:
                 in_flight[key] -= 1

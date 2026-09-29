@@ -350,9 +350,15 @@ class RRCHub:
                 text = "Reconnecting (attempt " + str(self._reconnect_attempts) + ")"
             else:
                 text = "Connecting"
+            self._connect_epoch = getattr(self, "_connect_epoch", 0) + 1
+            epoch = self._connect_epoch
             self._set_status(RRCHub.STATUS_CONNECTING, text)
 
-        t = threading.Thread(target=self._connect_worker, daemon=True)
+        t = threading.Thread(
+            target=self._connect_worker,
+            args=(epoch,),
+            daemon=True,
+        )
         t.start()
 
     def note_hub_announce(self):
@@ -391,7 +397,7 @@ class RRCHub:
         self._hello_thread = threading.Thread(target=self._hello_loop, daemon=True)
         self._hello_thread.start()
 
-    def _connect_worker(self):
+    def _connect_worker(self, epoch=None):
         try:
             server = self.manager.find_local_server(self.hub_hash)
             if server is not None:
@@ -446,6 +452,11 @@ class RRCHub:
                 if gate is not None:
                     gate.release()
 
+            if self._manual_disconnect:
+                # disconnect() ran during the path/identity wait window:
+                # do not create the link the user already asked to cancel.
+                self._set_status(RRCHub.STATUS_DISCONNECTED, "Disconnected")
+                return
             if hub_identity is None:
                 self._set_status(RRCHub.STATUS_FAILED, "Hub identity unknown")
                 self._maybe_schedule_reconnect_after_failed_connect()
@@ -481,6 +492,12 @@ class RRCHub:
             )
             link.set_packet_callback(lambda data, pkt: self._on_packet(data))
             with self._lock:
+                if epoch is not None and epoch != self._connect_epoch:
+                    # A newer connect() already owns the session: drop this
+                    # attempt's link instead of racing two live links.
+                    with contextlib.suppress(Exception):
+                        link.teardown()
+                    return
                 self._expected_closed_link = None
                 self.link = link
 
@@ -503,6 +520,10 @@ class RRCHub:
                         return
                     time.sleep(0.5)
                 if link.status == RNS.Link.PENDING:
+                    with self._lock:
+                        if self.link is not link:
+                            return
+                        self._expected_closed_link = link
                     with contextlib.suppress(Exception):
                         link.teardown()
                     self._set_status(
@@ -602,10 +623,16 @@ class RRCHub:
     def _on_closed(self, link):
         self._stop_hello.set()
         with self._lock:
+            if getattr(self, "_last_closed_link", None) is link:
+                # Same dead link delivered twice (watchdog teardown after
+                # RNS already reported the close, or a second teardown):
+                # everything below must run once per link.
+                return
             if self.link is not None and link is not self.link:
                 # A stale teardown callback (late watchdog close or a racing
                 # reconnect) must not tear down the current live session.
                 return
+            self._last_closed_link = link
             was_welcomed = self.welcomed
             rooms = list(self.rooms)
             manual = self._manual_disconnect
@@ -642,7 +669,7 @@ class RRCHub:
             self._reconnect_attempts += 1
             backoff = min(
                 RECONNECT_BACKOFF_MAX_S,
-                RECONNECT_BACKOFF_BASE_S**self._reconnect_attempts,
+                RECONNECT_BACKOFF_BASE_S ** min(self._reconnect_attempts, 12),
             )
             backoff += random.uniform(  # noqa: S311 - retry jitter, not crypto
                 0.0,
@@ -1237,6 +1264,45 @@ class RRCHub:
         self._last_history_clean = time.time()
         if cleaned:
             self.clean_last_removed = time.time()
+        self._compact_history_files()
+
+    HISTORY_FILE_MAX_BYTES = 8 * 1024 * 1024
+
+    def _compact_history_files(self):
+        with self._lock:
+            rooms = list(self.messages.keys())
+        for room in rooms:
+            if not self._persistable_room(room):
+                continue
+            path = self.manager._history_path(self, room)
+            try:
+                if os.path.getsize(path) <= self.HISTORY_FILE_MAX_BYTES:
+                    continue
+            except OSError:
+                continue
+            try:
+                with self._lock:
+                    msgs = list(self.messages.get(room, []))
+                entries = [
+                    self._entry_for(m)
+                    for m in msgs
+                    if isinstance(m, proto.RRCMessage)
+                ]
+                from meshchatx.src.path_utils import atomic_write_bytes
+
+                atomic_write_bytes(
+                    path,
+                    b"".join(proto.encode(e) for e in entries),
+                )
+                self._log(
+                    "compacted history for #" + room,
+                    RNS.LOG_DEBUG,
+                )
+            except Exception as e:
+                self._log(
+                    "history compaction failed for #" + room + ": " + str(e),
+                    RNS.LOG_ERROR,
+                )
 
     def _record_message(self, msg, local=False):
         cap = self._per_room_cap()
@@ -1548,11 +1614,11 @@ class RRCHub:
             and own_hash is not None
             and bytes(src) == own_hash
         )
-        if (
-            is_own
-            and isinstance(mid, (bytes, bytearray))
-            and bytes(mid) in self._sent_ids
-        ):
+        own_echo = False
+        if is_own and isinstance(mid, (bytes, bytearray)):
+            with self._lock:
+                own_echo = bytes(mid) in self._sent_ids
+        if own_echo:
             self._confirm_delivery(bytes(mid))
             return
         if isinstance(src, (bytes, bytearray)) and isinstance(nick, str) and nick:
@@ -1677,7 +1743,6 @@ class RRCHub:
         r = room.strip().lower() if isinstance(room, str) else None
         rollback_join = False
         leave_rooms = []
-        preserve_history = False
         with self._lock:
             if r:
                 if r in self._pending_joins and self.manager.is_fatal_join_error(
@@ -1703,7 +1768,6 @@ class RRCHub:
             elif self.manager.is_forced_leave_error(text):
                 # A bare forced-leave error names no room; keep the persisted
                 # history so one packet cannot wipe the whole archive.
-                preserve_history = True
                 leave_rooms = list(self.rooms)
                 self._pending_joins.clear()
                 self._silent_joins.clear()
@@ -1720,13 +1784,14 @@ class RRCHub:
         msg = proto.RRCMessage("error", r, None, None, text, proto.now_ms())
         self._record_notice(msg)
         if rollback_join or leave_rooms:
+            # History files survive forced-leave and fatal-join errors:
+            # only remove_room/clear_messages delete the archive. A hub
+            # error string must never decide what data gets erased.
             with self._lock:
                 for room_name in leave_rooms:
                     self.messages.pop(room_name, None)
                     self.members.pop(room_name, None)
             for room_name in leave_rooms:
-                if not preserve_history:
-                    self._delete_history(room_name)
                 if self.manager.active_room_for(self) == room_name:
                     self.manager.set_active(self, None)
             self.manager.save()
@@ -1921,6 +1986,7 @@ class RRCHub:
             }
 
     def room_messages(self, room, limit=None, before_seq=None):
+        self._sweep_pending_delivery()
         """Return (messages, has_more) for a room, newest page last.
 
         before_seq, when given, restricts results to messages recorded
@@ -2167,12 +2233,16 @@ class RRCManager:
                 self._message_callback(hub, msg)
 
     def _on_welcome(self, hub):
-        for r in list(hub.rooms):
+        with hub._lock:
+            rooms_to_rejoin = list(hub.rooms)
+        for r in rooms_to_rejoin:
             with contextlib.suppress(Exception):
                 key = self.get_room_key(hub, r)
                 hub.join_room(r, key=key, silent=True)
 
     def set_active(self, hub, room):
+        with contextlib.suppress(ValueError):
+            room = proto.normalize_room(room)
         self._active_hub = hub
         self._active_room = room
         if hub is not None and room is not None:
@@ -2422,8 +2492,9 @@ class RRCManager:
                     os.unlink(tmp_path)
 
     def _hub_entry(self, h):
-        joined = set(h.rooms)
-        parted = set(h.messages.keys()) - joined
+        with h._lock:
+            joined = set(h.rooms)
+            parted = set(h.messages.keys()) - joined
         entry = {
             "hash": h.hub_hash,
             "dest_name": h.dest_name,
