@@ -1,0 +1,14 @@
+# Argus findings suppressions.
+# Format: RULE (everywhere) | RULE path/glob | * path (everything under path)
+
+# Dependency and build trees: scanned upstream, not first-party code.
+* .venv/**
+* node_modules/**
+* vendor/**
+* .local/**
+* temp-tests/**
+* dist/**
+* build/**
+
+# Local TLS material generated for dev storage.
+* storage/ssl/**
