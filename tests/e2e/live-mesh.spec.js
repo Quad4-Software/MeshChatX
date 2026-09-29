@@ -441,3 +441,145 @@ test.describe("Live mesh multi-hub RRC", () => {
             .toBe("sent");
     });
 });
+
+test.describe("Live mesh restart and fault matrix", () => {
+    test.setTimeout(300000);
+    test.skip(!peerReady(), "live peer subprocess not running");
+
+    const { execFileSync } = require("child_process");
+    const META = path.join(SHARE, "stack_meta.json");
+    const CHAOS_MODE = path.join(SHARE, "chaos.mode");
+    const RESTART_SH = path.join(__dirname, "../../scripts/e2e/restart-backend.sh");
+
+    function stackMeta() {
+        if (!fs.existsSync(META)) {
+            return null;
+        }
+        return JSON.parse(fs.readFileSync(META, "utf8"));
+    }
+
+    function setChaos(mode) {
+        fs.writeFileSync(CHAOS_MODE, mode);
+    }
+
+    async function hubStatus(request, hubHash) {
+        const res = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs`);
+        if (!res.ok()) {
+            return null;
+        }
+        const body = await res.json();
+        const hub = (body.hubs || []).find((h) => h.hash === hubHash || h.hub_hash === hubHash);
+        return hub ? hub.status : null;
+    }
+
+    async function connectHub(request, hubHash) {
+        const add = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs`, {
+            hub_hash: hubHash,
+            name: `hub-${hubHash.slice(0, 6)}`,
+        });
+        expect(add.ok(), await add.text()).toBeTruthy();
+        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/connect`, {});
+        await expect
+            .poll(() => hubStatus(request, hubHash), {
+                timeout: 120000,
+                intervals: [1000, 2000, 3000],
+            })
+            .toBe(2);
+    }
+
+    test("backend restart with warm storage reconnects within SLA", async ({ request }) => {
+        const peer = peerReady();
+        const meta = stackMeta();
+        test.skip(!meta, "stack meta missing - cannot restart backend");
+        const hubHash = peer.hub_hashes?.[0] || peer.hub_hash;
+        await connectHub(request, hubHash);
+
+        // Warm known_destinations + empty path table is exactly the
+        // dead-link stall fixed in 4dd36c06. Restart and time the recovery.
+        const t0 = Date.now();
+        execFileSync("bash", [RESTART_SH, META], { timeout: 240000, stdio: "inherit" });
+        await prepareE2eSession(request);
+
+        // Hub entry persists with auto_reconnect - no manual connect needed.
+        await expect
+            .poll(() => hubStatus(request, hubHash), {
+                timeout: 90000,
+                intervals: [500, 1000, 2000],
+            })
+            .toBe(2);
+        const elapsed = Date.now() - t0;
+        // A dead-link stall used to burn the whole establishment timeout
+        // (~2-3 min). Assert the healthy bound instead.
+        expect(elapsed).toBeLessThan(90000);
+    });
+
+    test("link flap during connected session recovers", async ({ request }) => {
+        const peer = peerReady();
+        const hubHash = peer.hub_hashes?.[0] || peer.hub_hash;
+        await connectHub(request, hubHash);
+
+        // Drop every proxied connection - equivalent to the interface dying.
+        setChaos("drop");
+        await new Promise((r) => setTimeout(r, 3000));
+        setChaos("pass");
+
+        await expect
+            .poll(() => hubStatus(request, hubHash), {
+                timeout: 120000,
+                intervals: [1000, 2000, 3000],
+            })
+            .toBe(2);
+
+        const marker = `e2e-flap-${Date.now()}`;
+        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms`, {
+            room: "lobby",
+        });
+        const send = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/lobby/messages`, {
+            text: marker,
+        });
+        expect(send.ok(), await send.text()).toBeTruthy();
+        await expect
+            .poll(
+                async () => {
+                    const res = await request.get(
+                        `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/lobby/messages`
+                    );
+                    if (!res.ok()) {
+                        return null;
+                    }
+                    const body = await res.json();
+                    const mine = (body.messages || []).filter((r) => r.text === marker);
+                    return mine.length ? mine[mine.length - 1].delivery : null;
+                },
+                { timeout: 60000, intervals: [500, 1000, 2000] }
+            )
+            .toBe("sent");
+    });
+
+    test("network partition during connect cannot stall forever", async ({ request }) => {
+        const peer = peerReady();
+        const hubHash = peer.hub_hashes?.[2] || peer.hub_hash;
+        // Blackhole the link, then start a connect: bounded window + fail.
+        setChaos("partition");
+        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs`, {
+            hub_hash: hubHash,
+            name: "partition-hub",
+        });
+        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/connect`, {});
+        // A bounded attempt must surface as failed, not hang CONNECTING.
+        await expect
+            .poll(() => hubStatus(request, hubHash), {
+                timeout: 120000,
+                intervals: [1000, 2000, 3000],
+            })
+            .toBe(0);
+        setChaos("pass");
+        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/connect`, {});
+        await expect
+            .poll(() => hubStatus(request, hubHash), {
+                timeout: 120000,
+                intervals: [1000, 2000, 3000],
+            })
+            .toBe(2);
+    });
+});

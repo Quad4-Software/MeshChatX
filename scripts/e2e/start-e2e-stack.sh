@@ -26,6 +26,10 @@ mkdir -p "$MESHCHAT_LOG_DIR"
 # Fixed default so the Playwright spec process can find it without env.
 export E2E_PEER_SHARE="${E2E_PEER_SHARE:-/tmp/meshchatx-e2e-peer-share}"
 export E2E_PEER_PORT="${E2E_PEER_PORT:-43737}"
+# Chaos proxy: peer connects here, proxy forwards to E2E_PEER_PORT. Specs
+# inject link faults through a control file in the share dir.
+export E2E_CHAOS_PORT="${E2E_CHAOS_PORT:-43837}"
+export E2E_CHAOS_CONTROL="${E2E_PEER_SHARE:-/tmp/meshchatx-e2e-peer-share}/chaos.mode"
 E2E_LIVE_MESH="${E2E_LIVE_MESH:-1}"
 rm -rf "$E2E_PEER_SHARE"
 mkdir -p "$E2E_PEER_SHARE"
@@ -52,9 +56,17 @@ cleanup() {
         kill "$PEER_PID" 2>/dev/null || true
         wait "$PEER_PID" 2>/dev/null || true
     fi
-    if [[ -n "${BACK_PID:-}" ]] && kill -0 "$BACK_PID" 2>/dev/null; then
-        kill "$BACK_PID" 2>/dev/null || true
-        wait "$BACK_PID" 2>/dev/null || true
+    if [[ -n "${CHAOS_PID:-}" ]] && kill -0 "$CHAOS_PID" 2>/dev/null; then
+        kill "$CHAOS_PID" 2>/dev/null || true
+        wait "$CHAOS_PID" 2>/dev/null || true
+    fi
+    local_bpid="${BACK_PID:-}"
+    if [[ -f "$TMPDIR/backend.pid" ]]; then
+        local_bpid="$(cat "$TMPDIR/backend.pid")"
+    fi
+    if [[ -n "$local_bpid" ]] && kill -0 "$local_bpid" 2>/dev/null; then
+        kill "$local_bpid" 2>/dev/null || true
+        wait "$local_bpid" 2>/dev/null || true
     fi
     rm -rf "$TMPDIR"
     rm -rf "$E2E_PEER_SHARE"
@@ -73,6 +85,18 @@ uv run python -m meshchatx.meshchat \
     --reticulum-config-dir "$TMPDIR/rns" \
     &
 BACK_PID=$!
+echo "$BACK_PID" > "$TMPDIR/backend.pid"
+cat > "${E2E_PEER_SHARE}/stack_meta.json" <<META
+{
+  "backend_port": ${BACKEND_PORT},
+  "backend_pid_file": "${TMPDIR}/backend.pid",
+  "backend_storage": "${TMPDIR}/storage",
+  "backend_rns": "${TMPDIR}/rns",
+  "chaos_port": ${E2E_CHAOS_PORT},
+  "chaos_control": "${E2E_PEER_SHARE}/chaos.mode",
+  "tmp_root": "${TMPDIR}"
+}
+META
 
 echo "E2E: waiting for /api/v1/status network_ready..."
 ready=0
@@ -97,8 +121,12 @@ if [[ "$ready" -ne 1 ]]; then
 fi
 
 if [[ "$E2E_LIVE_MESH" == "1" ]]; then
-    echo "E2E: starting live mesh peer (TCPClient :${E2E_PEER_PORT})"
-    uv run python "$ROOT/scripts/e2e/live-peer.py"         "$TMPDIR/peer-rns" "${E2E_PEER_PORT}" "$E2E_PEER_SHARE" &
+    echo "E2E: starting chaos proxy :${E2E_CHAOS_PORT} -> :${E2E_PEER_PORT}"
+    echo pass > "${E2E_PEER_SHARE}/chaos.mode"
+    uv run python "$ROOT/scripts/e2e/chaos-proxy.py"         "${E2E_CHAOS_PORT}" "${E2E_PEER_PORT}" "${E2E_PEER_SHARE}/chaos.mode" &
+    CHAOS_PID=$!
+    echo "E2E: starting live mesh peer (TCPClient :${E2E_CHAOS_PORT} via proxy)"
+    uv run python "$ROOT/scripts/e2e/live-peer.py"         "$TMPDIR/peer-rns" "${E2E_CHAOS_PORT}" "$E2E_PEER_SHARE" &
     PEER_PID=$!
     peer_ready=0
     for i in $(seq 1 90); do
