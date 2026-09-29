@@ -13,4 +13,4 @@ export E2E_VITE_PORT="${E2E_VITE_PORT:-5173}"
 
 pnpm exec playwright install chromium --with-deps
 
-pnpm exec playwright test tests/e2e/smoke.spec.js
+pnpm exec playwright test tests/e2e/smoke.spec.js tests/e2e/live-mesh.spec.js
