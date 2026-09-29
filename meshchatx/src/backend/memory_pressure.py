@@ -12,6 +12,7 @@ from meshchatx.src.backend import (
     nomadnet_downloader,
     reticulum_pathfinding,
     rns_link_manager,
+    rns_ratchet_persist,
 )
 
 _log = logging.getLogger("meshchatx.memory_pressure")
@@ -107,7 +108,9 @@ class MemoryPressureManager:
             "announce_cache_cleaned": False,
             "held_queues_dropped": False,
             "sqlite_relaxed": False,
+            "io_pressure_active": False,
         }
+        self._io_pressure_active = False
 
     def run_periodic_cleanup(self) -> dict[str, Any]:
         """Called from announce_loop about every 5 minutes."""
@@ -190,6 +193,39 @@ class MemoryPressureManager:
             stats,
         )
         return stats
+
+    def on_io_pressure_high(self, avg10: float) -> dict[str, Any]:
+        """HealthMonitor detected sustained IO stalls (PSI avg10)."""
+        self._io_pressure_active = True
+        try:
+            rns_ratchet_persist.set_io_pressure(True)
+        except Exception as exc:
+            _log.debug("ratchet persist io gate failed: %s", exc)
+        stats = dict(self.last_stats)
+        stats["io_pressure_active"] = True
+        stats["io_avg10"] = round(float(avg10), 2)
+        self.last_stats = stats
+        _log.warning(
+            "IO pressure high (avg10=%.1f): background writes throttled: %s",
+            avg10,
+            stats,
+        )
+        return stats
+
+    def on_io_pressure_recovered(self, avg10: float | None = None) -> None:
+        if not self._io_pressure_active:
+            return
+        self._io_pressure_active = False
+        try:
+            rns_ratchet_persist.set_io_pressure(False)
+        except Exception as exc:
+            _log.debug("ratchet persist io release failed: %s", exc)
+        stats = dict(self.last_stats)
+        stats["io_pressure_active"] = False
+        if avg10 is not None:
+            stats["io_avg10"] = round(float(avg10), 2)
+        self.last_stats = stats
+        _log.info("IO pressure recovered")
 
     def on_memory_recovered(self) -> None:
         if not self._sqlite_relaxed:

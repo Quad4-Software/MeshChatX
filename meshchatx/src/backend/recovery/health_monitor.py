@@ -38,6 +38,11 @@ class HealthMonitor:
     ERROR_RATE_WARN = 0.3
     MEMORY_WARN_MB = 100  # warn when available < 100 MB
     MEMORY_RECOVER_MB = 400  # restore SQLite RAM pragmas above this
+    # Linux pressure stall information: the share of time tasks stall on
+    # IO. Avg10 above 25 means a quarter of runnable time is spent blocked
+    # on storage, which multiplies every SQLite and announce write.
+    IO_WARN_AVG10 = 25.0
+    IO_RECOVER_AVG10 = 10.0
     CONSECUTIVE_NEEDED = 2  # consecutive bad readings before alert
 
     def __init__(self, log_handler, app=None):
@@ -51,6 +56,8 @@ class HealthMonitor:
         self._error_rate_history = collections.deque(maxlen=self.ENTROPY_WINDOW)
         self._mem_available_history = collections.deque(maxlen=self.ENTROPY_WINDOW)
         self._memory_pressure_active = False
+        self._io_pressure_active = False
+        self._io_avg10_history = collections.deque(maxlen=self.ENTROPY_WINDOW)
         self._loop_probe_thread = None
         self._loop_stall_reported = False
 
@@ -187,6 +194,25 @@ class HealthMonitor:
                 },
             )
 
+        io_avg10 = self._read_io_pressure()
+        if io_avg10 is not None:
+            self._io_avg10_history.append(io_avg10)
+            if self._consecutive_above(self._io_avg10_history, self.IO_WARN_AVG10):
+                warnings.append(
+                    {
+                        "kind": "io_pressure",
+                        "message": f"IO stall pressure high: avg10 {io_avg10:.0f}%",
+                        "value": round(io_avg10, 2),
+                    },
+                )
+                if not self._io_pressure_active:
+                    self._trigger_io_pressure(io_avg10)
+            elif self._io_pressure_active and self._consecutive_below(
+                self._io_avg10_history,
+                self.IO_RECOVER_AVG10,
+            ):
+                self._recover_io_pressure(io_avg10)
+
         if self._consecutive_below(self._mem_available_history, self.MEMORY_WARN_MB):
             warnings.append(
                 {
@@ -205,6 +231,49 @@ class HealthMonitor:
         for w in warnings:
             _log.warning("Health warning: %s", w["message"])
             self._broadcast(w)
+
+    @staticmethod
+    def _read_io_pressure():
+        """Parse /proc/pressure/io some avg10, or None when PSI is absent."""
+        try:
+            with open("/proc/pressure/io") as fh:
+                first = fh.readline()
+            for field in first.split():
+                if field.startswith("avg10="):
+                    return float(field.split("=", 1)[1])
+        except (OSError, ValueError):
+            return None
+        return None
+
+    def _trigger_io_pressure(self, avg10: float) -> None:
+        self._io_pressure_active = True
+        manager = getattr(self.app, "memory_pressure", None) if self.app else None
+        if manager is None:
+            return
+        try:
+            manager.on_io_pressure_high(avg10)
+        except Exception as exc:
+            _log.debug("IO pressure handling failed: %s", exc)
+
+    def _recover_io_pressure(self, avg10: float | None = None) -> None:
+        self._io_pressure_active = False
+        manager = getattr(self.app, "memory_pressure", None) if self.app else None
+        if manager is None:
+            return
+        try:
+            manager.on_io_pressure_recovered(avg10)
+        except Exception as exc:
+            _log.debug("IO pressure recovery failed: %s", exc)
+        self._broadcast(
+            {
+                "kind": "io_recovered",
+                "message": (
+                    f"IO pressure recovered: avg10 {avg10:.0f}%"
+                    if isinstance(avg10, (int, float))
+                    else "IO pressure recovered"
+                ),
+            },
+        )
 
     def _detect_entropy_climb(self):
         """Return True when entropy climbs in 3+ steps above the warn threshold."""
@@ -283,4 +352,5 @@ class HealthMonitor:
             "entropy": list(self._entropy_history),
             "error_rate": list(self._error_rate_history),
             "memory_mb": list(self._mem_available_history),
+            "io_avg10": list(self._io_avg10_history),
         }
