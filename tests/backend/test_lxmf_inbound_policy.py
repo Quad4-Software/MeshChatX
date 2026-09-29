@@ -239,3 +239,55 @@ def test_install_is_idempotent():
     first = router.delivery_resource_advertised
     install_lxmf_inbound_delivery_policy(router, app, lambda: ctx)
     assert router.delivery_resource_advertised is first  # skipcq: BAN-B101
+
+
+def test_policy_does_not_reject_on_blocklist_error():
+    """A broken blocklist lookup must not produce a false blocked verdict."""
+    from meshchatx.src.backend.lxmf_inbound_policy import (
+        evaluate_inbound_delivery_resource_policy,
+    )
+
+    class BrokenApp:
+        def is_destination_blocked(self, *a, **kw):
+            return True  # fail-closed variant would reject here
+
+        def _is_contact(self, *a, **kw):
+            return False
+
+    class FakeLink:
+        def get_remote_identity(self):
+            from types import SimpleNamespace
+
+            return SimpleNamespace(hash=b"\x55" * 16)
+
+    resource = SimpleNamespace(link=FakeLink())
+    ctx = SimpleNamespace(
+        config=SimpleNamespace(
+            block_all_from_strangers=SimpleNamespace(get=lambda: False),
+            block_attachments_from_strangers=SimpleNamespace(get=lambda: False),
+        )
+    )
+    # is_destination_blocked that honours the fail_closed kwarg
+    class App(BrokenApp):
+        def is_destination_blocked(self, h, context=None, fail_closed=True):
+            return fail_closed
+
+    reject, _ = evaluate_inbound_delivery_resource_policy(App(), ctx, resource)
+    assert reject is False
+
+    # Same story for a failing contact lookup under block_all_from_strangers.
+    class App2(BrokenApp):
+        def is_destination_blocked(self, h, context=None, fail_closed=True):
+            return False
+
+        def _is_contact(self, *a, **kw):
+            raise RuntimeError("db busy")
+
+    ctx2 = SimpleNamespace(
+        config=SimpleNamespace(
+            block_all_from_strangers=SimpleNamespace(get=lambda: True),
+            block_attachments_from_strangers=SimpleNamespace(get=lambda: True),
+        )
+    )
+    reject, _ = evaluate_inbound_delivery_resource_policy(App2(), ctx2, resource)
+    assert reject is False
