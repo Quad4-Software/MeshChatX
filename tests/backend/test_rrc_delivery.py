@@ -137,3 +137,69 @@ def test_failed_message_auto_retries_once_on_rejoin(tmp_path):
     env = proto.make_envelope(proto.T_JOINED, src=b"\x44" * 16, room="general", body=[b"\x22" * 16])
     hub._handle_joined(env)
     assert msg.mid == own_mid
+
+
+import RNS
+
+from meshchatx.src.backend.rrc.manager import RRCManager
+from tests.backend.test_rrc_protocol import FakeIdentity
+
+
+def _manager_with_hub(tmp_path):
+    manager = RRCManager(
+        identity=FakeIdentity(),
+        storage_dir=str(tmp_path),
+        get_nickname=lambda: "me",
+    )
+    hub = manager.add_hub(b"\x44" * 16, name="hub")
+    return manager, hub
+
+
+def test_connect_auto_reconnect_waits_for_first_interface(tmp_path, monkeypatch):
+    """Startup auto-connect holds off until an interface reports online."""
+    manager, hub = _manager_with_hub(tmp_path)
+    hub.auto_reconnect = True
+
+    calls = {"connects": 0}
+
+    class FakeReticulum:
+        def get_interface_stats(self):
+            calls["connects"] += 1
+            # Come online on the second poll so the wait loop is exercised.
+            online = calls["connects"] > 1
+            return {"interfaces": [{"status": online}]}
+
+    monkeypatch.setattr(
+        RNS.Reticulum, "get_instance", staticmethod(lambda: FakeReticulum())
+    )
+    started = []
+    monkeypatch.setattr(hub, "connect", lambda: started.append(hub))
+
+    start = time.monotonic()
+    manager.connect_auto_reconnect_hubs()
+    assert time.monotonic() - start >= 0.2
+    assert started == [hub]
+
+    # Second call skips the wait entirely.
+    started.clear()
+    calls["connects"] = 0
+    manager.connect_auto_reconnect_hubs()
+    assert calls["connects"] == 0
+    assert started == [hub]
+
+
+def test_connect_auto_reconnect_no_reticulum_returns_fast(tmp_path, monkeypatch):
+    manager, hub = _manager_with_hub(tmp_path)
+    hub.auto_reconnect = True
+
+    def no_instance():
+        raise RuntimeError("no reticulum")
+
+    monkeypatch.setattr(RNS.Reticulum, "get_instance", staticmethod(no_instance))
+    started = []
+    monkeypatch.setattr(hub, "connect", lambda: started.append(hub))
+
+    start = time.monotonic()
+    manager.connect_auto_reconnect_hubs()
+    assert time.monotonic() - start < 1.0
+    assert started == [hub]
