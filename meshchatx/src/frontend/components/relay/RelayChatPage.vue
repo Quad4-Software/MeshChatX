@@ -1506,35 +1506,44 @@
                 :y="sidebarMenu.y"
             >
                 <ContextMenuItem v-if="!sidebarMenu.hub" @click="openAddHubFromMenu">
+                    <MaterialDesignIcon icon-name="plus" class="size-4 text-sem-fg-muted" />
                     {{ $t("relay_chat.ctx_add_hub") }}
                 </ContextMenuItem>
                 <template v-if="sidebarMenu.hub">
                     <ContextMenuItem v-if="!sidebarMenu.room" @click="focusJoinRoomFromMenu">
+                        <MaterialDesignIcon icon-name="forum-plus-outline" class="size-4 text-sem-fg-muted" />
                         {{ $t("relay_chat.ctx_add_room") }}
                     </ContextMenuItem>
                     <ContextMenuItem v-if="!sidebarMenu.room && !sidebarMenu.hub.connected" @click="connectHubFromMenu">
+                        <MaterialDesignIcon icon-name="link-variant" class="size-4 text-sem-fg-muted" />
                         {{ $t("relay_chat.ctx_connect_hub") }}
                     </ContextMenuItem>
                     <ContextMenuItem
                         v-if="!sidebarMenu.room && sidebarMenu.hub.connected"
                         @click="disconnectHubFromMenu"
                     >
+                        <MaterialDesignIcon icon-name="link-variant-off" class="size-4 text-sem-fg-muted" />
                         {{ $t("relay_chat.ctx_disconnect_hub") }}
                     </ContextMenuItem>
                     <ContextMenuItem @click="copyHubAddressFromMenu">
+                        <MaterialDesignIcon icon-name="content-copy" class="size-4 text-sem-fg-muted" />
                         {{ $t("relay_chat.ctx_copy_hub_address") }}
                     </ContextMenuItem>
                     <ContextMenuItem @click="shareHubFromMenu">
+                        <MaterialDesignIcon icon-name="share-variant-outline" class="size-4 text-sem-fg-muted" />
                         {{ sidebarMenu.room ? $t("relay_chat.ctx_share_room") : $t("relay_chat.ctx_share_hub") }}
                     </ContextMenuItem>
                     <ContextMenuItem @click="openSettingsFromMenu">
+                        <MaterialDesignIcon icon-name="cog-outline" class="size-4 text-sem-fg-muted" />
                         {{ $t("relay_chat.ctx_hub_settings") }}
                     </ContextMenuItem>
                     <ContextMenuItem v-if="sidebarMenu.room" @click="leaveRoomFromMenu">
+                        <MaterialDesignIcon icon-name="exit-to-app" class="size-4 text-sem-fg-muted" />
                         {{ $t("relay_chat.ctx_leave_room") }}
                     </ContextMenuItem>
                     <ContextMenuDivider />
                     <ContextMenuItem class="text-sem-danger" @click="removeHubFromMenu">
+                        <MaterialDesignIcon icon-name="delete-outline" class="size-4" />
                         {{ $t("relay_chat.ctx_remove_hub") }}
                     </ContextMenuItem>
                 </template>
@@ -1550,21 +1559,36 @@
                     v-if="messageMenu.msg && canQuoteMessage(messageMenu.msg)"
                     @click="replyWithQuoteFromMenu"
                 >
+                    <MaterialDesignIcon icon-name="reply" class="size-4 text-sem-fg-muted" />
                     {{ $t("relay_chat.ctx_reply_quote") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="messageMenu.msg && canMentionMessageAuthor(messageMenu.msg)"
                     @click="mentionUserFromMenu"
                 >
+                    <MaterialDesignIcon icon-name="at" class="size-4 text-sem-fg-muted" />
                     {{ $t("relay_chat.ctx_mention_user") }}
                 </ContextMenuItem>
+                <ContextMenuItem v-if="messageMenu.msg && canDmMessageAuthor(messageMenu.msg)" @click="dmUserFromMenu">
+                    <MaterialDesignIcon icon-name="message-text-outline" class="size-4 text-sem-fg-muted" />
+                    {{ $t("relay_chat.ctx_message_user") }}
+                </ContextMenuItem>
                 <ContextMenuItem v-if="messageMenu.msg && messageMenu.msg.text" @click="copyMessageFromMenu">
+                    <MaterialDesignIcon icon-name="content-copy" class="size-4 text-sem-fg-muted" />
                     {{ $t("relay_chat.ctx_copy_message") }}
+                </ContextMenuItem>
+                <ContextMenuItem v-if="messageMenu.msg && messageMenu.msg.src" @click="copyAuthorHashFromMenu">
+                    <MaterialDesignIcon icon-name="fingerprint" class="size-4 text-sem-fg-muted" />
+                    {{ $t("relay_chat.ctx_copy_hash") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="messageMenu.msg && canIgnoreMessageAuthor(messageMenu.msg)"
                     @click="toggleIgnoreFromMenu"
                 >
+                    <MaterialDesignIcon
+                        :icon-name="isIgnoredAuthor(messageMenu.msg) ? 'eye-outline' : 'eye-off-outline'"
+                        class="size-4 text-sem-fg-muted"
+                    />
                     {{
                         isIgnoredAuthor(messageMenu.msg)
                             ? $t("relay_chat.ctx_unignore_user")
@@ -1575,14 +1599,17 @@
                     v-if="messageMenu.msg && canTranslateRelayMessage(messageMenu.msg)"
                     @click="translateRelayMessageFromMenu"
                 >
+                    <MaterialDesignIcon icon-name="translate" class="size-4 text-sem-fg-muted" />
                     {{ $t("relay_chat.ctx_translate_message") }}
                 </ContextMenuItem>
                 <template v-if="messageMenu.msg && canModerateSelectedHub">
                     <ContextMenuDivider />
                     <ContextMenuItem class="text-sem-danger" @click="kickUserFromMenu">
+                        <MaterialDesignIcon icon-name="account-remove-outline" class="size-4" />
                         {{ $t("relay_chat.ctx_kick_user") }}
                     </ContextMenuItem>
                     <ContextMenuItem class="text-sem-danger" @click="banUserFromMenu">
+                        <MaterialDesignIcon icon-name="gavel" class="size-4" />
                         {{ $t("relay_chat.ctx_ban_user") }}
                     </ContextMenuItem>
                 </template>
@@ -3072,6 +3099,30 @@ export default {
             }
             try {
                 navigator.clipboard.writeText(msg.text);
+                ToastUtils.success(this.$t("common.copied"));
+            } catch {
+                ToastUtils.error(this.$t("common.failed_to_copy"));
+            }
+        },
+        canDmMessageAuthor(msg) {
+            const own = useConfigStore().config?.identity_hash || "";
+            return Boolean(msg && msg.src && msg.kind !== "system" && msg.src !== own);
+        },
+        async dmUserFromMenu() {
+            const msg = this.messageMenu.msg;
+            this.closeMessageMenu();
+            if (msg?.src) {
+                await this.openMemberDm({ hash: msg.src });
+            }
+        },
+        copyAuthorHashFromMenu() {
+            const msg = this.messageMenu.msg;
+            this.closeMessageMenu();
+            if (!msg?.src) {
+                return;
+            }
+            try {
+                navigator.clipboard.writeText(msg.src);
                 ToastUtils.success(this.$t("common.copied"));
             } catch {
                 ToastUtils.error(this.$t("common.failed_to_copy"));

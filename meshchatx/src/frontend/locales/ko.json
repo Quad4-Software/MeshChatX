@@ -4064,6 +4064,8 @@
         "ctx_reply_quote": "인용하여 답장",
         "ctx_mention_user": "사용자 언급",
         "ctx_copy_message": "메시지 복사",
+        "ctx_message_user": "사용자에게 메시지",
+        "ctx_copy_hash": "사용자 해시 복사",
         "ctx_translate_message": "Translate message",
         "ctx_kick_user": "사용자 강퇴",
         "ctx_ban_user": "사용자 차단",

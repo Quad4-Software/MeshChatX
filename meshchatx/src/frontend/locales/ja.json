@@ -4064,6 +4064,8 @@
         "ctx_reply_quote": "引用して返信",
         "ctx_mention_user": "ユーザーをメンション",
         "ctx_copy_message": "メッセージをコピー",
+        "ctx_message_user": "ユーザーにメッセージ",
+        "ctx_copy_hash": "ユーザーハッシュをコピー",
         "ctx_translate_message": "Translate message",
         "ctx_kick_user": "ユーザーをキック",
         "ctx_ban_user": "ユーザーを追放",

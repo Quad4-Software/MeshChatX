@@ -4064,6 +4064,8 @@
         "ctx_reply_quote": "Odpowiedz z cytatem",
         "ctx_mention_user": "Wspomnij użytkownika",
         "ctx_copy_message": "Kopiuj wiadomość",
+        "ctx_message_user": "Wiadomość do użytkownika",
+        "ctx_copy_hash": "Kopiuj hash użytkownika",
         "ctx_translate_message": "Translate message",
         "ctx_kick_user": "Wyrzuć użytkownika",
         "ctx_ban_user": "Zbanuj użytkownika",

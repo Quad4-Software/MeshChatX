@@ -4064,6 +4064,8 @@
         "ctx_reply_quote": "Ответить с цитатой",
         "ctx_mention_user": "Упомянуть пользователя",
         "ctx_copy_message": "Копировать сообщение",
+        "ctx_message_user": "Написать пользователю",
+        "ctx_copy_hash": "Копировать хеш пользователя",
         "ctx_translate_message": "Translate message",
         "ctx_kick_user": "Исключить пользователя",
         "ctx_ban_user": "Забанить пользователя",
