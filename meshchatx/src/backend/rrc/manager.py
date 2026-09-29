@@ -52,6 +52,10 @@ ANNOUNCE_RESET_MIN_INTERVAL_S = 300.0
 # request on cold air stalls a connect, while 60s was far too coarse for a
 # retry to matter inside one attempt window.
 CONNECT_PATH_RETRY_S = 5.0
+# Upper bound for a link stuck in PENDING during connect. RNS's own
+# establishment timeout can run several minutes on a dead path, which
+# leaves the hub parked in CONNECTING with no forward progress.
+CONNECT_LINK_WATCHDOG_S = 60.0
 
 # Delay between auto-connect starts so a large configured hub set does
 # not burst link requests at startup.
@@ -479,6 +483,36 @@ class RRCHub:
             with self._lock:
                 self._expected_closed_link = None
                 self.link = link
+
+            # Bound the establishment phase: a link stuck PENDING on a dead
+            # path sits in CONNECTING until RNS's multi-minute timeout. Give
+            # up sooner and let reconnect backoff retry instead.
+            def _establish_watchdog():
+                try:
+                    bound = max(
+                        CONNECT_LINK_WATCHDOG_S,
+                        path_response_window(self.hub_hash),
+                    )
+                except Exception:
+                    bound = CONNECT_LINK_WATCHDOG_S
+                deadline = time.monotonic() + bound
+                while time.monotonic() < deadline:
+                    if link.status != RNS.Link.PENDING:
+                        return
+                    if self._stop_hello.is_set():
+                        return
+                    time.sleep(0.5)
+                if link.status == RNS.Link.PENDING:
+                    with contextlib.suppress(Exception):
+                        link.teardown()
+                    self._set_status(
+                        RRCHub.STATUS_FAILED,
+                        "Link establishment timed out",
+                    )
+                    self._maybe_schedule_reconnect_after_failed_connect()
+
+            watchdog = threading.Thread(target=_establish_watchdog, daemon=True)
+            watchdog.start()
         except Exception as e:
             self._set_status(RRCHub.STATUS_FAILED, "Connect error: " + str(e))
             self._maybe_schedule_reconnect_after_failed_connect()
