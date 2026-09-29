@@ -172,6 +172,7 @@ export default {
             // add peers
             if (Array.isArray(this.peers)) {
                 for (const peer of this.peers) {
+                    if (!peer || !peer.destination_hash) continue;
                     results.push({
                         id: `peer-${peer.destination_hash}`,
                         title: peer.custom_display_name ?? peer.display_name,
@@ -188,6 +189,7 @@ export default {
             // add contacts
             if (Array.isArray(this.contacts)) {
                 for (const contact of this.contacts) {
+                    if (!contact) continue;
                     results.push({
                         id: `contact-${contact.id}`,
                         title: contact.name,
@@ -285,6 +287,7 @@ export default {
             }
         },
         moveHighlight(step) {
+            if (this.filteredResults.length === 0) return;
             const index = this.filteredResults.findIndex((r) => r.id === this.highlightedId);
             let nextIndex = index + step;
             if (nextIndex < 0) nextIndex = this.filteredResults.length - 1;
