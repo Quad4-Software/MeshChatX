@@ -33,6 +33,7 @@ All notable changes to this project will be documented in this file.
 - Web audio bridge reattaches after an LXST pipeline reconfiguration (answer, profile switch, loudspeaker toggle) instead of leaving mic and speaker paths silently disconnected, and per-client sends coalesce so one slow socket no longer stalls the whole 60fps feed.
 - Geo WASM: MGRS formatting for single-digit zones is correct, OLC shorten/recover no longer panics on edge-case codes, and NaN or non-finite coordinates cannot crash the runtime.
 - Visualiser WASM: the WebGL pick radius holds a screen-space minimum so clicks still land at high zoom, scene handlers validate argument types instead of calling Float on non-numbers, coincident layout nodes get a deterministic separation nudge, and duplicate edges are deduplicated.
+- Sandbox: seccomp denylist now prefers the seccompy backend (pure Python, no libseccomp needed) and falls back to libseccomp via ctypes when it is absent.
 - Crawler: re-queued tasks keep their retry budget instead of resetting to zero, in-flight tasks count toward the per-node page cap, a successful crawl clears the previous skip reason, and a node's own page destinations are never queued for self-crawl.
 - Page nodes write pages and hosted files atomically and open served files with O_NOFOLLOW so a swapped symlink cannot redirect a served path after the jail check.
 - Media conversion holds a process-wide lock around the temporary-directory and environment window so concurrent conversions cannot clobber each other's temp settings.

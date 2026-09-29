@@ -39,6 +39,7 @@ dependencies = [
   "bleak>=3.0.2,<4.0",
   "httpx[http2]>=0.28.1,<1.0",
   "landlockpy>=0.2.0,<0.3",
+  "seccompy==0.2.0",
 ]
 
 [project.scripts]
