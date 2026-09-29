@@ -13,17 +13,15 @@ import json
 import os
 import sys
 
-import pytest
-
 sys.path.insert(0, os.path.dirname(__file__))
-from test_rrc_server import (  # noqa: E402
+from test_rrc_server import (
     FakeIdentity,
     FakeLink,
     add_session,
     make_server,
 )
 
-from meshchatx.src.backend.rrc import protocol as proto  # noqa: E402
+from meshchatx.src.backend.rrc import protocol as proto
 
 CORPUS_DIR = os.path.join(os.path.dirname(__file__), "replay_corpus")
 

@@ -26,7 +26,7 @@ sys.path.insert(
         os.path.dirname(__file__), "..", "..", "scripts", "e2e"
     ),
 )
-import backend_harness as bh  # noqa: E402
+import backend_harness as bh
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("MESHCHAT_LIVE_RETICULUM") != "1",

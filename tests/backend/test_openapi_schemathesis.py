@@ -11,7 +11,6 @@ Runs only when MESHCHAT_LIVE_RETICULUM=1.
 from __future__ import annotations
 
 import os
-import re
 import subprocess
 import sys
 
@@ -23,7 +22,7 @@ sys.path.insert(
         os.path.dirname(__file__), "..", "..", "scripts", "e2e"
     ),
 )
-import backend_harness as bh  # noqa: E402
+import backend_harness as bh
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("MESHCHAT_LIVE_RETICULUM") != "1",
@@ -51,7 +50,7 @@ def backend(tmp_path):
 
 
 def test_openapi_fuzz_loopback(backend):
-    port, tmp = backend
+    port, _tmp = backend
     # Grab session + CSRF so schemathesis can exercise write endpoints too.
     jar = {}
     try:
