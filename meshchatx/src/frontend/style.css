@@ -437,8 +437,10 @@ select option {
 .context-item:disabled {
     cursor: not-allowed;
 }
-.context-item:hover {
+.context-item:hover,
+.context-item:focus-visible {
     background-color: var(--mc-context-hover);
+    outline: none;
 }
 
 .context-menu-divider {
