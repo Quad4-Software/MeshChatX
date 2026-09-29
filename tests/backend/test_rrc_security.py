@@ -528,7 +528,7 @@ def test_private_room_excluded_from_list_output():
         proto.make_envelope(proto.T_MSG, src=sess.peer, room=None, body="/list"),
     )
     text = out[0][1][proto.K_BODY]
-    rooms = proto.parse_room_list_notice(text)
+    rooms = proto.parse_room_list_notice_details(text)
     assert "public" in rooms
     assert "secret" not in rooms
 

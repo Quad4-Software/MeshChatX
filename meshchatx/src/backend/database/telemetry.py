@@ -99,12 +99,6 @@ class TelemetryDAO:
         """
         return self.provider.fetchall(query)
 
-    def delete_telemetry_for_destination(self, destination_hash):
-        self.provider.execute(
-            "DELETE FROM lxmf_telemetry WHERE destination_hash = ?",
-            (destination_hash,),
-        )
-
     def is_tracking(self, destination_hash):
         row = self.provider.fetchone(
             "SELECT is_tracking FROM telemetry_tracking WHERE destination_hash = ?",

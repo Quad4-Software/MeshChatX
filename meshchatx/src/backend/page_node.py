@@ -35,7 +35,6 @@ from meshchatx.src.json_store import load_json, save_json
 from meshchatx.src.path_utils import (
     PathJailError,
     atomic_write_bytes,
-    is_under_root,
     resolve_under_root,
     safe_basename,
 )
@@ -202,11 +201,6 @@ def _safe_mesh_file_basename(name: str) -> str:
     if base is None:
         raise ValueError("invalid file name")
     return base
-
-
-def _path_is_under_root(resolved: str, root: str) -> bool:
-    return is_under_root(resolved, root)
-
 
 def _is_windows_platform() -> bool:
     if os.name == "nt":

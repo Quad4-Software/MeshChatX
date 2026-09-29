@@ -122,5 +122,3 @@ class DebugLogsDAO:
                     (cutoff_ts,),
                 )
 
-    def get_anomalies(self, limit=50):
-        return self.get_logs(limit=limit, is_anomaly=True)

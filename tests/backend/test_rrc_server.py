@@ -200,8 +200,8 @@ def test_list_command_matches_client_parser():
     )
 
     text = out[0][1][proto.K_BODY]
-    rooms = proto.parse_room_list_notice(text)
-    assert rooms == {"general": "General chatter"}
+    rooms = proto.parse_room_list_notice_details(text)
+    assert rooms == {"general": {"topic": "General chatter", "has_key": False}}
     details = proto.parse_room_list_notice_details(text)
     assert details == {
         "general": {"topic": "General chatter", "has_key": False},

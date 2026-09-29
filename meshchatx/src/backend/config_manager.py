@@ -6,7 +6,6 @@ class ConfigManager:
         self.db = db
 
         # all possible config items
-        self.database_version = self.IntConfig(self, "database_version", None)
         self.display_name = self.StringConfig(self, "display_name", "Anonymous Peer")
         self.auto_announce_enabled = self.BoolConfig(
             self,
@@ -214,7 +213,6 @@ class ConfigManager:
             "openid profile email",
         )
         self.privacy_mode_enabled = self.BoolConfig(self, "privacy_mode_enabled", False)
-        self.bug_capture_enabled = self.BoolConfig(self, "bug_capture_enabled", True)
         self.multi_session_warning_enabled = self.BoolConfig(
             self,
             "multi_session_warning_enabled",

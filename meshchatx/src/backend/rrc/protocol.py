@@ -295,15 +295,6 @@ def parse_room_list_notice_details(text):
         rooms[name] = {"topic": topic, "has_key": has_key}
     return rooms
 
-
-def parse_room_list_notice(text):
-    """Parse a hub /list notice into {room: topic_or_None} or None."""
-    details = parse_room_list_notice_details(text)
-    if details is None:
-        return None
-    return {name: info.get("topic") for name, info in details.items()}
-
-
 class RRCMessage:
     """A single chat event (message, action, notice, or system line)."""
 

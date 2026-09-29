@@ -15,7 +15,6 @@ import os
 import sys
 import tempfile
 import time
-from collections.abc import Callable
 from dataclasses import dataclass
 
 from meshchatx.src.env_utils import env_bool, env_str
@@ -551,15 +550,6 @@ def ensure_appcontainer_profile(
             f"DeriveAppContainerSidFromAppContainerName failed: hr={hr} err={err}",
         )
     return sid
-
-
-def delete_appcontainer_profile(profile_name: str = APPCONTAINER_PROFILE_NAME) -> None:
-    userenv = ctypes.WinDLL("userenv", use_last_error=True)
-    hr = userenv.DeleteAppContainerProfile(ctypes.c_wchar_p(profile_name))
-    if hr not in (0,):
-        # Best effort cleanup. Profile may be in use.
-        logger.debug("DeleteAppContainerProfile hr=%s", hr)
-
 
 def _set_path_access(
     path: str,
@@ -1447,4 +1437,3 @@ def apply_windows_process_mitigations() -> bool:
 
 
 # Hook type for tests that inject fake launchers.
-LaunchBackendFn = Callable[..., LaunchResult]

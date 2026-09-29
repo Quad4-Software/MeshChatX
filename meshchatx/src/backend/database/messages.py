@@ -1156,33 +1156,6 @@ class MessageDAO:
 
         return unread_states
 
-    def get_conversations_failed_counts(self, destination_hashes):
-        if not destination_hashes:
-            return {}
-        placeholders = ", ".join(["?"] * len(destination_hashes))
-        rows = self.provider.fetchall(
-            f"SELECT peer_hash, COUNT(*) as count FROM lxmf_messages WHERE state = 'failed' AND peer_hash IN ({placeholders}) GROUP BY peer_hash",  # nosec: BAN-B608
-            tuple(destination_hashes),
-        )
-        return {row["peer_hash"]: row["count"] for row in rows}
-
-    def get_conversations_attachment_states(self, destination_hashes):
-        if not destination_hashes:
-            return {}
-
-        placeholders = ", ".join(["?"] * len(destination_hashes))
-        query = f"""
-            SELECT peer_hash, 1 as has_attachments
-            FROM lxmf_messages
-            WHERE peer_hash IN ({placeholders})
-            AND fields IS NOT NULL AND fields != '{{}}' AND fields != ''
-            GROUP BY peer_hash
-        """
-        rows = self.provider.fetchall(query, destination_hashes)
-
-        return {row["peer_hash"]: True for row in rows}
-
-    # Forwarding Mappings
     def get_forwarding_mapping(
         self,
         alias_hash=None,

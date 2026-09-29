@@ -22,6 +22,3 @@ def verify_dir_integrity(dir_path: str, expected_hash: str) -> tuple[bool, str]:
         return False, current
     return True, current
 
-
-def integrity_tamper_error() -> ValueError:
-    return ValueError(INTEGRITY_TAMPER_MESSAGE)

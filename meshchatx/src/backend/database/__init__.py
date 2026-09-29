@@ -168,7 +168,6 @@ class Database:
         self.crash_history = CrashHistoryDAO(self.provider)
         self.rrc_room_keys = RrcRoomKeysDAO(self.provider)
         self._sqlite_memory_relaxed = False
-        self._last_pre_migrate_backup_path: str | None = None
         # Runs at construction so restore_database's own staging/aside dirs
         # are never mistaken for leftovers mid-restore.
         self._repair_interrupted_restore()
@@ -200,7 +199,6 @@ class Database:
                             target_version,
                         )
                         backup_path = result.get("path")
-                        self._last_pre_migrate_backup_path = backup_path
                     except Exception as exc:
                         msg = (
                             "Pre-migration backup failed. Aborting schema upgrade. "

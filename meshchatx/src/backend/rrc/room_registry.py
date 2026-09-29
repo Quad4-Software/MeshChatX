@@ -141,13 +141,6 @@ class RoomRegistry:
             "last_used_ts": st.get("last_used_ts"),
         }
         self._store.save(self._registry)
-
-    def delete_from_registry(self, room):
-        self._registry.pop(room, None)
-        self._state.pop(room, None)
-        if self._store is not None:
-            self._store.save(self._registry)
-
     def drop_transient_state(self, room):
         """Drop in-memory ACL state for an unregistered, emptied room.
 

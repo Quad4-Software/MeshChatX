@@ -908,16 +908,6 @@ class PluginManager:
             if os.path.isfile(path):
                 return path
         return None
-
-    def load_locale_messages(self, plugin_id: str, locale: str) -> dict[str, Any]:
-        path = self.locale_path(plugin_id, locale)
-        if not path:
-            return {}
-        data = load_json(path)
-        if not isinstance(data, dict):
-            raise ValueError("plugin locale file must be an object")
-        return data
-
     def report_failure(
         self,
         plugin_id: str,

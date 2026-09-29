@@ -7,7 +7,6 @@ from __future__ import annotations
 import io
 import os
 import zipfile
-from collections.abc import Iterable
 
 from meshchatx.src.backend.plugin_rsg import SignatureInfo, verify_rsg_payload
 
@@ -138,16 +137,6 @@ def verify_wasm_signature(data: bytes) -> SignatureInfo:
         return SignatureInfo(present=True, error=str(exc))
     return verify_rsg_payload(bundle.signature, payload)
 
-
-def verify_file_bytes_signature(
-    rsg_data: bytes | None,
-    payload: bytes,
-) -> SignatureInfo:
-    if not rsg_data:
-        return SignatureInfo()
-    return verify_rsg_payload(rsg_data, payload)
-
-
 def verify_py_signature(py_path: str) -> SignatureInfo:
     rsg_path = py_path + ".rsg"
     if not os.path.isfile(rsg_path):
@@ -209,6 +198,3 @@ def enrich_signature_with_trust(info: SignatureInfo, lookup_trusted) -> Signatur
         error=info.error,
     )
 
-
-def collect_signature_file_names() -> Iterable[str]:
-    return SIGNATURE_FILE_NAMES
