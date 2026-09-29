@@ -19,6 +19,10 @@ export function useNomadNodesList() {
     const isSearchingNodes = ref(false);
     const nodesSearchTerm = ref("");
     const pageSize = ref(50);
+    // Rows inserted by live announces must not inflate the pagination offset:
+    // they were never part of a fetched page, so counting them skips real
+    // server rows on load-more.
+    const fetchedCount = ref(0);
     const nodesRefreshTimeout = ref(null);
     const nodesListAbortController = ref(null);
 
@@ -29,11 +33,17 @@ export function useNomadNodesList() {
             return;
         }
         // Live announce broadcasts are slim: keep the stored first-seen
-        // timestamp and bump the heard count so sorting stays correct
-        // without a refetch. A fetched row carries its own announce_count.
+        // timestamp, user-set name and bumped heard count so sorting and
+        // naming stay correct without a refetch. The slim announce payload
+        // fabricates created_at=now and nulls custom_display_name, so the
+        // stored row wins for both.
         const merged = {
             ...announce,
-            created_at: announce.created_at || existing.created_at,
+            created_at: existing.created_at || announce.created_at,
+            custom_display_name:
+                announce.custom_display_name !== undefined && announce.custom_display_name !== null
+                    ? announce.custom_display_name
+                    : existing.custom_display_name,
             announce_count:
                 announce.announce_count !== undefined && announce.announce_count !== null
                     ? announce.announce_count
@@ -73,7 +83,7 @@ export function useNomadNodesList() {
                 nodesListAbortController.value = new AbortController();
                 myController = nodesListAbortController.value;
             }
-            const offset = append ? Object.keys(nodes.value).length : 0;
+            const offset = append ? fetchedCount.value : 0;
             const response = await announcesApi.listAnnounces({
                 params: {
                     aspect: "nomadnetwork.node",
@@ -87,7 +97,9 @@ export function useNomadNodesList() {
             const nodeAnnounces = response.data.announces;
             if (!append) {
                 nodes.value = {};
+                fetchedCount.value = 0;
             }
+            fetchedCount.value += nodeAnnounces.length;
 
             totalNodesCount.value = response.data.total_count || 0;
 

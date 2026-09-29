@@ -344,4 +344,6 @@ class RRCMessage:
             out["event"] = self.event
         if self.delivery is not None:
             out["delivery"] = self.delivery
+            if isinstance(self.mid, (bytes, bytearray)):
+                out["mid"] = bytes(self.mid).hex()
         return out

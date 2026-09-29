@@ -70,20 +70,28 @@ describe("useNomadNodesList", () => {
         expect(list.hasMoreNodes.value).toBe(true);
     });
 
-    it("append mode uses the current node count as offset and keeps existing nodes", async () => {
+    it("append mode counts fetched rows only, not live-announced inserts", async () => {
+        // Regression: a live WS announce inserts into nodes without being part
+        // of any fetched page, so using the node count as the offset skipped
+        // real server rows on load-more.
         const list = useNomadNodesList();
+        api.get.mockResolvedValueOnce({
+            data: { announces: [{ destination_hash: "y".repeat(32) }], total_count: 5 },
+        });
+        await list.getNomadnetworkNodeAnnounces();
+        // Live announce arrives before load-more; it must not inflate offset.
         list.updateNodeFromAnnounce({ destination_hash: "x".repeat(32) });
         api.get.mockResolvedValueOnce({
-            data: { announces: [{ destination_hash: "y".repeat(32) }], total_count: 2 },
+            data: { announces: [{ destination_hash: "z".repeat(32) }], total_count: 5 },
         });
         await list.getNomadnetworkNodeAnnounces(true);
-        expect(api.get).toHaveBeenCalledWith(
+        expect(api.get).toHaveBeenLastCalledWith(
             "/api/v1/announces",
             expect.objectContaining({
                 params: expect.objectContaining({ offset: 1 }),
             })
         );
-        expect(Object.keys(list.nodes.value)).toHaveLength(2);
+        expect(Object.keys(list.nodes.value)).toHaveLength(3);
     });
 
     it("loadMoreNodes appends only when more pages exist", async () => {

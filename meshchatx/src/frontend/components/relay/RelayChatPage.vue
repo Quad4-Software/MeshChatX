@@ -1788,7 +1788,10 @@ export default {
                 // never reveal them again.
                 excludeMessage: (msg) => inst?.proxy.isIgnoredMsg(msg),
                 decorateMessages: (msgs) => inst?.proxy.applyLocalHighlightFlags(msgs),
-                buildTimelineOptions: () => ({ hideJoinPart: inst?.proxy.hideJoinPart === true }),
+                buildTimelineOptions: () => ({
+                    hideJoinPart: inst?.proxy.hideJoinPart === true,
+                    unreadBeforeSeq: inst?.proxy.unreadDividerSeq ?? null,
+                }),
                 onScrollState: (el, distanceToBottom) => inst?.proxy._onMessagesScrollState(distanceToBottom),
                 t: (...args) => inst?.proxy.$t(...args),
             }),
@@ -3771,6 +3774,9 @@ export default {
                 }
             });
         },
+        composerByteLength(text) {
+            return new TextEncoder().encode(text || "").length;
+        },
         onComposerKeydown(event) {
             // Arrow-up on an empty composer recalls the last message the local
             // identity sent in this room, the IRC/Discord "fix a typo" move.
@@ -4463,7 +4469,9 @@ export default {
             if (json.message && json.message.delivery === "failed") {
                 // One toast per message: re-pushes of the same seq must not
                 // stack notifications on top of the in-line hint.
-                const key = `df-${json.hub_hash}-${json.room}-${json.message.seq}`;
+                // Key on the envelope id so a retried message that fails
+                // again still warns; seq stays constant across retries.
+                const key = `df-${json.hub_hash}-${json.room}-${json.message.mid || json.message.seq}`;
                 if (!this.deliveryFailToasted.has(key)) {
                     this.deliveryFailToasted.add(key);
                     ToastUtils.warning(this.$t("relay_chat.delivery_failed_toast"));
@@ -4486,8 +4494,11 @@ export default {
                     this.refreshMembers();
                 }
                 // Chat is already open: dismiss unread/mention badge without waiting
-                // for a later hub list refresh race.
-                this.markRoomRead(json.hub_hash, json.room);
+                // for a later hub list refresh race. Delivery-state re-pushes
+                // carry no new content, so skip the POST for those.
+                if (!json.message.delivery) {
+                    this.markRoomRead(json.hub_hash, json.room);
+                }
             } else if (
                 json.message &&
                 (json.message.kind === "msg" || json.message.kind === "action") &&
