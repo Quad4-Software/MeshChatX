@@ -766,3 +766,103 @@ test.describe("Live mesh two-peer isolation", () => {
         expect((h1msgs.messages || []).some((r) => r.text === markers[1][1])).toBeFalsy();
     });
 });
+
+test.describe("Live mesh RRC history and pagination", () => {
+    test.setTimeout(420000);
+    test.skip(!peerReady(), "live peer subprocess not running");
+
+    test("room history survives backend restart and pages backwards", async ({ request }) => {
+        const peer = peerReady();
+        const hubHash = peer.hub_hashes?.[0] || peer.hub_hash;
+        const marker = `hist-${Date.now()}`;
+
+        const add = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs`, {
+            hub_hash: hubHash,
+            name: "hist-hub",
+        });
+        expect(add.ok(), await add.text()).toBeTruthy();
+        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/connect`, {});
+        await expect
+            .poll(
+                async () => {
+                    const res = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs`);
+                    if (!res.ok()) {
+                        return null;
+                    }
+                    const body = await res.json();
+                    const hub = (body.hubs || []).find((h) => h.hash === hubHash || h.hub_hash === hubHash);
+                    return hub ? hub.status : null;
+                },
+                { timeout: 120000, intervals: [1000, 2000] }
+            )
+            .toBe(2);
+        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms`, { room: "lobby" });
+
+        // One uniquely marked message; after restart it must come back from
+        // disk history, not from the live link.
+        const send = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/lobby/messages`, {
+            text: `${marker}-old`,
+        });
+        expect(send.ok(), await send.text()).toBeTruthy();
+        await expect
+            .poll(
+                async () => {
+                    const res = await request.get(
+                        `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/lobby/messages`
+                    );
+                    if (!res.ok()) {
+                        return null;
+                    }
+                    const body = await res.json();
+                    return (body.messages || []).some((m) => m.text === `${marker}-old` && m.delivery === "sent");
+                },
+                { timeout: 60000, intervals: [500, 1000] }
+            )
+            .toBe(true);
+
+        // Warm-restart the backend: same storage, empty in-memory state.
+        const { execFileSync } = require("child_process");
+        const RESTART_SH = path.join(__dirname, "../../scripts/e2e/restart-backend.sh");
+        const META = path.join(SHARE, "stack_meta.json");
+        execFileSync("bash", [RESTART_SH, META], {
+            timeout: 240000,
+            stdio: "inherit",
+        });
+        await prepareE2eSession(request);
+
+        // The stored message must reload from history files.
+        await expect
+            .poll(
+                async () => {
+                    const res = await request.get(
+                        `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/lobby/messages`
+                    );
+                    if (!res.ok()) {
+                        return null;
+                    }
+                    const body = await res.json();
+                    return (body.messages || []).some((m) => m.text === `${marker}-old`);
+                },
+                { timeout: 120000, intervals: [1000, 2000] }
+            )
+            .toBe(true);
+
+        // before_seq pagination: the first page's oldest seq must page the
+        // next batch, and a second fetch with that seq must not repeat it.
+        const res = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/lobby/messages`);
+        const body = await res.json();
+        const seqs = (body.messages || []).map((m) => m.seq).filter((s) => typeof s === "number");
+        expect(seqs.length).toBeGreaterThan(0);
+        const oldest = Math.min(...seqs);
+        const older = await request.get(
+            `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/lobby/messages?before_seq=${oldest}`
+        );
+        if (older.ok()) {
+            const obody = await older.json();
+            const oseqs = (obody.messages || []).map((m) => m.seq);
+            for (const s of oseqs) {
+                expect(s).toBeLessThan(oldest);
+            }
+        }
+    });
+});
