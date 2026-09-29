@@ -420,12 +420,6 @@
     "license": "MIT"
   },
   {
-    "name": "@electron/windows-sign",
-    "version": "1.1.2",
-    "author": "Felix Rieseberg",
-    "license": "BSD-2-Clause"
-  },
-  {
     "name": "@epic-web/invariant",
     "version": "1.0.0",
     "author": "Kent C. Dodds",
@@ -1887,12 +1881,6 @@
     "name": "cosmiconfig-typescript-loader",
     "version": "6.3.0",
     "author": "Alex Miller",
-    "license": "MIT"
-  },
-  {
-    "name": "cross-dirname",
-    "version": "0.1.0",
-    "author": "-",
     "license": "MIT"
   },
   {
@@ -3978,12 +3966,6 @@
     "license": "MIT"
   },
   {
-    "name": "postject",
-    "version": "1.0.0-alpha.6",
-    "author": "-",
-    "license": "MIT"
-  },
-  {
     "name": "powershell-utils",
     "version": "0.1.0",
     "author": "Sindre Sorhus",
@@ -4256,7 +4238,7 @@
   {
     "name": "safe-regex",
     "version": "2.1.1",
-    "author": "James C.",
+    "author": "James C. (Jamie) Davis",
     "license": "MIT"
   },
   {
