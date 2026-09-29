@@ -430,8 +430,8 @@ class TestIOPressure:
     """HealthMonitor PSI handling gates background writers."""
 
     def test_io_pressure_gates_ratchet_persist(self):
-        from meshchatx.src.backend.memory_pressure import MemoryPressureManager
         from meshchatx.src.backend import rns_ratchet_persist
+        from meshchatx.src.backend.memory_pressure import MemoryPressureManager
 
         mgr = MemoryPressureManager()
         try:

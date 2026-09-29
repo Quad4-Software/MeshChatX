@@ -95,7 +95,8 @@ def request(port: int, path: str, data=None, method=None, timeout=20, jar=None):
         req.add_header("Cookie", jar["cookie"])
     if jar.get("csrf") and method in ("POST", "PUT", "DELETE"):
         req.add_header("X-CSRF-Token", jar["csrf"])
-    resp = urllib.request.urlopen(req, timeout=timeout)
+    # Requests target the harness's own 127.0.0.1 backend only.
+    resp = urllib.request.urlopen(req, timeout=timeout)  # noqa: S310
     sc = resp.headers.get("Set-Cookie")
     if sc and "cookie" not in jar:
         jar["cookie"] = sc.split(";")[0]

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # SPDX-License-Identifier: 0BSD
 """Coverage-guided fuzz targets for the RRC wire format and parsers.
 

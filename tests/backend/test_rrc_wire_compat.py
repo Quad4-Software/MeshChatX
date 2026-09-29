@@ -10,7 +10,6 @@ clients fails here before it ships.
 from __future__ import annotations
 
 import os
-import re
 from glob import glob
 
 import pytest
