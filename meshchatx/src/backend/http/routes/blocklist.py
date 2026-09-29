@@ -168,7 +168,7 @@ def register_blocklist_routes(routes, app):
 
         try:
             if hasattr(app.reticulum, "get_blackholed_identities"):
-                identities = app.reticulum.get_blackholed_identities()
+                identities = await app._reticulum_rpc("get_blackholed_identities")
                 # Convert bytes keys to hex strings
                 formatted = {}
                 for h, info in identities.items():

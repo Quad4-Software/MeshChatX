@@ -189,6 +189,58 @@ def install_rns_panic_containment(*, force: bool = False) -> bool:
     return True
 
 
+_RPC_PATCHED = False
+_SHARED_INSTANCE_RPC_TIMEOUT_S = 10.0
+
+
+class _DeadlinedRpcConnection:
+    """Wrap a multiprocessing connection so recv_bytes has a deadline.
+
+    RNS shared-instance RPC methods call recv_bytes with no timeout. A
+    stalled rnsd then blocks whatever thread issued the RPC, which wedges
+    the aiohttp loop or an RNS job thread. poll first, then recv.
+    """
+
+    def __init__(self, conn, timeout_s):
+        self._conn = conn
+        self._timeout_s = timeout_s
+
+    def recv_bytes(self, *args, **kwargs):
+        if not self._conn.poll(self._timeout_s):
+            raise TimeoutError(
+                f"shared instance RPC timed out after {self._timeout_s}s"
+            )
+        return self._conn.recv_bytes(*args, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
+def install_shared_instance_rpc_deadline(*, timeout_s: float = _SHARED_INSTANCE_RPC_TIMEOUT_S) -> bool:
+    """Give every shared-instance RPC recv_bytes call a deadline."""
+    global _RPC_PATCHED
+    if _RPC_PATCHED:
+        return True
+    try:
+        import RNS
+    except Exception as exc:
+        logger.warning("Could not import RNS for RPC deadline patch: %s", exc)
+        return False
+
+    original = RNS.Reticulum.get_rpc_client
+
+    def _deadlined_get_rpc_client(self):
+        return _DeadlinedRpcConnection(original(self), timeout_s)
+
+    RNS.Reticulum.get_rpc_client = _deadlined_get_rpc_client
+    _RPC_PATCHED = True
+    logger.info(
+        "Installed shared-instance RPC deadline (recv_bytes timeout %.1fs)",
+        timeout_s,
+    )
+    return True
+
+
 def ensure_panic_on_interface_error_disabled(config_path: str) -> bool:
     """Force panic_on_interface_error = No so interface faults cannot kill RNS."""
     if not os.path.isfile(config_path):

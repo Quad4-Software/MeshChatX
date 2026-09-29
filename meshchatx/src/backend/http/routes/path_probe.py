@@ -138,7 +138,7 @@ def register_path_probe_routes(routes, app):
             },
         )
 
-    def destination_path_snapshot(destination_hash):
+    async def destination_path_snapshot(destination_hash):
         if not RNS.Transport.has_path(destination_hash):
             pm = reticulum_pathfinding.path_metadata_for_api(destination_hash)
             return web.json_response(
@@ -159,7 +159,7 @@ def register_path_probe_routes(routes, app):
             )
         next_hop_bytes = None
         if hasattr(app, "reticulum") and app.reticulum:
-            next_hop_bytes = app.reticulum.get_next_hop(destination_hash)
+            next_hop_bytes = await app._reticulum_rpc("get_next_hop", destination_hash)
         if next_hop_bytes is not None and not isinstance(
             next_hop_bytes,
             (bytes, bytearray),
@@ -177,7 +177,7 @@ def register_path_probe_routes(routes, app):
 
         next_hop = next_hop_bytes.hex()
         next_hop_interface = (
-            app.reticulum.get_next_hop_if_name(destination_hash)
+            await app._reticulum_rpc("get_next_hop_if_name", destination_hash)
             if hasattr(app, "reticulum") and app.reticulum
             else None
         )
@@ -210,7 +210,7 @@ def register_path_probe_routes(routes, app):
         if destination_hash_hex in local_destination_hashes(app):
             return local_path_response(destination_hash_hex)
 
-        return destination_path_snapshot(destination_hash)
+        return await destination_path_snapshot(destination_hash)
 
     @routes.post(API_V1_PREFIX + "/destination/{destination_hash}/path")
     async def destination_path_wait(request):
@@ -254,7 +254,7 @@ def register_path_probe_routes(routes, app):
         if RNS.Transport.has_path(destination_hash_bytes):
             maybe_resend_failed_for_current(destination_hash)
 
-        return destination_path_snapshot(destination_hash_bytes)
+        return await destination_path_snapshot(destination_hash_bytes)
 
     # drop path to destination
 
@@ -274,7 +274,7 @@ def register_path_probe_routes(routes, app):
 
         # drop path
         if hasattr(app, "reticulum") and app.reticulum:
-            app.reticulum.drop_path(destination_hash)
+            await app._reticulum_rpc("drop_path", destination_hash)
 
         return web.json_response(
             {
@@ -481,17 +481,17 @@ def register_path_probe_routes(routes, app):
         # get rssi
         rssi = receipt.proof_packet.rssi
         if rssi is None and hasattr(app, "reticulum") and app.reticulum:
-            rssi = app.reticulum.get_packet_rssi(receipt.proof_packet.packet_hash)
+            rssi = await app._reticulum_rpc("get_packet_rssi", receipt.proof_packet.packet_hash)
 
         # get snr
         snr = receipt.proof_packet.snr
         if snr is None and hasattr(app, "reticulum") and app.reticulum:
-            snr = app.reticulum.get_packet_snr(receipt.proof_packet.packet_hash)
+            snr = await app._reticulum_rpc("get_packet_snr", receipt.proof_packet.packet_hash)
 
         # get signal quality
         quality = receipt.proof_packet.q
         if quality is None and hasattr(app, "reticulum") and app.reticulum:
-            quality = app.reticulum.get_packet_q(receipt.proof_packet.packet_hash)
+            quality = await app._reticulum_rpc("get_packet_q", receipt.proof_packet.packet_hash)
 
         # get and format round trip time
         rtt = receipt.get_rtt()
@@ -538,7 +538,7 @@ def register_path_probe_routes(routes, app):
         all_paths = []
         if hasattr(app, "reticulum") and app.reticulum:
             try:
-                all_paths = app.reticulum.get_path_table()
+                all_paths = await app._reticulum_rpc("get_path_table")
             except Exception:
                 pass
 

@@ -226,7 +226,8 @@ def register_telephone_routes(routes, app):
                     active_call["path_hops"] = RNS.Transport.hops_to(candidate_hash)
                     if hasattr(app, "reticulum") and app.reticulum:
                         active_call["path_interface"] = (
-                            app.reticulum.get_next_hop_if_name(
+                            await app._reticulum_rpc(
+                                "get_next_hop_if_name",
                                 candidate_hash,
                             )
                         )

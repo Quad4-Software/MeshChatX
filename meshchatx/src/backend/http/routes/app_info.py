@@ -208,7 +208,7 @@ def register_app_info_routes(routes, app):
         shared_instance_address = None
         if hasattr(app, "reticulum") and app.reticulum:
             try:
-                path_table = app.reticulum.get_path_table()
+                path_table = await app._reticulum_rpc("get_path_table")
                 total_paths = len(path_table)
             except Exception:
                 pass

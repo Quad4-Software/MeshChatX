@@ -525,7 +525,7 @@ def register_lxmf_routes(routes, app):
         all_paths = []
         if hasattr(app, "reticulum") and app.reticulum:
             try:
-                all_paths = app.reticulum.get_path_table()
+                all_paths = await app._reticulum_rpc("get_path_table")
             except Exception:
                 pass
 
