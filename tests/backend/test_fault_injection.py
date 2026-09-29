@@ -17,6 +17,7 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
+import RNS
 
 from meshchatx.src.backend import rns_link_manager
 from meshchatx.src.backend.announce_handler import AnnounceHandler
@@ -587,3 +588,18 @@ def test_run_async_completed_future_never_deadlocks(tmp_path):
     )
     assert result.returncode == 0, result.stderr
     assert "no deadlock" in result.stdout
+
+
+def test_identity_public_key_reconstruction_matches_identity_hash():
+    """Pin the RNS API contract used by telephony resolve_identity.
+
+    load_public_key(pubkey) must reproduce the original identity hash.
+    from_bytes() takes a PRIVATE key and silently produces a different
+    identity when fed a pubkey, which is exactly the bug this guards.
+    """
+    ident = RNS.Identity()
+    pk = ident.get_public_key()
+
+    clone = RNS.Identity(create_keys=False)
+    assert clone.load_public_key(pk) is True
+    assert clone.hash == ident.hash

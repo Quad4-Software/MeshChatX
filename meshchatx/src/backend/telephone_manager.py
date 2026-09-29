@@ -784,10 +784,18 @@ class TelephoneManager:
                 if not target_hash:
                     return None
 
-                # 1) Direct recall (identity hash)
+                # 1) Direct recall, trying destination-hash then identity-hash
+                # mode. Callers pass either.
                 ident = RNS.Identity.recall(target_hash)
                 if ident:
                     return ident
+                with contextlib.suppress(Exception):
+                    ident = RNS.Identity.recall(
+                        target_hash,
+                        from_identity_hash=True,
+                    )
+                    if ident:
+                        return ident
 
                 if not self.db:
                     return None
@@ -816,16 +824,21 @@ class TelephoneManager:
                 if identity_hex:
                     id_bytes = hex_identifier_to_bytes(identity_hex)
                     if id_bytes:
-                        ident = RNS.Identity.recall(id_bytes)
+                        ident = RNS.Identity.recall(
+                            id_bytes,
+                            from_identity_hash=True,
+                        )
                         if ident:
                             return ident
 
-                # Try reconstructing from public key
+                # Reconstruct from the announced public key. from_bytes
+                # expects a private key, so use load_public_key here.
                 if announce.get("identity_public_key"):
                     with contextlib.suppress(Exception):
-                        return RNS.Identity.from_bytes(
-                            base64.b64decode(announce["identity_public_key"]),
-                        )
+                        pk_bytes = base64.b64decode(announce["identity_public_key"])
+                        ident = RNS.Identity(create_keys=False)
+                        if ident.load_public_key(pk_bytes):
+                            return ident
 
                 return None
 
