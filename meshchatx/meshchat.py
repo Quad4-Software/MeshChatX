@@ -9037,13 +9037,20 @@ class ReticulumMeshChat:
             print(f"incoming_call_is_policy_filtered: {e}")
             return True
 
-    def is_destination_blocked(self, destination_hash: str, context=None) -> bool:
+    def is_destination_blocked(
+        self,
+        destination_hash: str,
+        context=None,
+        fail_closed: bool = True,
+    ) -> bool:
         """Return whether destination_hash is in the block list.
 
         Accepts either a destination hash or an identity hash. A block on the
         identity matches every known destination of that identity, and a block
         on any destination matches the identity. Unexpected database errors
-        fail closed so inbound LXMF and LXST do not treat a broken ACL as open.
+        fail closed by default so inbound LXMF and LXST do not treat a broken
+        ACL as open. Callers whose error path must never produce a false
+        rejection (e.g. the pre-transfer resource policy) pass fail_closed=False.
         """
         ctx = context or self.current_context
         if not ctx or not ctx.database:
@@ -9060,7 +9067,7 @@ class ReticulumMeshChat:
                     return True
             return False
         except Exception:
-            return True
+            return fail_closed
 
     def _lxmf_reticulum_enforce_block(
         self,
