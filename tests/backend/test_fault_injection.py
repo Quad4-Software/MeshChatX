@@ -9,6 +9,9 @@ timers or worker threads.
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
+import textwrap
 import threading
 import time
 from unittest.mock import MagicMock, patch
@@ -536,3 +539,51 @@ def test_cached_link_evicted_when_not_active():
     rns_link_manager._rns_link_last_used[key] = time.time()
     assert rns_link_manager.get_cached_active_link(*key) is None
     assert key not in rns_link_manager.rns_cached_links
+
+
+def test_run_async_completed_future_never_deadlocks(tmp_path):
+    """Regression: run_async held _futures_lock across add_done_callback.
+
+    When the scheduled coroutine completes before add_done_callback runs,
+    _forget_future fires inline and re-acquires the non-reentrant lock,
+    self-deadlocking the caller. Every later producer then parks behind it,
+    freezing the main loop. Probe in a subprocess so a regression leaves the
+    suite unpoisoned.
+    """
+    script = textwrap.dedent(
+        """
+        import asyncio
+        import concurrent.futures
+
+        from meshchatx.src.backend.async_utils import AsyncUtils
+
+        class FakeLoop:
+            def is_running(self):
+                return True
+
+        fut = concurrent.futures.Future()
+        fut.set_result("done")
+
+        def fake_schedule(coro, loop):
+            coro.close()  # created but never awaited under the stub
+            return fut
+
+        asyncio.run_coroutine_threadsafe = fake_schedule
+        AsyncUtils.main_loop = FakeLoop()
+
+        async def noop():
+            return None
+
+        for _ in range(100):
+            AsyncUtils.run_async(noop())
+        print("no deadlock")
+        """,
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "no deadlock" in result.stdout
