@@ -15,6 +15,19 @@
         </span>
         <span class="h-px w-10 shrink-0 bg-sem-border sm:w-14" aria-hidden="true" />
     </div>
+    <div
+        v-else-if="entry.type === 'unreadDivider'"
+        class="flex items-center justify-center gap-3 w-full my-3 shrink-0 px-2 select-none"
+        role="separator"
+    >
+        <span class="h-px w-10 shrink-0 bg-sem-accent/50 sm:w-14" aria-hidden="true" />
+        <span
+            class="max-w-[min(100%,18rem)] text-center text-[11px] font-semibold uppercase tracking-widest text-sem-accent"
+        >
+            {{ $t("relay_chat.new_messages") }}
+        </span>
+        <span class="h-px w-10 shrink-0 bg-sem-accent/50 sm:w-14" aria-hidden="true" />
+    </div>
     <div v-else-if="entry.type === 'presenceGroup'" class="px-2 py-1">
         <button
             type="button"
