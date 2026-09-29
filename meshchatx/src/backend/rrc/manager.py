@@ -145,6 +145,7 @@ class RRCHub:
         self._last_path_request = float("-inf")
         self._had_session = False
         self._pending_pings = {}
+        self.last_rtt_ms = None
         # Envelope id -> (message, sent monotonic). Echo-confirmed, timed out,
         # or flushed failed on link loss.
         self._pending_delivery = {}
@@ -930,12 +931,16 @@ class RRCHub:
             with self._lock:
                 self._sent_ids.append(mid)
                 self._pending_delivery[mid] = (local_msg, time.monotonic())
+                stale = []
                 while len(self._pending_delivery) > 256:
                     stale_mid, (stale_msg, _t) = next(
                         iter(self._pending_delivery.items())
                     )
                     stale_msg.delivery = "failed"
+                    stale.append(stale_msg)
                     del self._pending_delivery[stale_mid]
+            for stale_msg in stale:
+                self.manager._notify_messages(self, stale_msg)
 
     def _untrack_outbound(self, local_msg):
         """Send raised before recording; drop the pending echo marker."""
@@ -988,8 +993,8 @@ class RRCHub:
                     break
         if msg is None:
             raise ValueError(f"no message with seq {seq}")
-        if msg.delivery not in ("failed", "sending"):
-            raise ValueError("message was already delivered")
+        if msg.delivery != "failed":
+            raise ValueError("only failed messages can be retried")
         if msg.kind == "action":
             env = proto.make_envelope(
                 proto.T_ACTION,
@@ -1297,7 +1302,9 @@ class RRCHub:
         if pending is not None:
             sent_ms, room = pending
             rtt_ms = max(0, proto.now_ms() - sent_ms)
+            self.last_rtt_ms = rtt_ms
             self._record_system(room, "Pong from hub: " + str(rtt_ms) + " ms")
+            self.manager._notify_change(self)
 
     def _handle_welcome(self, env):
         self.welcomed = True
@@ -1404,6 +1411,13 @@ class RRCHub:
                     with self._lock:
                         self._silent_who_rooms.discard(r)
                         self._silent_who_ts.pop(r, None)
+            # Resend once messages that failed when the previous link dropped.
+            # The JOINED confirm is in, so the retry lands in a real room.
+            for m in list(self.messages.get(r, [])):
+                if m.delivery == "failed" and not getattr(m, "_auto_retried", False):
+                    m._auto_retried = True
+                    with contextlib.suppress(Exception):
+                        self.retry_message(r, m.seq)
             self.manager.save()
         else:
             joiner = None
@@ -1796,6 +1810,18 @@ class RRCHub:
         except Exception as e:
             self._log("resource handling failed: " + str(e), RNS.LOG_ERROR)
 
+    def _current_rtt_ms(self):
+        """Best available link RTT in ms: latest pong, else link setup RTT."""
+        if self.last_rtt_ms is not None:
+            return self.last_rtt_ms
+        link = self.link
+        if link is None or isinstance(link, _LoopbackEndpoint):
+            return None
+        rtt = getattr(link, "rtt", None)
+        if isinstance(rtt, (int, float)) and rtt > 0:
+            return int(rtt * 1000)
+        return None
+
     def to_dict(self):
         """Return a JSON-serializable summary of this hub's state."""
         stored_key_rooms = []
@@ -1832,6 +1858,7 @@ class RRCHub:
                 "available_keyed_rooms": list(self.available_keyed_rooms),
                 "stored_key_rooms": stored_key_rooms,
                 "auto_reconnect": bool(self.auto_reconnect),
+                "rtt_ms": self._current_rtt_ms(),
                 "auto_list": bool(self.auto_list),
                 "auto_who": bool(self.auto_who),
                 "nick_override": self.nick_override,

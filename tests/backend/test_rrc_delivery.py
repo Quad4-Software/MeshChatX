@@ -116,3 +116,24 @@ def test_history_sending_loads_as_failed(tmp_path):
     entry["d"] = "sent"
     loaded = hub._msg_from_entry("general", entry)
     assert loaded.delivery == "sent"
+
+
+def test_failed_message_auto_retries_once_on_rejoin(tmp_path):
+    """After link loss, a re-JOIN resends failed messages exactly once."""
+    server, hub = _loopback_client_hub(tmp_path)
+    msg = proto.RRCMessage("msg", "general", b"\x22" * 16, "me", "lost?", 0)
+    msg.delivery = "failed"
+    msg.seq = 9001
+    hub.messages["general"].append(msg)
+
+    hub._pending_joins.add("general")  # self-join marker set by join_room
+    env = proto.make_envelope(proto.T_JOINED, src=b"\x44" * 16, room="general", body=[b"\x22" * 16])
+    hub._handle_joined(env)
+    assert msg.delivery == "sent"  # loopback echo confirmed the retry
+
+    # A second JOINED must not resend; the one-shot flag is set.
+    own_mid = msg.mid
+    hub._pending_joins.add("general")
+    env = proto.make_envelope(proto.T_JOINED, src=b"\x44" * 16, room="general", body=[b"\x22" * 16])
+    hub._handle_joined(env)
+    assert msg.mid == own_mid
