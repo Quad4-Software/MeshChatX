@@ -2324,6 +2324,7 @@ dependencies = [
     { name = "pycparser" },
     { name = "pyserial" },
     { name = "rns" },
+    { name = "seccompy" },
     { name = "wasmtime" },
     { name = "websockets" },
 ]
@@ -2365,6 +2366,7 @@ requires-dist = [
     { name = "pycparser", specifier = ">=3.0" },
     { name = "pyserial", specifier = ">=3.5" },
     { name = "rns", specifier = ">=1.5.4" },
+    { name = "seccompy", specifier = "==0.2.0" },
     { name = "wasmtime", specifier = ">=48.0.0" },
     { name = "websockets", specifier = ">=17.1" },
 ]
@@ -2559,6 +2561,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/4d/76/3f72d8fc38c1cb77b38c56a70da9d0c17700cc1cc50f9649c9d3c8f5ba71/ruff-0.15.22-py3-none-win32.whl", hash = "sha256:e5ba0e4a13fd14abbed2a77b517a3911290c6c6c59ef67784328d1668fab76cf", size = 10789165, upload-time = "2026-07-16T15:14:04.16Z" },
     { url = "https://files.pythonhosted.org/packages/cb/46/4965251734c2b6fcdca1b1b187d20bcac3af0ee5b083b89c910bb961ce3a/ruff-0.15.22-py3-none-win_amd64.whl", hash = "sha256:9be63ba1eb936acd2d1342fb8337c356353706fce233b2a15a09a97037e6acde", size = 11938297, upload-time = "2026-07-16T15:14:07.316Z" },
     { url = "https://files.pythonhosted.org/packages/57/c9/e69b1ff4c8b69093ef08b8919ab767af0569666865b39c30a8795d88d3c6/ruff-0.15.22-py3-none-win_arm64.whl", hash = "sha256:e1168075b72158510839f250027659cdd78476f40507dd517892304c41318661", size = 11298172, upload-time = "2026-07-16T15:14:10.51Z" },
+]
+
+[[package]]
+name = "seccompy"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/74/a9/eaab3f46648170644d6ff0fcb8fe70fc1b782f693ae13b8fb301877360f1/seccompy-0.2.0.tar.gz", hash = "sha256:9663248a433bb78cfb7cfdbb6fe498ddae23ff2bdc1b4cd9d2777ee1148924d9", size = 115748, upload-time = "2026-09-28T23:48:23.346Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d5/01/04453465374492bbceb941317c44e55c27465218754a8a79a319fa643b9e/seccompy-0.2.0-py3-none-any.whl", hash = "sha256:993e14f0175c8c05c11b44e6333a3e40e5e0924b4d7c53154322b1797db7a375", size = 25951, upload-time = "2026-09-28T23:48:22.007Z" },
 ]
 
 [[package]]

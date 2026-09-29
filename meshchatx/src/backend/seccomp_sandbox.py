@@ -4,8 +4,10 @@
 
 Complements Landlock filesystem rules. Default action is ALLOW with a small
 denylist of kernel-admin and process-introspection syscalls a mesh client never
-needs. When libseccomp or the kernel filter is unavailable, apply falls back to
-a no-op so the process still starts.
+needs. The filter is installed through seccompy (pure-Python BPF builder using
+seccomp(2)) when the package is present, or through libseccomp via ctypes as a
+fallback. When neither backend or the kernel filter is unavailable, apply falls
+back to a no-op so the process still starts.
 """
 
 from __future__ import annotations
@@ -17,6 +19,11 @@ import logging
 import sys
 
 from meshchatx.src.env_utils import env_str
+
+try:
+    import seccompy
+except ImportError:  # pragma: no cover - optional dependency
+    seccompy = None
 
 logger = logging.getLogger("meshchatx.seccomp")
 
@@ -167,6 +174,12 @@ def seccomp_kernel_supported() -> bool:
     if sys.platform != "linux" or _is_android():
         _seccomp_support_cached = False
         return False
+    if seccompy is not None:
+        try:
+            _seccomp_support_cached = bool(seccompy.supported())
+        except Exception:
+            _seccomp_support_cached = False
+        return _seccomp_support_cached
     if not seccomp_library_available():
         _seccomp_support_cached = False
         return False
@@ -203,6 +216,44 @@ def seccomp_disabled_by_env() -> bool:
     return _seccomp_env_override() is False
 
 
+def _log_seccomp_enabled(denied: int) -> None:
+    backend = "seccompy" if seccompy is not None else "libseccomp"
+    rules = "denylist" if denied < 0 else str(denied) + " rules"
+    if seccomp_auto_enabled():
+        logger.info(
+            "Seccomp-BPF syscall %s enabled (auto-detected, %s backend)",
+            rules,
+            backend,
+        )
+    else:
+        logger.info("Seccomp-BPF syscall %s enabled (%s backend)", rules, backend)
+
+
+def _apply_via_seccompy() -> bool | None:
+    """Install the denylist with seccompy. None when seccompy is absent."""
+    if seccompy is None:
+        return None
+    try:
+        filt = seccompy.Filter(default=seccompy.Action.ALLOW)
+        denied = 0
+        for name in _DENIED_SYSCALLS:
+            try:
+                filt.errno(name, errno.EPERM)
+            except ValueError:
+                # Unknown on this arch or kernel; libseccomp's resolve path
+                # skips the same names silently.
+                continue
+            denied += 1
+        if denied == 0:
+            logger.warning("Seccomp disabled: no denylist rules could be installed")
+            return False
+        filt.load()
+    except Exception as exc:
+        logger.warning("Seccomp disabled: %s", exc)
+        return False
+    return denied > 0
+
+
 def apply_seccomp_sandbox() -> bool:
     """Install the denylist filter. Returns True when seccomp-BPF is active.
 
@@ -210,6 +261,13 @@ def apply_seccomp_sandbox() -> bool:
     fails. Never raises into the caller for probe or load failures.
     """
     if not seccomp_requested():
+        return False
+
+    result = _apply_via_seccompy()
+    if result is True:
+        _log_seccomp_enabled(-1)
+        return True
+    if result is False:
         return False
 
     lib = _load_libseccomp()
@@ -259,11 +317,5 @@ def apply_seccomp_sandbox() -> bool:
     if not loaded:
         return False
 
-    if seccomp_auto_enabled():
-        logger.info(
-            "Seccomp-BPF syscall denylist enabled (auto-detected, %s rules)",
-            denied,
-        )
-    else:
-        logger.info("Seccomp-BPF syscall denylist enabled (%s rules)", denied)
+    _log_seccomp_enabled(denied)
     return True
