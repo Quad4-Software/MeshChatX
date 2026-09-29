@@ -152,7 +152,10 @@
                                 <div class="min-w-0 flex-1">
                                     <div class="truncate font-medium leading-tight">{{ hubDisplayName(hub) }}</div>
                                     <div class="truncate text-xs" :class="statusTextColor(hub.status)">
-                                        {{ statusLabel(hub.status) }}
+                                        {{ statusLabel(hub.status)
+                                        }}<template v-if="hub.connected && hub.rtt_ms != null"
+                                            ><span class="text-sem-fg-muted"> · {{ hub.rtt_ms }} ms</span></template
+                                        >
                                     </div>
                                 </div>
                                 <span
@@ -1883,6 +1886,8 @@ export default {
             relayAtBottom: true,
             newMessagesBelow: 0,
             nickCycle: null,
+            deliveryFailToasted: new Set(),
+            unreadDividerSeq: null,
             ignoredPeers: [],
             highlightWords: [],
             hideJoinPart: false,
@@ -1927,6 +1932,15 @@ export default {
     computed: {
         rrcEnabled() {
             return useConfigStore().config?.rrc_enabled !== false;
+        },
+        composerByteLimit() {
+            return this.selectedHub?.max_msg_body_bytes || 350;
+        },
+        composerByteCount() {
+            return this.composerByteLength(this.composer);
+        },
+        composerByteWarning() {
+            return this.composerByteCount > this.composerByteLimit * 0.8;
         },
         showUnreadBadges() {
             return useConfigStore().config?.rrc_unread_badges_enabled !== false;
@@ -2166,6 +2180,7 @@ export default {
         _rebuildMessageTimelineCache() {
             this.messageTimelineCache = buildRelayMessageTimeline(this.messages, {
                 hideJoinPart: this.hideJoinPart,
+                unreadBeforeSeq: this.unreadDividerSeq,
             });
             this.messageTimelineCacheSignature = relayMessageTimelineSignature(this.messages);
         },
@@ -2176,6 +2191,7 @@ export default {
             if (this.messageTimelineCache !== null) {
                 this.messageTimelineCache = prependRelayMessageTimeline(this.messageTimelineCache, prependedMessages, {
                     hideJoinPart: this.hideJoinPart,
+                    unreadBeforeSeq: this.unreadDividerSeq,
                 });
                 this.messageTimelineCacheSignature = relayMessageTimelineSignature(this.messages);
             } else {
@@ -3563,6 +3579,7 @@ export default {
         onBackFromRoom() {
             this.saveCurrentRoomDraft();
             this.selectedRoom = null;
+            this.unreadDividerSeq = null;
             this.composer = "";
             this.nickCycle = null;
             this.relayAtBottom = true;
@@ -3587,9 +3604,14 @@ export default {
             // rebinding, so the composer text never lands in the new key.
             this.saveCurrentRoomDraft();
             this._setSelectedHub(hubHash);
+            // Snapshot the unread count before markRoomRead clears it: the
+            // divider sits above the first unread message once loaded.
+            const hubBefore = this.hubs.find((h) => h.hub_hash === hubHash);
+            const pendingUnread = hubBefore?.unread_counts?.[room] || 0;
             this.selectedRoom = room;
             this.expandedHubs[hubHash] = true;
             this.hasMorePrevious = false;
+            this.unreadDividerSeq = null;
             this.expandedPresenceGroups = {};
             this._invalidateMessageTimelineCache();
             // Clear before fetch so only websocket arrivals during the request are merged back.
@@ -3609,6 +3631,17 @@ export default {
                 }
                 const loaded = (response.data?.messages || []).filter((m) => !this.isIgnoredMsg(m));
                 this.messages = mergeRelayMessages(loaded, this.messages);
+                // Index into the fetched page only: websocket arrivals merged
+                // during the request have newer seqs and must not shift the
+                // unread boundary later than it really is.
+                if (pendingUnread > 0 && loaded.length > 0) {
+                    // More unread than the loaded page: the boundary extends
+                    // above it, so the divider anchors on the first loaded row.
+                    const firstUnread = loaded[Math.max(0, loaded.length - pendingUnread)];
+                    this.unreadDividerSeq = typeof firstUnread?.seq === "number" ? firstUnread.seq : null;
+                } else {
+                    this.unreadDividerSeq = null;
+                }
                 this.applyLocalHighlightFlags(this.messages);
                 this._rebuildMessageTimelineCache();
                 this.members = response.data?.members || [];
@@ -3739,6 +3772,32 @@ export default {
             });
         },
         onComposerKeydown(event) {
+            // Arrow-up on an empty composer recalls the last message the local
+            // identity sent in this room, the IRC/Discord "fix a typo" move.
+            if (event.key === "ArrowUp" && !this.composer) {
+                const ownHash = useConfigStore().config?.identity_hash || "";
+                const own = [...this.messages]
+                    .reverse()
+                    .find(
+                        (m) =>
+                            (m.kind === "msg" || m.kind === "action") &&
+                            m.src === ownHash &&
+                            typeof m.text === "string" &&
+                            m.text
+                    );
+                if (own) {
+                    event.preventDefault();
+                    this.composer = (own.kind === "action" ? "/me " : "") + own.text;
+                    nextTick(() => {
+                        const el = event.target;
+                        if (el && typeof el.setSelectionRange === "function") {
+                            const end = el.value.length;
+                            el.setSelectionRange(end, end);
+                        }
+                    });
+                }
+                return;
+            }
             if (event.key !== "Tab") {
                 if (event.key !== "Shift") {
                     this.nickCycle = null;
@@ -4400,6 +4459,15 @@ export default {
         onRrcMessage(json) {
             if (json.message && json.message.kind === "error" && this.isBadKeyErrorText(json.message.text)) {
                 this.handleBadKeyError(json.hub_hash, json.room || json.message.room, json.message.text);
+            }
+            if (json.message && json.message.delivery === "failed") {
+                // One toast per message: re-pushes of the same seq must not
+                // stack notifications on top of the in-line hint.
+                const key = `df-${json.hub_hash}-${json.room}-${json.message.seq}`;
+                if (!this.deliveryFailToasted.has(key)) {
+                    this.deliveryFailToasted.add(key);
+                    ToastUtils.warning(this.$t("relay_chat.delivery_failed_toast"));
+                }
             }
             if (json.hub_hash === this.selectedHubHash && json.room === this.selectedRoom && json.message) {
                 const ignored = this.isIgnoredMsg(json.message);

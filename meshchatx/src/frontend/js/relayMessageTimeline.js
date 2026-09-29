@@ -197,16 +197,18 @@ function buildPresenceGroup(presenceMessages) {
 
 /**
  * @param {object[]} messages
- * @param {{ hideJoinPart?: boolean }} [options]
+ * @param {{ hideJoinPart?: boolean, unreadBeforeSeq?: number|null }} [options]
  * @returns {{ type: string, dayKey?: string, msg?: object, id?: string, messages?: object[], joinedCount?: number, leftCount?: number, connectionCount?: number }[]}
  */
 export function buildRelayMessageTimeline(messages, options = {}) {
     const hideJoinPart = options.hideJoinPart === true;
+    const unreadBeforeSeq = typeof options.unreadBeforeSeq === "number" ? options.unreadBeforeSeq : null;
     if (!Array.isArray(messages) || messages.length === 0) {
         return [];
     }
     const out = [];
     let prevDayKey = null;
+    let unreadDividerPlaced = unreadBeforeSeq == null;
     /** @type {object[]} */
     let presenceBuffer = [];
 
@@ -244,6 +246,10 @@ export function buildRelayMessageTimeline(messages, options = {}) {
             continue;
         }
         flushPresence();
+        if (!unreadDividerPlaced && typeof msg.seq === "number" && msg.seq >= unreadBeforeSeq) {
+            unreadDividerPlaced = true;
+            out.push({ type: "unreadDivider" });
+        }
         out.push({ type: "message", msg });
     }
     flushPresence();

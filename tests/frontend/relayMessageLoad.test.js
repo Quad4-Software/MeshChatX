@@ -112,3 +112,34 @@ describe("relay message load reference", () => {
         expect(filterUniqueOlderRelayMessages(older, existing)).toHaveLength(0);
     });
 });
+
+describe("unread divider", () => {
+    it("places the divider before the first unread seq", () => {
+        const timeline = buildRelayMessageTimeline([msg(1), msg(2), msg(3), msg(4)], {
+            unreadBeforeSeq: 3,
+        });
+        const idx = timeline.findIndex((e) => e.type === "unreadDivider");
+        expect(idx).toBeGreaterThan(-1);
+        expect(timeline[idx + 1].msg.seq).toBe(3);
+        expect(timeline.filter((e) => e.type === "unreadDivider")).toHaveLength(1);
+    });
+
+    it("flushes a presence buffer so joins/left sit above the divider", () => {
+        const timeline = buildRelayMessageTimeline(
+            [msg(1), presence(2), presence(3), msg(4)],
+            { unreadBeforeSeq: 4 }
+        );
+        const idx = timeline.findIndex((e) => e.type === "unreadDivider");
+        expect(idx).toBeGreaterThan(-1);
+        expect(timeline[idx + 1].msg.seq).toBe(4);
+        // presence group emitted before the divider
+        expect(timeline[idx - 1].type).toBe("presenceGroup");
+    });
+
+    it("omits the divider when unreadBeforeSeq is null", () => {
+        const timeline = buildRelayMessageTimeline([msg(1), msg(2)], {
+            unreadBeforeSeq: null,
+        });
+        expect(timeline.some((e) => e.type === "unreadDivider")).toBe(false);
+    });
+});
