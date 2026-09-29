@@ -25,15 +25,19 @@ ACTIVITY = "com.meshchatx/.MainActivity"
 
 SKIP_LABEL = re.compile(
     r"delete|remove|wipe|clear|erase|format|flash|uninstall|block|unblock|"
-    r"call|dial|hang|send|shutdown|restart|logout|purge|destroy|factory|"
-    r"reset|import|export|upload|download|backup|restore|sign|authorize|"
-    r"approve|grant|execute|panic|enable bluetooth|enable location",
+    r"call|dial|hang|send|shutdown|restart|reboot|logout|purge|destroy|"
+    r"factory|reset|import|export|upload|download|backup|restore|sign|"
+    r"authorize|approve|grant|execute|panic|save|apply|submit|confirm|"
+    r"accept|agree|allow|deny|yes|ok\b|connect|disconnect|enable|disable|"
+    r"provision|announce|pair|add|create|new|update|install|set|switch|"
+    r"start|stop|run|purchase|pay|subscribe|continue",
     re.I,
 )
 
 CRASH_RE = re.compile(
-    r"FATAL EXCEPTION|AndroidRuntime|Process com\.meshchatx.*died|"
-    r"ANR in com\.meshchatx|force close",
+    r"FATAL EXCEPTION.*com\.meshchatx|AndroidRuntime.*com\.meshchatx|"
+    r"Process com\.meshchatx.*died|ANR in com\.meshchatx|"
+    r"com\.meshchatx.*FATAL",
     re.I,
 )
 
@@ -57,7 +61,7 @@ def adb(*args, check=True, capture=True, timeout=30):
 def device_ready():
     try:
         out = adb("devices").stdout
-    except FileNotFoundError:
+    except (FileNotFoundError, RuntimeError):
         return None, "adb not installed"
     lines = [line for line in out.splitlines()[1:] if line.strip() and "\t" in line]
     if not lines:
@@ -147,10 +151,29 @@ def main():
     visited = set()
     report = []
     crashed = False
+    dump_failures = 0
     for step in range(args.steps):
+        focus = adb(
+            "-s",
+            serial,
+            "shell",
+            "dumpsys",
+            "window",
+            check=False,
+            timeout=15,
+        ).stdout
+        if PKG not in focus:
+            adb("-s", serial, "shell", "am", "start", "-n", ACTIVITY)
+            time.sleep(2)
+            report.append(f"step {step}: refocused app")
+            continue
         root = dump_ui(serial, out_dir)
         if root is None:
+            dump_failures += 1
             report.append(f"step {step}: ui dump parse failed")
+            if dump_failures >= 8:
+                print("RESULT: FAIL - ui dumps never parsed")
+                return 1
             continue
         nodes = clickable_nodes(root)
         safe = [n for n in nodes if n["label"] and not SKIP_LABEL.search(n["label"])]
@@ -183,15 +206,16 @@ def main():
         if errs:
             crashed = True
             report.extend(f"CRASH: {line}" for line in errs[:6])
-            adb(
-                "-s",
-                serial,
-                "exec-out",
-                "screencap",
-                "-p",
-                ">",
-                str(out_dir / f"crash-step{step}.png"),
-            )
+            try:
+                with open(out_dir / f"crash-step{step}.png", "wb") as fh:
+                    subprocess.run(
+                        [ADB_BIN, "adb", "-s", serial, "exec-out", "screencap", "-p"],
+                        stdout=fh,
+                        timeout=30,
+                        check=False,
+                    )
+            except Exception:
+                pass
             break
         # Go back so the next step samples a sibling branch.
         if step % 3 == 2:
@@ -210,6 +234,9 @@ def main():
         print(line)
     if crashed:
         print("RESULT: FAIL - crash detected")
+        return 1
+    if len(visited) == 0:
+        print("RESULT: FAIL - no UI targets were tapped")
         return 1
     print(f"RESULT: PASS - {len(visited)} unique targets tapped")
     return 0

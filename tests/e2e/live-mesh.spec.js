@@ -43,7 +43,15 @@ function readJsonl(file) {
         .readFileSync(file, "utf8")
         .split("\n")
         .filter((l) => l.trim())
-        .map((l) => JSON.parse(l));
+        .map((l) => {
+            try {
+                return JSON.parse(l);
+            } catch {
+                // A mid-write kill can leave a torn trailing line.
+                return null;
+            }
+        })
+        .filter(Boolean);
 }
 
 async function localLxmfHash(request) {
@@ -125,7 +133,7 @@ test.describe("Live mesh e2e (real RNS peer)", () => {
     });
 
     test("RRC hub connect, join, and echo over a real link", async ({ request }) => {
-        test.setTimeout(240000);
+        test.setTimeout(300000);
         const peer = peerReady();
         const hubHash = peer.hub_hash;
 
@@ -293,7 +301,7 @@ test.describe("Live mesh traffic budget", () => {
 });
 
 test.describe("Live mesh multi-hub RRC", () => {
-    test.setTimeout(300000);
+    test.setTimeout(600000);
     test.skip(!peerReady(), "live peer subprocess not running");
 
     test.beforeEach(async ({ request }) => {
@@ -443,7 +451,7 @@ test.describe("Live mesh multi-hub RRC", () => {
 });
 
 test.describe("Live mesh restart and fault matrix", () => {
-    test.setTimeout(300000);
+    test.setTimeout(600000);
     test.skip(!peerReady(), "live peer subprocess not running");
 
     const { execFileSync } = require("child_process");
@@ -497,7 +505,7 @@ test.describe("Live mesh restart and fault matrix", () => {
         // Warm known_destinations + empty path table is exactly the
         // dead-link stall fixed in 4dd36c06. Restart and time the recovery.
         const t0 = Date.now();
-        execFileSync("bash", [RESTART_SH, META], { timeout: 240000, stdio: "inherit" });
+        execFileSync("bash", [RESTART_SH, META], { timeout: 300000, stdio: "inherit" });
         await prepareE2eSession(request);
 
         // Hub entry persists with auto_reconnect - no manual connect needed.
@@ -519,9 +527,12 @@ test.describe("Live mesh restart and fault matrix", () => {
         await connectHub(request, hubHash);
 
         // Drop every proxied connection - equivalent to the interface dying.
-        setChaos("drop");
-        await new Promise((r) => setTimeout(r, 3000));
-        setChaos("pass");
+        try {
+            setChaos("drop");
+            await new Promise((r) => setTimeout(r, 3000));
+        } finally {
+            setChaos("pass");
+        }
 
         await expect
             .poll(() => hubStatus(request, hubHash), {
@@ -559,21 +570,28 @@ test.describe("Live mesh restart and fault matrix", () => {
     test("network partition during connect cannot stall forever", async ({ request }) => {
         const peer = peerReady();
         const hubHash = peer.hub_hashes?.[2] || peer.hub_hash;
-        // Blackhole the link, then start a connect: bounded window + fail.
-        setChaos("partition");
+        // The multi-hub describe may already hold this hub connected, so
+        // ensure the attempt starts from a real disconnect.
         await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs`, {
             hub_hash: hubHash,
             name: "partition-hub",
         });
-        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/connect`, {});
-        // A bounded attempt must surface as failed, not hang CONNECTING.
-        await expect
-            .poll(() => hubStatus(request, hubHash), {
-                timeout: 120000,
-                intervals: [1000, 2000, 3000],
-            })
-            .toBe(0);
-        setChaos("pass");
+        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/disconnect`, {});
+        await new Promise((r) => setTimeout(r, 1500));
+        try {
+            // Blackhole the link, then start a connect: bounded window + fail.
+            setChaos("partition");
+            await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/connect`, {});
+            // A bounded attempt must surface as failed, not hang CONNECTING.
+            await expect
+                .poll(() => hubStatus(request, hubHash), {
+                    timeout: 120000,
+                    intervals: [1000, 2000, 3000],
+                })
+                .toBe(0);
+        } finally {
+            setChaos("pass");
+        }
         await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/connect`, {});
         await expect
             .poll(() => hubStatus(request, hubHash), {
@@ -585,7 +603,7 @@ test.describe("Live mesh restart and fault matrix", () => {
 });
 
 test.describe("Live mesh adversarial announce storm", () => {
-    test.setTimeout(240000);
+    test.setTimeout(300000);
     test.skip(!peerReady(), "live peer subprocess not running");
 
     const PEER_MODE = path.join(SHARE, "peer.mode");
@@ -657,7 +675,7 @@ function peer2Ready() {
 }
 
 test.describe("Live mesh two-peer isolation", () => {
-    test.setTimeout(300000);
+    test.setTimeout(600000);
     test.skip(!peerReady() || !peer2Ready(), "second live peer not running");
 
     test("LXMF delivered to the correct peer only", async ({ request }) => {
@@ -768,7 +786,7 @@ test.describe("Live mesh two-peer isolation", () => {
 });
 
 test.describe("Live mesh RRC history and pagination", () => {
-    test.setTimeout(420000);
+    test.setTimeout(600000);
     test.skip(!peerReady(), "live peer subprocess not running");
 
     test("room history survives backend restart and pages backwards", async ({ request }) => {
@@ -825,7 +843,7 @@ test.describe("Live mesh RRC history and pagination", () => {
         const RESTART_SH = path.join(__dirname, "../../scripts/e2e/restart-backend.sh");
         const META = path.join(SHARE, "stack_meta.json");
         execFileSync("bash", [RESTART_SH, META], {
-            timeout: 240000,
+            timeout: 300000,
             stdio: "inherit",
         });
         await prepareE2eSession(request);

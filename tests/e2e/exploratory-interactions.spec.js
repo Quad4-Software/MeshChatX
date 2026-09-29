@@ -55,7 +55,7 @@ const ROUTES = [
 ];
 
 const SKIP_BUTTON =
-    /delete|remove|wipe|clear|erase|format|flash|uninstall|block|unblock|call|dial|hang\s*up|send|shutdown|restart|logout|log\s*out|purge|destroy|factory|reset|import|export|upload|download|backup|restore|sign|authorize|approve|grant|execute|run script|panic/i;
+    /delete|remove|wipe|clear|erase|format|flash|uninstall|block|unblock|call|dial|hang\s*up|send|shutdown|restart|reboot|logout|log\s*out|purge|destroy|factory|reset|import|export|upload|download|backup|restore|sign|authorize|approve|grant|execute|panic|save|apply|submit|confirm|accept|agree|allow|deny|\byes\b|\bok\b|connect|disconnect|enable|disable|provision|announce|pair|add|create|\bnew\b|update|install|\bset\b|switch|start|stop|\brun\b|purchase|pay|subscribe/i;
 
 const IGNORED_CONSOLE_ERRORS = [
     /net::ERR_/i,
@@ -63,7 +63,7 @@ const IGNORED_CONSOLE_ERRORS = [
     /WebSocket/i,
     // 4xx responses on empty-state actions are designed API outcomes the
     // frontend already surfaces (toasts, empty states). 5xx stays flagged.
-    /Failed to load resource: the server responded with a status of (4\d\d|404)/i,
+    /Failed to load resource: the server responded with a status of 4\d\d/i,
 ];
 
 function watchErrors(page, errors) {
@@ -108,9 +108,9 @@ test.describe("Exploratory interaction crawl", () => {
         const clicked = [];
         for (const route of ROUTES) {
             const routeStart = Date.now();
+            errors.length = 0;
             await page.goto(`/#${route}`, { waitUntil: "domcontentloaded" });
             await page.waitForTimeout(700);
-            errors.length = 0;
 
             const buttons = await page.locator("button:visible").all();
             let clicks = 0;

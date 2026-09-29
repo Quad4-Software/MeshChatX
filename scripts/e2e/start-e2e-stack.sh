@@ -39,14 +39,35 @@ mkdir -p "$E2E_PEER_SHARE" "$E2E_PEER2_SHARE"
 # Free the e2e ports from leftovers of earlier interrupted runs. An
 # orphaned backend on the backend port would otherwise let health checks
 # pass against the wrong process and pollute assertions.
-for port in "${BACKEND_PORT}" "${E2E_PEER_PORT}" "${E2E_CHAOS_PORT}" "${VITE_PORT}"; do
+free_port() {
+    local port="$1"
+    local pids
+    pids="$(ss -tlnp "sport = :${port}" 2>/dev/null | grep -oP 'pid=\K[0-9]+' | sort -u || true)"
+    if [[ -z "$pids" ]]; then
+        return 0
+    fi
+    echo "E2E: freeing port ${port} (pids: $(echo $pids | tr '\n' ' '))"
+    echo "$pids" | xargs -r kill 2>/dev/null || true
+    for _ in $(seq 1 10); do
+        pids="$(ss -tlnp "sport = :${port}" 2>/dev/null | grep -oP 'pid=\K[0-9]+' | sort -u || true)"
+        [[ -z "$pids" ]] && return 0
+        sleep 0.5
+    done
     pids="$(ss -tlnp "sport = :${port}" 2>/dev/null | grep -oP 'pid=\K[0-9]+' | sort -u || true)"
     if [[ -n "$pids" ]]; then
-        echo "E2E: freeing port ${port} (pids: $(echo $pids | tr '\n' ' '))"
-        echo "$pids" | xargs -r kill 2>/dev/null || true
+        echo "E2E: forcing port ${port} free"
+        echo "$pids" | xargs -r kill -9 2>/dev/null || true
+        sleep 1
     fi
+    if ss -tln "sport = :${port}" | grep -q "LISTEN"; then
+        echo "E2E: port ${port} still bound after SIGKILL - refusing to start on a polluted socket" >&2
+        exit 1
+    fi
+}
+
+for port in "${BACKEND_PORT}" "${E2E_PEER_PORT}" "${E2E_CHAOS_PORT}" "${VITE_PORT}"; do
+    free_port "$port"
 done
-sleep 1
 
 if [[ "$E2E_LIVE_MESH" == "1" ]]; then
     mkdir -p "$TMPDIR/rns"
@@ -66,6 +87,10 @@ CFG
 fi
 
 cleanup() {
+    if [[ -n "${VITE_PID:-}" ]] && kill -0 "$VITE_PID" 2>/dev/null; then
+        kill "$VITE_PID" 2>/dev/null || true
+        wait "$VITE_PID" 2>/dev/null || true
+    fi
     if [[ -n "${PEER2_PID:-}" ]] && kill -0 "$PEER2_PID" 2>/dev/null; then
         kill "$PEER2_PID" 2>/dev/null || true
         wait "$PEER2_PID" 2>/dev/null || true

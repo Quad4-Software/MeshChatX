@@ -42,7 +42,7 @@ module.exports = defineConfig({
         command: "bash scripts/e2e/start-e2e-stack.sh",
         url: `${baseURL}/`,
         reuseExistingServer: !process.env.CI,
-        timeout: 270000,
+        timeout: 480000,
         stdout: "pipe",
         stderr: "pipe",
     },

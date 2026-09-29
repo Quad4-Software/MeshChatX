@@ -94,6 +94,7 @@ dev = [
     "mutmut>=3.7.0; python_version < '4.0'",
     "basedpyright>=1.39.10",
     "pytest-rerunfailures>=14",
+    "pytest-timeout>=2.4.0",
 ]
 
 [tool.ruff]

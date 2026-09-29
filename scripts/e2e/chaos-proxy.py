@@ -88,6 +88,9 @@ async def handle(reader, writer, target_port):
 
 
 async def main():
+    if len(sys.argv) < 4:
+        print("usage: chaos-proxy.py LISTEN_PORT TARGET_PORT CONTROL_FILE", file=sys.stderr)
+        raise SystemExit(2)
     listen_port, target_port, control = (
         int(sys.argv[1]),
         int(sys.argv[2]),

@@ -66,9 +66,7 @@ test.describe("Exploratory route crawl", () => {
         await prepareE2eSession(request);
     });
 
-    test("every route loads without pageerrors or console errors", async ({
-        page,
-    }) => {
+    test("every route loads without pageerrors or console errors", async ({ page }) => {
         const errors = [];
         page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
         page.on("console", (msg) => {
@@ -91,26 +89,18 @@ test.describe("Exploratory route crawl", () => {
                 .locator("body")
                 .innerText()
                 .catch(() => "");
-            expect(
-                bodyText.trim().length,
-                `route ${route} rendered an empty body`
-            ).toBeGreaterThan(0);
+            expect(bodyText.trim().length, `route ${route} rendered an empty body`).toBeGreaterThan(0);
             expect(errors, `route ${route}`).toEqual([]);
             visited.push(route);
         }
         expect(visited.length).toBe(ROUTES.length);
     });
 
-    test("in-app navigation links stay inside the app without errors", async ({
-        page,
-    }) => {
+    test("in-app navigation links stay inside the app without errors", async ({ page }) => {
         const errors = [];
         page.on("pageerror", (e) => errors.push(e.message));
         page.on("console", (msg) => {
-            if (
-                msg.type() === "error" &&
-                !IGNORED_CONSOLE_ERRORS.some((re) => re.test(msg.text()))
-            ) {
+            if (msg.type() === "error" && !IGNORED_CONSOLE_ERRORS.some((re) => re.test(msg.text()))) {
                 errors.push(msg.text());
             }
         });
@@ -122,11 +112,7 @@ test.describe("Exploratory route crawl", () => {
         const hops = 12;
         const seen = new Set(["#/messages"]);
         for (let i = 0; i < hops; i++) {
-            const links = await page
-                .locator(
-                    'a[href^="#/"]:visible, a[href*="/#/"]:visible'
-                )
-                .all();
+            const links = await page.locator('a[href^="#/"]:visible, a[href*="/#/"]:visible').all();
             if (!links.length) {
                 break;
             }
