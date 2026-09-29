@@ -4064,6 +4064,8 @@
         "ctx_reply_quote": "Відповісти з цитатою",
         "ctx_mention_user": "Згадати користувача",
         "ctx_copy_message": "Копіювати повідомлення",
+        "ctx_message_user": "Написати користувачеві",
+        "ctx_copy_hash": "Копіювати хеш користувача",
         "ctx_translate_message": "Translate message",
         "ctx_kick_user": "Вигнати користувача",
         "ctx_ban_user": "Забанити користувача",

@@ -4064,6 +4064,8 @@
         "ctx_reply_quote": "引用回复",
         "ctx_mention_user": "提及用户",
         "ctx_copy_message": "复制消息",
+        "ctx_message_user": "私信用户",
+        "ctx_copy_hash": "复制用户哈希",
         "ctx_translate_message": "Translate message",
         "ctx_kick_user": "踢出用户",
         "ctx_ban_user": "封禁用户",

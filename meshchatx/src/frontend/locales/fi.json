@@ -4064,6 +4064,8 @@
         "ctx_reply_quote": "Vastaa lainauksella",
         "ctx_mention_user": "Mainitse käyttäjä",
         "ctx_copy_message": "Kopioi viesti",
+        "ctx_message_user": "Viesti käyttäjälle",
+        "ctx_copy_hash": "Kopioi käyttäjän tunniste",
         "ctx_translate_message": "Translate message",
         "ctx_kick_user": "Potkaise käyttäjä",
         "ctx_ban_user": "Estä käyttäjä",
