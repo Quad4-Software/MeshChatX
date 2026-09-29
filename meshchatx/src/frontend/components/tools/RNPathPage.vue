@@ -444,6 +444,15 @@ export default {
             this.isLoading = true;
             try {
                 const remoteParams = this.remoteQueryParams();
+                if (remoteParams.remote && !remoteParams.identity_path) {
+                    this.activeRemoteHash = remoteParams.remote;
+                    this.pathTable = [];
+                    this.totalItems = 0;
+                    this.responsiveItems = 0;
+                    this.unresponsiveItems = 0;
+                    this.isLoading = false;
+                    return;
+                }
                 const [pathRes, rateRes, ifaceRes, discRes] = await Promise.all([
                     this.fetchPathTable(),
                     rnpathApi.listRates({ params: remoteParams }),
@@ -498,6 +507,18 @@ export default {
             }
         },
         async fetchPathTable() {
+            const remoteParams = this.remoteQueryParams();
+            if (remoteParams.remote && !remoteParams.identity_path) {
+                // Remote queries require a management identity; skip the
+                // request instead of returning a guaranteed 400 per poll.
+                return {
+                    table: [],
+                    total: 0,
+                    responsive: 0,
+                    unresponsive: 0,
+                    remote: remoteParams.remote,
+                };
+            }
             let hops = undefined;
             if (this.filterHops !== null && this.filterHops !== "") {
                 const parsed = Number(this.filterHops);
@@ -509,10 +530,10 @@ export default {
             const params = {
                 page: this.currentPage,
                 limit: this.itemsPerPage,
-                search: this.searchQuery || undefined,
+                search: (this.searchQuery || "").slice(0, 200) || undefined,
                 interface: this.filterInterface || undefined,
                 hops,
-                ...this.remoteQueryParams(),
+                ...remoteParams,
             };
             const res = await rnpathApi.getTable({ params });
             return res.data;
