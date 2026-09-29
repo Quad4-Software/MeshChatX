@@ -63,7 +63,10 @@ def register_rrc_routes(routes, app):
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
-        hub_hash_hex = (data.get("hub_hash") or "").strip()
+        hub_hash_hex = data.get("hub_hash")
+        if hub_hash_hex is not None and not isinstance(hub_hash_hex, str):
+            return http_bad_request("hub_hash must be a string")
+        hub_hash_hex = (hub_hash_hex or "").strip()
         try:
             hub_hash = bytes.fromhex(hub_hash_hex)
         except (ValueError, TypeError):
@@ -72,6 +75,10 @@ def register_rrc_routes(routes, app):
             return http_bad_request("Hub hash has an invalid length")
         dest_name = data.get("dest_name") or None
         name = data.get("name") or None
+        if dest_name is not None and not isinstance(dest_name, str):
+            return http_bad_request("dest_name must be a string")
+        if name is not None and not isinstance(name, str):
+            return http_bad_request("name must be a string")
         hub = manager.add_hub(hub_hash, dest_name=dest_name, name=name)
         if data.get("connect"):
             hub.connect()
@@ -216,7 +223,10 @@ def register_rrc_routes(routes, app):
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
-        room = (data.get("room") or "").strip()
+        room = data.get("room")
+        if room is not None and not isinstance(room, str):
+            return http_bad_request("room must be a string")
+        room = (room or "").strip()
         if not room:
             return http_bad_request("A room name is required")
         key = data.get("key")
@@ -504,8 +514,14 @@ def register_rrc_routes(routes, app):
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
-        name = (data.get("name") or "").strip() or None
-        greeting = (data.get("greeting") or "").strip() or None
+        name = data.get("name")
+        if name is not None and not isinstance(name, str):
+            return http_bad_request("name must be a string")
+        name = (name or "").strip() or None
+        greeting = data.get("greeting")
+        if greeting is not None and not isinstance(greeting, str):
+            return http_bad_request("greeting must be a string")
+        greeting = (greeting or "").strip() or None
         announce = bool(data.get("announce", True))
         enabled = bool(data.get("enabled", True))
         create_kwargs = {
@@ -602,16 +618,25 @@ def register_rrc_routes(routes, app):
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
-        name = (data.get("name") or "").strip()
+        name = data.get("name")
+        if name is not None and not isinstance(name, str):
+            return http_bad_request("name must be a string")
+        name = (name or "").strip()
         if not name:
             return http_bad_request("A room name is required")
-        topic = (data.get("topic") or "").strip() or None
+        topic = data.get("topic")
+        if topic is not None and not isinstance(topic, str):
+            return http_bad_request("topic must be a string")
+        topic = (topic or "").strip() or None
         private = bool(data.get("private", False))
         moderated = bool(data.get("moderated", False))
         invite_only = bool(data.get("invite_only", False))
         topic_ops_only = bool(data.get("topic_ops_only", False))
         no_outside_msgs = bool(data.get("no_outside_msgs", False))
-        key = (data.get("key") or "").strip() or None
+        key = data.get("key")
+        if key is not None and not isinstance(key, str):
+            return http_bad_request("key must be a string")
+        key = (key or "").strip() or None
         try:
             manager.create_room(
                 hub.hub_id,
@@ -731,9 +756,18 @@ def register_rrc_routes(routes, app):
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
-        action = (data.get("action") or "").strip().lower()
-        peer = (data.get("peer") or "").strip()
-        room = (data.get("room") or "").strip() or None
+        action = data.get("action")
+        if action is not None and not isinstance(action, str):
+            return http_bad_request("action must be a string")
+        action = (action or "").strip().lower()
+        peer = data.get("peer")
+        if peer is not None and not isinstance(peer, str):
+            return http_bad_request("peer must be a string")
+        peer = (peer or "").strip()
+        room = data.get("room")
+        if room is not None and not isinstance(room, str):
+            return http_bad_request("room must be a string")
+        room = (room or "").strip() or None
         if action not in ("kick", "ban", "room_ban"):
             return http_bad_request("action must be kick, ban, or room_ban")
         if not peer:
