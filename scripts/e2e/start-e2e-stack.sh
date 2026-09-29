@@ -30,9 +30,23 @@ export E2E_PEER_PORT="${E2E_PEER_PORT:-43737}"
 # inject link faults through a control file in the share dir.
 export E2E_CHAOS_PORT="${E2E_CHAOS_PORT:-43837}"
 export E2E_CHAOS_CONTROL="${E2E_PEER_SHARE:-/tmp/meshchatx-e2e-peer-share}/chaos.mode"
+export E2E_PEER2_SHARE="${E2E_PEER2_SHARE:-/tmp/meshchatx-e2e-peer2-share}"
 E2E_LIVE_MESH="${E2E_LIVE_MESH:-1}"
-rm -rf "$E2E_PEER_SHARE"
-mkdir -p "$E2E_PEER_SHARE"
+E2E_LIVE_MESH2="${E2E_LIVE_MESH2:-1}"
+rm -rf "$E2E_PEER_SHARE" "$E2E_PEER2_SHARE"
+mkdir -p "$E2E_PEER_SHARE" "$E2E_PEER2_SHARE"
+
+# Free the e2e ports from leftovers of earlier interrupted runs. An
+# orphaned backend on the backend port would otherwise let health checks
+# pass against the wrong process and pollute assertions.
+for port in "${BACKEND_PORT}" "${E2E_PEER_PORT}" "${E2E_CHAOS_PORT}" "${VITE_PORT}"; do
+    pids="$(ss -tlnp "sport = :${port}" 2>/dev/null | grep -oP 'pid=\K[0-9]+' | sort -u || true)"
+    if [[ -n "$pids" ]]; then
+        echo "E2E: freeing port ${port} (pids: $(echo $pids | tr '\n' ' '))"
+        echo "$pids" | xargs -r kill 2>/dev/null || true
+    fi
+done
+sleep 1
 
 if [[ "$E2E_LIVE_MESH" == "1" ]]; then
     mkdir -p "$TMPDIR/rns"
@@ -52,6 +66,10 @@ CFG
 fi
 
 cleanup() {
+    if [[ -n "${PEER2_PID:-}" ]] && kill -0 "$PEER2_PID" 2>/dev/null; then
+        kill "$PEER2_PID" 2>/dev/null || true
+        wait "$PEER2_PID" 2>/dev/null || true
+    fi
     if [[ -n "${PEER_PID:-}" ]] && kill -0 "$PEER_PID" 2>/dev/null; then
         kill "$PEER_PID" 2>/dev/null || true
         wait "$PEER_PID" 2>/dev/null || true
@@ -69,7 +87,7 @@ cleanup() {
         wait "$local_bpid" 2>/dev/null || true
     fi
     rm -rf "$TMPDIR"
-    rm -rf "$E2E_PEER_SHARE"
+    rm -rf "$E2E_PEER_SHARE" "$E2E_PEER2_SHARE"
 }
 
 trap cleanup EXIT INT TERM
@@ -143,6 +161,23 @@ if [[ "$E2E_LIVE_MESH" == "1" ]]; then
     done
     if [[ "$peer_ready" -ne 1 ]]; then
         echo "E2E: live peer not ready; live-mesh specs will skip"
+    fi
+
+    if [[ "$E2E_LIVE_MESH2" == "1" ]]; then
+        echo "E2E: starting second live mesh peer (TCPClient :${E2E_CHAOS_PORT} via proxy)"
+        uv run python "$ROOT/scripts/e2e/live-peer.py"             "$TMPDIR/peer2-rns" "${E2E_CHAOS_PORT}" "$E2E_PEER2_SHARE" &
+        PEER2_PID=$!
+        for i in $(seq 1 90); do
+            if [[ -f "${E2E_PEER2_SHARE}/peer_ready.json" ]]; then
+                echo "E2E: second peer ready after ${i}s"
+                break
+            fi
+            if ! kill -0 "$PEER2_PID" 2>/dev/null; then
+                echo "E2E: second live peer exited early"
+                break
+            fi
+            sleep 1
+        done
     fi
 fi
 

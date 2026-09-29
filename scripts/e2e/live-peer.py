@@ -121,6 +121,37 @@ with open(ready_path, "w", encoding="utf-8") as f:
         f,
     )
 
+# Adversarial announce storm: writing a count into share/peer.mode turns on a
+# flood of synthetic rrc.hub announces. Mirrors the multi-hub churn that the
+# rate limiting and announce caps exist to bound.
+STORM_MODE_FILE = os.path.join(share_dir, "peer.mode")
+storm_dests = []
+
+
+def storm_count():
+    try:
+        with open(STORM_MODE_FILE, encoding="utf-8") as f:
+            return int(f.read().strip() or "0")
+    except Exception:
+        return 0
+
+
+def ensure_storm_dests(n):
+    while len(storm_dests) < n:
+        aspects = (f"hub{i:02x}" for i in range(255))
+        aspect = next(aspects)
+        storm_dests.append(
+            RNS.Destination(
+                RNS.Identity(create_keys=True),
+                RNS.Destination.IN,
+                RNS.Destination.SINGLE,
+                "rrc",
+                aspect,
+            )
+        )
+    return storm_dests[:n]
+
+
 outbox_pos = 0
 pending = []
 deadline = time.time() + 600
@@ -131,6 +162,13 @@ while time.time() < deadline:
             if h.destination is not None:
                 h.destination.announce()
         phone.announce()
+    except Exception:
+        pass
+    try:
+        n = storm_count()
+        if n:
+            for d in ensure_storm_dests(n):
+                d.announce()
     except Exception:
         pass
     try:
