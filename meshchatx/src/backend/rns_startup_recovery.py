@@ -15,9 +15,13 @@ storage. This module:
 from __future__ import annotations
 
 import contextlib
+import io
 import logging
 import os
 import re
+import struct
+import threading
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -205,12 +209,38 @@ class _DeadlinedRpcConnection:
         self._conn = conn
         self._timeout_s = timeout_s
 
-    def recv_bytes(self, *args, **kwargs):
-        if not self._conn.poll(self._timeout_s):
-            raise TimeoutError(
-                f"shared instance RPC timed out after {self._timeout_s}s"
-            )
-        return self._conn.recv_bytes(*args, **kwargs)
+    def recv_bytes(self, maxlength=None):
+        # Absolute deadline across the whole frame. poll() only promises
+        # at least one byte; a frame that stalls mid-body would otherwise
+        # park the thread forever inside recv_bytes. Reads mirror the
+        # multiprocessing.connection wire format: a 4-byte signed length,
+        # -1 meaning an 8-byte unsigned length, then the body.
+        deadline = time.monotonic() + self._timeout_s
+        fd = self._conn.fileno()
+
+        def _read_exact(n):
+            buf = io.BytesIO()
+            while buf.tell() < n:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0 or not self._conn.poll(remaining):
+                    raise TimeoutError(
+                        f"shared instance RPC timed out after {self._timeout_s}s"
+                    )
+                chunk = os.read(fd, n - buf.tell())
+                if not chunk:
+                    raise ConnectionError(
+                        "shared instance RPC connection closed"
+                    )
+                buf.write(chunk)
+            return buf.getvalue()
+
+        header = _read_exact(4)
+        (size,) = struct.unpack("!i", header)
+        if size == -1:
+            (size,) = struct.unpack("!Q", _read_exact(8))
+        if maxlength is not None and size > maxlength:
+            raise OSError("bad message length")
+        return _read_exact(size)
 
     def __getattr__(self, name):
         return getattr(self._conn, name)
@@ -230,7 +260,29 @@ def install_shared_instance_rpc_deadline(*, timeout_s: float = _SHARED_INSTANCE_
     original = RNS.Reticulum.get_rpc_client
 
     def _deadlined_get_rpc_client(self):
-        return _DeadlinedRpcConnection(original(self), timeout_s)
+        # Client() performs the authkey handshake inside its constructor
+        # (answer_challenge -> conn.recv_bytes) before any deadline exists.
+        # Run construction on a helper thread so a stalled rnsd rpc_loop
+        # cannot park the caller. A timed-out attempt leaves one daemon
+        # thread blocked on its own socket, bounded per call.
+        result = {}
+
+        def _make():
+            try:
+                result["conn"] = original(self)
+            except Exception as exc:
+                result["error"] = exc
+
+        t = threading.Thread(target=_make, daemon=True)
+        t.start()
+        t.join(timeout_s)
+        if "conn" in result:
+            return _DeadlinedRpcConnection(result["conn"], timeout_s)
+        if t.is_alive():
+            raise TimeoutError(
+                f"shared instance RPC connect timed out after {timeout_s}s"
+            )
+        raise result["error"]
 
     RNS.Reticulum.get_rpc_client = _deadlined_get_rpc_client
     _RPC_PATCHED = True

@@ -2594,8 +2594,10 @@ class ReticulumMeshChat:
                 "Detaching interfaces and shutting down Reticulum...",
             )
             try:
-                # Use class method to ensure all instances are cleaned up if any
-                RNS.Reticulum.exit_handler()
+                # Use class method to ensure all instances are cleaned up if any.
+                # exit_handler and the socketserver shutdowns below can park
+                # for seconds, so keep them off the aiohttp loop.
+                await asyncio.to_thread(RNS.Reticulum.exit_handler)
             except Exception as e:
                 print(f"Warning during RNS exit: {e}")
 
@@ -3622,10 +3624,12 @@ class ReticulumMeshChat:
         except Exception:
             # Timeout or RPC error: serve the last payload (or empty) and
             # extend the cache so polls do not pile threads on a dead RPC.
+            # The stamp must be recomputed after the failed await or the
+            # entry is born expired and every poll spawns a new thread.
             payload = cache[1] if cache else {"interfaces": []}
-            self._interface_stats_cache = (now, payload)
+            self._interface_stats_cache = (time.monotonic(), payload)
             return payload
-        self._interface_stats_cache = (now, payload)
+        self._interface_stats_cache = (time.monotonic(), payload)
         return payload
 
     def _get_interface_stats_payload(self) -> dict:
@@ -5532,6 +5536,14 @@ class ReticulumMeshChat:
             )
 
             durable_flush_all_databases(self)
+
+        # Ratchet writes held during an IO-pressure window must land before
+        # exit or the next start misses ratchet state.
+        with contextlib.suppress(Exception):
+            from meshchatx.src.backend import rns_ratchet_persist
+
+            rns_ratchet_persist.set_io_pressure(False)
+            rns_ratchet_persist.flush_pending()
 
         for identity_hash in list(self.contexts.keys()):
             ctx = self.contexts.get(identity_hash)
@@ -8785,9 +8797,10 @@ class ReticulumMeshChat:
 
         rssi = snr = quality = None
         if announce_packet_hash and getattr(self, "reticulum", None):
-            rssi = self.reticulum.get_packet_rssi(announce_packet_hash)
-            snr = self.reticulum.get_packet_snr(announce_packet_hash)
-            quality = self.reticulum.get_packet_q(announce_packet_hash)
+            with contextlib.suppress(Exception):
+                rssi = self.reticulum.get_packet_rssi(announce_packet_hash)
+                snr = self.reticulum.get_packet_snr(announce_packet_hash)
+                quality = self.reticulum.get_packet_q(announce_packet_hash)
 
         hops = None
         try:
@@ -10230,12 +10243,15 @@ class ReticulumMeshChat:
         snr = lxmf_message.snr
         quality = lxmf_message.q
         if self.reticulum:
-            if rssi is None:
-                rssi = self.reticulum.get_packet_rssi(lxmf_message.hash)
-            if snr is None:
-                snr = self.reticulum.get_packet_snr(lxmf_message.hash)
-            if quality is None:
-                quality = self.reticulum.get_packet_q(lxmf_message.hash)
+            with contextlib.suppress(Exception):
+                # The deadlined shared RPC can raise TimeoutError; missing
+                # signal metrics must never skip the state update below.
+                if rssi is None:
+                    rssi = self.reticulum.get_packet_rssi(lxmf_message.hash)
+                if snr is None:
+                    snr = self.reticulum.get_packet_snr(lxmf_message.hash)
+                if quality is None:
+                    quality = self.reticulum.get_packet_q(lxmf_message.hash)
 
         ctx.database.messages.update_lxmf_message_state(
             message_hash=lxmf_message.hash.hex(),
@@ -10870,16 +10886,17 @@ class ReticulumMeshChat:
                 )
 
                 # physical link info
+                def _packet_metric(name):
+                    try:
+                        fn = getattr(self.reticulum, name, None)
+                        return fn(lxmf_message.hash) if fn else None
+                    except Exception:
+                        return None
+
                 physical_link = {
-                    "rssi": self.reticulum.get_packet_rssi(lxmf_message.hash)
-                    if hasattr(self, "reticulum") and self.reticulum
-                    else None,
-                    "snr": self.reticulum.get_packet_snr(lxmf_message.hash)
-                    if hasattr(self, "reticulum") and self.reticulum
-                    else None,
-                    "q": self.reticulum.get_packet_q(lxmf_message.hash)
-                    if hasattr(self, "reticulum") and self.reticulum
-                    else None,
+                    "rssi": _packet_metric("get_packet_rssi"),
+                    "snr": _packet_metric("get_packet_snr"),
+                    "q": _packet_metric("get_packet_q"),
                 }
 
                 ctx.database.telemetry.upsert_telemetry(

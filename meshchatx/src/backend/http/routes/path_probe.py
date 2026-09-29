@@ -230,7 +230,8 @@ def register_path_probe_routes(routes, app):
             return http_bad_request(timeout_error)
         if timeout_seconds is None:
             reticulum = app.reticulum if hasattr(app, "reticulum") else None
-            timeout_seconds = path_response_window(
+            timeout_seconds = await asyncio.to_thread(
+                path_response_window,
                 destination_hash_bytes,
                 reticulum,
             )
@@ -240,7 +241,8 @@ def register_path_probe_routes(routes, app):
 
         timeout_after_seconds = time.time() + timeout_seconds
         reticulum = app.reticulum if hasattr(app, "reticulum") else None
-        reticulum_pathfinding.prepare_fresh_path_request(
+        await asyncio.to_thread(
+            reticulum_pathfinding.prepare_fresh_path_request,
             reticulum,
             destination_hash_bytes,
         )
@@ -296,7 +298,8 @@ def register_path_probe_routes(routes, app):
         except ValueError:
             return http_bad_request("invalid destination hash")
         reticulum = app.reticulum if hasattr(app, "reticulum") else None
-        reticulum_pathfinding.prepare_fresh_path_request(
+        await asyncio.to_thread(
+            reticulum_pathfinding.prepare_fresh_path_request,
             reticulum,
             destination_hash_bytes,
         )
@@ -420,7 +423,9 @@ def register_path_probe_routes(routes, app):
             return http_bad_request(f"Ping failed. {timeout_error}")
         if timeout_seconds is None:
             reticulum = app.reticulum if hasattr(app, "reticulum") else None
-            timeout_seconds = round(path_response_window(destination_hash, reticulum))
+            timeout_seconds = round(
+                await asyncio.to_thread(path_response_window, destination_hash, reticulum)
+            )
 
         # Split the budget so path discovery cannot consume the whole timeout.
         path_budget_seconds = max(1, timeout_seconds // 2)
