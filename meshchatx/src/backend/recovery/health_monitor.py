@@ -81,6 +81,10 @@ class HealthMonitor:
         """Signal the loop to exit and wait briefly for the thread to finish."""
         self._running = False
         self._stop_event.set()
+        if self._io_pressure_active:
+            # The gate lives in a module global on the persist worker; a
+            # stopped monitor must not leave writes held.
+            self._recover_io_pressure(None)
         thread = self._thread
         if thread is not None and thread.is_alive():
             thread.join(timeout=timeout)
@@ -195,6 +199,12 @@ class HealthMonitor:
             )
 
         io_avg10 = self._read_io_pressure()
+        if io_avg10 is None and self._io_pressure_active:
+            # PSI disappeared mid-run (container, kernel change): count it
+            # as below the recovery band so the gate cannot stick open.
+            self._io_avg10_history.append(0.0)
+            if self._consecutive_below(self._io_avg10_history, self.IO_RECOVER_AVG10):
+                self._recover_io_pressure(None)
         if io_avg10 is not None:
             self._io_avg10_history.append(io_avg10)
             if self._consecutive_above(self._io_avg10_history, self.IO_WARN_AVG10):
