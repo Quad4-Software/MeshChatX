@@ -424,3 +424,54 @@ def test_deadlined_rpc_connection_times_out():
     assert conn.recv_bytes() == b"hello"
     a.close()
     conn.close()
+
+
+class TestIOPressure:
+    """HealthMonitor PSI handling gates background writers."""
+
+    def test_io_pressure_gates_ratchet_persist(self):
+        from meshchatx.src.backend.memory_pressure import MemoryPressureManager
+        from meshchatx.src.backend import rns_ratchet_persist
+
+        mgr = MemoryPressureManager()
+        try:
+            stats = mgr.on_io_pressure_high(30.0)
+            assert stats["io_pressure_active"] is True
+            assert rns_ratchet_persist.io_pressure_active() is True
+            mgr.on_io_pressure_recovered(5.0)
+            assert rns_ratchet_persist.io_pressure_active() is False
+        finally:
+            rns_ratchet_persist.set_io_pressure(False)
+
+    def test_health_monitor_reads_psi_when_present(self, tmp_path):
+        from meshchatx.src.backend.recovery.health_monitor import HealthMonitor
+
+        hm = HealthMonitor(None)
+        psi = hm._read_io_pressure()
+        # Linux CI hosts expose PSI; containers may not. Either way the
+        # reader must not throw and must return None or a float.
+        assert psi is None or psi >= 0.0
+
+    def test_io_pressure_trigger_and_recover(self):
+        from meshchatx.src.backend.recovery.health_monitor import HealthMonitor
+
+        calls = []
+
+        class Mgr:
+            def on_io_pressure_high(self, avg):
+                calls.append(("high", avg))
+
+            def on_io_pressure_recovered(self, avg=None):
+                calls.append(("recovered", avg))
+
+        class App:
+            memory_pressure = Mgr()
+
+            def websocket_broadcast(self, _):
+                return None
+
+        hm = HealthMonitor(None, app=App())
+        hm._trigger_io_pressure(40.0)
+        assert calls == [("high", 40.0)]
+        hm._recover_io_pressure(8.0)
+        assert calls[1] == ("recovered", 8.0)

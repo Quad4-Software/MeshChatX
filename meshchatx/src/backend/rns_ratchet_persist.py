@@ -44,6 +44,24 @@ def _persist_one(destination_hash: bytes, ratchet: bytes) -> None:
         atomic_write_bytes(finalpath, umsgpack.packb(ratchet_data))
 
 
+_IO_PRESSURE = False
+
+
+def set_io_pressure(active: bool) -> None:
+    """Mark the storage layer as IO-constrained.
+
+    While active the persist worker holds queued writes instead of adding
+    to an already saturated disk queue. Entries stay in the latest map, so
+    no ratchet bytes are lost while waiting.
+    """
+    global _IO_PRESSURE
+    _IO_PRESSURE = bool(active)
+
+
+def io_pressure_active() -> bool:
+    return _IO_PRESSURE
+
+
 def _worker_loop() -> None:
     if _QUEUE is None:
         raise RuntimeError("ratchet persist queue is not initialized")
@@ -51,6 +69,15 @@ def _worker_loop() -> None:
         item = _QUEUE.get()
         if item is None:
             return
+        if _IO_PRESSURE:
+            # Disk is stalling. Put the signal back and back off; the
+            # latest map still carries the newest ratchet bytes.
+            try:
+                _QUEUE.put_nowait(item)
+            except queue.Full:
+                pass
+            time.sleep(5.0)
+            continue
         destination_hash, _ignored = item
         with _LATEST_LOCK:
             ratchet = _LATEST.pop(destination_hash, None)
