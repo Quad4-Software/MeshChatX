@@ -159,3 +159,57 @@ test.describe("Live mesh e2e (real RNS peer)", () => {
             .toBe("sent");
     });
 });
+
+test.describe("Live mesh LXST call", () => {
+    test.setTimeout(180000);
+    test.skip(!peerReady(), "live peer subprocess not running");
+
+    test("dial a real peer, establish, and hang up", async ({ request }) => {
+        await prepareE2eSession(request);
+        const peer = peerReady();
+
+        const statusBefore = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/telephone/status`);
+        expect(statusBefore.ok()).toBeTruthy();
+        const before = await statusBefore.json();
+        expect(before.enabled).toBe(true);
+
+        const dial = await e2ePost(
+            request,
+            `${E2E_BACKEND_ORIGIN}/api/v1/telephone/call/${peer.identity_hash}?timeout=60`
+        );
+        expect(dial.ok(), await dial.text()).toBeTruthy();
+
+        // Real LXST signalling over the link: CALLING -> RINGING ->
+        // peer auto-answers -> ESTABLISHED (6).
+        await expect
+            .poll(
+                async () => {
+                    const res = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/telephone/status`);
+                    if (!res.ok()) {
+                        return null;
+                    }
+                    const body = await res.json();
+                    return body.active_call ? body.active_call.status : null;
+                },
+                { timeout: 120000, intervals: [1000, 2000, 3000] }
+            )
+            .toBe(6);
+
+        const hangup = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/telephone/hangup`);
+        expect(hangup.ok(), await hangup.text()).toBeTruthy();
+
+        await expect
+            .poll(
+                async () => {
+                    const res = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/telephone/status`);
+                    if (!res.ok()) {
+                        return null;
+                    }
+                    const body = await res.json();
+                    return body.active_call === null || body.active_call === undefined;
+                },
+                { timeout: 30000, intervals: [500, 1000, 2000] }
+            )
+            .toBe(true);
+    });
+});

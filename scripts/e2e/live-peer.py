@@ -68,6 +68,7 @@ router.register_delivery_callback(on_delivery)
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from meshchatx.src.backend.rrc.server import RRCHubServer
+from meshchatx.src.backend.web_audio_bridge import install_hostless_lxst_audio
 
 
 class _HubManagerStub:
@@ -88,10 +89,24 @@ hub.configure_storage(os.path.join(config_dir, "hub_storage"))
 hub.register_room("lobby")
 hub.start()
 
+# Headless host has no audio devices; the hostless bridge swaps LXST
+# LineSource/LineSink for no-op transports so Telephone works everywhere.
+install_hostless_lxst_audio()
+import LXST
+
+phone = LXST.Telephone(identity, auto_answer=0.1)
+
 with open(hub_hash_path, "w", encoding="utf-8") as f:
     f.write(hub.dest_hash.hex())
 with open(ready_path, "w", encoding="utf-8") as f:
-    json.dump({"lxmf_dest": dest.hash.hex(), "hub_hash": hub.dest_hash.hex()}, f)
+    json.dump(
+        {
+            "lxmf_dest": dest.hash.hex(),
+            "hub_hash": hub.dest_hash.hex(),
+            "identity_hash": identity.hash.hex(),
+        },
+        f,
+    )
 
 outbox_pos = 0
 pending = []
@@ -101,6 +116,7 @@ while time.time() < deadline:
     try:
         if hub.destination is not None:
             hub.destination.announce()
+        phone.announce()
     except Exception:
         pass
     try:
