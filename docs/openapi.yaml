@@ -1,0 +1,3061 @@
+openapi: 3.1.0
+info:
+  title: MeshChatX HTTP API
+  version: "1.0.0"
+  description: >-
+    HTTP API served by the MeshChatX backend (aiohttp). All paths are under
+    the /api/v1 prefix.
+
+    Authentication: when auth is enabled the API uses an encrypted session
+    cookie (aiohttp_session). Obtain a session via POST /api/v1/auth/login
+    (or POST /api/v1/auth/setup on first run). Endpoints then require the
+    session cookie. GET /api/v1/status, /api/v1/auth/csrf,
+    /api/v1/auth/status, /api/v1/auth/setup, /api/v1/auth/login,
+    /api/v1/auth/logout and the OIDC endpoints are reachable without a
+    session; everything else under /api/ returns 401 when unauthenticated.
+
+    CSRF: all non-GET/HEAD/OPTIONS requests under /api/ must send the
+    X-CSRF-Token header matching the session token returned by
+    GET /api/v1/auth/csrf (the only CSRF-exempt path). Missing or invalid
+    tokens get a 403 with code csrf_invalid.
+
+    Startup gating: while the Reticulum identity context is still starting
+    or being switched, most endpoints return 503 with code "starting" and a
+    payload containing stage and network_ready fields.
+
+    Error shape: errors are JSON objects
+    {"error": string, "code": string, "message": string} where message is a
+    compatibility alias of error. Some handlers add extra keys (for example
+    status, stage, diagnostics, cancelled).
+
+    Hex identifiers (destination_hash, identity_hash, hub_hash, message
+    hash) are lowercase or mixed-case hex strings; destination and identity
+    hashes are 16 bytes (32 hex chars) unless noted.
+
+servers:
+  - url: /
+    description: Same origin as the web UI
+tags:
+  - name: auth
+  - name: config
+  - name: status
+  - name: lxmf
+  - name: rrc
+    description: Reticulum Relay Chat client endpoints
+  - name: network
+    description: Interfaces, path table, announces
+  - name: telephone
+
+paths:
+  /api/v1/auth/csrf:
+    get:
+      tags: [auth]
+      summary: Get or create the session CSRF token
+      description: >-
+        Public endpoint. Creates an encrypted session cookie if needed and
+        returns the CSRF token that must be echoed back in the X-CSRF-Token
+        header on every mutating /api/ request.
+      operationId: authCsrf
+      responses:
+        "200":
+          description: CSRF token for this session
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [csrf_token]
+                properties:
+                  csrf_token:
+                    type: string
+                    description: URL-safe random token for the X-CSRF-Token header
+        "500":
+          description: Session backend failure
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/auth/status:
+    get:
+      tags: [auth]
+      summary: Current authentication and startup status
+      operationId: authStatus
+      responses:
+        "200":
+          description: Auth status. The "starting" variant adds status and stage fields.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthStatus" }
+
+  /api/v1/auth/setup:
+    post:
+      tags: [auth]
+      summary: One-time initial password setup
+      description: >-
+        Sets the local auth password and starts an authenticated session.
+        Forbidden once a password exists or when the instance is managed by
+        OIDC single sign-on.
+      operationId: authSetup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        "200":
+          description: Setup completed; session is now authenticated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400":
+          description: Invalid JSON body or password under 8 characters
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "403":
+          description: Setup already completed or instance is OIDC-managed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      summary: Log in with the local password
+      description: >-
+        Verifies the password, rotates the session CSRF token and marks the
+        session authenticated for the current identity. Login attempts are
+        recorded for rate limiting and audit.
+      operationId: authLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login successful; session cookie is set
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400":
+          description: Invalid JSON body or missing password
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401":
+          description: Invalid password (code auth_required)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "403":
+          description: Auth not set up yet
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      summary: Invalidate the current session
+      operationId: authLogout
+      responses:
+        "200":
+          description: Session invalidated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+
+  /api/v1/server/security:
+    get:
+      tags: [auth]
+      summary: Web server security settings and sandbox status
+      operationId: serverSecurityGet
+      responses:
+        "200":
+          description: Listen and sandbox state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServerSecurity" }
+    patch:
+      tags: [auth]
+      summary: Update web server security settings
+      operationId: serverSecurityPatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                web_ui_ip_allowlist:
+                  type: [string, "null"]
+                  description: Comma or newline separated client IP allowlist for the web UI
+                trusted_proxy_cidrs:
+                  type: [string, "null"]
+                  description: CIDRs whose X-Forwarded-For headers are trusted
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServerSecurity" }
+        "400":
+          description: Invalid JSON body or invalid setting value
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+
+  /api/v1/config:
+    get:
+      tags: [config]
+      summary: Get the full application config
+      operationId: configGet
+      responses:
+        "200":
+          description: Config dictionary
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [config]
+                properties:
+                  config: { $ref: "#/components/schemas/AppConfig" }
+    patch:
+      tags: [config]
+      summary: Update application config values
+      description: >-
+        Accepts a JSON object of config keys to update; unknown keys and
+        invalid values are rejected with 400. Returns the full updated
+        config.
+      operationId: configUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AppConfigPatch" }
+      responses:
+        "200":
+          description: Updated config
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [config]
+                properties:
+                  config: { $ref: "#/components/schemas/AppConfig" }
+        "400":
+          description: Invalid JSON body or rejected config value
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "500":
+          description: config_update_failed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/status:
+    get:
+      tags: [status]
+      summary: Startup and health status
+      description: >-
+        Public endpoint used by startup probes and monitors. Always returns
+        200; inspect status/stage/network_ready for readiness. Also exempt
+        from the IP allowlist.
+      operationId: statusGet
+      responses:
+        "200":
+          description: Startup status payload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StartupStatus" }
+
+  /api/v1/reticulum/recover:
+    post:
+      tags: [status]
+      summary: Disable risky interfaces and retry network setup
+      description: >-
+        Recovery endpoint reachable while the network stack is down. Without
+        a body it applies progressive recovery steps; callers may instead
+        name interfaces to disable or disable all of them before retrying.
+      operationId: reticulumRecover
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                disable_all_interfaces:
+                  type: boolean
+                  description: Disable every enabled interface before retrying
+                disable_interfaces:
+                  type: array
+                  items: { type: string }
+                  description: Named interfaces to disable before retrying
+      responses:
+        "200":
+          description: Network stack recovered, or already running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  disabled_interfaces:
+                    type: array
+                    items: { type: string }
+                  status: { $ref: "#/components/schemas/StartupStatus" }
+        "400":
+          description: No identity available for recovery
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          description: Recovery failed or setup already in progress; payload may include status and disabled_interfaces
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/self-test:
+    get:
+      tags: [status]
+      summary: Run the self-test suite
+      description: Long-running; executes synchronously off the event loop.
+      operationId: selfTest
+      responses:
+        "200":
+          description: Self-test results (dynamic key/value report)
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/v1/lxmf/conversations:
+    get:
+      tags: [lxmf]
+      summary: List LXMF conversations
+      operationId: lxmfConversationsGet
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Free-text search over peers and message previews; "q" is an alias
+        - name: unread
+          in: query
+          schema: { $ref: "#/components/schemas/BooleanQuery" }
+          description: Only unread conversations; "filter_unread" is an alias
+        - name: failed
+          in: query
+          schema: { $ref: "#/components/schemas/BooleanQuery" }
+          description: Only conversations with failed messages; "filter_failed" is an alias
+        - name: has_attachments
+          in: query
+          schema: { $ref: "#/components/schemas/BooleanQuery" }
+          description: Only conversations with attachments; "filter_has_attachments" is an alias
+        - name: folder_id
+          in: query
+          schema: { type: integer }
+          description: Restrict to a conversation folder id; non-integer values are ignored
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 2000
+            default: 500
+          description: Page size; clamped to 0..2000, defaults to 500
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Conversation list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [conversations]
+                properties:
+                  conversations:
+                    type: array
+                    items: { $ref: "#/components/schemas/Conversation" }
+        "500":
+          description: Failed to load conversations
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503":
+          description: Identity context or database still starting, or retryable database error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/lxmf/conversations/{destination_hash}/mark-as-read:
+    post:
+      tags: [lxmf]
+      summary: Mark a conversation as read
+      operationId: lxmfConversationMarkRead
+      parameters:
+        - $ref: "#/components/parameters/DestinationHashPath"
+      responses:
+        "200":
+          description: Conversation marked read
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+
+  /api/v1/lxmf-messages/conversation/{destination_hash}:
+    get:
+      tags: [lxmf]
+      summary: List messages in a conversation
+      operationId: lxmfConversationMessages
+      parameters:
+        - $ref: "#/components/parameters/DestinationHashPath"
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+          description: With order=desc the after_id parameter pages backwards as a before_id cursor
+        - name: count
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1000
+            default: 100
+          description: Max messages; clamped to 0..1000, defaults to 100
+        - name: after_id
+          in: query
+          schema: { type: string }
+          description: Message id cursor; forward pagination with order=asc, backward with order=desc
+      responses:
+        "200":
+          description: Messages for the peer, oldest or newest first per order
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lxmf_messages]
+                properties:
+                  lxmf_messages:
+                    type: array
+                    items: { $ref: "#/components/schemas/LxmfMessage" }
+        "500":
+          description: Failed to load conversation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503":
+          description: Database temporarily unavailable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [lxmf]
+      summary: Delete all messages in a conversation
+      operationId: lxmfConversationDelete
+      parameters:
+        - $ref: "#/components/parameters/DestinationHashPath"
+      responses:
+        "200":
+          description: Conversation deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+
+  /api/v1/lxmf-messages/send:
+    post:
+      tags: [lxmf]
+      summary: Send an LXMF message
+      description: >-
+        Delivery method is optional; fields carries optional attachments
+        (image, audio, file_attachments, telemetry, commands) and an
+        app_extensions object. On failure the error body is
+        {"message": detail} and may include a diagnostics object when
+        delivery helptips are enabled.
+      operationId: lxmfMessageSend
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lxmf_message]
+              properties:
+                delivery_method:
+                  type: string
+                  description: Delivery override, for example propagated or direct
+                lxmf_message:
+                  type: object
+                  required: [destination_hash, content]
+                  properties:
+                    destination_hash: { $ref: "#/components/schemas/HexHash" }
+                    content:
+                      type: string
+                    title:
+                      type: string
+                    reply_to_hash:
+                      type: [string, "null"]
+                    reply_quoted_content:
+                      type: [string, "null"]
+                    fields:
+                      type: object
+                      additionalProperties: true
+                      description: >-
+                        Optional attachments: image {image_bytes base64},
+                        audio {audio_mode, audio_bytes base64},
+                        file_attachments [{file_name, file_bytes base64}],
+                        telemetry, commands, app_extensions
+      responses:
+        "200":
+          description: Sent message (attachments stripped from fields)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lxmf_message]
+                properties:
+                  lxmf_message: { $ref: "#/components/schemas/LxmfMessage" }
+        "400":
+          description: Missing or invalid fields, invalid destination
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "403":
+          description: Blocked in demo mode (code demo_readonly)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          description: Send failed or timed out; may include diagnostics
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/lxmf-messages/reactions:
+    post:
+      tags: [lxmf]
+      summary: Send an emoji reaction to a message
+      operationId: lxmfMessageReaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [destination_hash, target_message_hash, emoji]
+              properties:
+                destination_hash: { $ref: "#/components/schemas/HexHash" }
+                target_message_hash: { $ref: "#/components/schemas/HexHash" }
+                emoji:
+                  type: string
+                  minLength: 1
+      responses:
+        "200":
+          description: Reaction message
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lxmf_message]
+                properties:
+                  lxmf_message: { $ref: "#/components/schemas/LxmfMessage" }
+        "400":
+          description: Reaction failed validation or send rejected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "422":
+          description: Missing destination_hash, target_message_hash or emoji
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503":
+          description: Reaction timed out or failed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/lxmf-messages/{hash}:
+    delete:
+      tags: [lxmf]
+      summary: Delete a message by hash
+      operationId: lxmfMessageDelete
+      parameters:
+        - $ref: "#/components/parameters/MessageHashPath"
+      responses:
+        "200":
+          description: Message deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "422":
+          description: Missing hash
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/lxmf-messages/{hash}/cancel:
+    post:
+      tags: [lxmf]
+      summary: Cancel an outbound message
+      description: >-
+        Cancels the queued send on the router and reconciles the stored row
+        to state cancelled when it was still generating, outbound, sending
+        or failed.
+      operationId: lxmfMessageCancel
+      parameters:
+        - $ref: "#/components/parameters/MessageHashPath"
+      responses:
+        "200":
+          description: Cancel result; lxmf_message is the updated row or null when not stored
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  lxmf_message:
+                    anyOf:
+                      - $ref: "#/components/schemas/LxmfMessage"
+                      - type: "null"
+        "400":
+          description: Invalid message hash (not hex)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/lxmf-messages/{hash}/resend:
+    post:
+      tags: [lxmf]
+      summary: Resend a failed or cancelled message
+      operationId: lxmfMessageResend
+      parameters:
+        - $ref: "#/components/parameters/MessageHashPath"
+      responses:
+        "200":
+          description: Replacement message; the old failed row is deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lxmf_message]
+                properties:
+                  lxmf_message: { $ref: "#/components/schemas/LxmfMessage" }
+        "400":
+          description: Incoming messages cannot be resent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "403":
+          description: Blocked in demo mode
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: Message not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Only failed or cancelled messages can be resent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "500":
+          description: Stored message attachments are invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503":
+          description: Resend failed or timed out
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/lxmf-messages/{message_hash}/uri:
+    get:
+      tags: [lxmf]
+      summary: Build a reticulum:// Paper URI for a message
+      operationId: lxmfMessageUri
+      parameters:
+        - name: message_hash
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/HexHash" }
+      responses:
+        "200":
+          description: Paper URI string
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [uri]
+                properties:
+                  uri: { type: string }
+        "400":
+          description: Invalid message hash
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: Message not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: Payload could not be serialized as a Paper URI; body {"message", "detail"?}
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/lxmf-messages/attachment/{message_hash}/{attachment_type}:
+    get:
+      tags: [lxmf]
+      summary: Download a message attachment
+      description: >-
+        Returns raw attachment bytes. Image Content-Type is derived from
+        magic bytes, not the peer-declared type. Responses are privately
+        cacheable (Cache-Control: private, max-age=31536000, immutable).
+      operationId: lxmfMessageAttachment
+      parameters:
+        - name: message_hash
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/HexHash" }
+        - name: attachment_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [image, audio, file]
+        - name: file_index
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+          description: Index into fields.file_attachments; required when attachment_type=file
+      responses:
+        "200":
+          description: Attachment bytes
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Missing or invalid attachment data, or invalid file_index
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: Message or attachment not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/lxmf/propagation-node/status:
+    get:
+      tags: [lxmf]
+      summary: Propagation node sync status
+      operationId: propagationNodeStatus
+      responses:
+        "200":
+          description: Current sync state and local node stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  propagation_node_status: { $ref: "#/components/schemas/PropagationNodeStatus" }
+                  local_propagation_node:
+                    type: [object, "null"]
+                    additionalProperties: true
+                    description: Stats for the local propagation node when enabled
+
+  /api/v1/lxmf/propagation-node/sync:
+    post:
+      tags: [lxmf]
+      summary: Start a propagation node sync
+      operationId: propagationNodeSync
+      responses:
+        "200":
+          description: Sync started
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400":
+          description: No outbound propagation node configured (code propagation_node_not_configured)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "403":
+          description: Blocked in demo mode
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/lxmf/propagation-node/stop-sync:
+    post:
+      tags: [lxmf]
+      summary: Stop an in-progress propagation node sync
+      operationId: propagationNodeStopSync
+      responses:
+        "200":
+          description: Sync stopping
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "403":
+          description: Blocked in demo mode
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/lxmf/propagation-nodes:
+    get:
+      tags: [lxmf]
+      summary: List known LXMF propagation nodes
+      operationId: propagationNodesGet
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+          description: Max announce rows scanned; unparseable values are ignored
+      responses:
+        "200":
+          description: Propagation nodes discovered via announces
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lxmf_propagation_nodes]
+                properties:
+                  lxmf_propagation_nodes:
+                    type: array
+                    items: { $ref: "#/components/schemas/PropagationNode" }
+        "503":
+          description: Application is initializing or switching identity
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/rrc/hubs:
+    get:
+      tags: [rrc]
+      summary: List configured RRC hubs
+      operationId: rrcHubsGet
+      responses:
+        "200":
+          description: All configured hubs
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hubs]
+                properties:
+                  hubs:
+                    type: array
+                    items: { $ref: "#/components/schemas/RrcHub" }
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+    post:
+      tags: [rrc]
+      summary: Add an RRC hub
+      operationId: rrcHubAdd
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hub_hash]
+              properties:
+                hub_hash:
+                  type: string
+                  pattern: "^[0-9a-fA-F]{32}$"
+                  description: Hub identity hash, 16 bytes hex-encoded
+                dest_name:
+                  type: [string, "null"]
+                  description: Destination name override for the hub
+                name:
+                  type: [string, "null"]
+                  description: Display name override
+                connect:
+                  type: boolean
+                  description: Connect immediately after adding
+      responses:
+        "200":
+          description: Added hub
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hub]
+                properties:
+                  hub: { $ref: "#/components/schemas/RrcHub" }
+        "400":
+          description: Missing/invalid hub_hash or invalid hub hash length
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/{hub_hash}:
+    patch:
+      tags: [rrc]
+      summary: Update hub options
+      operationId: rrcHubPatch
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                auto_reconnect: { type: boolean }
+                auto_list: { type: boolean }
+                auto_who: { type: boolean }
+                nick:
+                  type: [string, "null"]
+                  description: Nickname override on this hub
+                custom_name:
+                  type: [string, "null"]
+                revert_custom_name:
+                  type: boolean
+                  description: Clear the custom name when true
+                hub_icon:
+                  type: [string, "null"]
+                  description: Hub icon payload; invalid values return 400
+                revert_hub_icon:
+                  type: boolean
+                  description: Clear the hub icon when true
+      responses:
+        "200":
+          description: Updated hub
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hub]
+                properties:
+                  hub: { $ref: "#/components/schemas/RrcHub" }
+        "400":
+          description: Invalid option value
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+    delete:
+      tags: [rrc]
+      summary: Remove a hub
+      operationId: rrcHubDelete
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+      responses:
+        "200":
+          description: Hub removed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/order:
+    put:
+      tags: [rrc]
+      summary: Reorder hubs in the sidebar
+      operationId: rrcHubsReorder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hub_hashes]
+              properties:
+                hub_hashes:
+                  type: array
+                  items:
+                    type: string
+                    pattern: "^[0-9a-fA-F]{32}$"
+      responses:
+        "200":
+          description: Reordered hubs
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hubs]
+                properties:
+                  hubs:
+                    type: array
+                    items: { $ref: "#/components/schemas/RrcHub" }
+        "400":
+          description: hub_hashes missing, not a list, or order rejected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/options:
+    post:
+      tags: [rrc]
+      summary: Apply shared options to every hub
+      operationId: rrcHubsApplyOptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                auto_reconnect: { type: boolean }
+                auto_list: { type: boolean }
+                auto_who: { type: boolean }
+      responses:
+        "200":
+          description: Updated hub list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hubs]
+                properties:
+                  hubs:
+                    type: array
+                    items: { $ref: "#/components/schemas/RrcHub" }
+        "400":
+          description: No recognized hub options supplied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/{hub_hash}/connect:
+    post:
+      tags: [rrc]
+      summary: Connect to a hub
+      operationId: rrcHubConnect
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+      responses:
+        "200":
+          description: Connect initiated; hub state in response
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hub]
+                properties:
+                  hub: { $ref: "#/components/schemas/RrcHub" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/{hub_hash}/disconnect:
+    post:
+      tags: [rrc]
+      summary: Disconnect from a hub
+      operationId: rrcHubDisconnect
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+      responses:
+        "200":
+          description: Hub disconnected
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hub]
+                properties:
+                  hub: { $ref: "#/components/schemas/RrcHub" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/{hub_hash}/rooms:
+    post:
+      tags: [rrc]
+      summary: Join or add a room on a hub
+      description: >-
+        Joins the room live when connected, otherwise records it for the
+        next connect. When key is given and remember is true the key is
+        stored encrypted for auto-rejoin.
+      operationId: rrcHubJoinRoom
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [room]
+              properties:
+                room:
+                  type: string
+                  minLength: 1
+                key:
+                  type: [string, "null"]
+                  description: Room key (password) for keyed rooms
+                remember:
+                  type: boolean
+                  default: true
+                  description: Persist the room key for later joins
+      responses:
+        "200":
+          description: Room joined or queued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hub, has_stored_key]
+                properties:
+                  hub: { $ref: "#/components/schemas/RrcHub" }
+                  has_stored_key: { type: boolean }
+        "400":
+          description: Missing room name or join rejected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/{hub_hash}/rooms/order:
+    put:
+      tags: [rrc]
+      summary: Reorder rooms within a hub
+      operationId: rrcHubRoomsReorder
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [room_names]
+              properties:
+                room_names:
+                  type: array
+                  items: { type: string }
+      responses:
+        "200":
+          description: Reordered hub
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hub]
+                properties:
+                  hub: { $ref: "#/components/schemas/RrcHub" }
+        "400":
+          description: room_names missing, not a list, or order rejected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/{hub_hash}/rooms/list:
+    post:
+      tags: [rrc]
+      summary: Request the room list from the hub
+      operationId: rrcHubRoomsList
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+      responses:
+        "200":
+          description: Room list requested
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  hub: { $ref: "#/components/schemas/RrcHub" }
+        "400":
+          description: Request rejected (for example not connected)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/{hub_hash}/room-keys:
+    get:
+      tags: [rrc]
+      summary: List stored room keys for a hub
+      description: Returns metadata only; key material is never exposed.
+      operationId: rrcHubRoomKeys
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+      responses:
+        "200":
+          description: Stored room key entries
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [keys]
+                properties:
+                  keys:
+                    type: array
+                    items: { $ref: "#/components/schemas/RrcRoomKey" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/{hub_hash}/rooms/{room}:
+    delete:
+      tags: [rrc]
+      summary: Leave or remove a room
+      operationId: rrcHubPartRoom
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+        - $ref: "#/components/parameters/RoomPath"
+      responses:
+        "200":
+          description: Room parted or removed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hub]
+                properties:
+                  hub: { $ref: "#/components/schemas/RrcHub" }
+        "400":
+          description: Room not joined or part rejected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/{hub_hash}/rooms/{room}/key:
+    put:
+      tags: [rrc]
+      summary: Store a room key
+      operationId: rrcHubStoreRoomKey
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+        - $ref: "#/components/parameters/RoomPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key]
+              properties:
+                key:
+                  type: string
+                  minLength: 1
+      responses:
+        "200":
+          description: Room key saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  has_stored_key: { type: boolean }
+        "400":
+          description: Missing/invalid key or storage rejected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+    delete:
+      tags: [rrc]
+      summary: Delete a stored room key
+      operationId: rrcHubDeleteRoomKey
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+        - $ref: "#/components/parameters/RoomPath"
+      responses:
+        "200":
+          description: Key deleted (deleted is a row count)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  deleted: { type: integer }
+        "400":
+          description: Delete rejected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages:
+    get:
+      tags: [rrc]
+      summary: Get room message history
+      description: >-
+        Returns the newest page last. before_seq pages backwards through
+        history. Fetching marks the room active and clears mention
+        notifications for it.
+      operationId: rrcHubRoomMessages
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+        - $ref: "#/components/parameters/RoomPath"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 200
+          description: Max messages returned; clamped to 1..1000
+        - name: before_seq
+          in: query
+          schema:
+            type: integer
+          description: Only messages with seq below this value; unparseable values are ignored
+      responses:
+        "200":
+          description: Room messages and member list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [messages, members, has_more]
+                properties:
+                  messages:
+                    type: array
+                    items: { $ref: "#/components/schemas/RrcMessage" }
+                  members:
+                    type: array
+                    items: { $ref: "#/components/schemas/RrcMember" }
+                  has_more:
+                    type: boolean
+                    description: Older messages remain beyond this page
+        "400":
+          description: Unknown room or invalid parameters
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+    post:
+      tags: [rrc]
+      summary: Send a message or action to a room
+      description: >-
+        With action=true the text is sent as a /me action. Text starting
+        with "/" is dispatched as a hub command.
+      operationId: rrcHubSendMessage
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+        - $ref: "#/components/parameters/RoomPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text: { type: string }
+                action:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: Message queued for sending
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400":
+          description: Send rejected (for example not connected)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+    delete:
+      tags: [rrc]
+      summary: Clear local room message history
+      operationId: rrcHubClearRoom
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+        - $ref: "#/components/parameters/RoomPath"
+      responses:
+        "200":
+          description: Messages cleared
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400":
+          description: Unknown room
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages/{seq}/retry:
+    post:
+      tags: [rrc]
+      summary: Retry a failed outbound room message
+      operationId: rrcHubRetryMessage
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+        - $ref: "#/components/parameters/RoomPath"
+        - name: seq
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Message sequence number
+      responses:
+        "200":
+          description: Retry queued; mid is the new envelope id (hex) when known
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  mid:
+                    type: [string, "null"]
+        "400":
+          description: Invalid seq or retry rejected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/{hub_hash}/rooms/{room}/read:
+    post:
+      tags: [rrc]
+      summary: Mark a room as read
+      operationId: rrcHubMarkRead
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+        - $ref: "#/components/parameters/RoomPath"
+      responses:
+        "200":
+          description: Room marked read
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400":
+          description: Unknown room
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/hubs/{hub_hash}/command:
+    post:
+      tags: [rrc]
+      summary: Send a raw hub command
+      operationId: rrcHubCommand
+      parameters:
+        - $ref: "#/components/parameters/HubHashPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text: { type: string }
+                room:
+                  type: [string, "null"]
+                  description: Room scope for the command
+      responses:
+        "200":
+          description: Command sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400":
+          description: Command rejected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/HubNotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/search:
+    get:
+      tags: [rrc]
+      summary: Search messages across all hubs
+      operationId: rrcSearch
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+          description: Search query; empty or missing returns an empty result list
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: Result cap, clamped to the search module maximum
+      responses:
+        "200":
+          description: Ranked hits sorted by score then timestamp
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items: { $ref: "#/components/schemas/RrcSearchHit" }
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/rrc/active/clear:
+    post:
+      tags: [rrc]
+      summary: Clear the active room marker
+      operationId: rrcClearActive
+      responses:
+        "200":
+          description: Active room cleared
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "503":
+          $ref: "#/components/responses/RrcUnavailable"
+
+  /api/v1/interface-stats:
+    get:
+      tags: [network]
+      summary: Per-interface traffic stats
+      description: >-
+        Served from a short-lived cache; when the Reticulum RPC stalls the
+        last payload (or an empty interfaces list) is returned. short_name
+        is mirrored to interface_name for client convenience.
+      operationId: interfaceStats
+      responses:
+        "200":
+          description: Interface stats as reported by Reticulum
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [interface_stats]
+                properties:
+                  interface_stats:
+                    type: object
+                    properties:
+                      interfaces:
+                        type: array
+                        items:
+                          type: object
+                          additionalProperties: true
+                          description: >-
+                            Dynamic per-interface record (name, short_name,
+                            interface_name, type, rx/tx byte counters, status,
+                            etc.) as returned by Reticulum
+                    additionalProperties: true
+
+  /api/v1/path-table:
+    get:
+      tags: [network]
+      summary: List known paths
+      operationId: pathTableGet
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Path table
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PathTableResponse" }
+    post:
+      tags: [network]
+      summary: List paths filtered by destination hashes
+      operationId: pathTablePost
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                destination_hashes:
+                  type: array
+                  items: { $ref: "#/components/schemas/HexHash" }
+                  description: Restrict results to these destination hashes
+      responses:
+        "200":
+          description: Path table
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PathTableResponse" }
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+
+  /api/v1/announces:
+    get:
+      tags: [network]
+      summary: List received announces
+      operationId: announcesGet
+      parameters:
+        - name: aspect
+          in: query
+          schema:
+            type: string
+            example: lxmf.delivery
+          description: Filter by announce aspect, for example lxmf.delivery, nomadnetwork.node, lxst.telephony, rrc.hub
+        - name: identity_hash
+          in: query
+          schema: { $ref: "#/components/schemas/HexHash" }
+        - name: destination_hash
+          in: query
+          schema: { $ref: "#/components/schemas/HexHash" }
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Client-side style text filter applied after fetching up to a configured scan cap
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+          description: Page size; when omitted without search an aspect-specific default applies
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: include_blocked
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Include announces from blocked identities
+      responses:
+        "200":
+          description: Paginated announces
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [announces, total_count]
+                properties:
+                  announces:
+                    type: array
+                    items: { $ref: "#/components/schemas/Announce" }
+                  total_count:
+                    type: integer
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503":
+          description: Database unavailable or retryable SQLite error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/announces/query:
+    post:
+      tags: [network]
+      summary: Fetch announces for specific destinations
+      operationId: announcesQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                destination_hashes:
+                  type: array
+                  items: { $ref: "#/components/schemas/HexHash" }
+                aspects:
+                  type: array
+                  items: { type: string }
+                  default: ["lxmf.delivery", "nomadnetwork.node"]
+      responses:
+        "200":
+          description: Matching announces; empty list when destination_hashes is missing or not a list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [announces, total_count]
+                properties:
+                  announces:
+                    type: array
+                    items: { $ref: "#/components/schemas/Announce" }
+                  total_count:
+                    type: integer
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+
+  /api/v1/destination/{destination_hash}/path:
+    get:
+      tags: [network]
+      summary: Snapshot of the path to a destination
+      description: >-
+        Accepts an lxmf.delivery destination hash or an identity hash (the
+        LXMF address is derived automatically). path is null when no known
+        path exists.
+      operationId: destinationPathGet
+      parameters:
+        - $ref: "#/components/parameters/DestinationHashPath"
+        - name: request
+          in: query
+          schema:
+            type: string
+            enum: ["true", "1", "false"]
+            default: "false"
+          description: request=true is rejected with 400; waiting requires POST
+      responses:
+        "200":
+          description: Path snapshot
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PathResponse" }
+        "400":
+          description: Invalid destination hash, or request=true on GET
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    post:
+      tags: [network]
+      summary: Request a path and wait for resolution
+      description: >-
+        Triggers a fresh Reticulum path request and polls until a path
+        appears or the timeout expires, then returns the snapshot.
+      operationId: destinationPathWait
+      parameters:
+        - $ref: "#/components/parameters/DestinationHashPath"
+        - name: timeout
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 600
+          description: Seconds to wait; defaults to a computed response window when omitted
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                timeout:
+                  type: integer
+                  minimum: 1
+                  maximum: 600
+                  description: Alternative to the timeout query param
+      responses:
+        "200":
+          description: Path snapshot after waiting
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PathResponse" }
+        "400":
+          description: Invalid destination hash or timeout out of range
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/destination/{destination_hash}/drop-path:
+    post:
+      tags: [network]
+      summary: Drop the known path to a destination
+      operationId: destinationDropPath
+      parameters:
+        - $ref: "#/components/parameters/DestinationHashPath"
+      responses:
+        "200":
+          description: Path dropped
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400":
+          description: Invalid destination hash
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/destination/{destination_hash}/request-path:
+    post:
+      tags: [network]
+      summary: Trigger a non-blocking path request
+      operationId: destinationRequestPath
+      parameters:
+        - $ref: "#/components/parameters/DestinationHashPath"
+      responses:
+        "200":
+          description: Path request dispatched
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400":
+          description: Invalid destination hash
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/identity/{identity_hash}/lxmf-address:
+    get:
+      tags: [network]
+      summary: Derive the lxmf.delivery address for an identity
+      operationId: identityLxmfAddress
+      parameters:
+        - name: identity_hash
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9a-fA-F]{32}([0-9a-fA-F]{32})?$"
+          description: Identity hash; 32 or 64 hex chars accepted
+      responses:
+        "200":
+          description: Derived LXMF destination
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [identity_hash, lxmf_destination_hash, has_path]
+                properties:
+                  identity_hash: { $ref: "#/components/schemas/HexHash" }
+                  lxmf_destination_hash: { $ref: "#/components/schemas/HexHash" }
+                  has_path: { type: boolean }
+        "400":
+          description: Invalid identity hash
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: No LXMF address could be derived (identity unknown)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/telephone/status:
+    get:
+      tags: [telephone]
+      summary: Telephone subsystem and active call status
+      operationId: telephoneStatus
+      responses:
+        "200":
+          description: Telephone status; enabled=false variant returns only message and missed_calls_unread_count
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TelephoneStatus" }
+
+  /api/v1/telephone/call/{identity_hash}:
+    post:
+      tags: [telephone]
+      summary: Initiate an outgoing call
+      description: Call setup runs in the background; the response only confirms initiation started.
+      operationId: telephoneCall
+      parameters:
+        - name: identity_hash
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/HexHash" }
+          description: Remote identity hash to call
+        - name: timeout
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 15
+          description: Call establishment timeout in seconds, clamped server-side
+      responses:
+        "200":
+          description: Call initiation started
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400":
+          description: Invalid identity hash or telephone busy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "403":
+          description: Identity is banished/blocked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503":
+          description: Telephone is disabled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/telephone/answer:
+    post:
+      tags: [telephone]
+      summary: Answer the ringing incoming call
+      operationId: telephoneAnswer
+      responses:
+        "200":
+          description: Call being answered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400":
+          description: Telephone disabled or no ringing incoming call
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "403":
+          description: Caller is banished; call is hung up
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: No active call or caller identity unavailable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/telephone/hangup:
+    post:
+      tags: [telephone]
+      summary: Hang up the active call
+      operationId: telephoneHangup
+      responses:
+        "200":
+          description: Hangup requested
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+
+  /api/v1/telephone/send-to-voicemail:
+    post:
+      tags: [telephone]
+      summary: Divert the active call to voicemail
+      operationId: telephoneSendToVoicemail
+      responses:
+        "200":
+          description: Voicemail session started
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400":
+          description: Telephone disabled or remote identity unavailable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "403":
+          description: Caller is banished; call is hung up
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: No active call
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/telephone/mute-transmit:
+    post:
+      tags: [telephone]
+      summary: Mute the microphone
+      operationId: telephoneMuteTransmit
+      responses:
+        "200":
+          description: Microphone muted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+
+  /api/v1/telephone/unmute-transmit:
+    post:
+      tags: [telephone]
+      summary: Unmute the microphone
+      operationId: telephoneUnmuteTransmit
+      responses:
+        "200":
+          description: Microphone unmuted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+
+  /api/v1/telephone/mute-receive:
+    post:
+      tags: [telephone]
+      summary: Mute the speaker
+      operationId: telephoneMuteReceive
+      responses:
+        "200":
+          description: Speaker muted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+
+  /api/v1/telephone/unmute-receive:
+    post:
+      tags: [telephone]
+      summary: Unmute the speaker
+      operationId: telephoneUnmuteReceive
+      responses:
+        "200":
+          description: Speaker unmuted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+
+  /api/v1/telephone/ptt:
+    post:
+      tags: [telephone]
+      summary: Set push-to-talk state on a half-duplex call
+      operationId: telephonePtt
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                active:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: PTT state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  is_ptt_active: { type: boolean }
+                  is_half_duplex: { type: boolean }
+                  is_transmit_squelched: { type: boolean }
+        "400":
+          description: Telephone not initialized or PTT requested outside an established half-duplex call
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+
+  /api/v1/telephone/call-modes:
+    get:
+      tags: [telephone]
+      summary: List available LXST call modes
+      operationId: telephoneCallModes
+      responses:
+        "200":
+          description: Available call modes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  default_call_mode_id: { type: integer }
+                  call_modes:
+                    type: array
+                    items: { $ref: "#/components/schemas/CallMode" }
+
+  /api/v1/telephone/switch-call-mode/{mode_id}:
+    post:
+      tags: [telephone]
+      summary: Switch the preferred call mode
+      operationId: telephoneSwitchCallMode
+      parameters:
+        - name: mode_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Resolved mode after applying
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  mode_id: { type: integer }
+                  mode_name: { type: string }
+                  is_half_duplex: { type: boolean }
+                  is_ptt_active: { type: boolean }
+        "400":
+          description: Telephone not initialized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "500":
+          description: Mode switch failed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/telephone/audio-profiles:
+    get:
+      tags: [telephone]
+      summary: List available audio profiles
+      operationId: telephoneAudioProfiles
+      responses:
+        "200":
+          description: Audio profiles; codec2 profiles are flagged unavailable when the codec is missing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  default_audio_profile_id: { type: integer }
+                  codec2_available: { type: boolean }
+                  audio_profiles:
+                    type: array
+                    items: { $ref: "#/components/schemas/AudioProfile" }
+
+  /api/v1/telephone/switch-audio-profile/{profile_id}:
+    post:
+      tags: [telephone]
+      summary: Switch the preferred audio profile
+      operationId: telephoneSwitchAudioProfile
+      parameters:
+        - name: profile_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Resolved profile after applying; remapped=true when the request was coerced
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  profile_id: { type: integer }
+                  requested_profile_id: { type: integer }
+                  remapped: { type: boolean }
+        "400":
+          description: Telephone not initialized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "500":
+          description: Profile switch failed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/telephone/history:
+    get:
+      tags: [telephone]
+      summary: Call history
+      operationId: telephoneHistory
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Call history rows enriched with resolved names, icons and contact flags
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [call_history]
+                properties:
+                  call_history:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                      description: >-
+                        Database row with keys such as remote_identity_hash,
+                        remote_identity_name, remote_destination_hash,
+                        remote_telephony_hash, remote_icon, is_contact and
+                        contact_image when resolvable
+        "400":
+          description: limit or offset not a non-negative integer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [telephone]
+      summary: Clear call history
+      operationId: telephoneHistoryClear
+      responses:
+        "200":
+          description: History cleared
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+
+  /api/v1/telephone/codec2/status:
+    get:
+      tags: [telephone]
+      summary: Codec2 backend readiness
+      operationId: telephoneCodec2Status
+      responses:
+        "200":
+          description: Codec2 probe results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  codec2_available: { type: boolean }
+                  preload_error:
+                    type: [string, "null"]
+                  probe_error:
+                    type: [string, "null"]
+                  platform:
+                    type: string
+                    enum: [android, desktop]
+                  preferred_profile_id:
+                    type: [integer, "null"]
+                  resolved_profile_id: { type: integer }
+
+  /api/v1/telephone/voicemail/status:
+    get:
+      tags: [telephone]
+      summary: Voicemail subsystem status
+      operationId: telephoneVoicemailStatus
+      responses:
+        "200":
+          description: Voicemail status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  has_espeak: { type: boolean }
+                  is_recording: { type: boolean }
+                  is_greeting_recording: { type: boolean }
+                  has_greeting: { type: boolean }
+
+  /api/v1/telephone/missed-calls/mark-viewed:
+    post:
+      tags: [telephone]
+      summary: Mark all missed-call notifications as viewed
+      operationId: telephoneMissedCallsMarkViewed
+      responses:
+        "200":
+          description: Missed calls marked viewed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "503":
+          description: Identity context still starting
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+components:
+  parameters:
+    DestinationHashPath:
+      name: destination_hash
+      in: path
+      required: true
+      schema: { $ref: "#/components/schemas/HexHash" }
+      description: lxmf.delivery destination hash (identity hashes are resolved to it where noted)
+    MessageHashPath:
+      name: hash
+      in: path
+      required: true
+      schema: { $ref: "#/components/schemas/HexHash" }
+      description: LXMF message hash; stored hashes are lowercase hex
+    HubHashPath:
+      name: hub_hash
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[0-9a-fA-F]{32}$"
+      description: RRC hub hash, 16 bytes hex-encoded
+    RoomPath:
+      name: room
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+      description: Room name
+
+  responses:
+    PayloadTooLarge:
+      description: Request body exceeds the upload size limit
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example:
+            error: Upload exceeds size limit
+            code: payload_too_large
+            message: Upload exceeds size limit
+    HubNotFound:
+      description: Hub hash does not match a configured hub
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example:
+            error: Hub not found
+            code: not_found
+            message: Hub not found
+    RrcUnavailable:
+      description: Relay chat manager not initialized
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example:
+            error: Relay chat is not available
+            code: unavailable
+            message: Relay chat is not available
+
+  schemas:
+    Error:
+      type: object
+      required: [error, code, message]
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          description: >-
+            Stable machine code. Known values include bad_request,
+            auth_required, forbidden, not_found, conflict,
+            payload_too_large, unavailable, unexpected, csrf_invalid,
+            starting, demo_readonly, propagation_node_not_configured, and
+            generic http_<status> forms.
+        message:
+          type: string
+          description: Compatibility alias of error
+      additionalProperties: true
+
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+      additionalProperties: true
+
+    HexHash:
+      type: string
+      pattern: "^[0-9a-fA-F]+$"
+      description: Hex-encoded hash (16 bytes / 32 hex chars unless noted)
+
+    BooleanQuery:
+      type: string
+      enum: ["true", "1", "yes", "false", "0", "no"]
+      default: "false"
+      description: Parsed leniently; true/1/yes count as true
+
+    AuthStatus:
+      type: object
+      required: [auth_enabled, authenticated]
+      properties:
+        auth_enabled: { type: boolean }
+        password_set: { type: boolean }
+        authenticated:
+          type: boolean
+          description: True only when the session is authenticated for the current identity
+        network_ready: { type: boolean }
+        status:
+          type: string
+          description: Present while starting, for example "starting"
+        stage:
+          type: string
+          description: Startup stage, present while starting
+        demo_mode: { type: boolean }
+        auth_page_hint:
+          type: [string, "null"]
+        oidc_enabled: { type: boolean }
+        oidc_display_name:
+          type: [string, "null"]
+        error:
+          type: string
+          description: Present only when session status could not be determined
+      additionalProperties: true
+
+    ServerSecurity:
+      type: object
+      properties:
+        listen_host: { type: string }
+        listen_port: { type: integer }
+        https_enabled: { type: boolean }
+        is_loopback_bind: { type: boolean }
+        web_ui_ip_allowlist: { type: string }
+        trusted_proxy_cidrs: { type: string }
+        privacy_mode_enabled: { type: boolean }
+        auth_enabled: { type: boolean }
+        landlock_kernel_supported: { type: boolean }
+        landlock_abi:
+          type: [integer, "null"]
+        landlock_requested: { type: boolean }
+        landlock_auto_enabled: { type: boolean }
+        landlock_disabled_by_env: { type: boolean }
+        landlock_active: { type: boolean }
+        appcontainer_supported: { type: boolean }
+        appcontainer_requested: { type: boolean }
+        appcontainer_auto_enabled: { type: boolean }
+        appcontainer_disabled_by_env: { type: boolean }
+        appcontainer_active: { type: boolean }
+        fs_sandbox_active: { type: boolean }
+        seccomp_kernel_supported: { type: boolean }
+        seccomp_requested: { type: boolean }
+        seccomp_auto_enabled: { type: boolean }
+        seccomp_disabled_by_env: { type: boolean }
+        seccomp_active: { type: boolean }
+      additionalProperties: true
+
+    AppConfig:
+      type: object
+      description: >-
+        Flat application config dictionary. Keys include display_name,
+        identity_hash, identity_public_key, lxmf_address_hash,
+        telephone_address_hash, is_transport_enabled, theme, language,
+        auto_announce_enabled, notification and sync preferences, and other
+        per-identity settings. The exact key set grows with app versions.
+      additionalProperties: true
+
+    AppConfigPatch:
+      type: object
+      description: Partial config object; keys to update only
+      additionalProperties: true
+
+    StartupStatus:
+      type: object
+      required: [status, network_ready]
+      properties:
+        status:
+          type: string
+          enum: [ok, starting, failed]
+        stage:
+          type: string
+          description: Startup stage, for example starting, ready or failed
+        version: { type: string }
+        network_ready: { type: boolean }
+        network_degraded: { type: boolean }
+        ui_ready: { type: boolean }
+        listen_host: { type: string }
+        listen_port: { type: integer }
+        https_enabled: { type: boolean }
+        is_loopback_bind: { type: boolean }
+        plugins_enabled: { type: boolean }
+        demo_mode: { type: boolean }
+        auth_page_hint:
+          type: [string, "null"]
+        error:
+          type: string
+          description: Startup error detail, present when status is failed
+        recovery_actions:
+          type: array
+          items: { type: string }
+          description: Interfaces disabled by automatic recovery, present after failure
+        webtransport:
+          type: object
+          additionalProperties: true
+          description: WebTransport sidecar status (experimental flag, url, availability)
+      additionalProperties: true
+
+    LxmfUserIcon:
+      type: object
+      properties:
+        icon_name: { type: string }
+        foreground_colour: { type: string }
+        background_colour: { type: string }
+
+    Conversation:
+      type: object
+      properties:
+        display_name: { type: string }
+        custom_display_name:
+          type: [string, "null"]
+        contact_image:
+          type: "null"
+          description: Always null in list responses; image blobs are fetched separately
+        has_contact_image: { type: boolean }
+        destination_hash: { $ref: "#/components/schemas/HexHash" }
+        is_unread: { type: boolean }
+        is_tracking: { type: boolean }
+        failed_messages_count: { type: integer }
+        has_attachments: { type: boolean }
+        latest_message_title:
+          type: [string, "null"]
+        latest_message_preview:
+          type: [string, "null"]
+        latest_message_created_at:
+          type: [string, "null"]
+          description: ISO 8601 timestamp, UTC with Z suffix
+        lxmf_user_icon:
+          anyOf:
+            - $ref: "#/components/schemas/LxmfUserIcon"
+            - type: "null"
+        is_contact: { type: boolean }
+        updated_at:
+          type: [string, "null"]
+
+    LxmfMessage:
+      type: object
+      properties:
+        id: { type: integer }
+        hash: { $ref: "#/components/schemas/HexHash" }
+        source_hash: { $ref: "#/components/schemas/HexHash" }
+        destination_hash: { $ref: "#/components/schemas/HexHash" }
+        is_incoming: { type: boolean }
+        state:
+          type: string
+          description: >-
+            Delivery state, for example generating, outbound, sending,
+            sent, delivered, failed, cancelled or inbound
+        progress: { type: number }
+        method:
+          type: string
+          description: Delivery method, for example direct, propagated, opportunistic, local or unknown
+        delivery_attempts: { type: integer }
+        next_delivery_attempt_at:
+          type: [number, string, "null"]
+        title:
+          type: [string, "null"]
+        content:
+          type: [string, "null"]
+        fields:
+          type: object
+          additionalProperties: true
+          description: >-
+            LXMF fields. May contain image, audio, file_attachments,
+            telemetry, commands and app_extensions; attachment bytes are
+            stripped from API responses unless explicitly requested.
+        timestamp: { type: number }
+        rssi:
+          type: [number, "null"]
+        snr:
+          type: [number, "null"]
+        quality:
+          type: [number, "null"]
+        is_spam: { type: boolean }
+        reply_to_hash:
+          type: [string, "null"]
+        attachments_stripped: { type: boolean }
+        path_hops_at_send:
+          type: [integer, "null"]
+        path_interface_at_send:
+          type: [string, "null"]
+        path_finding_measure: {}
+        path_row_hash_hex:
+          type: [string, "null"]
+        created_at:
+          type: string
+          description: ISO 8601 timestamp, UTC with Z suffix
+        updated_at: { type: string }
+        is_reaction: { type: boolean }
+        reaction_to:
+          type: string
+          description: Present only when is_reaction is true
+        reaction_emoji:
+          type: string
+          description: Present only when is_reaction is true
+        reaction_sender:
+          type: string
+          description: Present only when is_reaction is true
+      additionalProperties: true
+
+    PropagationNodeStatus:
+      type: object
+      properties:
+        state:
+          type: string
+          description: Transfer state string, for example idle, path_requested, link_establishing, transferring, complete
+        progress:
+          type: number
+          description: Transfer progress as a percentage, 0-100
+        transfer_size_bytes:
+          type: [integer, "null"]
+        inbound_delivery_count: { type: integer }
+        inbound_deliveries:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        messages_received:
+          description: Result of the last sync (count or status string)
+        messages_stored: { type: integer }
+        delivery_confirmations: { type: integer }
+        messages_hidden: { type: integer }
+      additionalProperties: true
+
+    PropagationNode:
+      type: object
+      properties:
+        destination_hash: { $ref: "#/components/schemas/HexHash" }
+        identity_hash:
+          type: [string, "null"]
+        operator_display_name:
+          type: [string, "null"]
+        is_propagation_enabled:
+          type: [boolean, "null"]
+        per_transfer_limit:
+          type: [integer, "null"]
+        is_local_node: { type: boolean }
+        local_node_stats:
+          type: [object, "null"]
+          additionalProperties: true
+        created_at: { type: string }
+        updated_at: { type: string }
+      additionalProperties: true
+
+    RrcHub:
+      type: object
+      properties:
+        hub_hash:
+          type: string
+          pattern: "^[0-9a-fA-F]{32}$"
+        dest_name: { type: string }
+        name:
+          type: [string, "null"]
+        display_name: { type: string }
+        custom_name:
+          type: [string, "null"]
+        hub_icon:
+          type: [string, "null"]
+        hub_name_announced:
+          type: [string, "null"]
+        status:
+          type: integer
+          enum: [0, 1, 2, 3]
+          description: 0 disconnected, 1 connecting, 2 connected, 3 failed
+        status_text:
+          type: [string, "null"]
+        connected: { type: boolean }
+        hub_name:
+          type: [string, "null"]
+        hub_version:
+          type: [string, "null"]
+        motd:
+          type: [string, "null"]
+        rooms:
+          type: array
+          items: { type: string }
+          description: Joined room names, sorted
+        known_rooms:
+          type: array
+          items: { type: string }
+        unread_rooms:
+          type: array
+          items: { type: string }
+        unread_counts:
+          type: object
+          additionalProperties: { type: integer }
+          description: Per-room unread counts (rooms with zero are omitted)
+        total_unread: { type: integer }
+        mention_rooms:
+          type: array
+          items: { type: string }
+        available_rooms:
+          type: object
+          additionalProperties: true
+          description: Room list reported by the hub
+        available_keyed_rooms:
+          type: array
+          items: { type: string }
+        stored_key_rooms:
+          type: array
+          items: { type: string }
+        auto_reconnect: { type: boolean }
+        auto_list: { type: boolean }
+        auto_who: { type: boolean }
+        nick_override:
+          type: [string, "null"]
+        rtt_ms:
+          type: [integer, "null"]
+        max_msg_body_bytes:
+          type: [integer, "null"]
+      additionalProperties: true
+
+    RrcMessage:
+      type: object
+      required: [kind, room, text, ts, mention, seq]
+      properties:
+        kind:
+          type: string
+          description: Message kind, for example msg, action or a system kind
+        room: { type: string }
+        src:
+          type: [string, "null"]
+          description: Sender hash hex, null for system lines
+        nick:
+          type: [string, "null"]
+        text: { type: string }
+        ts:
+          type: integer
+          description: Unix timestamp
+        mention: { type: boolean }
+        seq:
+          type: [integer, "null"]
+          description: Room-local sequence number for paging and retry
+        event:
+          type: string
+          description: System event subtype such as join or part, present only on system lines
+        delivery:
+          type: string
+          enum: [sending, sent, failed]
+          description: Own-message delivery state, present only for locally sent messages
+        mid:
+          type: string
+          description: Envelope id hex for locally sent messages, present with delivery
+      additionalProperties: true
+
+    RrcMember:
+      type: object
+      required: [hash, name]
+      properties:
+        hash:
+          type: string
+          pattern: "^[0-9a-fA-F]{32}$"
+        name: { type: string }
+
+    RrcRoomKey:
+      type: object
+      properties:
+        hub_hash:
+          type: string
+          pattern: "^[0-9a-fA-F]{32}$"
+        dest_name: { type: string }
+        room: { type: string }
+        updated_at:
+          type: [string, "null"]
+
+    RrcSearchHit:
+      type: object
+      properties:
+        hub_hash:
+          type: string
+          pattern: "^[0-9a-fA-F]{32}$"
+        hub_name: { type: string }
+        room: { type: string }
+        seq:
+          type: [integer, "null"]
+        ts: { type: integer }
+        nick:
+          type: [string, "null"]
+        src:
+          type: [string, "null"]
+        text: { type: string }
+        kind: { type: string }
+        mention: { type: boolean }
+        score: { type: number }
+      additionalProperties: true
+
+    PathTableResponse:
+      type: object
+      required: [path_table, total_count]
+      properties:
+        path_table:
+          type: array
+          items:
+            type: object
+            required: [hash, via]
+            properties:
+              hash: { $ref: "#/components/schemas/HexHash" }
+              via: { $ref: "#/components/schemas/HexHash" }
+            additionalProperties: true
+            description: Path table entry as returned by Reticulum; hash and via are hex-encoded
+        total_count:
+          type: integer
+          description: Total paths before pagination
+
+    PathResponse:
+      type: object
+      properties:
+        path:
+          anyOf:
+            - type: object
+              properties:
+                hops: { type: integer }
+                next_hop: { $ref: "#/components/schemas/HexHash" }
+                next_hop_interface:
+                  type: [string, "null"]
+            - type: "null"
+          description: Null when no path is known
+        path_stale: { type: boolean }
+        path_unresponsive: { type: boolean }
+      additionalProperties: true
+
+    Announce:
+      type: object
+      properties:
+        id: { type: integer }
+        destination_hash: { $ref: "#/components/schemas/HexHash" }
+        aspect:
+          type: string
+          description: Announce aspect, for example lxmf.delivery, nomadnetwork.node, lxst.telephony, rrc.hub
+        identity_hash:
+          type: [string, "null"]
+        identity_public_key:
+          type: [string, "null"]
+          description: Base64-encoded public key when known
+        app_data:
+          type: [string, "null"]
+          description: Base64-encoded announce app_data
+        hops:
+          type: [integer, "null"]
+        rssi:
+          type: [number, "null"]
+        snr:
+          type: [number, "null"]
+        quality:
+          type: [number, "null"]
+        display_name: { type: string }
+        lxmf_destination_hash:
+          type: [string, "null"]
+          description: Resolved lxmf.delivery hash for telephony announces
+        custom_display_name:
+          type: [string, "null"]
+        lxmf_user_icon:
+          anyOf:
+            - $ref: "#/components/schemas/LxmfUserIcon"
+            - type: "null"
+        created_at: { type: string }
+        updated_at: { type: string }
+      additionalProperties: true
+
+    CallMode:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        abbrev: { type: string }
+        is_half_duplex: { type: boolean }
+
+    AudioProfile:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        available: { type: boolean }
+        unavailable_reason:
+          type: string
+          description: Present only when unavailable, for example codec2
+
+    TelephoneStatus:
+      type: object
+      required: [enabled]
+      properties:
+        enabled: { type: boolean }
+        message:
+          type: string
+          description: Present when telephone is disabled
+        missed_calls_unread_count: { type: integer }
+        is_busy: { type: boolean }
+        call_status:
+          type: integer
+          description: LXST call status code; 4 means ringing inbound
+        active_call:
+          anyOf:
+            - $ref: "#/components/schemas/ActiveCall"
+            - type: "null"
+        is_mic_muted: { type: boolean }
+        is_speaker_muted: { type: boolean }
+        preferred_call_mode_id: { type: integer }
+        voicemail:
+          type: object
+          properties:
+            is_recording: { type: boolean }
+            unread_count: { type: integer }
+            latest_id:
+              type: [integer, "null"]
+        initiation_status: { type: [boolean, "null"] }
+        initiation_target_hash:
+          type: [string, "null"]
+        initiation_target_name:
+          type: [string, "null"]
+        web_audio:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            required: { type: boolean }
+            allow_fallback: { type: boolean }
+            has_client: { type: boolean }
+            frame_ms:
+              type: [number, "null"]
+            diagnostics:
+              type: [object, "null"]
+      additionalProperties: true
+
+    ActiveCall:
+      type: object
+      properties:
+        hash: { $ref: "#/components/schemas/HexHash" }
+        remote_identity_hash: { $ref: "#/components/schemas/HexHash" }
+        remote_destination_hash: { $ref: "#/components/schemas/HexHash" }
+        remote_identity_name:
+          type: [string, "null"]
+        remote_icon:
+          type: [object, "null"]
+        custom_image:
+          type: [string, "null"]
+        is_incoming: { type: boolean }
+        status: { type: integer }
+        remote_telephony_hash:
+          type: [string, "null"]
+        audio_profile_id:
+          type: [integer, "null"]
+        call_mode_id: { type: integer }
+        call_mode_name:
+          type: string
+          description: Best-effort mode name, absent on lookup failure
+        call_mode_abbrev:
+          type: string
+          description: Best-effort mode abbreviation, absent on lookup failure
+        is_half_duplex: { type: boolean }
+        is_ptt_active: { type: boolean }
+        is_transmit_squelched: { type: boolean }
+        is_mic_muted: { type: boolean }
+        is_speaker_muted: { type: boolean }
+        is_recording: { type: boolean }
+        is_voicemail: { type: boolean }
+        call_start_time:
+          type: [number, "null"]
+        is_contact: { type: boolean }
+        tx_bytes: { type: integer }
+        rx_bytes: { type: integer }
+        tx_packets: { type: integer }
+        rx_packets: { type: integer }
+        tx_bps: { type: integer }
+        rx_bps: { type: integer }
+        path_hops:
+          type: [integer, "null"]
+        path_interface:
+          type: [string, "null"]
+      additionalProperties: true
