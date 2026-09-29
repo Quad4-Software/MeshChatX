@@ -34,6 +34,9 @@ All notable changes to this project will be documented in this file.
 - Geo WASM: MGRS formatting for single-digit zones is correct, OLC shorten/recover no longer panics on edge-case codes, and NaN or non-finite coordinates cannot crash the runtime.
 - Visualiser WASM: the WebGL pick radius holds a screen-space minimum so clicks still land at high zoom, scene handlers validate argument types instead of calling Float on non-numbers, coincident layout nodes get a deterministic separation nudge, and duplicate edges are deduplicated.
 - Relay chat: sent messages now show a gray "sending" hint until the hub relays the message back. If the echo never arrives, or the link drops first, the line switches to "not delivered to hub" with a retry action that resends under a new envelope id.
+- Relay chat: message and sidebar context menus show icons, and the message menu gains "Message user" (opens a direct conversation through the peer's LXMF address) and "Copy user hash".
+- Context menus across the app use a pointer cursor on interactive items.
+- NomadNet: a live announce no longer re-sorts its row to the top of the announces list, so clicking a node no longer makes the sidebar reshuffle under the cursor.
 - Sandbox: seccomp denylist now prefers the seccompy backend (pure Python, no libseccomp needed) and falls back to libseccomp via ctypes when it is absent.
 - Crawler: re-queued tasks keep their retry budget instead of resetting to zero, in-flight tasks count toward the per-node page cap, a successful crawl clears the previous skip reason, and a node's own page destinations are never queued for self-crawl.
 - Page nodes write pages and hosted files atomically and open served files with O_NOFOLLOW so a swapped symlink cannot redirect a served path after the jail check.
