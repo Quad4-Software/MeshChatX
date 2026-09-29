@@ -16,6 +16,7 @@ import os
 import platform
 import re
 import shutil
+import signal
 import sqlite3
 import sys
 import threading
@@ -115,6 +116,12 @@ class CrashRecovery:
         # never reach Python hooks; faulthandler at least dumps the frames.
         with contextlib.suppress(Exception):
             faulthandler.enable()
+        # Manual all-thread stack dump for diagnosing silent wedges:
+        #   kill -USR1 <pid>   (or: podman exec <ctr> kill -USR1 1)
+        # Only meaningful in the main thread; suppress on non-POSIX.
+        if hasattr(signal, "SIGUSR1"):
+            with contextlib.suppress(Exception):
+                faulthandler.register(signal.SIGUSR1, all_threads=True, chain=False)
 
         # asyncio task exceptions ("never retrieved") and loop errors are
         # not covered by sys.excepthook; route them through this handler.

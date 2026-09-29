@@ -39,6 +39,7 @@ All notable changes to this project will be documented in this file.
 - NomadNet: a live announce no longer re-sorts its row to the top of the announces list, so clicking a node no longer makes the sidebar reshuffle under the cursor.
 - Relay chat: a "new messages" divider marks where unread history starts when a room opens, pressing ArrowUp on an empty composer recalls your last sent message, a byte counter appears near the hub's message limit, failed sends retry once automatically on rejoin, and hubs show their measured link latency next to the status line.
 - Context menus support Escape to close and arrow-key navigation between items.
+- Health monitor now probes the main event loop and dumps all thread stacks to the log if the loop stops answering, and SIGUSR1 dumps stacks on demand, so silent server wedges self-diagnose.
 - Relay chat: auto-connect now waits for the first interface to come online before sending path requests, so hubs connect quickly after a restart instead of burning a full path-request window.
 - Contacts context menu dismisses consistently on Escape, and the announce sidebar no longer corrupts first-seen timestamps or custom names from slim live announce payloads; announce list pagination no longer skips server rows when live nodes arrive mid-browse.
 - Sandbox: seccomp denylist now prefers the seccompy backend (pure Python, no libseccomp needed) and falls back to libseccomp via ctypes when it is absent.

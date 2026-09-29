@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import collections
+import faulthandler
 import gc
 import json
 import logging
@@ -27,6 +28,11 @@ _log = logging.getLogger("meshchatx.health_monitor")
 
 class HealthMonitor:
     CHECK_INTERVAL = 300  # 5 minutes
+    # Main-loop liveness probe. If the asyncio loop stops scheduling
+    # callbacks for this long, HTTP/TLS accepts pile up in the kernel
+    # backlog while the process looks alive — the silent wedge signature.
+    LOOP_PROBE_INTERVAL_S = 5.0
+    LOOP_STALL_S = 30.0
     ENTROPY_WINDOW = 6  # readings kept (~30 min at default interval)
     ENTROPY_WARN_THRESHOLD = 1.5  # out of max ~2.32 for 5 log levels
     ERROR_RATE_WARN = 0.3
@@ -45,6 +51,8 @@ class HealthMonitor:
         self._error_rate_history = collections.deque(maxlen=self.ENTROPY_WINDOW)
         self._mem_available_history = collections.deque(maxlen=self.ENTROPY_WINDOW)
         self._memory_pressure_active = False
+        self._loop_probe_thread = None
+        self._loop_stall_reported = False
 
     def start(self):
         if self._running:
@@ -53,6 +61,13 @@ class HealthMonitor:
         self._stop_event.clear()
         self._thread = threading.Thread(target=self._run_loop, daemon=True)
         self._thread.start()
+        self._loop_stall_reported = False
+        self._loop_probe_thread = threading.Thread(
+            target=self._loop_probe_loop,
+            name="health-monitor-loop-probe",
+            daemon=True,
+        )
+        self._loop_probe_thread.start()
         _log.info("HealthMonitor started (interval=%ds)", self.CHECK_INTERVAL)
 
     def stop(self, timeout=5.0):
@@ -62,6 +77,9 @@ class HealthMonitor:
         thread = self._thread
         if thread is not None and thread.is_alive():
             thread.join(timeout=timeout)
+        probe = self._loop_probe_thread
+        if probe is not None and probe.is_alive():
+            probe.join(timeout=timeout)
 
     def _run_loop(self):
         try:
@@ -83,6 +101,56 @@ class HealthMonitor:
             except Exception:
                 pass
             if self._stop_event.wait(self.CHECK_INTERVAL):
+                break
+
+    def _loop_probe_loop(self):
+        """Ping the main asyncio loop; dump all stacks if it stops answering.
+
+        A wedged event loop still accepts TCP in the kernel backlog but never
+        services connections — curl connects, gets nothing. The stall dump
+        goes to stderr so `podman logs` captures every thread's stack.
+        """
+        while self._running:
+            loop = None
+            try:
+                from meshchatx.src.backend.async_utils import AsyncUtils
+
+                loop = AsyncUtils.main_loop
+            except Exception:
+                pass
+            if loop is None or not loop.is_running():
+                self._loop_stall_reported = False
+                if self._stop_event.wait(self.LOOP_PROBE_INTERVAL_S):
+                    break
+                continue
+            answered = threading.Event()
+            try:
+                loop.call_soon_threadsafe(answered.set)
+            except Exception:
+                if self._stop_event.wait(self.LOOP_PROBE_INTERVAL_S):
+                    break
+                continue
+            if answered.wait(timeout=self.LOOP_STALL_S):
+                self._loop_stall_reported = False
+            else:
+                if not self._loop_stall_reported:
+                    self._loop_stall_reported = True
+                    _log.error(
+                        "Main event loop unresponsive for over %ds; dumping all thread stacks",
+                        int(self.LOOP_STALL_S),
+                    )
+                    try:
+                        faulthandler.dump_traceback()
+                    except Exception:
+                        pass
+                    self._broadcast(
+                        {
+                            "kind": "event_loop_stalled",
+                            "message": "Main event loop unresponsive; stack dump written to log",
+                            "value": self.LOOP_STALL_S,
+                        },
+                    )
+            if self._stop_event.wait(self.LOOP_PROBE_INTERVAL_S):
                 break
 
     def _check(self):
