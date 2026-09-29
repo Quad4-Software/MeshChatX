@@ -1935,6 +1935,7 @@ class RRCManager:
         self._active_room = None
         self._loaded = False
         self._loading = False
+        self._interface_wait_done = False
         self._save_lock = threading.Lock()
 
     def set_database(self, database):
@@ -2240,10 +2241,48 @@ class RRCManager:
         finally:
             self._loading = False
 
+    def _wait_for_first_interface(self, timeout_s=15.0):
+        """Block until some interface is online so path requests reach the mesh.
+
+        Startup fires connect attempts as soon as Reticulum exists, but TCP
+        client interfaces and shared-instance links take a beat to come up.
+        A path request sent in that gap is dropped and costs a whole response
+        window before the hub fails over to reconnect backoff. Wait briefly
+        for any online interface instead. Interfaces absent entirely (pure
+        loopback setups) bail after a short grace so nothing stalls forever.
+        """
+        deadline = time.monotonic() + timeout_s
+        empty_grace = time.monotonic() + 3.0
+        while time.monotonic() < deadline:
+            try:
+                reticulum = RNS.Reticulum.get_instance()
+            except Exception:
+                # No Reticulum at all (degraded mode): nothing to wait for.
+                return False
+            try:
+                stats = reticulum.get_interface_stats()
+                interfaces = stats.get("interfaces", [])
+                if not isinstance(interfaces, (list, tuple)):
+                    interfaces = []
+                for iface in interfaces:
+                    if iface.get("status"):
+                        return True
+                if not interfaces and time.monotonic() > empty_grace:
+                    return False
+            except Exception:
+                pass
+            time.sleep(0.25)
+        return False
+
     def connect_auto_reconnect_hubs(self):
         """Connect hubs that have auto-reconnect enabled (e.g. after startup load)."""
         with self._lock:
             hubs = [h for h in self.hubs if h.auto_reconnect]
+        if not hubs:
+            return
+        if not self._interface_wait_done:
+            self._interface_wait_done = True
+            self._wait_for_first_interface()
         started = 0
         for hub in hubs:
             with hub._lock:
