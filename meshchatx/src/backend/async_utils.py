@@ -149,15 +149,19 @@ class AsyncUtils:
         Returned futures are tracked so they (and the closures they reference)
         can be garbage-collected promptly once finished.
         """
-        with AsyncUtils._futures_lock:
-            loop = AsyncUtils.main_loop
-            if loop is not None and loop.is_running():
-                future = asyncio.run_coroutine_threadsafe(
-                    coroutine,
-                    loop,
-                )
+        loop = AsyncUtils.main_loop
+        if loop is not None and loop.is_running():
+            future = asyncio.run_coroutine_threadsafe(
+                coroutine,
+                loop,
+            )
+            # add_done_callback must run outside _futures_lock: when the
+            # future is already done the callback fires inline, and
+            # _forget_future re-enters the lock. A plain Lock would
+            # self-deadlock here and wedge every producer behind it.
+            future.add_done_callback(AsyncUtils._forget_future)
+            with AsyncUtils._futures_lock:
                 AsyncUtils._pending_futures.append(future)
-                future.add_done_callback(AsyncUtils._forget_future)
                 if (
                     len(AsyncUtils._pending_futures)
                     >= AsyncUtils._FUTURES_SWEEP_THRESHOLD
@@ -165,8 +169,9 @@ class AsyncUtils:
                     AsyncUtils._pending_futures = [
                         f for f in AsyncUtils._pending_futures if not f.done()
                     ]
-                return
+            return
 
+        with AsyncUtils._futures_lock:
             # If the loop isn't available yet (or has stopped), buffer the
             # coroutine but cap the backlog so we don't leak memory forever.
             AsyncUtils._pending_coroutines.append(coroutine)
