@@ -1,1 +1,0 @@
-"""Shared pytest fixtures."""

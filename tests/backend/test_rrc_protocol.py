@@ -76,10 +76,13 @@ def test_parse_who_notice_rejects_other_text():
 
 
 def test_parse_room_list_notice():
-    parsed = proto.parse_room_list_notice(
+    parsed = proto.parse_room_list_notice_details(
         "Registered public rooms\nlobby - The lobby\nrandom",
     )
-    assert parsed == {"lobby": "The lobby", "random": None}
+    assert parsed == {
+        "lobby": {"topic": "The lobby", "has_key": False},
+        "random": {"topic": None, "has_key": False},
+    }
     keyed = proto.parse_room_list_notice_details(
         "Registered public rooms\nvault [+k]\nops [+k] - staff\nlobby - Main\n",
     )
@@ -88,12 +91,15 @@ def test_parse_room_list_notice():
         "ops": {"topic": "staff", "has_key": True},
         "lobby": {"topic": "Main", "has_key": False},
     }
-    assert proto.parse_room_list_notice("No public rooms registered") == {}
-    assert proto.parse_room_list_notice("unrelated") is None
-    blank_topic = proto.parse_room_list_notice(
+    assert proto.parse_room_list_notice_details("No public rooms registered") == {}
+    assert proto.parse_room_list_notice_details("unrelated") is None
+    blank_topic = proto.parse_room_list_notice_details(
         "Registered public rooms\n0 -\nlobby -  \n",
     )
-    assert blank_topic == {"0": None, "lobby": None}
+    assert blank_topic == {
+        "0": {"topic": None, "has_key": False},
+        "lobby": {"topic": None, "has_key": False},
+    }
 
 
 def test_message_to_dict():

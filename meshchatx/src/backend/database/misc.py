@@ -309,11 +309,6 @@ class MiscDAO:
         )
         return int(row["n"] or 0) if row else 0
 
-    def get_pending_crawl_tasks(self):
-        return self.provider.fetchall(
-            "SELECT * FROM crawl_tasks WHERE status = 'pending'",
-        )
-
     def update_crawl_task(self, task_id, **kwargs):
         allowed_keys = {
             "destination_hash",

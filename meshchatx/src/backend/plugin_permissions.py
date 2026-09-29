@@ -343,11 +343,6 @@ def requires_network_fetch(manifest: dict[str, Any], endpoints: list[str]) -> bo
         return True
     return bool(endpoints)
 
-
-def permission_label_key(permission_id: str) -> str:
-    return f"plugins.permissions.{permission_id.replace(':', '.')}"
-
-
 def serialize_granted(granted: list[str] | None) -> str:
     return json.dumps(list(granted or []), separators=(",", ":"))
 

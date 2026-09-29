@@ -66,18 +66,6 @@ class UserStickersDAO:
             (pack_id, identity_hash),
         )
 
-    def list_unpacked(self, identity_hash: str):
-        """List sticker summaries that do not belong to any pack."""
-        return self.provider.fetchall(
-            f"""
-            SELECT {_STICKER_SUMMARY_COLUMNS}
-            FROM user_stickers
-            WHERE identity_hash = ? AND pack_id IS NULL
-            ORDER BY updated_at DESC, id DESC
-            """,
-            (identity_hash,),
-        )
-
     def get_row(self, sticker_id: int, identity_hash: str):
         """Fetch the full row (including image_blob) for a sticker."""
         return self.provider.fetchone(
@@ -102,14 +90,6 @@ class UserStickersDAO:
         cur = self.provider.execute(
             "DELETE FROM user_stickers WHERE identity_hash = ?",
             (identity_hash,),
-        )
-        return cur.rowcount
-
-    def delete_all_for_pack(self, pack_id: int, identity_hash: str) -> int:
-        """Delete every sticker that belongs to pack_id."""
-        cur = self.provider.execute(
-            "DELETE FROM user_stickers WHERE pack_id = ? AND identity_hash = ?",
-            (pack_id, identity_hash),
         )
         return cur.rowcount
 

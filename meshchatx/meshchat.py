@@ -6354,6 +6354,12 @@ class ReticulumMeshChat:
                 theme = "light"
             self.config.theme.set(theme)
 
+        if "map_coordinate_format" in data:
+            fmt = str(data["map_coordinate_format"] or "wgs84").lower()
+            if fmt not in ("wgs84", "utm", "mgrs", "olc"):
+                fmt = "wgs84"
+            self.config.map_coordinate_format.set(fmt)
+
         if "theme_preset" in data:
             preset = data["theme_preset"]
             if preset == "hister":
@@ -8120,6 +8126,7 @@ class ReticulumMeshChat:
             "auto_announce_interval_seconds": ctx.config.auto_announce_interval_seconds.get(),
             "last_announced_at": ctx.config.last_announced_at.get(),
             "theme": ctx.config.theme.get(),
+            "map_coordinate_format": ctx.config.map_coordinate_format.get(),
             "theme_preset": ctx.config.theme_preset.get(),
             "accent_color": ctx.config.accent_color.get(),
             "custom_canvas_color": ctx.config.custom_canvas_color.get(),

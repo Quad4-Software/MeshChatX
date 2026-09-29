@@ -115,7 +115,6 @@ class RRCHub:
         self.hub_name = None
         self._hub_identity_hash = None
         self.hub_version = None
-        self.hub_caps = {}
         self.motd = None
 
         self.max_nick_bytes = proto.DEFAULT_MAX_NICK_BYTES
@@ -152,13 +151,10 @@ class RRCHub:
         self._last_announce_reset = float("-inf")
         self._last_path_request = float("-inf")
         self._had_session = False
-        self._pending_pings = {}
-        self.last_rtt_ms = None
         # Envelope id -> (message, sent monotonic). Echo-confirmed, timed out,
         # or flushed failed on link loss.
         self._pending_delivery = {}
         self._last_history_clean = 0
-        self.clean_last_removed = 0
 
         self.available_rooms = {}
         self.available_keyed_rooms = []
@@ -643,7 +639,6 @@ class RRCHub:
             self._resource_expectations.clear()
             self._pending_joins.clear()
             self._pending_parts.clear()
-            self._pending_pings.clear()
             flushed = self._flush_pending_delivery_locked()
             self._silent_joins.clear()
             self._silent_who_rooms.clear()
@@ -889,22 +884,6 @@ class RRCHub:
         if len(parts) >= 4 and parts[0].lower() == "/mode" and parts[2].lower() == "+k":
             return " ".join([*parts[:3], "***"])
         return text
-
-    def send_ping(self, room=None):
-        body = os.urandom(8)
-        env = proto.make_envelope(
-            proto.T_PING,
-            src=self.manager.identity.hash,
-            body=body,
-        )
-        with self._lock:
-            now = proto.now_ms()
-            self._pending_pings[body] = (now, room)
-            expired = [k for k, v in self._pending_pings.items() if now - v[0] > 15000]
-            for k in expired:
-                self._pending_pings.pop(k, None)
-        self._send_env(env)
-        return body
 
     def part_room(self, room):
         room_n = proto.normalize_room(room)
@@ -1263,8 +1242,7 @@ class RRCHub:
                     RNS.trace_exception(e)
         self._last_history_clean = time.time()
         if cleaned:
-            self.clean_last_removed = time.time()
-        self._compact_history_files()
+            self._compact_history_files()
 
     HISTORY_FILE_MAX_BYTES = 8 * 1024 * 1024
 
@@ -1413,20 +1391,6 @@ class RRCHub:
             )
             self._send_env(pong)
 
-    def _handle_pong(self, env):
-        body = env.get(proto.K_BODY)
-        if not isinstance(body, (bytes, bytearray)):
-            return
-        key = bytes(body)
-        with self._lock:
-            pending = self._pending_pings.pop(key, None)
-        if pending is not None:
-            sent_ms, room = pending
-            rtt_ms = max(0, proto.now_ms() - sent_ms)
-            self.last_rtt_ms = rtt_ms
-            self._record_system(room, "Pong from hub: " + str(rtt_ms) + " ms")
-            self.manager._notify_change(self)
-
     def _handle_welcome(self, env):
         self.welcomed = True
         body = env.get(proto.K_BODY)
@@ -1437,9 +1401,6 @@ class RRCHub:
             ver = body.get(proto.B_WELCOME_VER)
             if isinstance(ver, str):
                 self.hub_version = ver
-            caps = body.get(proto.B_WELCOME_CAPS)
-            if isinstance(caps, dict):
-                self.hub_caps = dict(caps)
             limits = body.get(proto.B_WELCOME_LIMITS)
             if isinstance(limits, dict):
                 self._apply_limits(limits)
@@ -1840,7 +1801,6 @@ class RRCHub:
 
     _PACKET_HANDLERS: ClassVar = {
         proto.T_PING: _handle_ping,
-        proto.T_PONG: _handle_pong,
         proto.T_WELCOME: _handle_welcome,
         proto.T_JOINED: _handle_joined,
         proto.T_PARTED: _handle_parted,
@@ -1931,9 +1891,7 @@ class RRCHub:
             self._log("resource handling failed: " + str(e), RNS.LOG_ERROR)
 
     def _current_rtt_ms(self):
-        """Best available link RTT in ms: latest pong, else link setup RTT."""
-        if self.last_rtt_ms is not None:
-            return self.last_rtt_ms
+        """Best available link RTT in ms, from link setup timing."""
         link = self.link
         if link is None or isinstance(link, _LoopbackEndpoint):
             return None
@@ -2252,10 +2210,6 @@ class RRCManager:
         if self._active_hub is hub:
             return self._active_room
         return None
-
-    def has_unread(self):
-        with self._lock:
-            return any(hub.unread_rooms for hub in self.hubs)
 
     def add_hub(self, hub_hash, dest_name=None, name=None):
         with self._lock:

@@ -1069,15 +1069,6 @@ class RRCHubServer:
             if members is not None and not members:
                 self._room_members.pop(r, None)
         return r
-
-    def set_room_topic(self, name, topic):
-        r = proto.normalize_room(name)
-        with self._lock:
-            st = self.rooms.ensure_state(r)
-            st["topic"] = topic or None
-            if st.get("registered"):
-                self.rooms.persist(r)
-
     def set_room_key(self, name, key):
         """Set or clear the +k room key. Empty/None clears the key."""
         r = proto.normalize_room(name)

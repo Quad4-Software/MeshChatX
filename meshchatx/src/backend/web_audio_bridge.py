@@ -19,11 +19,6 @@ _HOSTLESS_AUDIO_INSTALLED = False
 _ORIG_LINE_SOURCE = None
 _ORIG_LINE_SINK = None
 
-
-def _log_debug(msg: str):
-    RNS.log(msg, RNS.LOG_DEBUG)
-
-
 class HostlessAudioSource(LocalSource):
     """LineSource stand-in that never opens PulseAudio / host capture devices.
 
@@ -112,7 +107,6 @@ class HostlessAudioSink(LocalSink):
         self.streaming = False
         self.autostart_min = self.AUTOSTART_MIN
         self.buffer_max_height = self.MAX_FRAMES - 3
-        self._wants_low_latency = False
 
     def can_receive(self, from_source=None):
         return True
@@ -131,7 +125,7 @@ class HostlessAudioSink(LocalSink):
         pass
 
     def enable_low_latency(self):
-        self._wants_low_latency = True
+        pass
 
 
 def install_hostless_lxst_audio() -> bool:
