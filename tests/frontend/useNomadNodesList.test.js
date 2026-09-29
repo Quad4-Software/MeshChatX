@@ -201,6 +201,27 @@ describe("useNomadNodesList", () => {
         expect(list.nodes.value[hash].announce_count).toBe(9);
     });
 
+    it("keeps the sort key frozen when a re-announce carries a newer timestamp", () => {
+        // Regression: dropping _updated_at_ts re-sorted the row to the top of
+        // the last_announced list on every live announce, so the announce
+        // sidebar visibly reshuffled (and the clicked row could jump away).
+        const list = useNomadNodesList();
+        const hash = "e".repeat(32);
+        list.updateNodeFromAnnounce({
+            destination_hash: hash,
+            updated_at: "2025-01-01 00:00:00",
+        });
+        list.nodes.value[hash]._updated_at_ts = new Date("2025-01-01").getTime();
+        list.updateNodeFromAnnounce({
+            destination_hash: hash,
+            updated_at: "2025-01-05 00:00:00",
+        });
+        const node = list.nodes.value[hash];
+        // Display timestamp is the latest announce, sort key stays frozen.
+        expect(node.updated_at).toBe("2025-01-05 00:00:00");
+        expect(node._updated_at_ts).toBe(new Date("2025-01-01").getTime());
+    });
+
     it("swallows cancel errors and logs other failures", async () => {
         const list = useNomadNodesList();
         api.isCancel.mockReturnValueOnce(true);

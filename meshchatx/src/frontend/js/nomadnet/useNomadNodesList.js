@@ -39,8 +39,20 @@ export function useNomadNodesList() {
                     ? announce.announce_count
                     : (Number(existing.announce_count) || 0) + 1,
         };
-        delete merged._updated_at_ts;
-        delete merged._created_at_ts;
+        // Preserve the cached sort keys from the stored row. Re-announces must
+        // refresh the row's counters and "announced ago" text in place, not
+        // yank it to the top of the sorted list and shift every row under the
+        // user's cursor.
+        if (existing._updated_at_ts !== undefined) {
+            merged._updated_at_ts = existing._updated_at_ts;
+        } else {
+            delete merged._updated_at_ts;
+        }
+        if (existing._created_at_ts !== undefined) {
+            merged._created_at_ts = existing._created_at_ts;
+        } else {
+            delete merged._created_at_ts;
+        }
         nodes.value[announce.destination_hash] = merged;
     }
 
