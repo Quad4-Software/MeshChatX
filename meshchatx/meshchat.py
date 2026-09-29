@@ -205,6 +205,7 @@ from meshchatx.src.backend.rns_startup_recovery import (
     consume_recovery_report,
     create_reticulum_with_recovery,
     install_rns_panic_containment,
+    install_shared_instance_rpc_deadline,
 )
 from meshchatx.src.backend.rrc import protocol as rrc_protocol
 from meshchatx.src.backend.safe_rotating_file_handler import SafeRotatingFileHandler
@@ -273,6 +274,9 @@ if sys.stdout is not None:
 logging.basicConfig(level=logging.INFO, handlers=handlers)
 logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
 logger = logging.getLogger("meshchatx")
+
+_INTERFACE_STATS_RPC_TIMEOUT_S = 5.0
+_INTERFACE_STATS_CACHE_S = 2.0
 
 
 def _parse_rns_loglevel_value(raw: str | None) -> int | None:
@@ -3587,6 +3591,42 @@ class ReticulumMeshChat:
         if isinstance(obj, list):
             return [ReticulumMeshChat._to_jsonable(v) for v in obj]
         return obj
+
+    async def _reticulum_rpc(self, method, *args):
+        # Shared-instance RNS methods block on an RPC socket. On the aiohttp
+        # loop that freezes the whole server for the RPC deadline, so offload
+        # those calls to a thread. Local Reticulum reads in-memory tables and
+        # is cheap enough to call inline.
+        reticulum = getattr(self, "reticulum", None)
+        if not reticulum:
+            return None
+        fn = getattr(reticulum, method)
+        if getattr(reticulum, "is_connected_to_shared_instance", False):
+            return await asyncio.to_thread(fn, *args)
+        return fn(*args)
+
+    async def _aget_interface_stats_payload(self) -> dict:
+        # get_interface_stats does a blocking socket RPC when connected to a
+        # shared instance, and recv_bytes has no timeout. Calling it on the
+        # aiohttp loop wedges the whole server when rnsd stalls, so run it in
+        # a thread with a deadline and serve the last payload while dead.
+        cache = getattr(self, "_interface_stats_cache", None)
+        now = time.monotonic()
+        if cache and now - cache[0] < _INTERFACE_STATS_CACHE_S:
+            return cache[1]
+        try:
+            payload = await asyncio.wait_for(
+                asyncio.to_thread(self._get_interface_stats_payload),
+                timeout=_INTERFACE_STATS_RPC_TIMEOUT_S,
+            )
+        except Exception:
+            # Timeout or RPC error: serve the last payload (or empty) and
+            # extend the cache so polls do not pile threads on a dead RPC.
+            payload = cache[1] if cache else {"interfaces": []}
+            self._interface_stats_cache = (now, payload)
+            return payload
+        self._interface_stats_cache = (now, payload)
+        return payload
 
     def _get_interface_stats_payload(self) -> dict:
         empty: dict = {"interfaces": []}
@@ -12065,6 +12105,7 @@ def main():
     recovery.install()
     raise_nofile_soft_limit()
     install_rns_panic_containment()
+    install_shared_instance_rpc_deadline()
     install_bounded_ratchet_persist()
 
     env = MeshchatEnv.load()

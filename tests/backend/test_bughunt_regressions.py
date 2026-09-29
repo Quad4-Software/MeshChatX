@@ -332,3 +332,95 @@ def test_rnx_rejects_extra_args_and_escapes(tmp_path):
         {"config_path": str(tmp_path / "cfg")},
     )
     assert ok["config_path"].endswith("cfg")
+
+
+# --- shared-instance RPC cannot wedge the event loop ---------------------------
+
+
+def test_reticulum_rpc_offloads_when_shared_instance():
+    import asyncio
+
+    from meshchatx.meshchat import ReticulumMeshChat
+
+    app = ReticulumMeshChat.__new__(ReticulumMeshChat)
+
+    calls = []
+
+    class FakeReticulum:
+        is_connected_to_shared_instance = True
+
+        def get_path_table(self):
+            calls.append(1)
+            return {"a": 1}
+
+    app.reticulum = FakeReticulum()
+    out = asyncio.run(app._reticulum_rpc("get_path_table"))
+    assert out == {"a": 1}
+    assert calls == [1]
+
+
+def test_reticulum_rpc_inline_when_local():
+    import asyncio
+
+    from meshchatx.meshchat import ReticulumMeshChat
+
+    app = ReticulumMeshChat.__new__(ReticulumMeshChat)
+
+    class FakeReticulum:
+        is_connected_to_shared_instance = False
+
+        def get_path_table(self):
+            return {"b": 2}
+
+    app.reticulum = FakeReticulum()
+    assert asyncio.run(app._reticulum_rpc("get_path_table")) == {"b": 2}
+
+
+def test_interface_stats_rpc_timeout_returns_cached_or_empty(monkeypatch):
+    import asyncio
+    import time
+
+    import meshchatx.meshchat as meshchat_mod
+    from meshchatx.meshchat import ReticulumMeshChat
+
+    app = ReticulumMeshChat.__new__(ReticulumMeshChat)
+    monkeypatch.setattr(meshchat_mod, "_INTERFACE_STATS_RPC_TIMEOUT_S", 0.3)
+    monkeypatch.setattr(meshchat_mod, "_INTERFACE_STATS_CACHE_S", 0.0)
+
+    def dead_rpc():
+        # Short enough that the default-executor join on loop shutdown does
+        # not dominate the test, long enough to outlive the 0.3s deadline.
+        time.sleep(2)
+
+    class FakeReticulum:
+        is_connected_to_shared_instance = True
+
+        def get_interface_stats(self):
+            dead_rpc()
+
+    app.reticulum = FakeReticulum()
+
+    t0 = time.monotonic()
+    out = asyncio.run(app._aget_interface_stats_payload())
+    assert out == {"interfaces": []}
+    assert time.monotonic() - t0 < 5
+
+
+def test_deadlined_rpc_connection_times_out():
+    import multiprocessing
+
+    from meshchatx.src.backend.rns_startup_recovery import (
+        _DeadlinedRpcConnection,
+    )
+
+    a, b = multiprocessing.Pipe()
+    conn = _DeadlinedRpcConnection(b, 0.2)
+    import pytest as _pytest
+
+    with _pytest.raises(TimeoutError):
+        conn.recv_bytes()
+    a.send_bytes(b"hello")
+    assert conn.poll(0.1)
+    assert conn.recv_bytes() == b"hello"
+    a.close()
+    conn.close()
