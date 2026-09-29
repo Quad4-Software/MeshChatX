@@ -47,7 +47,11 @@ ANNOUNCE_RESET_MIN_INTERVAL_S = 300.0
 
 # Minimum interval between path requests sent to the same hub during
 # connect attempts.
-HUB_PATH_REQUEST_MIN_INTERVAL_S = 60.0
+# Minimum seconds between path requests emitted by connect workers. Doubles
+# as the cross-attempt dedup window and the in-window retry cadence: a single
+# request on cold air stalls a connect, while 60s was far too coarse for a
+# retry to matter inside one attempt window.
+CONNECT_PATH_RETRY_S = 5.0
 
 # Delay between auto-connect starts so a large configured hub set does
 # not burst link requests at startup.
@@ -402,13 +406,6 @@ class RRCHub:
             try:
                 path_wait = timeout_s
                 if not RNS.Transport.has_path(self.hub_hash):
-                    now_m = time.monotonic()
-                    if (
-                        now_m - self._last_path_request
-                        >= HUB_PATH_REQUEST_MIN_INTERVAL_S
-                    ):
-                        self._last_path_request = now_m
-                        RNS.Transport.request_path(self.hub_hash)
                     try:
                         path_wait = path_response_window(self.hub_hash)
                     except Exception:
@@ -416,14 +413,30 @@ class RRCHub:
 
                 # A single deadline covers both the path response and the
                 # identity recall: the announce that creates the path also
-                # delivers the identity, so a second full window is dead
-                # time on unreachable hubs.
+                # delivers the identity. Both must be present before the
+                # link is created - RNS.Link sends the link request exactly
+                # once, so a link created with no known path is dropped on
+                # the floor and stalls until its establishment timeout.
                 hub_identity = None
                 deadline = time.monotonic() + path_wait
                 while time.monotonic() < deadline:
                     hub_identity = RNS.Identity.recall(self.hub_hash)
-                    if hub_identity is not None:
+                    if hub_identity is not None and RNS.Transport.has_path(
+                        self.hub_hash
+                    ):
                         break
+                    hub_identity = None
+                    now_m = time.monotonic()
+                    if not RNS.Transport.has_path(self.hub_hash) and (
+                        now_m - self._last_path_request >= CONNECT_PATH_RETRY_S
+                    ):
+                        # Retry the request inside the connect window: the
+                        # first packet can go out before an interface is
+                        # fully online, and a single dropped request would
+                        # otherwise stall the whole window. The cadence cap
+                        # doubles as the dedup for back-to-back attempts.
+                        self._last_path_request = now_m
+                        RNS.Transport.request_path(self.hub_hash)
                     time.sleep(0.2)
             finally:
                 if gate is not None:

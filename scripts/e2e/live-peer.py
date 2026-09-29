@@ -36,7 +36,7 @@ os.makedirs(config_dir, exist_ok=True)
 with open(os.path.join(config_dir, "config"), "w") as f:
     f.write(conf)
 
-RNS.Reticulum(configdir=config_dir, loglevel=RNS.LOG_ERROR)
+RNS.Reticulum(configdir=config_dir, loglevel=RNS.LOG_DEBUG)
 
 import LXMF
 
