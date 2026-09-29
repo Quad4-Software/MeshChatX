@@ -21,6 +21,7 @@
 
 <script>
 import { clampFloatingToViewport } from "../../js/clampFloatingToViewport.js";
+import { HANDLERS_PROPERTY } from "../../libs/clickOutside.js";
 
 export default {
     name: "ContextMenuPanel",
@@ -96,12 +97,61 @@ export default {
     },
     mounted() {
         window.addEventListener("resize", this.onWindowResize);
+        window.addEventListener("keydown", this.onPanelKeydown, true);
     },
     beforeUnmount() {
         window.removeEventListener("resize", this.onWindowResize);
+        window.removeEventListener("keydown", this.onPanelKeydown, true);
         this.cancelReposition();
     },
     methods: {
+        menuItems() {
+            const panel = this.$refs.panel;
+            if (!panel) {
+                return [];
+            }
+            return Array.from(panel.querySelectorAll(".context-item:not(:disabled)"));
+        },
+        focusMenuItem(offset) {
+            const items = this.menuItems();
+            if (items.length === 0) {
+                return;
+            }
+            const active = document.activeElement;
+            const idx = items.indexOf(active);
+            const next = idx < 0 ? (offset > 0 ? 0 : items.length - 1) : (idx + offset + items.length) % items.length;
+            items[next].focus();
+        },
+        onPanelKeydown(event) {
+            if (!this.show) {
+                return;
+            }
+            if (event.key === "Escape" || event.key === "Tab") {
+                // Route the dismissal through the parent v-click-outside
+                // handler stored on this component's root element so every
+                // consumer closes without per-menu wiring.
+                const entries = this.$el?.[HANDLERS_PROPERTY] || [];
+                for (const entry of entries) {
+                    if (entry.event === "click" || entry.event === "contextmenu") {
+                        entry.handler({ target: document.documentElement });
+                    }
+                }
+                return;
+            }
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
+                this.focusMenuItem(1);
+            } else if (event.key === "ArrowUp") {
+                event.preventDefault();
+                this.focusMenuItem(-1);
+            } else if (event.key === "Home") {
+                event.preventDefault();
+                this.menuItems()[0]?.focus();
+            } else if (event.key === "End") {
+                event.preventDefault();
+                this.menuItems().at(-1)?.focus();
+            }
+        },
         onWindowResize() {
             if (this.show) {
                 this.repositionToViewport();
