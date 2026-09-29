@@ -129,7 +129,21 @@ def test_rrc_double_link_close_yields_single_reconnect(tmp_path):
     try:
         link = MagicMock()
         hub._on_closed(link)
+        # The same dead link reporting close twice (watchdog teardown after
+        # the RNS callback already fired) must not double-count the backoff.
         hub._on_closed(link)
+        assert hub._reconnect_attempts == 1
+        assert hub._reconnect_timer is not None
+    finally:
+        cancel_hub_timer(hub)
+
+
+def test_rrc_distinct_link_closes_count_backoff(tmp_path):
+    hub = make_hub(tmp_path)
+    hub.auto_reconnect = True
+    try:
+        hub._on_closed(MagicMock())
+        hub._on_closed(MagicMock())
         assert hub._reconnect_attempts == 2
         assert hub._reconnect_timer is not None
     finally:
