@@ -3750,6 +3750,22 @@ export default {
                 this.sending = false;
             }
         },
+        async retryRelayMessage(msg) {
+            const hubHash = this.selectedHubHash;
+            const room = msg?.room || this.selectedRoom;
+            const seq = msg?.seq;
+            if (!hubHash || !room || seq == null || msg?.delivery !== "failed") {
+                return;
+            }
+            try {
+                await window.api.post(
+                    apiPath(`/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/messages/${seq}/retry`),
+                    {}
+                );
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.send_failed"));
+            }
+        },
         joinRoomForm(hub) {
             const hubHash = hub?.hub_hash || "";
             if (!this.joinRoomForms[hubHash]) {
@@ -4353,7 +4369,13 @@ export default {
                 // Chat is already open: dismiss unread/mention badge without waiting
                 // for a later hub list refresh race.
                 this.markRoomRead(json.hub_hash, json.room);
-            } else if (json.message && (json.message.kind === "msg" || json.message.kind === "action")) {
+            } else if (
+                json.message &&
+                (json.message.kind === "msg" || json.message.kind === "action") &&
+                !json.message.delivery
+            ) {
+                // delivery re-pushes carry a delivery field for own messages;
+                // they are state updates on an existing entry, never toasts.
                 const ignored = this.isIgnoredMsg(json.message);
                 const bump = !ignored && this.shouldBumpRoomMention(json.message);
                 if (!ignored) {

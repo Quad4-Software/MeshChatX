@@ -1,0 +1,118 @@
+# SPDX-License-Identifier: 0BSD
+
+"""Own-message delivery state: pending, echo-confirmed, failed, retry."""
+
+import time
+
+import pytest
+
+from meshchatx.src.backend.rrc import protocol as proto
+from meshchatx.src.backend.rrc.manager import DELIVERY_TIMEOUT_S, RRCHub
+from tests.backend.test_rrc_server import FakeManager, _loopback_client_hub
+
+
+class _Mgr(FakeManager):
+    def get_nickname(self):
+        return "me"
+
+
+
+def test_loopback_echo_confirms_delivery(tmp_path):
+    """A relayed self-echo flips the local message from sending to sent."""
+    server, hub = _loopback_client_hub(tmp_path)
+    mid = hub.send_message("general", "hello loopback")
+    assert isinstance(mid, bytes)
+    msgs = hub.messages["general"]
+    own = [m for m in msgs if m.delivery is not None]
+    assert own[-1].text == "hello loopback"
+    assert own[-1].delivery == "sent"
+    assert not hub._pending_delivery
+
+
+def test_send_failure_drops_pending_state(tmp_path):
+    """A raise in _send_env leaves no pending entry and no delivery flag."""
+    hub = RRCHub(_Mgr(), b"\x33" * 16, name="hub")
+    with pytest.raises(RuntimeError):
+        hub.send_message("general", "no link")
+    assert not hub._pending_delivery
+
+
+def test_delivery_sweep_marks_expired_failed(tmp_path):
+    """An echo that never arrives within the window marks the msg failed."""
+    hub = RRCHub(_Mgr(), b"\x33" * 16, name="hub")
+    msg = proto.RRCMessage("msg", "general", b"\x22" * 16, "me", "text", 0)
+    msg.delivery = "sending"
+    msg.mid = b"\x99" * 8
+    hub._pending_delivery[msg.mid] = (msg, time.monotonic() - DELIVERY_TIMEOUT_S - 1)
+    hub._sweep_pending_delivery()
+    assert msg.delivery == "failed"
+    assert not hub._pending_delivery
+
+
+def test_delivery_sweep_leaves_fresh_pending(tmp_path):
+    hub = RRCHub(_Mgr(), b"\x33" * 16, name="hub")
+    msg = proto.RRCMessage("msg", "general", b"\x22" * 16, "me", "text", 0)
+    msg.delivery = "sending"
+    msg.mid = b"\x99" * 8
+    hub._pending_delivery[msg.mid] = (msg, time.monotonic())
+    hub._sweep_pending_delivery()
+    assert msg.delivery == "sending"
+    assert msg.mid in hub._pending_delivery
+
+
+def test_link_close_flushes_pending_failed(tmp_path):
+    """Link teardown flags every unconfirmed send as failed."""
+    server, hub = _loopback_client_hub(tmp_path)
+    msg = proto.RRCMessage("msg", "general", b"\x22" * 16, "me", "lost", 0)
+    msg.delivery = "sending"
+    msg.mid = b"\x77" * 8
+    hub._pending_delivery[msg.mid] = (msg, time.monotonic())
+    link = hub.link
+    hub._on_closed(link)
+    assert msg.delivery == "failed"
+    assert not hub._pending_delivery
+
+
+def test_retry_failed_message_resends(tmp_path):
+    """Retry re-sends the body under a new mid and re-pends the echo."""
+    server, hub = _loopback_client_hub(tmp_path)
+    mid = hub.send_message("general", "retry me")
+    own = [m for m in hub.messages["general"] if m.text == "retry me"][-1]
+    # Simulate hub never echoing: force-fail the entry.
+    own.delivery = "failed"
+    new_mid = hub.retry_message("general", own.seq)
+    assert isinstance(new_mid, bytes)
+    assert new_mid != mid
+    assert own.delivery == "sent"
+    assert not hub._pending_delivery
+
+
+def test_retry_rejects_confirmed_message(tmp_path):
+    server, hub = _loopback_client_hub(tmp_path)
+    hub.send_message("general", "already there")
+    own = [m for m in hub.messages["general"] if m.text == "already there"][-1]
+    assert own.delivery == "sent"
+    with pytest.raises(ValueError):
+        hub.retry_message("general", own.seq)
+
+
+def test_retry_unknown_seq_raises(tmp_path):
+    server, hub = _loopback_client_hub(tmp_path)
+    with pytest.raises(ValueError):
+        hub.retry_message("general", 999_999)
+
+
+def test_history_sending_loads_as_failed(tmp_path):
+    """Persisted 'sending' state can never confirm after reload."""
+    hub = RRCHub(_Mgr(), b"\x33" * 16, name="hub")
+    entry = hub._entry_for(
+        proto.RRCMessage("msg", "general", b"\x22" * 16, "me", "gone", 0)
+    )
+    loaded = hub._msg_from_entry("general", entry)
+    assert loaded.delivery is None
+    entry["d"] = "sending"
+    loaded = hub._msg_from_entry("general", entry)
+    assert loaded.delivery == "failed"
+    entry["d"] = "sent"
+    loaded = hub._msg_from_entry("general", entry)
+    assert loaded.delivery == "sent"

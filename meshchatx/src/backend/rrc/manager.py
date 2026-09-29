@@ -74,6 +74,12 @@ H_TEXT = "t"
 H_TS = "ts"
 H_MENTION = "m"
 H_EVENT = "e"
+H_DELIVERY = "d"
+
+# Own messages are confirmed when the hub relays the echo back. Links are
+# reliable transport, so a missing echo past this window means the hub
+# dropped it (rate limit, crash) or the link is silently wedged.
+DELIVERY_TIMEOUT_S = 15.0
 
 
 class RRCHub:
@@ -139,6 +145,9 @@ class RRCHub:
         self._last_path_request = float("-inf")
         self._had_session = False
         self._pending_pings = {}
+        # Envelope id -> (message, sent monotonic). Echo-confirmed, timed out,
+        # or flushed failed on link loss.
+        self._pending_delivery = {}
         self._last_history_clean = 0
         self.clean_last_removed = 0
 
@@ -560,6 +569,7 @@ class RRCHub:
             self._pending_joins.clear()
             self._pending_parts.clear()
             self._pending_pings.clear()
+            flushed = self._flush_pending_delivery_locked()
             self._silent_joins.clear()
             self._silent_who_rooms.clear()
             self._silent_who_ts.clear()
@@ -573,6 +583,8 @@ class RRCHub:
         if was_welcomed and rooms:
             text = "Disconnected from hub" if manual else "Connection lost"
             self._record_connection_event(text, rooms=rooms)
+        for msg in flushed:
+            self.manager._notify_messages(self, msg)
         self._set_status(RRCHub.STATUS_DISCONNECTED, "Disconnected")
         if should_reconnect:
             self._schedule_reconnect()
@@ -859,19 +871,20 @@ class RRCHub:
         if nick:
             env[proto.K_NICK] = nick
         mid = env[proto.K_ID]
-        if isinstance(mid, (bytes, bytearray)):
-            self._sent_ids.append(bytes(mid))
-        self._send_env_then_maybe_record(
-            env,
-            proto.RRCMessage(
-                "msg",
-                r,
-                self.manager.identity.hash,
-                nick,
-                text,
-                proto.now_ms(),
-            ),
+        local_msg = proto.RRCMessage(
+            "msg",
+            r,
+            self.manager.identity.hash,
+            nick,
+            text,
+            proto.now_ms(),
         )
+        self._track_outbound(local_msg, mid)
+        try:
+            self._send_env_then_maybe_record(env, local_msg)
+        except Exception:
+            self._untrack_outbound(local_msg)
+            raise
         return mid
 
     def send_action(self, room, text):
@@ -892,19 +905,121 @@ class RRCHub:
         if nick:
             env[proto.K_NICK] = nick
         mid = env[proto.K_ID]
-        if isinstance(mid, (bytes, bytearray)):
-            self._sent_ids.append(bytes(mid))
-        self._send_env_then_maybe_record(
-            env,
-            proto.RRCMessage(
-                "action",
-                r,
-                self.manager.identity.hash,
-                nick,
-                text,
-                proto.now_ms(),
-            ),
+        local_msg = proto.RRCMessage(
+            "action",
+            r,
+            self.manager.identity.hash,
+            nick,
+            text,
+            proto.now_ms(),
         )
+        self._track_outbound(local_msg, mid)
+        try:
+            self._send_env_then_maybe_record(env, local_msg)
+        except Exception:
+            self._untrack_outbound(local_msg)
+            raise
+        return mid
+
+    def _track_outbound(self, local_msg, mid):
+        """Mark a locally sent message as pending hub echo confirmation."""
+        if isinstance(mid, (bytes, bytearray)):
+            mid = bytes(mid)
+            local_msg.mid = mid
+            local_msg.delivery = "sending"
+            with self._lock:
+                self._sent_ids.append(mid)
+                self._pending_delivery[mid] = (local_msg, time.monotonic())
+                while len(self._pending_delivery) > 256:
+                    stale_mid, (stale_msg, _t) = next(
+                        iter(self._pending_delivery.items())
+                    )
+                    stale_msg.delivery = "failed"
+                    del self._pending_delivery[stale_mid]
+
+    def _untrack_outbound(self, local_msg):
+        """Send raised before recording; drop the pending echo marker."""
+        mid = getattr(local_msg, "mid", None)
+        local_msg.delivery = None
+        if isinstance(mid, (bytes, bytearray)):
+            with self._lock:
+                self._pending_delivery.pop(bytes(mid), None)
+
+    def _sweep_pending_delivery(self):
+        """Flag pending own messages whose hub echo never arrived."""
+        expired = []
+        now = time.monotonic()
+        with self._lock:
+            for mid, (msg, sent_at) in list(self._pending_delivery.items()):
+                if now - sent_at >= DELIVERY_TIMEOUT_S:
+                    msg.delivery = "failed"
+                    expired.append(msg)
+                    del self._pending_delivery[mid]
+        for msg in expired:
+            self.manager._notify_messages(self, msg)
+
+    def _flush_pending_delivery_locked(self):
+        """Link is gone: every unconfirmed send is marked failed."""
+        failed = [msg for msg, _t in self._pending_delivery.values()]
+        self._pending_delivery.clear()
+        # Notifications fire outside the lock by the caller on a snapshot.
+        for msg in failed:
+            msg.delivery = "failed"
+        return failed
+
+    def _confirm_delivery(self, mid):
+        msg = None
+        with self._lock:
+            entry = self._pending_delivery.pop(mid, None)
+            if entry is not None:
+                msg = entry[0]
+                msg.delivery = "sent"
+        if msg is not None:
+            self.manager._notify_messages(self, msg)
+
+    def retry_message(self, room, seq):
+        """Resend an own message that failed delivery. Returns the new mid."""
+        room = proto.normalize_room(room)
+        msg = None
+        with self._lock:
+            for m in self.messages.get(room, []):
+                if m.seq == seq:
+                    msg = m
+                    break
+        if msg is None:
+            raise ValueError(f"no message with seq {seq}")
+        if msg.delivery not in ("failed", "sending"):
+            raise ValueError("message was already delivered")
+        if msg.kind == "action":
+            env = proto.make_envelope(
+                proto.T_ACTION,
+                src=self.manager.identity.hash,
+                room=room,
+                body=msg.text,
+            )
+        else:
+            env = proto.make_envelope(
+                proto.T_MSG,
+                src=self.manager.identity.hash,
+                room=room,
+                body=msg.text,
+            )
+        nick = msg.nick or self.get_effective_nick()
+        if nick:
+            env[proto.K_NICK] = nick
+        mid = env[proto.K_ID]
+        with self._lock:
+            if isinstance(msg.mid, (bytes, bytearray)):
+                self._pending_delivery.pop(bytes(msg.mid), None)
+        if isinstance(mid, (bytes, bytearray)):
+            mid_b = bytes(mid)
+            with self._lock:
+                msg.mid = mid_b
+                msg.delivery = "sending"
+                self._sent_ids.append(mid_b)
+                self._pending_delivery[mid_b] = (msg, time.monotonic())
+        self._send_env(env)
+        self.manager._notify_messages(self, msg)
         return mid
 
     def _per_room_cap(self):
@@ -930,6 +1045,7 @@ class RRCHub:
             H_TS: int(msg.ts) if isinstance(msg.ts, int) else proto.now_ms(),
             H_MENTION: bool(getattr(msg, "mention", False)),
             H_EVENT: getattr(msg, "event", None),
+            H_DELIVERY: getattr(msg, "delivery", None),
         }
 
     def _msg_from_entry(self, room, entry):
@@ -948,6 +1064,13 @@ class RRCHub:
         m.mention = bool(entry.get(H_MENTION, False))
         event = entry.get(H_EVENT)
         m.event = event if isinstance(event, str) and event else None
+        delivery = entry.get(H_DELIVERY)
+        if delivery in ("sent", "failed"):
+            m.delivery = delivery
+        elif delivery == "sending":
+            # History only survives across sessions; anything still pending at
+            # load can never be confirmed by this connection.
+            m.delivery = "failed"
         return m
 
     def _persistable_room(self, room):
@@ -1136,6 +1259,7 @@ class RRCHub:
             return list(self.messages.get(room, []))
 
     def _on_packet(self, data):
+        self._sweep_pending_delivery()
         try:
             env = proto.decode(data)
         except Exception as e:
@@ -1360,6 +1484,7 @@ class RRCHub:
             and isinstance(mid, (bytes, bytearray))
             and bytes(mid) in self._sent_ids
         ):
+            self._confirm_delivery(bytes(mid))
             return
         if isinstance(src, (bytes, bytearray)) and isinstance(nick, str) and nick:
             with self._lock:

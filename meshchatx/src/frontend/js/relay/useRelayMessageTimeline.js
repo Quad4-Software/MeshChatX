@@ -199,6 +199,15 @@ export function useRelayMessageTimeline(options = {}) {
     function pushLiveMessage(msg) {
         const key = relayMessageKey(msg);
         if (key && messageKeySet.value.has(key)) {
+            // Same seq pushed again: a delivery-state update for an own
+            // message (sending -> sent/failed). Patch in place so the gray
+            // hint flips without a refetch.
+            if (typeof msg?.delivery === "string") {
+                const existing = messages.value.find((m) => relayMessageKey(m) === key);
+                if (existing && existing.delivery !== msg.delivery) {
+                    existing.delivery = msg.delivery;
+                }
+            }
             return false;
         }
         messages.value.push(msg);

@@ -400,6 +400,29 @@ def register_rrc_routes(routes, app):
             return http_bad_request(str(e))
         return web.json_response({"message": "Sent"})
 
+    @routes.post(
+        API_V1_PREFIX + "/rrc/hubs/{hub_hash}/rooms/{room}/messages/{seq}/retry"
+    )
+    async def rrc_hub_retry_message(request):
+        _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+        if error is not None:
+            return error
+        room = request.match_info.get("room", "")
+        try:
+            seq = int(request.match_info.get("seq", ""))
+        except (TypeError, ValueError):
+            return http_bad_request("invalid message seq")
+        try:
+            mid = hub.retry_message(room, seq)
+        except (ValueError, RuntimeError) as e:
+            return http_bad_request(str(e))
+        return web.json_response(
+            {
+                "message": "Retried",
+                "mid": mid.hex() if isinstance(mid, (bytes, bytearray)) else None,
+            }
+        )
+
     @routes.post(API_V1_PREFIX + "/rrc/hubs/{hub_hash}/rooms/{room}/read")
     async def rrc_hub_mark_read(request):
         manager, hub, error = _rrc_require_hub(

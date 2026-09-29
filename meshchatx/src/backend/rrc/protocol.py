@@ -319,6 +319,13 @@ class RRCMessage:
         # Optional subtype for system lines, e.g. "join" / "part", so clients
         # can filter presence noise without parsing the display text.
         self.event = None
+        # Envelope id the hub saw for this message, set only on locally sent
+        # messages so the relayed echo can be matched back.
+        self.mid = None
+        # Own-message delivery state: "sending" until the hub relays the echo,
+        # "sent" once confirmed, "failed" on timeout or link loss. None for
+        # inbound and system messages.
+        self.delivery = None
 
     def to_dict(self):
         """Return a JSON-serializable representation of the message."""
@@ -335,4 +342,6 @@ class RRCMessage:
         }
         if self.event is not None:
             out["event"] = self.event
+        if self.delivery is not None:
+            out["delivery"] = self.delivery
         return out

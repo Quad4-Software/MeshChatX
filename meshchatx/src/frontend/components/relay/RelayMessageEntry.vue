@@ -62,6 +62,23 @@
             v-html="page.renderMessageHtml(entry.msg.text)"
         ></span>
         <!-- eslint-enable vue/no-v-html -->
+        <div
+            v-if="entry.msg.delivery === 'sending'"
+            class="mt-0.5 text-xs not-italic text-sem-fg-muted"
+            data-testid="delivery-hint"
+        >
+            {{ $t("relay_chat.delivery_sending") }}
+        </div>
+        <div
+            v-else-if="entry.msg.delivery === 'failed'"
+            class="mt-0.5 flex items-center gap-1.5 text-xs not-italic text-sem-fg-muted"
+            data-testid="delivery-hint"
+        >
+            <span class="italic">{{ $t("relay_chat.delivery_failed") }}</span>
+            <button type="button" class="text-sem-info hover:underline" @click.stop="page.retryRelayMessage(entry.msg)">
+                {{ $t("relay_chat.delivery_retry") }}
+            </button>
+        </div>
     </div>
     <div
         v-else-if="entry.msg"
@@ -97,6 +114,23 @@
                 @click.stop="page.toggleRelayMessageOriginal(entry.msg)"
             >
                 {{ translation.showOriginal ? $t("messages.show_translation") : $t("messages.show_original") }}
+            </button>
+        </div>
+        <div
+            v-if="entry.msg.delivery === 'sending'"
+            class="mt-0.5 text-xs italic text-sem-fg-muted"
+            data-testid="delivery-hint"
+        >
+            {{ $t("relay_chat.delivery_sending") }}
+        </div>
+        <div
+            v-else-if="entry.msg.delivery === 'failed'"
+            class="mt-0.5 flex items-center gap-1.5 text-xs text-sem-fg-muted"
+            data-testid="delivery-hint"
+        >
+            <span class="italic">{{ $t("relay_chat.delivery_failed") }}</span>
+            <button type="button" class="text-sem-info hover:underline" @click.stop="page.retryRelayMessage(entry.msg)">
+                {{ $t("relay_chat.delivery_retry") }}
             </button>
         </div>
     </div>
