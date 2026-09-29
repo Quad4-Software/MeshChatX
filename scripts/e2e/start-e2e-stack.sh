@@ -164,6 +164,9 @@ if [[ "$ready" -ne 1 ]]; then
 fi
 
 if [[ "$E2E_LIVE_MESH" == "1" ]]; then
+    # A killed earlier run's cleanup trap can delete the share dir after
+    # our initial mkdir; recreate it just before use.
+    mkdir -p "$E2E_PEER_SHARE" "$E2E_PEER2_SHARE"
     echo "E2E: starting chaos proxy :${E2E_CHAOS_PORT} -> :${E2E_PEER_PORT}"
     echo pass > "${E2E_PEER_SHARE}/chaos.mode"
     uv run python "$ROOT/scripts/e2e/chaos-proxy.py"         "${E2E_CHAOS_PORT}" "${E2E_PEER_PORT}" "${E2E_PEER_SHARE}/chaos.mode" &
