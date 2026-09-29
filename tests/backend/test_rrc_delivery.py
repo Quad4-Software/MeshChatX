@@ -16,10 +16,9 @@ class _Mgr(FakeManager):
         return "me"
 
 
-
 def test_loopback_echo_confirms_delivery(tmp_path):
     """A relayed self-echo flips the local message from sending to sent."""
-    server, hub = _loopback_client_hub(tmp_path)
+    _server, hub = _loopback_client_hub(tmp_path)
     mid = hub.send_message("general", "hello loopback")
     assert isinstance(mid, bytes)
     msgs = hub.messages["general"]
@@ -62,7 +61,7 @@ def test_delivery_sweep_leaves_fresh_pending(tmp_path):
 
 def test_link_close_flushes_pending_failed(tmp_path):
     """Link teardown flags every unconfirmed send as failed."""
-    server, hub = _loopback_client_hub(tmp_path)
+    _server, hub = _loopback_client_hub(tmp_path)
     msg = proto.RRCMessage("msg", "general", b"\x22" * 16, "me", "lost", 0)
     msg.delivery = "sending"
     msg.mid = b"\x77" * 8
@@ -75,7 +74,7 @@ def test_link_close_flushes_pending_failed(tmp_path):
 
 def test_retry_failed_message_resends(tmp_path):
     """Retry re-sends the body under a new mid and re-pends the echo."""
-    server, hub = _loopback_client_hub(tmp_path)
+    _server, hub = _loopback_client_hub(tmp_path)
     mid = hub.send_message("general", "retry me")
     own = [m for m in hub.messages["general"] if m.text == "retry me"][-1]
     # Simulate hub never echoing: force-fail the entry.
@@ -88,7 +87,7 @@ def test_retry_failed_message_resends(tmp_path):
 
 
 def test_retry_rejects_confirmed_message(tmp_path):
-    server, hub = _loopback_client_hub(tmp_path)
+    _server, hub = _loopback_client_hub(tmp_path)
     hub.send_message("general", "already there")
     own = [m for m in hub.messages["general"] if m.text == "already there"][-1]
     assert own.delivery == "sent"
@@ -97,7 +96,7 @@ def test_retry_rejects_confirmed_message(tmp_path):
 
 
 def test_retry_unknown_seq_raises(tmp_path):
-    server, hub = _loopback_client_hub(tmp_path)
+    _server, hub = _loopback_client_hub(tmp_path)
     with pytest.raises(ValueError):
         hub.retry_message("general", 999_999)
 
@@ -120,21 +119,25 @@ def test_history_sending_loads_as_failed(tmp_path):
 
 def test_failed_message_auto_retries_once_on_rejoin(tmp_path):
     """After link loss, a re-JOIN resends failed messages exactly once."""
-    server, hub = _loopback_client_hub(tmp_path)
+    _server, hub = _loopback_client_hub(tmp_path)
     msg = proto.RRCMessage("msg", "general", b"\x22" * 16, "me", "lost?", 0)
     msg.delivery = "failed"
     msg.seq = 9001
     hub.messages["general"].append(msg)
 
     hub._pending_joins.add("general")  # self-join marker set by join_room
-    env = proto.make_envelope(proto.T_JOINED, src=b"\x44" * 16, room="general", body=[b"\x22" * 16])
+    env = proto.make_envelope(
+        proto.T_JOINED, src=b"\x44" * 16, room="general", body=[b"\x22" * 16]
+    )
     hub._handle_joined(env)
     assert msg.delivery == "sent"  # loopback echo confirmed the retry
 
     # A second JOINED must not resend; the one-shot flag is set.
     own_mid = msg.mid
     hub._pending_joins.add("general")
-    env = proto.make_envelope(proto.T_JOINED, src=b"\x44" * 16, room="general", body=[b"\x22" * 16])
+    env = proto.make_envelope(
+        proto.T_JOINED, src=b"\x44" * 16, room="general", body=[b"\x22" * 16]
+    )
     hub._handle_joined(env)
     assert msg.mid == own_mid
 

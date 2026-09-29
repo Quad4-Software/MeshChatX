@@ -251,7 +251,6 @@ def test_loop_probe_ignores_healthy_loop(monkeypatch):
     monitor = HealthMonitor(log_handler=None, app=None)
 
     import asyncio
-
     import threading
 
     loop = asyncio.new_event_loop()
@@ -263,7 +262,8 @@ def test_loop_probe_ignores_healthy_loop(monkeypatch):
         monitor.LOOP_PROBE_INTERVAL_S = 0.05
         monitor.LOOP_STALL_S = 1.0
         monitor._running = True
-        import faulthandler, time
+        import faulthandler
+        import time
 
         dumps = []
         monkeypatch.setattr(faulthandler, "dump_traceback", lambda: dumps.append(1))
