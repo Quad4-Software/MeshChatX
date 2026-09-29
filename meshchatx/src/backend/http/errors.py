@@ -167,6 +167,8 @@ def http_error_from_exception(
         return respond(400, str(exc))
     if isinstance(exc, sqlite3.Error) and sqlite_error_is_retryable(exc):
         return respond(503, "Database temporarily unavailable, retry")
+    if isinstance(exc, TimeoutError):
+        return respond(503, "Upstream service timed out, retry")
     if isinstance(exc, OSError):
         return respond(500, "Internal server error")
     return respond(fallback_status, "Request failed")

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 
@@ -140,7 +141,7 @@ def register_blocklist_routes(routes, app):
             return http_bad_request("Invalid destination hash")
 
         try:
-            app.banish_lxmf_peer(destination_hash)
+            await asyncio.to_thread(app.banish_lxmf_peer, destination_hash)
         except Exception:
             return http_bad_request("Failed to banish destination")
 
@@ -156,7 +157,7 @@ def register_blocklist_routes(routes, app):
             return http_bad_request("Invalid destination hash")
 
         try:
-            app.lift_lxmf_peer_banishment(destination_hash)
+            await asyncio.to_thread(app.lift_lxmf_peer_banishment, destination_hash)
             return web.json_response({"message": "ok"})
         except Exception as e:
             return http_error_from_exception(e, fallback_status=500)

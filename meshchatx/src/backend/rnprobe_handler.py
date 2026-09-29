@@ -75,7 +75,9 @@ class RNProbeHandler:
         timeout_after = time.time() + (
             timeout
             if timeout is not None
-            else path_response_window(destination_hash, self.reticulum)
+            else await asyncio.to_thread(
+                path_response_window, destination_hash, self.reticulum
+            )
         )
         while (
             not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after
@@ -116,15 +118,21 @@ class RNProbeHandler:
             receipt = probe.send()
             sent += 1
 
-            next_hop = self.reticulum.get_next_hop(destination_hash)
+            next_hop = await asyncio.to_thread(
+                self.reticulum.get_next_hop, destination_hash
+            )
             via_str = f" via {RNS.prettyhexrep(next_hop)}" if next_hop else ""
-            if_name = self.reticulum.get_next_hop_if_name(destination_hash)
+            if_name = await asyncio.to_thread(
+                self.reticulum.get_next_hop_if_name, destination_hash
+            )
             if_str = f" on {if_name}" if if_name and if_name != "None" else ""
 
             timeout_after = time.time() + (
                 timeout
                 or self.DEFAULT_TIMEOUT
-                + path_response_window(destination_hash, self.reticulum)
+                + await asyncio.to_thread(
+                    path_response_window, destination_hash, self.reticulum
+                )
             )
             while (
                 receipt.status == RNS.PacketReceipt.SENT and time.time() < timeout_after
@@ -153,13 +161,16 @@ class RNProbeHandler:
 
                 reception_stats = {}
                 if self.reticulum.is_connected_to_shared_instance:
-                    reception_rssi = self.reticulum.get_packet_rssi(
+                    reception_rssi = await asyncio.to_thread(
+                        self.reticulum.get_packet_rssi,
                         receipt.proof_packet.packet_hash,
                     )
-                    reception_snr = self.reticulum.get_packet_snr(
+                    reception_snr = await asyncio.to_thread(
+                        self.reticulum.get_packet_snr,
                         receipt.proof_packet.packet_hash,
                     )
-                    reception_q = self.reticulum.get_packet_q(
+                    reception_q = await asyncio.to_thread(
+                        self.reticulum.get_packet_q,
                         receipt.proof_packet.packet_hash,
                     )
 

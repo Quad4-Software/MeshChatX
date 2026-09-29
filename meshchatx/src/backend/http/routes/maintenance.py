@@ -178,7 +178,7 @@ def register_maintenance_routes(routes, app):
     @routes.delete(API_V1_PREFIX + "/maintenance/path-table")
     async def maintenance_clear_path_table(request):
         try:
-            dropped = app.rnpath_handler.drop_all_paths()
+            dropped = await asyncio.to_thread(app.rnpath_handler.drop_all_paths)
             return web.json_response(
                 {"message": "Path table cleared", "dropped": dropped},
             )

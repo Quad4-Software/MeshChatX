@@ -897,7 +897,9 @@ class TelephoneManager:
                 try:
                     path_wait = max(
                         path_wait,
-                        path_response_window(call_destination_hash),
+                        await asyncio.to_thread(
+                            path_response_window, call_destination_hash
+                        ),
                     )
                 except Exception:
                     pass
