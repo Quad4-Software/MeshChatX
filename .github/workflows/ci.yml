@@ -588,6 +588,14 @@ jobs:
             - name: Run Playwright smoke E2E
               run: bash scripts/ci/github-e2e.sh
 
+            - name: Upload Playwright junit results
+              if: always()
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: e2e-junit
+                  path: test-results/junit/
+                  if-no-files-found: ignore
+
     ui-lighthouse:
         name: UI Lighthouse (core pages)
         needs: frontend

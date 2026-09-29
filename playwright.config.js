@@ -15,7 +15,17 @@ module.exports = defineConfig({
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 1 : 0,
     workers: 1,
-    reporter: process.env.CI ? "line" : [["list"], ["html", { open: "never" }]],
+    reporter: process.env.CI
+        ? [
+              "line",
+              [
+                  "junit",
+                  {
+                      outputFile: "test-results/junit/playwright-results.xml",
+                  },
+              ],
+          ]
+        : [["list"], ["html", { open: "never" }]],
     use: {
         ...devices["Desktop Chrome"],
         baseURL,
