@@ -1,0 +1,144 @@
+# Weekly endurance QA: soak run with resource slope oracle, opt-in live
+# backend tests, and a bounded mutation pass on the highest-risk modules.
+#
+# Pinned first-party actions:
+#   actions/checkout@v6.0.1                       8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   actions/upload-artifact@v5.0.0                330a01c490aca151604b8cf639adc76d48f6c5d4
+
+name: QA endurance
+
+on:
+    schedule:
+        - cron: "0 3 * * 0"
+    workflow_dispatch:
+        inputs:
+            soak_minutes:
+                description: "Soak run length in minutes"
+                required: false
+                default: "30"
+            run_mutation:
+                description: "Run mutmut on hot modules"
+                required: false
+                default: "true"
+                type: choice
+                options: ["true", "false"]
+
+permissions:
+    contents: read
+
+env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    PYTHON_VERSION: "3.14"
+    NODE_VERSION: "24"
+    UV_VERSION: "0.11.15"
+    PNPM_VERSION: "12.7.0"
+
+jobs:
+    soak:
+        name: Soak run + slope oracle
+        runs-on: ubuntu-latest
+        timeout-minutes: 90
+        permissions:
+            contents: read
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Set up development environment
+              uses: $/.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  node-version: ${{ env.NODE_VERSION }}
+                  pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Run soak harness
+              env:
+                  SOAK_MINUTES: ${{ github.event.inputs.soak_minutes || '30' }}
+              run: uv run python scripts/soak/soak.py --minutes "$SOAK_MINUTES" --interval 15 --out ./soak-out
+
+            - name: Upload soak artifacts
+              if: always()
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: soak-report
+                  path: soak-out/
+
+    live-backend:
+        name: Opt-in live backend tests
+        runs-on: ubuntu-latest
+        timeout-minutes: 60
+        permissions:
+            contents: read
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Set up development environment
+              uses: $/.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  node-version: ${{ env.NODE_VERSION }}
+                  pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Run live Reticulum + long-running stress tests
+              env:
+                  MESHCHAT_LIVE_RETICULUM: "1"
+                  MESHCHAT_LONG_TEST_SECONDS: "120"
+              run: |
+                  uv run pytest \
+                      tests/backend/test_lxmf_live_local_network.py \
+                      tests/backend/test_lxmf_live_rejection.py \
+                      tests/backend/test_long_running_stress.py \
+                      -v --timeout=600
+
+    mutation:
+        name: Mutmut on hot modules
+        if: github.event_name == 'schedule' || github.event.inputs.run_mutation == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 180
+        permissions:
+            contents: read
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Set up development environment
+              uses: $/.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  node-version: ${{ env.NODE_VERSION }}
+                  pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Mutmut on rrc manager, inbound policy, async utils
+              env:
+                  MUTMUT_TARGET: "meshchatx.src.backend.rrc.manager*,meshchatx.src.backend.lxmf_inbound_policy*,meshchatx.src.backend.async_utils*"
+              run: bash scripts/ci/mutation-backend.sh
+              continue-on-error: true
+
+            - name: Upload mutation stats
+              if: always()
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: mutmut-stats
+                  path: mutmut-cicd-stats.json

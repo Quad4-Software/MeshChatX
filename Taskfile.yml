@@ -413,6 +413,11 @@ tasks:
             - uv run coverage report --include="meshchatx/src/backend/*" --fail-under={{.MESHCHAT_COVERAGE_FLOOR}}
             - uv run python scripts/ci/coverage-floors.py
 
+    test:soak:
+        desc: Soak run with resource slope oracle (SOAK_MINUTES=30 default)
+        cmds:
+            - uv run python scripts/soak/soak.py --minutes "${SOAK_MINUTES:-30}" --interval "${SOAK_INTERVAL:-15}" --out soak-out
+
     test:be:perf:
         desc: Backend performance regression tests only (hot paths + bottlenecks)
         cmds:
