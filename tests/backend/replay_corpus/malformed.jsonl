@@ -1,0 +1,6 @@
+{"t": 10, "room": "", "src": "00000000000000000000000000000000", "body": null}
+{"t": 10, "room": "   ", "src": "00000000000000000000000000000000", "body": null}
+{"t": 10, "room": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "src": "00000000000000000000000000000000", "body": null}
+{"t": 20, "room": "lobby", "src": "00000000000000000000000000000000", "body": ""}
+{"t": 20, "room": null, "src": "00000000000000000000000000000000", "body": "no room msg"}
+{"t": 99, "room": "lobby", "src": "00000000000000000000000000000000", "body": "unknown type"}
