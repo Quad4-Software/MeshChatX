@@ -79,15 +79,27 @@ class _HubManagerStub:
         pass
 
 
-hub = RRCHubServer(
-    _HubManagerStub(),
-    RNS.Identity(create_keys=True),
-    name="E2E Hub",
-    announce=True,
-)
-hub.configure_storage(os.path.join(config_dir, "hub_storage"))
-hub.register_room("lobby")
-hub.start()
+hubs = []
+for idx, (name, rooms) in enumerate(
+    (
+        ("E2E Hub", ["lobby", "test-room"]),
+        ("E2E Hub B", ["lobby"]),
+        ("E2E Hub C", ["lobby"]),
+    )
+):
+    h = RRCHubServer(
+        _HubManagerStub(),
+        RNS.Identity(create_keys=True),
+        name=name,
+        announce=True,
+    )
+    h.configure_storage(os.path.join(config_dir, f"hub_storage_{idx}"))
+    for room in rooms:
+        h.register_room(room)
+    h.start()
+    hubs.append(h)
+
+hub = hubs[0]
 
 # Headless host has no audio devices; the hostless bridge swaps LXST
 # LineSource/LineSink for no-op transports so Telephone works everywhere.
@@ -103,6 +115,7 @@ with open(ready_path, "w", encoding="utf-8") as f:
         {
             "lxmf_dest": dest.hash.hex(),
             "hub_hash": hub.dest_hash.hex(),
+            "hub_hashes": [h.dest_hash.hex() for h in hubs],
             "identity_hash": identity.hash.hex(),
         },
         f,
@@ -114,8 +127,9 @@ deadline = time.time() + 600
 while time.time() < deadline:
     dest.announce()
     try:
-        if hub.destination is not None:
-            hub.destination.announce()
+        for h in hubs:
+            if h.destination is not None:
+                h.destination.announce()
         phone.announce()
     except Exception:
         pass
