@@ -158,7 +158,10 @@ def slope_oracle(csv_path, warmup_frac, eps):
     """
     rows = list(csv.DictReader(csv_path.open()))
     if len(rows) < 10:
-        return False, ["not enough samples for a verdict"]
+        return True, [
+            f"only {len(rows)} samples collected; a hung or dead backend "
+            "produces too few rows for a verdict and must not pass"
+        ]
     start = int(len(rows) * warmup_frac)
     rows = rows[start:]
     verdicts = []
@@ -177,10 +180,14 @@ def slope_oracle(csv_path, warmup_frac, eps):
         slope = sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True)) / var
         resid = [y - (slope * x + my - slope * mx) for x, y in zip(xs, ys, strict=True)]
         sd = (sum(r * r for r in resid) / max(1, n - 2)) ** 0.5
-        ci = 2.5 * sd * ((1 / n) + (mx * mx / var)) ** 0.5
+        # Standard error of the slope is sd / sqrt(Sxx); the previous
+        # fitted-mean SE scaled the threshold ~n times too strict and the
+        # oracle could never fire.
+        se_slope = sd / (var**0.5)
+        ci = 2.5 * se_slope
         floor = eps.get(key, 0.0)
         delta = ys[-1] - ys[0]
-        leaky = slope > 0 and abs(slope) > ci and delta > floor
+        leaky = slope > 0 and slope > ci and delta > floor
         verdicts.append(
             f"{key}: slope={slope:.4f}/sample ci={ci:.4f} delta={delta:.1f} "
             f"(floor {floor}) {'LEAK' if leaky else 'ok'}"
@@ -327,7 +334,9 @@ def main():
         with open(samples_path, "w", newline="") as cf:
             w = csv.DictWriter(cf, fieldnames=fields)
             w.writeheader()
+            loop_tick = time.time()
             while time.time() < t_end:
+                loop_tick = time.time()
                 row = {}
                 alive = backend.poll() is None
                 if not alive:
@@ -342,9 +351,21 @@ def main():
                 else:
                     w.writerow({k: row.get(k) for k in fields})
                     cf.flush()
+                if peer.poll() is not None:
+                    report.append("live peer died during soak")
+                    print("\n".join(report), file=sys.stderr)
+                    raise SystemExit(1)
                 if not workload_loop(share, state):
-                    pass
-                time.sleep(max(0.1, args.interval))
+                    state["workload_failures"] = state.get("workload_failures", 0) + 1
+                    if state["workload_failures"] >= 20:
+                        report.append("workload loop produced no traffic")
+                        print("\n".join(report), file=sys.stderr)
+                        raise SystemExit(1)
+                else:
+                    state["workload_failures"] = 0
+                # Subtract sample time so the interval is honored even when
+                # the backend degrades and each API call times out.
+                time.sleep(max(0.1, args.interval - (time.time() - loop_tick)))
 
         failed, verdicts = slope_oracle(
             __import__("pathlib").Path(samples_path),

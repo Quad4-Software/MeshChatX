@@ -137,16 +137,17 @@ def storm_count():
 
 
 def ensure_storm_dests(n):
+    # The backend's announce classifier keys on the real rrc.hub aspect;
+    # synthetic storm destinations must announce on it too or they only
+    # fill the path table and skip the code path under test.
     while len(storm_dests) < n:
-        aspects = (f"hub{i:02x}" for i in range(255))
-        aspect = next(aspects)
         storm_dests.append(
             RNS.Destination(
                 RNS.Identity(create_keys=True),
                 RNS.Destination.IN,
                 RNS.Destination.SINGLE,
                 "rrc",
-                aspect,
+                "hub",
             )
         )
     return storm_dests[:n]
@@ -154,8 +155,11 @@ def ensure_storm_dests(n):
 
 outbox_pos = 0
 pending = []
-deadline = time.time() + 600
-while time.time() < deadline:
+# Bounded lifetime only when explicitly requested; a self-killing peer
+# silently deflates soak runs and late spec assertions.
+deadline_s = float(os.environ.get("E2E_PEER_MAX_AGE", "0") or 0)
+deadline = time.time() + deadline_s if deadline_s > 0 else None
+while deadline is None or time.time() < deadline:
     dest.announce()
     try:
         for h in hubs:
