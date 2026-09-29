@@ -431,8 +431,11 @@ select option {
 }
 
 .context-item {
-    @apply w-full text-left px-3 py-2 text-sm flex items-center gap-2;
+    @apply w-full text-left px-3 py-2 text-sm flex items-center gap-2 cursor-pointer;
     color: var(--mc-context-item-text);
+}
+.context-item:disabled {
+    cursor: not-allowed;
 }
 .context-item:hover {
     background-color: var(--mc-context-hover);
