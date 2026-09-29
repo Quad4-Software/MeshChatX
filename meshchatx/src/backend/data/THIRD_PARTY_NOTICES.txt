@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-09-22T03:24:45.004739Z
+Generated at: 2026-09-29T00:03:18.682813Z
 Frontend source: pnpm
 
 Python dependencies
@@ -115,6 +115,9 @@ rns 1.5.4
 rns-filesync 1.0.0
   License: BSD-2-Clause
   Author: -
+seccompy 0.2.0
+  License: 0BSD
+  Author: Quad4
 service-identity 26.1.0
   License: MIT
   Author: Hynek Schlawack <hs@ox.cx>
@@ -343,9 +346,6 @@ Node dependencies
 @electron/universal 2.0.3
   License: MIT
   Author: Samuel Attard
-@electron/windows-sign 1.1.2
-  License: BSD-2-Clause
-  Author: Felix Rieseberg
 @epic-web/invariant 1.0.0
   License: MIT
   Author: Kent C. Dodds
@@ -1078,9 +1078,6 @@ cosmiconfig 9.0.1
 cosmiconfig-typescript-loader 6.3.0
   License: MIT
   Author: Alex Miller
-cross-dirname 0.1.0
-  License: MIT
-  Author: -
 cross-env 10.1.0
   License: MIT
   Author: Kent C. Dodds
@@ -2122,9 +2119,6 @@ postgres-date 1.0.7
 postgres-interval 1.2.0
   License: MIT
   Author: Ben Drucker
-postject 1.0.0-alpha.6
-  License: MIT
-  Author: -
 powershell-utils 0.1.0
   License: MIT
   Author: Sindre Sorhus
@@ -2262,7 +2256,7 @@ safe-push-apply 1.0.0
   Author: Jordan Harband
 safe-regex 2.1.1
   License: MIT
-  Author: James C.
+  Author: James C. (Jamie) Davis
 safe-regex-test 1.1.0
   License: MIT
   Author: Jordan Harband

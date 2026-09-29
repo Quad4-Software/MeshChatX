@@ -1123,6 +1123,10 @@ rns==1.5.4 \
     #   lxmf
     #   lxst
     #   reticulum-meshchatx
+seccompy==0.2.0 \
+    --hash=sha256:9663248a433bb78cfb7cfdbb6fe498ddae23ff2bdc1b4cd9d2777ee1148924d9 \
+    --hash=sha256:993e14f0175c8c05c11b44e6333a3e40e5e0924b4d7c53154322b1797db7a375
+    # via reticulum-meshchatx
 service-identity==26.1.0 \
     --hash=sha256:6358c52882c96e66ac4a55eb3a72c7dd4a70763f8cc6fa4e70abde2656f4bf3b \
     --hash=sha256:68c32dadbb69135fb951077677e07cd7f6031020f3a8c8f47a28cda8a0742118
