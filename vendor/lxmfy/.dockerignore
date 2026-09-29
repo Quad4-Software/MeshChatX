@@ -1,0 +1,10 @@
+CHANGELOG.md
+SECURITY.md
+.git
+.github
+docs
+tests
+.deepsource.toml
+.hypothesis/
+data/
+cogs/

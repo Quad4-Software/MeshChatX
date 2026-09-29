@@ -1,0 +1,14 @@
+services:
+  build:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.Build
+    volumes:
+      - ./dist:/output
+
+  lxmfy-bot:
+    build: .
+    volumes:
+      - ./.reticulum:/root/.reticulum
+      - ./config:/bot/config
+    command: ["lxmfy", "run", "echo"]

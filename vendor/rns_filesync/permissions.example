@@ -1,0 +1,35 @@
+# RNS FileSync access file (.allowed)
+#
+# Same rule format as rngit: permission:target (one rule per line).
+# You can also put comma-separated rules on one line.
+#
+# Place this file as:
+#   <sync_dir>.allowed
+#   <parent>/<sync_dir_name>.allowed
+#   <sync_dir>/.allowed
+#
+# Permissions:
+#   r   = read
+#   w   = write
+#   d   = delete
+#   rw  = read/write
+#   rwd = read/write/delete
+#   adm = admin (all)
+#
+# Targets: identity hash, alias from config, all, or none.
+#
+# Default is deny until rules are added.
+
+# Public read-only
+# r:all
+
+# Full access for one peer
+# rwd:b559704616f042e0b7b6ba46ada4c670
+
+# Read/write for one peer, read for everyone
+r:all
+w:b559704616f042e0b7b6ba46ada4c670
+d:b559704616f042e0b7b6ba46ada4c670
+
+# Or combined:
+# r:all, rw:20d1f3debb50dde3df2cff74413b0f0d

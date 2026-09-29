@@ -1,0 +1,22 @@
+FROM python:3.11-alpine
+
+WORKDIR /build
+
+RUN apk add --no-cache \
+    build-base \
+    python3-dev \
+    git \
+    libffi-dev \
+    openssl-dev \
+    curl
+
+RUN curl -sSL https://install.python-poetry.org | python3 - && \
+    ln -s /root/.local/bin/poetry /usr/local/bin/poetry
+
+COPY pyproject.toml poetry.lock README.md LICENSE ./
+COPY lxmfy ./lxmfy
+
+RUN poetry config virtualenvs.create false && \
+    poetry build
+
+CMD ["cp", "-r", "dist/", "/output/"]

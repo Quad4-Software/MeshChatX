@@ -1,0 +1,66 @@
+services:
+  lxmfy-docs:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: lxmfy-docs:prod
+    container_name: lxmfy-docs-prod
+    restart: unless-stopped
+#   ports:
+#      - "8080:8080"
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+    
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - NET_BIND_SERVICE
+    read_only: true
+    
+    # Temporary filesystems for writable directories
+    tmpfs:
+      - /tmp:noexec,nosuid,size=20m
+    
+    # Volumes for persistent directories
+    volumes:
+      - nginx-cache:/var/cache/nginx
+      - nginx-logs:/var/log/nginx
+      - nginx-run:/var/run/nginx
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Environment variables
+    environment:
+      - NGINX_WORKER_PROCESSES=auto
+      - NGINX_WORKER_CONNECTIONS=1024
+    
+    # Labels
+    labels:
+      - "com.docker.compose.project=lxmfy-docs"
+      - "com.docker.compose.service=docs"
+      - "maintainer=lxmfy-team"
+
+volumes:
+  nginx-cache:
+  nginx-logs:
+  nginx-run:
