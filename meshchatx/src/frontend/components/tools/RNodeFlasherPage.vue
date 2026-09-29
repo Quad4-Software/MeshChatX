@@ -386,25 +386,16 @@ export default {
             }
             try {
                 const esptoolPath = "/rnode-flasher/js/esptool-js@0.4.5/bundle.js";
-                const esptool = await import(/* @vite-ignore */ esptoolPath);
+                const esptool = await this._loadModule(esptoolPath);
                 window.ESPLoader = esptool.ESPLoader;
                 window.Transport = esptool.Transport;
-
-                const serialPolyfillPath = "/rnode-flasher/js/web-serial-polyfill@1.0.15/dist/serial.js";
-                const serialPolyfill = await import(/* @vite-ignore */ serialPolyfillPath);
-                if (serialPolyfill.serial) {
-                    window.serial = serialPolyfill.serial;
-                }
             } catch (e) {
                 console.error("Failed to load ES module vendor libraries:", e);
             }
-            if (!navigator.serial && navigator.usb && window.serial) {
-                navigator.serial = window.serial;
-            }
             this.refreshCapabilities();
         },
-        async _loadScript(src) {
-            // Fetch and verify SRI before injecting
+        async _fetchVerified(src) {
+            // Fetch and verify SRI before use.
             const integrity = this._rnodeIntegrity || (await this._loadRnodeIntegrity());
             const filename = rnodeIntegrityKeyForSrc(src, integrity);
             const expectedHash = integrity?.[filename];
@@ -423,6 +414,23 @@ export default {
             if (actualHash !== expectedHash) {
                 throw new Error(`RNode: SRI hash mismatch for ${filename}. Possible tampering detected.`);
             }
+            return buf;
+        },
+        async _loadModule(src) {
+            // Vite dev refuses dynamic import() of /public URLs, so import the
+            // SRI-verified bytes through a blob URL, which works in dev and
+            // production builds alike and keeps integrity verification.
+            const buf = await this._fetchVerified(src);
+            const blob = new Blob([buf], { type: "application/javascript" });
+            const blobUrl = URL.createObjectURL(blob);
+            try {
+                return await import(/* @vite-ignore */ blobUrl);
+            } finally {
+                URL.revokeObjectURL(blobUrl);
+            }
+        },
+        async _loadScript(src) {
+            const buf = await this._fetchVerified(src);
 
             // Inject verified content as blob
             const blob = new Blob([buf], { type: "application/javascript" });
