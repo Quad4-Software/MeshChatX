@@ -114,9 +114,7 @@ class IdentityManager:
                 temp_provider = DatabaseProvider(db_path)
                 try:
                     temp_config_dao = ConfigDAO(temp_provider)
-                    display_name = temp_config_dao.get(
-                        "display_name", "Anonymous Peer"
-                    )
+                    display_name = temp_config_dao.get("display_name", "Anonymous Peer")
                     icon_name = temp_config_dao.get("lxmf_user_icon_name")
                     icon_foreground_colour = temp_config_dao.get(
                         "lxmf_user_icon_foreground_colour",
