@@ -300,6 +300,17 @@ jobs:
                   PYTEST_ARGS: --reruns 1 -rR
               run: task test:be:cov
 
+            - name: Diff coverage gate on changed lines
+              if: github.event_name == 'pull_request'
+              run: |
+                  set -euo pipefail
+                  git fetch origin "${{ github.base_ref }}" --depth=50
+                  uv run diff-cover coverage.xml \
+                      --compare-branch="origin/${{ github.base_ref }}" \
+                      --fail-under=80 \
+                      --markdown-report diff-cover-report.md
+                  cat diff-cover-report.md >> "$GITHUB_STEP_SUMMARY" 
+
     mutation-changed:
         name: Mutation (changed backend modules, advisory)
         if: github.event_name == 'pull_request'

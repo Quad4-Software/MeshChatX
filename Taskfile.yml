@@ -410,6 +410,7 @@ tasks:
             - rm -f .coverage temp-tests/coverage/.coverage*
             - uv run pytest tests/backend -n auto {{.PYTEST_ARGS | default ""}} --cov=meshchatx/src/backend --cov-report=
             - uv run coverage combine temp-tests/coverage
+            - uv run coverage xml -o coverage.xml
             - uv run coverage report --include="meshchatx/src/backend/*" --fail-under={{.MESHCHAT_COVERAGE_FLOOR}}
             - uv run python scripts/ci/coverage-floors.py
 
