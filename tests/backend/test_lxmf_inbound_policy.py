@@ -267,6 +267,7 @@ def test_policy_does_not_reject_on_blocklist_error():
             block_attachments_from_strangers=SimpleNamespace(get=lambda: False),
         )
     )
+
     # is_destination_blocked that honours the fail_closed kwarg
     class App(BrokenApp):
         def is_destination_blocked(self, h, context=None, fail_closed=True):
@@ -291,3 +292,87 @@ def test_policy_does_not_reject_on_blocklist_error():
     )
     reject, _ = evaluate_inbound_delivery_resource_policy(App2(), ctx2, resource)
     assert reject is False
+
+
+def test_installed_policy_wrapper_fail_open_and_positive_block():
+    """The installed wrapper accepts on lookup errors, rejects real blocks."""
+    from types import SimpleNamespace
+
+    from meshchatx.src.backend.lxmf_inbound_policy import (
+        install_lxmf_inbound_delivery_policy,
+    )
+
+    calls = {"began": 0}
+    router = SimpleNamespace(
+        delivery_resource_advertised=lambda r: True,
+        delivery_resource_transfer_began=lambda r: calls.__setitem__(
+            "began", calls["began"] + 1
+        ),
+    )
+
+    class FakeLink:
+        def get_remote_identity(self):
+            return SimpleNamespace(hash=b"\x66" * 16)
+
+    resource = SimpleNamespace(link=FakeLink())
+
+    # Broken lookups on an app whose verdict should be "unknown".
+    class BrokenApp:
+        def is_destination_blocked(self, h, context=None, fail_closed=True):
+            return fail_closed
+
+        def _is_contact(self, *a, **kw):
+            raise RuntimeError("db gone")
+
+    ctx = SimpleNamespace(
+        config=SimpleNamespace(
+            block_all_from_strangers=SimpleNamespace(get=lambda: True),
+            block_attachments_from_strangers=SimpleNamespace(get=lambda: True),
+        )
+    )
+
+    install_lxmf_inbound_delivery_policy(router, BrokenApp(), lambda: ctx)
+    assert router._meshchatx_inbound_policy_installed is True
+    # Error must not reject: advertises True via the original callback.
+    assert router.delivery_resource_advertised(resource) is True
+    router.delivery_resource_transfer_began(resource)
+    assert calls["began"] == 1
+
+    # Reinstall is a no-op so double wrap cannot happen.
+    install_lxmf_inbound_delivery_policy(router, BrokenApp(), lambda: ctx)
+    assert router.delivery_resource_advertised(resource) is True
+
+    # A real block verdict still rejects at advertise time.
+    class BlockingApp:
+        def is_destination_blocked(self, h, context=None, fail_closed=True):
+            return True
+
+        def _is_contact(self, *a, **kw):
+            return False
+
+    router2 = SimpleNamespace(
+        delivery_resource_advertised=lambda r: True,
+        delivery_resource_transfer_began=lambda r: calls.__setitem__(
+            "began", calls["began"] + 1
+        ),
+    )
+    install_lxmf_inbound_delivery_policy(router2, BlockingApp(), lambda: ctx)
+    assert router2.delivery_resource_advertised(resource) is False
+
+
+def test_is_destination_blocked_fail_closed_flag(monkeypatch):
+    """The fail_closed kwarg controls the error-path verdict."""
+    from types import SimpleNamespace
+
+    from meshchatx.meshchat import ReticulumMeshChat
+
+    def raising_related(self, *a, **kw):
+        raise RuntimeError("db locked")
+
+    app = SimpleNamespace(
+        current_context=SimpleNamespace(database=object()),
+        _related_hashes_for_contact_lookup=raising_related,
+    )
+    bound = ReticulumMeshChat.is_destination_blocked.__get__(app, object)
+    assert bound("aa" * 16, fail_closed=True) is True
+    assert bound("aa" * 16, fail_closed=False) is False

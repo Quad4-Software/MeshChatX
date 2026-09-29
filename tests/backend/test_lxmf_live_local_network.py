@@ -331,7 +331,106 @@ def _write_pair(server_dir: Path, client_dir: Path, port: int) -> None:
     )
 
 
-def _run_local_delivery(tmp_path: Path, payload: dict | None = None) -> dict:
+# Same receiver as _BOB_SCRIPT, but the real MeshChatX inbound resource
+# policy is installed with lookups that always fail. The advertise-time
+# verdict must stay fail-open: a transient blocklist/contact error is a
+# live-caught REJECTED regression (issue-94 class) if it rejects here.
+_BOB_BROKEN_LOOKUPS_SCRIPT = _FIELD_CODEC + textwrap.dedent(
+    """\
+    import json
+    import os
+    import sys
+    import time
+    from types import SimpleNamespace
+
+    import LXMF
+    import RNS
+
+    from meshchatx.src.backend.lxmf_inbound_policy import (
+        install_lxmf_inbound_delivery_policy,
+    )
+
+    config_dir, share_dir, timeout_s = sys.argv[1], sys.argv[2], float(sys.argv[3])
+    stop_path = os.path.join(share_dir, "stop")
+    ready_path = os.path.join(share_dir, "ready.json")
+    inbox_path = os.path.join(share_dir, "inbox.json")
+
+    RNS.Reticulum(configdir=config_dir, loglevel=RNS.LOG_ERROR)
+    identity = RNS.Identity()
+    storage = os.path.join(config_dir, "lxmf_storage")
+    os.makedirs(storage, exist_ok=True)
+    router = LXMF.LXMRouter(storagepath=storage)
+    dest = router.register_delivery_identity(identity, display_name="bob")
+
+    class BrokenApp:
+        def is_destination_blocked(self, h, context=None, fail_closed=True):
+            raise RuntimeError("blocklist db down")
+
+        def _is_contact(self, *a, **kw):
+            raise RuntimeError("contacts db down")
+
+    ctx = SimpleNamespace(
+        config=SimpleNamespace(
+            block_all_from_strangers=SimpleNamespace(get=lambda: True),
+            block_attachments_from_strangers=SimpleNamespace(get=lambda: True),
+        )
+    )
+    # On a fresh delivery link the remote identity is legitimately unknown at
+    # advertise time, so the policy early-returns before the verdict lookups.
+    # Pinning a peer hash here forces the verdict path so the broken lookups
+    # actually execute over the wire the way an identified repeat peer would.
+    import meshchatx.src.backend.lxmf_inbound_policy as inbound_policy
+
+    inbound_policy.source_hash_from_delivery_resource = (
+        lambda resource: "aa" * 16
+    )
+
+    install_lxmf_inbound_delivery_policy(router, BrokenApp(), lambda: ctx)
+
+    def on_delivery(message):
+        with open(inbox_path, "w", encoding="utf-8") as handle:
+            json.dump(
+                {
+                    "ok": True,
+                    "content": message.content_as_string(),
+                    "title": message.title_as_string(),
+                    "src": message.source_hash.hex(),
+                    "dst": message.destination_hash.hex(),
+                    "hash": message.hash.hex(),
+                    "sig_ok": bool(message.signature_validated),
+                    "unverified_reason": message.unverified_reason,
+                    "fields": _jsonify(message.get_fields() or {}),
+                },
+                handle,
+            )
+
+    router.register_delivery_callback(on_delivery)
+    with open(ready_path, "w", encoding="utf-8") as handle:
+        json.dump(
+            {
+                "dest": dest.hash.hex(),
+                "pub": identity.get_public_key().hex(),
+            },
+            handle,
+        )
+
+    deadline = time.time() + timeout_s + 30
+    while time.time() < deadline and not os.path.isfile(stop_path):
+        dest.announce()
+        if os.path.isfile(inbox_path):
+            time.sleep(0.5)
+            break
+        time.sleep(2)
+    RNS.exit(0)
+    """,
+)
+
+
+def _run_local_delivery(
+    tmp_path: Path,
+    payload: dict | None = None,
+    bob_script: str | None = None,
+) -> dict:
     port = _free_port()
     bob_dir = tmp_path / "bob"
     alice_dir = tmp_path / "alice"
@@ -355,7 +454,7 @@ def _run_local_delivery(tmp_path: Path, payload: dict | None = None) -> dict:
         [
             sys.executable,
             "-c",
-            _BOB_SCRIPT,
+            bob_script or _BOB_SCRIPT,
             str(bob_dir),
             str(share_dir),
             str(_PATH_TIMEOUT_S),
@@ -846,6 +945,34 @@ def test_live_local_tcp_blocked_peer_dropped_by_meshchatx(tmp_path, mock_app):
     app.database.misc.add_blocked_destination(inbox["src"])
     msg = _delivery_from_local(app, inbox)
     assert stored_message(app, msg) is None
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RETICULUM=1")
+def test_live_local_tcp_attachment_survives_broken_blocklist(tmp_path):
+    """Attachment still arrives when blocklist/contact lookups raise.
+
+    Issue-94 class: resource-carried messages must not be rejected when
+    lookups throw at advertise time; verified inside a real policy install
+    on a real LXMRouter over a real TCP link.
+    """
+    # ~300 KiB forces a resource transfer; packet-sized payloads never reach
+    # delivery_resource_advertised where the broken lookup would reject.
+    secret = b"LOOKUP_ERR_SURVIVES_" + bytes(range(256)) * 1200
+    result = _run_local_delivery(
+        tmp_path,
+        payload={
+            "content": "arrives despite broken acl",
+            "title": "policy",
+            "fields": {LXMF.FIELD_IMAGE: ["png", b"\x89PNG" + secret]},
+        },
+        bob_script=_BOB_BROKEN_LOOKUPS_SCRIPT,
+    )
+    inbox = result["inbox"]
+    assert inbox["ok"] is True
+    fields = inbox.get("fields") or {}
+    raw = fields.get(str(LXMF.FIELD_IMAGE)) or fields.get(LXMF.FIELD_IMAGE)
+    assert raw is not None
 
 
 @pytest.mark.integration
