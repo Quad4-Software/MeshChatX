@@ -198,6 +198,7 @@ class RRCHubServer:
         self._sessions = {}
         self._room_members = {}
         self._hub_dir = None
+        self.replay_log = None
         self.policy = HubPolicy()
         self.rooms = RoomRegistry(self, None)
         self._commands = HubCommandHandler()
@@ -587,6 +588,8 @@ class RRCHubServer:
                 extras.extend(self._peer_cap_extras(ri.hash))
             outgoing = []
             if link not in extras:
+                if self.replay_log:
+                    self._record_replay(env)
                 # A malformed envelope can raise inside a handler; contain
                 # it so one bad packet cannot kill the hub session loop.
                 try:
@@ -599,6 +602,24 @@ class RRCHubServer:
                     lnk.teardown()
         for out_link, payload in outgoing:
             self._send_payload(out_link, payload)
+
+    def _record_replay(self, env):
+        import json as _json
+
+        try:
+            src = env.get(proto.K_SRC)
+            row = {
+                "t": env.get(proto.K_T),
+                "room": env.get(proto.K_ROOM),
+                "src": src.hex() if isinstance(src, (bytes, bytearray)) else src,
+                "body": env.get(proto.K_BODY)
+                if isinstance(env.get(proto.K_BODY), str)
+                else None,
+            }
+            with open(self.replay_log, "a", encoding="utf-8") as f:
+                f.write(_json.dumps(row) + "\n")
+        except Exception:
+            pass
 
     def _route(self, link, sess, env, outgoing):
         t = env.get(proto.K_T)
