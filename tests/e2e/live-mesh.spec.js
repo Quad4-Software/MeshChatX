@@ -19,6 +19,22 @@ function peerReady() {
     return JSON.parse(fs.readFileSync(READY, "utf8"));
 }
 
+async function interfaceBytes(request) {
+    const res = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/interface-stats`);
+    if (!res.ok()) {
+        return null;
+    }
+    const body = await res.json();
+    const ifs = body.interface_stats?.interfaces || [];
+    let rx = 0,
+        tx = 0;
+    for (const i of ifs) {
+        rx += Number(i.rxb || 0);
+        tx += Number(i.txb || 0);
+    }
+    return { rx, tx };
+}
+
 function readJsonl(file) {
     if (!fs.existsSync(file)) {
         return [];
@@ -211,5 +227,53 @@ test.describe("Live mesh LXST call", () => {
                 { timeout: 30000, intervals: [500, 1000, 2000] }
             )
             .toBe(true);
+    });
+});
+
+test.describe("Live mesh traffic budget", () => {
+    test.setTimeout(120000);
+    test.skip(!peerReady(), "live peer subprocess not running");
+
+    test("idle announce traffic stays bounded", async ({ request }) => {
+        await prepareE2eSession(request);
+        const before = await interfaceBytes(request);
+        expect(before, "interface-stats must report byte counters").not.toBeNull();
+
+        // Let the peer's announce loop and any backend churn run; a #125-class
+        // announce/path storm would blow through this in seconds.
+        await new Promise((r) => setTimeout(r, 20000));
+
+        const after = await interfaceBytes(request);
+        const deltaRx = after.rx - before.rx;
+        const deltaTx = after.tx - before.tx;
+        // Peer announces 3 destinations every ~2s plus keepalives; budget is
+        // generous for jitter but orders of magnitude under any storm.
+        expect(deltaRx).toBeLessThan(1_000_000);
+        expect(deltaTx).toBeLessThan(1_000_000);
+    });
+
+    test("full chat flow traffic stays bounded", async ({ request }) => {
+        await prepareE2eSession(request);
+        const peer = peerReady();
+        const before = await interfaceBytes(request);
+        expect(before).not.toBeNull();
+
+        // One real RRC round-trip plus an LXMF exchange, then measure. The
+        // flows themselves are a few KB; the cap catches unbounded retries.
+        const marker = `e2e-budget-${Date.now()}`;
+        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/lxmf-messages/send`, {
+            lxmf_message: { destination_hash: peer.lxmf_dest, content: marker },
+        });
+        await expect
+            .poll(() => readJsonl(PEER_INBOX).some((m) => m.content === marker), {
+                timeout: 60000,
+                intervals: [500, 1000, 2000],
+            })
+            .toBe(true);
+        await new Promise((r) => setTimeout(r, 3000));
+
+        const after = await interfaceBytes(request);
+        const delta = after.rx - before.rx + (after.tx - before.tx);
+        expect(delta).toBeLessThan(2_000_000);
     });
 });
