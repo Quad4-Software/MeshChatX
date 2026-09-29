@@ -1474,6 +1474,10 @@
         },
         {
             "method": "POST",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages/{seq}/retry"
+        },
+        {
+            "method": "POST",
             "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/read"
         },
         {
