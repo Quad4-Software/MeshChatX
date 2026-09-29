@@ -25,7 +25,12 @@ def test_redact_run_media_and_windows_drives():
 
 
 def test_redact_pem_bearer_and_secret_assigns():
-    pem = "-----BEGIN PRIVATE KEY-----\nMIIEowIBAAKCAQEA\n-----END PRIVATE KEY-----"
+    # Marker is assembled so source does not embed a literal PEM header.
+    pem = (
+        "-----" + "BEGIN" + " PRIVATE KEY-----\n"
+        "MIIEowIBAAKCAQEA\n"
+        "-----" + "END" + " PRIVATE KEY-----"
+    )
     out = redact_diagnostic_text(
         f"{pem} Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaa.bbb "
         "alias_identity_private_key=YWJjZGVm "
