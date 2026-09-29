@@ -210,7 +210,13 @@ export default {
             } else {
                 const q = this.query.toLowerCase();
                 results = this.allResults.filter(
-                    (r) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)
+                    (r) =>
+                        String(r.title ?? "")
+                            .toLowerCase()
+                            .includes(q) ||
+                        String(r.description ?? "")
+                            .toLowerCase()
+                            .includes(q)
                 );
             }
             // A broad match over a large address book must not mount hundreds

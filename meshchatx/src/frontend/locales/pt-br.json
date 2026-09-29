@@ -3572,7 +3572,6 @@
                     "request_usb": "Permitir USB",
                     "open_native": "Abrir flasher nativo",
                     "open_settings": "Abrir configurações",
-                    "polyfill_loading": "Carregando polyfill de USB serial...",
                     "opened_native": "O flasher nativo do RNode foi aberto.",
                     "open_native_failed": "Não foi possível abrir o flasher nativo do RNode.",
                     "bluetooth_requested": "Permissão de Bluetooth solicitada.",

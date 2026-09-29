@@ -287,8 +287,9 @@ export default {
         },
         async onCapabilitiesAction(action) {
             if (action === "load-polyfill") {
-                this.loadVendorLibraries(true);
-                ToastUtils.info(this.$t("tools.rnode_flasher.support.actions.polyfill_loading"));
+                // The web-serial polyfill is not shipped; the flasher needs
+                // native WebSerial or the Android bridge.
+                ToastUtils.error(this.$t("tools.rnode_flasher.support.actions.polyfill_loading"));
                 return;
             }
             if (action === "open-native-flasher" || action === "request-usb") {
@@ -370,7 +371,24 @@ export default {
             }
         },
         async loadVendorLibraries(force = false) {
+            if (this._vendorLoadPromise && !force) {
+                return this._vendorLoadPromise;
+            }
+            const load = this._loadVendorLibrariesInner(force);
+            this._vendorLoadPromise = load.finally(() => {
+                this._vendorLoadPromise = null;
+            });
+            return this._vendorLoadPromise;
+        },
+        async _loadVendorLibrariesInner(force = false) {
             if (!force && window.zip && window.CryptoJS && window.ESPLoader) return;
+            if (!crypto.subtle) {
+                // SRI verification requires a secure context (HTTPS or
+                // localhost). Surface it once instead of failing silently.
+                ToastUtils.error(this.$t("tools.rnode_flasher.support.actions.polyfill_loading"));
+                this.refreshCapabilities();
+                return;
+            }
             const libs = [
                 "/rnode-flasher/js/zip.min.js",
                 "/rnode-flasher/js/crypto-js@3.9.1-1/core.js",
@@ -379,9 +397,10 @@ export default {
             for (const lib of libs) {
                 try {
                     await this._loadScript(lib);
-                } catch {
-                    // continue best-effort. loadVendorLibraries is best-effort and
-                    // missing assets surface later through clear error toasts
+                } catch (e) {
+                    // Verified loads fail loudly: an SRI mismatch or fetch
+                    // failure is a tamper signal, not noise.
+                    console.error(`RNode: vendor script ${lib} failed verification/load:`, e);
                 }
             }
             try {

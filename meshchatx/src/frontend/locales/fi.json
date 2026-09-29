@@ -3572,7 +3572,6 @@
                     "request_usb": "Salli USB",
                     "open_native": "Avaa natiivi flasher",
                     "open_settings": "Avaa asetukset",
-                    "polyfill_loading": "Ladataan USB-sarjaportin polyfilliä...",
                     "opened_native": "Natiivi RNode-flasher avattu.",
                     "open_native_failed": "Natiivia RNode-flasheria ei voitu avata.",
                     "bluetooth_requested": "Bluetooth-lupaa pyydetty.",

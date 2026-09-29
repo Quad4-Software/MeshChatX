@@ -3572,7 +3572,6 @@
                     "request_usb": "USB'ye İzin Ver",
                     "open_native": "Yerel flasher'ı aç",
                     "open_settings": "Ayarları aç",
-                    "polyfill_loading": "USB seri polyfill'i yükleniyor...",
                     "opened_native": "Yerel RNode flasher'ı açıldı.",
                     "open_native_failed": "Yerel RNode flasher'ı açılamadı.",
                     "bluetooth_requested": "Bluetooth izni istendi.",

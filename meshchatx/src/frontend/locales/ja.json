@@ -3572,7 +3572,6 @@
                     "request_usb": "USB を許可",
                     "open_native": "ネイティブフラッシャーを開く",
                     "open_settings": "設定を開く",
-                    "polyfill_loading": "USB シリアル polyfill を読み込み中...",
                     "opened_native": "ネイティブの RNode フラッシャーを開きました。",
                     "open_native_failed": "ネイティブの RNode フラッシャーを開けませんでした。",
                     "bluetooth_requested": "Bluetooth 権限を要求しました。",
