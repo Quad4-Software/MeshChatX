@@ -3572,7 +3572,6 @@
                     "request_usb": "USB 허용",
                     "open_native": "네이티브 플래셔 열기",
                     "open_settings": "설정 열기",
-                    "polyfill_loading": "USB 직렬 폴리필을 불러오는 중...",
                     "opened_native": "네이티브 RNode 플래셔를 열었습니다.",
                     "open_native_failed": "네이티브 RNode 플래셔를 열 수 없습니다.",
                     "bluetooth_requested": "Bluetooth 권한을 요청했습니다.",

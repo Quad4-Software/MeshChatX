@@ -3572,7 +3572,6 @@
                     "request_usb": "Zezwól na USB",
                     "open_native": "Otwórz natywne narzędzie do wgrywania",
                     "open_settings": "Otwórz ustawienia",
-                    "polyfill_loading": "Ładowanie polyfill portu szeregowego USB...",
                     "opened_native": "Otwarto natywne narzędzie do wgrywania RNode.",
                     "open_native_failed": "Nie udało się otworzyć natywnego narzędzia do wgrywania RNode.",
                     "bluetooth_requested": "Zażądano uprawnienia Bluetooth.",

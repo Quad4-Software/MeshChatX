@@ -3572,7 +3572,6 @@
                     "request_usb": "USB toestaan",
                     "open_native": "Native flasher openen",
                     "open_settings": "Instellingen openen",
-                    "polyfill_loading": "USB-serieel polyfill laden...",
                     "opened_native": "Native RNode-flasher geopend.",
                     "open_native_failed": "Kon de native RNode-flasher niet openen.",
                     "bluetooth_requested": "Bluetooth-toestemming aangevraagd.",

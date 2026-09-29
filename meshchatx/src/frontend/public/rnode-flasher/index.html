@@ -687,13 +687,6 @@
             </div>
         </div>
 
-        <!-- setup web-serial-polyfill -->
-        <script type="module">
-            import { serial } from "./js/web-serial-polyfill@1.0.15/dist/serial.js";
-            if (!navigator.serial && navigator.usb) {
-                navigator.serial = serial;
-            }
-        </script>
 
         <!-- setup esptool-js -->
         <script type="module">

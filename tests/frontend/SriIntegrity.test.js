@@ -156,7 +156,6 @@ describe("SRI (Subresource Integrity) Verification", () => {
                 "esptool-js@0.4.5/bundle.js",
                 "nrf52_dfu_flasher.js",
                 "rnode.js",
-                "web-serial-polyfill@1.0.15/dist/serial.js",
             ];
 
             for (const file of requiredFiles) {

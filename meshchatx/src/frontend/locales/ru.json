@@ -3572,7 +3572,6 @@
                     "request_usb": "Разрешить USB",
                     "open_native": "Открыть встроенный прошивальщик",
                     "open_settings": "Открыть настройки",
-                    "polyfill_loading": "Загрузка полифилла USB-последовательного порта...",
                     "opened_native": "Встроенный прошивальщик RNode открыт.",
                     "open_native_failed": "Не удалось открыть встроенный прошивальщик RNode.",
                     "bluetooth_requested": "Запрошено разрешение Bluetooth.",
