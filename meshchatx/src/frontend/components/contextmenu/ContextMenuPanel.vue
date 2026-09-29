@@ -129,13 +129,15 @@ export default {
             if (event.key === "Escape" || event.key === "Tab") {
                 // Route the dismissal through the parent v-click-outside
                 // handler stored on this component's root element so every
-                // consumer closes without per-menu wiring.
+                // consumer closes without per-menu wiring. Each entry is the
+                // same handler bound per event name, so firing one is enough.
+                event.preventDefault();
+                event.stopPropagation();
                 const entries = this.$el?.[HANDLERS_PROPERTY] || [];
-                for (const entry of entries) {
-                    if (entry.event === "click" || entry.event === "contextmenu") {
-                        entry.handler({ target: document.documentElement });
-                    }
-                }
+                const entry = entries.find(
+                    (e) => e.event === "click" || e.event === "contextmenu" || e.event === "touchstart"
+                );
+                entry?.handler({ target: document.documentElement });
                 return;
             }
             if (event.key === "ArrowDown") {

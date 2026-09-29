@@ -1016,6 +1016,7 @@ class RRCHub:
         with self._lock:
             if isinstance(msg.mid, (bytes, bytearray)):
                 self._pending_delivery.pop(bytes(msg.mid), None)
+        mid_b = None
         if isinstance(mid, (bytes, bytearray)):
             mid_b = bytes(mid)
             with self._lock:
@@ -1023,7 +1024,14 @@ class RRCHub:
                 msg.delivery = "sending"
                 self._sent_ids.append(mid_b)
                 self._pending_delivery[mid_b] = (msg, time.monotonic())
-        self._send_env(env)
+        try:
+            self._send_env(env)
+        except Exception:
+            if mid_b is not None:
+                with self._lock:
+                    self._pending_delivery.pop(mid_b, None)
+            msg.delivery = "failed"
+            raise
         self.manager._notify_messages(self, msg)
         return mid
 

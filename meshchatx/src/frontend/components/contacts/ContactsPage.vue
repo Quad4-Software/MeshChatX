@@ -266,7 +266,13 @@
         </button>
 
         <!-- Contact context menu -->
-        <ContextMenuPanel :show="contextMenu.visible" :x="contextMenu.x" :y="contextMenu.y" panel-class="z-210">
+        <ContextMenuPanel
+            v-click-outside="{ handler: closeContextMenu, capture: true }"
+            :show="contextMenu.visible"
+            :x="contextMenu.x"
+            :y="contextMenu.y"
+            panel-class="z-210"
+        >
             <ContextMenuItem @click="openConversation(contextMenu.contact)">
                 <MaterialDesignIcon icon-name="message-text-outline" class="size-4" />
                 {{ $t("contacts.send_message") }}
@@ -610,18 +616,13 @@ export default {
         offWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onLxmIngestUriResult);
         GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         clearTimeout(this.lxmaImportTimeout);
-        document.removeEventListener("click", this.closeContextMenu);
-        document.removeEventListener("contextmenu", this.closeContextMenu, true);
+
         this.stopScanner();
         if (this.searchDebounceTimeout) {
             clearTimeout(this.searchDebounceTimeout);
         }
     },
     async mounted() {
-        document.addEventListener("click", this.closeContextMenu);
-        // Capture so a right-click on another row closes the open menu before
-        // that row's own contextmenu handler reopens it at the new anchor.
-        document.addEventListener("contextmenu", this.closeContextMenu, true);
         onWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onLxmIngestUriResult);
         GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         await this.getConfig();
