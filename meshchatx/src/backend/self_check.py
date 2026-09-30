@@ -363,7 +363,7 @@ def check_fs_sandbox() -> dict[str, str]:
 def check_rns_backbone_patch() -> dict[str, str]:
     """Verify the backbone epoll degradation is correct for this platform.
 
-    RNS 1.5.4's BackboneClientInterface needs the Linux epoll loop. On
+    RNS 1.5.5's BackboneClientInterface needs the Linux epoll loop. On
     macOS and Windows the patch must rebind it to TCPClientInterface or
     every backbone client connection retries forever. On Linux and
     Android it must be left alone.

@@ -109,7 +109,7 @@ pyserial 3.5
 reticulum-meshchatx 4.9.3
   License: 0BSD AND MIT
   Author: Quad4
-rns 1.5.4
+rns 1.5.5
   License: Reticulum License
   Author: Mark Qvist
 rns-filesync 1.0.0
