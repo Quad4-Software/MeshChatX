@@ -142,6 +142,9 @@ def register_reticulum_instance_routes(routes, app):
                 "autoconnect_discovered_interfaces",
                 ReticulumMeshChat.DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES,
             ),
+            "autoconnect_unverified_implementations": reticulum_config.get(
+                "autoconnect_unverified_implementations",
+            ),
             "default_gravity": reticulum_config.get("default_gravity"),
             "autoconnect_interface_mode": reticulum_config.get(
                 "autoconnect_interface_mode",
@@ -209,6 +212,7 @@ def register_reticulum_instance_routes(routes, app):
             "interface_discovery_blacklist",
             "required_discovery_value",
             "autoconnect_discovered_interfaces",
+            "autoconnect_unverified_implementations",
             "network_identity",
         ):
             update_config_value(key)
@@ -314,6 +318,9 @@ def register_reticulum_instance_routes(routes, app):
             "autoconnect_discovered_interfaces": reticulum_config.get(
                 "autoconnect_discovered_interfaces",
                 ReticulumMeshChat.DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES,
+            ),
+            "autoconnect_unverified_implementations": reticulum_config.get(
+                "autoconnect_unverified_implementations",
             ),
             "default_gravity": reticulum_config.get("default_gravity"),
             "autoconnect_interface_mode": reticulum_config.get(

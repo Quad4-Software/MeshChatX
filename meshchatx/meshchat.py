@@ -5934,7 +5934,7 @@ class ReticulumMeshChat:
         # called when web app has started
         async def on_startup(app):
             # remember main event loop
-            AsyncUtils.set_main_loop(asyncio.get_event_loop())
+            AsyncUtils.set_main_loop(asyncio.get_running_loop())
 
             if not self._network_ready:
                 self.start_network_setup_in_background()

@@ -93,7 +93,7 @@ async def test_ws_ping_emits_pong_contract():
             import asyncio
 
             if asyncio.iscoroutine(coro):
-                asyncio.get_event_loop().create_task(coro)
+                asyncio.get_running_loop().create_task(coro)
 
         mock_async_utils.run_async.side_effect = run_async
         await app.on_websocket_data_received(client, {"type": "ping"})

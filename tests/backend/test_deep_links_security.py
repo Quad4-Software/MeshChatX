@@ -28,7 +28,7 @@ def _await_map_ingest(mock_app, uri: str):
             )
         await asyncio.sleep(0)
 
-    asyncio.get_event_loop_policy().get_event_loop().run_until_complete(_run())
+    asyncio.run(_run())
     return mock_client
 
 

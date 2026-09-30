@@ -49,6 +49,34 @@ describe("Interface.vue", () => {
         expect(wrapper.emitted("enable")).toHaveLength(1);
     });
 
+    it("canRestart is true only for running attached interfaces", () => {
+        const running = mountInterface({ _stats: { status: true } });
+        expect(running.vm.canRestart).toBe(true);
+
+        const detached = mountInterface();
+        expect(detached.vm.canRestart).toBe(false);
+
+        const notRunning = mountInterface(
+            { _stats: { status: true } },
+            {
+                props: {
+                    iface: { ...defaultIface, _stats: { status: true } },
+                    isReticulumRunning: false,
+                },
+            },
+        );
+        expect(notRunning.vm.canRestart).toBe(false);
+
+        const disabled = mountInterface({ enabled: false, _stats: { status: true } });
+        expect(disabled.vm.canRestart).toBe(false);
+    });
+
+    it("emits reload when restart is invoked", () => {
+        const wrapper = mountInterface({ _stats: { status: true } });
+        wrapper.vm.reloadInterface();
+        expect(wrapper.emitted("reload")).toHaveLength(1);
+    });
+
     it("has overflow containment classes on card and content", () => {
         const wrapper = mountInterface();
         const card = wrapper.find(".interface-card");

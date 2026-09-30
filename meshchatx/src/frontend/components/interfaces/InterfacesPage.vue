@@ -157,6 +157,7 @@
                                     @edit="editInterface(iface._name)"
                                     @export="exportInterface(iface._name)"
                                     @delete="deleteInterface(iface._name)"
+                                    @reload="restartInterface(iface._name)"
                                 />
                             </div>
                             <div
@@ -321,6 +322,14 @@
                                                     <span class="stat-chip capitalize bg-gray-50 dark:bg-zinc-800/50">{{
                                                         iface.status
                                                     }}</span>
+                                                    <span
+                                                        v-if="iface.impl_name"
+                                                        class="stat-chip bg-gray-50 dark:bg-zinc-800/50"
+                                                        :title="$t('interfaces.discovered_impl_hint')"
+                                                    >
+                                                        {{ iface.impl_name
+                                                        }}<template v-if="iface.version"> {{ iface.version }}</template>
+                                                    </span>
                                                     <span
                                                         v-if="iface.last_heard"
                                                         class="stat-chip bg-gray-50 dark:bg-zinc-800/50"
@@ -705,6 +714,24 @@
                                             >
                                                 <div class="min-w-0 pr-0 sm:pr-4">
                                                     <div class="text-sm font-semibold text-sem-fg">
+                                                        {{ $t("interfaces.autoconnect_unverified_label") }}
+                                                    </div>
+                                                    <div class="text-xs text-sem-fg-muted">
+                                                        {{ $t("interfaces.autoconnect_unverified_hint") }}
+                                                    </div>
+                                                </div>
+                                                <Toggle
+                                                    v-model="discoveryConfig.autoconnect_unverified_implementations"
+                                                    class="shrink-0 sm:my-auto"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div class="sm:col-span-2">
+                                            <div
+                                                class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                                            >
+                                                <div class="min-w-0 pr-0 sm:pr-4">
+                                                    <div class="text-sm font-semibold text-sem-fg">
                                                         {{ $t("interfaces.discovery_default_bootstrap_only") }}
                                                     </div>
                                                     <div class="text-xs text-sem-fg-muted">
@@ -822,6 +849,7 @@ export default {
                 autoconnect_interface_mode: "",
                 autoconnect_interface_gravity: null,
                 autoconnect_announces_to_internal: false,
+                autoconnect_unverified_implementations: false,
                 default_bootstrap_only: false,
                 network_identity: "",
             },
@@ -1038,6 +1066,17 @@ export default {
                 useInterfaceChangesStore().modifiedInterfaceNames.add(interfaceName);
             }
         },
+        untrackInterfaceChange(interfaceName) {
+            // A change that was applied live via RNS interface management
+            // no longer needs a full stack restart.
+            const store = useInterfaceChangesStore();
+            if (interfaceName) {
+                store.modifiedInterfaceNames.delete(interfaceName);
+            }
+            if (store.modifiedInterfaceNames.size === 0) {
+                store.hasPendingInterfaceChanges = false;
+            }
+        },
         isInterfaceEnabled: function (iface) {
             return Utils.isInterfaceEnabled(iface);
         },
@@ -1076,10 +1115,14 @@ export default {
         async enableInterface(interfaceName) {
             // enable interface
             try {
-                await window.api.post(apiPath("/reticulum/interfaces/enable"), {
+                const response = await window.api.post(apiPath("/reticulum/interfaces/enable"), {
                     name: interfaceName,
                 });
-                this.trackInterfaceChange(interfaceName);
+                if (response?.data?.applied_live === true) {
+                    this.untrackInterfaceChange(interfaceName);
+                } else {
+                    this.trackInterfaceChange(interfaceName);
+                }
             } catch (e) {
                 DialogUtils.alert(
                     e?.response?.data?.error || e?.response?.data?.message || this.$t("interfaces.failed_enable")
@@ -1093,13 +1136,37 @@ export default {
         async disableInterface(interfaceName) {
             // disable interface
             try {
-                await window.api.post(apiPath("/reticulum/interfaces/disable"), {
+                const response = await window.api.post(apiPath("/reticulum/interfaces/disable"), {
                     name: interfaceName,
                 });
-                this.trackInterfaceChange(interfaceName);
+                if (response?.data?.applied_live === true) {
+                    this.untrackInterfaceChange(interfaceName);
+                } else {
+                    this.trackInterfaceChange(interfaceName);
+                }
             } catch (e) {
                 DialogUtils.alert(
                     e?.response?.data?.error || e?.response?.data?.message || this.$t("interfaces.failed_disable")
+                );
+                console.log(e);
+            }
+
+            // reload interfaces
+            await this.loadInterfaces();
+        },
+        async restartInterface(interfaceName) {
+            // live reload via RNS 1.5.5 interface management
+            try {
+                const response = await window.api.post(apiPath("/reticulum/interfaces/reload"), {
+                    name: interfaceName,
+                });
+                ToastUtils.success(response?.data?.message || this.$t("interfaces.reloaded"));
+                this.untrackInterfaceChange(interfaceName);
+            } catch (e) {
+                DialogUtils.alert(
+                    e?.response?.data?.error ||
+                        e?.response?.data?.message ||
+                        this.$t("interfaces.failed_reload_interface")
                 );
                 console.log(e);
             }
@@ -1123,10 +1190,14 @@ export default {
 
             // delete interface
             try {
-                await window.api.post(apiPath("/reticulum/interfaces/delete"), {
+                const response = await window.api.post(apiPath("/reticulum/interfaces/delete"), {
                     name: interfaceName,
                 });
-                this.trackInterfaceChange(interfaceName);
+                if (response?.data?.applied_live === true) {
+                    this.untrackInterfaceChange(interfaceName);
+                } else {
+                    this.trackInterfaceChange(interfaceName);
+                }
             } catch (e) {
                 DialogUtils.alert(this.$t("interfaces.failed_delete"));
                 console.log(e);
@@ -1389,6 +1460,9 @@ export default {
                 this.discoveryConfig.autoconnect_announces_to_internal = this.parseBool(
                     discovery.autoconnect_announces_to_internal ?? false
                 );
+                this.discoveryConfig.autoconnect_unverified_implementations = this.parseBool(
+                    discovery.autoconnect_unverified_implementations ?? false
+                );
                 this.discoveryConfig.default_bootstrap_only = this.parseBool(discovery.default_bootstrap_only ?? false);
                 this.discoveryConfig.network_identity = discovery.network_identity ?? "";
             } catch (e) {
@@ -1426,6 +1500,8 @@ export default {
                             ? null
                             : Number(this.discoveryConfig.autoconnect_interface_gravity),
                     autoconnect_announces_to_internal: this.discoveryConfig.autoconnect_announces_to_internal === true,
+                    autoconnect_unverified_implementations:
+                        this.discoveryConfig.autoconnect_unverified_implementations === true,
                     default_bootstrap_only: this.discoveryConfig.default_bootstrap_only,
                     network_identity: this.discoveryConfig.network_identity || null,
                 };

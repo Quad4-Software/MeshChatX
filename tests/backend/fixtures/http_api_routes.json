@@ -1214,11 +1214,19 @@
         },
         {
             "method": "POST",
+            "path": "/api/v1/reticulum/interfaces/attach"
+        },
+        {
+            "method": "POST",
             "path": "/api/v1/reticulum/interfaces/bitrates"
         },
         {
             "method": "POST",
             "path": "/api/v1/reticulum/interfaces/delete"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/interfaces/detach"
         },
         {
             "method": "POST",
@@ -1239,6 +1247,10 @@
         {
             "method": "POST",
             "path": "/api/v1/reticulum/interfaces/import-preview"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/interfaces/reload"
         },
         {
             "method": "GET",

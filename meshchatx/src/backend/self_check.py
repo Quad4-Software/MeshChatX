@@ -1302,9 +1302,9 @@ async def _probe_rns_link_api(ws: Any, *, timeout: float = 10.0) -> dict[str, st
                 },
             ),
         )
-        deadline = asyncio.get_event_loop().time() + timeout
+        deadline = asyncio.get_running_loop().time() + timeout
         while True:
-            remaining = deadline - asyncio.get_event_loop().time()
+            remaining = deadline - asyncio.get_running_loop().time()
             if remaining <= 0:
                 return _status(False, "rns.link.close reply timed out")
             msg = await asyncio.wait_for(ws.receive(), timeout=remaining)

@@ -128,6 +128,10 @@
                             </template>
                             <template #items>
                                 <div class="max-h-60 overflow-auto py-1 space-y-1">
+                                    <DropDownMenuItem v-if="canRestart" @click="reloadInterface">
+                                        <MaterialDesignIcon icon-name="restart" class="w-5 h-5" />
+                                        <span>{{ $t("interface.restart_interface") }}</span>
+                                    </DropDownMenuItem>
                                     <DropDownMenuItem @click="editInterface">
                                         <MaterialDesignIcon icon-name="pencil" class="w-5 h-5" />
                                         <span>{{ $t("interface.edit_interface") }}</span>
@@ -218,7 +222,7 @@ export default {
             default: true,
         },
     },
-    emits: ["enable", "disable", "edit", "export", "delete"],
+    emits: ["enable", "disable", "edit", "export", "delete", "reload"],
     data() {
         return {};
     },
@@ -350,6 +354,11 @@ export default {
             if (st.connected === false || st.online === false) return false;
             return null;
         },
+        canRestart() {
+            // RNS 1.5.5 live reload only applies while the interface is
+            // attached; a missing stats entry means it is detached or down.
+            return this.isReticulumRunning && this.isInterfaceEnabled(this.iface) && this.iface._stats != null;
+        },
         isBackboneIfacTunnel() {
             if (this.iface.type !== "BackboneInterface") {
                 return false;
@@ -390,6 +399,9 @@ export default {
         },
         deleteInterface() {
             this.$emit("delete");
+        },
+        reloadInterface() {
+            this.$emit("reload");
         },
         formatBitsPerSecond: function (bits) {
             return Utils.formatBitsPerSecond(bits);
