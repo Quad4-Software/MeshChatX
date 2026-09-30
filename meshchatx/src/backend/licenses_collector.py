@@ -229,13 +229,6 @@ def _merge_bundled_vendor_rows(
     return merged
 
 
-def _merge_bundled_lxmfy(
-    repo_root: Path,
-    rows: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    return _merge_bundled_vendor_rows(repo_root, rows)
-
-
 def _collect_backend_licenses_live() -> list[dict[str, Any]]:
     repo = _repo_root()
     for root in _ROOT_DIST_CANDIDATES:

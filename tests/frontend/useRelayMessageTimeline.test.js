@@ -199,6 +199,22 @@ describe("useRelayMessageTimeline", () => {
         expect(tl.messages.value.map((m) => m.seq)).toEqual([1, 2, 3]);
     });
 
+    it("pushLiveMessage patches delivery state on a dedupe hit", () => {
+        const tl = makeTimeline();
+        tl.messages.value = [msg(1, "text", { delivery: "sending" })];
+        const update = msg(1, "text", { delivery: "sent" });
+        expect(tl.pushLiveMessage(update)).toBe(false);
+        expect(tl.messages.value).toHaveLength(1);
+        expect(tl.messages.value[0].delivery).toBe("sent");
+    });
+
+    it("pushLiveMessage ignores dedupe re-push without a delivery field", () => {
+        const tl = makeTimeline();
+        tl.messages.value = [msg(1, "text", { delivery: "sending" })];
+        expect(tl.pushLiveMessage(msg(1, "text"))).toBe(false);
+        expect(tl.messages.value[0].delivery).toBe("sending");
+    });
+
     it("pushLiveMessage trims the oldest entries past the window cap", async () => {
         const tl = makeTimeline();
         tl.messages.value = Array.from({ length: 2000 }, (_, i) => msg(i + 1));

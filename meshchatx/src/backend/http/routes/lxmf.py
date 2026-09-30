@@ -525,7 +525,7 @@ def register_lxmf_routes(routes, app):
         all_paths = []
         if hasattr(app, "reticulum") and app.reticulum:
             try:
-                all_paths = app.reticulum.get_path_table()
+                all_paths = await app._reticulum_rpc("get_path_table")
             except Exception:
                 pass
 
@@ -592,6 +592,10 @@ def register_lxmf_routes(routes, app):
             content = lm["content"]
         except (KeyError, TypeError):
             return http_bad_request("destination_hash and content are required")
+        if not isinstance(destination_hash, str):
+            return http_bad_request("destination_hash must be a string")
+        if not isinstance(content, (str, bytes)):
+            return http_bad_request("content must be a string")
 
         raw_fields = lm.get("fields")
         fields = dict(raw_fields) if isinstance(raw_fields, dict) else {}
@@ -663,7 +667,11 @@ def register_lxmf_routes(routes, app):
                 detail = "Sending timed out"
             else:
                 detail = "Sending failed"
-            body: dict[str, object] = {"message": detail}
+            body: dict[str, object] = {
+                "error": detail,
+                "code": "send_failed",
+                "message": detail,
+            }
             lower = internal.lower()
             failure_hint = None
             if "could not recall" in lower:

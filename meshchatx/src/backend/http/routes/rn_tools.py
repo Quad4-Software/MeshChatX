@@ -571,7 +571,8 @@ def register_rn_tools_routes(routes, app):
                     include_link_stats=include_link_stats,
                     timeout=timeout,
                 )
-                status = app.rnstatus_handler.get_status(
+                status = await asyncio.to_thread(
+                    app.rnstatus_handler.get_status,
                     include_link_stats=include_link_stats,
                     sorting=sorting,
                     sort_reverse=sort_reverse,
@@ -582,7 +583,8 @@ def register_rn_tools_routes(routes, app):
                 )
                 status["remote"] = remote
             else:
-                status = app.rnstatus_handler.get_status(
+                status = await asyncio.to_thread(
+                    app.rnstatus_handler.get_status,
                     include_link_stats=include_link_stats,
                     sorting=sorting,
                     sort_reverse=sort_reverse,
@@ -650,7 +652,8 @@ def register_rn_tools_routes(routes, app):
                     max_hops=max_hops,
                     timeout=timeout,
                 )
-            result = app.rnpath_handler.get_path_table(
+            result = await asyncio.to_thread(
+                app.rnpath_handler.get_path_table,
                 max_hops=max_hops,
                 search=search,
                 interface=interface,
@@ -704,7 +707,9 @@ def register_rn_tools_routes(routes, app):
                     reticulum_config_dir=getattr(app, "reticulum_config_dir", None),
                     timeout=timeout,
                 )
-            rates = app.rnpath_handler.get_rate_table(raw_table=raw_table)
+            rates = await asyncio.to_thread(
+                app.rnpath_handler.get_rate_table, raw_table=raw_table
+            )
             payload = {"rates": rates}
             if remote:
                 payload["remote"] = remote
@@ -729,7 +734,9 @@ def register_rn_tools_routes(routes, app):
         if not_ready is not None:
             return not_ready
         try:
-            success = app.rnpath_handler.drop_path(destination_hash)
+            success = await asyncio.to_thread(
+                app.rnpath_handler.drop_path, destination_hash
+            )
             return web.json_response({"success": success})
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
@@ -747,7 +754,9 @@ def register_rn_tools_routes(routes, app):
         if not_ready is not None:
             return not_ready
         try:
-            success = app.rnpath_handler.drop_all_via(transport_instance_hash)
+            success = await asyncio.to_thread(
+                app.rnpath_handler.drop_all_via, transport_instance_hash
+            )
             return web.json_response({"success": success})
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
@@ -758,7 +767,7 @@ def register_rn_tools_routes(routes, app):
         if not_ready is not None:
             return not_ready
         try:
-            app.rnpath_handler.drop_announce_queues()
+            await asyncio.to_thread(app.rnpath_handler.drop_announce_queues)
             return web.json_response({"success": True})
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)

@@ -489,6 +489,28 @@ window.addEventListener("message", (ev) => {
             if (img && allowed) {
                 img.src = dataUrl;
                 img.removeAttribute("hidden");
+                // Move the micron size spec from the placeholder box onto the
+                // image itself. A percentage width resolves against the page,
+                // so it stays on the block container and the img fills it.
+                // Other specs (ch columns, lh/vh height) size the img directly
+                // so it honors the spec even when the natural size differs.
+                const wSpec = el.getAttribute("data-mu-image-w");
+                const hSpec = el.getAttribute("data-mu-image-h");
+                if (wSpec && wSpec !== "auto" && wSpec.endsWith("%")) {
+                    img.style.width = "100%";
+                } else {
+                    el.style.width = "fit-content";
+                    if (wSpec && wSpec !== "auto") {
+                        img.style.width = wSpec;
+                    }
+                }
+                if (hSpec && hSpec !== "auto") {
+                    img.style.height = hSpec;
+                }
+                // Release the reserved placeholder space so loaded pages do not
+                // keep dead space below the image.
+                el.style.minHeight = "";
+                el.classList.add("mu-image-loaded");
             }
             if (load) {
                 load.textContent = allowed ? "Loaded" : "Error: unsupported image type";

@@ -67,24 +67,47 @@ function geoAnchor(display, text) {
  */
 export function linkifyGeoRefs(text) {
     if (typeof text !== "string" || !text) return text;
-    let out = text;
+
+    // Collect every candidate on the ORIGINAL text, then emit anchors in one
+    // pass. Sequential replace() re-scanned the generated anchor markup and
+    // could nest anchors inside data-geo-text attributes.
+    const matches = [];
+    const addMatch = (start, end, display, body) => {
+        // Skip overlaps with an already-claimed range.
+        for (const m of matches) {
+            if (start < m.end && end > m.start) return;
+        }
+        matches.push({ start, end, display, body });
+    };
 
     // Explicit geo:/grid:/locator: schemes always link.
-    out = out.replace(EXPLICIT_RE, (match, body) => geoAnchor(body.trim(), body.trim()));
+    for (const m of text.matchAll(EXPLICIT_RE)) {
+        addMatch(m.index, m.index + m[0].length, m[1].trim(), m[1].trim());
+    }
 
-    // Maidenhead locators, 6+ chars only for auto-linking to avoid noise.
-    out = out.replace(MAIDENHEAD_RE, (match) => geoAnchor(match, match));
+    // Maidenhead locators.
+    for (const m of text.matchAll(MAIDENHEAD_RE)) {
+        addMatch(m.index, m.index + m[0].length, m[0], m[0]);
+    }
 
     // lat, lon decimal pairs within plausible ranges.
-    out = out.replace(LATLON_RE, (match, latS, lonS) => {
-        const lat = parseFloat(latS);
-        const lon = parseFloat(lonS);
-        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return match;
-        if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return match;
-        return geoAnchor(match, match);
-    });
+    for (const m of text.matchAll(LATLON_RE)) {
+        const lat = parseFloat(m[1]);
+        const lon = parseFloat(m[2]);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+        if (Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+        addMatch(m.index, m.index + m[0].length, m[0], m[0]);
+    }
 
-    return out;
+    if (!matches.length) return text;
+    matches.sort((a, b) => a.start - b.start);
+    let out = "";
+    let cursor = 0;
+    for (const m of matches) {
+        out += text.slice(cursor, m.start) + geoAnchor(m.display, m.body);
+        cursor = m.end;
+    }
+    return out + text.slice(cursor);
 }
 
 /**

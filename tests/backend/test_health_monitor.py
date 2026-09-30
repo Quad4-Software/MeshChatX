@@ -207,3 +207,72 @@ class TestHealthMonitorEdgeCases(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_loop_probe_dumps_stacks_on_stall(monkeypatch):
+    """A frozen main loop triggers a one-shot stack dump + warning."""
+    import faulthandler
+
+    monitor = HealthMonitor(log_handler=None, app=None)
+
+    class DeadLoop:
+        def is_running(self):
+            return True
+
+        def call_soon_threadsafe(self, cb):
+            pass  # never runs the callback: wedged loop
+
+    from meshchatx.src.backend.async_utils import AsyncUtils
+
+    monkeypatch.setattr(AsyncUtils, "main_loop", DeadLoop())
+    monitor.LOOP_PROBE_INTERVAL_S = 0.05
+    monitor.LOOP_STALL_S = 0.05
+    monitor._running = True
+
+    dumps = []
+    monkeypatch.setattr(faulthandler, "dump_traceback", lambda: dumps.append(1))
+    import time
+
+    deadline = time.monotonic() + 5
+    import threading
+
+    t = threading.Thread(target=monitor._loop_probe_loop, daemon=True)
+    t.start()
+    while time.monotonic() < deadline and not dumps:
+        time.sleep(0.05)
+    monitor._running = False
+    monitor._stop_event.set()
+    t.join(timeout=3)
+    assert dumps, "stalled loop should trigger a faulthandler dump"
+    assert monitor._loop_stall_reported
+
+
+def test_loop_probe_ignores_healthy_loop(monkeypatch):
+    monitor = HealthMonitor(log_handler=None, app=None)
+
+    import asyncio
+    import threading
+
+    loop = asyncio.new_event_loop()
+    threading.Thread(target=loop.run_forever, daemon=True).start()
+    try:
+        from meshchatx.src.backend.async_utils import AsyncUtils
+
+        monkeypatch.setattr(AsyncUtils, "main_loop", loop)
+        monitor.LOOP_PROBE_INTERVAL_S = 0.05
+        monitor.LOOP_STALL_S = 1.0
+        monitor._running = True
+        import faulthandler
+        import time
+
+        dumps = []
+        monkeypatch.setattr(faulthandler, "dump_traceback", lambda: dumps.append(1))
+        t = threading.Thread(target=monitor._loop_probe_loop, daemon=True)
+        t.start()
+        time.sleep(0.4)
+        monitor._running = False
+        monitor._stop_event.set()
+        t.join(timeout=3)
+        assert not dumps
+    finally:
+        loop.call_soon_threadsafe(loop.stop)

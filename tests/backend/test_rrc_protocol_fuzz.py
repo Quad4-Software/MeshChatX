@@ -133,7 +133,7 @@ def test_parse_who_notice_shape(text):
 @given(text=st.one_of(st.none(), st.integers(), st.binary(), st.text(max_size=512)))
 @settings(max_examples=80, deadline=None)
 def test_parse_room_list_notice_shape(text):
-    result = proto.parse_room_list_notice(text)
+    result = proto.parse_room_list_notice_details(text)
     details = proto.parse_room_list_notice_details(text)
     if result is None:
         assert details is None

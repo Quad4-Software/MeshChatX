@@ -60,7 +60,12 @@ class MapDataError(ValueError):
         super().__init__(message or code)
 
 
-def coerce_map_request_body(payload, *, _depth: int = 0) -> bytes:
+def coerce_map_request_body(
+    payload,
+    *,
+    max_bytes: int | None = None,
+    _depth: int = 0,
+) -> bytes:
     """Turn an RNS request receipt payload into raw bytes.
 
     Catalog handlers return bytes. A list of [bytes, metadata] is the file
@@ -72,14 +77,36 @@ def coerce_map_request_body(payload, *, _depth: int = 0) -> bytes:
     if payload is None:
         raise MapDataError("empty_response")
     if isinstance(payload, (bytes, bytearray, memoryview)):
-        return bytes(payload)
+        out = bytes(payload)
+        if max_bytes is not None and len(out) > max_bytes:
+            raise MapDataError("response_too_large")
+        return out
     if isinstance(payload, str):
-        return payload.encode("utf-8")
+        out = payload.encode("utf-8")
+        if max_bytes is not None and len(out) > max_bytes:
+            raise MapDataError("response_too_large")
+        return out
     reader = getattr(payload, "read", None)
     if callable(reader):
-        return coerce_map_request_body(reader(), _depth=_depth + 1)
+        # Bound the read so a hostile reader cannot materialize a giant
+        # response into memory before the size check runs.
+        read_size = (max_bytes + 1) if max_bytes is not None else -1
+        try:
+            data = reader(read_size)
+        except TypeError:
+            # Readers without a size argument still get the byte cap below.
+            data = reader()
+        return coerce_map_request_body(
+            data,
+            max_bytes=max_bytes,
+            _depth=_depth + 1,
+        )
     if isinstance(payload, (list, tuple)) and payload:
-        return coerce_map_request_body(payload[0], _depth=_depth + 1)
+        return coerce_map_request_body(
+            payload[0],
+            max_bytes=max_bytes,
+            _depth=_depth + 1,
+        )
     raise MapDataError("invalid_response")
 
 
@@ -780,7 +807,10 @@ class MapDataManager:
 
         def on_response(receipt):
             try:
-                body = coerce_map_request_body(getattr(receipt, "response", None))
+                body = coerce_map_request_body(
+                    getattr(receipt, "response", None),
+                    max_bytes=self._cfg_max_bytes(),
+                )
             except MapDataError as exc:
                 call_soon_threadsafe_or_none(loop, _fail_future, future, exc)
                 return

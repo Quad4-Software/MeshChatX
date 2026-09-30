@@ -32,10 +32,11 @@ from meshchatx.src.backend.http.db_availability import (
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_forbidden,
+    http_payload_too_large,
     http_unauthorized,
     http_unavailable,
 )
-from meshchatx.src.backend.http.uploads import JsonBodyError
+from meshchatx.src.backend.http.uploads import JsonBodyError, PayloadTooLargeError
 from meshchatx.src.backend.ip_allowlist import client_ip_allowed
 from meshchatx.src.backend.privacy_mode import privacy_mode_enabled
 from meshchatx.src.env_utils import env_bool
@@ -135,6 +136,10 @@ def create_bad_request_middleware(app):
     async def bad_request_middleware(request, handler):
         try:
             return await handler(request)
+        except PayloadTooLargeError:
+            if not request.path.startswith("/api/"):
+                raise
+            return http_payload_too_large()
         except (json.JSONDecodeError, UnicodeDecodeError, JsonBodyError):
             if not request.path.startswith("/api/"):
                 raise
@@ -258,7 +263,15 @@ def create_auth_middleware(app):
             ):
                 return await handler(request)
 
+        # Recovery endpoints exist precisely for the failed-context state, so
+        # they must be reachable while the context is down.
+        recover_paths = (
+            API_V1_PREFIX + "/reticulum/recover",
+            API_V1_PREFIX + "/status",
+        )
         if not app.current_context or not app.current_context.running:
+            if path in recover_paths:
+                return await handler(request)
             return http_unavailable(
                 "Application is initializing or switching identity",
                 code="starting",

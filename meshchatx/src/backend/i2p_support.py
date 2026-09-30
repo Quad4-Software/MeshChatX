@@ -148,13 +148,6 @@ def validate_i2p_enable(
     return None
 
 
-def validate_no_i2p_in_import(interface_config: dict) -> str | None:
-    for name, body in interface_config.items():
-        if is_i2p_interface(body):
-            return f'{MSG_IMPORT_FORBIDDEN} (rejected "{name}")'
-    return None
-
-
 def reorder_interfaces_i2p_last(interfaces: dict) -> bool:
     """Move all I2P sections to the end. Returns True when order changed."""
     if not isinstance(interfaces, dict) or not interfaces:
@@ -250,19 +243,6 @@ def repair_interfaces_dict(
             "Moved I2P interface(s) to the end of [interfaces] for safe startup",
         )
     return modified
-
-
-def existing_i2p_names_from_config_path(config_path: str) -> set[str]:
-    if not os.path.isfile(config_path):
-        return set()
-    try:
-        from RNS.vendor.configobj import ConfigObj
-
-        cfg = ConfigObj(config_path)
-    except Exception:
-        return set()
-    interfaces = cfg.get("interfaces")
-    return set(list_i2p_names(interfaces))
 
 
 def _iface_snapshot(iface: dict) -> dict:

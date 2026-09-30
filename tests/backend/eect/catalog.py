@@ -158,6 +158,14 @@ SCENARIOS: tuple[Scenario, ...] = (
         ci=False,
     ),
     Scenario(
+        id="lv.l4.rrc_hub_roundtrip",
+        pack="LiveValidation",
+        gate="gate0-intent",
+        taxonomy="live_env",
+        summary="L4 RRC hub connect, welcome and room join over TCP pair",
+        ci=False,
+    ),
+    Scenario(
         id="map.data.announce_opt_in_until_publish",
         pack="MapDataPack",
         gate="gate4-scarcity",

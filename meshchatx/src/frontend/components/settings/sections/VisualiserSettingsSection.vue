@@ -43,7 +43,7 @@
                 >
                     <option value="flat">{{ $t("visualiser.view_mode_flat_full") }}</option>
                     <option value="planet">{{ $t("visualiser.view_mode_planet_full") }}</option>
-                    <option value="radial">{{ $t("visualiser.view_mode_radial_full") }}</option>
+                    <option value="cluster">{{ $t("visualiser.view_mode_cluster_full") }}</option>
                 </select>
             </div>
             <label class="setting-toggle">

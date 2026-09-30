@@ -67,10 +67,12 @@ describe("settingsVisualiserPrefs", () => {
         expect(loadVisualiserDisplayPrefs().viewMode).toBe("flat");
     });
 
-    it("normalizes and persists radial view mode", () => {
-        expect(normalizeVisualiserViewMode("radial")).toBe("radial");
-        persistVisualiserViewMode("radial");
-        expect(loadVisualiserDisplayPrefs().viewMode).toBe("radial");
+    it("normalizes and persists cluster view mode", () => {
+        expect(normalizeVisualiserViewMode("cluster")).toBe("cluster");
+        // Legacy radial preference upgrades to cluster.
+        expect(normalizeVisualiserViewMode("radial")).toBe("cluster");
+        persistVisualiserViewMode("cluster");
+        expect(loadVisualiserDisplayPrefs().viewMode).toBe("cluster");
         persistVisualiserViewMode("bogus", { emit: false });
         expect(loadVisualiserDisplayPrefs().viewMode).toBe("flat");
     });

@@ -205,6 +205,7 @@ from meshchatx.src.backend.rns_startup_recovery import (
     consume_recovery_report,
     create_reticulum_with_recovery,
     install_rns_panic_containment,
+    install_shared_instance_rpc_deadline,
 )
 from meshchatx.src.backend.rrc import protocol as rrc_protocol
 from meshchatx.src.backend.safe_rotating_file_handler import SafeRotatingFileHandler
@@ -273,6 +274,9 @@ if sys.stdout is not None:
 logging.basicConfig(level=logging.INFO, handlers=handlers)
 logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
 logger = logging.getLogger("meshchatx")
+
+_INTERFACE_STATS_RPC_TIMEOUT_S = 5.0
+_INTERFACE_STATS_CACHE_S = 2.0
 
 
 def _parse_rns_loglevel_value(raw: str | None) -> int | None:
@@ -1427,9 +1431,7 @@ class ReticulumMeshChat:
         self._teardown_all_contexts_for_reload()
         from meshchatx.src.backend.database.provider import DatabaseProvider
 
-        if DatabaseProvider._instance is not None:
-            DatabaseProvider._instance.close_all()
-            DatabaseProvider._instance = None
+        DatabaseProvider.close_all_instances()
         return db_path
 
     @staticmethod
@@ -2592,8 +2594,10 @@ class ReticulumMeshChat:
                 "Detaching interfaces and shutting down Reticulum...",
             )
             try:
-                # Use class method to ensure all instances are cleaned up if any
-                RNS.Reticulum.exit_handler()
+                # Use class method to ensure all instances are cleaned up if any.
+                # exit_handler and the socketserver shutdowns below can park
+                # for seconds, so keep them off the aiohttp loop.
+                await asyncio.to_thread(RNS.Reticulum.exit_handler)
             except Exception as e:
                 print(f"Warning during RNS exit: {e}")
 
@@ -3268,11 +3272,17 @@ class ReticulumMeshChat:
         canonical = normalize_identity_storage_hash(identity_hash)
         current_canonical = normalize_identity_storage_hash(current_hash or "")
         if canonical and canonical != current_canonical:
+            # A cached (non-active) context gets evicted and torn down before
+            # its storage is removed.
             ctx = self.contexts.get(canonical)
             if ctx is not None:
                 self._evict_cached_identity_context(identity_hash)
+                # Eviction pops and tears down the context; if teardown
+                # failed to stop it, refuse to delete storage it may still
+                # be writing to.
                 if getattr(ctx, "running", False):
-                    raise ValueError("Identity is still running")
+                    msg = f"Identity {identity_hash} context still running"
+                    raise ValueError(msg)
         return self.identity_manager.delete_identity(identity_hash, current_hash)
 
     def restore_identity_from_bytes(
@@ -3583,6 +3593,44 @@ class ReticulumMeshChat:
         if isinstance(obj, list):
             return [ReticulumMeshChat._to_jsonable(v) for v in obj]
         return obj
+
+    async def _reticulum_rpc(self, method, *args):
+        # Shared-instance RNS methods block on an RPC socket. On the aiohttp
+        # loop that freezes the whole server for the RPC deadline, so offload
+        # those calls to a thread. Local Reticulum reads in-memory tables and
+        # is cheap enough to call inline.
+        reticulum = getattr(self, "reticulum", None)
+        if not reticulum:
+            return None
+        fn = getattr(reticulum, method)
+        if getattr(reticulum, "is_connected_to_shared_instance", False):
+            return await asyncio.to_thread(fn, *args)
+        return fn(*args)
+
+    async def _aget_interface_stats_payload(self) -> dict:
+        # get_interface_stats does a blocking socket RPC when connected to a
+        # shared instance, and recv_bytes has no timeout. Calling it on the
+        # aiohttp loop wedges the whole server when rnsd stalls, so run it in
+        # a thread with a deadline and serve the last payload while dead.
+        cache = getattr(self, "_interface_stats_cache", None)
+        now = time.monotonic()
+        if cache and now - cache[0] < _INTERFACE_STATS_CACHE_S:
+            return cache[1]
+        try:
+            payload = await asyncio.wait_for(
+                asyncio.to_thread(self._get_interface_stats_payload),
+                timeout=_INTERFACE_STATS_RPC_TIMEOUT_S,
+            )
+        except Exception:
+            # Timeout or RPC error: serve the last payload (or empty) and
+            # extend the cache so polls do not pile threads on a dead RPC.
+            # The stamp must be recomputed after the failed await or the
+            # entry is born expired and every poll spawns a new thread.
+            payload = cache[1] if cache else {"interfaces": []}
+            self._interface_stats_cache = (time.monotonic(), payload)
+            return payload
+        self._interface_stats_cache = (time.monotonic(), payload)
+        return payload
 
     def _get_interface_stats_payload(self) -> dict:
         empty: dict = {"interfaces": []}
@@ -3979,10 +4027,20 @@ class ReticulumMeshChat:
             return
 
         crawler = getattr(ctx, "crawler_manager", None)
+        if crawler is not None:
+            crawler.own_destination_hashes = self._own_nomad_destination_hashes()
         task_id = task["id"]
         destination_hash = task["destination_hash"]
         page_path = task["page_path"]
         depth = int(task.get("depth") or 0)
+
+        if crawler and destination_hash in crawler.own_destination_hashes:
+            ctx.database.misc.update_crawl_task(
+                task_id,
+                status="cancelled",
+                updated_at=datetime.now(UTC),
+            )
+            return
 
         if crawler and crawler.is_opted_out(destination_hash):
             ctx.database.misc.update_crawl_task(
@@ -4067,6 +4125,7 @@ class ReticulumMeshChat:
             on_page_download_failure=on_failure,
             on_progress_update=on_progress,
             timeout=120,
+            max_bytes=2 * 1024 * 1024,
             reticulum=getattr(self, "reticulum", None),
             **nomad_link_identity_kwargs(
                 self,
@@ -4161,9 +4220,12 @@ class ReticulumMeshChat:
                 updated_at=datetime.now(UTC),
             )
             if crawler:
+                # A successful crawl clears the previous skipped_reason so the
+                # node is not reported as skipped after it worked.
                 crawler.database.misc.upsert_crawl_node_stats(
                     destination_hash,
                     pages_indexed=crawler.pages_indexed_for_node(destination_hash),
+                    clear_skipped_reason=True,
                 )
                 for child in crawler.discover_child_paths(
                     destination_hash,
@@ -5460,6 +5522,13 @@ class ReticulumMeshChat:
 
     # web server has shutdown, likely ctrl+c, but if we don't do the following, the script never exits
     async def shutdown(self, app):
+        # Flush pending coalesced websocket updates before any teardown so the
+        # last state changes are not silently dropped for connected clients.
+        with contextlib.suppress(Exception):
+            coalesce = getattr(self, "_ws_coalesce", None)
+            if coalesce is not None:
+                await coalesce.flush_now()
+
         # Always flush SQLite first. Signal handlers may have already done this.
         with contextlib.suppress(Exception):
             from meshchatx.src.backend.lifecycle.signal_shutdown import (
@@ -5467,6 +5536,14 @@ class ReticulumMeshChat:
             )
 
             durable_flush_all_databases(self)
+
+        # Ratchet writes held during an IO-pressure window must land before
+        # exit or the next start misses ratchet state.
+        with contextlib.suppress(Exception):
+            from meshchatx.src.backend import rns_ratchet_persist
+
+            rns_ratchet_persist.set_io_pressure(False)
+            rns_ratchet_persist.flush_pending()
 
         for identity_hash in list(self.contexts.keys()):
             ctx = self.contexts.get(identity_hash)
@@ -6276,6 +6353,12 @@ class ReticulumMeshChat:
             if theme not in ("light", "dark", "system"):
                 theme = "light"
             self.config.theme.set(theme)
+
+        if "map_coordinate_format" in data:
+            fmt = str(data["map_coordinate_format"] or "wgs84").lower()
+            if fmt not in ("wgs84", "utm", "mgrs", "olc"):
+                fmt = "wgs84"
+            self.config.map_coordinate_format.set(fmt)
 
         if "theme_preset" in data:
             preset = data["theme_preset"]
@@ -7299,6 +7382,20 @@ class ReticulumMeshChat:
     # to the following map:
     # - var_field1: 123
     # - var_field2: 456
+    def _own_nomad_destination_hashes(self) -> set:
+        manager = getattr(self, "page_node_manager", None)
+        if manager is None:
+            return set()
+        out = set()
+        for node in getattr(manager, "nodes", {}).values():
+            try:
+                h = node.get_destination_hash()
+            except Exception:
+                h = None
+            if h:
+                out.add(str(h).lower())
+        return out
+
     def archive_page(
         self,
         destination_hash: str,
@@ -7763,6 +7860,10 @@ class ReticulumMeshChat:
     async def _websocket_broadcast_coalesced(self, payload: dict) -> None:
         await self.websocket_broadcast(payload, _skip_coalesce=True)
 
+    async def _broadcast_websocket_message(self, data):
+        """Compatibility wrapper: older call sites predating the rename."""
+        await self.websocket_broadcast(data)
+
     async def websocket_broadcast(self, data, *, _skip_coalesce: bool = False):
         from meshchatx.src.backend.websocket_runtime import (
             WS_BROADCAST_SEND_TIMEOUT_SEC,
@@ -8025,6 +8126,7 @@ class ReticulumMeshChat:
             "auto_announce_interval_seconds": ctx.config.auto_announce_interval_seconds.get(),
             "last_announced_at": ctx.config.last_announced_at.get(),
             "theme": ctx.config.theme.get(),
+            "map_coordinate_format": ctx.config.map_coordinate_format.get(),
             "theme_preset": ctx.config.theme_preset.get(),
             "accent_color": ctx.config.accent_color.get(),
             "custom_canvas_color": ctx.config.custom_canvas_color.get(),
@@ -8702,9 +8804,10 @@ class ReticulumMeshChat:
 
         rssi = snr = quality = None
         if announce_packet_hash and getattr(self, "reticulum", None):
-            rssi = self.reticulum.get_packet_rssi(announce_packet_hash)
-            snr = self.reticulum.get_packet_snr(announce_packet_hash)
-            quality = self.reticulum.get_packet_q(announce_packet_hash)
+            with contextlib.suppress(Exception):
+                rssi = self.reticulum.get_packet_rssi(announce_packet_hash)
+                snr = self.reticulum.get_packet_snr(announce_packet_hash)
+                quality = self.reticulum.get_packet_q(announce_packet_hash)
 
         hops = None
         try:
@@ -8994,13 +9097,20 @@ class ReticulumMeshChat:
             print(f"incoming_call_is_policy_filtered: {e}")
             return True
 
-    def is_destination_blocked(self, destination_hash: str, context=None) -> bool:
+    def is_destination_blocked(
+        self,
+        destination_hash: str,
+        context=None,
+        fail_closed: bool = True,
+    ) -> bool:
         """Return whether destination_hash is in the block list.
 
         Accepts either a destination hash or an identity hash. A block on the
         identity matches every known destination of that identity, and a block
         on any destination matches the identity. Unexpected database errors
-        fail closed so inbound LXMF and LXST do not treat a broken ACL as open.
+        fail closed by default so inbound LXMF and LXST do not treat a broken
+        ACL as open. Callers whose error path must never produce a false
+        rejection (e.g. the pre-transfer resource policy) pass fail_closed=False.
         """
         ctx = context or self.current_context
         if not ctx or not ctx.database:
@@ -9017,7 +9127,7 @@ class ReticulumMeshChat:
                     return True
             return False
         except Exception:
-            return True
+            return fail_closed
 
     def _lxmf_reticulum_enforce_block(
         self,
@@ -10140,12 +10250,15 @@ class ReticulumMeshChat:
         snr = lxmf_message.snr
         quality = lxmf_message.q
         if self.reticulum:
-            if rssi is None:
-                rssi = self.reticulum.get_packet_rssi(lxmf_message.hash)
-            if snr is None:
-                snr = self.reticulum.get_packet_snr(lxmf_message.hash)
-            if quality is None:
-                quality = self.reticulum.get_packet_q(lxmf_message.hash)
+            with contextlib.suppress(Exception):
+                # The deadlined shared RPC can raise TimeoutError; missing
+                # signal metrics must never skip the state update below.
+                if rssi is None:
+                    rssi = self.reticulum.get_packet_rssi(lxmf_message.hash)
+                if snr is None:
+                    snr = self.reticulum.get_packet_snr(lxmf_message.hash)
+                if quality is None:
+                    quality = self.reticulum.get_packet_q(lxmf_message.hash)
 
         ctx.database.messages.update_lxmf_message_state(
             message_hash=lxmf_message.hash.hex(),
@@ -10345,12 +10458,16 @@ class ReticulumMeshChat:
         else:
             content_str = content or ""
         quoted_str = reply_quoted_content or ""
+        if isinstance(title, bytes):
+            title = title.decode("utf-8", errors="replace")
+        title_str = title or ""
         has_standard_reaction = (
             reaction_to_hash is not None and reaction_emoji is not None
         )
         is_reaction_only = bool(
             has_standard_reaction
             and not (content_str and content_str.strip())
+            and not (title_str and title_str.strip())
             and image_field is None
             and audio_field is None
             and file_attachments_field is None
@@ -10776,16 +10893,17 @@ class ReticulumMeshChat:
                 )
 
                 # physical link info
+                def _packet_metric(name):
+                    try:
+                        fn = getattr(self.reticulum, name, None)
+                        return fn(lxmf_message.hash) if fn else None
+                    except Exception:
+                        return None
+
                 physical_link = {
-                    "rssi": self.reticulum.get_packet_rssi(lxmf_message.hash)
-                    if hasattr(self, "reticulum") and self.reticulum
-                    else None,
-                    "snr": self.reticulum.get_packet_snr(lxmf_message.hash)
-                    if hasattr(self, "reticulum") and self.reticulum
-                    else None,
-                    "q": self.reticulum.get_packet_q(lxmf_message.hash)
-                    if hasattr(self, "reticulum") and self.reticulum
-                    else None,
+                    "rssi": _packet_metric("get_packet_rssi"),
+                    "snr": _packet_metric("get_packet_snr"),
+                    "q": _packet_metric("get_packet_q"),
                 }
 
                 ctx.database.telemetry.upsert_telemetry(
@@ -11275,6 +11393,18 @@ class ReticulumMeshChat:
                     if not claimed:
                         continue
 
+                    # Count the attempt before parsing fields: a malformed
+                    # attachment must still spend resend budget, or it gets
+                    # reclaimed forever.
+                    attempt = next_attempt_count(failed_message.get("fields"))
+                    ctx.database.messages.set_message_fields_json(
+                        message_hash,
+                        fields_with_auto_resend_count(
+                            failed_message.get("fields"),
+                            attempt,
+                        ),
+                    )
+
                     # parse image field
                     image_field = None
                     if "image" in fields and isinstance(fields.get("image"), dict):
@@ -11308,15 +11438,6 @@ class ReticulumMeshChat:
                         file_attachments_field = LxmfFileAttachmentsField(
                             file_attachments,
                         )
-
-                    attempt = next_attempt_count(failed_message.get("fields"))
-                    ctx.database.messages.set_message_fields_json(
-                        message_hash,
-                        fields_with_auto_resend_count(
-                            failed_message.get("fields"),
-                            attempt,
-                        ),
-                    )
 
                     # send new message with failed message content
                     new_message = await self.send_message(
@@ -11725,9 +11846,26 @@ class ReticulumMeshChat:
         )
         grant["expires"] = now + ttl
         destinations = grant.setdefault("destinations", {})
+        # Bound per-client grant state: a crawler-scripted client must not
+        # grow this dict forever within the TTL.
+        while len(destinations) >= 64 and destination_hash.hex() not in destinations:
+            destinations.pop(next(iter(destinations)))
         dest_pages = destinations.setdefault(destination_hash.hex(), {})
         norm_path = self._normalize_grant_page_path(destination_hash, page_path)
+        while len(dest_pages) >= 64 and norm_path not in dest_pages:
+            dest_pages.pop(next(iter(dest_pages)))
         dest_pages[norm_path] = self._extract_page_file_links(page_content)
+
+    def _clear_active_downloads_for_client(self, client) -> None:
+        """Cancel nomad downloads whose callbacks would hit a dead client."""
+        for download_id, downloader in list(self.active_downloads.items()):
+            if getattr(downloader, "_meshchatx_client", None) is not client:
+                continue
+            self.active_downloads.pop(download_id, None)
+            cancel = getattr(downloader, "cancel", None)
+            if callable(cancel):
+                with contextlib.suppress(Exception):
+                    cancel()
 
     def _clear_page_file_grants_for_client(self, client) -> None:
         """Drop all page-file grants held by a disconnected client."""
@@ -11991,6 +12129,7 @@ def main():
     recovery.install()
     raise_nofile_soft_limit()
     install_rns_panic_containment()
+    install_shared_instance_rpc_deadline()
     install_bounded_ratchet_persist()
 
     env = MeshchatEnv.load()

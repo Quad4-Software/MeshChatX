@@ -276,7 +276,10 @@ def register_archives_routes(routes, app):
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
-        destination_hash = (data.get("destination_hash") or "").strip().lower()
+        destination_hash = data.get("destination_hash")
+        if destination_hash is not None and not isinstance(destination_hash, str):
+            return http_bad_request("destination_hash must be a string")
+        destination_hash = (destination_hash or "").strip().lower()
         if len(destination_hash) != 32:
             return http_bad_request(
                 "destination_hash must be 32 hex characters",
@@ -330,7 +333,10 @@ def register_archives_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         destination_hash = (data.get("destination_hash") or "").strip().lower()
-        page_path = (data.get("page_path") or "").strip()
+        page_path = data.get("page_path")
+        if page_path is not None and not isinstance(page_path, str):
+            return http_bad_request("page_path must be a string")
+        page_path = (page_path or "").strip()
         if len(destination_hash) != 32:
             return http_bad_request(
                 "destination_hash must be 32 hex characters",
@@ -345,6 +351,9 @@ def register_archives_routes(routes, app):
             page_path = (
                 app.config.nomad_default_page_path.get() if app.config else None
             ) or "/page/index.mu"
+        # Normalize once: everything downstream (download, archive, versions,
+        # queueing) must key on the same path, without the '`' version suffix.
+        page_path = page_path.split("`", 1)[0]
 
         crawler = (
             getattr(app.current_context, "crawler_manager", None)
@@ -373,7 +382,7 @@ def register_archives_routes(routes, app):
 
         downloader = NomadnetPageDownloader(
             destination_hash=bytes.fromhex(destination_hash),
-            page_path=page_path.split("`", 1)[0],
+            page_path=page_path,
             data=None,
             on_page_download_success=on_success,
             on_page_download_failure=on_failure,

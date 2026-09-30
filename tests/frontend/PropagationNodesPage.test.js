@@ -141,7 +141,7 @@ describe("PropagationNodesPage", () => {
             $t: (k) => k,
         };
         await PropagationNodesPage.methods.announceNow.call(ctx);
-        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/announce");
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/announce");
         expect(ToastUtils.success).toHaveBeenCalledWith("tools.propagation_nodes.announce_triggered");
     });
 
@@ -202,7 +202,7 @@ describe("PropagationNodesPage", () => {
         expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/config", {
             display_name: "Friendly Node",
         });
-        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/announce");
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/announce");
         expect(ToastUtils.success).toHaveBeenCalledWith("tools.propagation_nodes.name_saved");
     });
 

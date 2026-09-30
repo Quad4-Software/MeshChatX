@@ -85,9 +85,57 @@ def test_apply_seccomp_falls_back_without_libseccomp(monkeypatch):
     with (
         patch.object(sc.sys, "platform", "linux"),
         patch.object(sc, "_is_android", return_value=False),
+        patch.object(sc, "seccompy", None),
         patch.object(sc, "_load_libseccomp", return_value=None),
     ):
         assert sc.apply_seccomp_sandbox() is False
+
+
+def test_apply_seccomp_uses_seccompy_when_present(monkeypatch):
+    monkeypatch.setenv("MESHCHAT_SECCOMP", "1")
+    fake_filter = MagicMock()
+    fake_seccompy = MagicMock()
+    fake_seccompy.Filter.return_value = fake_filter
+    fake_seccompy.Action.ALLOW = object()
+    fake_seccompy.supported.return_value = True
+    lib = MagicMock()
+    with (
+        patch.object(sc.sys, "platform", "linux"),
+        patch.object(sc, "_is_android", return_value=False),
+        patch.object(sc, "seccompy", fake_seccompy),
+        patch.object(sc, "_load_libseccomp", return_value=lib),
+    ):
+        assert sc.apply_seccomp_sandbox() is True
+    fake_filter.load.assert_called_once_with()
+    assert fake_filter.errno.call_count == len(sc._DENIED_SYSCALLS)
+    lib.seccomp_init.assert_not_called()
+
+
+def test_apply_seccomp_seccompy_failure_returns_false(monkeypatch):
+    monkeypatch.setenv("MESHCHAT_SECCOMP", "1")
+    fake_seccompy = MagicMock()
+    fake_seccompy.Filter.side_effect = RuntimeError("no seccomp")
+    fake_seccompy.supported.return_value = True
+    with (
+        patch.object(sc.sys, "platform", "linux"),
+        patch.object(sc, "_is_android", return_value=False),
+        patch.object(sc, "seccompy", fake_seccompy),
+        patch.object(sc, "_load_libseccomp", return_value=MagicMock()),
+    ):
+        assert sc.apply_seccomp_sandbox() is False
+
+
+def test_kernel_supported_uses_seccompy_probe(monkeypatch):
+    fake_seccompy = MagicMock()
+    fake_seccompy.supported.return_value = True
+    with (
+        patch.object(sc.sys, "platform", "linux"),
+        patch.object(sc, "_is_android", return_value=False),
+        patch.object(sc, "seccompy", fake_seccompy),
+        patch.object(sc, "_load_libseccomp", return_value=None),
+    ):
+        assert sc.seccomp_kernel_supported() is True
+        fake_seccompy.supported.assert_called_once_with()
 
 
 def test_apply_seccomp_loads_denylist(monkeypatch):
@@ -106,6 +154,7 @@ def test_apply_seccomp_loads_denylist(monkeypatch):
     with (
         patch.object(sc.sys, "platform", "linux"),
         patch.object(sc, "_is_android", return_value=False),
+        patch.object(sc, "seccompy", None),
         patch.object(sc, "_load_libseccomp", return_value=lib),
     ):
         assert sc.apply_seccomp_sandbox() is True

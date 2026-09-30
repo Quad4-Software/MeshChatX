@@ -84,9 +84,26 @@ def assess_plugin(
         )
 
     declared = declared_permission_ids(manifest)
-    network_mode = normalize_network_mode(
-        (manifest.get("permissions") or {}).get("network"),
-    )
+    try:
+        network_mode = normalize_network_mode(
+            (manifest.get("permissions") or {}).get("network"),
+        )
+    except ValueError:
+        network_mode = "fetch"
+        add(
+            "unknown-network-mode",
+            "warn",
+            "manifest declares an unknown network permission mode",
+            10,
+        )
+    backend = manifest.get("backend") or {}
+    if isinstance(backend, dict) and str(backend.get("type") or "wasm") == "python":
+        add(
+            "python-full-access",
+            "high",
+            "Python backend plugins run in-process with full host access",
+            40,
+        )
     endpoints = collect_network_endpoints(manifest, directory) if directory else []
     if embedded:
         for data in embedded.values():

@@ -75,7 +75,7 @@ func TestComputeUpdatesRestoresSemanticColor(t *testing.T) {
 	nodes[0].Shape = "circularImage"
 	nodes[0].Size = 25
 	nodes[0].Color = semantic
-	nodes[0].Font = &lod.FontIn{Size: &size}
+	nodes[0].Font = &lod.FontIn{Size: &size, Color: "#000000"}
 	if out := lod.ComputeUpdates(nodes, "high", false); len(out) != 0 {
 		t.Fatalf("expected no updates, got %#v", out)
 	}

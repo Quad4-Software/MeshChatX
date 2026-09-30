@@ -99,12 +99,33 @@ jobs:
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   ISSUE_NUMBER: ${{ github.event.issue.number }}
+                  ISSUE_BODY: ${{ github.event.issue.body }}
                   IS_ENHANCEMENT: ${{ contains(github.event.issue.labels.*.name, 'enhancement') }}
               run: |
                   set -euo pipefail
                   if [ "$IS_ENHANCEMENT" = "true" ]; then
                       body="Thanks for the suggestion. It is on the triage list now and this issue will be updated if it gets picked up."
                   else
-                      body="Thanks for the report. If you can attach backend logs (Settings > Debug Logs, the lines around the error) or a screenshot, that usually helps us pin it down faster. No pressure either way."
+                      has_shot=false
+                      has_logs=false
+                      printf '%s\n' "$ISSUE_BODY" | grep -qiE \
+                          'user-attachments/assets|!\[[^]]*\]\(|<img[[:space:]]' && has_shot=true
+                      logs="$(printf '%s\n' "$ISSUE_BODY" | awk '
+                          /^### Logs or error output/ { grab = 1; next }
+                          /^### / { grab = 0 }
+                          grab { print }
+                      ')"
+                      if printf '%s\n' "$logs" | sed '/```/d' | grep -qE '[^[:space:]]'; then
+                          has_logs=true
+                      fi
+                      if [ "$has_shot" = "true" ] && [ "$has_logs" = "true" ]; then
+                          body="Thanks for the report and for including the details."
+                      elif [ "$has_shot" = "true" ]; then
+                          body="Thanks for the report and the screenshot."
+                      elif [ "$has_logs" = "true" ]; then
+                          body="Thanks for the report and the logs."
+                      else
+                          body="Thanks for the report. If you can attach backend logs (Settings > Debug Logs, the lines around the error) or a screenshot, that usually helps us pin it down faster. No pressure either way."
+                      fi
                   fi
                   gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "$body"

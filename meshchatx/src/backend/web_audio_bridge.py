@@ -20,10 +20,6 @@ _ORIG_LINE_SOURCE = None
 _ORIG_LINE_SINK = None
 
 
-def _log_debug(msg: str):
-    RNS.log(msg, RNS.LOG_DEBUG)
-
-
 class HostlessAudioSource(LocalSource):
     """LineSource stand-in that never opens PulseAudio / host capture devices.
 
@@ -112,7 +108,6 @@ class HostlessAudioSink(LocalSink):
         self.streaming = False
         self.autostart_min = self.AUTOSTART_MIN
         self.buffer_max_height = self.MAX_FRAMES - 3
-        self._wants_low_latency = False
 
     def can_receive(self, from_source=None):
         return True
@@ -131,7 +126,7 @@ class HostlessAudioSink(LocalSink):
         pass
 
     def enable_low_latency(self):
-        self._wants_low_latency = True
+        pass
 
 
 def install_hostless_lxst_audio() -> bool:
@@ -269,6 +264,8 @@ class WebAudioBridge:
         self.rx_tee: Tee | None = None
         self._loop = None
         self.lock = threading.Lock()
+        # id(client) -> {"inflight": bool, "pending": bytes|None}
+        self._pcm_state: dict[int, dict] = {}
 
     @property
     def loop(self):
@@ -337,6 +334,7 @@ class WebAudioBridge:
         with self.lock:
             if client in self.clients:
                 self.clients.remove(client)
+            self._pcm_state.pop(id(client), None)
             if not self.clients and self.allow_fallback():
                 self._restore_host_audio()
 
@@ -360,6 +358,13 @@ class WebAudioBridge:
                 return
             if getattr(self.telephone_manager, "is_voicemail_session_active", False):
                 return
+            # Heal patches an LXST reconfiguration silently replaced mid-call,
+            # but only when a patch exists: first-attach belongs to
+            # attach_client so a hostless stand-in is not swapped mid-frame.
+            if self.tx_source is not None:
+                self._ensure_remote_tx(tele)
+            if self.rx_sink is not None:
+                self._ensure_rx_tee(tele)
             # Do not feed PCM while mic is muted or half-duplex PTT is released.
             if getattr(self.telephone_manager, "transmit_muted", False) is True:
                 return
@@ -385,17 +390,35 @@ class WebAudioBridge:
     async def _send_bytes_to_all(self, pcm_bytes: bytes):
         stale = []
         for ws in list(self.clients):
+            # Backpressure: if a send is still in flight for this client, keep
+            # only the newest frame. Audio tolerates drops; a slow socket must
+            # not serialize the 60fps feed or pile up tasks.
+            st = self._pcm_state.setdefault(id(ws), {})
+            if st.get("inflight"):
+                st["pending"] = pcm_bytes
+                continue
+            st["inflight"] = True
             try:
-                await ws.send_bytes(pcm_bytes)
+                pending = pcm_bytes
+                while pending is not None:
+                    await ws.send_bytes(pending)
+                    pending = st.get("pending")
+                    st["pending"] = None
             except Exception:
                 stale.append(ws)
+            finally:
+                st["inflight"] = False
         for ws in stale:
             self.detach_client(ws)
 
     def _ensure_remote_tx(self, tele):
-        # Rebuild transmit path with websocket-backed source
-        if self.tx_source:
+        # Rebuild transmit path with websocket-backed source. A check on
+        # self.tx_source alone misses LXST reconfigurations (answer, profile
+        # switch, loudspeaker) that replace tele.audio_input and silently drop
+        # the patch, so verify it is still attached.
+        if self.tx_source and getattr(tele, "audio_input", None) is self.tx_source:
             return
+        self.tx_source = None
         # Do not create transmit source during voicemail
         if getattr(self.telephone_manager, "is_voicemail_session_active", False):
             return
@@ -416,8 +439,11 @@ class WebAudioBridge:
             )
 
     def _ensure_rx_tee(self, tele):
-        if self.rx_sink:
+        # Same reattachment check: audio_output can be replaced by LXST.
+        if self.rx_sink and getattr(tele, "audio_output", None) is self.rx_tee:
             return
+        self.rx_sink = None
+        self.rx_tee = None
         try:
             if not self.loop:
                 return

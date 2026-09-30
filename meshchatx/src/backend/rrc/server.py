@@ -35,6 +35,8 @@ MESSAGE_LOG_CAP = 5000
 EVENT_LOG_CAP = 200
 RATE_EVENT_MIN_INTERVAL_S = 30.0
 DEFAULT_MAX_SESSIONS = 512
+# Links that never complete HELLO are reaped after this window.
+PRE_WELCOME_TIMEOUT_S = 90.0
 DEFAULT_MAX_SESSIONS_PER_PEER = 3
 MIN_SESSIONS_PER_PEER = 2
 STORE_FILENAME = "hubs"
@@ -142,6 +144,7 @@ class _Session:
     def __init__(self):
         self.welcomed = False
         self.peer = None
+        self.created = time.monotonic()
         self.nick = None
         self.rooms = set()
         self.tokens = float(proto.DEFAULT_RATE_PER_MINUTE)
@@ -195,6 +198,7 @@ class RRCHubServer:
         self._sessions = {}
         self._room_members = {}
         self._hub_dir = None
+        self.replay_log = ""
         self.policy = HubPolicy()
         self.rooms = RoomRegistry(self, None)
         self._commands = HubCommandHandler()
@@ -468,8 +472,10 @@ class RRCHubServer:
                 self._send_payload(member, payload)
         for room, peer in reconnect_invites:
             with contextlib.suppress(Exception):
-                self.rooms.add_invite(room, peer, ttl_s=INVITE_DEFAULT_TTL_S)
-                self.rooms.persist(room)
+                # rooms registry is shared with packet threads; hold the lock.
+                with self._lock:
+                    self.rooms.add_invite(room, peer, ttl_s=INVITE_DEFAULT_TTL_S)
+                    self.rooms.persist(room)
         self.manager._notify_change(self)
 
     def _refill_and_take(self, sess, cost=1.0):
@@ -557,6 +563,21 @@ class RRCHubServer:
             if sess is None:
                 return
             extras = []
+            # Un-welcomed sessions have a finite lifetime: a peer that links
+            # up but never sends HELLO would otherwise pin a slot forever.
+            now = time.monotonic()
+            stale = [
+                lnk
+                for lnk, se in self._sessions.items()
+                if not se.welcomed and now - se.created > PRE_WELCOME_TIMEOUT_S
+            ]
+            for lnk in stale:
+                se = self._sessions.pop(lnk, None)
+                if se is not None:
+                    extras.append(lnk)
+                    self._stats["pre_welcome_timeouts"] = (
+                        self._stats.get("pre_welcome_timeouts", 0) + 1
+                    )
             if sess.peer is None:
                 ri = link.get_remote_identity()
                 if ri is None:
@@ -564,9 +585,11 @@ class RRCHubServer:
                 sess.peer = ri.hash
                 # The identified callback may never fire for this link, so
                 # enforce the per-peer session cap on first packet too.
-                extras = self._peer_cap_extras(ri.hash)
+                extras.extend(self._peer_cap_extras(ri.hash))
             outgoing = []
             if link not in extras:
+                if self.replay_log:
+                    self._record_replay(env)
                 # A malformed envelope can raise inside a handler; contain
                 # it so one bad packet cannot kill the hub session loop.
                 try:
@@ -579,6 +602,24 @@ class RRCHubServer:
                     lnk.teardown()
         for out_link, payload in outgoing:
             self._send_payload(out_link, payload)
+
+    def _record_replay(self, env):
+        import json as _json
+
+        try:
+            src = env.get(proto.K_SRC)
+            row = {
+                "t": env.get(proto.K_T),
+                "room": env.get(proto.K_ROOM),
+                "src": src.hex() if isinstance(src, (bytes, bytearray)) else src,
+                "body": env.get(proto.K_BODY)
+                if isinstance(env.get(proto.K_BODY), str)
+                else None,
+            }
+            with open(self.replay_log, "a", encoding="utf-8") as f:
+                f.write(_json.dumps(row) + "\n")
+        except Exception:
+            pass
 
     def _route(self, link, sess, env, outgoing):
         t = env.get(proto.K_T)
@@ -1050,28 +1091,22 @@ class RRCHubServer:
                 self._room_members.pop(r, None)
         return r
 
-    def set_room_topic(self, name, topic):
-        r = proto.normalize_room(name)
-        st = self.rooms.ensure_state(r)
-        st["topic"] = topic or None
-        if st.get("registered"):
-            self.rooms.persist(r)
-
     def set_room_key(self, name, key):
         """Set or clear the +k room key. Empty/None clears the key."""
         r = proto.normalize_room(name)
-        st = self.rooms.ensure_state(r)
-        if key is None or (isinstance(key, str) and not key.strip()):
-            st["key"] = None
-        elif isinstance(key, str):
-            st["key"] = normalize_room_key(key)
-        else:
-            msg = "room key must be a string or null"
-            raise TypeError(msg)
-        if st.get("registered"):
-            self.rooms.persist(r)
-        outgoing = []
-        self.rooms.broadcast_mode(r, outgoing)
+        with self._lock:
+            st = self.rooms.ensure_state(r)
+            if key is None or (isinstance(key, str) and not key.strip()):
+                st["key"] = None
+            elif isinstance(key, str):
+                st["key"] = normalize_room_key(key)
+            else:
+                msg = "room key must be a string or null"
+                raise TypeError(msg)
+            if st.get("registered"):
+                self.rooms.persist(r)
+            outgoing = []
+            self.rooms.broadcast_mode(r, outgoing)
         self._flush_outgoing(outgoing)
         return r
 

@@ -26,15 +26,6 @@ def _safe_module(obj: Any) -> str:
         return ""
 
 
-def _is_reticulum_obj(obj: Any) -> bool:
-    mod = _safe_module(obj)
-    return "RNS" in mod or "LXMF" in mod or "LXST" in mod or "meshchatx" in mod
-
-
-def _is_closure(obj: Any) -> bool:
-    return type(obj).__name__ in ("function", "cell", "code", "FrameType", "MethodType")
-
-
 def _classify(obj: Any) -> str:
     t = type(obj)
     if t in (str, bytes, bytearray, int, float, bool, type(None)):
@@ -72,7 +63,6 @@ class _ObjectTypeTracker:
             maxlen=self._max_history,
         )
         self._first: dict[str, int] = {}
-        self._last_full: dict[str, int] = {}
 
     def record(self) -> None:
         counts: dict[str, int] = {}
@@ -88,7 +78,6 @@ class _ObjectTypeTracker:
         if not self._first:
             self._first = counts
         self._history.append(counts)
-        self._last_full = counts
 
     @property
     def growth_since_first(self) -> list[tuple[str, int]]:
@@ -455,25 +444,6 @@ class MemoryDiagnostics:
                 "unreachable_after": list(unreachable_after),
             },
         ]
-
-    def gc_garbage_types(self) -> list[dict[str, str | int]]:
-        """Show types of objects in gc.garbage (uncollectable objects)."""
-        counts: dict[str, int] = {}
-        try:
-            for obj in gc.garbage:
-                try:
-                    tname = _safe_type_name(obj)
-                    counts[tname] = counts.get(tname, 0) + 1
-                except Exception:
-                    continue
-        except Exception:
-            pass
-        sorted_counts = sorted(counts.items(), key=lambda x: -x[1])
-        return [{"type": t, "count": c} for t, c in sorted_counts]
-
-    # ------------------------------------------------------------------
-    # Consolidated report
-    # ------------------------------------------------------------------
 
     def report(self) -> dict[str, Any]:
         """Generate a comprehensive memory diagnostics report."""

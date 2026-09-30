@@ -5,7 +5,7 @@
             "path": "/"
         },
         {
-            "method": "GET",
+            "method": "POST",
             "path": "/api/v1/announce"
         },
         {
@@ -1471,6 +1471,10 @@
         {
             "method": "POST",
             "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages/{seq}/retry"
         },
         {
             "method": "POST",

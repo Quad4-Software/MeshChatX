@@ -74,8 +74,12 @@ def evaluate_inbound_delivery_resource_policy(
     if not source_hash:
         return False, None
 
+    # fail_closed=False: a lookup error must never emit a positive block
+    # verdict here. A false reject marks the sender REJECTED on a transient
+    # database error, which is the false-rejection class this policy exists
+    # to prevent. Dropping delivered payloads stays covered downstream.
     try:
-        if app.is_destination_blocked(source_hash, context=ctx):
+        if app.is_destination_blocked(source_hash, context=ctx, fail_closed=False):
             return True, "blocked"
     except Exception:
         logger.debug(
@@ -83,7 +87,10 @@ def evaluate_inbound_delivery_resource_policy(
             exc_info=True,
         )
 
-    is_contact = False
+    # A failed contact lookup leaves stranger status unknown. Stranger
+    # rules reject on a positive verdict only; an unknown verdict falls
+    # through so a transient error cannot bounce contact attachments.
+    is_contact = None
     try:
         is_contact = bool(app._is_contact(source_hash, context=ctx))
     except Exception:
@@ -91,6 +98,9 @@ def evaluate_inbound_delivery_resource_policy(
             "Inbound delivery resource contact check failed",
             exc_info=True,
         )
+
+    if is_contact is None:
+        return False, None
 
     if ctx.config.block_all_from_strangers.get() and not is_contact:
         return True, "block_all_strangers"

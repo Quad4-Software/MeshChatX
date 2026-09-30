@@ -2128,7 +2128,7 @@ export default {
         },
         async sendAnnounce() {
             try {
-                await window.api.get(apiPath("/announce"));
+                await window.api.post(apiPath("/announce"));
                 ToastUtils.success(this.$t("app.announce_sent"));
             } catch (e) {
                 ToastUtils.error(this.$t("app.failed_announce"));

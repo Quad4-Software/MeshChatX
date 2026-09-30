@@ -73,9 +73,6 @@ class StoppableBot:
     def __init__(self):
         self._stop_event = None
 
-    def set_stop_event(self, stop_event):
-        self._stop_event = stop_event
-
     def should_stop(self):
         return self._stop_event and self._stop_event.is_set()
 

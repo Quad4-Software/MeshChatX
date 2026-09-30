@@ -44,6 +44,24 @@ def _persist_one(destination_hash: bytes, ratchet: bytes) -> None:
         atomic_write_bytes(finalpath, umsgpack.packb(ratchet_data))
 
 
+_IO_PRESSURE = False
+
+
+def set_io_pressure(active: bool) -> None:
+    """Mark the storage layer as IO-constrained.
+
+    While active the persist worker holds queued writes instead of adding
+    to an already saturated disk queue. Entries stay in the latest map, so
+    no ratchet bytes are lost while waiting.
+    """
+    global _IO_PRESSURE
+    _IO_PRESSURE = bool(active)
+
+
+def io_pressure_active() -> bool:
+    return _IO_PRESSURE
+
+
 def _worker_loop() -> None:
     if _QUEUE is None:
         raise RuntimeError("ratchet persist queue is not initialized")
@@ -51,6 +69,25 @@ def _worker_loop() -> None:
         item = _QUEUE.get()
         if item is None:
             return
+        if _IO_PRESSURE:
+            # Disk is stalling. Put the signal back and back off; the
+            # latest map still carries the newest ratchet bytes.
+            try:
+                _QUEUE.put_nowait(item)
+            except queue.Full:
+                pass
+            time.sleep(5.0)
+            continue
+        # Recovery after a pressured window: a dropped re-put signal can
+        # orphan latest-map entries, so re-seed a signal for every hash
+        # still waiting before resuming the drain.
+        with _LATEST_LOCK:
+            pending = [h for h in _LATEST if h != item[0]]
+        for h in pending:
+            try:
+                _QUEUE.put_nowait((h, b""))
+            except queue.Full:
+                break
         destination_hash, _ignored = item
         with _LATEST_LOCK:
             ratchet = _LATEST.pop(destination_hash, None)
@@ -77,6 +114,27 @@ def _ensure_worker() -> queue.Queue[tuple[bytes, bytes] | None]:
             )
             _WORKER.start()
         return _QUEUE
+
+
+def flush_pending(max_items: int = 2048) -> int:
+    """Synchronously persist everything still in the latest map.
+
+    Called at process shutdown: entries queued during an IO-pressure
+    window must land on disk before exit or the next start misses
+    ratchet state. Returns the number persisted.
+    """
+    written = 0
+    with _LATEST_LOCK:
+        pending = list(_LATEST.items())[:max_items]
+        for h, _r in pending:
+            _LATEST.pop(h, None)
+    for destination_hash, ratchet in pending:
+        try:
+            _persist_one(destination_hash, ratchet)
+            written += 1
+        except Exception as exc:
+            logger.error("Ratchet persist flush failed: %s", exc)
+    return written
 
 
 def _enqueue_persist(destination_hash: bytes, ratchet: bytes) -> None:

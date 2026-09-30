@@ -216,7 +216,9 @@ class VoicemailManager:
                             is_blocked = True
                             break
             except Exception:
-                is_blocked = False
+                # Fail closed: a lookup error must not auto-answer a caller the
+                # blocklist was supposed to refuse.
+                is_blocked = True
         if is_blocked:
             RNS.log(
                 f"Voicemail: Caller {RNS.prettyhexrep(caller_identity.hash)} is blocked; skipping auto-answer",
@@ -226,6 +228,11 @@ class VoicemailManager:
 
         delay = self.config.voicemail_auto_answer_delay_seconds.get()
         RNS.log(f"Voicemail: Will auto-answer in {delay} seconds", RNS.LOG_DEBUG)
+
+        # Bind the timer to this link object: a hangup+redial by the same
+        # caller must not auto-answer the replacement call.
+        telephone = self.telephone_manager.telephone
+        scheduled_call = telephone.active_call if telephone else None
 
         def voicemail_job():
             RNS.log(
@@ -238,6 +245,15 @@ class VoicemailManager:
             telephone = self.telephone_manager.telephone
             if not telephone:
                 RNS.log("Voicemail: No telephone object", RNS.LOG_ERROR)
+                return
+            if (
+                scheduled_call is not None
+                and telephone.active_call is not scheduled_call
+            ):
+                RNS.log(
+                    "Voicemail: Call instance changed since scheduling, skipping auto-answer",
+                    RNS.LOG_DEBUG,
+                )
                 return
 
             RNS.log(
@@ -457,6 +473,42 @@ class VoicemailManager:
             )
         except Exception as e:
             RNS.log(f"Failed to start recording: {e}", RNS.LOG_ERROR)
+            # Restore the call's audio source if a half-built pipeline stole it.
+            audio_source = getattr(
+                getattr(telephone, "active_call", None),
+                "audio_source",
+                None,
+            )
+            if (
+                audio_source is not None
+                and self.recording_sink is not None
+                and getattr(audio_source, "sink", None) is self.recording_sink
+            ):
+                with contextlib.suppress(Exception):
+                    audio_source.sink = getattr(telephone, "receive_mixer", None)
+                    audio_source.pipeline = None
+            self._stop_sink_bounded(getattr(self, "recording_sink", None))
+            self.recording_sink = None
+            self.recording_pipeline = None
+            self.is_recording = False
+
+    @staticmethod
+    def _stop_sink_bounded(sink, timeout_s: float = 5.0) -> None:
+        """Stop an OpusFileSink without blocking forever on a dead digest thread."""
+        if sink is None:
+            return
+        done = threading.Event()
+
+        def _stop():
+            try:
+                sink.stop()
+            except Exception:
+                pass
+            finally:
+                done.set()
+
+        threading.Thread(target=_stop, daemon=True).start()
+        done.wait(timeout_s)
 
     def stop_recording(self):
         if not self.is_recording:
@@ -472,7 +524,7 @@ class VoicemailManager:
                 self.recording_pipeline.stop()
 
             if self.recording_sink:
-                self.recording_sink.stop()
+                self._stop_sink_bounded(self.recording_sink)
 
             # Pipeline.__init__ repointed audio_source.sink at the recording
             # sink. Restore the receive mixer so remote audio is not dropped
@@ -618,9 +670,11 @@ class VoicemailManager:
         try:
             _lxst, Null, Pipeline, OpusFileSink, _opus_source = _lxst_symbols()
 
-            self.greeting_recording_sink = OpusFileSink(
-                os.path.join(self.greetings_dir, "greeting.opus"),
-            )
+            # Write to a temp path first so a failed recording cannot clobber
+            # a previously valid greeting.opus.
+            greeting_tmp = os.path.join(self.greetings_dir, "greeting.opus.tmp")
+            self._greeting_tmp_path = greeting_tmp
+            self.greeting_recording_sink = OpusFileSink(greeting_tmp)
             self.greeting_recording_sink.samplerate = 48000
 
             self.greeting_recording_pipeline = Pipeline(
@@ -637,6 +691,26 @@ class VoicemailManager:
                 f"Voicemail: Failed to start greeting recording: {e}",
                 RNS.LOG_ERROR,
             )
+            # Partial setup must not leave audio_input repointed at a dead
+            # sink for the rest of the call.
+            audio_input = getattr(telephone, "audio_input", None)
+            if (
+                audio_input is not None
+                and self.greeting_recording_sink is not None
+                and getattr(audio_input, "sink", None) is self.greeting_recording_sink
+            ):
+                with contextlib.suppress(Exception):
+                    audio_input.sink = getattr(telephone, "transmit_mixer", None)
+                    audio_input.pipeline = None
+            self._stop_sink_bounded(getattr(self, "greeting_recording_sink", None))
+            self.greeting_recording_sink = None
+            self.greeting_recording_pipeline = None
+            self.is_greeting_recording = False
+            tmp = getattr(self, "_greeting_tmp_path", None)
+            self._greeting_tmp_path = None
+            if tmp:
+                with contextlib.suppress(OSError):
+                    os.remove(tmp)
 
     def stop_greeting_recording(self):
         if not self.is_greeting_recording:
@@ -647,7 +721,7 @@ class VoicemailManager:
                 self.greeting_recording_pipeline.stop()
 
             if self.greeting_recording_sink:
-                self.greeting_recording_sink.stop()
+                self._stop_sink_bounded(self.greeting_recording_sink)
 
             # The greeting pipeline repointed audio_input.sink at the
             # recording sink. Restore the transmit mixer or the mic stays
@@ -665,6 +739,17 @@ class VoicemailManager:
             self.greeting_recording_sink = None
             self.greeting_recording_pipeline = None
             self.is_greeting_recording = False
+            tmp = getattr(self, "_greeting_tmp_path", None)
+            self._greeting_tmp_path = None
+            if tmp and os.path.isfile(tmp) and os.path.getsize(tmp) > 0:
+                with contextlib.suppress(OSError):
+                    os.replace(
+                        tmp,
+                        os.path.join(self.greetings_dir, "greeting.opus"),
+                    )
+            elif tmp:
+                with contextlib.suppress(OSError):
+                    os.remove(tmp)
             RNS.log("Voicemail: Stopped recording greeting from mic", RNS.LOG_DEBUG)
         except Exception as e:
             RNS.log(f"Voicemail: Error stopping greeting recording: {e}", RNS.LOG_ERROR)

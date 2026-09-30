@@ -2,6 +2,7 @@
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1                       8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   Quad4-Software/argus@v0.1.0                   92e91df2b2a0109361aa84c5152a95d43651b415
 #   actions/download-artifact@v5.0.0              634f93cb2916e3fdff6788551b99b062d0335ce0
 #   github/codeql-action/init@v4.31.6             95e58e9a2cdfd71adc6e0353d5c52f41a045d225
 #   github/codeql-action/analyze@v4.31.6          95e58e9a2cdfd71adc6e0353d5c52f41a045d225
@@ -83,6 +84,13 @@ jobs:
                   for f in docker/Dockerfile docker/Dockerfile.hardened; do
                     trivy config --exit-code 1 "$f"
                   done
+
+            - name: Argus supply-chain indicator scan
+              uses: Quad4-Software/argus@92e91df2b2a0109361aa84c5152a95d43651b415 # v0.1.0
+              with:
+                  paths: .
+                  fail-on: high
+                  format: markdown
 
     secret-scan:
         name: Secret scan (gitleaks)

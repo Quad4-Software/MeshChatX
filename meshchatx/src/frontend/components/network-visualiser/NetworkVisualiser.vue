@@ -82,7 +82,7 @@ import {
     VIZ_PATH_TABLE_SOFT_CAP,
     buildFullGraph,
     computeLodUpdates,
-    computeRadialPositions,
+    computeClusterPositions,
     declutterLabelBoxes,
     hashposXY,
     lodLevelFromScale,
@@ -266,7 +266,7 @@ export default {
             fpsLastSampleMs: 0,
             cachedPositions: {},
             resetCameraOnNextGraph: false,
-            leavingRadialLayout: false,
+            leavingClusterLayout: false,
             batterySaverPrefs: loadBatterySaverPrefs(),
             suppressLiveLayoutPersist: false,
             suppressAutoReloadPersist: false,
@@ -439,13 +439,13 @@ export default {
             }
             if (this.viewMode !== prevViewMode && this.hasRenderer) {
                 // Same transition rules as onViewModeChange: preserve the
-                // force layout when entering radial, keep ring positions out
+                // force layout when entering cluster, keep ring positions out
                 // of the cache when leaving it, then rebuild.
-                const wasRadial = prevViewMode === "radial";
-                if (this.viewMode === "radial") {
+                const wasCluster = prevViewMode === "cluster";
+                if (this.viewMode === "cluster") {
                     this.snapshotLivePositions();
                 }
-                this.leavingRadialLayout = wasRadial;
+                this.leavingClusterLayout = wasCluster;
                 this.resetCameraOnNextGraph = true;
                 this.refreshPhysicsEnabled({ skipSnapshot: true });
                 this.processVisualization();
@@ -628,10 +628,10 @@ export default {
             if (!identityHash) return;
             const pathTable = this.pathTable;
             const announces = this.announces;
-            // Radial ring positions must not overwrite the cached force
-            // layout, or flat view would reopen stuck on the rings.
+            // Cluster lobe positions must not overwrite the cached force
+            // layout, or flat view would reopen stuck on the lobes.
             const positions =
-                this.viewMode === "radial"
+                this.viewMode === "cluster"
                     ? { ...this.cachedPositions }
                     : { ...this.cachedPositions, ...this.snapshotNodePositions() };
             this.cachedPositions = positions;
@@ -1000,8 +1000,8 @@ export default {
         onViewModeChange(next) {
             const normalized = normalizeVisualiserViewMode(next);
             if (normalized === this.viewMode) return;
-            const wasRadial = this.viewMode === "radial";
-            if (normalized === "radial") {
+            const wasCluster = this.viewMode === "cluster";
+            if (normalized === "cluster") {
                 // Preserve the live force layout so flat can restore it on
                 // the way back instead of reopening on ring coordinates.
                 this.snapshotLivePositions();
@@ -1009,10 +1009,10 @@ export default {
             this.viewMode = normalized;
             persistVisualiserViewMode(normalized, { emit: false });
             this.webglEngine?.setViewMode?.(normalized);
-            // Radial swaps force layout for pinned hop rings, so switching to
+            // Cluster swaps force layout for pinned hop lobes, so switching to
             // or from it needs a rebuild plus a camera reset.
-            if (normalized === "radial" || wasRadial) {
-                this.leavingRadialLayout = wasRadial;
+            if (normalized === "cluster" || wasCluster) {
+                this.leavingClusterLayout = wasCluster;
                 this.resetCameraOnNextGraph = true;
                 this.refreshPhysicsEnabled({ skipSnapshot: true });
                 this.processVisualization();
@@ -1047,7 +1047,7 @@ export default {
             }
             try {
                 this.webglEngine = createVisualiserWebGLEngine(canvas, {
-                    getLiveLayout: () => this.enablePhysics === true && this.viewMode !== "radial",
+                    getLiveLayout: () => this.enablePhysics === true && this.viewMode !== "cluster",
                     isDark: () => this.resolveVisualiserIsDark(),
                     onNodeActivate: (id, meta) => this.onWebGLNodeActivate(id, meta),
                     onHover: (id, meta, x, y) => this.onWebGLHover(id, meta, x, y),
@@ -1069,9 +1069,9 @@ export default {
         },
         refreshPhysicsEnabled(options = {}) {
             // Ring coordinates must never enter the force-position cache:
-            // not while radial is active, and not during the radial-to-flat
-            // transition where the live snapshot is still the ring layout.
-            const skipSnapshot = options.skipSnapshot === true || this.viewMode === "radial";
+            // not while cluster is active, and not during the cluster-to-flat
+            // transition where the live snapshot is still the lobe layout.
+            const skipSnapshot = options.skipSnapshot === true || this.viewMode === "cluster";
             if (this.webglEngine) {
                 this.webglEngine.setLiveLayout(this.enablePhysics);
                 if (!this.enablePhysics && !skipSnapshot) {
@@ -1088,7 +1088,7 @@ export default {
                 this.snapshotNetworkPositions();
             }
             this.network.setOptions({
-                physics: { enabled: this.enablePhysics && this.viewMode !== "radial" },
+                physics: { enabled: this.enablePhysics && this.viewMode !== "cluster" },
                 edges: { smooth: VIZ_EDGE_SMOOTH },
             });
         },
@@ -1669,10 +1669,10 @@ export default {
                     posById[id] = { x: p.x, y: p.y };
                 }
             }
-            // Leaving radial: the live snapshot is still the ring layout.
+            // Leaving cluster: the live snapshot is still the lobe layout.
             // Skip it so the cached force positions win the rebuild.
-            const skipLiveOverlay = this.leavingRadialLayout === true;
-            this.leavingRadialLayout = false;
+            const skipLiveOverlay = this.leavingClusterLayout === true;
+            this.leavingClusterLayout = false;
             const existingNodeIds = this.nodes.getIds();
             if (!skipLiveOverlay && this.webglEngine) {
                 const snap = this.webglEngine.getPositions() || {};
@@ -1796,17 +1796,17 @@ export default {
                 }
             }
 
-            const radial = this.viewMode === "radial";
-            if (radial) {
-                // Radial view overrides every position with deterministic hop
+            const clusterView = this.viewMode === "cluster";
+            if (clusterView) {
+                // Cluster view overrides every position with deterministic hop
                 // rings around me, so nothing is missing and settle is skipped.
-                const radialPos = computeRadialPositions({
+                const clusterPos = computeClusterPositions({
                     interfaces: [...interfacesPayload.map((i) => i.name), ...pathOnlyPayload.map((i) => i.name)],
                     discovered: discoveredPayload.map((d) => d.id),
                     pathTable: this.pathTable,
                     hopMax: this.hopFilterMax,
                 });
-                for (const [id, p] of Object.entries(radialPos)) {
+                for (const [id, p] of Object.entries(clusterPos)) {
                     posById[id] = p;
                 }
             }
@@ -2009,7 +2009,7 @@ export default {
                     x: n.x,
                     y: n.y,
                     mass: n.group === "me" ? 4 : n.group === "interface" ? 2.5 : n.group === "discovered" ? 1.2 : 1,
-                    fixed: radial || n.id === "me",
+                    fixed: clusterView || n.id === "me",
                     radius: Number.isFinite(n.size) ? n.size : 22,
                 }));
                 graph.layout_edges = graphEdges.map((e) => ({
@@ -2026,12 +2026,12 @@ export default {
                 if (n?.id) graphNodeIds.add(n.id);
             }
             graphEdges = graphEdges.filter((e) => e && graphNodeIds.has(e.from) && graphNodeIds.has(e.to));
-            // Radial pins every node so hop rings stay put under live layout
+            // Cluster pins every node so hop lobes stay put under live layout
             // and scene ticks. Flat must emit fixed explicitly: vis-network
-            // deep-merges node updates, so a stale fixed pin from radial
+            // deep-merges node updates, so a stale fixed pin from cluster
             // would otherwise survive the switch back.
             for (const node of graphNodes) {
-                node.fixed = radial || node.id === "me";
+                node.fixed = clusterView || node.id === "me";
             }
 
             if (!silent) {
@@ -2103,9 +2103,9 @@ export default {
                 const counts = this.webglEngine.getCounts();
                 this.graphNodeCount = counts.nodes;
                 this.graphEdgeCount = counts.edges;
-                // Radial ring positions must not overwrite the cached force
-                // layout, or flat view would reopen stuck on the rings.
-                if (!radial) {
+                // Cluster lobe positions must not overwrite the cached force
+                // layout, or flat view would reopen stuck on the lobes.
+                if (!clusterView) {
                     const snap = this.webglEngine.getPositions() || {};
                     this.cachedPositions = { ...this.cachedPositions, ...snap };
                 }
@@ -2167,7 +2167,7 @@ export default {
             } finally {
                 if (pauseSilentPhysics && this.network && !this.physicsPausedForDrag) {
                     this.network.setOptions({
-                        physics: { enabled: this.enablePhysics && this.viewMode !== "radial" },
+                        physics: { enabled: this.enablePhysics && this.viewMode !== "cluster" },
                         edges: { smooth: VIZ_EDGE_SMOOTH },
                     });
                 }

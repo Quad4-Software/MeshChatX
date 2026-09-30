@@ -1594,7 +1594,7 @@ def register_interfaces_routes(routes, app):
     async def interface_stats(request):
         return web.json_response(
             {
-                "interface_stats": app._get_interface_stats_payload(),
+                "interface_stats": await app._aget_interface_stats_payload(),
             },
         )
 

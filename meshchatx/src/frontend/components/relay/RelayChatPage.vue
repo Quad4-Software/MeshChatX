@@ -152,7 +152,10 @@
                                 <div class="min-w-0 flex-1">
                                     <div class="truncate font-medium leading-tight">{{ hubDisplayName(hub) }}</div>
                                     <div class="truncate text-xs" :class="statusTextColor(hub.status)">
-                                        {{ statusLabel(hub.status) }}
+                                        {{ statusLabel(hub.status)
+                                        }}<template v-if="hub.connected && hub.rtt_ms != null"
+                                            ><span class="text-sem-fg-muted"> · {{ hub.rtt_ms }} ms</span></template
+                                        >
                                     </div>
                                 </div>
                                 <span
@@ -1506,35 +1509,44 @@
                 :y="sidebarMenu.y"
             >
                 <ContextMenuItem v-if="!sidebarMenu.hub" @click="openAddHubFromMenu">
+                    <MaterialDesignIcon icon-name="plus" class="size-4 text-sem-fg-muted" />
                     {{ $t("relay_chat.ctx_add_hub") }}
                 </ContextMenuItem>
                 <template v-if="sidebarMenu.hub">
                     <ContextMenuItem v-if="!sidebarMenu.room" @click="focusJoinRoomFromMenu">
+                        <MaterialDesignIcon icon-name="forum-plus-outline" class="size-4 text-sem-fg-muted" />
                         {{ $t("relay_chat.ctx_add_room") }}
                     </ContextMenuItem>
                     <ContextMenuItem v-if="!sidebarMenu.room && !sidebarMenu.hub.connected" @click="connectHubFromMenu">
+                        <MaterialDesignIcon icon-name="link-variant" class="size-4 text-sem-fg-muted" />
                         {{ $t("relay_chat.ctx_connect_hub") }}
                     </ContextMenuItem>
                     <ContextMenuItem
                         v-if="!sidebarMenu.room && sidebarMenu.hub.connected"
                         @click="disconnectHubFromMenu"
                     >
+                        <MaterialDesignIcon icon-name="link-variant-off" class="size-4 text-sem-fg-muted" />
                         {{ $t("relay_chat.ctx_disconnect_hub") }}
                     </ContextMenuItem>
                     <ContextMenuItem @click="copyHubAddressFromMenu">
+                        <MaterialDesignIcon icon-name="content-copy" class="size-4 text-sem-fg-muted" />
                         {{ $t("relay_chat.ctx_copy_hub_address") }}
                     </ContextMenuItem>
                     <ContextMenuItem @click="shareHubFromMenu">
+                        <MaterialDesignIcon icon-name="share-variant-outline" class="size-4 text-sem-fg-muted" />
                         {{ sidebarMenu.room ? $t("relay_chat.ctx_share_room") : $t("relay_chat.ctx_share_hub") }}
                     </ContextMenuItem>
                     <ContextMenuItem @click="openSettingsFromMenu">
+                        <MaterialDesignIcon icon-name="cog-outline" class="size-4 text-sem-fg-muted" />
                         {{ $t("relay_chat.ctx_hub_settings") }}
                     </ContextMenuItem>
                     <ContextMenuItem v-if="sidebarMenu.room" @click="leaveRoomFromMenu">
+                        <MaterialDesignIcon icon-name="exit-to-app" class="size-4 text-sem-fg-muted" />
                         {{ $t("relay_chat.ctx_leave_room") }}
                     </ContextMenuItem>
                     <ContextMenuDivider />
                     <ContextMenuItem class="text-sem-danger" @click="removeHubFromMenu">
+                        <MaterialDesignIcon icon-name="delete-outline" class="size-4" />
                         {{ $t("relay_chat.ctx_remove_hub") }}
                     </ContextMenuItem>
                 </template>
@@ -1550,21 +1562,36 @@
                     v-if="messageMenu.msg && canQuoteMessage(messageMenu.msg)"
                     @click="replyWithQuoteFromMenu"
                 >
+                    <MaterialDesignIcon icon-name="reply" class="size-4 text-sem-fg-muted" />
                     {{ $t("relay_chat.ctx_reply_quote") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="messageMenu.msg && canMentionMessageAuthor(messageMenu.msg)"
                     @click="mentionUserFromMenu"
                 >
+                    <MaterialDesignIcon icon-name="at" class="size-4 text-sem-fg-muted" />
                     {{ $t("relay_chat.ctx_mention_user") }}
                 </ContextMenuItem>
+                <ContextMenuItem v-if="messageMenu.msg && canDmMessageAuthor(messageMenu.msg)" @click="dmUserFromMenu">
+                    <MaterialDesignIcon icon-name="message-text-outline" class="size-4 text-sem-fg-muted" />
+                    {{ $t("relay_chat.ctx_message_user") }}
+                </ContextMenuItem>
                 <ContextMenuItem v-if="messageMenu.msg && messageMenu.msg.text" @click="copyMessageFromMenu">
+                    <MaterialDesignIcon icon-name="content-copy" class="size-4 text-sem-fg-muted" />
                     {{ $t("relay_chat.ctx_copy_message") }}
+                </ContextMenuItem>
+                <ContextMenuItem v-if="messageMenu.msg && messageMenu.msg.src" @click="copyAuthorHashFromMenu">
+                    <MaterialDesignIcon icon-name="fingerprint" class="size-4 text-sem-fg-muted" />
+                    {{ $t("relay_chat.ctx_copy_hash") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="messageMenu.msg && canIgnoreMessageAuthor(messageMenu.msg)"
                     @click="toggleIgnoreFromMenu"
                 >
+                    <MaterialDesignIcon
+                        :icon-name="isIgnoredAuthor(messageMenu.msg) ? 'eye-outline' : 'eye-off-outline'"
+                        class="size-4 text-sem-fg-muted"
+                    />
                     {{
                         isIgnoredAuthor(messageMenu.msg)
                             ? $t("relay_chat.ctx_unignore_user")
@@ -1575,14 +1602,17 @@
                     v-if="messageMenu.msg && canTranslateRelayMessage(messageMenu.msg)"
                     @click="translateRelayMessageFromMenu"
                 >
+                    <MaterialDesignIcon icon-name="translate" class="size-4 text-sem-fg-muted" />
                     {{ $t("relay_chat.ctx_translate_message") }}
                 </ContextMenuItem>
                 <template v-if="messageMenu.msg && canModerateSelectedHub">
                     <ContextMenuDivider />
                     <ContextMenuItem class="text-sem-danger" @click="kickUserFromMenu">
+                        <MaterialDesignIcon icon-name="account-remove-outline" class="size-4" />
                         {{ $t("relay_chat.ctx_kick_user") }}
                     </ContextMenuItem>
                     <ContextMenuItem class="text-sem-danger" @click="banUserFromMenu">
+                        <MaterialDesignIcon icon-name="gavel" class="size-4" />
                         {{ $t("relay_chat.ctx_ban_user") }}
                     </ContextMenuItem>
                 </template>
@@ -1758,7 +1788,10 @@ export default {
                 // never reveal them again.
                 excludeMessage: (msg) => inst?.proxy.isIgnoredMsg(msg),
                 decorateMessages: (msgs) => inst?.proxy.applyLocalHighlightFlags(msgs),
-                buildTimelineOptions: () => ({ hideJoinPart: inst?.proxy.hideJoinPart === true }),
+                buildTimelineOptions: () => ({
+                    hideJoinPart: inst?.proxy.hideJoinPart === true,
+                    unreadBeforeSeq: inst?.proxy.unreadDividerSeq ?? null,
+                }),
                 onScrollState: (el, distanceToBottom) => inst?.proxy._onMessagesScrollState(distanceToBottom),
                 t: (...args) => inst?.proxy.$t(...args),
             }),
@@ -1856,6 +1889,8 @@ export default {
             relayAtBottom: true,
             newMessagesBelow: 0,
             nickCycle: null,
+            deliveryFailToasted: new Set(),
+            unreadDividerSeq: null,
             ignoredPeers: [],
             highlightWords: [],
             hideJoinPart: false,
@@ -1900,6 +1935,15 @@ export default {
     computed: {
         rrcEnabled() {
             return useConfigStore().config?.rrc_enabled !== false;
+        },
+        composerByteLimit() {
+            return this.selectedHub?.max_msg_body_bytes || 350;
+        },
+        composerByteCount() {
+            return this.composerByteLength(this.composer);
+        },
+        composerByteWarning() {
+            return this.composerByteCount > this.composerByteLimit * 0.8;
         },
         showUnreadBadges() {
             return useConfigStore().config?.rrc_unread_badges_enabled !== false;
@@ -2139,6 +2183,7 @@ export default {
         _rebuildMessageTimelineCache() {
             this.messageTimelineCache = buildRelayMessageTimeline(this.messages, {
                 hideJoinPart: this.hideJoinPart,
+                unreadBeforeSeq: this.unreadDividerSeq,
             });
             this.messageTimelineCacheSignature = relayMessageTimelineSignature(this.messages);
         },
@@ -2149,6 +2194,7 @@ export default {
             if (this.messageTimelineCache !== null) {
                 this.messageTimelineCache = prependRelayMessageTimeline(this.messageTimelineCache, prependedMessages, {
                     hideJoinPart: this.hideJoinPart,
+                    unreadBeforeSeq: this.unreadDividerSeq,
                 });
                 this.messageTimelineCacheSignature = relayMessageTimelineSignature(this.messages);
             } else {
@@ -3077,6 +3123,30 @@ export default {
                 ToastUtils.error(this.$t("common.failed_to_copy"));
             }
         },
+        canDmMessageAuthor(msg) {
+            const own = useConfigStore().config?.identity_hash || "";
+            return Boolean(msg && msg.src && msg.kind !== "system" && msg.src !== own);
+        },
+        async dmUserFromMenu() {
+            const msg = this.messageMenu.msg;
+            this.closeMessageMenu();
+            if (msg?.src) {
+                await this.openMemberDm({ hash: msg.src });
+            }
+        },
+        copyAuthorHashFromMenu() {
+            const msg = this.messageMenu.msg;
+            this.closeMessageMenu();
+            if (!msg?.src) {
+                return;
+            }
+            try {
+                navigator.clipboard.writeText(msg.src);
+                ToastUtils.success(this.$t("common.copied"));
+            } catch {
+                ToastUtils.error(this.$t("common.failed_to_copy"));
+            }
+        },
         async loadTranslationPacks() {
             try {
                 this.translationPacks = await TranslationService.listPacks();
@@ -3512,6 +3582,7 @@ export default {
         onBackFromRoom() {
             this.saveCurrentRoomDraft();
             this.selectedRoom = null;
+            this.unreadDividerSeq = null;
             this.composer = "";
             this.nickCycle = null;
             this.relayAtBottom = true;
@@ -3536,9 +3607,14 @@ export default {
             // rebinding, so the composer text never lands in the new key.
             this.saveCurrentRoomDraft();
             this._setSelectedHub(hubHash);
+            // Snapshot the unread count before markRoomRead clears it: the
+            // divider sits above the first unread message once loaded.
+            const hubBefore = this.hubs.find((h) => h.hub_hash === hubHash);
+            const pendingUnread = hubBefore?.unread_counts?.[room] || 0;
             this.selectedRoom = room;
             this.expandedHubs[hubHash] = true;
             this.hasMorePrevious = false;
+            this.unreadDividerSeq = null;
             this.expandedPresenceGroups = {};
             this._invalidateMessageTimelineCache();
             // Clear before fetch so only websocket arrivals during the request are merged back.
@@ -3558,6 +3634,17 @@ export default {
                 }
                 const loaded = (response.data?.messages || []).filter((m) => !this.isIgnoredMsg(m));
                 this.messages = mergeRelayMessages(loaded, this.messages);
+                // Index into the fetched page only: websocket arrivals merged
+                // during the request have newer seqs and must not shift the
+                // unread boundary later than it really is.
+                if (pendingUnread > 0 && loaded.length > 0) {
+                    // More unread than the loaded page: the boundary extends
+                    // above it, so the divider anchors on the first loaded row.
+                    const firstUnread = loaded[Math.max(0, loaded.length - pendingUnread)];
+                    this.unreadDividerSeq = typeof firstUnread?.seq === "number" ? firstUnread.seq : null;
+                } else {
+                    this.unreadDividerSeq = null;
+                }
                 this.applyLocalHighlightFlags(this.messages);
                 this._rebuildMessageTimelineCache();
                 this.members = response.data?.members || [];
@@ -3687,7 +3774,36 @@ export default {
                 }
             });
         },
+        composerByteLength(text) {
+            return new TextEncoder().encode(text || "").length;
+        },
         onComposerKeydown(event) {
+            // Arrow-up on an empty composer recalls the last message the local
+            // identity sent in this room, the IRC/Discord "fix a typo" move.
+            if (event.key === "ArrowUp" && !this.composer) {
+                const ownHash = useConfigStore().config?.identity_hash || "";
+                const own = [...this.messages]
+                    .reverse()
+                    .find(
+                        (m) =>
+                            (m.kind === "msg" || m.kind === "action") &&
+                            m.src === ownHash &&
+                            typeof m.text === "string" &&
+                            m.text
+                    );
+                if (own) {
+                    event.preventDefault();
+                    this.composer = (own.kind === "action" ? "/me " : "") + own.text;
+                    nextTick(() => {
+                        const el = event.target;
+                        if (el && typeof el.setSelectionRange === "function") {
+                            const end = el.value.length;
+                            el.setSelectionRange(end, end);
+                        }
+                    });
+                }
+                return;
+            }
             if (event.key !== "Tab") {
                 if (event.key !== "Shift") {
                     this.nickCycle = null;
@@ -3748,6 +3864,22 @@ export default {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.send_failed"));
             } finally {
                 this.sending = false;
+            }
+        },
+        async retryRelayMessage(msg) {
+            const hubHash = this.selectedHubHash;
+            const room = msg?.room || this.selectedRoom;
+            const seq = msg?.seq;
+            if (!hubHash || !room || seq == null || msg?.delivery !== "failed") {
+                return;
+            }
+            try {
+                await window.api.post(
+                    apiPath(`/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/messages/${seq}/retry`),
+                    {}
+                );
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.send_failed"));
             }
         },
         joinRoomForm(hub) {
@@ -4334,6 +4466,17 @@ export default {
             if (json.message && json.message.kind === "error" && this.isBadKeyErrorText(json.message.text)) {
                 this.handleBadKeyError(json.hub_hash, json.room || json.message.room, json.message.text);
             }
+            if (json.message && json.message.delivery === "failed") {
+                // One toast per message: re-pushes of the same seq must not
+                // stack notifications on top of the in-line hint.
+                // Key on the envelope id so a retried message that fails
+                // again still warns; seq stays constant across retries.
+                const key = `df-${json.hub_hash}-${json.room}-${json.message.mid || json.message.seq}`;
+                if (!this.deliveryFailToasted.has(key)) {
+                    this.deliveryFailToasted.add(key);
+                    ToastUtils.warning(this.$t("relay_chat.delivery_failed_toast"));
+                }
+            }
             if (json.hub_hash === this.selectedHubHash && json.room === this.selectedRoom && json.message) {
                 const ignored = this.isIgnoredMsg(json.message);
                 if (!ignored && this.highlightWords.length) {
@@ -4351,9 +4494,18 @@ export default {
                     this.refreshMembers();
                 }
                 // Chat is already open: dismiss unread/mention badge without waiting
-                // for a later hub list refresh race.
-                this.markRoomRead(json.hub_hash, json.room);
-            } else if (json.message && (json.message.kind === "msg" || json.message.kind === "action")) {
+                // for a later hub list refresh race. Delivery-state re-pushes
+                // carry no new content, so skip the POST for those.
+                if (!json.message.delivery) {
+                    this.markRoomRead(json.hub_hash, json.room);
+                }
+            } else if (
+                json.message &&
+                (json.message.kind === "msg" || json.message.kind === "action") &&
+                !json.message.delivery
+            ) {
+                // delivery re-pushes carry a delivery field for own messages;
+                // they are state updates on an existing entry, never toasts.
                 const ignored = this.isIgnoredMsg(json.message);
                 const bump = !ignored && this.shouldBumpRoomMention(json.message);
                 if (!ignored) {

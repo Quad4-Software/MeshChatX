@@ -1297,7 +1297,7 @@ ${b}[A photo${b}:/media/photo.png${b}img=1]
 ${b}=
 ${b}${b}
 
-The ${b}!alt${b}! text before the second backtick is required. Options can be added in a final field, separated by semicolons: ${b}!w=${b}! and ${b}!h=${b}! for a size hint in pixels, ${b}!a=${b}! for alignment (${b}!l${b}!, ${b}!c${b}!, ${b}!r${b}!), ${b}!s=${b}! for the byte size, ${b}!k=${b}! for a cache key and ${b}!profile=${b}! for a serving profile.
+The ${b}!alt${b}! text before the second backtick is required. Options can be added in a final field, separated by semicolons: ${b}!w=${b}! and ${b}!h=${b}! for a size hint in columns or percent (w=25%, w=40), ${b}!a=${b}! for alignment (${b}!l${b}!, ${b}!c${b}!, ${b}!r${b}!), ${b}!s=${b}! for the byte size, ${b}!k=${b}! for a cache key and ${b}!profile=${b}! for a serving profile.
 
 ${b}Faaa
 ${b}=

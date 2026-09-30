@@ -200,6 +200,13 @@ def normalize_room(room):
     if not r:
         msg = "room must not be empty"
         raise ValueError(msg)
+    try:
+        r.encode("utf-8", errors="strict")
+    except UnicodeEncodeError:
+        # Lone surrogates and other non-UTF-8 text cannot be encoded into
+        # a CBOR envelope; reject them here instead of mid-send.
+        msg = "room name contains invalid unicode"
+        raise ValueError(msg) from None
     return r
 
 
@@ -296,14 +303,6 @@ def parse_room_list_notice_details(text):
     return rooms
 
 
-def parse_room_list_notice(text):
-    """Parse a hub /list notice into {room: topic_or_None} or None."""
-    details = parse_room_list_notice_details(text)
-    if details is None:
-        return None
-    return {name: info.get("topic") for name, info in details.items()}
-
-
 class RRCMessage:
     """A single chat event (message, action, notice, or system line)."""
 
@@ -319,6 +318,13 @@ class RRCMessage:
         # Optional subtype for system lines, e.g. "join" / "part", so clients
         # can filter presence noise without parsing the display text.
         self.event = None
+        # Envelope id the hub saw for this message, set only on locally sent
+        # messages so the relayed echo can be matched back.
+        self.mid = None
+        # Own-message delivery state: "sending" until the hub relays the echo,
+        # "sent" once confirmed, "failed" on timeout or link loss. None for
+        # inbound and system messages.
+        self.delivery = None
 
     def to_dict(self):
         """Return a JSON-serializable representation of the message."""
@@ -335,4 +341,8 @@ class RRCMessage:
         }
         if self.event is not None:
             out["event"] = self.event
+        if self.delivery is not None:
+            out["delivery"] = self.delivery
+            if isinstance(self.mid, (bytes, bytearray)):
+                out["mid"] = bytes(self.mid).hex()
         return out

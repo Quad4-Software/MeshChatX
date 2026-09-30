@@ -38,22 +38,28 @@ class PageNodeManager:
             config = PageNode.load_config(node_dir)
             if config is None:
                 continue
-            node_id = config["node_id"]
-            if node_id in self.nodes:
+            node_id = config.get("node_id")
+            if not node_id or node_id in self.nodes:
                 continue
             interval = resolve_persisted_announce_interval(config)
-            node = PageNode(
-                node_id=node_id,
-                name=config["name"],
-                base_dir=node_dir,
-                announce_enabled=config.get("announce_enabled", True),
-                announce_interval_seconds=normalize_announce_interval_seconds(
-                    interval,
-                ),
-                executable_pages_enabled=config.get("executable_pages_enabled", False),
-                executable_page_names=config.get("executable_page_names"),
-                on_announce=self.on_announce,
-            )
+            try:
+                node = PageNode(
+                    node_id=node_id,
+                    name=config.get("name") or node_id,
+                    base_dir=node_dir,
+                    announce_enabled=config.get("announce_enabled", True),
+                    announce_interval_seconds=normalize_announce_interval_seconds(
+                        interval,
+                    ),
+                    executable_pages_enabled=config.get(
+                        "executable_pages_enabled", False
+                    ),
+                    executable_page_names=config.get("executable_page_names"),
+                    on_announce=self.on_announce,
+                )
+            except Exception as e:
+                print(f"Skipping unloadable node {node_id}: {e}")
+                continue
             self.nodes[node_id] = node
             if interval != config.get("announce_interval_seconds"):
                 node.save_config()

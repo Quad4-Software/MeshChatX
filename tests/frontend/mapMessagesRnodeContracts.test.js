@@ -21,7 +21,9 @@ describe("map, messages, and rnode integrity contracts", () => {
         const nested = rnodeIntegrityKeyForSrc("/rnode-flasher/js/crypto-js@3.9.1-1/core.js", integrity);
         expect(nested).toBe("crypto-js@3.9.1-1/core.js");
 
-        const dist = rnodeIntegrityKeyForSrc("/rnode-flasher/js/web-serial-polyfill@1.0.15/dist/serial.js", integrity);
+        const dist = rnodeIntegrityKeyForSrc("/rnode-flasher/js/web-serial-polyfill@1.0.15/dist/serial.js", {
+            "web-serial-polyfill@1.0.15/dist/serial.js": "sha384-x",
+        });
         expect(dist).toBe("web-serial-polyfill@1.0.15/dist/serial.js");
     });
 

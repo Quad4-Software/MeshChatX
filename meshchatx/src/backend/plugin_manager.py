@@ -72,7 +72,6 @@ from meshchatx.src.backend.results import ok_result
 from meshchatx.src.json_store import load_json, load_json_required
 from meshchatx.src.path_utils import (
     is_direct_child,
-    is_path_within_dir,
     is_under_root,
 )
 
@@ -538,6 +537,7 @@ class PluginManager:
             self._remove_install_tree(target_dir)
         shutil.copytree(source_dir, target_dir)
         reject_symlinks_in_tree(target_dir)
+        self._strip_install_tree_bytecode(target_dir)
         self._normalize_install_tree_permissions(target_dir)
         integrity_hash = compute_dir_integrity_hash(target_dir)
         with self._lock:
@@ -670,11 +670,24 @@ class PluginManager:
                 tampered=False,
             )
             if self._backend_type(record) == "python":
-                self._python_runtime.activate(
-                    record.id,
-                    self._python_entry_path(record),
-                    self._python_host(record),
-                )
+                try:
+                    self._python_runtime.activate(
+                        record.id,
+                        self._python_entry_path(record),
+                        self._python_host(record),
+                    )
+                except Exception:
+                    # Committing enabled=True before activate() would leave a
+                    # phantom enabled plugin with no hooks registered.
+                    record.enabled = False
+                    self._write_plugin_state(
+                        plugin_id,
+                        False,
+                        None,
+                        integrity_hash=record.integrity_hash,
+                        tampered=False,
+                    )
+                    raise
             self._register_plugin_hooks(record)
             return self._public_plugin_view(record)
 
@@ -896,15 +909,6 @@ class PluginManager:
                 return path
         return None
 
-    def load_locale_messages(self, plugin_id: str, locale: str) -> dict[str, Any]:
-        path = self.locale_path(plugin_id, locale)
-        if not path:
-            return {}
-        data = load_json(path)
-        if not isinstance(data, dict):
-            raise ValueError("plugin locale file must be an object")
-        return data
-
     def report_failure(
         self,
         plugin_id: str,
@@ -970,6 +974,13 @@ class PluginManager:
         record = self._require_plugin(plugin_id)
         if not self._storage_allowed(record):
             raise PermissionError("storage permission not granted")
+        if not isinstance(key, str) or len(key) > 256 or not key:
+            raise ValueError("storage key must be 1-256 chars")
+        if (
+            not isinstance(value, str)
+            or len(value.encode("utf-8", errors="replace")) > 256 * 1024
+        ):
+            raise ValueError("storage value exceeds 256 KiB")
         with sqlite3.connect(self.state_db_path) as conn:
             conn.execute(
                 """
@@ -1177,6 +1188,13 @@ class PluginManager:
                 raise ValueError(f"data_msgpack_decode_failed: {exc}") from exc
 
         timeout = args.get("timeout")
+        if timeout is not None:
+            try:
+                timeout = float(timeout)
+            except (TypeError, ValueError):
+                timeout = None
+            else:
+                timeout = max(1.0, min(timeout, 120.0))
         done = threading.Event()
         result: dict[str, Any] = {
             "ok": False,
@@ -1280,7 +1298,11 @@ class PluginManager:
         if not self.app or not getattr(self.app, "reticulum", None):
             return {"paths": [], "total": 0, "responsive": 0, "unresponsive": 0}
         search = args.get("search")
-        limit = int(args.get("limit") or 200)
+        try:
+            limit = int(args.get("limit") or 200)
+        except (TypeError, ValueError):
+            limit = 200
+        limit = max(1, min(limit, 1000))
         handler = getattr(self.app, "rnpath_handler", None)
         if handler:
             result = handler.get_path_table(
@@ -1377,7 +1399,13 @@ class PluginManager:
             self._record_plugin_failure(record, exc, auto_disable=True)
             raise
 
-    def _resolve_backend_wasm_path(self, record: PluginRecord) -> str:
+    def _resolve_backend_wasm_path(self, record: PluginRecord) -> str | None:
+        """Return the declared wasm path, or None to use the in-memory stub.
+
+        Never writes to the install tree. Replacing a missing declared file
+        used to make enable() compute a hash mismatch and mark the plugin
+        tampered for an otherwise intact install.
+        """
         backend = record.manifest["backend"]
         entry = backend["entry"]
         if not isinstance(entry, str) or not entry.strip():
@@ -1388,19 +1416,14 @@ class PluginManager:
         if not is_under_root(wasm_path, root):
             raise PluginSecurityError("backend wasm entry escapes install tree")
         if not os.path.isfile(wasm_path):
-            return self._ensure_minimal_wasm(record)
+            return None
         try:
             validate_wasm_file(wasm_path)
             with open(wasm_path, "rb") as handle:
                 if handle.read(4) != b"\x00asm":
                     raise PluginSecurityError("invalid wasm module")
         except (PluginSecurityError, OSError, ValueError):
-            parent = os.path.dirname(wasm_path)
-            if parent and is_path_within_dir(parent, root):
-                os.makedirs(parent, exist_ok=True)
-            if os.path.isfile(wasm_path) and is_path_within_dir(wasm_path, root):
-                os.remove(wasm_path)
-            return self._ensure_minimal_wasm(record)
+            return None
         return wasm_path
 
     def _invoke_wasm(
@@ -1412,7 +1435,10 @@ class PluginManager:
         wasmtime = self._load_wasmtime()
         wasm_path = self._resolve_backend_wasm_path(record)
         engine = wasmtime.Engine()
-        module = wasmtime.Module.from_file(engine, wasm_path)
+        if wasm_path is None:
+            module = wasmtime.Module(engine, MINIMAL_PLUGIN_WAT)
+        else:
+            module = wasmtime.Module.from_file(engine, wasm_path)
         store = wasmtime.Store(engine)
         store.set_fuel(1_000_000)
         linker = wasmtime.Linker(engine)
@@ -1452,25 +1478,6 @@ class PluginManager:
         invoke = exports["invoke"]
         invoke(store, ptr, len(payload), 0)
         return ok_result(logs=logs)
-
-    def _ensure_minimal_wasm(self, record: PluginRecord) -> str:
-        wasmtime = self._load_wasmtime()
-        wasm_bytes = wasmtime.wat2wasm(MINIMAL_PLUGIN_WAT)
-        backend = record.manifest["backend"]
-        entry = backend["entry"]
-        if not isinstance(entry, str) or not entry.strip():
-            raise PluginSecurityError("backend wasm entry missing")
-        normalized = normalize_asset_path(entry.strip())
-        root = os.path.realpath(record.install_path)
-        wasm_path = os.path.realpath(os.path.join(root, normalized))
-        if not is_under_root(wasm_path, root):
-            raise PluginSecurityError("backend wasm entry escapes install tree")
-        parent = os.path.dirname(wasm_path)
-        if parent:
-            os.makedirs(parent, exist_ok=True)
-        with open(wasm_path, "wb") as handle:
-            handle.write(wasm_bytes)
-        return wasm_path
 
     def dispatch_hook(self, plugin_id: str, hook: str, payload: dict[str, Any]) -> None:
         if not self._plugins_runtime_enabled():
@@ -1534,7 +1541,10 @@ class PluginManager:
         wasmtime = self._load_wasmtime()
         engine = wasmtime.Engine()
         try:
-            wasmtime.Module.from_file(engine, wasm_path)
+            if wasm_path is None:
+                wasmtime.Module(engine, MINIMAL_PLUGIN_WAT)
+            else:
+                wasmtime.Module.from_file(engine, wasm_path)
         except Exception as exc:
             raise ValueError(f"invalid backend wasm module: {exc}") from exc
 
@@ -1683,6 +1693,25 @@ class PluginManager:
             os.chmod(path, mode)
         except OSError:
             pass
+
+    @staticmethod
+    def _strip_install_tree_bytecode(tree_root: str) -> None:
+        """Remove shipped bytecode from an install tree.
+
+        .pyc/.pyo/__pycache__ cannot be hidden behind the integrity hash
+        (the dir hash skips those names), so none may ship in the tree.
+        """
+        for dirpath, dirnames, filenames in os.walk(tree_root):
+            for name in list(dirnames):
+                if name == "__pycache__":
+                    shutil.rmtree(os.path.join(dirpath, name), ignore_errors=True)
+                    dirnames.remove(name)
+            for name in filenames:
+                if name.endswith((".pyc", ".pyo")):
+                    try:
+                        os.remove(os.path.join(dirpath, name))
+                    except OSError:
+                        pass
 
     def _normalize_install_tree_permissions(self, root: str) -> None:
         """Make installed trees deletable on Android/AssetFinder upgrades."""

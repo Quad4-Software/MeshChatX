@@ -13,7 +13,7 @@ def pythonTempDir = new File(buildDir, "python-tmp")
 def vendorWheelDir = new File(rootProject.projectDir, "vendor")
 def lxstPatchedWheel = new File(rootProject.projectDir, "vendor/lxst-0.5.1-py3-none-any.whl")
 def bleakPatchedWheel = new File(rootProject.projectDir, "vendor/bleak-3.0.2-py3-none-any.whl")
-def rnsPatchedWheel = new File(rootProject.projectDir, "vendor/rns-1.5.4-py3-none-any.whl")
+def rnsPatchedWheel = new File(rootProject.projectDir, "vendor/rns-1.5.5-py3-none-any.whl")
 def allAndroidAbis = ["arm64-v8a", "x86_64", "armeabi-v7a"]
 def selectedAndroidAbis = (
     project.findProperty("meshchatxAbis")
@@ -50,8 +50,8 @@ android {
         applicationId System.getenv("MESHCHATX_APPLICATION_ID") ?: "com.meshchatx"
         minSdk 24
         targetSdk 35
-        versionCode 49002
-        versionName "4.9.2"
+        versionCode 49003
+        versionName "4.9.3"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {

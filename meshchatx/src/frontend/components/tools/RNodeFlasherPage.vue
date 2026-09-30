@@ -287,8 +287,9 @@ export default {
         },
         async onCapabilitiesAction(action) {
             if (action === "load-polyfill") {
-                this.loadVendorLibraries(true);
-                ToastUtils.info(this.$t("tools.rnode_flasher.support.actions.polyfill_loading"));
+                // The web-serial polyfill is not shipped; the flasher needs
+                // native WebSerial or the Android bridge.
+                ToastUtils.error(this.$t("tools.rnode_flasher.support.actions.polyfill_loading"));
                 return;
             }
             if (action === "open-native-flasher" || action === "request-usb") {
@@ -370,7 +371,24 @@ export default {
             }
         },
         async loadVendorLibraries(force = false) {
+            if (this._vendorLoadPromise && !force) {
+                return this._vendorLoadPromise;
+            }
+            const load = this._loadVendorLibrariesInner(force);
+            this._vendorLoadPromise = load.finally(() => {
+                this._vendorLoadPromise = null;
+            });
+            return this._vendorLoadPromise;
+        },
+        async _loadVendorLibrariesInner(force = false) {
             if (!force && window.zip && window.CryptoJS && window.ESPLoader) return;
+            if (!crypto.subtle) {
+                // SRI verification requires a secure context (HTTPS or
+                // localhost). Surface it once instead of failing silently.
+                ToastUtils.error(this.$t("tools.rnode_flasher.support.actions.polyfill_loading"));
+                this.refreshCapabilities();
+                return;
+            }
             const libs = [
                 "/rnode-flasher/js/zip.min.js",
                 "/rnode-flasher/js/crypto-js@3.9.1-1/core.js",
@@ -379,32 +397,24 @@ export default {
             for (const lib of libs) {
                 try {
                     await this._loadScript(lib);
-                } catch {
-                    // continue best-effort. loadVendorLibraries is best-effort and
-                    // missing assets surface later through clear error toasts
+                } catch (e) {
+                    // Verified loads fail loudly: an SRI mismatch or fetch
+                    // failure is a tamper signal, not noise.
+                    console.error(`RNode: vendor script ${lib} failed verification/load:`, e);
                 }
             }
             try {
                 const esptoolPath = "/rnode-flasher/js/esptool-js@0.4.5/bundle.js";
-                const esptool = await import(/* @vite-ignore */ esptoolPath);
+                const esptool = await this._loadModule(esptoolPath);
                 window.ESPLoader = esptool.ESPLoader;
                 window.Transport = esptool.Transport;
-
-                const serialPolyfillPath = "/rnode-flasher/js/web-serial-polyfill@1.0.15/dist/serial.js";
-                const serialPolyfill = await import(/* @vite-ignore */ serialPolyfillPath);
-                if (serialPolyfill.serial) {
-                    window.serial = serialPolyfill.serial;
-                }
             } catch (e) {
                 console.error("Failed to load ES module vendor libraries:", e);
             }
-            if (!navigator.serial && navigator.usb && window.serial) {
-                navigator.serial = window.serial;
-            }
             this.refreshCapabilities();
         },
-        async _loadScript(src) {
-            // Fetch and verify SRI before injecting
+        async _fetchVerified(src) {
+            // Fetch and verify SRI before use.
             const integrity = this._rnodeIntegrity || (await this._loadRnodeIntegrity());
             const filename = rnodeIntegrityKeyForSrc(src, integrity);
             const expectedHash = integrity?.[filename];
@@ -423,6 +433,23 @@ export default {
             if (actualHash !== expectedHash) {
                 throw new Error(`RNode: SRI hash mismatch for ${filename}. Possible tampering detected.`);
             }
+            return buf;
+        },
+        async _loadModule(src) {
+            // Vite dev refuses dynamic import() of /public URLs, so import the
+            // SRI-verified bytes through a blob URL, which works in dev and
+            // production builds alike and keeps integrity verification.
+            const buf = await this._fetchVerified(src);
+            const blob = new Blob([buf], { type: "application/javascript" });
+            const blobUrl = URL.createObjectURL(blob);
+            try {
+                return await import(/* @vite-ignore */ blobUrl);
+            } finally {
+                URL.revokeObjectURL(blobUrl);
+            }
+        },
+        async _loadScript(src) {
+            const buf = await this._fetchVerified(src);
 
             // Inject verified content as blob
             const blob = new Blob([buf], { type: "application/javascript" });

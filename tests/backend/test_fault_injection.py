@@ -9,11 +9,15 @@ timers or worker threads.
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
+import textwrap
 import threading
 import time
 from unittest.mock import MagicMock, patch
 
 import pytest
+import RNS
 
 from meshchatx.src.backend import rns_link_manager
 from meshchatx.src.backend.announce_handler import AnnounceHandler
@@ -125,7 +129,21 @@ def test_rrc_double_link_close_yields_single_reconnect(tmp_path):
     try:
         link = MagicMock()
         hub._on_closed(link)
+        # The same dead link reporting close twice (watchdog teardown after
+        # the RNS callback already fired) must not double-count the backoff.
         hub._on_closed(link)
+        assert hub._reconnect_attempts == 1
+        assert hub._reconnect_timer is not None
+    finally:
+        cancel_hub_timer(hub)
+
+
+def test_rrc_distinct_link_closes_count_backoff(tmp_path):
+    hub = make_hub(tmp_path)
+    hub.auto_reconnect = True
+    try:
+        hub._on_closed(MagicMock())
+        hub._on_closed(MagicMock())
         assert hub._reconnect_attempts == 2
         assert hub._reconnect_timer is not None
     finally:
@@ -536,3 +554,66 @@ def test_cached_link_evicted_when_not_active():
     rns_link_manager._rns_link_last_used[key] = time.time()
     assert rns_link_manager.get_cached_active_link(*key) is None
     assert key not in rns_link_manager.rns_cached_links
+
+
+def test_run_async_completed_future_never_deadlocks(tmp_path):
+    """Regression: run_async held _futures_lock across add_done_callback.
+
+    When the scheduled coroutine completes before add_done_callback runs,
+    _forget_future fires inline and re-acquires the non-reentrant lock,
+    self-deadlocking the caller. Every later producer then parks behind it,
+    freezing the main loop. Probe in a subprocess so a regression leaves the
+    suite unpoisoned.
+    """
+    script = textwrap.dedent(
+        """
+        import asyncio
+        import concurrent.futures
+
+        from meshchatx.src.backend.async_utils import AsyncUtils
+
+        class FakeLoop:
+            def is_running(self):
+                return True
+
+        fut = concurrent.futures.Future()
+        fut.set_result("done")
+
+        def fake_schedule(coro, loop):
+            coro.close()  # created but never awaited under the stub
+            return fut
+
+        asyncio.run_coroutine_threadsafe = fake_schedule
+        AsyncUtils.main_loop = FakeLoop()
+
+        async def noop():
+            return None
+
+        for _ in range(100):
+            AsyncUtils.run_async(noop())
+        print("no deadlock")
+        """,
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "no deadlock" in result.stdout
+
+
+def test_identity_public_key_reconstruction_matches_identity_hash():
+    """Pin the RNS API contract used by telephony resolve_identity.
+
+    load_public_key(pubkey) must reproduce the original identity hash.
+    from_bytes() takes a PRIVATE key and silently produces a different
+    identity when fed a pubkey, which is exactly the bug this guards.
+    """
+    ident = RNS.Identity()
+    pk = ident.get_public_key()
+
+    clone = RNS.Identity(create_keys=False)
+    assert clone.load_public_key(pk) is True
+    assert clone.hash == ident.hash

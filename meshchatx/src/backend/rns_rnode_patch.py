@@ -2,7 +2,7 @@
 
 """Runtime patches for RNS's desktop RNodeInterface.
 
-RNS 1.5.4's BLE path has several defects that make ble:// RNode interfaces
+RNS 1.5.5's BLE path has several defects that make ble:// RNode interfaces
 unusable or flaky:
 
 - connect_device runs each connection attempt on a fresh asyncio.run() loop,
@@ -97,7 +97,7 @@ def _make_rnode_subclass():
 class MeshChatBLEConnection:
     """BLE transport used by RNodeInterface for ble:// ports.
 
-    Mirrors RNS 1.5.4's BLEConnection with the fixes listed in the module
+    Mirrors RNS 1.5.5's BLEConnection with the fixes listed in the module
     docstring. One asyncio loop is created on the connection thread and reused
     for scanning, connecting and cleanup.
     """
@@ -247,6 +247,9 @@ class MeshChatBLEConnection:
 
         async def connect_job() -> None:
             self.connect_job_running = True
+            # A fresh connect means intent to connect again; clear the flag a
+            # previous close() left set or the new session self-disconnects.
+            self.must_disconnect = False
             async with self.bleak.BleakClient(
                 device,
                 disconnected_callback=self.device_disconnected,

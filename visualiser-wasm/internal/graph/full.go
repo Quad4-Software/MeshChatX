@@ -152,6 +152,9 @@ func BuildFullGraph(req FullRequest) FullResult {
 	radius := 210.0
 	ifaceN := len(req.Interfaces)
 	for j, entry := range req.Interfaces {
+		if _, ok := seen[entry.Name]; ok {
+			continue
+		}
 		if !filter.MatchesSearch(searchLower, entry.Label) && !filter.MatchesSearch(searchLower, entry.Name) {
 			continue
 		}
@@ -227,6 +230,9 @@ func BuildFullGraph(req FullRequest) FullResult {
 
 	if req.ShowDiscovered {
 		for _, disc := range req.Discovered {
+			if _, ok := seen[disc.ID]; ok {
+				continue
+			}
 			if req.HopMax != nil && disc.Hops != nil && *disc.Hops > *req.HopMax {
 				continue
 			}
@@ -310,12 +316,16 @@ func BuildFullGraph(req FullRequest) FullResult {
 }
 
 func resolveOr(pos map[string]XY, id string, x, y float64) XY {
-	if prev, ok := pos[id]; ok {
+	if prev, ok := pos[id]; ok && isFiniteXY(prev) {
 		return prev
 	}
 	p := XY{X: x, Y: y}
 	pos[id] = p
 	return p
+}
+
+func isFiniteXY(p XY) bool {
+	return !math.IsNaN(p.X) && !math.IsNaN(p.Y) && !math.IsInf(p.X, 0) && !math.IsInf(p.Y, 0)
 }
 
 func fontHighFor(dark bool) map[string]any {

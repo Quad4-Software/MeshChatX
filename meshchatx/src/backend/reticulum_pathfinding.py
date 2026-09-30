@@ -277,7 +277,9 @@ async def await_transport_path_for_outbound_lxmf(
         short_floor = 15.0
     short_w = max(long_w * 0.5, short_floor)
 
-    measure = prepare_fresh_path_request(reticulum, destination_hash_bytes)
+    measure = await asyncio.to_thread(
+        prepare_fresh_path_request, reticulum, destination_hash_bytes
+    )
     deadline = time.time() + long_w
     while not RNS.Transport.has_path(destination_hash_bytes) and time.time() < deadline:
         await asyncio.sleep(0.1)

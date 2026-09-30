@@ -44,888 +44,169 @@
         <div
             class="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-6 md:px-12 md:py-10"
         >
-            <transition name="fade-slide" mode="out-in">
-                <!-- Step 1: Welcome -->
-                <div v-if="currentStep === 1" key="step1" class="flex flex-col items-center text-center space-y-6">
-                    <div class="relative">
-                        <div class="w-24 h-24 bg-sem-accent/10 rounded-3xl rotate-12 absolute -inset-2"></div>
-                        <img :src="logoUrl" class="w-24 h-24 relative z-10 p-2" />
-                    </div>
-                    <div class="space-y-2">
-                        <h1 class="text-4xl font-black tracking-tight text-sem-fg">
-                            {{ $t("tutorial.welcome") }} <span class="text-sem-accent">MeshChatX</span>
-                        </h1>
-                        <p class="text-lg text-sem-fg-muted max-w-md mx-auto">
-                            {{ $t("tutorial.welcome_desc") }}
-                        </p>
-                    </div>
-                    <div
-                        v-if="migrationOffer && migrationOffer.show_choice"
-                        class="w-full max-w-xl mx-auto p-4 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/90 dark:bg-amber-950/40 text-left space-y-3"
-                    >
-                        <div class="font-semibold text-amber-950 dark:text-amber-100">
-                            {{ $t("tutorial.migration_title") }}
+            <div class="flex min-h-full w-full flex-col justify-between">
+                <transition name="fade-slide" mode="out-in">
+                    <!-- Step 1: Welcome -->
+                    <div v-if="currentStep === 1" key="step1" class="flex flex-col items-center text-center space-y-6">
+                        <div class="relative">
+                            <div class="w-24 h-24 bg-sem-accent/10 rounded-3xl rotate-12 absolute -inset-2"></div>
+                            <img :src="logoUrl" class="w-24 h-24 relative z-10 p-2" />
                         </div>
-                        <p class="text-sm text-amber-950/90 dark:text-amber-100/90">
-                            {{ $t("tutorial.migration_desc") }}
-                        </p>
-                        <div class="flex flex-col sm:flex-row gap-2 justify-stretch sm:justify-end">
-                            <button
-                                type="button"
-                                class="tutorial-action-btn tutorial-action-btn-primary"
-                                :disabled="migrationBusy"
-                                @click="migrationMigrate"
-                            >
-                                {{ $t("tutorial.migration_migrate") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="tutorial-action-btn tutorial-action-btn-secondary"
-                                :disabled="migrationBusy"
-                                @click="migrationFresh"
-                            >
-                                {{ $t("tutorial.migration_fresh") }}
-                            </button>
-                        </div>
-                        <p v-if="migrationBusy" class="text-xs text-center text-sem-fg-muted">
-                            {{ $t("tutorial.migration_working") }}
-                        </p>
-                    </div>
-                    <div
-                        v-if="androidStorageSetup && androidStorageSetup.needs_setup_choice"
-                        class="w-full max-w-xl mx-auto p-4 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/90 dark:bg-blue-950/40 text-left space-y-3"
-                    >
-                        <div class="font-semibold text-blue-950 dark:text-blue-100">
-                            {{ $t("android_storage.setup_title") }}
-                        </div>
-                        <p class="text-sm text-blue-950/90 dark:text-blue-100/90">
-                            {{ $t("android_storage.setup_desc") }}
-                        </p>
-                        <label
-                            class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer"
-                            :class="
-                                androidStorageSetupChoice === 'external'
-                                    ? 'border-sem-accent bg-white/60 dark:bg-zinc-900/60'
-                                    : 'border-blue-200/60 dark:border-blue-900/40'
-                            "
-                        >
-                            <input v-model="androidStorageSetupChoice" type="radio" class="mt-1" value="external" />
-                            <span>
-                                <span class="font-medium text-sem-fg block">
-                                    {{ $t("android_storage.setup_external_title") }}
-                                </span>
-                                <span class="text-xs text-sem-fg-muted">
-                                    {{ $t("android_storage.setup_external_desc") }}
-                                </span>
-                            </span>
-                        </label>
-                        <label
-                            class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer"
-                            :class="
-                                androidStorageSetupChoice === 'internal'
-                                    ? 'border-sem-accent bg-white/60 dark:bg-zinc-900/60'
-                                    : 'border-blue-200/60 dark:border-blue-900/40'
-                            "
-                        >
-                            <input v-model="androidStorageSetupChoice" type="radio" class="mt-1" value="internal" />
-                            <span>
-                                <span class="font-medium text-sem-fg block">
-                                    {{ $t("android_storage.setup_internal_title") }}
-                                </span>
-                                <span class="text-xs text-sem-fg-muted">
-                                    {{ $t("android_storage.setup_internal_desc") }}
-                                </span>
-                            </span>
-                        </label>
-                        <div class="flex justify-stretch sm:justify-end">
-                            <button
-                                type="button"
-                                class="tutorial-action-btn tutorial-action-btn-primary"
-                                :disabled="androidStorageBusy || !androidStorageSetupChoice"
-                                @click="applyAndroidStorageSetup"
-                            >
-                                {{ $t("android_storage.setup_continue") }}
-                            </button>
-                        </div>
-                        <p v-if="androidStorageBusy" class="text-xs text-center text-sem-fg-muted">
-                            {{ $t("android_storage.working") }}
-                        </p>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-8">
-                        <div
-                            class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
-                        >
-                            <MaterialDesignIcon icon-name="shield-lock" class="size-8 text-sem-accent" />
-                            <div>
-                                <div class="font-bold text-sem-fg">
-                                    {{ $t("tutorial.security") }}
-                                </div>
-                                <div class="text-sm text-sem-fg">
-                                    {{ $t("tutorial.security_desc") }}
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
-                        >
-                            <MaterialDesignIcon icon-name="map-marker-path" class="size-8 text-purple-500" />
-                            <div>
-                                <div class="font-bold text-sem-fg">{{ $t("tutorial.maps") }}</div>
-                                <div class="text-sm text-sem-fg">
-                                    {{ $t("tutorial.maps_desc") }}
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
-                        >
-                            <MaterialDesignIcon icon-name="phone" class="size-8 text-green-500" />
-                            <div>
-                                <div class="font-bold text-sem-fg">
-                                    {{ $t("tutorial.voice") }}
-                                </div>
-                                <div class="text-sm text-sem-fg">
-                                    {{ $t("tutorial.voice_desc") }}
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
-                        >
-                            <MaterialDesignIcon icon-name="tools" class="size-8 text-orange-500" />
-                            <div>
-                                <div class="font-bold text-sem-fg">
-                                    {{ $t("tutorial.tools") }}
-                                </div>
-                                <div class="text-sm text-sem-fg">
-                                    {{ $t("tutorial.tools_desc") }}
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
-                        >
-                            <MaterialDesignIcon icon-name="database-search" class="size-8 text-teal-500" />
-                            <div>
-                                <div class="font-bold text-sem-fg">
-                                    {{ $t("tutorial.archiver") }}
-                                </div>
-                                <div class="text-sm text-sem-fg">
-                                    {{ $t("tutorial.archiver_desc") }}
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
-                        >
-                            <MaterialDesignIcon icon-name="account-cancel" class="size-8 text-amber-500" />
-                            <div>
-                                <div class="font-bold text-sem-fg">
-                                    {{ $t("tutorial.banishment") }}
-                                </div>
-                                <div class="text-sm text-sem-fg">
-                                    {{ $t("tutorial.banishment_desc") }}
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
-                        >
-                            <MaterialDesignIcon icon-name="keyboard-outline" class="size-8 text-red-500" />
-                            <div>
-                                <div class="font-bold text-sem-fg">
-                                    {{ $t("tutorial.palette") }}
-                                </div>
-                                <div class="text-sm text-sem-fg">
-                                    {{ $t("tutorial.palette_desc") }}
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
-                        >
-                            <MaterialDesignIcon icon-name="translate" class="size-8 text-cyan-500" />
-                            <div>
-                                <div class="font-bold text-sem-fg">{{ $t("tutorial.i18n") }}</div>
-                                <div class="text-sm text-sem-fg">
-                                    {{ $t("tutorial.i18n_desc") }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="w-full flex justify-end items-center gap-2 mt-4 px-4 text-sem-fg-muted">
-                        <MaterialDesignIcon icon-name="plus" class="size-4" />
-                        <span class="text-xs font-bold uppercase tracking-widest">{{
-                            $t("tutorial.more_features")
-                        }}</span>
-                    </div>
-                </div>
-
-                <!-- Step 2: Identity Setup -->
-                <div v-else-if="currentStep === 2" key="step2-identity" class="space-y-6">
-                    <div class="text-center space-y-2">
-                        <h2 class="text-2xl font-bold text-sem-fg">
-                            {{ $t("tutorial.identity_title") }}
-                        </h2>
-                        <p class="text-sem-fg-muted text-base">
-                            {{ $t("tutorial.identity_desc") }}
-                        </p>
-                    </div>
-
-                    <div
-                        v-if="originalIdentityHash"
-                        class="w-full max-w-xl mx-auto p-4 rounded-2xl border border-sem-border bg-sem-surface-muted space-y-2"
-                    >
-                        <div class="text-sm font-semibold text-sem-fg">
-                            {{ $t("app.identity_hash") }}
-                        </div>
-                        <div class="font-mono text-xs break-all text-sem-fg-muted select-all">
-                            {{ formatIdentityHash(originalIdentityHash) }}
-                        </div>
-                        <p class="text-xs text-sem-fg-muted">
-                            {{ $t("tutorial.identity_new_desc") }}
-                        </p>
-                    </div>
-
-                    <input
-                        ref="identityImportFileInput"
-                        type="file"
-                        accept=".bin,.key,.identity,application/octet-stream,*/*"
-                        class="hidden"
-                        @change="onIdentityImportFileChange"
-                    />
-                    <div class="grid grid-cols-1 gap-3">
-                        <button
-                            type="button"
-                            class="text-left flex items-start gap-4 p-5 rounded-2xl border-2 transition-all"
-                            :class="
-                                identityMode === 'new'
-                                    ? 'border-sem-accent bg-sem-accent/5'
-                                    : 'border-sem-border hover:border-sem-accent'
-                            "
-                            @click="setIdentityMode('new')"
-                        >
-                            <MaterialDesignIcon icon-name="account-plus-outline" class="size-[34px] text-sem-accent" />
-                            <div>
-                                <div class="font-bold text-sem-fg">
-                                    {{ $t("tutorial.identity_new") }}
-                                </div>
-                                <div class="text-sm text-sem-fg-muted">
-                                    {{ $t("tutorial.identity_new_desc") }}
-                                </div>
-                            </div>
-                        </button>
-                        <button
-                            type="button"
-                            class="text-left flex items-start gap-4 p-5 rounded-2xl border-2 transition-all"
-                            :class="
-                                identityMode === 'import'
-                                    ? 'border-sem-accent bg-sem-accent/5'
-                                    : 'border-sem-border hover:border-sem-accent'
-                            "
-                            @click="setIdentityMode('import')"
-                        >
-                            <MaterialDesignIcon icon-name="file-import-outline" class="size-[34px] text-indigo-500" />
-                            <div>
-                                <div class="font-bold text-sem-fg">
-                                    {{ $t("tutorial.identity_import") }}
-                                </div>
-                                <div class="text-sm text-sem-fg-muted">
-                                    {{ $t("tutorial.identity_import_desc") }}
-                                </div>
-                            </div>
-                        </button>
-                    </div>
-                    <div class="rounded-2xl border border-sem-border p-4 space-y-3">
-                        <label class="block text-sm font-semibold text-sem-fg-secondary">
-                            {{ $t("tutorial.identity_set_name") }}
-                        </label>
-                        <input
-                            v-model="identityName"
-                            type="text"
-                            :placeholder="defaultUsername"
-                            class="w-full rounded-xl border border-sem-border bg-sem-surface px-3 py-2 text-sm text-sem-fg"
-                        />
-                        <div v-if="identityMode === 'import'" class="space-y-3 pt-2 border-t border-sem-border">
-                            <p class="text-xs text-sem-fg-muted">
-                                {{ $t("tutorial.identity_import_key_only_hint") }}
-                            </p>
-                            <button
-                                type="button"
-                                class="tutorial-action-btn tutorial-action-btn-secondary w-full justify-center"
-                                :disabled="identityImportInProgress"
-                                @click="$refs.identityImportFileInput?.click()"
-                            >
-                                {{ identityImportFile ? identityImportFile.name : $t("tutorial.identity_upload_file") }}
-                            </button>
-                            <textarea
-                                v-model="identityImportBase32"
-                                rows="3"
-                                class="w-full rounded-xl border border-sem-border bg-sem-surface px-3 py-2 text-xs font-mono text-sem-fg"
-                                :placeholder="$t('tutorial.identity_base32_placeholder')"
-                                :disabled="Boolean(identityImportFile) || identityImportInProgress"
-                                @input="onIdentityImportBase32Input"
-                            />
-                            <p
-                                v-if="identityImportFile && identityImportBase32.trim()"
-                                class="text-xs text-amber-600 dark:text-amber-400"
-                            >
-                                {{ $t("tutorial.identity_file_overrides_base32") }}
+                        <div class="space-y-2">
+                            <h1 class="text-4xl font-black tracking-tight text-sem-fg">
+                                {{ $t("tutorial.welcome") }} <span class="text-sem-accent">MeshChatX</span>
+                            </h1>
+                            <p class="text-lg text-sem-fg-muted max-w-md mx-auto">
+                                {{ $t("tutorial.welcome_desc") }}
                             </p>
                         </div>
-                        <p v-if="identityImportError" role="alert" class="text-sm text-sem-danger dark:text-red-400">
-                            {{ identityImportError }}
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Step 3: Choose Connection Mode -->
-                <div v-else-if="currentStep === 3" key="step3-mode" class="space-y-6">
-                    <div class="text-center space-y-2">
-                        <h2 class="text-2xl font-bold text-sem-fg">
-                            {{ $t("tutorial.connect") }}
-                        </h2>
-                        <p class="text-sem-fg-muted text-base">
-                            {{ $t("tutorial.connect_desc") }}
-                        </p>
-                    </div>
-
-                    <div
-                        class="grid grid-cols-1 gap-4"
-                        :class="{ 'pointer-events-none opacity-70': connectionSetupBusy }"
-                    >
-                        <button
-                            type="button"
-                            class="text-left flex items-start gap-4 p-5 rounded-2xl bg-indigo-500/5 dark:bg-indigo-500/10 border-2 transition-all disabled:cursor-not-allowed"
-                            :class="[
-                                connectionMode === 'recommended'
-                                    ? 'border-indigo-500 ring-2 ring-indigo-500/30'
-                                    : 'border-indigo-500/20 hover:border-indigo-500',
-                            ]"
-                            :disabled="connectionSetupBusy"
-                            @click="useRecommendedMode"
+                        <div
+                            v-if="migrationOffer && migrationOffer.show_choice"
+                            class="w-full max-w-xl mx-auto p-4 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/90 dark:bg-amber-950/40 text-left space-y-3"
                         >
-                            <MaterialDesignIcon icon-name="access-point-network" class="size-10 text-indigo-500" />
-                            <div class="flex-1 min-w-0">
-                                <div class="font-bold text-lg text-sem-fg">
-                                    {{ $t("tutorial.mode_recommended_title") }}
-                                </div>
-                                <div class="text-sm text-sem-fg-muted mt-1">
-                                    {{ $t("tutorial.mode_recommended_desc") }}
-                                </div>
+                            <div class="font-semibold text-amber-950 dark:text-amber-100">
+                                {{ $t("tutorial.migration_title") }}
                             </div>
-                            <MaterialDesignIcon
-                                v-if="connectionSetupBusy"
-                                icon-name="loading"
-                                class="size-5 animate-spin text-sem-accent"
-                            />
-                        </button>
-
-                        <button
-                            type="button"
-                            class="text-left flex items-start gap-4 p-5 rounded-2xl bg-sem-accent/5 dark:bg-sem-accent/10 border-2 transition-all disabled:cursor-not-allowed"
-                            :class="[
-                                connectionMode === 'discovery'
-                                    ? 'border-sem-accent ring-2 ring-sem-focus/30'
-                                    : 'border-sem-accent/20 hover:border-sem-accent',
-                            ]"
-                            :disabled="connectionSetupBusy"
-                            @click="useDiscoveryMode"
-                        >
-                            <MaterialDesignIcon icon-name="radar" class="size-10 text-sem-accent" />
-                            <div class="flex-1 min-w-0">
-                                <div class="font-bold text-lg text-sem-fg">
-                                    {{ $t("tutorial.mode_discovery_title") }}
-                                </div>
-                                <div class="text-sm text-sem-fg-muted mt-1">
-                                    {{ $t("tutorial.mode_discovery_desc") }}
-                                </div>
-                            </div>
-                            <MaterialDesignIcon
-                                v-if="connectionSetupBusy"
-                                icon-name="loading"
-                                class="size-5 animate-spin text-sem-accent"
-                            />
-                        </button>
-
-                        <button
-                            type="button"
-                            class="text-left flex items-start gap-4 p-5 rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/10 border-2 transition-all disabled:cursor-not-allowed"
-                            :class="[
-                                connectionMode === 'local'
-                                    ? 'border-emerald-500 ring-2 ring-emerald-500/30'
-                                    : 'border-emerald-500/20 hover:border-emerald-500',
-                            ]"
-                            :disabled="connectionSetupBusy"
-                            @click="useLocalMode"
-                        >
-                            <MaterialDesignIcon icon-name="lan" class="size-10 text-emerald-500" />
-                            <div class="flex-1 min-w-0">
-                                <div class="font-bold text-lg text-sem-fg">
-                                    {{ $t("tutorial.mode_local_title") }}
-                                </div>
-                                <div class="text-sm text-sem-fg-muted mt-1">
-                                    {{ $t("tutorial.mode_local_desc") }}
-                                </div>
-                            </div>
-                            <MaterialDesignIcon
-                                v-if="connectionSetupBusy"
-                                icon-name="loading"
-                                class="size-5 animate-spin text-sem-accent"
-                            />
-                        </button>
-
-                        <button
-                            type="button"
-                            class="text-left flex items-start gap-4 p-5 rounded-2xl bg-sem-surface-muted/50 dark:bg-sem-surface-raised/40 border-2 transition-all disabled:cursor-not-allowed"
-                            :class="[
-                                connectionMode === 'manual'
-                                    ? 'border-gray-500 ring-2 ring-gray-500/30'
-                                    : 'border-sem-border hover:border-gray-500',
-                            ]"
-                            :disabled="connectionSetupBusy"
-                            @click="useManualMode"
-                        >
-                            <MaterialDesignIcon icon-name="cog-outline" class="size-10 text-sem-fg-muted" />
-                            <div class="flex-1 min-w-0">
-                                <div class="font-bold text-lg text-sem-fg">
-                                    {{ $t("tutorial.mode_manual_title") }}
-                                </div>
-                                <div class="text-sm text-sem-fg-muted mt-1">
-                                    {{ $t("tutorial.mode_manual_desc") }}
-                                </div>
-                            </div>
-                        </button>
-                    </div>
-
-                    <p class="text-xs text-center text-sem-fg-muted">
-                        {{ $t("tutorial.mode_change_later") }}
-                    </p>
-                </div>
-
-                <!-- Step 4: Bootstrap Selection -->
-                <div v-else-if="currentStep === 4" key="step4-bootstrap" class="space-y-6">
-                    <div class="text-center space-y-2">
-                        <h2 class="text-2xl font-bold text-sem-fg">
-                            {{ $t("tutorial.bootstrap_title") }}
-                        </h2>
-                        <p class="text-sem-fg-muted text-sm">
-                            {{ $t("tutorial.bootstrap_desc") }}
-                        </p>
-                        <div class="flex flex-col items-center gap-2 pt-1">
-                            <button
-                                type="button"
-                                class="inline-flex items-center gap-2 rounded-xl border border-sem-accent/30 bg-sem-accent/10 px-4 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-sem-accent/15 dark:text-blue-300 dark:hover:bg-sem-accent/20 disabled:opacity-60"
-                                :disabled="bootstrapPickBusy"
-                                @click="pickRandomTcpBootstraps"
-                            >
-                                <MaterialDesignIcon
-                                    v-if="bootstrapPickBusy"
-                                    icon-name="loading"
-                                    class="size-4 animate-spin text-sem-accent"
-                                />
-                                <MaterialDesignIcon v-else icon-name="shuffle-variant" class="size-[18px]" />
-                                {{ $t("tutorial.bootstrap_pick_random_tcp") }}
-                            </button>
-                            <div
-                                v-if="bootstrapSelectedLabels.length > 0"
-                                class="w-full max-w-md rounded-xl border border-sem-border/90 bg-sem-surface-muted/80 px-3 py-2 text-left dark:bg-zinc-900/50"
-                            >
-                                <div class="text-[10px] font-bold uppercase tracking-wide text-sem-fg-muted">
-                                    {{ $t("tutorial.bootstrap_selected_nodes_heading") }}
-                                </div>
-                                <ul class="mt-1 space-y-0.5 text-xs text-sem-fg">
-                                    <li
-                                        v-for="(label, idx) in bootstrapSelectedLabels"
-                                        :key="selectedBootstrapKeys[idx]"
-                                    >
-                                        {{ label }}
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        class="flex items-start gap-3 sm:gap-4 rounded-2xl border border-sem-border bg-white/80 dark:bg-zinc-900/60 p-3.5 sm:p-4"
-                    >
-                        <div class="shrink-0 pr-0.5 pt-0.5 sm:pt-1 sm:pr-1 flex items-start">
-                            <Toggle v-model="defaultBootstrapOnly" @update:model-value="persistDefaultBootstrapOnly" />
-                        </div>
-                        <div class="min-w-0 flex-1 pl-0.5 sm:pl-0 sm:pt-0.5">
-                            <div class="text-sm font-semibold text-sem-fg leading-snug">
-                                {{ $t("tutorial.bootstrap_only_label") }}
-                            </div>
-                            <p class="text-xs text-sem-fg-muted mt-1.5 leading-relaxed">
-                                {{ $t("tutorial.bootstrap_only_hint") }}
+                            <p class="text-sm text-amber-950/90 dark:text-amber-100/90">
+                                {{ $t("tutorial.migration_desc") }}
                             </p>
-                        </div>
-                    </div>
-
-                    <div class="space-y-4">
-                        <div
-                            v-if="hasAnyBootstrapsToShow"
-                            class="w-full max-w-6xl mx-auto flex items-center gap-2 border-0 border-b border-sem-border/90/90 py-1.5"
-                        >
-                            <MaterialDesignIcon icon-name="magnify" class="size-5 shrink-0 text-sem-fg-muted" />
-                            <input
-                                v-model="bootstrapListSearch"
-                                type="search"
-                                autocomplete="off"
-                                :placeholder="$t('tutorial.bootstrap_search_placeholder')"
-                                class="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-sem-fg shadow-none ring-0 outline-hidden focus:ring-0 text-sem-fg placeholder:text-sem-fg-muted dark:placeholder:text-zinc-500"
-                            />
-                            <button
-                                v-if="bootstrapListSearch"
-                                type="button"
-                                class="shrink-0 rounded p-1 text-sem-fg-muted transition-colors hover:text-sem-fg hover:text-sem-fg"
-                                :title="$t('tutorial.bootstrap_search_clear')"
-                                :aria-label="$t('tutorial.bootstrap_search_clear')"
-                                @click="bootstrapListSearch = ''"
-                            >
-                                <MaterialDesignIcon icon-name="close" class="size-[18px]" />
-                            </button>
-                        </div>
-
-                        <div
-                            v-if="sortedDiscoveredInterfaces.length > 0"
-                            class="h-fit min-w-0 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-3xl border border-emerald-500/20"
-                        >
-                            <button
-                                type="button"
-                                class="flex w-full items-center justify-between gap-2 p-4 text-left sm:px-4"
-                                :aria-expanded="bootstrapDiscoveredSectionOpen"
-                                @click="bootstrapDiscoveredSectionOpen = !bootstrapDiscoveredSectionOpen"
-                            >
-                                <div class="flex min-w-0 items-center gap-2 text-sm">
-                                    <MaterialDesignIcon
-                                        :icon-name="bootstrapDiscoveredSectionOpen ? 'chevron-up' : 'chevron-down'"
-                                        class="size-4 shrink-0 text-sem-fg-muted"
-                                    />
-                                    <MaterialDesignIcon icon-name="radar" class="text-emerald-500" />
-                                    <span class="font-bold text-sem-fg">{{ $t("tutorial.bootstrap_discovered") }}</span>
-                                </div>
-                            </button>
-                            <div v-show="bootstrapDiscoveredSectionOpen" class="px-4 pb-4">
-                                <p
-                                    v-if="
-                                        bootstrapListSearch &&
-                                        sortedDiscoveredInterfaces.length > 0 &&
-                                        filteredDiscoveredForBootstrap.length === 0
-                                    "
-                                    class="text-xs text-sem-fg-muted"
-                                >
-                                    {{ $t("tutorial.bootstrap_search_no_match") }}
-                                </p>
-                                <div v-else class="space-y-2 max-h-[260px] overflow-y-auto pr-2 pt-1 custom-scrollbar">
-                                    <label
-                                        v-for="iface in filteredDiscoveredForBootstrap"
-                                        :key="iface.discovery_hash || iface.name"
-                                        class="flex cursor-pointer items-center gap-3 rounded-xl border bg-white p-3 transition-all dark:bg-sem-surface-raised"
-                                        :class="[
-                                            isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
-                                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                                                : 'border-sem-border  hover:border-emerald-400',
-                                        ]"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            class="h-4 w-4 accent-emerald-500"
-                                            :checked="isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)"
-                                            @change="toggleBootstrap(`disc:${iface.discovery_hash || iface.name}`)"
-                                        />
-                                        <MaterialDesignIcon
-                                            :icon-name="getDiscoveryIcon(iface)"
-                                            class="h-5 w-5 shrink-0 text-emerald-500"
-                                        />
-                                        <div class="min-w-0 flex-1">
-                                            <div class="truncate text-sm font-bold text-sem-fg">
-                                                {{ iface.name }}
-                                            </div>
-                                            <div class="truncate font-mono text-[10px] text-sem-fg-muted">
-                                                <span v-if="iface.reachable_on"
-                                                    >{{ iface.reachable_on
-                                                    }}<span v-if="iface.port">:{{ iface.port }}</span></span
-                                                >
-                                                <span v-else>{{ iface.type }}</span>
-                                                <span class="ml-2 capitalize">{{ iface.status }}</span>
-                                            </div>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div
-                            class="h-fit min-w-0 rounded-3xl border border-sem-border bg-sem-surface-muted p-0 dark:bg-zinc-900"
-                        >
-                            <div class="flex items-center justify-between gap-2 p-4 pr-2 sm:px-4">
+                            <div class="flex flex-col sm:flex-row gap-2 justify-stretch sm:justify-end">
                                 <button
                                     type="button"
-                                    class="flex min-w-0 flex-1 items-center gap-2 text-left text-sm"
-                                    :aria-expanded="bootstrapCommunitySectionOpen"
-                                    @click="bootstrapCommunitySectionOpen = !bootstrapCommunitySectionOpen"
+                                    class="tutorial-action-btn tutorial-action-btn-primary"
+                                    :disabled="migrationBusy"
+                                    @click="migrationMigrate"
                                 >
-                                    <MaterialDesignIcon
-                                        :icon-name="bootstrapCommunitySectionOpen ? 'chevron-up' : 'chevron-down'"
-                                        class="size-4 shrink-0 text-sem-fg-muted"
-                                    />
-                                    <MaterialDesignIcon icon-name="web" class="text-sem-accent" />
-                                    <span class="font-bold text-sem-fg">{{ $t("tutorial.bootstrap_community") }}</span>
+                                    {{ $t("tutorial.migration_migrate") }}
                                 </button>
-                            </div>
-                            <div v-show="bootstrapCommunitySectionOpen" class="px-4 pb-4">
-                                <p
-                                    v-if="
-                                        bootstrapListSearch &&
-                                        communityInterfaces.length > 0 &&
-                                        filteredCommunityForBootstrap.length === 0
-                                    "
-                                    class="text-xs text-sem-fg-muted"
-                                >
-                                    {{ $t("tutorial.bootstrap_search_no_match") }}
-                                </p>
-                                <div v-else class="space-y-2 max-h-[260px] overflow-y-auto pr-2 pt-1 custom-scrollbar">
-                                    <label
-                                        v-for="iface in filteredCommunityForBootstrap"
-                                        :key="iface.name"
-                                        class="flex cursor-pointer items-center gap-3 rounded-xl border border-sem-border bg-white p-3 transition-all dark:bg-sem-surface-raised"
-                                        :class="[
-                                            isBootstrapSelected(`comm:${iface.name}`)
-                                                ? 'border-sem-accent bg-sem-surface-muted'
-                                                : 'hover:border-sem-accent',
-                                        ]"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            class="h-4 w-4 accent-blue-500"
-                                            :checked="isBootstrapSelected(`comm:${iface.name}`)"
-                                            @change="toggleBootstrap(`comm:${iface.name}`)"
-                                        />
-                                        <MaterialDesignIcon icon-name="server-network" class="size-5 text-sem-accent" />
-                                        <div class="min-w-0 flex-1">
-                                            <div class="truncate text-sm font-bold text-sem-fg">
-                                                {{ iface.name }}
-                                            </div>
-                                            <div class="truncate font-mono text-[10px] text-sem-fg-muted">
-                                                {{ iface.target_host
-                                                }}<span v-if="iface.target_port">:{{ iface.target_port }}</span>
-                                            </div>
-                                        </div>
-                                        <span
-                                            v-if="iface.online"
-                                            class="shrink-0 text-[9px] font-bold uppercase tracking-widest text-green-500"
-                                            >{{ $t("tutorial.online") }}</span
-                                        >
-                                    </label>
-                                    <div v-if="loadingInterfaces" class="flex justify-center py-3">
-                                        <MaterialDesignIcon
-                                            icon-name="loading"
-                                            class="size-6 animate-spin text-sem-accent"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                            <p class="text-xs text-sem-fg-muted">
-                                {{
-                                    $t("tutorial.bootstrap_selected", {
-                                        count: selectedBootstrapCount,
-                                    })
-                                }}
-                            </p>
-                            <div class="flex gap-2">
                                 <button
                                     type="button"
                                     class="tutorial-action-btn tutorial-action-btn-secondary"
-                                    :disabled="bootstrapActionBusy"
-                                    @click="skipBootstraps"
+                                    :disabled="migrationBusy"
+                                    @click="migrationFresh"
                                 >
-                                    {{ $t("tutorial.bootstrap_skip") }}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="tutorial-action-btn tutorial-action-btn-success"
-                                    :disabled="bootstrapActionBusy || selectedBootstrapCount === 0"
-                                    @click="confirmBootstraps"
-                                >
-                                    <MaterialDesignIcon
-                                        v-if="bootstrapActionBusy"
-                                        icon-name="loading"
-                                        class="size-3.5 animate-spin text-sem-accent"
-                                    />
-                                    {{ $t("tutorial.bootstrap_confirm") }}
+                                    {{ $t("tutorial.migration_fresh") }}
                                 </button>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 5: Propagation Mode -->
-                <div v-else-if="currentStep === 5" key="step5-prop" class="space-y-6">
-                    <div class="text-center space-y-2">
-                        <h2 class="text-2xl font-bold text-sem-fg">
-                            {{ $t("tutorial.propagation") }}
-                        </h2>
-                        <p class="text-sem-fg-muted text-base">
-                            {{ $t("tutorial.propagation_desc") }}
-                        </p>
-                    </div>
-
-                    <div class="flex flex-col items-center gap-6 py-4">
-                        <div
-                            class="bg-sem-accent/10 dark:bg-sem-accent/20 p-6 rounded-4xl text-center space-y-4 border border-sem-accent/20 max-w-md"
-                        >
-                            <MaterialDesignIcon icon-name="server-network" class="size-12 text-sem-accent" />
-                            <div class="text-lg font-bold text-sem-fg">
-                                {{ $t("tutorial.propagation_question") }}
-                            </div>
-                            <p class="text-sm text-sem-fg-muted">
-                                {{ $t("tutorial.propagation_auto") }}
+                            <p v-if="migrationBusy" class="text-xs text-center text-sem-fg-muted">
+                                {{ $t("tutorial.migration_working") }}
                             </p>
-                            <div class="flex flex-col gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    class="tutorial-action-btn tutorial-action-btn-primary w-full"
-                                    :disabled="savingPropagation"
-                                    @click="enableAutoPropagation"
-                                >
-                                    <MaterialDesignIcon
-                                        v-if="savingPropagation"
-                                        icon-name="loading"
-                                        class="size-5 animate-spin text-sem-accent"
-                                    />
-                                    {{ $t("tutorial.propagation_enable_auto") }}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="tutorial-action-btn tutorial-action-btn-secondary w-full"
-                                    @click="nextStep"
-                                >
-                                    {{ $t("tutorial.propagation_skip_auto") }}
-                                </button>
-                            </div>
-                            <div class="mt-6 pt-6 border-t border-sem-border">
-                                <div class="text-sm font-bold text-sem-fg mb-1">
-                                    {{ $t("tutorial.propagation_manual") }}
-                                </div>
-                                <p class="text-xs text-sem-fg-muted">
-                                    {{ $t("tutorial.propagation_manual_desc") }}
-                                </p>
-                            </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Step 6: Learn & Create -->
-                <div v-else-if="currentStep === 6" key="step6-tools" class="space-y-6">
-                    <div class="text-center space-y-2">
-                        <h2 class="text-2xl font-bold text-sem-fg">
-                            {{ $t("tutorial.learn_create") }}
-                        </h2>
-                        <p class="text-sem-fg-muted">
-                            {{ $t("tutorial.learn_create_desc") }}
-                        </p>
-                    </div>
-
-                    <div class="space-y-6">
-                        <div class="flex w-full flex-col gap-4 max-w-xl mx-auto">
-                            <div
-                                class="flex w-full items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border touch-manipulation"
+                        <div
+                            v-if="androidStorageSetup && androidStorageSetup.needs_setup_choice"
+                            class="w-full max-w-xl mx-auto p-4 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/90 dark:bg-blue-950/40 text-left space-y-3"
+                        >
+                            <div class="font-semibold text-blue-950 dark:text-blue-100">
+                                {{ $t("android_storage.setup_title") }}
+                            </div>
+                            <p class="text-sm text-blue-950/90 dark:text-blue-100/90">
+                                {{ $t("android_storage.setup_desc") }}
+                            </p>
+                            <label
+                                class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer"
+                                :class="
+                                    androidStorageSetupChoice === 'external'
+                                        ? 'border-sem-accent bg-white/60 dark:bg-zinc-900/60'
+                                        : 'border-blue-200/60 dark:border-blue-900/40'
+                                "
                             >
-                                <MaterialDesignIcon icon-name="book-open-variant" class="size-8 text-sem-accent" />
-                                <div class="min-w-0 flex-1">
+                                <input v-model="androidStorageSetupChoice" type="radio" class="mt-1" value="external" />
+                                <span>
+                                    <span class="font-medium text-sem-fg block">
+                                        {{ $t("android_storage.setup_external_title") }}
+                                    </span>
+                                    <span class="text-xs text-sem-fg-muted">
+                                        {{ $t("android_storage.setup_external_desc") }}
+                                    </span>
+                                </span>
+                            </label>
+                            <label
+                                class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer"
+                                :class="
+                                    androidStorageSetupChoice === 'internal'
+                                        ? 'border-sem-accent bg-white/60 dark:bg-zinc-900/60'
+                                        : 'border-blue-200/60 dark:border-blue-900/40'
+                                "
+                            >
+                                <input v-model="androidStorageSetupChoice" type="radio" class="mt-1" value="internal" />
+                                <span>
+                                    <span class="font-medium text-sem-fg block">
+                                        {{ $t("android_storage.setup_internal_title") }}
+                                    </span>
+                                    <span class="text-xs text-sem-fg-muted">
+                                        {{ $t("android_storage.setup_internal_desc") }}
+                                    </span>
+                                </span>
+                            </label>
+                            <div class="flex justify-stretch sm:justify-end">
+                                <button
+                                    type="button"
+                                    class="tutorial-action-btn tutorial-action-btn-primary"
+                                    :disabled="androidStorageBusy || !androidStorageSetupChoice"
+                                    @click="applyAndroidStorageSetup"
+                                >
+                                    {{ $t("android_storage.setup_continue") }}
+                                </button>
+                            </div>
+                            <p v-if="androidStorageBusy" class="text-xs text-center text-sem-fg-muted">
+                                {{ $t("android_storage.working") }}
+                            </p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-8">
+                            <div
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
+                            >
+                                <MaterialDesignIcon icon-name="shield-lock" class="size-8 text-sem-accent" />
+                                <div>
                                     <div class="font-bold text-sem-fg">
-                                        {{ $t("tutorial.documentation") }}
+                                        {{ $t("tutorial.security") }}
                                     </div>
-                                    <div class="text-sm text-sem-fg mb-2">
-                                        {{ $t("tutorial.documentation_desc") }}
-                                    </div>
-                                    <div class="flex flex-wrap gap-2">
-                                        <a
-                                            href="/meshchatx-docs/index.html"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="px-3 py-1 text-[10px] rounded-xl bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text font-semibold shadow-xs transition-all inline-block"
-                                        >
-                                            {{ $t("tutorial.meshchatx_docs") }}
-                                        </a>
-                                        <a
-                                            :href="reticulumBundledDocsUrl"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="px-3 py-1 text-[10px] rounded-xl border border-sem-border bg-sem-surface text-sem-fg-muted font-semibold shadow-xs transition-all hover:bg-sem-surface-muted hover:bg-sem-surface-muted hover:border-sem-accent dark:hover:border-sem-accent inline-block"
-                                        >
-                                            {{ $t("tutorial.reticulum_docs") }}
-                                        </a>
+                                    <div class="text-sm text-sem-fg">
+                                        {{ $t("tutorial.security_desc") }}
                                     </div>
                                 </div>
                             </div>
-
                             <div
-                                class="flex w-full items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border touch-manipulation"
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
                             >
-                                <MaterialDesignIcon
-                                    icon-name="file-document-edit-outline"
-                                    class="size-8 text-orange-500"
-                                />
-                                <div class="min-w-0 flex-1">
-                                    <div class="font-bold text-sem-fg">
-                                        {{ $t("tutorial.micron_editor") }}
-                                    </div>
-                                    <div class="text-sm text-sem-fg mb-2">
-                                        {{ $t("tutorial.micron_editor_desc") }}
-                                    </div>
-                                    <div class="flex flex-wrap gap-2">
-                                        <button
-                                            type="button"
-                                            class="px-3 py-1 text-[10px] rounded-xl border border-sem-border bg-sem-surface text-sem-fg-muted font-semibold shadow-xs transition-all hover:bg-sem-surface-muted hover:bg-sem-surface-muted hover:border-sem-accent dark:hover:border-sem-accent"
-                                            @click="gotoRoute('micron-editor')"
-                                        >
-                                            {{ $t("tutorial.open_micron_editor") }}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="px-3 py-1 text-[10px] rounded-xl border border-sem-border bg-sem-surface text-sem-fg-muted font-semibold shadow-xs transition-all hover:bg-sem-surface-muted hover:bg-sem-surface-muted hover:border-sem-accent dark:hover:border-sem-accent"
-                                            @click="gotoRoute('mesh-server')"
-                                        >
-                                            {{ $t("tutorial.open_mesh_server") }}
-                                        </button>
+                                <MaterialDesignIcon icon-name="map-marker-path" class="size-8 text-purple-500" />
+                                <div>
+                                    <div class="font-bold text-sem-fg">{{ $t("tutorial.maps") }}</div>
+                                    <div class="text-sm text-sem-fg">
+                                        {{ $t("tutorial.maps_desc") }}
                                     </div>
                                 </div>
                             </div>
-
                             <div
-                                class="flex w-full cursor-pointer items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-colors hover:border-indigo-500 touch-manipulation min-h-[4.5rem]"
-                                role="button"
-                                tabindex="0"
-                                @click="gotoRoute('identities')"
-                                @keydown.enter="gotoRoute('identities')"
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
                             >
-                                <MaterialDesignIcon
-                                    icon-name="account-multiple-outline"
-                                    class="size-8 text-indigo-500"
-                                />
-                                <div class="min-w-0 flex-1">
+                                <MaterialDesignIcon icon-name="phone" class="size-8 text-green-500" />
+                                <div>
                                     <div class="font-bold text-sem-fg">
-                                        {{ $t("tutorial.identities_card_title") }}
+                                        {{ $t("tutorial.voice") }}
                                     </div>
-                                    <div class="text-sm text-sem-fg-muted">
-                                        {{ $t("tutorial.identities_card_desc") }}
+                                    <div class="text-sm text-sem-fg">
+                                        {{ $t("tutorial.voice_desc") }}
                                     </div>
                                 </div>
                             </div>
-
                             <div
-                                class="flex w-full cursor-pointer items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-colors hover:border-teal-500 touch-manipulation min-h-[4.5rem]"
-                                role="button"
-                                tabindex="0"
-                                @click="gotoRoute('archives')"
-                                @keydown.enter="gotoRoute('archives')"
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
                             >
-                                <MaterialDesignIcon icon-name="archive-outline" class="size-8 text-teal-500" />
+                                <MaterialDesignIcon icon-name="tools" class="size-8 text-orange-500" />
+                                <div>
+                                    <div class="font-bold text-sem-fg">
+                                        {{ $t("tutorial.tools") }}
+                                    </div>
+                                    <div class="text-sm text-sem-fg">
+                                        {{ $t("tutorial.tools_desc") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
+                            >
+                                <MaterialDesignIcon icon-name="database-search" class="size-8 text-teal-500" />
                                 <div>
                                     <div class="font-bold text-sem-fg">
                                         {{ $t("tutorial.archiver") }}
@@ -935,185 +216,939 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <p class="text-center text-[11px] font-semibold tracking-wide text-sem-fg-muted px-2">
-                            {{ $t("tutorial.learn_create_more") }}
-                        </p>
-
-                        <div class="grid grid-cols-2 gap-2 max-w-xl mx-auto">
                             <div
-                                class="flex flex-col gap-1.5 rounded-xl border border-sem-border bg-sem-surface-muted p-2.5 dark:bg-zinc-900 cursor-pointer hover:border-sem-accent transition-colors touch-manipulation min-h-[5.5rem]"
-                                role="button"
-                                tabindex="0"
-                                @click="gotoRoute('nomadnetwork')"
-                                @keydown.enter="gotoRoute('nomadnetwork')"
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
                             >
-                                <MaterialDesignIcon icon-name="earth" class="size-[22px] text-purple-500 shrink-0" />
-                                <div class="min-w-0">
-                                    <div class="font-bold text-sem-fg text-[11px] leading-tight">
-                                        {{ $t("tutorial.paper_messages") }}
+                                <MaterialDesignIcon icon-name="account-cancel" class="size-8 text-amber-500" />
+                                <div>
+                                    <div class="font-bold text-sem-fg">
+                                        {{ $t("tutorial.banishment") }}
                                     </div>
-                                    <div class="text-[9px] text-sem-fg-muted leading-snug line-clamp-3">
-                                        {{ $t("tutorial.paper_messages_desc") }}
+                                    <div class="text-sm text-sem-fg">
+                                        {{ $t("tutorial.banishment_desc") }}
                                     </div>
                                 </div>
                             </div>
-
                             <div
-                                class="flex flex-col gap-1.5 rounded-xl border border-sem-border bg-sem-surface-muted p-2.5 dark:bg-zinc-900 cursor-pointer hover:border-sem-accent transition-colors touch-manipulation min-h-[5.5rem]"
-                                role="button"
-                                tabindex="0"
-                                @click="gotoRoute('messages')"
-                                @keydown.enter="gotoRoute('messages')"
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
                             >
-                                <MaterialDesignIcon
-                                    icon-name="message-text-outline"
-                                    class="size-[22px] text-green-500 shrink-0"
-                                />
-                                <div class="min-w-0">
-                                    <div class="font-bold text-sem-fg text-[11px] leading-tight">
-                                        {{ $t("tutorial.send_messages") }}
+                                <MaterialDesignIcon icon-name="keyboard-outline" class="size-8 text-red-500" />
+                                <div>
+                                    <div class="font-bold text-sem-fg">
+                                        {{ $t("tutorial.palette") }}
                                     </div>
-                                    <div class="text-[9px] text-sem-fg-muted leading-snug line-clamp-3">
-                                        {{ $t("tutorial.send_messages_desc") }}
+                                    <div class="text-sm text-sem-fg">
+                                        {{ $t("tutorial.palette_desc") }}
                                     </div>
                                 </div>
                             </div>
-
                             <div
-                                class="flex flex-col gap-1.5 rounded-xl border border-sem-border bg-sem-surface-muted p-2.5 dark:bg-zinc-900 cursor-pointer hover:border-sem-accent transition-colors touch-manipulation min-h-[5.5rem]"
-                                role="button"
-                                tabindex="0"
-                                @click="gotoRoute('network-visualiser')"
-                                @keydown.enter="gotoRoute('network-visualiser')"
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
                             >
-                                <MaterialDesignIcon icon-name="hub" class="size-[22px] text-teal-500 shrink-0" />
-                                <div class="min-w-0">
-                                    <div class="font-bold text-sem-fg text-[11px] leading-tight">
-                                        {{ $t("tutorial.explore_nodes") }}
-                                    </div>
-                                    <div class="text-[9px] text-sem-fg-muted leading-snug line-clamp-3">
-                                        {{ $t("tutorial.explore_nodes_desc") }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div
-                                class="flex flex-col gap-1.5 rounded-xl border border-sem-border bg-sem-surface-muted p-2.5 dark:bg-zinc-900 cursor-pointer hover:border-sem-accent transition-colors touch-manipulation min-h-[5.5rem]"
-                                role="button"
-                                tabindex="0"
-                                @click="gotoRoute('call')"
-                                @keydown.enter="gotoRoute('call')"
-                            >
-                                <MaterialDesignIcon
-                                    icon-name="phone-in-talk-outline"
-                                    class="size-[22px] text-red-500 shrink-0"
-                                />
-                                <div class="min-w-0">
-                                    <div class="font-bold text-sem-fg text-[11px] leading-tight">
-                                        {{ $t("tutorial.voice_calls") }}
-                                    </div>
-                                    <div class="text-[9px] text-sem-fg-muted leading-snug line-clamp-3">
-                                        {{ $t("tutorial.voice_calls_desc") }}
+                                <MaterialDesignIcon icon-name="translate" class="size-8 text-cyan-500" />
+                                <div>
+                                    <div class="font-bold text-sem-fg">{{ $t("tutorial.i18n") }}</div>
+                                    <div class="text-sm text-sem-fg">
+                                        {{ $t("tutorial.i18n_desc") }}
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        <div class="w-full flex justify-end items-center gap-2 mt-4 px-4 text-sem-fg-muted">
+                            <MaterialDesignIcon icon-name="plus" class="size-4" />
+                            <span class="text-xs font-bold uppercase tracking-widest">{{
+                                $t("tutorial.more_features")
+                            }}</span>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Step 7: Privacy -->
-                <div v-else-if="currentStep === 7" key="step7-privacy" class="space-y-4">
-                    <TutorialPrivacyStep />
-                </div>
+                    <!-- Step 2: Identity Setup -->
+                    <div v-else-if="currentStep === 2" key="step2-identity" class="space-y-6">
+                        <div class="text-center space-y-2">
+                            <h2 class="text-2xl font-bold text-sem-fg">
+                                {{ $t("tutorial.identity_title") }}
+                            </h2>
+                            <p class="text-sem-fg-muted text-base">
+                                {{ $t("tutorial.identity_desc") }}
+                            </p>
+                        </div>
 
-                <!-- Step 8: Finish -->
-                <div
-                    v-else-if="currentStep === 8"
-                    key="step8-finish"
-                    class="flex flex-col items-center text-center space-y-8 py-10"
-                >
-                    <div class="w-32 h-32 bg-green-500/10 rounded-full flex items-center justify-center relative">
-                        <MaterialDesignIcon icon-name="check-decagram" class="size-20 text-green-500" />
-                        <div class="absolute inset-0 bg-green-500/20 rounded-full animate-ping opacity-20"></div>
+                        <div
+                            v-if="originalIdentityHash"
+                            class="w-full max-w-xl mx-auto p-4 rounded-2xl border border-sem-border bg-sem-surface-muted space-y-2"
+                        >
+                            <div class="text-sm font-semibold text-sem-fg">
+                                {{ $t("app.identity_hash") }}
+                            </div>
+                            <div class="font-mono text-xs break-all text-sem-fg-muted select-all">
+                                {{ formatIdentityHash(originalIdentityHash) }}
+                            </div>
+                            <p class="text-xs text-sem-fg-muted">
+                                {{ $t("tutorial.identity_new_desc") }}
+                            </p>
+                        </div>
+
+                        <input
+                            ref="identityImportFileInput"
+                            type="file"
+                            accept=".bin,.key,.identity,application/octet-stream,*/*"
+                            class="hidden"
+                            @change="onIdentityImportFileChange"
+                        />
+                        <div class="grid grid-cols-1 gap-3">
+                            <button
+                                type="button"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl border-2 transition-all"
+                                :class="
+                                    identityMode === 'new'
+                                        ? 'border-sem-accent bg-sem-accent/5'
+                                        : 'border-sem-border hover:border-sem-accent'
+                                "
+                                @click="setIdentityMode('new')"
+                            >
+                                <MaterialDesignIcon
+                                    icon-name="account-plus-outline"
+                                    class="size-[34px] text-sem-accent"
+                                />
+                                <div>
+                                    <div class="font-bold text-sem-fg">
+                                        {{ $t("tutorial.identity_new") }}
+                                    </div>
+                                    <div class="text-sm text-sem-fg-muted">
+                                        {{ $t("tutorial.identity_new_desc") }}
+                                    </div>
+                                </div>
+                            </button>
+                            <button
+                                type="button"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl border-2 transition-all"
+                                :class="
+                                    identityMode === 'import'
+                                        ? 'border-sem-accent bg-sem-accent/5'
+                                        : 'border-sem-border hover:border-sem-accent'
+                                "
+                                @click="setIdentityMode('import')"
+                            >
+                                <MaterialDesignIcon
+                                    icon-name="file-import-outline"
+                                    class="size-[34px] text-indigo-500"
+                                />
+                                <div>
+                                    <div class="font-bold text-sem-fg">
+                                        {{ $t("tutorial.identity_import") }}
+                                    </div>
+                                    <div class="text-sm text-sem-fg-muted">
+                                        {{ $t("tutorial.identity_import_desc") }}
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                        <div class="rounded-2xl border border-sem-border p-4 space-y-3">
+                            <label class="block text-sm font-semibold text-sem-fg-secondary">
+                                {{ $t("tutorial.identity_set_name") }}
+                            </label>
+                            <input
+                                v-model="identityName"
+                                type="text"
+                                :placeholder="defaultUsername"
+                                class="w-full rounded-xl border border-sem-border bg-sem-surface px-3 py-2 text-sm text-sem-fg"
+                            />
+                            <div v-if="identityMode === 'import'" class="space-y-3 pt-2 border-t border-sem-border">
+                                <p class="text-xs text-sem-fg-muted">
+                                    {{ $t("tutorial.identity_import_key_only_hint") }}
+                                </p>
+                                <button
+                                    type="button"
+                                    class="tutorial-action-btn tutorial-action-btn-secondary w-full justify-center"
+                                    :disabled="identityImportInProgress"
+                                    @click="$refs.identityImportFileInput?.click()"
+                                >
+                                    {{
+                                        identityImportFile
+                                            ? identityImportFile.name
+                                            : $t("tutorial.identity_upload_file")
+                                    }}
+                                </button>
+                                <textarea
+                                    v-model="identityImportBase32"
+                                    rows="3"
+                                    class="w-full rounded-xl border border-sem-border bg-sem-surface px-3 py-2 text-xs font-mono text-sem-fg"
+                                    :placeholder="$t('tutorial.identity_base32_placeholder')"
+                                    :disabled="Boolean(identityImportFile) || identityImportInProgress"
+                                    @input="onIdentityImportBase32Input"
+                                />
+                                <p
+                                    v-if="identityImportFile && identityImportBase32.trim()"
+                                    class="text-xs text-amber-600 dark:text-amber-400"
+                                >
+                                    {{ $t("tutorial.identity_file_overrides_base32") }}
+                                </p>
+                            </div>
+                            <p
+                                v-if="identityImportError"
+                                role="alert"
+                                class="text-sm text-sem-danger dark:text-red-400"
+                            >
+                                {{ identityImportError }}
+                            </p>
+                        </div>
                     </div>
-                    <div class="space-y-3">
-                        <h2 class="text-3xl font-black text-sem-fg">
-                            {{ $t("tutorial.ready") }}
-                        </h2>
-                        <p class="text-lg text-sem-fg-muted max-w-md mx-auto">
-                            {{ $t("tutorial.ready_desc") }}
+
+                    <!-- Step 3: Choose Connection Mode -->
+                    <div v-else-if="currentStep === 3" key="step3-mode" class="space-y-6">
+                        <div class="text-center space-y-2">
+                            <h2 class="text-2xl font-bold text-sem-fg">
+                                {{ $t("tutorial.connect") }}
+                            </h2>
+                            <p class="text-sem-fg-muted text-base">
+                                {{ $t("tutorial.connect_desc") }}
+                            </p>
+                        </div>
+
+                        <div
+                            class="grid grid-cols-1 gap-4"
+                            :class="{ 'pointer-events-none opacity-70': connectionSetupBusy }"
+                        >
+                            <button
+                                type="button"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-indigo-500/5 dark:bg-indigo-500/10 border-2 transition-all disabled:cursor-not-allowed"
+                                :class="[
+                                    connectionMode === 'recommended'
+                                        ? 'border-indigo-500 ring-2 ring-indigo-500/30'
+                                        : 'border-indigo-500/20 hover:border-indigo-500',
+                                ]"
+                                :disabled="connectionSetupBusy"
+                                @click="useRecommendedMode"
+                            >
+                                <MaterialDesignIcon icon-name="access-point-network" class="size-10 text-indigo-500" />
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-bold text-lg text-sem-fg">
+                                        {{ $t("tutorial.mode_recommended_title") }}
+                                    </div>
+                                    <div class="text-sm text-sem-fg-muted mt-1">
+                                        {{ $t("tutorial.mode_recommended_desc") }}
+                                    </div>
+                                </div>
+                                <MaterialDesignIcon
+                                    v-if="connectionSetupBusy"
+                                    icon-name="loading"
+                                    class="size-5 animate-spin text-sem-accent"
+                                />
+                            </button>
+
+                            <button
+                                type="button"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-sem-accent/5 dark:bg-sem-accent/10 border-2 transition-all disabled:cursor-not-allowed"
+                                :class="[
+                                    connectionMode === 'discovery'
+                                        ? 'border-sem-accent ring-2 ring-sem-focus/30'
+                                        : 'border-sem-accent/20 hover:border-sem-accent',
+                                ]"
+                                :disabled="connectionSetupBusy"
+                                @click="useDiscoveryMode"
+                            >
+                                <MaterialDesignIcon icon-name="radar" class="size-10 text-sem-accent" />
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-bold text-lg text-sem-fg">
+                                        {{ $t("tutorial.mode_discovery_title") }}
+                                    </div>
+                                    <div class="text-sm text-sem-fg-muted mt-1">
+                                        {{ $t("tutorial.mode_discovery_desc") }}
+                                    </div>
+                                </div>
+                                <MaterialDesignIcon
+                                    v-if="connectionSetupBusy"
+                                    icon-name="loading"
+                                    class="size-5 animate-spin text-sem-accent"
+                                />
+                            </button>
+
+                            <button
+                                type="button"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/10 border-2 transition-all disabled:cursor-not-allowed"
+                                :class="[
+                                    connectionMode === 'local'
+                                        ? 'border-emerald-500 ring-2 ring-emerald-500/30'
+                                        : 'border-emerald-500/20 hover:border-emerald-500',
+                                ]"
+                                :disabled="connectionSetupBusy"
+                                @click="useLocalMode"
+                            >
+                                <MaterialDesignIcon icon-name="lan" class="size-10 text-emerald-500" />
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-bold text-lg text-sem-fg">
+                                        {{ $t("tutorial.mode_local_title") }}
+                                    </div>
+                                    <div class="text-sm text-sem-fg-muted mt-1">
+                                        {{ $t("tutorial.mode_local_desc") }}
+                                    </div>
+                                </div>
+                                <MaterialDesignIcon
+                                    v-if="connectionSetupBusy"
+                                    icon-name="loading"
+                                    class="size-5 animate-spin text-sem-accent"
+                                />
+                            </button>
+
+                            <button
+                                type="button"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-sem-surface-muted/50 dark:bg-sem-surface-raised/40 border-2 transition-all disabled:cursor-not-allowed"
+                                :class="[
+                                    connectionMode === 'manual'
+                                        ? 'border-gray-500 ring-2 ring-gray-500/30'
+                                        : 'border-sem-border hover:border-gray-500',
+                                ]"
+                                :disabled="connectionSetupBusy"
+                                @click="useManualMode"
+                            >
+                                <MaterialDesignIcon icon-name="cog-outline" class="size-10 text-sem-fg-muted" />
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-bold text-lg text-sem-fg">
+                                        {{ $t("tutorial.mode_manual_title") }}
+                                    </div>
+                                    <div class="text-sm text-sem-fg-muted mt-1">
+                                        {{ $t("tutorial.mode_manual_desc") }}
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+
+                        <p class="text-xs text-center text-sem-fg-muted">
+                            {{ $t("tutorial.mode_change_later") }}
                         </p>
                     </div>
+
+                    <!-- Step 4: Bootstrap Selection -->
+                    <div v-else-if="currentStep === 4" key="step4-bootstrap" class="space-y-6">
+                        <div class="text-center space-y-2">
+                            <h2 class="text-2xl font-bold text-sem-fg">
+                                {{ $t("tutorial.bootstrap_title") }}
+                            </h2>
+                            <p class="text-sem-fg-muted text-sm">
+                                {{ $t("tutorial.bootstrap_desc") }}
+                            </p>
+                            <div class="flex flex-col items-center gap-2 pt-1">
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-2 rounded-xl border border-sem-accent/30 bg-sem-accent/10 px-4 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-sem-accent/15 dark:text-blue-300 dark:hover:bg-sem-accent/20 disabled:opacity-60"
+                                    :disabled="bootstrapPickBusy"
+                                    @click="pickRandomTcpBootstraps"
+                                >
+                                    <MaterialDesignIcon
+                                        v-if="bootstrapPickBusy"
+                                        icon-name="loading"
+                                        class="size-4 animate-spin text-sem-accent"
+                                    />
+                                    <MaterialDesignIcon v-else icon-name="shuffle-variant" class="size-[18px]" />
+                                    {{ $t("tutorial.bootstrap_pick_random_tcp") }}
+                                </button>
+                                <div
+                                    v-if="bootstrapSelectedLabels.length > 0"
+                                    class="w-full max-w-md rounded-xl border border-sem-border/90 bg-sem-surface-muted/80 px-3 py-2 text-left dark:bg-zinc-900/50"
+                                >
+                                    <div class="text-[10px] font-bold uppercase tracking-wide text-sem-fg-muted">
+                                        {{ $t("tutorial.bootstrap_selected_nodes_heading") }}
+                                    </div>
+                                    <ul class="mt-1 space-y-0.5 text-xs text-sem-fg">
+                                        <li
+                                            v-for="(label, idx) in bootstrapSelectedLabels"
+                                            :key="selectedBootstrapKeys[idx]"
+                                        >
+                                            {{ label }}
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            class="flex items-start gap-3 sm:gap-4 rounded-2xl border border-sem-border bg-white/80 dark:bg-zinc-900/60 p-3.5 sm:p-4"
+                        >
+                            <div class="shrink-0 pr-0.5 pt-0.5 sm:pt-1 sm:pr-1 flex items-start">
+                                <Toggle
+                                    v-model="defaultBootstrapOnly"
+                                    @update:model-value="persistDefaultBootstrapOnly"
+                                />
+                            </div>
+                            <div class="min-w-0 flex-1 pl-0.5 sm:pl-0 sm:pt-0.5">
+                                <div class="text-sm font-semibold text-sem-fg leading-snug">
+                                    {{ $t("tutorial.bootstrap_only_label") }}
+                                </div>
+                                <p class="text-xs text-sem-fg-muted mt-1.5 leading-relaxed">
+                                    {{ $t("tutorial.bootstrap_only_hint") }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div
+                                v-if="hasAnyBootstrapsToShow"
+                                class="w-full max-w-6xl mx-auto flex items-center gap-2 border-0 border-b border-sem-border/90/90 py-1.5"
+                            >
+                                <MaterialDesignIcon icon-name="magnify" class="size-5 shrink-0 text-sem-fg-muted" />
+                                <input
+                                    v-model="bootstrapListSearch"
+                                    type="search"
+                                    autocomplete="off"
+                                    :placeholder="$t('tutorial.bootstrap_search_placeholder')"
+                                    class="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-sem-fg shadow-none ring-0 outline-hidden focus:ring-0 text-sem-fg placeholder:text-sem-fg-muted dark:placeholder:text-zinc-500"
+                                />
+                                <button
+                                    v-if="bootstrapListSearch"
+                                    type="button"
+                                    class="shrink-0 rounded p-1 text-sem-fg-muted transition-colors hover:text-sem-fg hover:text-sem-fg"
+                                    :title="$t('tutorial.bootstrap_search_clear')"
+                                    :aria-label="$t('tutorial.bootstrap_search_clear')"
+                                    @click="bootstrapListSearch = ''"
+                                >
+                                    <MaterialDesignIcon icon-name="close" class="size-[18px]" />
+                                </button>
+                            </div>
+
+                            <div
+                                v-if="sortedDiscoveredInterfaces.length > 0"
+                                class="h-fit min-w-0 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-3xl border border-emerald-500/20"
+                            >
+                                <button
+                                    type="button"
+                                    class="flex w-full items-center justify-between gap-2 p-4 text-left sm:px-4"
+                                    :aria-expanded="bootstrapDiscoveredSectionOpen"
+                                    @click="bootstrapDiscoveredSectionOpen = !bootstrapDiscoveredSectionOpen"
+                                >
+                                    <div class="flex min-w-0 items-center gap-2 text-sm">
+                                        <MaterialDesignIcon
+                                            :icon-name="bootstrapDiscoveredSectionOpen ? 'chevron-up' : 'chevron-down'"
+                                            class="size-4 shrink-0 text-sem-fg-muted"
+                                        />
+                                        <MaterialDesignIcon icon-name="radar" class="text-emerald-500" />
+                                        <span class="font-bold text-sem-fg">{{
+                                            $t("tutorial.bootstrap_discovered")
+                                        }}</span>
+                                    </div>
+                                </button>
+                                <div v-show="bootstrapDiscoveredSectionOpen" class="px-4 pb-4">
+                                    <p
+                                        v-if="
+                                            bootstrapListSearch &&
+                                            sortedDiscoveredInterfaces.length > 0 &&
+                                            filteredDiscoveredForBootstrap.length === 0
+                                        "
+                                        class="text-xs text-sem-fg-muted"
+                                    >
+                                        {{ $t("tutorial.bootstrap_search_no_match") }}
+                                    </p>
+                                    <div
+                                        v-else
+                                        class="space-y-2 max-h-[260px] overflow-y-auto pr-2 pt-1 custom-scrollbar"
+                                    >
+                                        <label
+                                            v-for="iface in filteredDiscoveredForBootstrap"
+                                            :key="iface.discovery_hash || iface.name"
+                                            class="flex cursor-pointer items-center gap-3 rounded-xl border bg-white p-3 transition-all dark:bg-sem-surface-raised"
+                                            :class="[
+                                                isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
+                                                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                                                    : 'border-sem-border  hover:border-emerald-400',
+                                            ]"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                class="h-4 w-4 accent-emerald-500"
+                                                :checked="
+                                                    isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
+                                                "
+                                                @change="toggleBootstrap(`disc:${iface.discovery_hash || iface.name}`)"
+                                            />
+                                            <MaterialDesignIcon
+                                                :icon-name="getDiscoveryIcon(iface)"
+                                                class="h-5 w-5 shrink-0 text-emerald-500"
+                                            />
+                                            <div class="min-w-0 flex-1">
+                                                <div class="truncate text-sm font-bold text-sem-fg">
+                                                    {{ iface.name }}
+                                                </div>
+                                                <div class="truncate font-mono text-[10px] text-sem-fg-muted">
+                                                    <span v-if="iface.reachable_on"
+                                                        >{{ iface.reachable_on
+                                                        }}<span v-if="iface.port">:{{ iface.port }}</span></span
+                                                    >
+                                                    <span v-else>{{ iface.type }}</span>
+                                                    <span class="ml-2 capitalize">{{ iface.status }}</span>
+                                                </div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="h-fit min-w-0 rounded-3xl border border-sem-border bg-sem-surface-muted p-0 dark:bg-zinc-900"
+                            >
+                                <div class="flex items-center justify-between gap-2 p-4 pr-2 sm:px-4">
+                                    <button
+                                        type="button"
+                                        class="flex min-w-0 flex-1 items-center gap-2 text-left text-sm"
+                                        :aria-expanded="bootstrapCommunitySectionOpen"
+                                        @click="bootstrapCommunitySectionOpen = !bootstrapCommunitySectionOpen"
+                                    >
+                                        <MaterialDesignIcon
+                                            :icon-name="bootstrapCommunitySectionOpen ? 'chevron-up' : 'chevron-down'"
+                                            class="size-4 shrink-0 text-sem-fg-muted"
+                                        />
+                                        <MaterialDesignIcon icon-name="web" class="text-sem-accent" />
+                                        <span class="font-bold text-sem-fg">{{
+                                            $t("tutorial.bootstrap_community")
+                                        }}</span>
+                                    </button>
+                                </div>
+                                <div v-show="bootstrapCommunitySectionOpen" class="px-4 pb-4">
+                                    <p
+                                        v-if="
+                                            bootstrapListSearch &&
+                                            communityInterfaces.length > 0 &&
+                                            filteredCommunityForBootstrap.length === 0
+                                        "
+                                        class="text-xs text-sem-fg-muted"
+                                    >
+                                        {{ $t("tutorial.bootstrap_search_no_match") }}
+                                    </p>
+                                    <div
+                                        v-else
+                                        class="space-y-2 max-h-[260px] overflow-y-auto pr-2 pt-1 custom-scrollbar"
+                                    >
+                                        <label
+                                            v-for="iface in filteredCommunityForBootstrap"
+                                            :key="iface.name"
+                                            class="flex cursor-pointer items-center gap-3 rounded-xl border border-sem-border bg-white p-3 transition-all dark:bg-sem-surface-raised"
+                                            :class="[
+                                                isBootstrapSelected(`comm:${iface.name}`)
+                                                    ? 'border-sem-accent bg-sem-surface-muted'
+                                                    : 'hover:border-sem-accent',
+                                            ]"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                class="h-4 w-4 accent-blue-500"
+                                                :checked="isBootstrapSelected(`comm:${iface.name}`)"
+                                                @change="toggleBootstrap(`comm:${iface.name}`)"
+                                            />
+                                            <MaterialDesignIcon
+                                                icon-name="server-network"
+                                                class="size-5 text-sem-accent"
+                                            />
+                                            <div class="min-w-0 flex-1">
+                                                <div class="truncate text-sm font-bold text-sem-fg">
+                                                    {{ iface.name }}
+                                                </div>
+                                                <div class="truncate font-mono text-[10px] text-sem-fg-muted">
+                                                    {{ iface.target_host
+                                                    }}<span v-if="iface.target_port">:{{ iface.target_port }}</span>
+                                                </div>
+                                            </div>
+                                            <span
+                                                v-if="iface.online"
+                                                class="shrink-0 text-[9px] font-bold uppercase tracking-widest text-green-500"
+                                                >{{ $t("tutorial.online") }}</span
+                                            >
+                                        </label>
+                                        <div v-if="loadingInterfaces" class="flex justify-center py-3">
+                                            <MaterialDesignIcon
+                                                icon-name="loading"
+                                                class="size-6 animate-spin text-sem-accent"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                                <p class="text-xs text-sem-fg-muted">
+                                    {{
+                                        $t("tutorial.bootstrap_selected", {
+                                            count: selectedBootstrapCount,
+                                        })
+                                    }}
+                                </p>
+                                <div class="flex gap-2">
+                                    <button
+                                        type="button"
+                                        class="tutorial-action-btn tutorial-action-btn-secondary"
+                                        :disabled="bootstrapActionBusy"
+                                        @click="skipBootstraps"
+                                    >
+                                        {{ $t("tutorial.bootstrap_skip") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="tutorial-action-btn tutorial-action-btn-success"
+                                        :disabled="bootstrapActionBusy || selectedBootstrapCount === 0"
+                                        @click="confirmBootstraps"
+                                    >
+                                        <MaterialDesignIcon
+                                            v-if="bootstrapActionBusy"
+                                            icon-name="loading"
+                                            class="size-3.5 animate-spin text-sem-accent"
+                                        />
+                                        {{ $t("tutorial.bootstrap_confirm") }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: Propagation Mode -->
+                    <div v-else-if="currentStep === 5" key="step5-prop" class="space-y-6">
+                        <div class="text-center space-y-2">
+                            <h2 class="text-2xl font-bold text-sem-fg">
+                                {{ $t("tutorial.propagation") }}
+                            </h2>
+                            <p class="text-sem-fg-muted text-base">
+                                {{ $t("tutorial.propagation_desc") }}
+                            </p>
+                        </div>
+
+                        <div class="flex flex-col items-center gap-6 py-4">
+                            <div
+                                class="bg-sem-accent/10 dark:bg-sem-accent/20 p-6 rounded-4xl text-center space-y-4 border border-sem-accent/20 max-w-md"
+                            >
+                                <MaterialDesignIcon icon-name="server-network" class="size-12 text-sem-accent" />
+                                <div class="text-lg font-bold text-sem-fg">
+                                    {{ $t("tutorial.propagation_question") }}
+                                </div>
+                                <p class="text-sm text-sem-fg-muted">
+                                    {{ $t("tutorial.propagation_auto") }}
+                                </p>
+                                <div class="flex flex-col gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        class="tutorial-action-btn tutorial-action-btn-primary w-full"
+                                        :disabled="savingPropagation"
+                                        @click="enableAutoPropagation"
+                                    >
+                                        <MaterialDesignIcon
+                                            v-if="savingPropagation"
+                                            icon-name="loading"
+                                            class="size-5 animate-spin text-sem-accent"
+                                        />
+                                        {{ $t("tutorial.propagation_enable_auto") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="tutorial-action-btn tutorial-action-btn-secondary w-full"
+                                        @click="nextStep"
+                                    >
+                                        {{ $t("tutorial.propagation_skip_auto") }}
+                                    </button>
+                                </div>
+                                <div class="mt-6 pt-6 border-t border-sem-border">
+                                    <div class="text-sm font-bold text-sem-fg mb-1">
+                                        {{ $t("tutorial.propagation_manual") }}
+                                    </div>
+                                    <p class="text-xs text-sem-fg-muted">
+                                        {{ $t("tutorial.propagation_manual_desc") }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 6: Learn & Create -->
+                    <div v-else-if="currentStep === 6" key="step6-tools" class="space-y-6">
+                        <div class="text-center space-y-2">
+                            <h2 class="text-2xl font-bold text-sem-fg">
+                                {{ $t("tutorial.learn_create") }}
+                            </h2>
+                            <p class="text-sem-fg-muted">
+                                {{ $t("tutorial.learn_create_desc") }}
+                            </p>
+                        </div>
+
+                        <div class="space-y-6">
+                            <div class="flex w-full flex-col gap-4 max-w-xl mx-auto">
+                                <div
+                                    class="flex w-full items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border touch-manipulation"
+                                >
+                                    <MaterialDesignIcon icon-name="book-open-variant" class="size-8 text-sem-accent" />
+                                    <div class="min-w-0 flex-1">
+                                        <div class="font-bold text-sem-fg">
+                                            {{ $t("tutorial.documentation") }}
+                                        </div>
+                                        <div class="text-sm text-sem-fg mb-2">
+                                            {{ $t("tutorial.documentation_desc") }}
+                                        </div>
+                                        <div class="flex flex-wrap gap-2">
+                                            <a
+                                                href="/meshchatx-docs/index.html"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="px-3 py-1 text-[10px] rounded-xl bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text font-semibold shadow-xs transition-all inline-block"
+                                            >
+                                                {{ $t("tutorial.meshchatx_docs") }}
+                                            </a>
+                                            <a
+                                                :href="reticulumBundledDocsUrl"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="px-3 py-1 text-[10px] rounded-xl border border-sem-border bg-sem-surface text-sem-fg-muted font-semibold shadow-xs transition-all hover:bg-sem-surface-muted hover:bg-sem-surface-muted hover:border-sem-accent dark:hover:border-sem-accent inline-block"
+                                            >
+                                                {{ $t("tutorial.reticulum_docs") }}
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex w-full items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border touch-manipulation"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="file-document-edit-outline"
+                                        class="size-8 text-orange-500"
+                                    />
+                                    <div class="min-w-0 flex-1">
+                                        <div class="font-bold text-sem-fg">
+                                            {{ $t("tutorial.micron_editor") }}
+                                        </div>
+                                        <div class="text-sm text-sem-fg mb-2">
+                                            {{ $t("tutorial.micron_editor_desc") }}
+                                        </div>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button
+                                                type="button"
+                                                class="px-3 py-1 text-[10px] rounded-xl border border-sem-border bg-sem-surface text-sem-fg-muted font-semibold shadow-xs transition-all hover:bg-sem-surface-muted hover:bg-sem-surface-muted hover:border-sem-accent dark:hover:border-sem-accent"
+                                                @click="gotoRoute('micron-editor')"
+                                            >
+                                                {{ $t("tutorial.open_micron_editor") }}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="px-3 py-1 text-[10px] rounded-xl border border-sem-border bg-sem-surface text-sem-fg-muted font-semibold shadow-xs transition-all hover:bg-sem-surface-muted hover:bg-sem-surface-muted hover:border-sem-accent dark:hover:border-sem-accent"
+                                                @click="gotoRoute('mesh-server')"
+                                            >
+                                                {{ $t("tutorial.open_mesh_server") }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex w-full cursor-pointer items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-colors hover:border-indigo-500 touch-manipulation min-h-[4.5rem]"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('identities')"
+                                    @keydown.enter="gotoRoute('identities')"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="account-multiple-outline"
+                                        class="size-8 text-indigo-500"
+                                    />
+                                    <div class="min-w-0 flex-1">
+                                        <div class="font-bold text-sem-fg">
+                                            {{ $t("tutorial.identities_card_title") }}
+                                        </div>
+                                        <div class="text-sm text-sem-fg-muted">
+                                            {{ $t("tutorial.identities_card_desc") }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex w-full cursor-pointer items-start gap-4 p-4 rounded-2xl bg-sem-surface-muted text-left border border-sem-border transition-colors hover:border-teal-500 touch-manipulation min-h-[4.5rem]"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('archives')"
+                                    @keydown.enter="gotoRoute('archives')"
+                                >
+                                    <MaterialDesignIcon icon-name="archive-outline" class="size-8 text-teal-500" />
+                                    <div>
+                                        <div class="font-bold text-sem-fg">
+                                            {{ $t("tutorial.archiver") }}
+                                        </div>
+                                        <div class="text-sm text-sem-fg">
+                                            {{ $t("tutorial.archiver_desc") }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p class="text-center text-[11px] font-semibold tracking-wide text-sem-fg-muted px-2">
+                                {{ $t("tutorial.learn_create_more") }}
+                            </p>
+
+                            <div class="grid grid-cols-2 gap-2 max-w-xl mx-auto">
+                                <div
+                                    class="flex flex-col gap-1.5 rounded-xl border border-sem-border bg-sem-surface-muted p-2.5 dark:bg-zinc-900 cursor-pointer hover:border-sem-accent transition-colors touch-manipulation min-h-[5.5rem]"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('nomadnetwork')"
+                                    @keydown.enter="gotoRoute('nomadnetwork')"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="earth"
+                                        class="size-[22px] text-purple-500 shrink-0"
+                                    />
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-sem-fg text-[11px] leading-tight">
+                                            {{ $t("tutorial.paper_messages") }}
+                                        </div>
+                                        <div class="text-[9px] text-sem-fg-muted leading-snug line-clamp-3">
+                                            {{ $t("tutorial.paper_messages_desc") }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex flex-col gap-1.5 rounded-xl border border-sem-border bg-sem-surface-muted p-2.5 dark:bg-zinc-900 cursor-pointer hover:border-sem-accent transition-colors touch-manipulation min-h-[5.5rem]"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('messages')"
+                                    @keydown.enter="gotoRoute('messages')"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="message-text-outline"
+                                        class="size-[22px] text-green-500 shrink-0"
+                                    />
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-sem-fg text-[11px] leading-tight">
+                                            {{ $t("tutorial.send_messages") }}
+                                        </div>
+                                        <div class="text-[9px] text-sem-fg-muted leading-snug line-clamp-3">
+                                            {{ $t("tutorial.send_messages_desc") }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex flex-col gap-1.5 rounded-xl border border-sem-border bg-sem-surface-muted p-2.5 dark:bg-zinc-900 cursor-pointer hover:border-sem-accent transition-colors touch-manipulation min-h-[5.5rem]"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('network-visualiser')"
+                                    @keydown.enter="gotoRoute('network-visualiser')"
+                                >
+                                    <MaterialDesignIcon icon-name="hub" class="size-[22px] text-teal-500 shrink-0" />
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-sem-fg text-[11px] leading-tight">
+                                            {{ $t("tutorial.explore_nodes") }}
+                                        </div>
+                                        <div class="text-[9px] text-sem-fg-muted leading-snug line-clamp-3">
+                                            {{ $t("tutorial.explore_nodes_desc") }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex flex-col gap-1.5 rounded-xl border border-sem-border bg-sem-surface-muted p-2.5 dark:bg-zinc-900 cursor-pointer hover:border-sem-accent transition-colors touch-manipulation min-h-[5.5rem]"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('call')"
+                                    @keydown.enter="gotoRoute('call')"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="phone-in-talk-outline"
+                                        class="size-[22px] text-red-500 shrink-0"
+                                    />
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-sem-fg text-[11px] leading-tight">
+                                            {{ $t("tutorial.voice_calls") }}
+                                        </div>
+                                        <div class="text-[9px] text-sem-fg-muted leading-snug line-clamp-3">
+                                            {{ $t("tutorial.voice_calls_desc") }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 7: Privacy -->
+                    <div v-else-if="currentStep === 7" key="step7-privacy" class="space-y-4">
+                        <TutorialPrivacyStep />
+                    </div>
+
+                    <!-- Step 8: Finish -->
                     <div
-                        v-if="interfaceAddedViaTutorial"
-                        class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/30 text-amber-700 dark:text-amber-400 text-sm flex gap-3 max-w-md text-left"
+                        v-else-if="currentStep === 8"
+                        key="step8-finish"
+                        class="flex flex-col items-center text-center space-y-8 py-10"
                     >
-                        <MaterialDesignIcon icon-name="information-outline" class="shrink-0" />
-                        <span>{{ $t("tutorial.docker_note") }}</span>
+                        <div class="w-32 h-32 bg-green-500/10 rounded-full flex items-center justify-center relative">
+                            <MaterialDesignIcon icon-name="check-decagram" class="size-20 text-green-500" />
+                            <div class="absolute inset-0 bg-green-500/20 rounded-full animate-ping opacity-20"></div>
+                        </div>
+                        <div class="space-y-3">
+                            <h2 class="text-3xl font-black text-sem-fg">
+                                {{ $t("tutorial.ready") }}
+                            </h2>
+                            <p class="text-lg text-sem-fg-muted max-w-md mx-auto">
+                                {{ $t("tutorial.ready_desc") }}
+                            </p>
+                        </div>
+                        <div
+                            v-if="interfaceAddedViaTutorial"
+                            class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/30 text-amber-700 dark:text-amber-400 text-sm flex gap-3 max-w-md text-left"
+                        >
+                            <MaterialDesignIcon icon-name="information-outline" class="shrink-0" />
+                            <span>{{ $t("tutorial.docker_note") }}</span>
+                        </div>
+                        <RouterLink
+                            :to="{ name: 'documentation' }"
+                            class="text-sm font-semibold text-sem-accent hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                            {{ $t("tutorial.learn_more_docs") }}
+                        </RouterLink>
                     </div>
-                    <RouterLink
-                        :to="{ name: 'documentation' }"
-                        class="text-sm font-semibold text-sem-accent hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                    >
-                        {{ $t("tutorial.learn_more_docs") }}
-                    </RouterLink>
-                </div>
-            </transition>
-        </div>
+                </transition>
 
-        <template #actions>
-            <div
-                class="flex w-full shrink-0 justify-between border-t border-sem-border bg-sem-surface-muted px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-zinc-900 dark:bg-zinc-950/50 sm:px-6 sm:py-6"
-            >
-                <button
-                    v-if="currentStep > 1 && currentStep < totalSteps"
-                    type="button"
-                    class="tutorial-action-btn tutorial-action-btn-secondary"
-                    :disabled="tutorialNavBusy"
-                    @click="previousStep"
+                <div
+                    class="mt-12 flex items-center justify-between border-t border-sem-border pt-8 pb-[env(safe-area-inset-bottom)] dark:border-zinc-900"
                 >
-                    {{ $t("tutorial.back") }}
-                </button>
-                <div v-else></div>
-
-                <div class="flex gap-3">
                     <button
-                        v-if="currentStep < totalSteps"
+                        v-if="currentStep > 1 && currentStep < totalSteps"
                         type="button"
                         class="tutorial-action-btn tutorial-action-btn-secondary"
                         :disabled="tutorialNavBusy"
-                        @click="skipTutorial"
+                        @click="previousStep"
                     >
-                        {{ $t("tutorial.skip") }}
+                        {{ $t("tutorial.back") }}
                     </button>
+                    <div v-else></div>
 
-                    <button
-                        v-if="showFooterContinue"
-                        type="button"
-                        class="tutorial-action-btn tutorial-action-btn-primary"
-                        :disabled="
-                            tutorialNavBusy ||
-                            (currentStep === 2 && identityMode === 'import' && !hasIdentityImportInput)
-                        "
-                        @click="handlePrimaryAction"
-                    >
-                        {{ $t("tutorial.next") }}
-                    </button>
+                    <div class="flex gap-3">
+                        <button
+                            v-if="currentStep < totalSteps"
+                            type="button"
+                            class="tutorial-action-btn tutorial-action-btn-secondary"
+                            :disabled="tutorialNavBusy"
+                            @click="skipTutorial"
+                        >
+                            {{ $t("tutorial.skip") }}
+                        </button>
 
-                    <button
-                        v-else-if="currentStep === totalSteps"
-                        type="button"
-                        class="tutorial-action-btn tutorial-action-btn-success"
-                        :disabled="finishingTutorial || tutorialNavBusy"
-                        @click="finishTutorial"
-                    >
-                        {{ $t("tutorial.finish_setup") }}
-                    </button>
+                        <button
+                            v-if="showFooterContinue"
+                            type="button"
+                            class="tutorial-action-btn tutorial-action-btn-primary"
+                            :disabled="
+                                tutorialNavBusy ||
+                                (currentStep === 2 && identityMode === 'import' && !hasIdentityImportInput)
+                            "
+                            @click="handlePrimaryAction"
+                        >
+                            {{ $t("tutorial.next") }}
+                        </button>
+
+                        <button
+                            v-else-if="currentStep === totalSteps"
+                            type="button"
+                            class="tutorial-action-btn tutorial-action-btn-success"
+                            :disabled="finishingTutorial || tutorialNavBusy"
+                            @click="finishTutorial"
+                        >
+                            {{ $t("tutorial.finish_setup") }}
+                        </button>
+                    </div>
                 </div>
             </div>
-        </template>
+        </div>
     </AppModal>
 
     <div v-else class="flex flex-col h-full bg-sem-surface overflow-hidden relative">
@@ -1148,7 +1183,7 @@
         </div>
 
         <div class="flex-1 overflow-y-auto px-6 md:px-12 py-6 md:py-10">
-            <div class="w-full h-full flex flex-col">
+            <div class="w-full min-h-full flex flex-col justify-between">
                 <transition name="fade-slide" mode="out-in">
                     <!-- Step 1: Welcome -->
                     <div
@@ -2229,58 +2264,56 @@
                         </RouterLink>
                     </div>
                 </transition>
-            </div>
-        </div>
 
-        <!-- Navigation Buttons (Page Mode): pinned below the scroll area -->
-        <div
-            class="shrink-0 border-t border-sem-border bg-sem-surface-muted px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-zinc-900 dark:bg-zinc-950/50 md:px-12"
-        >
-            <div class="flex justify-between items-center">
-                <button
-                    v-if="currentStep > 1 && currentStep < totalSteps"
-                    type="button"
-                    class="tutorial-action-btn tutorial-action-btn-secondary"
-                    :disabled="tutorialNavBusy"
-                    @click="previousStep"
+                <!-- Navigation Buttons (Page Mode): fused at the bottom of the step content -->
+                <div
+                    class="mt-12 flex items-center justify-between border-t border-sem-border pt-8 pb-[env(safe-area-inset-bottom)] dark:border-zinc-900"
                 >
-                    {{ $t("tutorial.back") }}
-                </button>
-                <div v-else></div>
-
-                <div class="flex gap-4">
                     <button
-                        v-if="currentStep < totalSteps"
+                        v-if="currentStep > 1 && currentStep < totalSteps"
                         type="button"
                         class="tutorial-action-btn tutorial-action-btn-secondary"
                         :disabled="tutorialNavBusy"
-                        @click="skipTutorial"
+                        @click="previousStep"
                     >
-                        {{ $t("tutorial.skip_setup") }}
+                        {{ $t("tutorial.back") }}
                     </button>
+                    <div v-else></div>
 
-                    <button
-                        v-if="showFooterContinue"
-                        type="button"
-                        class="tutorial-action-btn tutorial-action-btn-primary"
-                        :disabled="
-                            tutorialNavBusy ||
-                            (currentStep === 2 && identityMode === 'import' && !hasIdentityImportInput)
-                        "
-                        @click="handlePrimaryAction"
-                    >
-                        {{ $t("tutorial.continue") }}
-                    </button>
+                    <div class="flex gap-4">
+                        <button
+                            v-if="currentStep < totalSteps"
+                            type="button"
+                            class="tutorial-action-btn tutorial-action-btn-secondary"
+                            :disabled="tutorialNavBusy"
+                            @click="skipTutorial"
+                        >
+                            {{ $t("tutorial.skip_setup") }}
+                        </button>
 
-                    <button
-                        v-else-if="currentStep === totalSteps"
-                        type="button"
-                        class="tutorial-action-btn tutorial-action-btn-success"
-                        :disabled="finishingTutorial || tutorialNavBusy"
-                        @click="finishTutorial"
-                    >
-                        {{ $t("tutorial.finish_setup") }}
-                    </button>
+                        <button
+                            v-if="showFooterContinue"
+                            type="button"
+                            class="tutorial-action-btn tutorial-action-btn-primary"
+                            :disabled="
+                                tutorialNavBusy ||
+                                (currentStep === 2 && identityMode === 'import' && !hasIdentityImportInput)
+                            "
+                            @click="handlePrimaryAction"
+                        >
+                            {{ $t("tutorial.continue") }}
+                        </button>
+
+                        <button
+                            v-else-if="currentStep === totalSteps"
+                            type="button"
+                            class="tutorial-action-btn tutorial-action-btn-success"
+                            :disabled="finishingTutorial || tutorialNavBusy"
+                            @click="finishTutorial"
+                        >
+                            {{ $t("tutorial.finish_setup") }}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

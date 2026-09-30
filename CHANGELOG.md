@@ -2,6 +2,87 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.9.3] - 2026-09-30
+
+### Changed
+
+- Reticulum Network Stack updated to 1.5.5, which adds runtime interface attach/detach/reload management, publishes implementation name and version in discovery announcements, and fixes IFAC publishing edge cases.
+- Tutorial: the Back/Skip/Next row is fused back into the bottom of the step content in both modal and page modes instead of a separate pinned footer bar.
+- Visualiser: the radial view is replaced by a cluster view that groups peers into lobes around the interface that announced them, so the layout shows where traffic actually arrives from. Stored radial preferences upgrade to cluster.
+
+### Fixed
+
+- Visualiser: WebGL live layout settles again. Tick damping and the per-step speed cap were tuned so nodes spread out and come to rest instead of ringing at equilibrium.
+- Map: dragging the settings window stays smooth now (backdrop blur is disabled for the drag) and the coordinates readout no longer re-renders the whole page on every pointer event.
+- NomadNet: image size hints now follow upstream semantics. A bare w=/h= number is a character cell count (columns and rows) instead of pixels, w=n renders at the image's native size, and percent values stay relative to the page as upstream intends. Matches markqvist's NomadNet ImageWidget behavior.
+- NomadNet: the w=/h= spec now sizes the loaded image itself instead of only the invisible placeholder box, so w=50 renders 50 columns wide as in upstream NomadNet.
+- NomadNet: image alignment is applied. a=c centers and a=r right-aligns whole-line images, and whole-line images default to centered like the upstream ImageWidget.
+- NomadNet: a loaded image drops the placeholder border and padding and shows the bare image, and the reserved placeholder space is released so pages no longer keep dead space at the bottom.
+- NomadNet: the page shell no longer keeps its own scrollbar next to the rendered frame's scrollbar. The container was always scrollable by its own padding and showed a second slider on platforms with always-on scrollbars.
+- Issue triage: the welcome comment no longer asks reporters for logs or a screenshot when the issue body already contains an attachment or a filled-in logs section.
+
+### Security
+
+- Plugin install and preview paths now jail wasm backend entries under the plugin tree, bound extracted zip content by real bytes and file count instead of declared size, reject symlink members, and keep fallback wasm stubs out of the integrity-checked tree. A failed enable() rolls back to a clean disabled state.
+- RRC hub sessions that never send HELLO are reaped on a timeout so a peer cannot pin session slots, stale link-close callbacks no longer clear a live session's state, and a room-less forced-leave error preserves local room history instead of wiping it.
+- Reticulum config snapshots returned by the API redact secrets before serving, matching the redaction used by the live config view.
+- File sync incoming-file tracking expires and clears on link close so a dead link cannot pin a path against re-request forever.
+- Docs archive import streams members with a real-byte cap and skips symlink entries before anything reaches disk.
+
+### Fixed
+
+- Forwarding: replies sent to a forwarding alias now route back to the original sender. The mapping was keyed by the alias identity hash while replies arrive addressed to the alias destination hash, so the reply path never matched.
+- Messages: auto-resend no longer reclaims a malformed message forever. The attempt budget is spent before attachment parsing, so a bad base64 field cannot loop a resend.
+- Messages: local retention purge keys on when the row was written locally instead of the sender-controlled LXMF timestamp, so a peer can no longer age a message out instantly or keep it forever.
+- Telephone: an outgoing call that stalls mid-dial now times out and hangs up instead of leaving the phone stuck in Calling until teardown, and an incoming ring during a pending outbound call is surfaced instead of silently dropped.
+- Voicemail: the auto-answer timer is bound to the link instance it was scheduled for, the blocklist fails closed when lookup errors, and greeting recording writes to a temp file that only replaces the live greeting on success.
+- Web audio bridge reattaches after an LXST pipeline reconfiguration (answer, profile switch, loudspeaker toggle) instead of leaving mic and speaker paths silently disconnected, and per-client sends coalesce so one slow socket no longer stalls the whole 60fps feed.
+- Geo WASM: MGRS formatting for single-digit zones is correct, OLC shorten/recover no longer panics on edge-case codes, and NaN or non-finite coordinates cannot crash the runtime.
+- Visualiser WASM: the WebGL pick radius holds a screen-space minimum so clicks still land at high zoom, scene handlers validate argument types instead of calling Float on non-numbers, coincident layout nodes get a deterministic separation nudge, and duplicate edges are deduplicated.
+- Relay chat: sent messages now show a gray "sending" hint until the hub relays the message back. If the echo never arrives, or the link drops first, the line switches to "not delivered to hub" with a retry action that resends under a new envelope id.
+- Relay chat: message and sidebar context menus show icons, and the message menu gains "Message user" (opens a direct conversation through the peer's LXMF address) and "Copy user hash".
+- Context menus across the app use a pointer cursor on interactive items.
+- NomadNet: a live announce no longer re-sorts its row to the top of the announces list, so clicking a node no longer makes the sidebar reshuffle under the cursor.
+- Relay chat: a "new messages" divider marks where unread history starts when a room opens, pressing ArrowUp on an empty composer recalls your last sent message, a byte counter appears near the hub's message limit, failed sends retry once automatically on rejoin, and hubs show their measured link latency next to the status line.
+- Context menus support Escape to close and arrow-key navigation between items.
+- RRC: hub reconnect after a restart no longer stalls on a dead link. The connect worker now waits for both the identity and a live path before creating the link, since a link request sent with no known path is dropped silently and only the establishment timeout would recover it. Path requests retry inside the connect window instead of a single shot.
+- RRC: a link stuck PENDING on a dead path no longer parks the hub in CONNECTING for minutes. An establishment watchdog tears it down after a bounded window and lets reconnect backoff retry instead.
+- Live e2e now covers backend restarts (warm storage reconnect within an SLA), link flaps, and network partitions through a control-file chaos proxy between the peer and the backend.
+- Nightly QA workflow runs a soak harness that samples threads, fds, RSS, path table and interface byte rates under a steady mesh workload and fails on any rising leak slope, plus opt-in live backend tests and mutation runs on the highest-risk modules.
+- Backend tests gained a Hypothesis state machine for the RRC hub connect lifecycle and property-based codec/parser tests for the wire format.
+- Shared-instance RNS calls can no longer wedge the web server. The shared RPC recv had no deadline, so a stalled rnsd blocked whatever thread asked, including the aiohttp loop serving /interface-stats, /path-table, path probe, blocklist and telephone endpoints. Route handlers now run those calls in a thread when a shared instance is in use, and every shared-instance RPC recv carries a 10s deadline.
+- RNode Flasher: the page 500s in dev mode because Vite refuses dynamic imports of public assets, and the fallback code imported vendor modules without any SRI check. Vendor bundles now load through a hash-verified blob URL path shared by all flasher scripts, and the dead web-serial polyfill reference (the file was never shipped) is removed.
+- RRC: reconnect backoff can no longer overflow after days of retries (the exponent is capped), a dead link reporting close twice no longer double-counts the backoff, and a connect that crosses a manual disconnect no longer installs its link anyway. A connect attempt epoch now drops links from superseded workers.
+- RRC: hub error text can no longer delete room history files; only explicit remove/clear actions erase the archive. History files now compact to the retention window instead of growing without bound.
+- RRC: pending-delivery echoes age out on message reads, not only on inbound packets; active-room tracking normalizes room names so mixed-case paths cannot split unread state or history.
+- Removed dead code: the bot_propagation re-export shim, the never-wired lifecycle deferred_network module, two unused frontend API wrappers, the unused FormSubLabel component, a dead RRC ping path (send_ping was never called, so pong tracking and its bookkeeping were inert), the trusted-publisher OO store cluster, unused config fields, and roughly two dozen unreachable DAO, plugin, sandbox, and diagnostics helpers.
+- Map coordinate format now persists: the PATCH handler and config export were wired (the setting was previously silently dropped).
+- API hardening from OpenAPI contract fuzzing: malformed JSON bodies (arrays or nulls in string fields) no longer 500 on the RRC join-room, hub-create, room key/topic, archive, and LXMF send endpoints; they now fail 400 with a named reason. The lxmf send error response also gained the standard error/code/message fields.
+- RRC room names containing lone-surrogate unicode are rejected at normalize time instead of exploding mid-encode inside CBOR.
+- RNPath tool: a remote query no longer fires without a management identity (it returned a guaranteed 400 on every poll and spammed the console), and the search box is clamped so oversized input cannot overflow the HTTP request line.
+- Testing: an OpenAPI spec now ships under docs/openapi.yaml covering 79 API operations, exercised live by Schemathesis against a loopback backend in CI, plus an atheris coverage-guided fuzz suite over the RRC envelope codec and parsers, golden CBOR wire captures pinned against decode/round-trip drift, deterministic replay of recorded RRC sessions, a SIGKILL crash-consistency suite that kills the backend mid-write and asserts storage integrity on restart, a shared-instance e2e that runs the backend against a real rnsd, and scripted exploratory personas (impatient, adversarial input, data-heavy seeding) over all routes.
+- Testing: axe-core accessibility audit runs across all routes with a baseline ratchet so new serious or critical violations fail while documented debt is tracked to zero. Visual regression screenshots for key routes can be generated per environment through a dedicated Playwright config. A diff-cover gate requires 80% coverage on changed backend lines in pull requests.
+- RRC sessions can now record every routed envelope to JSONL for deterministic replay in tests.
+- Health monitor now samples Linux IO stall pressure (/proc/pressure/io avg10). Sustained high IO pressure warns in the log and over the websocket, throttles the background ratchet persist worker until pressure clears, and reports recovery.
+- Shared-instance RPC: the deadline now also covers the authkey handshake (a stalled rnsd rpc_loop could park the connect path forever) and the whole frame read, not just the first byte. Every remaining route handler that still called a blocking shared-instance RPC on the event loop now offloads it, including rnstatus/rnpath/rnprobe/trace tools, path probe, blocklist writes, telephone dialing, and the reticulum hot-reload shutdown sequence. RPC timeouts surface as 503 instead of a generic 500, and a deadlined packet-metric lookup can no longer skip the message state update it precedes.
+- Command palette: typing with peers or contacts lacking names no longer crashes filtering, and pressing arrows on a query with no matches crashed the render path because the highlight move indexed an empty result set, and null entries in peer or contact lists could throw while building results.
+- IO pressure handling hardens: the gate releases when PSI disappears mid-run or the monitor stops, ratchet writes held during pressure flush synchronously at shutdown, and a dropped re-queue signal can no longer orphan pending ratchet entries.
+- Live e2e covers RRC room history across a backend restart and before_seq pagination, plus an exploratory interaction crawl (buttons, menus, command palette) on every route and an adb-based mobile UI crawl when a device is attached.
+- E2E hardening: the live peer no longer self-terminates at 10 minutes (soak runs were measuring a dead mesh), storm destinations now announce the real rrc.hub aspect, the soak slope oracle uses the correct slope standard error and fails on too few samples or peer death, the stack script frees ports with escalation and kills Vite on cleanup, and fault-injection specs restore chaos modes in finally blocks so one failure cannot poison the suite.
+- RNode flasher: the dead load-polyfill action and a standalone-page import of a file that was never shipped are removed, SRI verification failures log loudly instead of being swallowed, vendor loading deduplicates concurrent runs, and insecure contexts surface a clear error instead of silent crypto.subtle failures.
+- Live e2e now covers an adversarial announce storm (40 synthetic hub announces), a second live peer for cross-peer isolation checks, and an exploratory route crawl that fails on console errors or blank pages. The e2e stack also frees its ports from stale leftovers before starting.
+- Live e2e now also asserts interface byte counters stay bounded during idle announce windows and real chat flows, catching unbounded announce or path-request churn before it becomes a traffic bill.
+- Telephony: dialing by identity hash no longer resolves a wrong identity. The announce fallback rebuilt the peer identity from its public key through a private-key API, producing a constant wrong hash, so calls by identity hash could never find a path.
+- Backend: fixed a self-deadlock in AsyncUtils.run_async where a done-callback could fire inline while the futures lock was held, freezing the main event loop and wedging the server under sustained announce traffic. A live Playwright mesh suite now covers real LXMF delivery and relay-hub connect, join, and echo over a local TCP link.
+- LXMF: a transient blocklist or contact lookup error can no longer bounce inbound long messages with a false REJECTED state; the pre-transfer policy only rejects on a positive verdict, matching the 4.8.8 unknown-peer rule.
+- Health monitor now probes the main event loop and dumps all thread stacks to the log if the loop stops answering, and SIGUSR1 dumps stacks on demand, so silent server wedges self-diagnose.
+- Relay chat: auto-connect now waits for the first interface to come online before sending path requests, so hubs connect quickly after a restart instead of burning a full path-request window.
+- Contacts context menu dismisses consistently on Escape, and the announce sidebar no longer corrupts first-seen timestamps or custom names from slim live announce payloads; announce list pagination no longer skips server rows when live nodes arrive mid-browse.
+- Sandbox: seccomp denylist now prefers the seccompy backend (pure Python, no libseccomp needed) and falls back to libseccomp via ctypes when it is absent.
+- Crawler: re-queued tasks keep their retry budget instead of resetting to zero, in-flight tasks count toward the per-node page cap, a successful crawl clears the previous skip reason, and a node's own page destinations are never queued for self-crawl.
+- Page nodes write pages and hosted files atomically and open served files with O_NOFOLLOW so a swapped symlink cannot redirect a served path after the jail check.
+- Media conversion holds a process-wide lock around the temporary-directory and environment window so concurrent conversions cannot clobber each other's temp settings.
+
 ## [4.9.2] - 2026-09-28 [released]
 
 ### Added

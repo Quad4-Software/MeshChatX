@@ -70,20 +70,28 @@ describe("useNomadNodesList", () => {
         expect(list.hasMoreNodes.value).toBe(true);
     });
 
-    it("append mode uses the current node count as offset and keeps existing nodes", async () => {
+    it("append mode counts fetched rows only, not live-announced inserts", async () => {
+        // Regression: a live WS announce inserts into nodes without being part
+        // of any fetched page, so using the node count as the offset skipped
+        // real server rows on load-more.
         const list = useNomadNodesList();
+        api.get.mockResolvedValueOnce({
+            data: { announces: [{ destination_hash: "y".repeat(32) }], total_count: 5 },
+        });
+        await list.getNomadnetworkNodeAnnounces();
+        // Live announce arrives before load-more; it must not inflate offset.
         list.updateNodeFromAnnounce({ destination_hash: "x".repeat(32) });
         api.get.mockResolvedValueOnce({
-            data: { announces: [{ destination_hash: "y".repeat(32) }], total_count: 2 },
+            data: { announces: [{ destination_hash: "z".repeat(32) }], total_count: 5 },
         });
         await list.getNomadnetworkNodeAnnounces(true);
-        expect(api.get).toHaveBeenCalledWith(
+        expect(api.get).toHaveBeenLastCalledWith(
             "/api/v1/announces",
             expect.objectContaining({
                 params: expect.objectContaining({ offset: 1 }),
             })
         );
-        expect(Object.keys(list.nodes.value)).toHaveLength(2);
+        expect(Object.keys(list.nodes.value)).toHaveLength(3);
     });
 
     it("loadMoreNodes appends only when more pages exist", async () => {
@@ -199,6 +207,27 @@ describe("useNomadNodesList", () => {
         list.updateNodeFromAnnounce({ destination_hash: hash, announce_count: 2 });
         list.updateNodeFromAnnounce({ destination_hash: hash, announce_count: 9 });
         expect(list.nodes.value[hash].announce_count).toBe(9);
+    });
+
+    it("keeps the sort key frozen when a re-announce carries a newer timestamp", () => {
+        // Regression: dropping _updated_at_ts re-sorted the row to the top of
+        // the last_announced list on every live announce, so the announce
+        // sidebar visibly reshuffled (and the clicked row could jump away).
+        const list = useNomadNodesList();
+        const hash = "e".repeat(32);
+        list.updateNodeFromAnnounce({
+            destination_hash: hash,
+            updated_at: "2025-01-01 00:00:00",
+        });
+        list.nodes.value[hash]._updated_at_ts = new Date("2025-01-01").getTime();
+        list.updateNodeFromAnnounce({
+            destination_hash: hash,
+            updated_at: "2025-01-05 00:00:00",
+        });
+        const node = list.nodes.value[hash];
+        // Display timestamp is the latest announce, sort key stays frozen.
+        expect(node.updated_at).toBe("2025-01-05 00:00:00");
+        expect(node._updated_at_ts).toBe(new Date("2025-01-01").getTime());
     });
 
     it("swallows cancel errors and logs other failures", async () => {

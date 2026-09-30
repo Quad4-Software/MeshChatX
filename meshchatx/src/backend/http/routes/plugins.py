@@ -237,6 +237,8 @@ def register_plugins_routes(routes, app):
             data = {}
         method = data.get("method")
         args = data.get("args") or {}
+        if not isinstance(args, dict):
+            return http_bad_request("args must be an object")
         if not method:
             return http_bad_request("method is required")
         try:

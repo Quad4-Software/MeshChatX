@@ -136,6 +136,9 @@ playwright-report/
 blob-report/
 .tmp-pw/
 
+# Visual regression baselines (generated per machine via --update-snapshots)
+tests/e2e/__screenshots__/
+
 # Local benchmark / CI artifact downloads
 bench_results.json
 bench_results.txt

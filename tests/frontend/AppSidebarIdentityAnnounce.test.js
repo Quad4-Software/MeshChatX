@@ -28,7 +28,7 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     },
 }));
 
-const axiosMock = { get: vi.fn() };
+const axiosMock = { get: vi.fn(), post: vi.fn() };
 const i18n = createI18n({
     legacy: false,
     locale: "en",
@@ -149,6 +149,11 @@ describe("App.vue sidebar identity label and announce control", () => {
         window.api = axiosMock;
         vi.clearAllMocks();
         axiosMock.get.mockImplementation(defaultAxiosImplementation);
+        axiosMock.post.mockImplementation((url) =>
+            url === "/api/v1/announce"
+                ? Promise.resolve({ data: {} })
+                : Promise.resolve({ data: {} }),
+        );
         window.localStorage?.removeItem("meshchatx.sidebar.app");
         window.localStorage?.removeItem("meshchatx.sidebar.nav_layout");
     });
@@ -253,14 +258,17 @@ describe("App.vue sidebar identity label and announce control", () => {
         expect(btn.exists()).toBe(true);
         wrapper.vm.isShowingAnnounceSection = true;
         await btn.trigger("click");
-        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/announce");
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/announce");
         expect(ToastUtils.success).toHaveBeenCalled();
         expect(wrapper.vm.isShowingAnnounceSection).toBe(true);
         vi.clearAllMocks();
-        axiosMock.get.mockImplementation((url) => {
+        axiosMock.post.mockImplementation((url) => {
             if (url === "/api/v1/announce") {
                 return Promise.resolve({ data: {} });
             }
+            return Promise.resolve({ data: {} });
+        });
+        axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/config") {
                 return Promise.resolve({ data: { config: makeConfig() } });
             }
@@ -268,7 +276,7 @@ describe("App.vue sidebar identity label and announce control", () => {
         });
         wrapper.vm.isSidebarCollapsed = true;
         await btn.trigger("click");
-        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/announce");
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/announce");
     });
 
     it("clicking grouped account chip (not the radio) toggles expanded state", async () => {

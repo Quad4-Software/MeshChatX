@@ -1,6 +1,6 @@
 {
     "name": "reticulum-meshchatx",
-    "version": "4.9.2",
+    "version": "4.9.3",
     "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
     "homepage": "https://github.com/Quad4-Software/MeshChatX",
     "desktopName": "com.meshchatx.app.desktop",
@@ -92,6 +92,7 @@
         "@vitest/coverage-v8": "^4.1.11",
         "@vitest/ui": "^4.1.11",
         "@vue/test-utils": "^2.5.0",
+        "axe-core": "4.13.0",
         "cross-env": "^10.1.0",
         "dayjs": "^1.11.23",
         "electron": "44.0.0",

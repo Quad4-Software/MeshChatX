@@ -217,6 +217,8 @@ def test_push_client_frame_forwards_to_tx_source():
     bridge = WebAudioBridge(tele_mgr, MagicMock())
     mock_tx = MagicMock()
     bridge.tx_source = mock_tx
+    # Mark the patch as attached so the mid-call reattach check passes.
+    tele_mgr.telephone.audio_input = mock_tx
     bridge.push_client_frame(b"\x01\x02")
     mock_tx.push_pcm.assert_called_once_with(b"\x01\x02")
 

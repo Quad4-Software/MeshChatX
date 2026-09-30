@@ -225,10 +225,9 @@ def register_telephone_routes(routes, app):
                         continue
                     active_call["path_hops"] = RNS.Transport.hops_to(candidate_hash)
                     if hasattr(app, "reticulum") and app.reticulum:
-                        active_call["path_interface"] = (
-                            app.reticulum.get_next_hop_if_name(
-                                candidate_hash,
-                            )
+                        active_call["path_interface"] = await app._reticulum_rpc(
+                            "get_next_hop_if_name",
+                            candidate_hash,
                         )
                     break
                 except Exception:
@@ -332,6 +331,11 @@ def register_telephone_routes(routes, app):
         if app.is_destination_blocked(caller_hash):
             app.telephone_manager.request_hangup()
             return http_forbidden("Caller is banished")
+
+        # Only an incoming call that is still ringing may be answered; on an
+        # outbound or already-established call answer() is not meaningful.
+        if app.telephone_manager.telephone.call_status != 4:  # STATUS_RINGING
+            return http_bad_request("No ringing incoming call to answer")
 
         # answer call
         await asyncio.to_thread(

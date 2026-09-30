@@ -5,6 +5,7 @@ package geoparse
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -139,6 +140,9 @@ func tryParseWGS84(raw string) (lat, lon float64, ok bool) {
 	if err1 != nil || err2 != nil {
 		return 0, 0, false
 	}
+	if math.IsNaN(lat) || math.IsNaN(lon) || math.IsInf(lat, 0) || math.IsInf(lon, 0) {
+		return 0, 0, false
+	}
 	if lat < -90 || lat > 90 || lon < -180 || lon > 180 {
 		return 0, 0, false
 	}
@@ -237,5 +241,12 @@ func parseMetreToken(tok string) (float64, error) {
 	t = strings.TrimSuffix(t, "E")
 	t = strings.TrimSuffix(t, "N")
 	t = strings.TrimSuffix(t, "M")
-	return strconv.ParseFloat(t, 64)
+	v, err := strconv.ParseFloat(t, 64)
+	if err != nil {
+		return 0, err
+	}
+	if math.IsNaN(v) || math.IsInf(v, 0) {
+		return 0, fmt.Errorf("non-finite metre value")
+	}
+	return v, nil
 }

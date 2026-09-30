@@ -47,7 +47,15 @@ ANNOUNCE_RESET_MIN_INTERVAL_S = 300.0
 
 # Minimum interval between path requests sent to the same hub during
 # connect attempts.
-HUB_PATH_REQUEST_MIN_INTERVAL_S = 60.0
+# Minimum seconds between path requests emitted by connect workers. Doubles
+# as the cross-attempt dedup window and the in-window retry cadence: a single
+# request on cold air stalls a connect, while 60s was far too coarse for a
+# retry to matter inside one attempt window.
+CONNECT_PATH_RETRY_S = 5.0
+# Upper bound for a link stuck in PENDING during connect. RNS's own
+# establishment timeout can run several minutes on a dead path, which
+# leaves the hub parked in CONNECTING with no forward progress.
+CONNECT_LINK_WATCHDOG_S = 60.0
 
 # Delay between auto-connect starts so a large configured hub set does
 # not burst link requests at startup.
@@ -74,6 +82,12 @@ H_TEXT = "t"
 H_TS = "ts"
 H_MENTION = "m"
 H_EVENT = "e"
+H_DELIVERY = "d"
+
+# Own messages are confirmed when the hub relays the echo back. Links are
+# reliable transport, so a missing echo past this window means the hub
+# dropped it (rate limit, crash) or the link is silently wedged.
+DELIVERY_TIMEOUT_S = 15.0
 
 
 class RRCHub:
@@ -94,13 +108,13 @@ class RRCHub:
         self.name = name or RNS.prettyhexrep(hub_hash)
 
         self.link = None
+        self._expected_closed_link = None
         self.status = RRCHub.STATUS_DISCONNECTED
         self.status_text = "Disconnected"
         self.welcomed = False
         self.hub_name = None
         self._hub_identity_hash = None
         self.hub_version = None
-        self.hub_caps = {}
         self.motd = None
 
         self.max_nick_bytes = proto.DEFAULT_MAX_NICK_BYTES
@@ -137,14 +151,17 @@ class RRCHub:
         self._last_announce_reset = float("-inf")
         self._last_path_request = float("-inf")
         self._had_session = False
-        self._pending_pings = {}
+        # Envelope id -> (message, sent monotonic). Echo-confirmed, timed out,
+        # or flushed failed on link loss.
+        self._pending_delivery = {}
         self._last_history_clean = 0
-        self.clean_last_removed = 0
 
         self.available_rooms = {}
         self.available_keyed_rooms = []
         self._silent_list_pending = 0
+        self._silent_list_deadline = 0.0
         self._silent_who_rooms = set()
+        self._silent_who_ts = {}
 
         self.nick_override = None
         self._pending_joins = set()
@@ -329,9 +346,15 @@ class RRCHub:
                 text = "Reconnecting (attempt " + str(self._reconnect_attempts) + ")"
             else:
                 text = "Connecting"
+            self._connect_epoch = getattr(self, "_connect_epoch", 0) + 1
+            epoch = self._connect_epoch
             self._set_status(RRCHub.STATUS_CONNECTING, text)
 
-        t = threading.Thread(target=self._connect_worker, daemon=True)
+        t = threading.Thread(
+            target=self._connect_worker,
+            args=(epoch,),
+            daemon=True,
+        )
         t.start()
 
     def note_hub_announce(self):
@@ -364,12 +387,13 @@ class RRCHub:
         server._attach_loopback(link, self.manager.identity)
         with self._lock:
             self._hub_identity_hash = server.identity.hash
+            self._expected_closed_link = None
             self.link = link
         self._set_status(RRCHub.STATUS_CONNECTING, "Connected locally, sending HELLO")
         self._hello_thread = threading.Thread(target=self._hello_loop, daemon=True)
         self._hello_thread.start()
 
-    def _connect_worker(self):
+    def _connect_worker(self, epoch=None):
         try:
             server = self.manager.find_local_server(self.hub_hash)
             if server is not None:
@@ -388,13 +412,6 @@ class RRCHub:
             try:
                 path_wait = timeout_s
                 if not RNS.Transport.has_path(self.hub_hash):
-                    now_m = time.monotonic()
-                    if (
-                        now_m - self._last_path_request
-                        >= HUB_PATH_REQUEST_MIN_INTERVAL_S
-                    ):
-                        self._last_path_request = now_m
-                        RNS.Transport.request_path(self.hub_hash)
                     try:
                         path_wait = path_response_window(self.hub_hash)
                     except Exception:
@@ -402,19 +419,40 @@ class RRCHub:
 
                 # A single deadline covers both the path response and the
                 # identity recall: the announce that creates the path also
-                # delivers the identity, so a second full window is dead
-                # time on unreachable hubs.
+                # delivers the identity. Both must be present before the
+                # link is created - RNS.Link sends the link request exactly
+                # once, so a link created with no known path is dropped on
+                # the floor and stalls until its establishment timeout.
                 hub_identity = None
                 deadline = time.monotonic() + path_wait
                 while time.monotonic() < deadline:
                     hub_identity = RNS.Identity.recall(self.hub_hash)
-                    if hub_identity is not None:
+                    if hub_identity is not None and RNS.Transport.has_path(
+                        self.hub_hash
+                    ):
                         break
+                    hub_identity = None
+                    now_m = time.monotonic()
+                    if not RNS.Transport.has_path(self.hub_hash) and (
+                        now_m - self._last_path_request >= CONNECT_PATH_RETRY_S
+                    ):
+                        # Retry the request inside the connect window: the
+                        # first packet can go out before an interface is
+                        # fully online, and a single dropped request would
+                        # otherwise stall the whole window. The cadence cap
+                        # doubles as the dedup for back-to-back attempts.
+                        self._last_path_request = now_m
+                        RNS.Transport.request_path(self.hub_hash)
                     time.sleep(0.2)
             finally:
                 if gate is not None:
                     gate.release()
 
+            if self._manual_disconnect:
+                # disconnect() ran during the path/identity wait window:
+                # do not create the link the user already asked to cancel.
+                self._set_status(RRCHub.STATUS_DISCONNECTED, "Disconnected")
+                return
             if hub_identity is None:
                 self._set_status(RRCHub.STATUS_FAILED, "Hub identity unknown")
                 self._maybe_schedule_reconnect_after_failed_connect()
@@ -450,7 +488,48 @@ class RRCHub:
             )
             link.set_packet_callback(lambda data, pkt: self._on_packet(data))
             with self._lock:
+                if epoch is not None and epoch != self._connect_epoch:
+                    # A newer connect() already owns the session: drop this
+                    # attempt's link instead of racing two live links.
+                    with contextlib.suppress(Exception):
+                        link.teardown()
+                    return
+                self._expected_closed_link = None
                 self.link = link
+
+            # Bound the establishment phase: a link stuck PENDING on a dead
+            # path sits in CONNECTING until RNS's multi-minute timeout. Give
+            # up sooner and let reconnect backoff retry instead.
+            def _establish_watchdog():
+                try:
+                    bound = max(
+                        CONNECT_LINK_WATCHDOG_S,
+                        path_response_window(self.hub_hash),
+                    )
+                except Exception:
+                    bound = CONNECT_LINK_WATCHDOG_S
+                deadline = time.monotonic() + bound
+                while time.monotonic() < deadline:
+                    if link.status != RNS.Link.PENDING:
+                        return
+                    if self._stop_hello.is_set():
+                        return
+                    time.sleep(0.5)
+                if link.status == RNS.Link.PENDING:
+                    with self._lock:
+                        if self.link is not link:
+                            return
+                        self._expected_closed_link = link
+                    with contextlib.suppress(Exception):
+                        link.teardown()
+                    self._set_status(
+                        RRCHub.STATUS_FAILED,
+                        "Link establishment timed out",
+                    )
+                    self._maybe_schedule_reconnect_after_failed_connect()
+
+            watchdog = threading.Thread(target=_establish_watchdog, daemon=True)
+            watchdog.start()
         except Exception as e:
             self._set_status(RRCHub.STATUS_FAILED, "Connect error: " + str(e))
             self._maybe_schedule_reconnect_after_failed_connect()
@@ -505,6 +584,9 @@ class RRCHub:
         self._set_status(RRCHub.STATUS_FAILED, "WELCOME timeout")
         with self._lock:
             link = self.link
+            # The teardown callback may arrive later; mark it expected so
+            # _on_closed does not double-count this failure in the backoff.
+            self._expected_closed_link = link
         if link is not None:
             with contextlib.suppress(Exception):
                 link.teardown()
@@ -537,6 +619,16 @@ class RRCHub:
     def _on_closed(self, link):
         self._stop_hello.set()
         with self._lock:
+            if getattr(self, "_last_closed_link", None) is link:
+                # Same dead link delivered twice (watchdog teardown after
+                # RNS already reported the close, or a second teardown):
+                # everything below must run once per link.
+                return
+            if self.link is not None and link is not self.link:
+                # A stale teardown callback (late watchdog close or a racing
+                # reconnect) must not tear down the current live session.
+                return
+            self._last_closed_link = link
             was_welcomed = self.welcomed
             rooms = list(self.rooms)
             manual = self._manual_disconnect
@@ -547,12 +639,22 @@ class RRCHub:
             self._resource_expectations.clear()
             self._pending_joins.clear()
             self._pending_parts.clear()
+            flushed = self._flush_pending_delivery_locked()
             self._silent_joins.clear()
             self._silent_who_rooms.clear()
-            should_reconnect = self.auto_reconnect and not self._manual_disconnect
+            self._silent_who_ts.clear()
+            self.nicks.clear()
+            expected = link is getattr(self, "_expected_closed_link", None)
+            if expected:
+                self._expected_closed_link = None
+            should_reconnect = (
+                self.auto_reconnect and not self._manual_disconnect and not expected
+            )
         if was_welcomed and rooms:
             text = "Disconnected from hub" if manual else "Connection lost"
             self._record_connection_event(text, rooms=rooms)
+        for msg in flushed:
+            self.manager._notify_messages(self, msg)
         self._set_status(RRCHub.STATUS_DISCONNECTED, "Disconnected")
         if should_reconnect:
             self._schedule_reconnect()
@@ -562,7 +664,7 @@ class RRCHub:
             self._reconnect_attempts += 1
             backoff = min(
                 RECONNECT_BACKOFF_MAX_S,
-                RECONNECT_BACKOFF_BASE_S**self._reconnect_attempts,
+                RECONNECT_BACKOFF_BASE_S ** min(self._reconnect_attempts, 12),
             )
             backoff += random.uniform(  # noqa: S311 - retry jitter, not crypto
                 0.0,
@@ -629,7 +731,11 @@ class RRCHub:
         chat history.
         """
         with self._lock:
+            now = time.monotonic()
+            if now > self._silent_list_deadline:
+                self._silent_list_pending = 0
             self._silent_list_pending += 1
+            self._silent_list_deadline = now + 60.0
         try:
             self.send_command("/list", room=None, record_local=False)
         except Exception:
@@ -779,22 +885,6 @@ class RRCHub:
             return " ".join([*parts[:3], "***"])
         return text
 
-    def send_ping(self, room=None):
-        body = os.urandom(8)
-        env = proto.make_envelope(
-            proto.T_PING,
-            src=self.manager.identity.hash,
-            body=body,
-        )
-        with self._lock:
-            now = proto.now_ms()
-            self._pending_pings[body] = (now, room)
-            expired = [k for k, v in self._pending_pings.items() if now - v[0] > 15000]
-            for k in expired:
-                self._pending_pings.pop(k, None)
-        self._send_env(env)
-        return body
-
     def part_room(self, room):
         room_n = proto.normalize_room(room)
         env = proto.make_envelope(
@@ -835,19 +925,20 @@ class RRCHub:
         if nick:
             env[proto.K_NICK] = nick
         mid = env[proto.K_ID]
-        if isinstance(mid, (bytes, bytearray)):
-            self._sent_ids.append(bytes(mid))
-        self._send_env_then_maybe_record(
-            env,
-            proto.RRCMessage(
-                "msg",
-                r,
-                self.manager.identity.hash,
-                nick,
-                text,
-                proto.now_ms(),
-            ),
+        local_msg = proto.RRCMessage(
+            "msg",
+            r,
+            self.manager.identity.hash,
+            nick,
+            text,
+            proto.now_ms(),
         )
+        self._track_outbound(local_msg, mid)
+        try:
+            self._send_env_then_maybe_record(env, local_msg)
+        except Exception:
+            self._untrack_outbound(local_msg)
+            raise
         return mid
 
     def send_action(self, room, text):
@@ -868,19 +959,133 @@ class RRCHub:
         if nick:
             env[proto.K_NICK] = nick
         mid = env[proto.K_ID]
-        if isinstance(mid, (bytes, bytearray)):
-            self._sent_ids.append(bytes(mid))
-        self._send_env_then_maybe_record(
-            env,
-            proto.RRCMessage(
-                "action",
-                r,
-                self.manager.identity.hash,
-                nick,
-                text,
-                proto.now_ms(),
-            ),
+        local_msg = proto.RRCMessage(
+            "action",
+            r,
+            self.manager.identity.hash,
+            nick,
+            text,
+            proto.now_ms(),
         )
+        self._track_outbound(local_msg, mid)
+        try:
+            self._send_env_then_maybe_record(env, local_msg)
+        except Exception:
+            self._untrack_outbound(local_msg)
+            raise
+        return mid
+
+    def _track_outbound(self, local_msg, mid):
+        """Mark a locally sent message as pending hub echo confirmation."""
+        if isinstance(mid, (bytes, bytearray)):
+            mid = bytes(mid)
+            local_msg.mid = mid
+            local_msg.delivery = "sending"
+            with self._lock:
+                self._sent_ids.append(mid)
+                self._pending_delivery[mid] = (local_msg, time.monotonic())
+                stale = []
+                while len(self._pending_delivery) > 256:
+                    stale_mid, (stale_msg, _t) = next(
+                        iter(self._pending_delivery.items())
+                    )
+                    stale_msg.delivery = "failed"
+                    stale.append(stale_msg)
+                    del self._pending_delivery[stale_mid]
+            for stale_msg in stale:
+                self.manager._notify_messages(self, stale_msg)
+
+    def _untrack_outbound(self, local_msg):
+        """Send raised before recording; drop the pending echo marker."""
+        mid = getattr(local_msg, "mid", None)
+        local_msg.delivery = None
+        if isinstance(mid, (bytes, bytearray)):
+            with self._lock:
+                self._pending_delivery.pop(bytes(mid), None)
+
+    def _sweep_pending_delivery(self):
+        """Flag pending own messages whose hub echo never arrived."""
+        expired = []
+        now = time.monotonic()
+        with self._lock:
+            for mid, (msg, sent_at) in list(self._pending_delivery.items()):
+                if now - sent_at >= DELIVERY_TIMEOUT_S:
+                    msg.delivery = "failed"
+                    expired.append(msg)
+                    del self._pending_delivery[mid]
+        for msg in expired:
+            self.manager._notify_messages(self, msg)
+
+    def _flush_pending_delivery_locked(self):
+        """Link is gone: every unconfirmed send is marked failed."""
+        failed = [msg for msg, _t in self._pending_delivery.values()]
+        self._pending_delivery.clear()
+        # Notifications fire outside the lock by the caller on a snapshot.
+        for msg in failed:
+            msg.delivery = "failed"
+        return failed
+
+    def _confirm_delivery(self, mid):
+        msg = None
+        with self._lock:
+            entry = self._pending_delivery.pop(mid, None)
+            if entry is not None:
+                msg = entry[0]
+                msg.delivery = "sent"
+        if msg is not None:
+            self.manager._notify_messages(self, msg)
+
+    def retry_message(self, room, seq):
+        """Resend an own message that failed delivery. Returns the new mid."""
+        room = proto.normalize_room(room)
+        msg = None
+        with self._lock:
+            for m in self.messages.get(room, []):
+                if m.seq == seq:
+                    msg = m
+                    break
+        if msg is None:
+            raise ValueError(f"no message with seq {seq}")
+        if msg.delivery != "failed":
+            raise ValueError("only failed messages can be retried")
+        if msg.kind == "action":
+            env = proto.make_envelope(
+                proto.T_ACTION,
+                src=self.manager.identity.hash,
+                room=room,
+                body=msg.text,
+            )
+        else:
+            env = proto.make_envelope(
+                proto.T_MSG,
+                src=self.manager.identity.hash,
+                room=room,
+                body=msg.text,
+            )
+        nick = msg.nick or self.get_effective_nick()
+        if nick:
+            env[proto.K_NICK] = nick
+        mid = env[proto.K_ID]
+        with self._lock:
+            if isinstance(msg.mid, (bytes, bytearray)):
+                self._pending_delivery.pop(bytes(msg.mid), None)
+        mid_b = None
+        if isinstance(mid, (bytes, bytearray)):
+            mid_b = bytes(mid)
+            with self._lock:
+                msg.mid = mid_b
+                msg.delivery = "sending"
+                self._sent_ids.append(mid_b)
+                self._pending_delivery[mid_b] = (msg, time.monotonic())
+        try:
+            self._send_env(env)
+        except Exception:
+            if mid_b is not None:
+                with self._lock:
+                    self._pending_delivery.pop(mid_b, None)
+            msg.delivery = "failed"
+            raise
+        self.manager._notify_messages(self, msg)
         return mid
 
     def _per_room_cap(self):
@@ -906,6 +1111,7 @@ class RRCHub:
             H_TS: int(msg.ts) if isinstance(msg.ts, int) else proto.now_ms(),
             H_MENTION: bool(getattr(msg, "mention", False)),
             H_EVENT: getattr(msg, "event", None),
+            H_DELIVERY: getattr(msg, "delivery", None),
         }
 
     def _msg_from_entry(self, room, entry):
@@ -924,6 +1130,13 @@ class RRCHub:
         m.mention = bool(entry.get(H_MENTION, False))
         event = entry.get(H_EVENT)
         m.event = event if isinstance(event, str) and event else None
+        delivery = entry.get(H_DELIVERY)
+        if delivery in ("sent", "failed"):
+            m.delivery = delivery
+        elif delivery == "sending":
+            # History only survives across sessions; anything still pending at
+            # load can never be confirmed by this connection.
+            m.delivery = "failed"
         return m
 
     def _persistable_room(self, room):
@@ -1029,7 +1242,43 @@ class RRCHub:
                     RNS.trace_exception(e)
         self._last_history_clean = time.time()
         if cleaned:
-            self.clean_last_removed = time.time()
+            self._compact_history_files()
+
+    HISTORY_FILE_MAX_BYTES = 8 * 1024 * 1024
+
+    def _compact_history_files(self):
+        with self._lock:
+            rooms = list(self.messages.keys())
+        for room in rooms:
+            if not self._persistable_room(room):
+                continue
+            path = self.manager._history_path(self, room)
+            try:
+                if os.path.getsize(path) <= self.HISTORY_FILE_MAX_BYTES:
+                    continue
+            except OSError:
+                continue
+            try:
+                with self._lock:
+                    msgs = list(self.messages.get(room, []))
+                entries = [
+                    self._entry_for(m) for m in msgs if isinstance(m, proto.RRCMessage)
+                ]
+                from meshchatx.src.path_utils import atomic_write_bytes
+
+                atomic_write_bytes(
+                    path,
+                    b"".join(proto.encode(e) for e in entries),
+                )
+                self._log(
+                    "compacted history for #" + room,
+                    RNS.LOG_DEBUG,
+                )
+            except Exception as e:
+                self._log(
+                    "history compaction failed for #" + room + ": " + str(e),
+                    RNS.LOG_ERROR,
+                )
 
     def _record_message(self, msg, local=False):
         cap = self._per_room_cap()
@@ -1112,6 +1361,7 @@ class RRCHub:
             return list(self.messages.get(room, []))
 
     def _on_packet(self, data):
+        self._sweep_pending_delivery()
         try:
             env = proto.decode(data)
         except Exception as e:
@@ -1139,18 +1389,6 @@ class RRCHub:
             )
             self._send_env(pong)
 
-    def _handle_pong(self, env):
-        body = env.get(proto.K_BODY)
-        if not isinstance(body, (bytes, bytearray)):
-            return
-        key = bytes(body)
-        with self._lock:
-            pending = self._pending_pings.pop(key, None)
-        if pending is not None:
-            sent_ms, room = pending
-            rtt_ms = max(0, proto.now_ms() - sent_ms)
-            self._record_system(room, "Pong from hub: " + str(rtt_ms) + " ms")
-
     def _handle_welcome(self, env):
         self.welcomed = True
         body = env.get(proto.K_BODY)
@@ -1161,9 +1399,6 @@ class RRCHub:
             ver = body.get(proto.B_WELCOME_VER)
             if isinstance(ver, str):
                 self.hub_version = ver
-            caps = body.get(proto.B_WELCOME_CAPS)
-            if isinstance(caps, dict):
-                self.hub_caps = dict(caps)
             limits = body.get(proto.B_WELCOME_LIMITS)
             if isinstance(limits, dict):
                 self._apply_limits(limits)
@@ -1217,17 +1452,22 @@ class RRCHub:
             if silent:
                 self._silent_joins.discard(r)
 
-            self.rooms.add(r)
-            if r not in self.messages:
-                self.messages[r] = []
-            members = self.members.setdefault(r, set())
-            for h in body_hashes:
-                members.add(h)
-            if own_hash is not None:
-                members.add(own_hash)
+            # A hub that reports a join for a room we never entered must not
+            # create phantom membership/state here.
+            member = self_join or r in self.rooms
+            if member:
+                self.rooms.add(r)
+                if r not in self.messages:
+                    self.messages[r] = []
+                members = self.members.setdefault(r, set())
+                for h in body_hashes:
+                    members.add(h)
+                if own_hash is not None:
+                    members.add(own_hash)
 
             if (
-                (not self_join)
+                member
+                and (not self_join)
                 and isinstance(joiner_nick, str)
                 and joiner_nick
                 and len(body_hashes) == 1
@@ -1245,10 +1485,19 @@ class RRCHub:
                 try:
                     with self._lock:
                         self._silent_who_rooms.add(r)
+                    self._silent_who_ts[r] = time.monotonic()
                     self.send_command("/who " + r, room=r, record_local=False)
                 except Exception:
                     with self._lock:
                         self._silent_who_rooms.discard(r)
+                        self._silent_who_ts.pop(r, None)
+            # Resend once messages that failed when the previous link dropped.
+            # The JOINED confirm is in, so the retry lands in a real room.
+            for m in list(self.messages.get(r, [])):
+                if m.delivery == "failed" and not getattr(m, "_auto_retried", False):
+                    m._auto_retried = True
+                    with contextlib.suppress(Exception):
+                        self.retry_message(r, m.seq)
             self.manager.save()
         else:
             joiner = None
@@ -1324,11 +1573,12 @@ class RRCHub:
             and own_hash is not None
             and bytes(src) == own_hash
         )
-        if (
-            is_own
-            and isinstance(mid, (bytes, bytearray))
-            and bytes(mid) in self._sent_ids
-        ):
+        own_echo = False
+        if is_own and isinstance(mid, (bytes, bytearray)):
+            with self._lock:
+                own_echo = bytes(mid) in self._sent_ids
+        if own_echo:
+            self._confirm_delivery(bytes(mid))
             return
         if isinstance(src, (bytes, bytearray)) and isinstance(nick, str) and nick:
             with self._lock:
@@ -1386,6 +1636,9 @@ class RRCHub:
                 self.available_keyed_rooms = sorted(
                     name for name, info in parsed.items() if info.get("has_key")
                 )
+                now = time.monotonic()
+                if now > self._silent_list_deadline:
+                    self._silent_list_pending = 0
                 silent = self._silent_list_pending > 0
                 if silent:
                     self._silent_list_pending -= 1
@@ -1410,9 +1663,19 @@ class RRCHub:
                         if ph.startswith(hash_bytes):
                             self.nicks[ph] = nick
                             break
+                # A stale silent marker must not swallow a manual /who reply.
+                stale = [
+                    k
+                    for k, ts in self._silent_who_ts.items()
+                    if time.monotonic() - ts > 60.0
+                ]
+                for k in stale:
+                    self._silent_who_rooms.discard(k)
+                    self._silent_who_ts.pop(k, None)
                 silent_who = who_room in self._silent_who_rooms
                 if silent_who:
                     self._silent_who_rooms.discard(who_room)
+                    self._silent_who_ts.pop(who_room, None)
             self.manager._notify_change(self)
             if silent_who:
                 return
@@ -1462,6 +1725,8 @@ class RRCHub:
                     self.unread_counts.pop(r, None)
                     leave_rooms.append(r)
             elif self.manager.is_forced_leave_error(text):
+                # A bare forced-leave error names no room; keep the persisted
+                # history so one packet cannot wipe the whole archive.
                 leave_rooms = list(self.rooms)
                 self._pending_joins.clear()
                 self._silent_joins.clear()
@@ -1478,12 +1743,14 @@ class RRCHub:
         msg = proto.RRCMessage("error", r, None, None, text, proto.now_ms())
         self._record_notice(msg)
         if rollback_join or leave_rooms:
+            # History files survive forced-leave and fatal-join errors:
+            # only remove_room/clear_messages delete the archive. A hub
+            # error string must never decide what data gets erased.
             with self._lock:
                 for room_name in leave_rooms:
                     self.messages.pop(room_name, None)
                     self.members.pop(room_name, None)
             for room_name in leave_rooms:
-                self._delete_history(room_name)
                 if self.manager.active_room_for(self) == room_name:
                     self.manager.set_active(self, None)
             self.manager.save()
@@ -1507,6 +1774,18 @@ class RRCHub:
                 return
             room = env.get(proto.K_ROOM)
             with self._lock:
+                # Expiry is otherwise only evaluated when a resource concludes,
+                # so a hub that never sends resources must not grow this dict.
+                now = time.monotonic()
+                expired = [
+                    k
+                    for k, v in self._resource_expectations.items()
+                    if v.get("expires", 0) < now
+                ]
+                for k in expired:
+                    self._resource_expectations.pop(k, None)
+                if len(self._resource_expectations) >= 256:
+                    return
                 self._resource_expectations[bytes(rid)] = {
                     "kind": kind,
                     "size": size,
@@ -1520,7 +1799,6 @@ class RRCHub:
 
     _PACKET_HANDLERS: ClassVar = {
         proto.T_PING: _handle_ping,
-        proto.T_PONG: _handle_pong,
         proto.T_WELCOME: _handle_welcome,
         proto.T_JOINED: _handle_joined,
         proto.T_PARTED: _handle_parted,
@@ -1610,6 +1888,16 @@ class RRCHub:
         except Exception as e:
             self._log("resource handling failed: " + str(e), RNS.LOG_ERROR)
 
+    def _current_rtt_ms(self):
+        """Best available link RTT in ms, from link setup timing."""
+        link = self.link
+        if link is None or isinstance(link, _LoopbackEndpoint):
+            return None
+        rtt = getattr(link, "rtt", None)
+        if isinstance(rtt, (int, float)) and rtt > 0:
+            return int(rtt * 1000)
+        return None
+
     def to_dict(self):
         """Return a JSON-serializable summary of this hub's state."""
         stored_key_rooms = []
@@ -1646,6 +1934,7 @@ class RRCHub:
                 "available_keyed_rooms": list(self.available_keyed_rooms),
                 "stored_key_rooms": stored_key_rooms,
                 "auto_reconnect": bool(self.auto_reconnect),
+                "rtt_ms": self._current_rtt_ms(),
                 "auto_list": bool(self.auto_list),
                 "auto_who": bool(self.auto_who),
                 "nick_override": self.nick_override,
@@ -1653,6 +1942,7 @@ class RRCHub:
             }
 
     def room_messages(self, room, limit=None, before_seq=None):
+        self._sweep_pending_delivery()
         """Return (messages, has_more) for a room, newest page last.
 
         before_seq, when given, restricts results to messages recorded
@@ -1691,7 +1981,7 @@ class RRCManager:
         storage_dir,
         get_nickname=None,
         get_name_for_identity_hash=None,
-        history_per_room_cap=0,
+        history_per_room_cap=500,
         filter_loaded_history=True,
         ephemeral_notices=RRCHub.SYS_NOTICE_TIMEOUT,
         database=None,
@@ -1714,6 +2004,7 @@ class RRCManager:
         self._active_room = None
         self._loaded = False
         self._loading = False
+        self._interface_wait_done = False
         self._save_lock = threading.Lock()
 
     def set_database(self, database):
@@ -1898,12 +2189,16 @@ class RRCManager:
                 self._message_callback(hub, msg)
 
     def _on_welcome(self, hub):
-        for r in list(hub.rooms):
+        with hub._lock:
+            rooms_to_rejoin = list(hub.rooms)
+        for r in rooms_to_rejoin:
             with contextlib.suppress(Exception):
                 key = self.get_room_key(hub, r)
                 hub.join_room(r, key=key, silent=True)
 
     def set_active(self, hub, room):
+        with contextlib.suppress(ValueError):
+            room = proto.normalize_room(room)
         self._active_hub = hub
         self._active_room = room
         if hub is not None and room is not None:
@@ -1913,10 +2208,6 @@ class RRCManager:
         if self._active_hub is hub:
             return self._active_room
         return None
-
-    def has_unread(self):
-        with self._lock:
-            return any(hub.unread_rooms for hub in self.hubs)
 
     def add_hub(self, hub_hash, dest_name=None, name=None):
         with self._lock:
@@ -2019,10 +2310,48 @@ class RRCManager:
         finally:
             self._loading = False
 
+    def _wait_for_first_interface(self, timeout_s=15.0):
+        """Block until some interface is online so path requests reach the mesh.
+
+        Startup fires connect attempts as soon as Reticulum exists, but TCP
+        client interfaces and shared-instance links take a beat to come up.
+        A path request sent in that gap is dropped and costs a whole response
+        window before the hub fails over to reconnect backoff. Wait briefly
+        for any online interface instead. Interfaces absent entirely (pure
+        loopback setups) bail after a short grace so nothing stalls forever.
+        """
+        deadline = time.monotonic() + timeout_s
+        empty_grace = time.monotonic() + 3.0
+        while time.monotonic() < deadline:
+            try:
+                reticulum = RNS.Reticulum.get_instance()
+            except Exception:
+                # No Reticulum at all (degraded mode): nothing to wait for.
+                return False
+            try:
+                stats = reticulum.get_interface_stats()
+                interfaces = stats.get("interfaces", [])
+                if not isinstance(interfaces, (list, tuple)):
+                    interfaces = []
+                for iface in interfaces:
+                    if iface.get("status"):
+                        return True
+                if not interfaces and time.monotonic() > empty_grace:
+                    return False
+            except Exception:
+                pass
+            time.sleep(0.25)
+        return False
+
     def connect_auto_reconnect_hubs(self):
         """Connect hubs that have auto-reconnect enabled (e.g. after startup load)."""
         with self._lock:
             hubs = [h for h in self.hubs if h.auto_reconnect]
+        if not hubs:
+            return
+        if not self._interface_wait_done:
+            self._interface_wait_done = True
+            self._wait_for_first_interface()
         started = 0
         for hub in hubs:
             with hub._lock:
@@ -2115,8 +2444,9 @@ class RRCManager:
                     os.unlink(tmp_path)
 
     def _hub_entry(self, h):
-        joined = set(h.rooms)
-        parted = set(h.messages.keys()) - joined
+        with h._lock:
+            joined = set(h.rooms)
+            parted = set(h.messages.keys()) - joined
         entry = {
             "hash": h.hub_hash,
             "dest_name": h.dest_name,

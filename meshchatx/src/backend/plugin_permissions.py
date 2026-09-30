@@ -35,7 +35,7 @@ KNOWN_UI = frozenset({"none", "sandboxed-html"})
 
 _URL_IN_TEXT_RE = re.compile(r"""https?://[^\s"'<>\\)]+""")
 _SCAN_EXTENSIONS = frozenset(
-    {".js", ".mjs", ".json", ".wasm", ".ts", ".go", ".wat", ".html", ".htm"}
+    {".js", ".mjs", ".json", ".wasm", ".ts", ".go", ".wat", ".html", ".htm", ".py"}
 )
 _LOOPBACK_OR_UNSPECIFIED_HOSTS = frozenset(
     {
@@ -70,11 +70,10 @@ def permission_id_for_ui(ui: str) -> str:
 def normalize_network_mode(value: Any) -> str:
     if value is None or value == "" or value == "none":
         return "none"
-    if value in ("fetch", "http", "https", "outbound"):
+    if isinstance(value, str) and value in ("fetch", "http", "https", "outbound"):
         return "fetch"
-    if isinstance(value, str):
-        return "fetch"
-    return "none"
+    # Unknown modes must not silently grant fetch access.
+    raise ValueError(f"unknown network permission: {value!r}")
 
 
 def normalize_ui_modes(value: Any) -> list[str]:
@@ -334,16 +333,15 @@ def collect_network_endpoints(manifest: dict[str, Any], plugin_dir: str) -> list
 
 def requires_network_fetch(manifest: dict[str, Any], endpoints: list[str]) -> bool:
     permissions = manifest.get("permissions") or {}
-    network = normalize_network_mode(
-        permissions.get("network") if isinstance(permissions, dict) else None,
-    )
+    try:
+        network = normalize_network_mode(
+            permissions.get("network") if isinstance(permissions, dict) else None,
+        )
+    except ValueError:
+        return True
     if network == "fetch":
         return True
     return bool(endpoints)
-
-
-def permission_label_key(permission_id: str) -> str:
-    return f"plugins.permissions.{permission_id.replace(':', '.')}"
 
 
 def serialize_granted(granted: list[str] | None) -> str:

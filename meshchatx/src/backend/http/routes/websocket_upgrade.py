@@ -141,12 +141,14 @@ def register_websocket_upgrade_routes(routes, app):
         )
         websocket_response._meshchatx_session_id = session["id"]
 
-        # send config to all clients
-        await app.send_config_to_websocket_clients()
-        await app.send_active_sessions_to_websocket_clients()
-
         # handle websocket messages until disconnected
         try:
+            # send config to all clients. Must live inside the try/finally:
+            # a send failure here would otherwise leave the client registered
+            # forever and leak its session slot.
+            await app.send_config_to_websocket_clients()
+            await app.send_active_sessions_to_websocket_clients()
+
             while True:
                 try:
                     message = cast(
@@ -260,6 +262,7 @@ def register_websocket_upgrade_routes(routes, app):
                 pass
             app._detach_active_session(websocket_response)
             app._cancel_rns_link_tasks_for_client(websocket_response)
+            app._clear_active_downloads_for_client(websocket_response)
             app._clear_page_file_grants_for_client(websocket_response)
             await app.send_active_sessions_to_websocket_clients()
 

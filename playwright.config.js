@@ -15,7 +15,17 @@ module.exports = defineConfig({
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 1 : 0,
     workers: 1,
-    reporter: process.env.CI ? "line" : [["list"], ["html", { open: "never" }]],
+    reporter: process.env.CI
+        ? [
+              ["line"],
+              [
+                  "junit",
+                  {
+                      outputFile: "test-results/junit/playwright-results.xml",
+                  },
+              ],
+          ]
+        : [["list"], ["html", { open: "never" }]],
     use: {
         ...devices["Desktop Chrome"],
         baseURL,
@@ -32,7 +42,7 @@ module.exports = defineConfig({
         command: "bash scripts/e2e/start-e2e-stack.sh",
         url: `${baseURL}/`,
         reuseExistingServer: !process.env.CI,
-        timeout: 270000,
+        timeout: 480000,
         stdout: "pipe",
         stderr: "pipe",
     },

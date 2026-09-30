@@ -133,6 +133,11 @@ def _stub_autoconnect_env(monkeypatch):
     )
     monkeypatch.setattr(
         RNS.Reticulum,
+        "should_autoconnect_unverified_implementations",
+        staticmethod(lambda: True),
+    )
+    monkeypatch.setattr(
+        RNS.Reticulum,
         "max_autoconnected_interfaces",
         staticmethod(lambda: 3),
     )

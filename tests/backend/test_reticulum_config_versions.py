@@ -262,7 +262,34 @@ async def test_get_version_endpoint_returns_content(app_instance):
     )
     response = await handler(_make_request(meta["id"]))
     assert response.status == 200
-    assert json.loads(response.body)["version"]["content"] == VALID_CONFIG
+    # Snapshot content round-trips unchanged when it has no secrets.
+    content = json.loads(response.body)["version"]["content"]
+    assert content.rstrip() == VALID_CONFIG.rstrip()
+
+
+@pytest.mark.asyncio
+async def test_get_version_endpoint_redacts_secrets(app_instance):
+    secret_config = (
+        "[reticulum]\n  enable_transport = False\n\n"
+        "[interfaces]\n  [[Default Interface]]\n    type = AutoInterface\n"
+        "    ifac_netkey = hunter2\n"
+    )
+    config_path = _write_config(app_instance, secret_config)
+    config_dir = app_instance._normalize_reticulum_config_dir(
+        app_instance.reticulum_config_dir,
+    )
+    meta = rcv.snapshot_config(config_dir, config_path, label="x")
+
+    handler = _find_handler(
+        app_instance,
+        "GET",
+        "/api/v1/reticulum/config/versions/{version_id}",
+    )
+    response = await handler(_make_request(meta["id"]))
+    assert response.status == 200
+    content = json.loads(response.body)["version"]["content"]
+    assert "hunter2" not in content
+    assert "<redacted>" in content
 
 
 @pytest.mark.asyncio

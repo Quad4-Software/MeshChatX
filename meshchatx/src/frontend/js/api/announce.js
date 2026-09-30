@@ -8,6 +8,6 @@
 
 import { apiPath } from "../constants.js";
 
-export function getAnnounce(...rest) {
-    return window.api.get(apiPath("/announce"), ...rest);
+export function triggerAnnounce(...rest) {
+    return window.api.post(apiPath("/announce"), ...rest);
 }
