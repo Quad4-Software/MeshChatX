@@ -571,7 +571,7 @@ jobs:
     e2e:
         name: E2E smoke
         runs-on: ubuntu-latest
-        timeout-minutes: 60
+        timeout-minutes: 25
         permissions:
             contents: read
         steps:
@@ -599,13 +599,60 @@ jobs:
                   key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
 
             - name: Run Playwright smoke E2E
-              run: bash scripts/ci/github-e2e.sh
+              run: bash scripts/ci/github-e2e.sh tests/e2e/smoke.spec.js tests/e2e/live-mesh.spec.js
 
             - name: Upload Playwright junit results
               if: always()
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: e2e-junit
+                  path: test-results/junit/
+                  if-no-files-found: ignore
+
+    e2e-crawl:
+        name: E2E exploratory
+        runs-on: ubuntu-latest
+        timeout-minutes: 60
+        permissions:
+            contents: read
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Set up development environment
+              uses: $/.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  node-version: ${{ env.NODE_VERSION }}
+                  pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Cache Playwright browsers
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+            - name: Run Playwright exploratory E2E
+              run: |
+                  bash scripts/ci/github-e2e.sh \
+                      tests/e2e/exploratory.spec.js \
+                      tests/e2e/exploratory-interactions.spec.js \
+                      tests/e2e/personas.spec.js \
+                      tests/e2e/accessibility.spec.js \
+                      tests/e2e/mobile-crawl.spec.js
+
+            - name: Upload Playwright junit results
+              if: always()
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: e2e-junit-exploratory
                   path: test-results/junit/
                   if-no-files-found: ignore
 
