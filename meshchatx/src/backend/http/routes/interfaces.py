@@ -3,10 +3,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import binascii
 import copy
+import logging
 
+import RNS
 from aiohttp import web
 
 from meshchatx.android_push_bridge import _is_chaquopy_android
@@ -35,6 +38,8 @@ from meshchatx.src.backend.interface_port_check import (
     is_port_in_use,
 )
 from meshchatx.src.backend.serial_comports import list_serial_comports
+
+logger = logging.getLogger(__name__)
 
 # RNS AutoInterface defaults (RNS.Interfaces.AutoInterface). The data
 # port bind has no SO_REUSEPORT, so a second AutoInterface with the same
@@ -110,6 +115,145 @@ def _autointerface_port_conflict(
                 "ports, or remove the existing interface first."
             )
     return None
+
+
+# Per-interface attach/detach/reload can block for seconds on socket and
+# serial IO, and on a shared instance it RPCs to rnsd where recv_bytes has
+# no timeout. Both paths run in a thread behind this deadline so a stalled
+# stack cannot park the aiohttp loop.
+_INTERFACE_MANAGE_TIMEOUT_S = 15.0
+
+_INTERFACE_MANAGE_PAST = {
+    "attach": "attached",
+    "detach": "detached",
+    "reload": "reloaded",
+}
+
+
+def _running_interface_names(reticulum):
+    """Names of interfaces attached to the embedded instance.
+
+    Returns None when the running set cannot be observed locally, which is
+    the case for shared instances where interfaces live inside rnsd.
+    """
+    if reticulum is None or getattr(
+        reticulum, "is_connected_to_shared_instance", False
+    ):
+        return None
+    try:
+        return {getattr(iface, "name", None) for iface in RNS.Transport.interfaces}
+    except Exception:
+        return None
+
+
+async def _run_interface_lifecycle(app, interface_name, action):
+    """Run an RNS interface lifecycle call (attach/detach/reload).
+
+    Returns a status string: applied, unavailable, unsupported, timeout,
+    rejected, unknown, or error. RNS returns True for success, False when
+    the operation was refused (management disabled or a non-detachable
+    interface type), and None when the interface is not in a state the
+    operation applies to.
+    """
+    reticulum = getattr(app, "reticulum", None)
+    if reticulum is None:
+        return "unavailable"
+    operation = getattr(reticulum, f"{action}_interface", None)
+    if operation is None:
+        return "unsupported"
+
+    lock = getattr(app, "_reticulum_reload_lock", None)
+
+    async def _call():
+        # Serialize against a full stack reload so the Reticulum instance
+        # is not swapped mid-operation.
+        if lock is None:
+            return await asyncio.to_thread(operation, interface_name)
+        async with lock:
+            return await asyncio.to_thread(operation, interface_name)
+
+    try:
+        result = await asyncio.wait_for(_call(), timeout=_INTERFACE_MANAGE_TIMEOUT_S)
+    except TimeoutError:
+        return "timeout"
+    except Exception as exc:
+        logger.warning("Interface %s on %r failed: %s", action, interface_name, exc)
+        return "error"
+    if result is True:
+        return "applied"
+    if result is None:
+        return "unknown"
+    return "rejected"
+
+
+async def _live_apply_attach(app, interface_name):
+    """Attach a configured interface when it is not already running."""
+    running = _running_interface_names(getattr(app, "reticulum", None))
+    if running is not None and interface_name in running:
+        return True
+    status = await _run_interface_lifecycle(app, interface_name, "attach")
+    return status in ("applied", "unknown")
+
+
+async def _live_apply_detach(app, interface_name):
+    """Detach a running interface, treating already-down as done."""
+    running = _running_interface_names(getattr(app, "reticulum", None))
+    if running is not None and interface_name not in running:
+        return True
+    status = await _run_interface_lifecycle(app, interface_name, "detach")
+    return status in ("applied", "unknown")
+
+
+async def _interface_lifecycle_endpoint(request, app, action):
+    try:
+        data = await read_json_limited(request)
+    except PayloadTooLargeError:
+        return http_payload_too_large()
+    interface_name = data.get("name")
+    if not isinstance(interface_name, str) or interface_name.strip() == "":
+        return http_error(422, "Interface name is required")
+    interface_name = interface_name.strip()
+
+    if action == "attach":
+        app._sync_interfaces_from_disk()
+        if interface_name not in app._get_interfaces_section():
+            return http_not_found("Interface not found")
+
+    status = await _run_interface_lifecycle(app, interface_name, action)
+    if status == "applied":
+        return web.json_response(
+            {
+                "message": f"Interface {interface_name} was {_INTERFACE_MANAGE_PAST[action]}",
+                "applied_live": True,
+            },
+        )
+    if status == "unavailable":
+        return http_conflict("Reticulum is not running")
+    if status == "unsupported":
+        return http_conflict(
+            "The installed RNS version does not support interface "
+            "management (requires RNS >= 1.5.5)"
+        )
+    if status == "timeout":
+        return http_error(
+            504,
+            "Interface operation timed out; the Reticulum instance may be unresponsive",
+        )
+    if status == "unknown":
+        detail = (
+            "no configuration entry exists"
+            if action == "attach"
+            else "the interface is not currently attached"
+        )
+        return http_error(422, f"Could not {action} interface: {detail}")
+    if status == "rejected":
+        return http_error(
+            422,
+            f"Could not {action} interface: the operation was refused "
+            "(the interface type may not be detachable, or interface "
+            "management is disabled in the Reticulum configuration)",
+        )
+    return http_unexpected(f"Could not {action} interface")
 
 
 def register_interfaces_routes(routes, app):
@@ -225,18 +369,33 @@ def register_interfaces_routes(routes, app):
             return http_unexpected("Failed to write Reticulum config")
 
         reloaded = False
+        reloaded_live = False
         if reload_stack and updated:
+            # RNS 1.5.5: per-interface reload avoids a full stack teardown.
             try:
-                reloaded = await app.reload_reticulum() is True
-            except Exception:
-                reloaded = False
-            if not reloaded:
-                return http_unexpected(
-                    "Bitrates saved but RNS reload failed",
-                    updated=updated,
-                    missing=missing,
-                    reloaded=False,
+                results = [
+                    await _run_interface_lifecycle(app, name, "reload")
+                    for name in updated
+                ]
+                # "unknown" means the interface is not attached, so the new
+                # bitrate applies whenever it next comes up. No reload needed.
+                reloaded_live = all(
+                    status in ("applied", "unknown") for status in results
                 )
+            except Exception:
+                reloaded_live = False
+            if not reloaded_live:
+                try:
+                    reloaded = await app.reload_reticulum() is True
+                except Exception:
+                    reloaded = False
+                if not reloaded:
+                    return http_unexpected(
+                        "Bitrates saved but RNS reload failed",
+                        updated=updated,
+                        missing=missing,
+                        reloaded=False,
+                    )
 
         return web.json_response(
             {
@@ -244,6 +403,7 @@ def register_interfaces_routes(routes, app):
                 "updated": updated,
                 "missing": missing,
                 "reloaded": reloaded,
+                "reloaded_live": reloaded_live,
             },
         )
 
@@ -292,9 +452,13 @@ def register_interfaces_routes(routes, app):
         ):
             return http_unexpected("Failed to write Reticulum config")
 
+        # RNS 1.5.5: bring the interface up without a full stack restart.
+        applied_live = await _live_apply_attach(app, interface_name)
+
         return web.json_response(
             {
                 "message": "Interface is now enabled",
+                "applied_live": applied_live,
             },
         )
 
@@ -335,9 +499,13 @@ def register_interfaces_routes(routes, app):
         ):
             return http_unexpected("Failed to write Reticulum config")
 
+        # RNS 1.5.5: take the interface down without a full stack restart.
+        applied_live = await _live_apply_detach(app, interface_name)
+
         return web.json_response(
             {
                 "message": "Interface is now disabled",
+                "applied_live": applied_live,
             },
         )
 
@@ -371,11 +539,29 @@ def register_interfaces_routes(routes, app):
         ):
             return http_unexpected("Failed to write Reticulum config")
 
+        # RNS 1.5.5: detach the removed interface when it is still running.
+        applied_live = await _live_apply_detach(app, interface_name)
+
         return web.json_response(
             {
                 "message": "Interface has been deleted",
+                "applied_live": applied_live,
             },
         )
+
+    # RNS 1.5.5 runtime interface lifecycle
+
+    @routes.post(API_V1_PREFIX + "/reticulum/interfaces/attach")
+    async def reticulum_interfaces_attach(request):
+        return await _interface_lifecycle_endpoint(request, app, "attach")
+
+    @routes.post(API_V1_PREFIX + "/reticulum/interfaces/detach")
+    async def reticulum_interfaces_detach(request):
+        return await _interface_lifecycle_endpoint(request, app, "detach")
+
+    @routes.post(API_V1_PREFIX + "/reticulum/interfaces/reload")
+    async def reticulum_interfaces_reload(request):
+        return await _interface_lifecycle_endpoint(request, app, "reload")
 
     @routes.get(API_V1_PREFIX + "/reticulum/interface-modules")
     async def reticulum_interface_modules_list(_request):
@@ -1354,10 +1540,29 @@ def register_interfaces_routes(routes, app):
                 "(ConfigObj section syntax)."
             )
 
+        # RNS 1.5.5: apply the config change without a full stack restart.
+        # Reload picks up edited parameters on a running interface, attach
+        # brings a newly added enabled interface up. I2P is excluded because
+        # it must stay last in config order and is not detachable at runtime.
+        applied_live = None
+        if interface_type != "I2PInterface" and _interface_section_enabled(
+            interface_details
+        ):
+            running = _running_interface_names(getattr(app, "reticulum", None))
+            is_running = running is None or interface_name in running
+            action = "reload" if is_running else "attach"
+            status = await _run_interface_lifecycle(app, interface_name, action)
+            if status == "unknown" and action == "reload":
+                # Not attached yet (common on shared instances where the
+                # running set is not observable): attach instead.
+                status = await _run_interface_lifecycle(app, interface_name, "attach")
+            applied_live = status == "applied"
+
         if allow_overwriting_interface:
             return web.json_response(
                 {
                     "message": "Interface has been saved",
+                    "applied_live": applied_live,
                 },
             )
         if interface_type == "I2PInterface":
@@ -1371,9 +1576,14 @@ def register_interfaces_routes(routes, app):
                     ),
                 },
             )
+        if applied_live is True:
+            message = "Interface has been added"
+        else:
+            message = "Interface has been added. Please restart MeshChat for these changes to take effect."
         return web.json_response(
             {
-                "message": "Interface has been added. Please restart MeshChat for these changes to take effect.",
+                "message": message,
+                "applied_live": applied_live,
             },
         )
 

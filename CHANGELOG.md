@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [4.9.4] - TBD [unreleased]
 
+### Added
+
+- Interfaces: per-interface runtime attach, detach, and reload using the RNS 1.5.5 interface management API. New POST endpoints /reticulum/interfaces/attach, /detach, and /reload, plus a Restart Interface action on attached interfaces in the Interfaces page.
+- Interfaces: interface edits, enables, disables, deletions, and bitrate changes now apply live against the running Reticulum stack instead of always requiring a full RNS restart. The restart banner only appears when a live apply is refused.
+- Interfaces: discovery settings expose the RNS 1.5.5 autoconnect_unverified_implementations toggle, and discovered interface cards show the announcing implementation name and version.
+- CI: a backend test leg now runs the full suite on Python 3.15 (beta) in advisory mode.
+
+### Changed
+
+- Python 3.15 readiness: event-loop policy calls replaced by get_running_loop(), and the atheris dev dependency is gated to interpreters that have wheels (up to 3.14 on Linux x86_64).
+
 ## [4.9.3] - 2026-09-30 [released]
 
 ### Changed

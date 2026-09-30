@@ -37,7 +37,7 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
     # with PyOggError until the shared libraries are present.
     if [[ "$(uname -s)" == "Linux" ]] && command -v apt-get >/dev/null 2>&1; then
         run_priv apt-get update -y
-        run_priv apt-get install -y libopus0 libogg0
+        run_priv apt-get install -y libopus0 libogg0 libcodec2-dev
     fi
 
     uv lock --check

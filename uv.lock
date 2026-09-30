@@ -2741,7 +2741,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "atheris", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "atheris", marker = "python_full_version < '3.15' and platform_machine == 'x86_64' and sys_platform == 'linux'" },
     { name = "basedpyright" },
     { name = "cbor2" },
     { name = "cx-freeze" },
@@ -2787,7 +2787,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "atheris", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'", specifier = ">=3.1.0" },
+    { name = "atheris", marker = "python_full_version < '3.15' and platform_machine == 'x86_64' and sys_platform == 'linux'", specifier = ">=3.1.0" },
     { name = "basedpyright", specifier = ">=1.39.10" },
     { name = "cbor2", specifier = ">=6.1.4" },
     { name = "cx-freeze", specifier = ">=7.0.0,<8.7.0" },
