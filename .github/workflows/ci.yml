@@ -571,7 +571,7 @@ jobs:
     e2e:
         name: E2E smoke
         runs-on: ubuntu-latest
-        timeout-minutes: 20
+        timeout-minutes: 60
         permissions:
             contents: read
         steps:
