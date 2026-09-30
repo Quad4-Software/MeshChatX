@@ -2,7 +2,7 @@
 
 """Degrade RNS backbone clients to TCPClientInterface where epoll is missing.
 
-RNS 1.5.4's BackboneClientInterface registers its socket into the shared
+RNS 1.5.5's BackboneClientInterface registers its socket into the shared
 BackboneInterface epoll loop, which only exists on Linux and Android. On
 macOS and Windows the registration raises
 ``module 'select' has no attribute 'epoll'``, the socket is dropped, and

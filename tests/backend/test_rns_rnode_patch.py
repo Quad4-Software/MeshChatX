@@ -4,7 +4,7 @@
 
 The BLE tests drive MeshChatBLEConnection with fake bleak devices/clients
 so no real Bluetooth adapter is needed. They pin the regressions fixed
-relative to stock RNS 1.5.4: macOS bond detection, transient scan errors,
+relative to stock RNS 1.5.5: macOS bond detection, transient scan errors,
 connected-flag timing, and deliberate-vs-unexpected disconnect handling.
 """
 
