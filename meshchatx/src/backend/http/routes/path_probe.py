@@ -424,7 +424,9 @@ def register_path_probe_routes(routes, app):
         if timeout_seconds is None:
             reticulum = app.reticulum if hasattr(app, "reticulum") else None
             timeout_seconds = round(
-                await asyncio.to_thread(path_response_window, destination_hash, reticulum)
+                await asyncio.to_thread(
+                    path_response_window, destination_hash, reticulum
+                )
             )
 
         # Split the budget so path discovery cannot consume the whole timeout.
@@ -486,17 +488,23 @@ def register_path_probe_routes(routes, app):
         # get rssi
         rssi = receipt.proof_packet.rssi
         if rssi is None and hasattr(app, "reticulum") and app.reticulum:
-            rssi = await app._reticulum_rpc("get_packet_rssi", receipt.proof_packet.packet_hash)
+            rssi = await app._reticulum_rpc(
+                "get_packet_rssi", receipt.proof_packet.packet_hash
+            )
 
         # get snr
         snr = receipt.proof_packet.snr
         if snr is None and hasattr(app, "reticulum") and app.reticulum:
-            snr = await app._reticulum_rpc("get_packet_snr", receipt.proof_packet.packet_hash)
+            snr = await app._reticulum_rpc(
+                "get_packet_snr", receipt.proof_packet.packet_hash
+            )
 
         # get signal quality
         quality = receipt.proof_packet.q
         if quality is None and hasattr(app, "reticulum") and app.reticulum:
-            quality = await app._reticulum_rpc("get_packet_q", receipt.proof_packet.packet_hash)
+            quality = await app._reticulum_rpc(
+                "get_packet_q", receipt.proof_packet.packet_hash
+            )
 
         # get and format round trip time
         rtt = receipt.get_rtt()

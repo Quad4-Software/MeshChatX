@@ -198,7 +198,7 @@ class RRCHubServer:
         self._sessions = {}
         self._room_members = {}
         self._hub_dir = None
-        self.replay_log = None
+        self.replay_log = ""
         self.policy = HubPolicy()
         self.rooms = RoomRegistry(self, None)
         self._commands = HubCommandHandler()
@@ -1090,6 +1090,7 @@ class RRCHubServer:
             if members is not None and not members:
                 self._room_members.pop(r, None)
         return r
+
     def set_room_key(self, name, key):
         """Set or clear the +k room key. Empty/None clears the key."""
         r = proto.normalize_room(name)

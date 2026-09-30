@@ -147,6 +147,7 @@ def validate_i2p_enable(
         return MSG_ONLY_ONE
     return None
 
+
 def reorder_interfaces_i2p_last(interfaces: dict) -> bool:
     """Move all I2P sections to the end. Returns True when order changed."""
     if not isinstance(interfaces, dict) or not interfaces:
@@ -242,6 +243,7 @@ def repair_interfaces_dict(
             "Moved I2P interface(s) to the end of [interfaces] for safe startup",
         )
     return modified
+
 
 def _iface_snapshot(iface: dict) -> dict:
     out = {}

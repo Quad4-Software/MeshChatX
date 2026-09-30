@@ -70,18 +70,14 @@ async def handle(reader, writer, target_port):
         writer.close()
         return
     try:
-        t_reader, t_writer = await asyncio.open_connection(
-            "127.0.0.1", target_port
-        )
+        t_reader, t_writer = await asyncio.open_connection("127.0.0.1", target_port)
     except OSError:
         writer.close()
         return
     CONNS.add(writer)
     CONNS.add(t_writer)
     try:
-        await asyncio.gather(
-            pump(reader, t_writer), pump(t_reader, writer)
-        )
+        await asyncio.gather(pump(reader, t_writer), pump(t_reader, writer))
     finally:
         CONNS.discard(writer)
         CONNS.discard(t_writer)
@@ -89,7 +85,10 @@ async def handle(reader, writer, target_port):
 
 async def main():
     if len(sys.argv) < 4:
-        print("usage: chaos-proxy.py LISTEN_PORT TARGET_PORT CONTROL_FILE", file=sys.stderr)
+        print(
+            "usage: chaos-proxy.py LISTEN_PORT TARGET_PORT CONTROL_FILE",
+            file=sys.stderr,
+        )
         raise SystemExit(2)
     listen_port, target_port, control = (
         int(sys.argv[1]),

@@ -4,7 +4,6 @@ import IconButton from "../../meshchatx/src/frontend/components/IconButton.vue";
 import SendMessageButton from "../../meshchatx/src/frontend/components/messages/composer/SendMessageButton.vue";
 import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
 import FormLabel from "../../meshchatx/src/frontend/components/forms/FormLabel.vue";
-import FormSubLabel from "../../meshchatx/src/frontend/components/forms/FormSubLabel.vue";
 import DropDownMenu from "../../meshchatx/src/frontend/components/DropDownMenu.vue";
 import DropDownMenuItem from "../../meshchatx/src/frontend/components/DropDownMenuItem.vue";
 import SettingsPage from "../../meshchatx/src/frontend/components/settings/SettingsPage.vue";
@@ -292,17 +291,6 @@ describe("FormLabel Component", () => {
             },
         });
         expect(wrapper.attributes("for")).toBe("test-input");
-    });
-});
-
-describe("FormSubLabel Component", () => {
-    it("renders sublabel text", () => {
-        const wrapper = mount(FormSubLabel, {
-            slots: {
-                default: "This is a sublabel",
-            },
-        });
-        expect(wrapper.text()).toContain("This is a sublabel");
     });
 });
 

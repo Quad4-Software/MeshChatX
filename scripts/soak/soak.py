@@ -89,8 +89,10 @@ def sample(pid, row, counters):
     if st is None:
         return False
     try:
-        ifs = api("/api/v1/interface-stats").get("interface_stats", {}).get(
-            "interfaces", []
+        ifs = (
+            api("/api/v1/interface-stats")
+            .get("interface_stats", {})
+            .get("interfaces", [])
         )
         rx = sum(int(i.get("rxb") or 0) for i in ifs)
         tx = sum(int(i.get("txb") or 0) for i in ifs)
@@ -302,10 +304,11 @@ def main():
         # join the lobby once
         try:
             api("/api/v1/auth/csrf")
-            peer_ready = json.load(
-                open(os.path.join(share, "peer_ready.json"))
+            peer_ready = json.load(open(os.path.join(share, "peer_ready.json")))
+            post(
+                "/api/v1/rrc/hubs",
+                {"hub_hash": peer_ready["hub_hash"], "name": "soak-hub"},
             )
-            post("/api/v1/rrc/hubs", {"hub_hash": peer_ready["hub_hash"], "name": "soak-hub"})
             post(
                 f"/api/v1/rrc/hubs/{peer_ready['hub_hash']}/connect",
                 {},

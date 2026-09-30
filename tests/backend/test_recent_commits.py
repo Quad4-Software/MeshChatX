@@ -134,4 +134,3 @@ def test_flow_share_percent(part, total):
         assert result is None
     else:
         assert result == int(min(100.0, (part / total) * 100.0))
-

@@ -228,9 +228,7 @@ class _DeadlinedRpcConnection:
                     )
                 chunk = os.read(fd, n - buf.tell())
                 if not chunk:
-                    raise ConnectionError(
-                        "shared instance RPC connection closed"
-                    )
+                    raise ConnectionError("shared instance RPC connection closed")
                 buf.write(chunk)
             return buf.getvalue()
 
@@ -246,7 +244,9 @@ class _DeadlinedRpcConnection:
         return getattr(self._conn, name)
 
 
-def install_shared_instance_rpc_deadline(*, timeout_s: float = _SHARED_INSTANCE_RPC_TIMEOUT_S) -> bool:
+def install_shared_instance_rpc_deadline(
+    *, timeout_s: float = _SHARED_INSTANCE_RPC_TIMEOUT_S
+) -> bool:
     """Give every shared-instance RPC recv_bytes call a deadline."""
     global _RPC_PATCHED
     if _RPC_PATCHED:

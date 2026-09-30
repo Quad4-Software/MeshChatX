@@ -18,9 +18,7 @@ import pytest
 
 sys.path.insert(
     0,
-    os.path.join(
-        os.path.dirname(__file__), "..", "..", "scripts", "e2e"
-    ),
+    os.path.join(os.path.dirname(__file__), "..", "..", "scripts", "e2e"),
 )
 import backend_harness as bh
 
@@ -29,9 +27,7 @@ pytestmark = pytest.mark.skipif(
     reason="Set MESHCHAT_LIVE_RETICULUM=1 for schemathesis",
 )
 
-SPEC = os.path.join(
-    os.path.dirname(__file__), "..", "..", "docs", "openapi.yaml"
-)
+SPEC = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "openapi.yaml")
 TIMEOUT = int(os.environ.get("MESHCHAT_SCHEMATHESIS_SECONDS", "120"))
 
 
@@ -83,8 +79,7 @@ def test_openapi_fuzz_loopback(backend):
             # flags endpoints that leniently accept malformed bodies; the
             # app tolerates those by design so they stay off until each
             # is triaged (they produce findings, not crashes).
-            "not_a_server_error,status_code_conformance,"
-            "response_schema_conformance",
+            "not_a_server_error,status_code_conformance,response_schema_conformance",
             "--workers",
             "4",
             *headers,

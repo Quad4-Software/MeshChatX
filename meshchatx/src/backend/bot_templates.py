@@ -72,6 +72,7 @@ def _lxmf_bot_kwargs(
 class StoppableBot:
     def __init__(self):
         self._stop_event = None
+
     def should_stop(self):
         return self._stop_event and self._stop_event.is_set()
 

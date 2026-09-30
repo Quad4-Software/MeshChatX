@@ -141,6 +141,7 @@ class RoomRegistry:
             "last_used_ts": st.get("last_used_ts"),
         }
         self._store.save(self._registry)
+
     def drop_transient_state(self, room):
         """Drop in-memory ACL state for an unregistered, emptied room.
 

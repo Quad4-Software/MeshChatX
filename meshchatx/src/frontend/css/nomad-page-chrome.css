@@ -109,12 +109,29 @@ pre.text-wrap > div > :last-child {
  * or policy allows loading, and the placeholder falls back to a text link when
  * the client cannot render images. */
 .nodeContainer .mu-image {
-    display: inline-block;
+    display: block;
+    width: fit-content;
     border: 1px dashed currentColor;
     padding: 0.5rem;
     margin: 0.25rem 0;
     max-width: 100%;
     box-sizing: border-box;
+}
+
+/* Once loaded the image is shown bare, like an upstream ImageWidget: no
+ * placeholder chrome, and the box shrink-wraps the image. */
+.nodeContainer .mu-image.mu-image-loaded {
+    border: none;
+    padding: 0;
+}
+
+.nodeContainer .mu-image.mu-image-loaded .mu-image-meta,
+.nodeContainer .mu-image.mu-image-loaded .mu-image-actions {
+    display: none;
+}
+
+.nodeContainer .mu-image.mu-image-loaded .mu-image-output {
+    margin-top: 0;
 }
 
 .nodeContainer .mu-image .mu-image-meta {

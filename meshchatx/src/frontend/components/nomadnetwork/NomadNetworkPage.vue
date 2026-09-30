@@ -550,7 +550,7 @@
                 <!-- page content: capture-phase clicks so <a href> is handled before browser default navigation -->
                 <div
                     :class="[
-                        'flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden nodeContainer relative contain-[layout_paint]',
+                        'flex-1 min-h-0 min-w-0 flex flex-col overflow-y-auto overflow-x-hidden nodeContainer relative contain-[layout_paint]',
                         nomadRenderedShellFullBleed
                             ? 'p-0 bg-transparent min-h-full text-gray-900 dark:text-gray-100'
                             : 'p-3 bg-black text-white',
@@ -743,7 +743,7 @@
                             isFailedPageContent(nodePageContent) ||
                             showEmptyPageState
                                 ? 'pointer-events-none absolute inset-0 opacity-0'
-                                : 'h-full'
+                                : 'flex-1'
                         "
                     >
                         <NomadCrashTab

@@ -137,6 +137,7 @@ def verify_wasm_signature(data: bytes) -> SignatureInfo:
         return SignatureInfo(present=True, error=str(exc))
     return verify_rsg_payload(bundle.signature, payload)
 
+
 def verify_py_signature(py_path: str) -> SignatureInfo:
     rsg_path = py_path + ".rsg"
     if not os.path.isfile(rsg_path):
@@ -197,4 +198,3 @@ def enrich_signature_with_trust(info: SignatureInfo, lookup_trusted) -> Signatur
         trusted=trusted,
         error=info.error,
     )
-
