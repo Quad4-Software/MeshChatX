@@ -24,6 +24,8 @@ def _safe_module(obj: Any) -> str:
         return type(obj).__module__
     except Exception:
         return ""
+
+
 def _classify(obj: Any) -> str:
     t = type(obj)
     if t in (str, bytes, bytearray, int, float, bool, type(None)):
@@ -442,6 +444,7 @@ class MemoryDiagnostics:
                 "unreachable_after": list(unreachable_after),
             },
         ]
+
     def report(self) -> dict[str, Any]:
         """Generate a comprehensive memory diagnostics report."""
         if not self._enabled:

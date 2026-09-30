@@ -19,6 +19,7 @@ _HOSTLESS_AUDIO_INSTALLED = False
 _ORIG_LINE_SOURCE = None
 _ORIG_LINE_SINK = None
 
+
 class HostlessAudioSource(LocalSource):
     """LineSource stand-in that never opens PulseAudio / host capture devices.
 

@@ -358,14 +358,11 @@ Content at depth 1`;
             });
 
             it("renders a placeholder for a NomadNet 1.4 `(alt`props`url) image line", () => {
-                const markup =
-                    "`(rrc-client.jpg`w=n`a=l`:/media/img/forum/40155dab9a63966cfa6288f65a0d8aa3.webp)";
+                const markup = "`(rrc-client.jpg`w=n`a=l`:/media/img/forum/40155dab9a63966cfa6288f65a0d8aa3.webp)";
                 const html = parser.convertMicronToHtml(markup);
                 expect(html).toContain('class="mu-image"');
                 expect(html).toContain('data-mu-image-alt="rrc-client.jpg"');
-                expect(html).toContain(
-                    'data-mu-image-path=":/media/img/forum/40155dab9a63966cfa6288f65a0d8aa3.webp"'
-                );
+                expect(html).toContain('data-mu-image-path=":/media/img/forum/40155dab9a63966cfa6288f65a0d8aa3.webp"');
                 expect(html).toContain('data-mu-image-a="left"');
                 expect(html).toContain('data-mu-image-w="auto"');
                 expect(html).toContain("Load image");
@@ -381,15 +378,12 @@ Content at depth 1`;
             });
 
             it("supports absolute hash and keyed `( ) image URLs", () => {
-                const markup =
-                    "`(Map`w=400`k=map1`9ce92808be498e9e05590ff27cbfdfe4:/media/m.png)";
+                const markup = "`(Map`w=400`k=map1`9ce92808be498e9e05590ff27cbfdfe4:/media/m.png)";
                 const html = parser.convertMicronToHtml(markup);
                 expect(html).toContain('class="mu-image"');
                 expect(html).toContain('data-mu-image-w="400ch"');
                 expect(html).toContain('data-mu-image-k="map1"');
-                expect(html).toContain(
-                    'data-mu-image-path="9ce92808be498e9e05590ff27cbfdfe4:/media/m.png"'
-                );
+                expect(html).toContain('data-mu-image-path="9ce92808be498e9e05590ff27cbfdfe4:/media/m.png"');
             });
 
             it("allows an empty alt on `( ) image lines", () => {
@@ -421,6 +415,36 @@ Content at depth 1`;
                 expect(html).not.toContain("fast!");
                 expect(html).not.toContain('data-mu-image-k="<script>"');
                 expect(html).not.toContain('data-mu-image-profile="fast!"');
+            });
+
+            it("centers whole-line images via margin auto when a=c", () => {
+                const markup = "`(Logo`a=c`:/media/gfx/logo.webp)";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('data-mu-image-a="center"');
+                expect(html).toMatch(/style="[^"]*margin-left:\s*auto/);
+                expect(html).toMatch(/style="[^"]*margin-right:\s*auto/);
+            });
+
+            it("right-aligns whole-line images via margin-left auto when a=r", () => {
+                const markup = "`(Logo`a=r`:/media/gfx/logo.webp)";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('data-mu-image-a="right"');
+                expect(html).toMatch(/style="[^"]*margin-left:\s*auto/);
+                expect(html).not.toMatch(/margin-right:\s*auto/);
+            });
+
+            it("defaults whole-line images to center like upstream ImageWidget", () => {
+                const markup = "`(Logo`:/media/gfx/logo.webp)";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('data-mu-image-a="center"');
+                expect(html).toMatch(/margin-left:\s*auto/);
+            });
+
+            it("keeps left-aligned images without auto margins", () => {
+                const markup = "`(Logo`a=l`:/media/gfx/logo.webp)";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('data-mu-image-a="left"');
+                expect(html).not.toMatch(/margin-left:\s*auto/);
             });
         });
 

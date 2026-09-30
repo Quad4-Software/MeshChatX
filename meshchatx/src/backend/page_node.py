@@ -202,6 +202,7 @@ def _safe_mesh_file_basename(name: str) -> str:
         raise ValueError("invalid file name")
     return base
 
+
 def _is_windows_platform() -> bool:
     if os.name == "nt":
         return True

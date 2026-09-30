@@ -915,11 +915,17 @@ export default class MicronParser extends BaseMicronParser {
         if (!imagePath) {
             return null;
         }
+        const imageOptions = parseMicronImageOptions(fields.slice(1, -1));
+        // Upstream ImageWidget centers whole-line images when a= is absent.
+        const hasAlign = fields.slice(1, -1).some((f) => /^\s*a\s*=/.test(f));
+        if (!hasAlign) {
+            imageOptions.align = "center";
+        }
         return this.createImagePlaceholder({
             alt: truncateMicronImageAlt(alt),
             rawUrl,
             imagePath,
-            imageOptions: parseMicronImageOptions(fields.slice(1, -1)),
+            imageOptions,
         });
     }
 
@@ -988,6 +994,12 @@ export default class MicronParser extends BaseMicronParser {
         }
         if (opts.h != null) {
             div.style.minHeight = typeof opts.h === "string" ? opts.h : String(opts.h) + "lh";
+        }
+        if (opts.align === "center") {
+            div.style.marginLeft = "auto";
+            div.style.marginRight = "auto";
+        } else if (opts.align === "right") {
+            div.style.marginLeft = "auto";
         }
 
         const meta = document.createElement("span");

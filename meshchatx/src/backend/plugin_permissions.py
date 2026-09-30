@@ -343,6 +343,7 @@ def requires_network_fetch(manifest: dict[str, Any], endpoints: list[str]) -> bo
         return True
     return bool(endpoints)
 
+
 def serialize_granted(granted: list[str] | None) -> str:
     return json.dumps(list(granted or []), separators=(",", ":"))
 

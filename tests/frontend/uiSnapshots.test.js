@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Toast from "@/components/Toast.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import FormLabel from "@/components/forms/FormLabel.vue";
-import FormSubLabel from "@/components/forms/FormSubLabel.vue";
+
 import IconButton from "@/components/IconButton.vue";
 import SidebarLink from "@/components/SidebarLink.vue";
 import GlobalEmitter from "@/js/GlobalEmitter";
@@ -75,16 +75,6 @@ describe("UI snapshot regression", () => {
         it("default label", () => {
             const wrapper = mountSnapshot(FormLabel, {
                 slots: { default: "Display name" },
-            });
-            expectHtmlSnapshot(wrapper);
-            wrapper.unmount();
-        });
-    });
-
-    describe("FormSubLabel.vue", () => {
-        it("default sub-label", () => {
-            const wrapper = mountSnapshot(FormSubLabel, {
-                slots: { default: "Optional helper text" },
             });
             expectHtmlSnapshot(wrapper);
             wrapper.unmount();

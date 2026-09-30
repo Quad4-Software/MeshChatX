@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Reticulum Network Stack updated to 1.5.5, which adds runtime interface attach/detach/reload management, publishes implementation name and version in discovery announcements, and fixes IFAC publishing edge cases.
+- Tutorial: the Back/Skip/Next row is fused back into the bottom of the step content in both modal and page modes instead of a separate pinned footer bar.
 - Visualiser: the radial view is replaced by a cluster view that groups peers into lobes around the interface that announced them, so the layout shows where traffic actually arrives from. Stored radial preferences upgrade to cluster.
 
 ### Fixed
@@ -13,6 +15,10 @@ All notable changes to this project will be documented in this file.
 - Visualiser: WebGL live layout settles again. Tick damping and the per-step speed cap were tuned so nodes spread out and come to rest instead of ringing at equilibrium.
 - Map: dragging the settings window stays smooth now (backdrop blur is disabled for the drag) and the coordinates readout no longer re-renders the whole page on every pointer event.
 - NomadNet: image size hints now follow upstream semantics. A bare w=/h= number is a character cell count (columns and rows) instead of pixels, w=n renders at the image's native size, and percent values stay relative to the page as upstream intends. Matches markqvist's NomadNet ImageWidget behavior.
+- NomadNet: the w=/h= spec now sizes the loaded image itself instead of only the invisible placeholder box, so w=50 renders 50 columns wide as in upstream NomadNet.
+- NomadNet: image alignment is applied. a=c centers and a=r right-aligns whole-line images, and whole-line images default to centered like the upstream ImageWidget.
+- NomadNet: a loaded image drops the placeholder border and padding and shows the bare image, and the reserved placeholder space is released so pages no longer keep dead space at the bottom.
+- NomadNet: the page shell no longer keeps its own scrollbar next to the rendered frame's scrollbar. The container was always scrollable by its own padding and showed a second slider on platforms with always-on scrollbars.
 - Issue triage: the welcome comment no longer asks reporters for logs or a screenshot when the issue body already contains an attachment or a filled-in logs section.
 
 ### Security

@@ -22,9 +22,7 @@ import pytest
 
 sys.path.insert(
     0,
-    os.path.join(
-        os.path.dirname(__file__), "..", "..", "scripts", "e2e"
-    ),
+    os.path.join(os.path.dirname(__file__), "..", "..", "scripts", "e2e"),
 )
 import backend_harness as bh
 
@@ -90,10 +88,7 @@ def shared_stack(tmp_path):
     # Backend config: client of the shared instance, no own interfaces.
     bh.write_rns_config(
         tmp,
-        extra=(
-            "  share_instance = Yes\n"
-            f"  shared_instance_port = {ports['shared']}\n"
-        ),
+        extra=(f"  share_instance = Yes\n  shared_instance_port = {ports['shared']}\n"),
     )
     backend, backend_log = bh.spawn_backend(tmp, ports["backend"])
     try:
@@ -118,9 +113,7 @@ def test_shared_instance_rpc_routes_respond(shared_stack):
         ports["backend"], "/api/v1/interface-stats"
     )
     assert err is None or status is not None, f"request failed: {err}"
-    assert elapsed < DEADLINE_SLACK_S, (
-        f"interface-stats blocked for {elapsed:.1f}s"
-    )
+    assert elapsed < DEADLINE_SLACK_S, f"interface-stats blocked for {elapsed:.1f}s"
     status, _body, elapsed, _err = _timed_get(ports["backend"], "/api/v1/path-table")
     assert status in (200, 401, 403, 503), f"unexpected status {status}"
     assert elapsed < DEADLINE_SLACK_S
@@ -145,9 +138,7 @@ def test_rnsd_restart_recovers(shared_stack, tmp_path):
     ports, rnsd = shared_stack
     bh.kill_proc(rnsd, hard=True)
     time.sleep(2)
-    rnsd2, _log = _spawn_rnsd(
-        str(tmp_path), ports["shared"], ports["listener"]
-    )
+    rnsd2, _log = _spawn_rnsd(str(tmp_path), ports["shared"], ports["listener"])
     try:
         deadline = time.monotonic() + 60
         ok = False

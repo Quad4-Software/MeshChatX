@@ -121,4 +121,3 @@ class DebugLogsDAO:
                     "DELETE FROM debug_logs WHERE timestamp < ?",
                     (cutoff_ts,),
                 )
-

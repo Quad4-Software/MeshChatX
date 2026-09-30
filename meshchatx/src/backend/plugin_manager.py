@@ -908,6 +908,7 @@ class PluginManager:
             if os.path.isfile(path):
                 return path
         return None
+
     def report_failure(
         self,
         plugin_id: str,

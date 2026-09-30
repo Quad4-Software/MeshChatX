@@ -302,6 +302,7 @@ def parse_room_list_notice_details(text):
         rooms[name] = {"topic": topic, "has_key": has_key}
     return rooms
 
+
 class RRCMessage:
     """A single chat event (message, action, notice, or system line)."""
 

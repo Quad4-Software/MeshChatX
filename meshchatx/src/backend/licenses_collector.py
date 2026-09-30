@@ -228,6 +228,7 @@ def _merge_bundled_vendor_rows(
     merged.sort(key=lambda r: str(r.get("name", "")).lower())
     return merged
 
+
 def _collect_backend_licenses_live() -> list[dict[str, Any]]:
     repo = _repo_root()
     for root in _ROOT_DIST_CANDIDATES:

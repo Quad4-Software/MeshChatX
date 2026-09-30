@@ -551,6 +551,7 @@ def ensure_appcontainer_profile(
         )
     return sid
 
+
 def _set_path_access(
     path: str,
     sid: ctypes.c_void_p,

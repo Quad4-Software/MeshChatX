@@ -21,4 +21,3 @@ def verify_dir_integrity(dir_path: str, expected_hash: str) -> tuple[bool, str]:
     if current != expected_hash:
         return False, current
     return True, current
-

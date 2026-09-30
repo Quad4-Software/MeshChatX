@@ -1262,9 +1262,7 @@ class RRCHub:
                 with self._lock:
                     msgs = list(self.messages.get(room, []))
                 entries = [
-                    self._entry_for(m)
-                    for m in msgs
-                    if isinstance(m, proto.RRCMessage)
+                    self._entry_for(m) for m in msgs if isinstance(m, proto.RRCMessage)
                 ]
                 from meshchatx.src.path_utils import atomic_write_bytes
 
