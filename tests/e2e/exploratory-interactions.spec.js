@@ -92,6 +92,20 @@ async function closeTopLayer(page) {
     await page.waitForTimeout(150);
 }
 
+async function newCrawlPage(browser, page, errors) {
+    // A clicked control can legitimately close the tab (window.close in the
+    // popout and print paths) or kill the renderer on a constrained CI
+    // runner. Recreate the page so the crawl continues instead of aborting.
+    let next;
+    try {
+        next = await page.context().newPage();
+    } catch {
+        next = await (await browser.newContext()).newPage();
+    }
+    watchErrors(next, errors);
+    return next;
+}
+
 test.describe("Exploratory interaction crawl", () => {
     test.setTimeout(900000);
     test.describe.configure({ mode: "serial" });
@@ -100,7 +114,7 @@ test.describe("Exploratory interaction crawl", () => {
         await prepareE2eSession(request);
     });
 
-    test("safe buttons on every route respond without errors", async ({ page }) => {
+    test("safe buttons on every route respond without errors", async ({ page, browser }) => {
         const errors = [];
         watchErrors(page, errors);
 
@@ -109,7 +123,22 @@ test.describe("Exploratory interaction crawl", () => {
         for (const route of ROUTES) {
             const routeStart = Date.now();
             errors.length = 0;
-            await page.goto(`/#${route}`, { waitUntil: "domcontentloaded" });
+            if (page.isClosed()) {
+                page = await newCrawlPage(browser, page, errors);
+            }
+            try {
+                await page.goto(`/#${route}`, { waitUntil: "domcontentloaded" });
+            } catch (err) {
+                if (!/closed/i.test(String(err))) throw err;
+                page = await newCrawlPage(browser, page, errors);
+                await page.goto(`/#${route}`, { waitUntil: "domcontentloaded" });
+            }
+            // Reap popups that clicks on earlier routes may have opened.
+            for (const extra of page.context().pages()) {
+                if (extra !== page && !extra.isClosed()) {
+                    await extra.close().catch(() => {});
+                }
+            }
             await page.waitForTimeout(700);
 
             const buttons = await page.locator("button:visible").all();
@@ -144,15 +173,24 @@ test.describe("Exploratory interaction crawl", () => {
         console.log(`crawl clicks: ${clicked.join(", ")}`);
     });
 
-    test("context menus open, render items, and close cleanly", async ({ page }) => {
+    test("context menus open, render items, and close cleanly", async ({ page, browser }) => {
         const errors = [];
         watchErrors(page, errors);
 
         let menusOpened = 0;
         for (const route of ROUTES) {
-            await page.goto(`/#${route}`, { waitUntil: "domcontentloaded" });
-            await page.waitForTimeout(1000);
             errors.length = 0;
+            if (page.isClosed()) {
+                page = await newCrawlPage(browser, page, errors);
+            }
+            try {
+                await page.goto(`/#${route}`, { waitUntil: "domcontentloaded" });
+            } catch (err) {
+                if (!/closed/i.test(String(err))) throw err;
+                page = await newCrawlPage(browser, page, errors);
+                await page.goto(`/#${route}`, { waitUntil: "domcontentloaded" });
+            }
+            await page.waitForTimeout(1000);
 
             // Kebab/more/overflow style toggles: aria-haspopup marks most of
             // them, menu dots cover the rest.
