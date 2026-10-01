@@ -112,6 +112,11 @@ tasks:
             - echo "Warning - Installing packages over RNS via pip-rns is slow. Use for mesh-only environments."
             - bash scripts/pip-rns-deps.sh {{.CLI_ARGS}}
 
+    deps:sync:
+        desc: Sync dep pins from versions.toml into pyproject, gradle, uv.lock, requirements.txt
+        cmds:
+            - "{{.PYTHON}} scripts/sync_deps.py {{.CLI_ARGS}}"
+
     deps:git-pins:
         aliases: [deps:pins]
         desc: Fail if github/git deps or WASM download URLs drift from scripts/deps-allowlist.json
