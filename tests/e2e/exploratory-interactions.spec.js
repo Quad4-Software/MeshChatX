@@ -11,6 +11,7 @@ const ROUTES = [
     "/about",
     "/interfaces",
     "/interfaces/add",
+    "/interfaces/edit",
     "/messages",
     "/contacts",
     "/map",

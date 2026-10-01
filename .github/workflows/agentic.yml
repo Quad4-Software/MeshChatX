@@ -1,0 +1,128 @@
+name: Agentic tests
+
+# Advisory legs: deterministic harnesses run on every PR, LLM-assisted
+# legs run on schedule or dispatch only when provider secrets are set.
+
+on:
+    pull_request:
+    workflow_dispatch:
+    schedule:
+        - cron: "0 4 * * 1" # weekly monday
+
+permissions:
+    contents: read
+
+env:
+    UV_VERSION: "0.10.14"
+    PYTHON_VERSION: "3.14"
+    NODE_VERSION: "24"
+
+jobs:
+    deterministic:
+        name: Agentic deterministic
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Set up development environment
+              uses: ./.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  node-version: ${{ env.NODE_VERSION }}
+
+            - name: Install Playwright browsers
+              run: pnpm exec playwright install chromium
+
+            - name: Start e2e stack
+              run: |
+                  nohup bash scripts/e2e/start-e2e-stack.sh > /tmp/e2e-stack.log 2>&1 &
+                  for i in $(seq 1 120); do
+                      curl -sf http://127.0.0.1:5173/ -o /dev/null && exit 0
+                      sleep 2
+                  done
+                  echo "stack failed to start"; tail -100 /tmp/e2e-stack.log; exit 1
+
+            - name: Route coverage drift
+              run: node tests/agentic/route-drift.cjs
+
+            - name: Heap profiler
+              run: node tests/agentic/heap-profiler.cjs --json tests/agentic/out/heap.json
+
+            - name: i18n overflow sweep
+              run: node tests/agentic/i18n-sweep.cjs --shots tests/agentic/out/i18n
+
+            - name: Adversarial inputs
+              run: node tests/agentic/adversarial.cjs
+
+            - name: Upload reports
+              if: always()
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+              with:
+                  name: agentic-reports
+                  path: tests/agentic/out/
+
+    llm-legs:
+        # Only runs when explicitly configured with model secrets or on the
+        # weekly schedule. Advisory: failure does not gate merges.
+        name: Agentic LLM legs
+        if: github.event_name != 'pull_request' || vars.AGENTIC_LLM_ENABLED == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 60
+        continue-on-error: true
+        env:
+            AGENTIC_LLM_BASE_URL: ${{ secrets.AGENTIC_LLM_BASE_URL }}
+            AGENTIC_LLM_API_KEY: ${{ secrets.AGENTIC_LLM_API_KEY }}
+            AGENTIC_LLM_MODEL: ${{ vars.AGENTIC_LLM_MODEL }}
+            AGENTIC_VISION_MODEL: ${{ vars.AGENTIC_VISION_MODEL }}
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Set up development environment
+              uses: ./.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  node-version: ${{ env.NODE_VERSION }}
+
+            - name: Install Playwright browsers
+              run: pnpm exec playwright install chromium
+
+            - name: Start e2e stack
+              run: |
+                  nohup bash scripts/e2e/start-e2e-stack.sh > /tmp/e2e-stack.log 2>&1 &
+                  for i in $(seq 1 120); do
+                      curl -sf http://127.0.0.1:5173/ -o /dev/null && exit 0
+                      sleep 2
+                  done
+                  echo "stack failed to start"; tail -100 /tmp/e2e-stack.log; exit 1
+
+            - name: i18n sweep with vision judge
+              run: node tests/agentic/i18n-sweep.cjs --judge --shots tests/agentic/out/i18n-judge
+
+            - name: Adversarial inputs with LLM payloads
+              run: node tests/agentic/adversarial.cjs --llm
+
+            - name: Upload reports
+              if: always()
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+              with:
+                  name: agentic-llm-reports
+                  path: tests/agentic/out/

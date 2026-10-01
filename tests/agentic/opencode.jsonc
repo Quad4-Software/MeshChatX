@@ -1,0 +1,74 @@
+{
+    "$schema": "https://opencode.ai/config.json",
+
+    // Provider-agnostic. Default model targets a local OpenAI-compatible
+    // endpoint (Ollama/LM Studio/llama.cpp). Set AGENTIC_LLM_BASE_URL and
+    // AGENTIC_LLM_MODEL to point anywhere, or use `opencode/go-*` with a
+    // Console key (OPENCODE_API_KEY) for hosted models.
+    "model": "agentic-local/default",
+
+    "providers": {
+        "agentic-local": {
+            "name": "Local OpenAI-compatible",
+            "env": ["AGENTIC_LLM_API_KEY"],
+            "package": "@opencode/ai/providers/openai-compatible",
+            "settings": {
+                "baseURL": "{env:AGENTIC_LLM_BASE_URL}"
+            },
+            "models": {
+                "default": {
+                    "modelID": "{env:AGENTIC_LLM_MODEL}"
+                },
+                "vision": {
+                    "modelID": "{env:AGENTIC_VISION_MODEL}"
+                }
+            }
+        }
+    },
+
+    "mcp": {
+        "servers": {
+            "playwright": {
+                "type": "local",
+                "command": ["npx", "-y", "@playwright/mcp@latest"],
+                "environment": {
+                    "PLAYWRIGHT_MCP_BASE_URL": "{env:AGENTIC_BASE_URL}"
+                }
+            }
+        }
+    },
+
+    "agents": {
+        "crawler": {
+            "description": "Exploratory UI tester: drives the app via Playwright MCP, finds issues, reports them without changing code",
+            "mode": "primary",
+            "permissions": [
+                { "action": "edit", "resource": "*", "effect": "deny" },
+                { "action": "shell", "resource": "*", "effect": "deny" }
+            ]
+        }
+    },
+
+    "commands": {
+        "agentic-crawl": {
+            "description": "Agentic crawl of all routes, flag pageerrors/5xx and broken flows",
+            "template": "Read tests/agentic/prompts/crawl.md and follow it exactly. Report findings as a task list at the end."
+        },
+        "agentic-adversarial": {
+            "description": "Fill every input with context-matched hostile payloads",
+            "template": "Read tests/agentic/prompts/adversarial.md and follow it exactly. Report any pageerror, console error, or 5xx you trigger."
+        },
+        "agentic-update-flow": {
+            "description": "Verify the pending-update apply path end to end in Electron",
+            "template": "Read tests/agentic/prompts/update-flow.md and follow it exactly."
+        },
+        "agentic-i18n": {
+            "description": "Sweep locales looking for layout breakage",
+            "template": "Read tests/agentic/prompts/i18n.md and follow it exactly."
+        },
+        "agentic-heap": {
+            "description": "Correlate heap growth with interactions per route",
+            "template": "Read tests/agentic/prompts/heap.md and follow it exactly."
+        }
+    }
+}
