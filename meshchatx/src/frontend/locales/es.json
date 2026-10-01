@@ -630,7 +630,7 @@
         "network_degraded": "RNS no disponible. La aplicación sigue en ejecución para que pueda diagnosticar y recuperar sin borrar datos.",
         "recover_network": "Reintentar RNS",
         "open_settings": "Abrir configuración",
-                "lan_bind_no_auth_banner": "Esta interfaz es accesible en la LAN sin contraseña. Active la autenticación en Ajustes, o enlace 127.0.0.1.",
+        "lan_bind_no_auth_banner": "Esta interfaz es accesible en la LAN sin contraseña. Active la autenticación en Ajustes, o enlace 127.0.0.1.",
         "lan_bind_no_auth_dismiss": "Descartar",
         "open_backups": "Abrir copias de seguridad",
         "open_interfaces": "Abrir interfaces",
@@ -5370,5 +5370,27 @@
         "url_copied": "URL del informe de errores copiada",
         "url_copy_failed": "No se pudo copiar la URL",
         "privacy_mode_hint": "El modo de privacidad está activado. Los enlaces de clearnet no se abren automáticamente. Copia la URL si la necesitas."
+    },
+    "updates": {
+        "settings_title": "Updates",
+        "settings_description": "Check for and apply signed updates from the release CDN, or apply a manually downloaded update file.",
+        "current_version": "Current version",
+        "disabled_notice": "Updates are disabled for this install channel.",
+        "available": "Update available: {version}",
+        "up_to_date": "You are up to date.",
+        "checking": "Checking...",
+        "check_now": "Check for updates",
+        "download_apply": "Download and stage",
+        "downloading": "Downloading...",
+        "download_failed": "Download or verification failed",
+        "pending_ready": "Update {version} is verified and ready to apply",
+        "restart_to_apply": "Restart to apply",
+        "show_file": "Show file",
+        "discard": "Discard",
+        "apply_file": "Apply update file",
+        "file_rejected": "File failed verification",
+        "check_failed": "Update check failed",
+        "apply_failed": "Update apply failed",
+        "manual_install_notice": "Install the verified file manually using the instructions above."
     }
 }
