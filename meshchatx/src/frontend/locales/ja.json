@@ -630,7 +630,7 @@
         "network_degraded": "RNS を利用できません。アプリは稼働を続けているため、データを消去せずに診断と復旧が可能です。",
         "recover_network": "RNS を再試行",
         "open_settings": "設定を開く",
-                "lan_bind_no_auth_banner": "この UI はパスワードなしで LAN から到達できます。設定で認証を有効化するか、127.0.0.1 にバインドしてください。",
+        "lan_bind_no_auth_banner": "この UI はパスワードなしで LAN から到達できます。設定で認証を有効化するか、127.0.0.1 にバインドしてください。",
         "lan_bind_no_auth_dismiss": "閉じる",
         "open_backups": "バックアップを開く",
         "open_interfaces": "インターフェースを開く",
@@ -5370,5 +5370,27 @@
         "url_copied": "バグレポート URL をコピーしました",
         "url_copy_failed": "URL をコピーできませんでした",
         "privacy_mode_hint": "プライバシーモードが有効です。クリアネットのリンクは自動では開きません。必要な場合は URL をコピーしてください。"
+    },
+    "updates": {
+        "settings_title": "Updates",
+        "settings_description": "Check for and apply signed updates from the release CDN, or apply a manually downloaded update file.",
+        "current_version": "Current version",
+        "disabled_notice": "Updates are disabled for this install channel.",
+        "available": "Update available: {version}",
+        "up_to_date": "You are up to date.",
+        "checking": "Checking...",
+        "check_now": "Check for updates",
+        "download_apply": "Download and stage",
+        "downloading": "Downloading...",
+        "download_failed": "Download or verification failed",
+        "pending_ready": "Update {version} is verified and ready to apply",
+        "restart_to_apply": "Restart to apply",
+        "show_file": "Show file",
+        "discard": "Discard",
+        "apply_file": "Apply update file",
+        "file_rejected": "File failed verification",
+        "check_failed": "Update check failed",
+        "apply_failed": "Update apply failed",
+        "manual_install_notice": "Install the verified file manually using the instructions above."
     }
 }

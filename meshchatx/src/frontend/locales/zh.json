@@ -630,7 +630,7 @@
         "network_degraded": "RNS 不可用。应用仍在运行，便于诊断和恢复而无需清除数据。",
         "recover_network": "重试 RNS",
         "open_settings": "打开设置",
-                "lan_bind_no_auth_banner": "此界面可在局域网无密码访问。请在设置中启用身份验证，或绑定 127.0.0.1。",
+        "lan_bind_no_auth_banner": "此界面可在局域网无密码访问。请在设置中启用身份验证，或绑定 127.0.0.1。",
         "lan_bind_no_auth_dismiss": "关闭",
         "open_backups": "打开备份",
         "open_interfaces": "打开接口",
@@ -5370,5 +5370,27 @@
         "url_copied": "问题报告 URL 已复制",
         "url_copy_failed": "无法复制 URL",
         "privacy_mode_hint": "隐私模式已开启。不会自动打开公网链接。如需该链接，请复制 URL。"
+    },
+    "updates": {
+        "settings_title": "Updates",
+        "settings_description": "Check for and apply signed updates from the release CDN, or apply a manually downloaded update file.",
+        "current_version": "Current version",
+        "disabled_notice": "Updates are disabled for this install channel.",
+        "available": "Update available: {version}",
+        "up_to_date": "You are up to date.",
+        "checking": "Checking...",
+        "check_now": "Check for updates",
+        "download_apply": "Download and stage",
+        "downloading": "Downloading...",
+        "download_failed": "Download or verification failed",
+        "pending_ready": "Update {version} is verified and ready to apply",
+        "restart_to_apply": "Restart to apply",
+        "show_file": "Show file",
+        "discard": "Discard",
+        "apply_file": "Apply update file",
+        "file_rejected": "File failed verification",
+        "check_failed": "Update check failed",
+        "apply_failed": "Update apply failed",
+        "manual_install_notice": "Install the verified file manually using the instructions above."
     }
 }

@@ -630,7 +630,7 @@
         "network_degraded": "RNS indisponible. L'application reste ouverte pour diagnostiquer et récupérer sans effacer les données.",
         "recover_network": "Réessayer RNS",
         "open_settings": "Ouvrir les paramètres",
-                "lan_bind_no_auth_banner": "Cette interface est joignable sur le LAN sans mot de passe. Activez l'authentification dans Paramètres, ou liez 127.0.0.1.",
+        "lan_bind_no_auth_banner": "Cette interface est joignable sur le LAN sans mot de passe. Activez l'authentification dans Paramètres, ou liez 127.0.0.1.",
         "lan_bind_no_auth_dismiss": "Ignorer",
         "open_backups": "Ouvrir les sauvegardes",
         "open_interfaces": "Ouvrir les interfaces",
@@ -5370,5 +5370,27 @@
         "url_copied": "URL du rapport de bug copiée",
         "url_copy_failed": "Impossible de copier l’URL",
         "privacy_mode_hint": "Le mode confidentialité est activé. Les liens clearnet ne sont pas ouverts automatiquement. Copiez l’URL si vous en avez besoin."
+    },
+    "updates": {
+        "settings_title": "Updates",
+        "settings_description": "Check for and apply signed updates from the release CDN, or apply a manually downloaded update file.",
+        "current_version": "Current version",
+        "disabled_notice": "Updates are disabled for this install channel.",
+        "available": "Update available: {version}",
+        "up_to_date": "You are up to date.",
+        "checking": "Checking...",
+        "check_now": "Check for updates",
+        "download_apply": "Download and stage",
+        "downloading": "Downloading...",
+        "download_failed": "Download or verification failed",
+        "pending_ready": "Update {version} is verified and ready to apply",
+        "restart_to_apply": "Restart to apply",
+        "show_file": "Show file",
+        "discard": "Discard",
+        "apply_file": "Apply update file",
+        "file_rejected": "File failed verification",
+        "check_failed": "Update check failed",
+        "apply_failed": "Update apply failed",
+        "manual_install_notice": "Install the verified file manually using the instructions above."
     }
 }

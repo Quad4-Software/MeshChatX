@@ -39,6 +39,11 @@
                     "title": { "en": "Verifying downloads" }
                 },
                 {
+                    "path": "en/updates.md",
+                    "lang": "en",
+                    "title": { "en": "Updates" }
+                },
+                {
                     "path": "en/threat-model.md",
                     "lang": "en",
                     "title": { "en": "Threat model" }

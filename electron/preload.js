@@ -76,6 +76,10 @@ contextBridge.exposeInMainWorld("electron", {
         return await invokeTrusted("relaunch-auto-recover");
     },
 
+    applyUpdate: async function () {
+        return await invokeTrusted("update-apply");
+    },
+
     getCrashRecoveryInfo: async function () {
         return await invokeTrusted("crash-recovery-info");
     },
