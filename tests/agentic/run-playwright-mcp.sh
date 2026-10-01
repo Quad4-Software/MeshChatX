@@ -26,5 +26,5 @@ if [[ -z "$BIN" ]]; then
     exit 1
 fi
 
-echo "run-playwright-mcp: chromium at $BIN" >&2
-exec npx -y @playwright/mcp@latest --browser chromium --executable-path "$BIN" "$@"
+echo "run-playwright-mcp: chromium at $BIN (headless)" >&2
+exec npx -y @playwright/mcp@latest --browser chromium --headless --executable-path "$BIN" "$@"
