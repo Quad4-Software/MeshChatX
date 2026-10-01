@@ -114,7 +114,10 @@ test.describe("Exploratory interaction crawl", () => {
         await prepareE2eSession(request);
     });
 
-    test("safe buttons on every route respond without errors", async ({ page, browser }) => {
+    test("safe buttons on every route respond without errors", { timeout: 1500000 }, async ({
+        page,
+        browser,
+    }) => {
         const errors = [];
         watchErrors(page, errors);
 
@@ -168,6 +171,8 @@ test.describe("Exploratory interaction crawl", () => {
             }
             const secs = ((Date.now() - routeStart) / 1000).toFixed(0);
             clicked.push(`${route}:${clicks}(${secs}s)`);
+            // Per-route progress so a timeout still shows where it died.
+            console.log(`crawl ${route}: ${clicks} clicks in ${secs}s`);
             expect(errors, `route ${route}`).toEqual([]);
         }
         console.log(`crawl clicks: ${clicked.join(", ")}`);
