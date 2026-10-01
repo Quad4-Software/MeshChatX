@@ -152,10 +152,12 @@ class UpdateManager:
         *,
         current_version: str,
         channel: str,
+        config=None,
     ) -> None:
         self.storage_dir = Path(storage_dir)
         self.current_version = current_version
         self.channel = channel
+        self.config = config
         self._manifest: dict | None = None
         self._manifest_fetched_at = 0.0
 
@@ -185,6 +187,7 @@ class UpdateManager:
     def _fetch_bytes(self, url: str, max_bytes: int, timeout: int = 20) -> bytes:
         if not url.startswith("https://"):
             raise UpdateError(f"update fetch requires https: {url}")
+        _require_update_clearnet(self.config)
         req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})  # noqa: S310 - https enforced above
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - https enforced above
@@ -322,6 +325,7 @@ class UpdateManager:
         url = self.artifact_url(manifest, entry)
         if not url.startswith("https://"):
             raise UpdateError("update download requires https")
+        _require_update_clearnet(self.config)
 
         def _dl() -> Path:
             req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})  # noqa: S310 - https enforced above
@@ -437,6 +441,13 @@ class UpdateManager:
             dest = self.pending_dir / marker.get("file", "")
             dest.unlink(missing_ok=True)
             self.pending_marker_path.unlink(missing_ok=True)
+
+
+def _require_update_clearnet(config) -> None:
+    """Privacy-mode gate: no update fetch while outbound HTTP is blocked."""
+    from meshchatx.src.backend.privacy_mode import ensure_outbound_http_allowed
+
+    ensure_outbound_http_allowed(config, feature="update check")
 
 
 def _sha256_file(path: Path) -> str:

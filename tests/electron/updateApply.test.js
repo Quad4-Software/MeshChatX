@@ -47,7 +47,6 @@ afterEach(() => {
 describe("electron/updateApply", () => {
     it("rejects when no pending marker exists", () => {
         const dir = makeTmp();
-        fs.rmSync(path.join(dir, "updates", "pending.json"));
         expect(applyPendingUpdate(dir).error).toBe("no_pending_update");
     });
 
