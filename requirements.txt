@@ -647,9 +647,9 @@ landlockpy==0.2.0 \
     --hash=sha256:2a915db59a2c1970d181f9c2bff786d6040d8f9105380da64390f5fe61b4148d \
     --hash=sha256:c61b7fe84ead14ff6b091baa2e5f52c7b81e509571ebe5e707e92f1aaf90f2c9
     # via reticulum-meshchatx
-lxmf==1.1.1 \
-    --hash=sha256:3cdb4c5b3a4ec091ed538050228d8bd15db3ca4dfe7d69be3350ebc6c6d7e696 \
-    --hash=sha256:f2f7ea17d793fcc32cab826e81e8e9824404d025d1fc71b143be3242d45e6a5e
+lxmf==1.2.0 \
+    --hash=sha256:805f053e61082f585efc6d09beffd039fd921174c5e1547a2e690bc479d75b85 \
+    --hash=sha256:f14243283b90ad06356071d90394357640924201f9c992dcdfecbc23614fb309
     # via
     #   lxst
     #   reticulum-meshchatx
