@@ -66,6 +66,13 @@ Verify locally with `git log --show-signature`. `git log --format=%G?` reports `
 
 Unsigned or GPG-signed pull requests from outside contributors are still accepted.
 
+### AI provenance
+
+Commits written with AI assistance carry `Harness`, `Model`, and `Method`
+trailers plus a git note on `refs/notes/ai-provenance`. See [AI.md](AI.md)
+for the convention and hook setup (`sh scripts/ci/install-git-hooks.sh`
+plus `git config ai.harness/ai.model/ai.method`).
+
 ---
 
 ## Generating a patch (LXMF)
