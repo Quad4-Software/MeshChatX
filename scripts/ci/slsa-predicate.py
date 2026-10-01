@@ -69,10 +69,12 @@ def main() -> None:
     resolved = []
     source = _source_uri()
     if source and sha:
-        resolved.append({
-            "uri": source,
-            "digest": {"gitCommit": sha},
-        })
+        resolved.append(
+            {
+                "uri": source,
+                "digest": {"gitCommit": sha},
+            }
+        )
 
     predicate = {
         "buildDefinition": {
