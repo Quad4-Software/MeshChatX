@@ -21,7 +21,7 @@
 
 # Versions that match on every surface where the name appears.
 [shared]
-lxmf = "1.1.1"
+lxmf = "1.2.0"
 rns = "1.5.5"
 aiohttp = "3.14.3"
 aiohttp-session = "2.12.1"

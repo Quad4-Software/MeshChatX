@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-09-29T00:03:18.682813Z
+Generated at: 2026-10-01T09:45:39.300227Z
 Frontend source: pnpm
 
 Python dependencies
@@ -67,7 +67,7 @@ idna 3.19
 landlockpy 0.2.0
   License: 0BSD
   Author: Quad4
-lxmf 1.1.1
+lxmf 1.2.0
   License: Reticulum License
   Author: Mark Qvist
 lxmfy 2.0.1
@@ -807,7 +807,7 @@ Node dependencies
   Author: Evan You
 @vue/devtools-api 6.6.4
   License: MIT
-  Author: Guillaume Chau
+  Author: webfansplz
 @vue/devtools-core 8.2.1
   License: MIT
   Author: webfansplz
