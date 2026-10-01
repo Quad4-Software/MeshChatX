@@ -290,28 +290,93 @@ async function rnsh() {
         csession ? "connected" : "client cannot start (see rnsh output note)",
     );
     if (!csession) {
-        // Known environment limitation: when the host reticulum config
-        // binds a TCPServerInterface (the e2e stack does on :43737), the
-        // rnsh subprocess tries to bind the same port and dies EADDRINUSE.
+        // When the host reticulum config binds a TCPServerInterface and
+        // share_instance is off, the rnsh subprocess dies EADDRINUSE.
         report(
             "rnsh output",
             "skip",
-            "client exits 255: host config binds a TCP listener port (rnsh subprocess cannot share it)",
+            "client exits 255: no shared instance and host config binds a TCP listener port",
         );
         return;
     }
     const sid = csession.id || csession.session_id;
+    const readOutput = async () => {
+        const res = await get(ALICE, `/api/v1/rnsh/sessions/${sid}/output`);
+        const chunks = res.json?.chunks || [];
+        return chunks.map((c) => c.text || "").join("");
+    };
+    // Wait for the shell prompt before sending input; bytes sent during
+    // channel negotiation are dropped.
+    const ready = await poll(async () => {
+        const text = await readOutput();
+        return /[\x24\u276F>#]\s*$|\[?2004h/.test(text) ? text.length : null;
+    }, 90000);
+    if (!ready) {
+        report("rnsh output", false, "channel never reached a shell prompt");
+        return;
+    }
     await post(ALICE, `/api/v1/rnsh/sessions/${sid}/input`, {
-        input: "echo pair-rnsh-ok\n",
+        text: "echo pair-rnsh-ok",
+        newline: true,
     });
     const got = await poll(async () => {
-        const res = await get(
-            ALICE,
-            `/api/v1/rnsh/sessions/${sid}/output`,
-        );
-        return JSON.stringify(res.json || {}).includes("pair-rnsh-ok");
+        const text = await readOutput();
+        return text.includes("pair-rnsh-ok");
     }, 45000);
     report("rnsh output", Boolean(got), got ? "echo returned" : "no echo");
+}
+
+async function rnx() {
+    // Bob opens an rnx listener; Alice executes a remote command.
+    const existing = await get(BOB, "/api/v1/rnx/sessions");
+    for (const s of existing.json?.sessions || []) {
+        if (s.mode === "listen") {
+            await post(BOB, `/api/v1/rnx/sessions/${s.id || s.session_id}/stop`, {});
+            await req(BOB, "DELETE", `/api/v1/rnx/sessions/${s.id || s.session_id}`);
+        }
+    }
+    // rnx announces the listener once at startup unless -b, and the pair
+    // link is already up by this point in the suite.
+    const listen = await post(BOB, "/api/v1/rnx/sessions", {
+        mode: "listen",
+        no_auth: true,
+        autostart: true,
+    });
+    const lsession = listen.json?.session;
+    if (!lsession) {
+        report("rnx listen (bob)", false, JSON.stringify(listen.json).slice(0, 160));
+        return;
+    }
+    const lhash = await poll(async () => {
+        const res = await get(BOB, "/api/v1/rnx/sessions");
+        const s = (res.json?.sessions || []).find(
+            (x) => x.id === (lsession.id || lsession.session_id),
+        );
+        return s?.listen_address || null;
+    }, 45000);
+    report("rnx listen (bob)", Boolean(lhash), lhash ? `listener=${lhash}` : "no listener hash");
+    if (!lhash) {
+        return;
+    }
+    const exec_ = await post(ALICE, "/api/v1/rnx/sessions", {
+        destination: lhash,
+        remote_command: "echo pair-rnx-ok",
+        autostart: true,
+        timeout: 60,
+    });
+    const esession = exec_.json?.session;
+    const esid = esession && (esession.id || esession.session_id);
+    if (!esid) {
+        report("rnx exec (alice)", false, JSON.stringify(exec_.json).slice(0, 160));
+        return;
+    }
+    const got = await poll(async () => {
+        const res = await get(ALICE, `/api/v1/rnx/sessions/${esid}/output`);
+        const chunks = res.json?.chunks || [];
+        const text = chunks.map((c) => c.text || "").join("");
+        return text.includes("pair-rnx-ok") ? text : null;
+    }, 120000);
+    report("rnx exec (alice)", Boolean(got), got ? "remote echo returned" : "no output");
 }
 
 async function main() {
@@ -319,6 +384,7 @@ async function main() {
     await rncp();
     await propnode();
     await rnsh();
+    await rnx();
     const failed = results.filter((r) => r.ok !== true && r.ok !== "skip");
     const skipped = results.filter((r) => r.ok === "skip").length;
     console.log(

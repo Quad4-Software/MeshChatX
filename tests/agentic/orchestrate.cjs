@@ -29,7 +29,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { spawn, spawnSync } = require("child_process");
+const { spawn } = require("child_process");
 
 const HERE = __dirname;
 
@@ -122,8 +122,11 @@ async function main() {
 
     if (spec.pair) {
         console.log("[orch] bringing up pair...");
-        const r = spawnSync("bash", [path.join(HERE, "pair-up.sh")], { stdio: "inherit" });
-        if (r.status !== 0) {
+        const rc = await new Promise((resolve) => {
+            const p = spawn("bash", [path.join(HERE, "pair-up.sh")], { stdio: "inherit" });
+            p.on("close", resolve);
+        });
+        if (rc !== 0) {
             console.error("[orch] pair-up failed");
             process.exit(1);
         }

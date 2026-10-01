@@ -73,11 +73,26 @@ def write_rns_config(tmp: str, extra: str = "") -> str:
     """Write a minimal isolated reticulum config for the backend."""
     path = os.path.join(tmp, "rns")
     os.makedirs(path, exist_ok=True)
+    # share_instance defaults the local socket path to "default" and the
+    # control ports to 37428/37429, so every instance on the box would
+    # collide and silently attach to whichever one bound first. Derive
+    # unique instance coordinates from the harness tmp path.
+    tag = abs(hash(tmp)) % 20000 + 40000
+    name = "harness-" + os.path.basename(tmp.rstrip("/"))
+    # Callers can still override any of these via extra.
+    defaults = ""
+    if "instance_name" not in extra:
+        defaults += f"  instance_name = {name}\n"
+    if "shared_instance_port" not in extra:
+        defaults += f"  shared_instance_port = {tag}\n"
+    if "instance_control_port" not in extra:
+        defaults += f"  instance_control_port = {tag + 1}\n"
     with open(os.path.join(path, "config"), "w") as f:
         f.write(
             "[reticulum]\n"
             "  enable_transport = False\n"
-            "  share_instance = No\n"
+            "  share_instance = Yes\n"
+            + defaults
             + (extra if extra.endswith("\n") else extra + "\n")
         )
     return path

@@ -108,7 +108,9 @@ async function newCrawlPage(browser, page, errors) {
 }
 
 test.describe("Exploratory interaction crawl", () => {
-    test.setTimeout(900000);
+    // The button sweep is the longest leg; give it its own declared 25min.
+    // This must meet or exceed the per-test timeout below.
+    test.setTimeout(1500000);
     test.describe.configure({ mode: "serial" });
 
     test.beforeEach(async ({ request }) => {

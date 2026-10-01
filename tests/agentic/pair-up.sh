@@ -28,7 +28,10 @@ mkdir -p "$SHARE" "$RNS_B"
 cat > "$RNS_B/config" <<EOF
 [reticulum]
   enable_transport = False
-  share_instance = No
+  share_instance = Yes
+  instance_name = agentic-pair-b
+  shared_instance_port = 47528
+  instance_control_port = 47529
   loglevel = 3
 [interfaces]
   [[Pair Link]]
