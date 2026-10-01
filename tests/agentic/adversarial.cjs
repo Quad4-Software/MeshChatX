@@ -19,7 +19,7 @@ const PAYLOADS = {
         "%s%s%s%s%n",
         "a".repeat(4096),
         "\u202Eevil\u202C",
-        "😀".repeat(500),
+        "\u{1F600}".repeat(500),
         "null undefined NaN",
         "../../etc/passwd",
         "\x00\x01\x02",

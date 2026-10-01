@@ -77,11 +77,35 @@ node tests/agentic/vision-judge.cjs a.png b.png "intent"  # pairwise diff verdic
   agent config denies both.
 - The deterministic crawlers use the same destructive-word blocklist as
   the e2e crawler, so agents cannot delete data or send messages.
-- Vision judging reports `regression`/`intended`/`noise`/`flake` — it
+- Vision judging reports `regression`/`intended`/`noise`/`flake` and
   never writes baselines or marks failures green.
 - The Electron update test crafts its own marker + payload; it never
   touches a real release or downloads anything.
 
+## Two-instance pair testing
+
+`pair-up.sh` brings up a second full instance (Bob on :18081, built
+frontend served by its own backend) linked to the dev stack (Alice) over
+a TCPClientInterface through the e2e chaos proxy. It triggers announces
+on both sides, waits for mutual propagation, and writes
+`out/pairshare/pair.json` with both LXMF addresses.
+
+```sh
+bash tests/agentic/pair-up.sh
+node tests/agentic/pair-messaging.cjs   # deterministic backbone
+bash tests/agentic/pair-agents.sh       # two coordinated agents
+bash tests/agentic/pair-down.sh
+```
+
+`pair-messaging.cjs` verifies real delivery both directions plus an
+attachment through `file_attachments` fields, then checks call UI
+presence. `pair-agents.sh` runs two `opencode run` processes in parallel;
+the prompts in `prompts/pair-alice.md` and `prompts/pair-bob.md`
+coordinate through `pairshare/*_step_*_done.txt` marker files.
+
+The chaos proxy sits between the two backends, so link-fault injection
+(`E2E_PEER_SHARE/chaos.mode`) works during pair runs too.
+
 ## Reports
 
-`tests/agentic/out/` — gitignored. JSON + screenshots land here.
+`tests/agentic/out/` is gitignored. JSON + screenshots land here.
