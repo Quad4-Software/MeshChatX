@@ -2,15 +2,15 @@ Vendored third-party trees shipped inside the reticulum-meshchatx distribution.
 
 lxmfy/
   Upstream: https://git.quad4.io/LXMFy/LXMFy
-  Bundled revision: 483b6928ce2e3cdacd415be92d0f38ae13dca651
+  Mirror: https://github.com/Quad4-Software/LXMFy
+  Bundled revision: 47170aa071b8a95c6cd4bd8aefbd0d39c588c5f9
   Declared version (pyproject): see vendor/lxmfy/pyproject.toml
   Update: clone default branch, replace vendor/lxmfy (omit .git), align vendor/README
-  commit above, run poetry lock / uv lock, regenerate THIRD_PARTY_NOTICES if needed.
+  commit above, run uv sync, regenerate THIRD_PARTY_NOTICES if needed.
   Note: MeshChatX keeps its Landlock ABI hardening in vendor/lxmfy/lxmfy/landlock_sandbox.py
-  (and matching tests) when refreshing from upstream.
-  Note: vendor/lxmfy/lxmfy/rrc/envelope.py is patched to use cborx instead of cbor2
-  so the bundled RRC envelope codec matches the backend dependency set. Keep this
-  patch on refresh until upstream LXMFy migrates to cborx.
+  (and matching tests) when refreshing from upstream. The vendored copy is a pure
+  ctypes implementation and never imports landlockpy, so Android and non-Linux
+  builds stay import-safe even though upstream declares landlockpy on Linux.
 
 rns_filesync/
   Upstream: https://github.com/Quad4-Software/RNS-Filesync

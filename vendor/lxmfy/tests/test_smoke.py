@@ -41,7 +41,7 @@ def test_nlp_smoke():
 
 def test_storage_smoke(test_config_dir):
     """Verify basic storage operations."""
-    from lxmfy.storage import Storage, JSONStorage
+    from lxmfy.storage import JSONStorage, Storage
 
     storage_path = test_config_dir / "storage_smoke"
     storage = Storage(JSONStorage(str(storage_path)))

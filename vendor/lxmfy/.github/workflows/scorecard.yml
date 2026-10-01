@@ -1,0 +1,49 @@
+# OpenSSF Scorecard (recommended in GitHub Actions secure-use reference).
+
+name: Scorecard
+
+on:
+  branch_protection_rule:
+  schedule:
+    - cron: "31 7 * * 1"
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: scorecard-${{ github.ref }}
+  cancel-in-progress: true
+
+# Scorecard requires read-all to evaluate branch protection and other settings.
+permissions: read-all  # zizmor: ignore[excessive-permissions]
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write  # upload SARIF to the security tab
+      id-token: write  # OIDC token for result publication
+      contents: read  # analyze the repository contents
+      actions: read  # read workflow run metadata
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@486fec2a3ea2626afcd8c7e9208b4f515078dd7e # codeql-bundle-v2.26.4
+        with:
+          sarif_file: results.sarif

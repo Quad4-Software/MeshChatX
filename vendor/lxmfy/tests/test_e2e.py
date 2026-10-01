@@ -22,7 +22,7 @@ class TestCLIE2E:
             import os
 
             env = os.environ.copy()
-            env["PYTHONPATH"] = str(Path.cwd())
+            env["PYTHONPATH"] = str(Path(__file__).resolve().parent.parent)
 
             cmd = [
                 sys.executable,
@@ -62,7 +62,7 @@ class TestCLIE2E:
         import sys
 
         env = os.environ.copy()
-        env["PYTHONPATH"] = str(Path.cwd())
+        env["PYTHONPATH"] = str(Path(__file__).resolve().parent.parent)
 
         cmd = [
             sys.executable,
@@ -108,7 +108,7 @@ class TestCLIE2E:
         import sys
 
         env = os.environ.copy()
-        env["PYTHONPATH"] = str(Path.cwd())
+        env["PYTHONPATH"] = str(Path(__file__).resolve().parent.parent)
 
         cmd = [
             sys.executable,
@@ -130,6 +130,8 @@ class TestCLIE2E:
         # Should complete successfully
         assert result.returncode == 0
         assert "signature test" in result.stdout.lower()
+        assert "verification successful" in result.stdout.lower()
+        assert "fail" not in result.stdout.lower()
 
     def test_cli_signatures_enable_disable(self, test_config_dir):
         """Test CLI signatures enable/disable instructions."""
@@ -137,7 +139,7 @@ class TestCLIE2E:
         import sys
 
         env = os.environ.copy()
-        env["PYTHONPATH"] = str(Path.cwd())
+        env["PYTHONPATH"] = str(Path(__file__).resolve().parent.parent)
 
         # Test enable command
         cmd_enable = [
@@ -162,7 +164,7 @@ class TestCLIE2E:
 
         # Test disable command
         cmd_disable = [
-            "python",
+            sys.executable,
             "-m",
             "lxmfy.cli",
             "signatures",

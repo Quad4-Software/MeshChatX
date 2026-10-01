@@ -50,6 +50,7 @@ class SpamProtection:
         self.bot = bot
         self.config = SpamConfig(**kwargs)
         self.message_counts = defaultdict(list)
+        self.command_counts = defaultdict(list)
         self.warnings = defaultdict(int)
         self.banned_users = set()
         self.warning_times = defaultdict(float)
@@ -59,6 +60,8 @@ class SpamProtection:
         """Load spam protection data from storage."""
         stored_counts = self.storage.get("spam:message_counts", {})
         self.message_counts = defaultdict(list, stored_counts)
+        stored_command_counts = self.storage.get("spam:command_counts", {})
+        self.command_counts = defaultdict(list, stored_command_counts)
         stored_warnings = self.storage.get("spam:warnings", {})
         self.warnings = defaultdict(int, stored_warnings)
         self.banned_users = set(self.storage.get("spam:banned_users", []))
@@ -68,6 +71,7 @@ class SpamProtection:
     def save_data(self):
         """Save current spam protection data to storage."""
         self.storage.set("spam:message_counts", dict(self.message_counts))
+        self.storage.set("spam:command_counts", dict(self.command_counts))
         self.storage.set("spam:warnings", dict(self.warnings))
         self.storage.set("spam:banned_users", list(self.banned_users))
         self.storage.set("spam:warning_times", dict(self.warning_times))
@@ -124,6 +128,53 @@ class SpamProtection:
         ) > self.config.warning_timeout:
             self.warnings[sender] = 0
 
+        self.save_data()
+        return True, None
+
+    def check_command_limit(
+        self,
+        sender,
+        command: str,
+        limit: int,
+    ) -> tuple[bool, str | None]:
+        """Check a per-command rate limit for a sender.
+
+        Sliding window per (sender, command) pair sharing the global
+        cooldown period. Unlike the global limit, hitting a command
+        limit only rejects the invocation; it never warns or bans.
+
+        Args:
+            sender: Hash of the message sender
+            command: Command name being invoked
+            limit: Max invocations allowed inside the cooldown window
+
+        Returns:
+            Tuple[bool, str]: (allowed, message)
+
+        """
+        if limit <= 0:
+            return True, None
+        if self.bot.permissions.has_permission(sender, DefaultPerms.BYPASS_SPAM):
+            return True, None
+
+        key = f"{sender}:{command}"
+        current_time = time()
+        window = [
+            t
+            for t in self.command_counts[key]
+            if current_time - t <= self.config.cooldown
+        ]
+        self.command_counts[key] = window
+
+        if len(window) >= limit:
+            retry_after = int(self.config.cooldown - (current_time - window[0])) + 1
+            self.save_data()
+            return (
+                False,
+                f"Command '{command}' is rate limited. Try again in {retry_after}s.",
+            )
+
+        window.append(current_time)
         self.save_data()
         return True, None
 

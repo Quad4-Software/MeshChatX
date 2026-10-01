@@ -16,6 +16,7 @@ class RRCBot:
         hubs: list[str] | None = None,
         rooms: list[str] | None = None,
         nick: str | None = None,
+        name: str | None = None,
         test_mode: bool = False,
         reticulum_config_dir: str | None = None,
     ):
@@ -25,6 +26,7 @@ class RRCBot:
             hubs: Hub destination hashes (hex) to join on startup.
             rooms: Rooms to auto-join after WELCOME.
             nick: Nickname advertised on HELLO and room messages.
+            name: Bot display name. Defaults to the nick or "RRC Bot".
             test_mode: Skip RNS initialization when True.
             reticulum_config_dir: Optional Reticulum config directory override.
 
@@ -32,7 +34,7 @@ class RRCBot:
         resolved_hubs = list(hubs) if hubs is not None else [DEFAULT_RRC_HUB]
         resolved_rooms = list(rooms) if rooms is not None else list(DEFAULT_RRC_ROOMS)
         self.bot = LXMFBot(
-            name=nick or "RRC Bot",
+            name=name or nick or "RRC Bot",
             announce=600,
             announce_enabled=True,
             first_message_enabled=True,
@@ -71,8 +73,8 @@ class RRCBot:
                 reply = f"{payload.nick or 'someone'} mentioned me: {payload.text}"
                 try:
                     client.send_message(payload.room, reply)
-                except Exception as exc:
-                    self.bot.logger.error("RRC reply failed: %s", exc)
+                except Exception:
+                    self.bot.logger.exception("RRC reply failed")
 
     def run(self) -> None:
         """Run the bot event loop."""

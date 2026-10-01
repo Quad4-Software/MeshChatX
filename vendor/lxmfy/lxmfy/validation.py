@@ -4,9 +4,22 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+import RNS
+
 from .storage import JSONStorage
 
 logger = logging.getLogger(__name__)
+
+
+def destination_bytes(destination: str) -> bytes | None:
+    """Parse a hex destination hash, returning None when invalid."""
+    if not isinstance(destination, str) or not destination:
+        return None
+    try:
+        raw = bytes.fromhex(destination)
+    except ValueError:
+        return None
+    return raw if len(raw) == RNS.Reticulum.TRUNCATED_HASHLENGTH // 8 else None
 
 
 @dataclass
@@ -84,7 +97,7 @@ class ConfigValidator:
                 )
 
         except Exception as e:
-            logger.error("Error during config validation: %s", str(e))
+            logger.exception("Error during config validation")
             results.append(
                 ValidationResult(
                     False,
@@ -258,7 +271,7 @@ def validate_bot(bot: Any) -> dict[str, list[ValidationResult]]:
             "performance": PerformanceAnalyzer.analyze_bot(bot),
         }
     except Exception as e:
-        logger.error("Validation error: %s", str(e))
+        logger.exception("Validation error")
         return {
             "error": [
                 ValidationResult(

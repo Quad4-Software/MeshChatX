@@ -34,7 +34,7 @@ def msg_id() -> bytes:
 def normalize_room(room: str | None) -> str:
     """Normalize a room name for case-insensitive matching."""
     if not isinstance(room, str):
-        raise ValueError("room must be a non-empty string")
+        raise ValueError("room must be a non-empty string")  # noqa: TRY004
     normalized = room.strip().lower()
     if not normalized:
         raise ValueError("room must not be empty")
@@ -144,6 +144,4 @@ def validate_envelope(env: dict[int, Any]) -> bool:
     if room is not None and not isinstance(room, str):
         return False
     nick = env.get(K_NICK)
-    if nick is not None and not isinstance(nick, str):
-        return False
-    return True
+    return nick is None or isinstance(nick, str)

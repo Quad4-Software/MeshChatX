@@ -82,6 +82,7 @@ def ensure_isolated_share_instance_disabled(reticulum_config_dir: str) -> bool:
 
     Returns:
         True if the config file was created or modified.
+
     """
     config_path = Path(reticulum_config_dir) / "config"
     os.makedirs(reticulum_config_dir, exist_ok=True)

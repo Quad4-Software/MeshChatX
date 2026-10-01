@@ -6,10 +6,10 @@ from lxmfy import IconAppearance, LXMFBot, pack_icon_appearance_field
 class EchoBot:
     """A simple echo bot that repeats messages with cryptographic signature verification."""
 
-    def __init__(self, test_mode=False):
+    def __init__(self, name="Echo Bot", test_mode=False):
         """Initializes the EchoBot with signature verification enabled."""
         self.bot = LXMFBot(
-            name="Echo Bot",
+            name=name,
             announce=600,
             command_prefix="",
             first_message_enabled=True,

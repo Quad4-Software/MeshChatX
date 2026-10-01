@@ -1,10 +1,12 @@
 """Reliability and crash recovery tests for LXMFy."""
 
 import os
-import pytest
 import time
-from lxmfy import BotConfig, LXMFBot
 from unittest.mock import MagicMock
+
+import pytest
+
+from lxmfy import BotConfig, LXMFBot
 
 
 @pytest.mark.reliability
@@ -17,7 +19,9 @@ class TestReliability:
 
         # 1. Setup bot and save some state
         config1 = BotConfig(
-            name="PersistentBot", storage_path=storage_path, test_mode=True
+            name="PersistentBot",
+            storage_path=storage_path,
+            test_mode=True,
         )
         bot1 = LXMFBot(**config1.__dict__)
         bot1.storage.set("important_state", {"data": 123})
@@ -28,7 +32,9 @@ class TestReliability:
 
         # 3. Restart bot with same storage
         config2 = BotConfig(
-            name="PersistentBot", storage_path=storage_path, test_mode=True
+            name="PersistentBot",
+            storage_path=storage_path,
+            test_mode=True,
         )
         bot2 = LXMFBot(**config2.__dict__)
 
@@ -47,7 +53,9 @@ class TestReliability:
             f.write("{ invalid json...")
 
         config = BotConfig(
-            name="CorruptBot", storage_path=str(storage_path), test_mode=True
+            name="CorruptBot",
+            storage_path=str(storage_path),
+            test_mode=True,
         )
         # Initialization should not crash despite corrupted file
         bot = LXMFBot(**config.__dict__)

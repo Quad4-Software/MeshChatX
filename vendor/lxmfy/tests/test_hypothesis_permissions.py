@@ -9,29 +9,6 @@ from lxmfy.permissions import DefaultPerms, PermissionManager, Role
 class TestPermissionsPropertyBased:
     """Property-based tests for the permissions system."""
 
-    @given(
-        p1=st.sampled_from(list(DefaultPerms)),
-        p2=st.sampled_from(list(DefaultPerms)),
-    )
-    def test_perms_bitwise_commutative(self, p1, p2):
-        """Test that ORing permissions is commutative."""
-        assert (p1 | p2) == (p2 | p1)
-
-    @given(p=st.sampled_from(list(DefaultPerms)))
-    def test_perms_bitwise_idempotent(self, p):
-        """Test that ORing a permission with itself is idempotent."""
-        assert (p | p) == p
-
-    @given(perms_list=st.lists(st.sampled_from(list(DefaultPerms)), min_size=1))
-    def test_perms_all_contain_individual(self, perms_list):
-        """Test that a combined permission set contains all its components."""
-        combined = DefaultPerms.NONE
-        for p in perms_list:
-            combined |= p
-
-        for p in perms_list:
-            assert (combined & p) == p
-
     @st.composite
     def perms_strategy(draw):
         """Strategy to generate a combined DefaultPerms flag."""

@@ -360,6 +360,22 @@ class TestSignatureFunctions:
 
         assert result is False
 
+    def test_verify_incoming_message_invalid_signature_always_dropped(self):
+        """Invalid signatures are rejected even when verification is turned off."""
+        bot = MagicMock()
+        bot.signature_manager = MagicMock()
+        bot.signature_manager.should_verify_message.return_value = False
+
+        mock_message = MagicMock()
+        mock_message.signature_validated = False
+        mock_message.unverified_reason = LXMF.LXMessage.SIGNATURE_INVALID
+        mock_message.hash = b"message_hash"
+
+        result = verify_incoming_message(bot, mock_message, "sender_hash")
+
+        assert result is False
+        bot.signature_manager.should_verify_message.assert_not_called()
+
     def test_verify_incoming_message_source_unknown_require_sig(self):
         """Test verify_incoming_message when source is unknown and signatures required."""
         bot = MagicMock()

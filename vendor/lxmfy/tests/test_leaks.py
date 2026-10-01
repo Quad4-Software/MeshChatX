@@ -1,11 +1,13 @@
 """Leak and resource tests for LXMFy."""
 
+import gc
 import threading
+from unittest.mock import MagicMock
+
 import psutil
 import pytest
-import gc
+
 from lxmfy import BotConfig, LXMFBot
-from unittest.mock import MagicMock
 
 
 def get_open_fds():

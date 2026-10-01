@@ -1,42 +1,11 @@
 """Chaos and fault injection testing for off-grid reliability."""
 
-import random
 import time
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from lxmfy import BotConfig, LXMFBot
-from lxmfy.storage import Storage, JSONStorage
-
-
-class FailingStorageBackend:
-    """A storage backend that periodically fails or corrupts data."""
-
-    def __init__(self, real_backend, failure_rate=0.1):
-        self.real = real_backend
-        self.failure_rate = failure_rate
-
-    def set(self, key, value):
-        if random.random() < self.failure_rate:
-            # Simulate a "Partial Write" by corrupting the value
-            if isinstance(value, str):
-                value = value[: len(value) // 2] + " [CORRUPTED] "
-            elif isinstance(value, dict):
-                value["corrupt"] = True
-        return self.real.set(key, value)
-
-    def get(self, key, default=None):
-        if random.random() < self.failure_rate:
-            raise OSError("I/O Error: SD Card Read Failed (Simulated)")
-        return self.real.get(key, default)
-
-    def delete(self, key):
-        return self.real.delete(key)
-
-    def exists(self, key):
-        return self.real.exists(key)
-
-    def scan(self, prefix):
-        return self.real.scan(prefix)
 
 
 @pytest.mark.reliability
@@ -73,30 +42,6 @@ class TestChaosBot:
             bot.storage.set("panic_event", "Clock rolled back")
             assert bot.storage.get("panic_event") == "Clock rolled back"
 
-    def test_storage_fault_injection(self, test_config_dir):
-        """Verify the bot can survive intermittent storage failures."""
-        json_backend = JSONStorage(str(test_config_dir / "chaos_json"))
-        chaos_backend = FailingStorageBackend(json_backend, failure_rate=0.2)
-        storage = Storage(chaos_backend)
-
-        success_count = 0
-        error_count = 0
-
-        for i in range(100):
-            try:
-                storage.set(f"key_{i}", {"data": "important info"})
-                val = storage.get(f"key_{i}")
-                if val:
-                    success_count += 1
-            except Exception:
-                error_count += 1
-
-        print(
-            f"\n[Chaos Storage] Successes: {success_count}, Simulated Errors: {error_count}"
-        )
-        # The goal is not 100% success, but that the framework doesn't CRASH the entire process
-        assert (success_count + error_count) == 100
-
     def test_message_storm_deduplication(self, test_config_dir):
         """Test the bot's ability to handle massive duplicate message storms."""
         config = BotConfig(
@@ -128,7 +73,7 @@ class TestChaosBot:
         mock_msg.signature_validated = True
 
         # Send the EXACT SAME message 50 times
-        with patch("lxmfy.core.verify_incoming_message", return_value=True):
+        with patch("lxmfy._inbound.verify_incoming_message", return_value=True):
             for _ in range(50):
                 bot._message_received(mock_msg)
 

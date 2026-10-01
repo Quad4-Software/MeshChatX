@@ -1,0 +1,27 @@
+# LXMFy
+
+> Python framework for building LXMF bots on the Reticulum Network. Handles the boilerplate: routing, storage, permissions, commands, cogs, signatures, delivery retries, and scheduled tasks. Requires Python 3.11+, rns, and lxmf.
+
+## Docs
+
+- [Quick Start](https://lxmfy.quad4.io/quick-start/): install, minimal bot, first deploy
+- [Creating Bots](https://lxmfy.quad4.io/creating-bots/): commands, event handlers, cogs, storage, permissions, scheduled tasks, signatures, RRC
+- [API Reference](https://lxmfy.quad4.io/api-reference/): configuration, LXMFBot methods, message fields, module reference
+- [Full documentation](https://lxmfy.quad4.io/llms-full.txt): all English pages concatenated in one file
+
+## Translations
+
+- [Deutsch](https://lxmfy.quad4.io/de/)
+- [Español](https://lxmfy.quad4.io/es/)
+- [Français](https://lxmfy.quad4.io/fr/)
+- [Português](https://lxmfy.quad4.io/pt/)
+- [Русский](https://lxmfy.quad4.io/ru/)
+- [Українська](https://lxmfy.quad4.io/uk/)
+- [简体中文](https://lxmfy.quad4.io/zh/)
+
+## Resources
+
+- [GitHub](https://github.com/Quad4-Software/LXMFy): source, issues, releases
+- [PyPI](https://pypi.org/project/lxmfy/): pip install lxmfy
+- [Reticulum](https://reticulum.network/): the network stack LXMF runs on
+- [LXMF](https://github.com/Quad4-Software/LXMF): the messaging protocol library

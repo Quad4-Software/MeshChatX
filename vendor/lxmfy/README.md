@@ -1,27 +1,25 @@
 # LXMFy
 
-Easily create LXMF bots for the Reticulum Network with this extensible framework.
+Python framework for LXMF bots on the Reticulum Network.
 
 [Docs](https://lxmfy.quad4.io)
 
-## Feature
+## Features
 
-| Category | Key Capabilities |
+| Category | Capabilities |
 | :--- | :--- |
-| **Core** | Interactive CLI, Command Prefixes, Cron-style Task Scheduler, Middleware & Event Systems |
-| **Connectivity** | Direct Delivery & Propagation Fallback, Auto-Peering, RNS Link Support, Opportunistic Sending, **RRC (Reticulum Relay Chat) hub client** |
-| **Security** | Spam Protection, Role-based Permissions, Identity Pinning, Message Signing/Verification, Landlock LSM Filesystem Sandbox (Linux) |
-| **NLP** | Local NLP Intent Classification (Offline/Private), Type-hinted Argument Parsing |
-| **Extensions** | Python Cogs, External Script Cogs (Bash, Go, C, etc.), Linux Sandboxing (Landlock LSM, `bwrap`/`firejail`) |
-| **Storage** | Extensible Backends (JSON, SQLite, In-Memory), Message Persistence (Crash Recovery) |
-| **Reliability** | Extensive Stability & Mathematical Stress Testing, Chaos Engineering, Resource Leak Detection |
-| **UX** | Help on First Message, Auto-generated Help Menus, Customizable Bot Icons, Attachments |
+| Core | Interactive CLI, command prefixes, cron-style task scheduler, middleware and event systems |
+| Connectivity | Direct delivery with propagation fallback, auto-peering, RNS links, opportunistic sending, RRC hub client |
+| Security | Spam protection, role-based permissions, identity pinning, message signature policy, Landlock LSM filesystem sandbox on Linux |
+| NLP | Local offline intent classification, type-hinted argument parsing |
+| Extensions | Python cogs, external script cogs (Bash, Go, C, and others), subprocess sandboxing via Landlock, `bwrap`, or `firejail` |
+| Storage | JSON, SQLite, and in-memory backends, crash-safe outgoing message persistence |
+| Reliability | Stability and stress tests, chaos engineering hooks, resource leak checks |
+| UX | Help on first message, auto-generated help menus, customizable bot icons, attachments |
 
 ## Installation
 
-**Requirements:** Python 3.11+, [RNS](https://pypi.org/project/rns/) 1.3.8+, [LXMF](https://pypi.org/project/lxmf/) 1.0.1+, [cbor2](https://pypi.org/project/cbor2/) 5.4.0+ (installed automatically with LXMFy).
-
-There are many ways to install LXMFy, you pick:
+**Requirements:** Python 3.11+, [RNS](https://pypi.org/project/rns/) 1.5.4+, [LXMF](https://pypi.org/project/lxmf/) 1.1.1+, [cborx](https://pypi.org/project/cborx/) 0.2.5+ (pulled in with LXMFy).
 
 ### From PyPI
 
@@ -33,17 +31,20 @@ pip install lxmfy
 pipx install lxmfy
 ```
 
-### Development Installation
-
-For development, clone the repository and install with poetry:
+### From source
 
 ```bash
-git clone https://git.quad4.io/LXMFy/LXMFy.git
+git clone https://github.com/Quad4-Software/LXMFy.git
 cd LXMFy
+poetry install
 ```
 
+### Standalone zipapp
+
+Each GitHub release ships a `lxmfy-x.y.z.pyz` with all dependencies bundled:
+
 ```bash
-poetry install
+python3 lxmfy-2.0.4.pyz --help
 ```
 
 ## Usage
@@ -52,23 +53,34 @@ poetry install
 lxmfy
 ```
 
-**Create bots:**
+Create a bot project:
 
 ```bash
 lxmfy create
 ```
 
+Debug send and receive:
+
+```bash
+lxmfy debug
+lxmfy debug --config ./config --output ./lxmfy-debug-report.txt
+lxmfy debug probe <destination_hash> --request-path --wait 30
+lxmfy debug send <destination_hash>
+lxmfy debug receive
+lxmfy debug compare <hash_a> <hash_b>
+```
+
+Doctor mode prints a verdict and next steps, then categorized checks (OS, shared vs owned instance, disk permissions, interfaces, announce, send pipeline / storage history, receive readiness). It saves a privacy-redacted `lxmfy-debug-*.txt` you can share. Colors turn off when stdout is not a TTY, when `NO_COLOR` is set, or when Windows VT is unavailable. Use `--no-color` or `NO_COLOR=1` for plain output.
+
 ## Docker
 
-### Building Manually
+### Build and run
 
-To build the Docker image, navigate to the root of the project and run:
+From the project root:
 
 ```bash
 docker build -t lxmfy-test .
 ```
-
-Once built, you can run the Docker image:
 
 ```bash
 docker run -d \
@@ -79,7 +91,7 @@ docker run -d \
     lxmfy-test
 ```
 
-Auto-Interface support (network host):
+Host networking (AutoInterface):
 
 ```bash
 docker run -d \
@@ -91,67 +103,67 @@ docker run -d \
     lxmfy-test
 ```
 
-### Building Wheels with docker/Dockerfile.Build
-
-The `docker/Dockerfile.Build` is used to build the `lxmfy` Python package into a wheel file within a Docker image.
+### Build a wheel
 
 ```bash
 docker build -f docker/Dockerfile.Build -t lxmfy-wheel-builder .
-```
-
-This will create an image named `lxmfy-wheel-builder`. To extract the built wheel file from the image, you can run a container from this image and copy the `dist` directory:
-
-```bash
 docker run --rm -v "$(pwd)/dist_output:/output" lxmfy-wheel-builder
 ```
 
-This command will create a `dist_output` directory in your current working directory and copy the built wheel file into it.
+That copies the built wheel into `./dist_output`.
 
 ## Example
 
+The smallest working bot needs a name and one command:
+
 ```python
-from lxmfy import LXMFBot, load_cogs_from_directory
+from lxmfy import LXMFBot
 
-bot = LXMFBot(
-    name="LXMFy Test Bot", # Name of the bot that appears on the network.
-    announce=5400, # Announce every hour, set to 0 to disable.
-    announce_enabled=True, # Set to False to disable all announces (both initial and periodic)
-    announce_immediately=True, # Set to False to disable initial announce
-    admins=["your_lxmf_hash_here"], # List of admin hashes.
-    hot_reloading=True, # Enable hot reloading.
-    command_prefix="/", # Set to None to process all messages as commands.
-    cogs_dir="cogs", # Specify cogs directory name.
-    rate_limit=5, # 5 messages per minute
-    cooldown=5, # 5 seconds cooldown
-    max_warnings=3, # 3 warnings before ban
-    warning_timeout=300, # Warnings reset after 5 minutes
-    signature_verification_enabled=True, # Enable cryptographic signature verification
-    require_message_signatures=False, # Allow unsigned messages but log them
-    propagation_fallback_enabled=True, # Enable propagation fallback after direct delivery fails
-    propagation_node="your_propagation_node_hash_here", # Manual propagation node (optional)
-    autopeer_propagation=True, # Auto-discover propagation nodes (optional)
-    autopeer_maxdepth=4, # Max hops for auto-peering (default: 4)
-    enable_propagation_node=False, # Run as propagation node (default: False)
-    message_storage_limit_mb=500, # Storage limit in MB for propagation node (default: 500)
-    direct_delivery_retries=3, # Number of direct delivery attempts before falling back to propagation
-    landlock_enabled=True, # Linux Landlock LSM sandbox for the bot process (default)
-    external_cogs_sandbox_enabled=True, # Sandbox external script cogs on Linux
-    external_cogs_sandbox_type="auto", # auto, landlock, bwrap, firejail, or none
-)
+bot = LXMFBot("LXMFy Test Bot")
 
-# Dynamically load all cogs
-load_cogs_from_directory(bot)
 
-@bot.command(name="ping", description="Test if bot is responsive")
+@bot.command("ping", description="Test if bot is responsive")
 def ping(ctx):
     ctx.reply("Pong!")
 
-# Admin Only Command
-@bot.command(name="echo", description="Echo a message", admin_only=True)
+
+@bot.command("echo", description="Echo a message", admin_only=True)
 def echo(ctx, message: str):
     ctx.reply(message)
 
+
 bot.run()
+```
+
+Everything else has defaults. Pass keyword arguments to `LXMFBot` to override them:
+
+```python
+bot = LXMFBot(
+    "LXMFy Test Bot",
+    announce=5400,  # Announce every hour, set to 0 to disable.
+    announce_enabled=True,  # Set to False to disable all announces (both initial and periodic)
+    announce_immediately=True,  # Set to False to disable initial announce
+    admins=["your_lxmf_hash_here"],  # List of admin hashes.
+    hot_reloading=True,  # Enable hot reloading.
+    command_prefix="/",  # Set to None to process all messages as commands.
+    cogs_dir="cogs",  # Specify cogs directory name.
+    rate_limit=5,  # 5 messages per minute
+    cooldown=5,  # 5 seconds cooldown
+    max_warnings=3,  # 3 warnings before ban
+    warning_timeout=300,  # Warnings reset after 5 minutes
+    signature_verification_enabled=True,  # Enable cryptographic signature verification
+    require_message_signatures=False,  # Allow unsigned messages but log them
+    propagation_fallback_enabled=True,  # Enable propagation fallback after direct delivery fails
+    propagation_node="your_propagation_node_hash_here",  # Manual propagation node (optional)
+    autopeer_propagation=True,  # Auto-discover propagation nodes (optional)
+    autopeer_maxdepth=4,  # Max hops for auto-peering (default: 4)
+    enable_propagation_node=False,  # Run as propagation node (default: False)
+    message_storage_limit_mb=500,  # Storage limit in MB for propagation node (default: 500)
+    direct_delivery_retries=3,  # Number of direct delivery attempts before falling back to propagation
+    landlock_enabled=True,  # Linux Landlock LSM sandbox for the bot process (default)
+    external_cogs_sandbox_enabled=True,  # Sandbox external script cogs on Linux
+    external_cogs_sandbox_type="auto",  # auto, landlock, bwrap, firejail, or none
+)
 ```
 
 ## RRC (Reticulum Relay Chat)
@@ -169,10 +181,12 @@ bot = LXMFBot(
     rrc_nick="RoomBot",
 )
 
+
 @bot.on_rrc
 def on_rrc(event, client, payload):
     if event == "msg" and isinstance(payload, RRCMessage) and payload.mention:
         client.send_message(payload.room, f"Heard you, {payload.nick}")
+
 
 bot.run()
 ```
@@ -183,9 +197,9 @@ Hub sessions persist across restarts by default (`rrc_persist_sessions=True`). O
 
 ## Propagation Node Configuration
 
-LXMFy supports three modes for propagation node usage:
+LXMFy supports three modes for propagation node usage.
 
-### 1. Manual Configuration
+### Manual configuration
 
 Set a specific propagation node by hash:
 
@@ -193,43 +207,41 @@ Set a specific propagation node by hash:
 bot = LXMFBot(
     name="MyBot",
     propagation_fallback_enabled=True,
-    propagation_node="your_propagation_node_hash_here",  # Manual node configuration
+    propagation_node="your_propagation_node_hash_here",
     direct_delivery_retries=3,
 )
 ```
 
-### 2. Automatic Discovery (Auto-Peering)
+### Automatic discovery (auto-peering)
 
-Let the bot automatically discover and use propagation nodes from network announces:
+Discover propagation nodes from network announces:
 
 ```python
 bot = LXMFBot(
     name="MyBot",
     propagation_fallback_enabled=True,
-    autopeer_propagation=True,  # Enable automatic discovery
-    autopeer_maxdepth=4,  # Maximum hop distance for auto-peering (default: 4)
+    autopeer_propagation=True,
+    autopeer_maxdepth=4,
 )
 ```
 
-The bot will listen for propagation node announces and automatically peer with suitable nodes within the configured hop depth.
+The bot peers with suitable nodes within `autopeer_maxdepth` hops.
 
-### 3. Run as Propagation Node
+### Run as a propagation node
 
-Your bot can act as a propagation node itself to store and forward messages:
+Store and forward messages for offline recipients:
 
 ```python
 bot = LXMFBot(
     name="MyPropagationBot",
-    enable_propagation_node=True,  # Enable propagation node mode
-    message_storage_limit_mb=500,  # Limit storage to 500 MB (default)
+    enable_propagation_node=True,
+    message_storage_limit_mb=500,
 )
 ```
 
-When running as a propagation node, the bot will store messages for offline users and forward them when the recipients come online. The `message_storage_limit_mb` prevents the bot from consuming unlimited disk space. Set to 0 for unlimited storage (not recommended).
+`message_storage_limit_mb` caps disk use. Set to 0 for unlimited storage (not recommended).
 
-### Querying Propagation Status
-
-You can check the current propagation configuration and discovered nodes:
+### Querying propagation status
 
 ```python
 status = bot.get_propagation_node_status()
@@ -237,44 +249,38 @@ print(f"Current outbound node: {status['current_outbound_node']}")
 print(f"Discovered peers: {status['discovered_peers']}")
 ```
 
-### Dynamically Setting Propagation Node
-
-You can change the propagation node at runtime:
+### Setting the propagation node at runtime
 
 ```python
 bot.set_propagation_node("new_propagation_node_hash")
 ```
 
-### Managing Storage Limits
-
-When running as a propagation node, you can query and adjust storage limits:
+### Storage limits
 
 ```python
-# Get current storage statistics
 stats = bot.get_propagation_storage_stats()
 print(f"Storage used: {stats['storage_size_mb']:.2f} MB")
 print(f"Storage limit: {stats['storage_limit_mb']} MB")
 print(f"Utilization: {stats['utilization_percent']:.1f}%")
 print(f"Messages stored: {stats['message_count']}")
 
-# Change storage limit at runtime
-bot.set_message_storage_limit(megabytes=1000)  # Set to 1 GB
+bot.set_message_storage_limit(megabytes=1000)
 ```
 
-### Important Notes
+### Propagation notes
 
-- Without configuring propagation (manual, auto-peer, or running as a node), messages requiring propagation will fail
-- You can combine modes: e.g., set a manual node AND enable auto-peering as backup
-- When running as a propagation node, your bot can still send and receive messages normally
-- Auto-peering respects the `autopeer_maxdepth` setting to avoid connecting to distant nodes
+- Without manual config, auto-peering, or running as a node, messages that need propagation fail
+- You can combine modes (manual node plus auto-peering as backup)
+- A propagation-node bot still sends and receives normally
+- Auto-peering respects `autopeer_maxdepth` so distant nodes are skipped
 
-## Security & Sandboxing
+## Security and Sandboxing
 
 On Linux kernels with Landlock support (5.13+), LXMFy can restrict filesystem access for the bot process and for external script cogs.
 
 ### Bot process sandbox
 
-When `landlock_enabled=True` (default), the bot applies a Landlock LSM sandbox after startup. System paths are read-only; bot storage, config, cogs, Reticulum config, and temp directories remain writable.
+When `landlock_enabled=True` (default), the bot applies a Landlock LSM sandbox after startup. System paths are read-only. Bot storage, config, cogs, Reticulum config, and temp directories stay writable.
 
 ```python
 bot = LXMFBot(
@@ -288,19 +294,19 @@ print(status)
 
 Environment overrides:
 
-- `LXMFY_LANDLOCK=0` — disable Landlock
-- `LXMFY_LANDLOCK=1` — force an attempt on Linux
-- unset — follow `landlock_enabled` and kernel auto-detection
+- `LXMFY_LANDLOCK=0`: disable Landlock
+- `LXMFY_LANDLOCK=1`: force an attempt on Linux
+- unset: follow `landlock_enabled` and kernel auto-detection
 
 ### External script cog sandbox
 
 Executable cogs in `cogs/` can run in a restricted environment when `external_cogs_sandbox_enabled=True` (default). Set `external_cogs_sandbox_type` to:
 
-- `auto` (default) — prefer Landlock, then `bwrap`, then `firejail`
-- `landlock` — Landlock-only via `preexec_fn`
-- `bwrap` — bubblewrap read-only bind sandbox
-- `firejail` — firejail private profile with no network
-- `none` — no subprocess sandbox
+- `auto` (default): prefer Landlock, then `bwrap`, then `firejail`
+- `landlock`: Landlock-only via `preexec_fn`
+- `bwrap`: bubblewrap read-only bind sandbox
+- `firejail`: firejail private profile with no network
+- `none`: no subprocess sandbox
 
 See the [docs](https://lxmfy.quad4.io) for full configuration details.
 
@@ -325,7 +331,7 @@ make ci         # lint, typecheck, security check, test, build
 
 ## Contributing
 
-For now send ideas and issues to LXMF: `7cc8d66b4f6a0e0e49d34af7f6077b5a`
+Send ideas and issues to LXMF: `7cc8d66b4f6a0e0e49d34af7f6077b5a`
 
 ## License
 

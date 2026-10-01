@@ -1,0 +1,193 @@
+# Build and deploy documentation to GitHub Pages via mike.
+# Secure-use: minimal permissions, SHA-pinned actions, gh-pages writes only
+# from master pushes, releases, or manual dispatch.
+#
+# Deployment model: mike builds the site and pushes versioned directories
+# to the gh-pages branch. Master deploys as "dev". Releases deploy their
+# tag version and update the "latest" alias, which is the default version.
+
+name: Docs
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "docs/**"
+      - "lxmfy/**"
+      - "overrides/**"
+      - "zensical.toml"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "overrides/**"
+      - "zensical.toml"
+      - ".github/workflows/docs.yml"
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version identifier to deploy (default: dev)"
+        required: false
+        default: dev
+      set_latest:
+        description: Also update the latest alias and default version
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Install docs tooling and lxmfy
+        run: |
+          pip install --require-hashes -r docs/requirements-docs.txt
+          pip install --no-deps -e .
+
+      - name: Generate llms-full.txt
+        run: docs/gen-llms-full.sh
+
+      - name: Build site
+        run: zensical build
+
+  deploy:
+    name: Deploy versioned docs
+    if: >-
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/master' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # mike pushes the gh-pages branch
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        # zizmor: ignore[artipacked] mike needs the token to push gh-pages; no artifacts uploaded
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: true  # mike needs the token to push gh-pages
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Install docs tooling and lxmfy
+        run: |
+          pip install --require-hashes -r docs/requirements-docs.txt
+          pip install --no-deps -e .
+
+      - name: Generate llms-full.txt
+        run: docs/gen-llms-full.sh
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Deploy dev version
+        if: github.event_name == 'push'
+        run: mike deploy --push dev
+
+      - name: Hoist root files
+        if: github.event_name == 'push'
+        run: docs/hoist-root-files.sh dev
+
+      - name: Deploy requested version
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          VERSION: ${{ inputs.version }}
+          SET_LATEST: ${{ inputs.set_latest }}
+        run: |
+          if [ "$SET_LATEST" = "true" ]; then
+            mike deploy --push --update-aliases "$VERSION" latest
+            mike set-default --push latest
+          else
+            mike deploy --push "$VERSION"
+          fi
+
+      - name: Hoist root files
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          VERSION: ${{ inputs.version }}
+        run: docs/hoist-root-files.sh "$VERSION"
+
+  deploy-release:
+    name: Deploy release version
+    if: github.event_name == 'release'
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # mike pushes the gh-pages branch
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout release tag
+        # zizmor: ignore[artipacked] mike needs the token to push gh-pages; no artifacts uploaded
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+          persist-credentials: true  # mike needs the token to push gh-pages
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Install docs tooling and lxmfy
+        run: |
+          pip install --require-hashes -r docs/requirements-docs.txt
+          pip install --no-deps -e .
+
+      - name: Generate llms-full.txt
+        run: docs/gen-llms-full.sh
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Deploy release version and latest alias
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="${TAG#v}"
+          mike deploy --push --update-aliases "$version" latest
+          mike set-default --push latest
+
+      - name: Hoist root files
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: docs/hoist-root-files.sh "${TAG#v}"
