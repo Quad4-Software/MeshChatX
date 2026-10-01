@@ -1,0 +1,41 @@
+#!/bin/sh
+# prepare-commit-msg: append AI provenance trailers when ai.* git config is
+# present on this machine or clone.
+#
+#   git config ai.harness "Nullray"
+#   git config ai.model   "Kimi K3"
+#   git config ai.method  "Fireworks (ZDR)"
+#
+# Trailers land in every commit message while the config exists. Unset the
+# keys or commit with --no-verify on a message prepared elsewhere to opt out
+# for a single commit.
+#
+# Skip: SKIP_AI_HOOK=1 git commit ...
+set -eu
+
+if [ "${SKIP_AI_HOOK:-0}" = "1" ]; then
+	exit 0
+fi
+
+MSG_FILE="${1:-}"
+[ -n "$MSG_FILE" ] && [ -f "$MSG_FILE" ] || exit 0
+
+harness="$(git config ai.harness || true)"
+model="$(git config ai.model || true)"
+method="$(git config ai.method || true)"
+
+if [ -z "$harness" ] && [ -z "$model" ] && [ -z "$method" ]; then
+	exit 0
+fi
+
+# Already annotated (amend of an agent commit, message prepared by hand).
+if grep -qE '^(Harness|Model|Method):' "$MSG_FILE"; then
+	exit 0
+fi
+
+{
+	echo ""
+	[ -n "$harness" ] && printf 'Harness: %s\n' "$harness"
+	[ -n "$model" ] && printf 'Model: %s\n' "$model"
+	[ -n "$method" ] && printf 'Method: %s\n' "$method"
+} >>"$MSG_FILE"
