@@ -92,19 +92,44 @@ on both sides, waits for mutual propagation, and writes
 
 ```sh
 bash tests/agentic/pair-up.sh
-node tests/agentic/pair-messaging.cjs   # deterministic backbone
-bash tests/agentic/pair-agents.sh       # two coordinated agents
+pnpm run test:agentic:pair     # messaging + features backbone
 bash tests/agentic/pair-down.sh
 ```
 
-`pair-messaging.cjs` verifies real delivery both directions plus an
-attachment through `file_attachments` fields, then checks call UI
-presence. `pair-agents.sh` runs two `opencode run` processes in parallel;
-the prompts in `prompts/pair-alice.md` and `prompts/pair-bob.md`
-coordinate through `pairshare/*_step_*_done.txt` marker files.
+Deterministic legs:
+
+- `pair-messaging.cjs`: text both directions, `file_attachments`
+  delivery, call UI presence.
+- `pair-features.cjs`: filesync host/upload/browse/download, rncp
+  listen+send, propagation node host/announce/send/delivery, rnsh
+  listen+connect. rnsh is skipped when the host reticulum config binds a
+  TCP listener port (subprocess EADDRINUSE).
 
 The chaos proxy sits between the two backends, so link-fault injection
 (`E2E_PEER_SHARE/chaos.mode`) works during pair runs too.
+
+## Multi-agent scenarios
+
+`orchestrate.cjs` runs declarative two-agent scenarios. A scenario is a
+markdown file under `scenarios/` whose prose is the shared brief, plus a
+fenced ` ```agentic ` JSON block carrying the machine contract: agents
+(name, browser), and markers (id, owner, `after` dependencies, per-step
+timeouts). Agents write `<marker>.done` files under
+`out/scenarios/<name>/`; the orchestrator supervises dependencies and
+timeouts, then emits `report.json`.
+
+```sh
+node tests/agentic/orchestrate.cjs tests/agentic/scenarios/pair-messaging.md
+node tests/agentic/orchestrate.cjs tests/agentic/scenarios/pair-features.md \
+    --model opencode/deepseek-v4.1-flash
+```
+
+Browser per agent: the `playwright` MCP server uses chromium and
+`playwright-firefox` uses firefox headless; the `pair-chromium` and
+`pair-firefox` agents each see only their own browser namespace.
+
+New scenario: copy an existing file, edit the prose steps and the markers
+list, keep marker ids unique per agent.
 
 ## Reports
 

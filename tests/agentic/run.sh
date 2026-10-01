@@ -58,6 +58,7 @@ fi
 if [[ "$WANT_PAIR" == "1" ]]; then
     run bash tests/agentic/pair-up.sh
     run node tests/agentic/pair-messaging.cjs
+    run node tests/agentic/pair-features.cjs
 fi
 
 echo "[run] done (rc=$rc); reports in $OUT"
