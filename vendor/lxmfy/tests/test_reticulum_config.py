@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-import multiprocessing
+import json
+import os
+import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -122,44 +125,61 @@ def test_is_isolated_reticulum_dir(tmp_path):
     assert is_isolated_reticulum_dir(str(other), str(bot)) is False
 
 
-def _shared_instance_worker(
+def _shared_instance_worker_file(
     role: str,
     cfg: str,
-    q: multiprocessing.Queue,
+    result_path: str,
     delay: float = 0.0,
-):
+) -> None:
+    """Child-process entry: start Reticulum and write JSON outcomes to disk."""
     import RNS
+
+    outcomes: list = []
+
+    def flush() -> None:
+        Path(result_path).write_text(json.dumps(outcomes), encoding="utf-8")
 
     if delay:
         time.sleep(delay)
     try:
-        r = RNS.Reticulum(configdir=cfg, loglevel=RNS.LOG_ERROR)
-        q.put(
-            (
-                role,
-                "started",
-                r.is_shared_instance,
-                r.is_connected_to_shared_instance,
-                r.is_standalone_instance,
-            ),
-        )
         try:
-            client = r.get_rpc_client()
-            client.close()
-            q.put((role, "rpc_ok"))
+            r = RNS.Reticulum(configdir=cfg, loglevel=RNS.LOG_ERROR)
+            outcomes.append(
+                [
+                    role,
+                    "started",
+                    r.is_shared_instance,
+                    r.is_connected_to_shared_instance,
+                    r.is_standalone_instance,
+                ],
+            )
+            flush()
+            try:
+                client = r.get_rpc_client()
+                client.close()
+                outcomes.append([role, "rpc_ok"])
+            except Exception as e:
+                outcomes.append([role, f"{type(e).__name__}: {e}"])
+            flush()
+            if role == "master":
+                time.sleep(6)
         except Exception as e:
-            q.put((role, f"{type(e).__name__}: {e}"))
-        if role == "master":
-            time.sleep(6)
+            outcomes.append([role, f"{type(e).__name__}: {e}"])
+            flush()
     finally:
         try:
             RNS.Reticulum.exit_handler()
         except Exception:
             pass
+        flush()
 
 
 def _write_tcp_shared_config(
-    path: Path, *, share: bool, iface: int, control: int
+    path: Path,
+    *,
+    share: bool,
+    iface: int,
+    control: int,
 ) -> None:
     path.mkdir(parents=True, exist_ok=True)
     share_val = "Yes" if share else "No"
@@ -179,33 +199,76 @@ def _write_tcp_shared_config(
     )
 
 
+def _start_worker(
+    role: str,
+    cfg: Path,
+    result_path: Path,
+    delay: float = 0.0,
+) -> subprocess.Popen:
+    # Fresh interpreter avoids fork/singleton and parent multiprocessing tracker issues
+    repo_root = Path(__file__).resolve().parent.parent
+    tests_dir = Path(__file__).resolve().parent
+    env = dict(os.environ)
+    env["PYTHONPATH"] = os.pathsep.join(
+        [str(repo_root), str(tests_dir), env.get("PYTHONPATH", "")]
+    ).rstrip(os.pathsep)
+    code = (
+        "from test_reticulum_config import _shared_instance_worker_file; "
+        f"_shared_instance_worker_file({role!r}, {str(cfg)!r}, {str(result_path)!r}, {delay})"
+    )
+    return subprocess.Popen(
+        [sys.executable, "-c", code],
+        cwd=str(tests_dir),
+        env=env,
+    )
+
+
+def _load_results(*paths: Path) -> list:
+    results = []
+    for path in paths:
+        if not path.exists():
+            continue
+        results.extend(json.loads(path.read_text(encoding="utf-8")))
+    return results
+
+
+def _wait_for_started(
+    master_out: Path, client_out: Path, timeout: float = 20.0
+) -> list:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        results = _load_results(master_out, client_out)
+        started = [r for r in results if len(r) >= 5 and r[1] == "started"]
+        if len(started) >= 2:
+            return results
+        time.sleep(0.2)
+    return _load_results(master_out, client_out)
+
+
 @pytest.mark.integration
 def test_colliding_shared_instance_rejects_digest(tmp_path):
     """Different config dirs on the same shared ports fail RPC auth."""
     master = tmp_path / "master"
     client = tmp_path / "client"
+    master_out = tmp_path / "master.json"
+    client_out = tmp_path / "client.json"
     _write_tcp_shared_config(master, share=True, iface=47628, control=47629)
     _write_tcp_shared_config(client, share=True, iface=47628, control=47629)
 
-    q: multiprocessing.Queue = multiprocessing.Queue()
-    p1 = multiprocessing.Process(
-        target=_shared_instance_worker,
-        args=("master", str(master), q),
-    )
-    p2 = multiprocessing.Process(
-        target=_shared_instance_worker,
-        args=("client", str(client), q, 2.0),
-    )
-    p1.start()
-    p2.start()
-    p2.join(timeout=20)
-    p1.terminate()
-    p1.join(timeout=5)
+    p1 = _start_worker("master", master, master_out)
+    p2 = _start_worker("client", client, client_out, delay=2.0)
+    try:
+        p2.wait(timeout=20)
+        # Give master a moment to flush any final client-side auth outcome
+        time.sleep(0.5)
+    finally:
+        p1.terminate()
+        try:
+            p1.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            p1.kill()
 
-    results = []
-    while not q.empty():
-        results.append(q.get())
-
+    results = _load_results(master_out, client_out)
     assert any(
         r[0] == "client" and "digest sent was rejected" in str(r[1]) for r in results
     )
@@ -219,30 +282,26 @@ def test_isolated_share_instance_avoids_digest_rejection(tmp_path):
     """
     master = tmp_path / "master"
     client = tmp_path / "client"
+    master_out = tmp_path / "master.json"
+    client_out = tmp_path / "client.json"
     ensure_isolated_share_instance_disabled(str(master))
     ensure_isolated_share_instance_disabled(str(client))
     _write_tcp_shared_config(master, share=False, iface=47728, control=47729)
     _write_tcp_shared_config(client, share=False, iface=47738, control=47739)
 
-    q: multiprocessing.Queue = multiprocessing.Queue()
-    p1 = multiprocessing.Process(
-        target=_shared_instance_worker,
-        args=("master", str(master), q),
-    )
-    p2 = multiprocessing.Process(
-        target=_shared_instance_worker,
-        args=("client", str(client), q, 1.5),
-    )
-    p1.start()
-    p2.start()
-    p2.join(timeout=20)
-    p1.terminate()
-    p1.join(timeout=5)
+    p1 = _start_worker("master", master, master_out)
+    p2 = _start_worker("client", client, client_out, delay=1.5)
+    try:
+        results = _wait_for_started(master_out, client_out, timeout=20.0)
+        p2.wait(timeout=10)
+    finally:
+        p1.terminate()
+        try:
+            p1.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            p1.kill()
 
-    results = []
-    while not q.empty():
-        results.append(q.get())
-
+    results = _load_results(master_out, client_out)
     started = [r for r in results if len(r) >= 5 and r[1] == "started"]
     assert len(started) == 2
     assert all(r[4] is True for r in started)

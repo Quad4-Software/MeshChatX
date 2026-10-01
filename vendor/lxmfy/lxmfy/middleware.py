@@ -104,11 +104,11 @@ class MiddlewareManager:
                     mw(ctx)
                     if ctx.cancelled:
                         break
-                except Exception as e:
-                    self.logger.error("Error in middleware %s: %s", mw.__name__, str(e))
+                except Exception:
+                    self.logger.exception("Error in middleware %s", mw.__name__)
 
             return None if ctx.cancelled else ctx.data
 
-        except Exception as e:
-            self.logger.error("Error executing middleware chain: %s", str(e))
+        except Exception:
+            self.logger.exception("Error executing middleware chain")
             return data

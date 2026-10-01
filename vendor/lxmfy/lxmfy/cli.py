@@ -5,18 +5,23 @@ including bot file creation and example cog generation.
 """
 
 import argparse
+import json
 import os
 import re
 import sys
+from typing import Any
 
 from .__version__ import __version__
 from .colors import (
     Colors,
     init_colors,
+    print_check,
     print_error,
     print_header,
     print_info,
+    print_kv,
     print_menu,
+    print_section,
     print_success,
     print_warning,
 )
@@ -27,12 +32,12 @@ def get_user_choice() -> str:
     """Get user's choice from the menu."""
     while True:
         if Colors.is_colors_supported():
-            choice = input(f"{Colors.CYAN}Enter your choice (1-3): {Colors.ENDC}")
+            choice = input(f"{Colors.CYAN}Enter your choice (1-4): {Colors.ENDC}")
         else:
-            choice = input("Enter your choice (1-3): ")
-        if choice in ["1", "2", "3"]:
+            choice = input("Enter your choice (1-4): ")
+        if choice in ["1", "2", "3", "4"]:
             return choice
-        print_error("Invalid choice. Please enter a number between 1 and 3.")
+        print_error("Invalid choice. Please enter a number between 1 and 4.")
 
 
 def get_bot_name() -> str:
@@ -90,32 +95,7 @@ def interactive_create() -> None:
 
     try:
         bot_path = create_from_template(template, output_path, bot_name)
-        if template == "basic":
-            create_example_cog(bot_path)
-            print_success("Bot created successfully!")
-            print_info(f"""
-Files created:
-  - {bot_path} (main bot file)
-  - {os.path.join(os.path.dirname(bot_path), "cogs")}
-    - __init__.py
-    - basic.py (example cog)
-
-To start your bot:
-  python {bot_path}
-
-To add admin rights, edit {bot_path} and add your LXMF hash to the admins list.
-            """)
-        else:
-            print_success("Bot created successfully!")
-            print_info(f"""
-Files created:
-  - {bot_path} (main bot file)
-
-To start your bot:
-  python {bot_path}
-
-To add admin rights, edit {bot_path} and add your LXMF hash to the admins list.
-            """)
+        _print_created(bot_path, with_cogs=template == "basic")
     except Exception as e:
         print_error(f"Error creating bot: {e!s}")
 
@@ -147,20 +127,54 @@ def interactive_run() -> None:
 
         BotClass = template_map[template]
         print_header(f"Starting {template} Bot")
-        bot_instance = BotClass()
 
         if custom_name:
-            if hasattr(bot_instance, "bot"):
+            try:
+                bot_instance = BotClass(name=custom_name)
+            except TypeError:
+                bot_instance = BotClass()
                 bot_instance.bot.config.name = custom_name
-                bot_instance.bot.name = custom_name
-            else:
-                bot_instance.config.name = custom_name
-                bot_instance.name = custom_name
             print_info(f"Running with custom name: {custom_name}")
+        else:
+            bot_instance = BotClass()
 
         bot_instance.run()
     except Exception as e:
         print_error(f"Error running template bot: {e!s}")
+
+
+def interactive_debug() -> None:
+    """Interactive debugger."""
+    print_header("Debugger")
+    if Colors.is_colors_supported():
+        config = (
+            input(
+                f"{Colors.CYAN}Bot config path (default: ./config): {Colors.ENDC}",
+            ).strip()
+            or None
+        )
+        dest = (
+            input(
+                f"{Colors.CYAN}Destination hash to probe (optional): {Colors.ENDC}",
+            ).strip()
+            or None
+        )
+    else:
+        config = input("Bot config path (default: ./config): ").strip() or None
+        dest = input("Destination hash to probe (optional): ").strip() or None
+
+    from .debugger import Debugger
+
+    dbg = Debugger(config_path=config)
+    report = dbg.run_doctor(
+        destination=dest,
+        request_path=bool(dest),
+        wait=15.0 if dest else 0.0,
+    )
+    dbg.print_report(report)
+    out = dbg.save_report(report)
+    print_success(f"Report saved to {out}")
+    print_info("Share that file when asking for help (privacy-redacted).")
 
 
 def interactive_mode() -> None:
@@ -174,6 +188,8 @@ def interactive_mode() -> None:
         elif choice == "2":
             interactive_run()
         elif choice == "3":
+            interactive_debug()
+        elif choice == "4":
             print_success("Goodbye!")
             sys.exit(0)
 
@@ -255,34 +271,24 @@ def create_bot_file(name: str, output_path: str, no_cogs: bool = False) -> str:
 
         safe_path = os.path.abspath(output_path)
 
-        template = f"""from lxmfy import LXMFBot
+        cogs_line = (
+            "" if no_cogs else "\n# Drop .py files in ./cogs to add more commands."
+        )
 
-bot = LXMFBot(
-    name="{name}",
-    announce=600,
-    announce_immediately=True,
-    admins=set(),
-    hot_reloading=False,
-    rate_limit=5,
-    cooldown=60,
-    max_warnings=3,
-    warning_timeout=300,
-    command_prefix="/",
-    cogs_dir="cogs",
-    cogs_enabled={not no_cogs},
-    permissions_enabled=False,
-    storage_type="json",
-    storage_path="data",
-    first_message_enabled=True,
-    event_logging_enabled=True,
-    max_logged_events=1000,
-    event_middleware_enabled=True,
-    announce_enabled=True
-)
+        template = f'''from lxmfy import LXMFBot
+{cogs_line}
+bot = LXMFBot("{name}", cogs_enabled={not no_cogs})
+
+
+@bot.command("hello", description="Say hello")
+def hello(ctx):
+    ctx.reply(f"Hello {{ctx.sender}}!")
+
 
 if __name__ == "__main__":
     bot.run()
-"""
+'''
+
         with open(safe_path, "w", encoding="utf-8") as f:
             f.write(template)
 
@@ -315,11 +321,11 @@ class BasicCommands:
         self.bot = bot
 
     @Command(name="hello", description="Says hello")
-    async def hello(self, ctx):
+    def hello(self, ctx):
         ctx.reply(f"Hello {ctx.sender}!")
 
     @Command(name="about", description="About this bot")
-    async def about(self, ctx):
+    def about(self, ctx):
         ctx.reply("I'm a bot created with LXMFy!")
 
 def setup(bot):
@@ -381,8 +387,7 @@ def create_from_template(template_name: str, output_path: str, bot_name: str) ->
         template = f"""from lxmfy.templates import {template_map[template_name].__name__}
 
 if __name__ == "__main__":
-    bot = {template_map[template_name].__name__}()
-    bot.bot.name = "{name}"  # Set custom name
+    bot = {template_map[template_name].__name__}(name="{name}")
     bot.run()
 """
         with open(safe_path, "w", encoding="utf-8") as f:
@@ -392,6 +397,26 @@ if __name__ == "__main__":
 
     except Exception as e:
         raise RuntimeError(f"Failed to create bot from template: {e!s}") from e
+
+
+def _print_created(bot_path: str, with_cogs: bool) -> None:
+    """Print the post-create summary for a generated bot file."""
+    if with_cogs:
+        create_example_cog(bot_path)
+    print_success("Bot created successfully!")
+    files = f"  - {bot_path} (main bot file)"
+    if with_cogs:
+        cogs_dir = os.path.join(os.path.dirname(bot_path), "cogs")
+        files += f"\n  - {cogs_dir}\n    - __init__.py\n    - basic.py (example cog)"
+    print_info(f"""
+Files created:
+{files}
+
+To start your bot:
+  python {bot_path}
+
+To add admin rights, pass admins={{"<your lxmf hash>"}} to LXMFBot in {bot_path}.
+    """)
 
 
 def is_safe_path(path: str, base_path: str | None = None) -> bool:
@@ -415,6 +440,566 @@ def is_safe_path(path: str, base_path: str | None = None) -> bool:
         return False
 
 
+def run_debug_command(argv: list[str] | None = None) -> int:
+    """Run the debugger CLI.
+
+    Args:
+        argv: Arguments after ``debug`` (sys.argv[2:] when called from main).
+
+    Returns:
+        Process exit code.
+
+    """
+    from .debugger import Debugger, default_report_path
+
+    parser = argparse.ArgumentParser(
+        prog="lxmfy debug",
+        description="Diagnose send/receive connectivity",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  lxmfy debug                         # Full doctor + auto-save report file
+  lxmfy debug doctor --config ./config --output ./debug-report.txt
+  lxmfy debug probe <hash> --request-path --wait 30
+  lxmfy debug send <hash>
+  lxmfy debug receive
+  lxmfy debug compare <hash_a> <hash_b>
+  lxmfy debug tips
+  lxmfy debug --announce-test         # Also try a live announce
+  NO_COLOR=1 lxmfy debug              # Disable ANSI colors
+
+Reports are privacy-redacted by default (home paths and hashes truncated).
+Pass the saved lxmfy-debug-*.txt file when asking for help.
+        """,
+    )
+    parser.add_argument(
+        "action",
+        nargs="?",
+        default="doctor",
+        choices=["doctor", "probe", "send", "receive", "compare", "tips"],
+        help="Debug action (default: doctor)",
+    )
+    parser.add_argument(
+        "destination",
+        nargs="?",
+        default=None,
+        help="Destination hash for probe/send/compare",
+    )
+    parser.add_argument(
+        "other",
+        nargs="?",
+        default=None,
+        help="Second destination hash for compare",
+    )
+    parser.add_argument(
+        "--config",
+        default=None,
+        help="Bot config directory (default: ./config)",
+    )
+    parser.add_argument(
+        "--reticulum-config",
+        default=None,
+        help="Reticulum config directory override",
+    )
+    parser.add_argument(
+        "--request-path",
+        action="store_true",
+        help="Request a path when probing a destination",
+    )
+    parser.add_argument(
+        "--wait",
+        type=float,
+        default=0.0,
+        help="Seconds to wait for a path after --request-path",
+    )
+    parser.add_argument(
+        "--announce-test",
+        action="store_true",
+        help="Attempt a live announce_now (requires usable bot identity/router)",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit machine-readable JSON",
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        default=None,
+        help="Write report to this file path",
+    )
+    parser.add_argument(
+        "--save",
+        action="store_true",
+        default=True,
+        help="Save a privacy-redacted report file (default on for doctor)",
+    )
+    parser.add_argument(
+        "--no-save",
+        action="store_true",
+        help="Do not write a report file",
+    )
+    parser.add_argument(
+        "--no-privacy",
+        action="store_true",
+        help="Do not redact home paths / hashes (local use only)",
+    )
+    parser.add_argument(
+        "--no-color",
+        action="store_true",
+        help="Disable ANSI colors (also respects NO_COLOR)",
+    )
+
+    args = parser.parse_args(argv)
+
+    if args.no_color:
+        Colors.set_enabled(False)
+
+    dbg = Debugger(
+        reticulum_config_dir=args.reticulum_config,
+        config_path=args.config,
+        privacy=not args.no_privacy,
+    )
+
+    should_save = (args.output is not None or args.save) and not args.no_save
+
+    def _save(report):
+        path = args.output or default_report_path(as_json=args.json)
+        saved = dbg.save_report(report, path, as_json=args.json)
+        if args.json:
+            print(f"Report saved to {saved}", file=sys.stderr)
+        else:
+            print_success(f"Report saved to {saved}")
+            print_info("Share that file when asking for help.")
+        return saved
+
+    if args.action == "tips":
+        print_header("Send / Receive Tips")
+        from .debugger import COMMON_TIPS
+
+        for tip in COMMON_TIPS:
+            print_info(tip)
+        return 0
+
+    if args.action == "compare":
+        left = args.destination
+        right = args.other
+        if not left or not right:
+            print_error("compare requires two destination hashes")
+            print_info("Usage: lxmfy debug compare <hash_a> <hash_b>")
+            return 1
+        result = dbg.compare_destinations(
+            left,
+            right,
+            request_path=args.request_path,
+            wait=args.wait,
+        )
+        if args.json:
+            print(json.dumps(result, indent=2, default=str))
+        else:
+            print_header("Destination Compare")
+            print_kv("both_valid", str(result["both_valid"]), ok=result["both_valid"])
+            print_kv(
+                "both_identity_known",
+                str(result["both_identity_known"]),
+                ok=result["both_identity_known"],
+            )
+            print_kv(
+                "both_have_path",
+                str(result["both_have_path"]),
+                ok=result["both_have_path"],
+            )
+            print_section("Left")
+            for k, v in result["left"].items():
+                if k in {"notes", "hints", "timeline"}:
+                    continue
+                if v in (None, "", [], False) and k not in {
+                    "valid_hash",
+                    "identity_known",
+                    "has_path",
+                }:
+                    continue
+                print_kv(k, str(v))
+            print_section("Right")
+            for k, v in result["right"].items():
+                if k in {"notes", "hints", "timeline"}:
+                    continue
+                if v in (None, "", [], False) and k not in {
+                    "valid_hash",
+                    "identity_known",
+                    "has_path",
+                }:
+                    continue
+                print_kv(k, str(v))
+            for note in result.get("notes") or []:
+                print_info(note)
+        if should_save:
+            report = dbg.run_doctor()
+            report.compare = result
+            _save(report)
+        if not (
+            result["both_valid"]
+            and result["both_identity_known"]
+            and result["both_have_path"]
+        ):
+            return 2
+        return 0
+
+    if args.action == "probe":
+        dest = args.destination
+        if not dest:
+            print_error("probe requires a destination hash")
+            print_info(
+                "Usage: lxmfy debug probe <hash> [--request-path] [--wait N]",
+            )
+            return 1
+        probe = dbg.probe_destination(
+            dest,
+            request_path=args.request_path,
+            wait=args.wait,
+        )
+        dbg.print_probe(probe, as_json=args.json)
+        if should_save:
+            report = dbg.run_doctor(destination=dest)
+            report.probe = probe
+            _save(report)
+        if not (probe.valid_hash and probe.identity_known and probe.has_path):
+            return 2
+        return 0
+
+    if args.action == "send":
+        dest = args.destination
+        if not dest:
+            print_error("send requires a destination hash")
+            print_info("Usage: lxmfy debug send <hash>")
+            return 1
+        report = dbg.run_doctor(
+            destination=dest,
+            request_path=args.request_path,
+            wait=args.wait,
+            try_announce=args.announce_test,
+        )
+        if not args.json:
+            print_header("Send Diagnosis")
+            for check in dbg.diagnose_send(dest, probe=report.probe):
+                print_check(check.name, check.status, check.detail, check.hint)
+            if report.probe:
+                dbg.print_probe(report.probe, as_json=False)
+            print_section("Blockers")
+            if report.send_blockers:
+                for b in report.send_blockers:
+                    print_error(b)
+            else:
+                print_success("No hard send blockers detected")
+        else:
+            dbg.print_report(report, as_json=True)
+        if should_save:
+            _save(report)
+        fails = sum(1 for c in report.checks if c.status == "fail")
+        return 2 if fails else 0
+
+    if args.action == "receive":
+        report = dbg.run_doctor(try_announce=args.announce_test)
+        if args.json:
+            dbg.print_report(report, as_json=True)
+        else:
+            print_header("Receive Diagnosis")
+            recv_checks = [
+                c
+                for c in report.checks
+                if c.category in {"receive", "announce", "network", "instance", "disk"}
+            ]
+            for check in recv_checks:
+                print_check(check.name, check.status, check.detail, check.hint)
+            print_section("Blockers")
+            if report.receive_blockers:
+                for b in report.receive_blockers:
+                    print_error(b)
+            else:
+                print_success("No hard receive blockers detected")
+        if should_save:
+            _save(report)
+        fails = sum(1 for c in report.checks if c.status == "fail")
+        return 2 if fails else 0
+
+    # doctor (default)
+    dest = args.destination
+    request_path = args.request_path or bool(dest)
+    wait = args.wait
+    if dest and request_path and wait <= 0:
+        wait = 15.0
+    report = dbg.run_doctor(
+        destination=dest,
+        request_path=request_path,
+        wait=wait,
+        try_announce=args.announce_test,
+    )
+    dbg.print_report(report, as_json=args.json)
+    if should_save:
+        _save(report)
+    return 2 if report.to_dict()["failures"] else 0
+
+
+def _ask(prompt: str, default: str, *, assume_yes: bool) -> str:
+    """Prompt for a value, or return the default non-interactively."""
+    if assume_yes or not sys.stdin.isatty():
+        return default
+    answer = input(f"{Colors.CYAN}{prompt} [{default}]: {Colors.ENDC}").strip()
+    return answer or default
+
+
+def _validate_admin_hashes(raw: str) -> list[str]:
+    """Split and validate a comma-separated admin hash list."""
+    hashes = []
+    for part in raw.split(","):
+        value = part.strip()
+        if not value:
+            continue
+        try:
+            bytes.fromhex(value)
+        except ValueError as exc:
+            raise ValueError(f"Admin hash is not hex: {value}") from exc
+        hashes.append(value)
+    return hashes
+
+
+def run_init(argv: list[str] | None = None) -> int:
+    """Interactive project scaffold.
+
+    Creates a project directory with a configured bot.py, a cogs
+    package, a README, and a .gitignore. Prompts for each option on a
+    TTY; --yes or a non-TTY stdin accepts defaults and flags.
+    """
+    parser = argparse.ArgumentParser(
+        prog="lxmfy init",
+        description="Scaffold a new bot project interactively",
+    )
+    parser.add_argument(
+        "name",
+        nargs="?",
+        default=None,
+        help="Project directory and default bot name",
+    )
+    parser.add_argument(
+        "--dir",
+        dest="directory",
+        default=None,
+        help="Parent directory for the project (default: current)",
+    )
+    parser.add_argument(
+        "--here",
+        action="store_true",
+        help="Scaffold into the current directory",
+    )
+    parser.add_argument(
+        "--bot-name",
+        default=None,
+        help="Bot display name (default: project directory name)",
+    )
+    parser.add_argument(
+        "--template",
+        choices=["basic", "echo", "reminder", "note", "cogtest", "rrc"],
+        default=None,
+        help="Bot template (default: basic)",
+    )
+    parser.add_argument(
+        "--storage",
+        choices=["json", "sqlite", "msgpack", "memory"],
+        default=None,
+        help="Storage backend for a basic bot (default: json)",
+    )
+    parser.add_argument(
+        "--prefix",
+        default=None,
+        help="Command prefix for a basic bot (default: /)",
+    )
+    parser.add_argument(
+        "--admins",
+        default=None,
+        help="Comma-separated admin LXMF hashes",
+    )
+    parser.add_argument(
+        "--no-cogs",
+        action="store_true",
+        help="Do not create the cogs package",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing files",
+    )
+    parser.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Accept defaults for every prompt",
+    )
+    args = parser.parse_args(argv)
+
+    yes = args.yes
+
+    if args.here:
+        project_dir = os.path.abspath(args.directory or os.getcwd())
+    else:
+        dir_name = args.name or _ask(
+            "Project directory",
+            "mybot",
+            assume_yes=yes,
+        )
+        project_dir = os.path.abspath(os.path.join(args.directory or ".", dir_name))
+
+    default_bot_name = os.path.basename(project_dir.rstrip(os.sep)) or "mybot"
+    bot_name = args.bot_name or _ask(
+        "Bot name",
+        default_bot_name,
+        assume_yes=yes,
+    )
+    try:
+        bot_name = validate_bot_name(bot_name)
+    except ValueError as ve:
+        print_error(f"Invalid bot name '{bot_name}': {ve}")
+        return 1
+
+    template = args.template or _ask(
+        "Template (basic, echo, reminder, note, cogtest, rrc)",
+        "basic",
+        assume_yes=yes,
+    )
+    if template not in {"basic", "echo", "reminder", "note", "cogtest", "rrc"}:
+        print_error(f"Invalid template '{template}'")
+        return 1
+
+    storage = "json"
+    prefix = "/"
+    admins: list[str] = []
+    cogs = not args.no_cogs
+    if template == "basic":
+        storage = args.storage or _ask(
+            "Storage (json, sqlite, msgpack, memory)",
+            "json",
+            assume_yes=yes,
+        )
+        if storage not in {"json", "sqlite", "msgpack", "memory"}:
+            print_error(f"Invalid storage backend '{storage}'")
+            return 1
+        prefix = args.prefix or _ask(
+            "Command prefix",
+            "/",
+            assume_yes=yes,
+        )
+        if not yes and sys.stdin.isatty() and not args.admins:
+            raw = input(
+                f"{Colors.CYAN}Admin LXMF hashes, comma-separated (optional): {Colors.ENDC}",
+            ).strip()
+        else:
+            raw = args.admins or ""
+        try:
+            admins = _validate_admin_hashes(raw or (args.admins or ""))
+        except ValueError as ve:
+            print_error(str(ve))
+            return 1
+        if not args.no_cogs and not yes and sys.stdin.isatty():
+            answer = (
+                input(
+                    f"{Colors.CYAN}Create example cogs package? [Y/n]: {Colors.ENDC}",
+                )
+                .strip()
+                .lower()
+            )
+            cogs = answer not in {"n", "no"}
+
+    if os.path.isdir(project_dir) and os.listdir(project_dir) and not args.force:
+        if yes or not sys.stdin.isatty():
+            print_error(
+                f"Directory {project_dir} is not empty. Use --force to overwrite.",
+            )
+            return 1
+        answer = (
+            input(
+                f"{Colors.CYAN}{project_dir} is not empty. Overwrite? [y/N]: {Colors.ENDC}",
+            )
+            .strip()
+            .lower()
+        )
+        if answer not in {"y", "yes"}:
+            print_info("Aborted.")
+            return 1
+
+    os.makedirs(project_dir, exist_ok=True)
+    bot_path = os.path.join(project_dir, "bot.py")
+
+    template_map = {
+        "echo": EchoBot,
+        "reminder": ReminderBot,
+        "note": NoteBot,
+        "cogtest": CogTestBot,
+        "rrc": RRCBot,
+    }
+
+    if template == "basic":
+        admins_block = (
+            "    admins={\n" + ",\n".join(f'        "{h}"' for h in admins) + "\n    },"
+            if admins
+            else "    # add your LXMF hash to admins\n    admins=set(),"
+        )
+        bot_source = f'''from lxmfy import LXMFBot
+
+bot = LXMFBot(
+    "{bot_name}",
+    command_prefix="{prefix}",
+    storage_type="{storage}",
+    storage_path="data",
+{admins_block}
+    cogs_enabled={cogs},
+)
+
+
+@bot.command("hello", description="Say hello")
+def hello(ctx):
+    ctx.reply(f"Hello {{ctx.sender}}!")
+
+
+if __name__ == "__main__":
+    bot.run()
+'''
+    else:
+        cls_name = template_map[template].__name__
+        bot_source = f'''from lxmfy.templates import {cls_name}
+
+if __name__ == "__main__":
+    bot = {cls_name}(name="{bot_name}")
+    bot.run()
+'''
+
+    with open(bot_path, "w", encoding="utf-8") as f:
+        f.write(bot_source)
+
+    if cogs:
+        create_example_cog(bot_path)
+
+    with open(os.path.join(project_dir, "README.md"), "w", encoding="utf-8") as f:
+        f.write(
+            f"# {bot_name}\n\n"
+            "LXMFy bot project.\n\n"
+            "## Run\n\n"
+            "```bash\n"
+            "pip install lxmfy\n"
+            "python bot.py\n"
+            "```\n\n"
+            "The bot prints its LXMF address on startup. Add that address "
+            "in your client and send `/help`.\n",
+        )
+
+    with open(os.path.join(project_dir, ".gitignore"), "w", encoding="utf-8") as f:
+        f.write("config/\ndata/\n__pycache__/\n*.pyc\n")
+
+    print_success(f"Project created in {project_dir}")
+    print_info(
+        f"Next: cd {os.path.relpath(project_dir)} && python bot.py",
+    )
+    return 0
+
+
 def main() -> None:
     """Main CLI entry point."""
     try:
@@ -423,6 +1008,15 @@ def main() -> None:
         if len(sys.argv) == 1:
             interactive_mode()
             return
+
+        # Fast-path debug and init before the create/run/signatures parser
+        if len(sys.argv) >= 2 and sys.argv[1] == "debug":
+            if "--no-color" in sys.argv or os.environ.get("NO_COLOR"):
+                Colors.set_enabled(False)
+            sys.exit(run_debug_command(sys.argv[2:]))
+
+        if len(sys.argv) >= 2 and sys.argv[1] == "init":
+            sys.exit(run_init(sys.argv[2:]))
 
         print_header("LXMFy Bot Framework")
 
@@ -443,6 +1037,11 @@ Examples:
   lxmfy run note                        # Run the built-in note bot
   lxmfy run cogtest                     # Run the cog test bot
 
+  lxmfy debug                           # Diagnose send/receive connectivity
+  lxmfy debug probe <hash> --request-path --wait 30
+  lxmfy debug send <hash>
+  lxmfy debug receive
+
   lxmfy signatures test                 # Test signature functionality
   lxmfy signatures enable               # Show how to enable signatures
   lxmfy signatures disable              # Show how to disable signatures
@@ -451,8 +1050,8 @@ Examples:
 
         parser.add_argument(
             "command",
-            choices=["create", "run", "signatures"],
-            help="Create a bot file, run a template bot, or manage signatures",
+            choices=["create", "run", "signatures", "debug"],
+            help="Create a bot file, run a template bot, debug messaging, or manage signatures",
         )
         parser.add_argument(
             "name",
@@ -488,8 +1087,25 @@ Examples:
             action="store_true",
             help="Disable cogs loading for 'create' command",
         )
+        parser.add_argument(
+            "--no-color",
+            action="store_true",
+            help="Disable ANSI colors (also respects NO_COLOR)",
+        )
 
         args = parser.parse_args()
+
+        if args.no_color:
+            Colors.set_enabled(False)
+
+        if args.command == "debug":
+            # Reached if someone used a form that did not hit the fast-path
+            remaining = []
+            if args.name:
+                remaining.append(args.name)
+            if args.directory:
+                remaining.append(args.directory)
+            sys.exit(run_debug_command(remaining))
 
         if args.command == "create":
             try:
@@ -517,33 +1133,7 @@ Examples:
 
                 print_header("Creating New Bot")
                 bot_path = create_from_template(args.template, output_path, bot_name)
-
-                if args.template == "basic":
-                    create_example_cog(bot_path)
-                    print_success("Bot created successfully!")
-                    print_info(f"""
-Files created:
-  - {bot_path} (main bot file)
-  - {os.path.join(os.path.dirname(bot_path), "cogs")}
-    - __init__.py
-    - basic.py (example cog)
-
-To start your bot:
-  python {bot_path}
-
-To add admin rights, edit {bot_path} and add your LXMF hash to the admins list.
-                    """)
-                else:
-                    print_success("Bot created successfully!")
-                    print_info(f"""
-Files created:
-  - {bot_path} (main bot file)
-
-To start your bot:
-  python {bot_path}
-
-To add admin rights, edit {bot_path} and add your LXMF hash to the admins list.
-                    """)
+                _print_created(bot_path, with_cogs=args.template == "basic")
             except Exception as e:
                 print_error(f"Error creating bot: {e!s}")
                 sys.exit(1)
@@ -591,12 +1181,9 @@ To add admin rights, edit {bot_path} and add your LXMF hash to the admins list.
                 if custom_name:
                     try:
                         validated_name = validate_bot_name(custom_name)
-                        if hasattr(bot_instance, "bot"):
-                            bot_instance.bot.config.name = validated_name
-                            bot_instance.bot.name = validated_name
-                        else:
-                            bot_instance.config.name = validated_name
-                            bot_instance.name = validated_name
+                        target: Any = getattr(bot_instance, "bot", bot_instance)
+                        target.config.name = validated_name
+                        target.name = validated_name
                         print_info(f"Running with custom name: {validated_name}")
                     except ValueError as ve:
                         print_warning(
@@ -639,6 +1226,10 @@ To add admin rights, edit {bot_path} and add your LXMF hash to the admins list.
                         class MockBot:
                             def __init__(self):
                                 self.permissions = MockPermissions()
+                                self.config = MockConfig()
+
+                        class MockConfig:
+                            identity_pinning_enabled = False
 
                         class MockPermissions:
                             @staticmethod
@@ -684,11 +1275,13 @@ To add admin rights, edit {bot_path} and add your LXMF hash to the admins list.
                             test_msg,
                             signature,
                             RNS.hexrep(identity1.hash, delimit=False),
+                            sender_identity=identity1,
                         )
                         if is_valid:
                             print_success("OK Signature verification successful")
                         else:
                             print_error("FAIL Signature verification failed")
+                            sys.exit(1)
 
                         print_info("Signature test completed successfully!")
 

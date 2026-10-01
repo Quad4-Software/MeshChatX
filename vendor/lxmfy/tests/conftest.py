@@ -165,15 +165,3 @@ def temp_file():
         os.unlink(temp_path)
     except Exception:
         pass
-
-
-@pytest.fixture(autouse=True)
-def cleanup_reticulum():
-    """Clean up Reticulum state between tests."""
-    yield
-    # Force cleanup of any lingering links or destinations
-    try:
-        # This is a best-effort cleanup
-        pass
-    except Exception:
-        pass

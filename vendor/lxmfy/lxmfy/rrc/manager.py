@@ -8,6 +8,8 @@ from typing import Any
 
 import RNS
 
+from lxmfy._sync import run_sync
+
 from .client import RRCClient
 from .constants import DEFAULT_DEST_NAME
 from .envelope import normalize_room
@@ -48,7 +50,7 @@ class RRCManager:
     def _dispatch(self, event: str, client: RRCClient, payload: Any) -> None:
         for handler in list(self._handlers):
             try:
-                handler(event, client, payload)
+                run_sync(handler, event, client, payload)
             except Exception:
                 logger.exception("RRC manager handler failed for %s", event)
         if event in ("joined", "parted"):

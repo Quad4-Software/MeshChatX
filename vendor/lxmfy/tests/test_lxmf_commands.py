@@ -7,10 +7,16 @@ import pytest
 from lxmfy import BotConfig, LXMFBot
 from lxmfy.lxmf_fields import (
     FIELD_COMMANDS,
+    FIELD_REACTION,
     FIELD_RESULTS,
+    REACTION_CONTENT,
+    REACTION_TO,
+    pack_reaction,
     pack_result,
     unpack_commands,
+    unpack_reaction,
 )
+from lxmfy.middleware import MiddlewareType
 
 
 class TestUnpackCommands:
@@ -128,7 +134,7 @@ class TestLXMFBotFieldCommands:
                 "command": "echo",
                 "args": ["hello", "world"],
                 "request_id": "req-42",
-            }
+            },
         }
 
         sent = []
@@ -253,7 +259,7 @@ class TestLXMFBotFieldCommands:
                 "command": "capture",
                 "args": [],
                 "request_id": "req-99",
-            }
+            },
         }
 
         original_send = bot.send
@@ -294,3 +300,215 @@ class TestLXMFBotFieldCommands:
         _dest, _msg, lxmf_fields = sent[0]
         # lxmf_fields should be None because there's no request_id
         assert lxmf_fields is None
+
+
+class TestPackReaction:
+    def test_pack_from_hex_hash(self):
+        target = "ab" * 32
+        fields = pack_reaction(target, "ok")
+        inner = fields[FIELD_REACTION]
+        assert inner[REACTION_TO] == bytes.fromhex(target)
+        assert inner[REACTION_CONTENT] == b"ok"
+
+    def test_pack_from_bytes_hash(self):
+        target = b"\x01" * 32
+        fields = pack_reaction(target, "like")
+        assert fields[FIELD_REACTION][REACTION_TO] == target
+
+    def test_pack_truncates_long_reaction(self):
+        fields = pack_reaction(b"\x01" * 32, "x" * 40)
+        assert fields[FIELD_REACTION][REACTION_CONTENT] == b"x" * 16
+
+    def test_pack_strips_unprintable(self):
+        fields = pack_reaction(b"\x01" * 32, "a\x00b\x07")
+        assert fields[FIELD_REACTION][REACTION_CONTENT] == b"ab"
+
+
+class TestUnpackReaction:
+    def test_standard_fields(self):
+        target = b"\x02" * 32
+        fields = {FIELD_REACTION: {REACTION_TO: target, REACTION_CONTENT: b"yes"}}
+        reaction = unpack_reaction(fields, "sender1")
+        assert reaction == {
+            "reaction_to": target.hex(),
+            "reaction_emoji": "yes",
+            "reaction_sender": "sender1",
+        }
+
+    def test_no_fields(self):
+        assert unpack_reaction(None) is None
+        assert unpack_reaction({}) is None
+        assert unpack_reaction({FIELD_COMMANDS: {}}) is None
+
+    def test_non_dict_reaction_field(self):
+        assert unpack_reaction({FIELD_REACTION: b"not a dict"}) is None
+
+    def test_bad_target_hash(self):
+        fields = {FIELD_REACTION: {REACTION_TO: "xyz", REACTION_CONTENT: b"ok"}}
+        assert unpack_reaction(fields) is None
+
+    def test_missing_content_defaults_empty(self):
+        fields = {FIELD_REACTION: {REACTION_TO: b"\x03" * 32}}
+        reaction = unpack_reaction(fields)
+        assert reaction is not None
+        assert reaction["reaction_emoji"] == ""
+
+    def test_string_keyed_variant(self):
+        fields = {
+            "reaction": {
+                "reaction_to": "cd" * 32,
+                "reaction_content": b"star",
+            },
+        }
+        reaction = unpack_reaction(fields)
+        assert reaction is not None
+        assert reaction["reaction_to"] == "cd" * 32
+        assert reaction["reaction_emoji"] == "star"
+
+    def test_int_string_keys(self):
+        fields = {
+            FIELD_REACTION: {
+                "0x00": b"\x04" * 32,
+                "0x01": b"fire",
+            },
+        }
+        reaction = unpack_reaction(fields)
+        assert reaction is not None
+        assert reaction["reaction_emoji"] == "fire"
+
+    def test_reaction_text_capped_and_filtered(self):
+        fields = {
+            FIELD_REACTION: {
+                REACTION_TO: b"\x05" * 32,
+                REACTION_CONTENT: b"a\x00b" + b"z" * 30,
+            },
+        }
+        reaction = unpack_reaction(fields)
+        assert reaction["reaction_emoji"] == ("ab" + "z" * 14)
+
+
+class TestReactionDispatch:
+    @pytest.fixture(scope="function")
+    def bot(self, tmp_path):
+        config = BotConfig(
+            name="TestBot",
+            test_mode=True,
+            first_message_enabled=False,
+            command_prefix="/",
+        )
+        bot = LXMFBot(**config.__dict__)
+        bot.config_path = str(tmp_path)
+        yield bot
+        try:
+            bot.cleanup()
+        except Exception:
+            pass
+
+    def _message(self, fields, content=b""):
+        message = Mock()
+        message.content = content
+        message.hash = b"reaction_msg"
+        message.fields = fields
+        return message
+
+    def test_reaction_reaches_on_reaction_handlers(self, bot):
+        seen = []
+
+        @bot.on_reaction()
+        def on_reaction(sender, reaction):
+            seen.append((sender, reaction))
+            return True
+
+        target = b"\x06" * 32
+        message = self._message(
+            {FIELD_REACTION: {REACTION_TO: target, REACTION_CONTENT: b"yes"}},
+        )
+        bot._process_message(message, "sender_hash")
+
+        assert len(seen) == 1
+        sender, reaction = seen[0]
+        assert sender == "sender_hash"
+        assert reaction["reaction_to"] == target.hex()
+        assert reaction["reaction_emoji"] == "yes"
+        assert reaction["reaction_sender"] == "sender_hash"
+
+    def test_consumed_reaction_skips_message_handlers(self, bot):
+        calls = []
+
+        @bot.on_reaction()
+        def on_reaction(sender, reaction):
+            calls.append("reaction")
+            return True
+
+        @bot.on_message()
+        def on_message(sender, message):
+            calls.append("message")
+            return True
+
+        message = self._message(
+            {FIELD_REACTION: {REACTION_TO: b"\x07" * 32, REACTION_CONTENT: b"no"}},
+        )
+        bot._process_message(message, "sender_hash")
+
+        assert calls == ["reaction"]
+
+    def test_unconsumed_reaction_falls_through(self, bot):
+        calls = []
+
+        @bot.on_reaction()
+        def on_reaction(sender, reaction):
+            calls.append("reaction")
+            return False
+
+        @bot.on_message()
+        def on_message(sender, message):
+            calls.append("message")
+            return True
+
+        message = self._message(
+            {FIELD_REACTION: {REACTION_TO: b"\x08" * 32, REACTION_CONTENT: b"hi"}},
+        )
+        bot._process_message(message, "sender_hash")
+
+        assert calls == ["reaction", "message"]
+
+    def test_reaction_exposed_on_context(self, bot):
+        seen_msg = []
+
+        def capture(ctx):
+            seen_msg.append(getattr(ctx.data, "reaction", "missing"))
+            return ctx
+
+        bot.middleware.register(MiddlewareType.PRE_COMMAND, capture)
+
+        target = b"\x09" * 32
+        fields = {FIELD_REACTION: {REACTION_TO: target, REACTION_CONTENT: b"up"}}
+        bot._process_message(self._message(fields), "sender_hash")
+
+        assert seen_msg
+        assert seen_msg[0]["reaction_to"] == target.hex()
+
+    def test_react_sends_reaction_field(self, bot):
+        sent = []
+
+        def mock_send(dest, msg, title=None, **kwargs):
+            sent.append((dest, msg, kwargs.get("lxmf_fields")))
+            return True
+
+        original_send = bot.send
+        bot.send = mock_send
+        target = "ef" * 32
+        ok = bot.react("dest_hash", target, "yes")
+        bot.send = original_send
+
+        assert ok is True
+        assert len(sent) == 1
+        dest, msg, lxmf_fields = sent[0]
+        assert dest == "dest_hash"
+        assert msg == ""
+        assert lxmf_fields[FIELD_REACTION][REACTION_TO] == bytes.fromhex(target)
+        assert lxmf_fields[FIELD_REACTION][REACTION_CONTENT] == b"yes"
+
+    def test_react_rejects_bad_hash(self, bot):
+        assert bot.react("dest", "not-hex", "ok") is False
+        assert bot.react("dest", "ab" * 16, "ok") is False

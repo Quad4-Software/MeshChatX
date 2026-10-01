@@ -9,4 +9,4 @@ from .note_bot import NoteBot
 from .reminder_bot import ReminderBot
 from .rrc_bot import RRCBot
 
-__all__ = ["CogTestBot", "EchoBot", "NoteBot", "ReminderBot", "RRCBot"]
+__all__ = ["CogTestBot", "EchoBot", "NoteBot", "RRCBot", "ReminderBot"]

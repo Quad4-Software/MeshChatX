@@ -1,647 +1,496 @@
 # Changelog
 
+## [2.1.1] - 2026-09-22
+
+### Features
+- Async def command callbacks and message handlers now run instead of silently returning coroutines
+- Outbound messages to unknown destinations are held and retried on the peer's next announce instead of dropped
+- LXMFBot accepts the bot name positionally: LXMFBot("mybot")
+- Configurable lxmfy log_level and RNS loglevel passthrough
+- Sender controls: ignore_destination, unignore_destination, is_ignored, allow_destination, disallow_destination, prioritise_destination, unprioritise_destination
+- Inbound stamp controls: set_inbound_stamp_cost, enforce_stamps, ignore_stamps
+- LXMF tickets: generate_ticket, get_inbound_tickets, get_outbound_ticket, get_outbound_ticket_expiry, get_outbound_stamp_cost
+- Outbound delivery control: outbound_queue, get_outbound_progress, cancel_outbound, delivery_link_available
+- Propagation sync: sync_propagation_node, cancel_propagation_sync, get_propagation_stats, set_retain_on_node, announce_propagation_node, allow_control_identity, disallow_control_identity
+- ingest_lxm_uri imports an LXM from an lxm:// URI
+- LXMF reactions: bot.react(destination, message_hash, reaction) sends a FIELD_REACTION delivery, on_reaction registers inbound handlers, msg.reaction exposes parsed reaction metadata
+- pack_reaction and unpack_reaction build and parse FIELD_REACTION dicts
+- Landlock sandbox now uses the landlockpy package instead of in-module syscall bindings
+- Documentation moved from Sphinx/RST to Zensical/Markdown, deployed to GitHub Pages on every docs change; PDF, EPUB, and text bundles are built at release time and attached to the GitHub release
+- Docs translated into German, Spanish, French, Portuguese, Ukrainian, Russian, and Simplified Chinese with release bundles per language
+- Docs use a dark-first quad4 "void" theme with a light "paper" scheme, system-preference detection, and a palette toggle
+- Docs are an installable PWA: service worker precaches the core pages, caches visited pages offline, and refreshes content when the browser comes back online
+- Docs header gains a language picker and hreflang links for all eight languages
+- Docs ship llms.txt and a generated llms-full.txt for LLM consumers
+- Docs emit Open Graph, Twitter card, theme-color, and JSON-LD (WebSite plus SoftwareSourceCode) metadata with a social card image, plus robots.txt
+- Delivery observability: bot.delivery records outbound lifecycle events (queued, deferred, dispatched, delivered, failed, cancelled, dropped) with subscribers via on_delivery_event and a persisted tail
+- Built-in admin commands: /queue, /cancel, /delivery, /loadext, /reloadext
+- Per-command rate limits via @bot.command(rate_limit=N), sharing the global cooldown window and persisted counters
+- lxmfy init scaffolds a project interactively (name, template, storage, prefix, admins, cogs) with --yes/--force/--here for scripts
+- Debugger reports a delivery timeline summary in send pipeline checks
+- Docs are versioned with mike: master deploys as dev, releases deploy their tag and the latest alias
+- Monthly dependency freshness workflow reports outdated packages to a tracking issue
+- Security workflow audits dependencies with pip-audit and uploads a CycloneDX SBOM
+- Docs tooling pins live in docs/requirements-docs.txt shared by the docs and release workflows
+- All pip installs in workflows and Dockerfiles are hash-pinned (--require-hashes)
+- Docker base images are pinned by digest and Poetry installs from a hashed requirements file
+- CodeQL workflow provides GitHub-native SAST on pushes, PRs, and a weekly schedule
+- master branch protection blocks force pushes and branch deletion
+- Reply threading: send(reply_to=, quote=, thread=) sets FIELD_REPLY_TO/FIELD_REPLY_QUOTE/FIELD_THREAD, msg.reply() threads automatically, inbound replies parse onto msg.reply_to/msg.reply_quote/msg.thread
+- Conversations: msg.ask() blocks a handler for the sender's next message, msg.ask_async() awaits it in async handlers, and on_answer/on_timeout callbacks handle long waits. Sending a command cancels a pending question. Validators re-prompt on bad answers
+- lxmfy.testing: TestBot runs the real inbound pipeline without a Reticulum instance and captures outbound sends. receive, receive_later, drain, wait_sent, last_sent, and outbox cover sync and threaded handlers
+- Peer discovery: get_peer_app_data, get_peer_lxmf_data, get_peer_announce, and list_peer_announces read announce metadata from the RNS transport
+- Inbound introspection: has_message, inbound_count, inbound_transfers, cancel_inbound, cancel_all_inbound, plus the /inbox admin command
+- pack_reply and unpack_reply build and parse reply threading fields
+
+### Fixes
+- Delivery destination keeps LXMF's inbound link callbacks, so link-based delivery completes
+- Scheduler no longer crashes on sub-minute announce intervals or malformed cron fields
+- cleanup() only exits Reticulum when this bot started it, so shared instances survive
+- Command POST_COMMAND middleware runs even when a command raises
+- Outbound queue persistence snapshots under the queue lock
+- Closed links are removed from the link table instead of leaking
+- request_link validates destination hashes and reports typed errors
+- Generated template bots accept a name argument instead of a dead attribute write
+- cogs directory is only created when cogs are enabled
+- CLI signatures test verifies against the identity it signed with instead of an unrecallable lookup
+- disallow_destination, unprioritise_destination, and disallow_control_identity edit router lists directly because the matching LXMF 1.1.1 methods pop by index or reference unbound names
+- Identity files that fail to load raise a clear RuntimeError instead of passing None to LXMRouter
+- connect_rrc and disconnect_rrc guard against an uninitialized RRC manager
+- Configured admins now receive the admin role when permissions are enabled, so admin-only commands and spam bypasses apply to them
+
+### Tests
+- Localhost UDP pair live test with two subprocess routers (LXMFY_LIVE_UDP=1)
+- Propagation tests run against a real isolated router instead of no-op asserts
+- Subprocess tests pass PYTHONPATH so they work outside editable installs
+- Removed permanently skipped and tautological tests
+- Router control tests cover ignore/allow/prioritise lists, stamp costs, tickets, outbound queue and cancel, propagation sync, and URI ingestion against a real router
+- Benchmark suite for hot paths: field packing, command unpacking, hash parsing, permission checks, canonicalization, signatures, storage
+- Delivery tests cover tracker persistence and filters, outbound queued events, the /delivery command, per-command rate limits, admin permission wiring, and the init scaffold
+
+### CI/CD
+- GitHub Actions for lint, typecheck, tests, live-local Alice/Bob, live UDP pair, and build
+- Security workflow: zizmor workflow audit, bandit SAST, gitleaks secret scan
+- Coverage XML artifact on the 3.13 test leg with a 65% coverage gate
+- Releases build a self-contained .pyz zipapp (shiv) alongside the wheel and attach it to the GitHub release
+- Publish workflow triggers on tag pushes and creates the GitHub release as a draft, attaches assets, then publishes, which immutable releases require
+- SLSA build provenance attestations on the wheel, sdist, and pyz via GitHub artifact attestations (Sigstore)
+- Test matrix covers Python 3.11 through 3.14
+- Benchmark job archives results per run
+- Secure defaults: SHA-pinned actions, least-privilege token, Dependabot, dependency review, Scorecard, CODEOWNERS
+- OIDC publish to PyPI on GitHub release (or confirmed manual run)
+
+### Updates
+- Dropped former self-hosted package registry publish targets
+- Project links point at GitHub
+- Pyright runs in strict mode with the untyped-dependency noise rules disabled
+- Ruff lint expanded to the modern ruleset (bugbear, bandit, refactor, perf, try-except, datetime, logging, and friends)
+
+## [2.0.4] - 2026-09-02
+
+### Fixes
+- Always drop inbound LXMF messages with an invalid signature
+
+### Tests
+- Alice/Bob local live LXMF test over TCP loopback (LXMFY_LIVE_LOCAL=1)
+
+## [2.0.3] - 2026-09-01
+
+### Fixes
+- Outbound stamp cost comes from the peer announce or an explicit send override
+- Config stamp_cost is inbound-only again
+- Outbound messages include reply tickets by default
+
+### Updates
+- RNS >=1.5.4, LXMF >=1.1.1, cbor2 >=6.1.0
+- Dev tooling updated: pytest 9.1, ruff 0.16, hypothesis 6.168, pyright 1.1.414, twine 7, psutil 7.2.2
+- Debugger covers stamp, ticket, and ratchet send blockers more clearly
+
+## [2.0.2] - 2026-07-23
+
+### Features
+- Debugger CLI and helpers for send/receive diagnosis
+- Privacy-redacted shareable reports and blocker lists
+
+### Fixes
+- Delivery hash no longer registers lxmf/delivery on Transport
+
+### Updates
+- Color output respects NO_COLOR / FORCE_COLOR and adds --no-color
+
 ## [2.0.1] - 2026-07-21
 
 ### Fixes
-- **RNS shared-instance digest rejection**: Bots no longer default the Reticulum config directory to the bot `config_path` when a user/system Reticulum config already exists. LXMFy now discovers `/etc/reticulum`, `~/.config/reticulum`, then `~/.reticulum` (same order as RNS). When a bot must use an isolated config directory, it forces `share_instance = No` so it cannot collide on the default shared-instance RPC socket/ports with NomadNet, Columba, or `rnsd` (`AuthenticationError: digest sent was rejected`).
-- **Opportunistic delivery**: `opportunistic_sending=True` (the default) now actually selects LXMF `OPPORTUNISTIC` packet delivery instead of only toggling propagation-on-fail. This is required for reliable messaging through public TCP/backbone entrypoints where link-based `DIRECT` delivery often fails.
+- Prefer existing user/system Reticulum config over the bot config path
+- Isolated bots force share_instance = No to avoid shared-instance digest rejection
+- opportunistic_sending now selects LXMF OPPORTUNISTIC delivery
 
 ### Tests
-- Added unit/integration coverage for Reticulum config discovery and isolated `share_instance` handling.
-- Added opt-in live LXMF ping/pong test (`LXMFY_LIVE_LXMF=1`) that selects random online TCP/backbone nodes from `directory.rns.recipes`.
+- Config discovery and isolated share_instance coverage
+- Opt-in live LXMF ping/pong (LXMFY_LIVE_LXMF=1)
 
 ### Updates
-- **Dependencies**: RNS `>=1.3.9`.
+- RNS >=1.3.9
 
 ## [2.0.0] - 2026-07-10
 
-Final feature release of LXMFy!
+Final feature release of LXMFy.
 
 ### Features
-- **Reticulum Relay Chat (RRC)**: CBOR-encoded RRC client support so bots can join hubs as first-class chat participants ([RRC spec](https://rrc.kc1awv.net/), compatible with NomadNet / rrcd).
-  - New `lxmfy.rrc` package: constants, envelope encode/decode/validation (`cbor2`), `RRCClient`, and `RRCManager`.
-  - `BotConfig` options: `rrc_enabled`, `rrc_hubs`, `rrc_rooms`, `rrc_nick`, `rrc_dest_name`, `rrc_auto_reconnect`, `rrc_persist_sessions`.
-  - Bot API: `connect_rrc()`, `disconnect_rrc()`, `@bot.on_rrc`, `bot.rrc` manager, and `rrc_*` event dispatch.
-  - Session behavior: HELLO/WELCOME, JOIN/PART, MSG/NOTICE/ACTION, PING/PONG, ERROR, RESOURCE_ENVELOPE, auto-reconnect with room re-join, client-side hub limit and rate-limit enforcement, pre-WELCOME send guard.
-  - Optional RRC session persistence across restarts (`rrc_persist_sessions`, default on).
-  - New `RRCBot` template and `lxmfy create --template rrc` / `lxmfy run rrc`.
+- RRC client support for hub chat ([RRC spec](https://rrc.kc1awv.net/))
+- RRCBot template and session persistence options
 
 ### Fixes
-- **LXMF crash recovery**: Outgoing `persisted_queue` now updates after dequeue, preserves delivery method on restore, keeps failed and deferred restores, requeues on outbound send failure, and flushes on `cleanup()`.
-- **Invalid persisted destinations**: Corrupt or non-hash destinations (for example test-mode leftovers) are dropped on restore instead of looping forever.
+- Crash-safe outgoing queue restore and flush
+- Corrupt persisted destinations dropped on restore
 
 ### Updates
-- **Dependencies**: RNS `>=1.3.8`, LXMF `>=1.0.1`, CBOR via `cbor2>=5.4.0`.
-- **Defaults**: `message_persistence_enabled` defaults to `True` for crash-safe outgoing queues.
-- **Memory guards**: Bounded outbound queue (`message_queue_size`, default 50) with drop-oldest on overflow, capped persisted queue/content, and RRC caps for tracked nicks, room members, resource expectations, and pending pings.
+- RNS >=1.3.8, LXMF >=1.0.1, cbor2 >=5.4.0
+- Message persistence enabled by default
+- Bounded queues and RRC resource caps
 
 ### Tests
-- Added RRC/CBOR unit, property, persistence, reconnect, limit, resource-envelope, and bot-integration tests.
-- Opt-in live rrcd smoke test via `LXMFY_LIVE_RRC=1`.
+- RRC/CBOR unit and integration tests
+- Opt-in live rrcd smoke test (LXMFY_LIVE_RRC=1)
 
 ## [1.6.5] - 2026-07-04
 
 ### Features
-- **Landlock LSM sandbox (Linux)**: Optional filesystem sandbox for the bot process and external script cogs on kernels with Landlock support (5.13+).
-  - `landlock_enabled` in `BotConfig` (default `True`); override with `LXMFY_LANDLOCK=0` or `LXMFY_LANDLOCK=1`.
-  - `LXMFBot.get_landlock_status()` reports kernel support, request state, and whether the sandbox is active.
-  - External cog sandbox `auto` mode now prefers Landlock, then `bwrap`, then `firejail`; added explicit `landlock` and `none` sandbox types.
-- **Static type checking**: Added `pyright` dev dependency, `[tool.pyright]` config, and `make typecheck` / `make ci` integration.
+- Optional Landlock filesystem sandbox on Linux
+- External cog sandbox prefers Landlock, then bwrap, then firejail
+- Static type checking with pyright
 
 ### Fixes
-- **Propagation node init**: Removed invalid `enforce_stamps` argument from `LXMRouter.enable_propagation()` (stamp enforcement belongs on router construction only).
-- **Cog permissions**: `Cog.has_permission()` now delegates to `bot.permissions` instead of referencing non-existent cog attributes.
-- **Type annotations**: Corrected optional types and Landlock-related typing across the codebase for clean `pyright` runs.
+- Removed invalid enforce_stamps from enable_propagation()
+- Cog permission checks delegate to bot.permissions
 
 ### Updates
-- **Dependencies**: LXMF 1.0.1+, RNS 1.3.5+ (lockfile: LXMF 1.0.1, RNS 1.3.7).
-- **Documentation**: English and Russian Sphinx docs updated for Landlock, sandboxing, prerequisites, and development workflow.
-- **README**: Project and docs READMEs updated with requirements, sandbox configuration, and translation workflow.
+- LXMF 1.0.1+, RNS 1.3.5+
+- Docs and README updated for sandboxing
 
 ## [1.6.4] - 2026-05-30
 
 ### Updates
-- **Dependencies**: LXMF 1.0.0, RNS 1.3.4
+- LXMF 1.0.0, RNS 1.3.4
 
 ## [1.6.3] - 2026-05-08
 
 ### Features
-- **LXMF FIELD_COMMANDS / FIELD_RESULTS support**: Bots can now receive structured commands and requests sent via LXMF message fields (`FIELD_COMMANDS = 0x09`) and automatically reply with results (`FIELD_RESULTS = 0x0A`).
-  - `unpack_commands(fields)` helper parses `FIELD_COMMANDS` whether sent as a single dict or a list of dicts.
-  - `pack_result(result, request_id, status)` helper builds `FIELD_RESULTS` reply payloads.
-  - Incoming field commands are routed through the existing command registry, sharing the same permission checks, type-hinted argument parsing, threading, and middleware hooks as text commands.
-  - `ctx.reply("...")` automatically includes `FIELD_RESULTS` in the outgoing LXMF message when responding to a field command. If the incoming command contained a `request_id`, it is preserved in the result for request/response correlation.
-  - The `msg` context object passed to command callbacks now exposes `.fields` (raw LXMF fields dict) and `.request_id`.
-  - New `BotConfig` option: `lxmf_commands_enabled` (default `True`). Set to `False` to ignore field commands and fall back to text-only processing.
-  - New exports: `FIELD_COMMANDS`, `FIELD_RESULTS`, `pack_result`, `unpack_commands` from `lxmfy` package.
+- Structured LXMF field commands and results (FIELD_COMMANDS / FIELD_RESULTS)
+- Field commands use the same registry, permissions, and middleware as text commands
+- lxmf_commands_enabled config option (default on)
 
 ## [1.6.2] - 2026-04-15
 
 ### Features
-- **Reticulum config directory**: Added `reticulum_config_dir` to `BotConfig` (and `LXMFY_RETICULUM_CONFIG_DIR`). `LXMFBot` passes this path to `RNS.Reticulum` for shared instance and auth state; when unset, behavior matches the previous default of using the bot config directory.
-- **Announce display name**: Before each delivery announce, the bot refreshes the LXMF destination display name from the current `LXMFBot.name` / `BotConfig.name`, an optional `announce_display_name_file` under the config directory, or `bot_display_name.txt` when present. This keeps announce app_data aligned when the title changes on disk without restarting the process.
-- **Public announce API**: Added `LXMFBot.announce_now(force=False)` for library callers; use `force=True` to bypass the on-disk announce interval throttle. The `name` property reads and writes `BotConfig.name` and updates the delivery destination when the router is up.
+- reticulum_config_dir / LXMFY_RETICULUM_CONFIG_DIR for shared Reticulum config
+- Announce display name refreshed from bot name or config files
+- announce_now() for library callers
 
 ### Updates
-- **Dependencies**: Updated RNS requirement to 1.1.5 and regenerated poetry.lock
+- RNS 1.1.5
 
 ## [1.6.1] - 2026-03-11
 
-### Other Changes
-- **License**: Switched from MIT to BSD-0-Clause.
+### Updates
+- License switched from MIT to BSD-0-Clause
 
 ## [1.6.0] - 2026-02-27
 
-Updated dependencies:
-- RNS to 1.1.3
-- Cryptography to 46.0.5
+### Updates
+- RNS 1.1.3
+- Cryptography 46.0.5
 
 ## [1.5.0] - 2026-01-15
 
 ### Features
-- **In-Memory Storage**: Added `MemoryStorage` backend. Bots can now run entirely in RAM (excluding RNS/LXMF internal state) by setting `storage_type="memory"`.
-- **Reliability Suite**: Added a comprehensive suite of mathematical and reliability tests:
-    - **Manifold Testing**: NLP vector space orthogonality verification.
-    - **Chaos Engineering**: Storage fault injection and bit-rot simulation.
-    - **Temporal Drift**: Clock skew resilience testing (±1 year jumps).
-    - **Leak Detection**: Resource tracking for FDs, threads, and memory over long runs.
-- **Message Persistence**: Added `message_persistence_enabled` to `BotConfig`. Outgoing messages in the queue are now persisted to storage and restored on startup (in case of a crash or unexpected restart).
-- **Identity Pinning**: Added `identity_pinning_enabled` to `BotConfig`. An extra paranoid measure that remembers the full public key of a sender to protect against theoretical hash collisions.
-- **Dynamic Cog Management**: Added `remove_cog()` and `reload_extension()` methods to `LXMFBot`, allowing for runtime loading and unloading of extensions.
-- **Cross-Language Script Cogs**: Added support for non-Python cogs. Any executable file in the `cogs/` directory is now automatically registered as a bot command. Includes optional sandboxing via `bubblewrap` or `firejail` and mandatory timeouts/threading for safety.
-- **NLP**: Integrated a very basic, lightweight, local intent classification engine (Tiny-NLP). Bots can now understand "intents" using mathematical vector similarity (TF-IDF/Cosine) instead of just exact string matches, all processed locally and offline without external APIs or dependencies.
-- **RNS Link Support**: Bots can now request and respond to direct RNS Links, enabling stateful, link-oriented communication alongside standard LXMF messages.
-- **Type-hinted Argument Parsing**: Bot commands now automatically parse and convert arguments based on type hints in the callback function signature.
-- **Property-based Testing**: Integrated Hypothesis for extensive property-based testing of middleware, parsing, permissions, signatures, storage, and validation modules.
+- In-memory storage backend
+- Reliability suite: chaos, temporal drift, leak detection, manifold NLP tests
+- Optional outgoing message persistence across restarts
+- Optional identity pinning against hash collisions
+- Runtime cog remove/reload
+- Cross-language script cogs with optional sandboxing
+- Local offline Tiny-NLP intent classification
+- RNS link support
+- Type-hinted command argument parsing
+- Hypothesis property-based tests
 
 ### Fixes
-- **Identity Persistence in Test Mode**: Improved identity handling to allow persistence and recall of identities even when `test_mode` is enabled.
+- Identity persistence works in test mode
 
 ## [1.4.0] - 2026-01-05
 
 ### Features
-- **Inbound stamp enforcement toggle**: Added `require_stamps` to `BotConfig`, wiring enforcement through `LXMRouter` initialization and propagation enablement.
-- **Optional identity fetch for unknown senders**: `SignatureManager` can request unknown identities (`request_unknown_identities`) by issuing `RNS.Transport.request_path` when a message arrives from an unknown source.
-- **Performance and memory stress tests**: Added `tests/test_performance.py` with throughput, signature verification, storage load, middleware stack, and long-run memory stability benchmarks.
+- require_stamps inbound stamp enforcement toggle
+- Optional identity fetch for unknown senders
+- Performance and memory stress tests
 
 ### Fixes
-- **Reticulum cleanup**: Ensure `LXMFBot.cleanup()` invokes `router.exit_handler()` and `RNS.Reticulum.exit_handler()` to prevent hanging background threads between tests.
-- **Propagation config robustness**: Adjusted propagation tests to use test-mode/mocked routers and ensured storage limits are set correctly, stabilizing propagation-node coverage.
-- **Signature path requests**: Corrected patch target for path requests on unknown identities in tests, aligning with `lxmfy.signatures` usage.
+- Cleanup stops hanging Reticulum background threads between tests
+- More stable propagation and signature path-request tests
 
 ## [1.3.0] - 2026-01-04
 
 ### Features
-- **Added version to lxmfy help output**
+- Version shown in lxmfy help
 
-### Other Changes
-- **Updated publish workflow to use twine for Gitea PyPI package registry**
-- **Updated install commands in README with Gitea PyPI registry instructions**
-- **Added SHA256 checksums for release assets (SHA256SUMS file and in release notes)**
-- **Updated RNS to 1.1.0**
+### Updates
+- Twine-based publish flow and README install notes
+- SHA256 checksums for release assets
+- RNS 1.1.0
 
 ## [1.2.1] - 2025-11-30
 
 ### Fixes
-- **Fix Gitea actions setting on project repo (forced pinned SHA actions broke stuff, oops)**
+- Actions pinning settings on the project repo
 
 ## [1.2.0] - 2025-11-30
 
 ### Features
-- **Created dedicated colors module for CLI**
+- Dedicated colors module for CLI
 
 ### Fixes
-- **Fix interactive cli color support for Windows 10/11**
+- Interactive CLI color support on Windows 10/11
 
-### Other Changes
-- **Updated dependencies in poetry.lock (rns 1.0.4 and ruff 0.14.7)**
-- **Moved from safety to bearer for security scanning (safety was no longer working)**
-- **Updated rest of Gitea actions to use full-length commit SHAs for better supply chain security**
+### Updates
+- RNS 1.0.4, ruff 0.14.7
+- Moved from safety to bearer for security scanning
+- Actions pinned to full-length commit SHAs
 
 ## [1.1.0] - 2025-11-21
 
 ### Features
-- **Direct Delivery with retries & Propagation Net Fallback**
-- **Configurable Stamp Cost for bots**
-
-### Codebase Changes
-- **Simplied codebase to just use poetry.** 
-- **Numerous codebase cleanup and improvements.**
+- Direct delivery with retries and propagation fallback
+- Configurable stamp cost for bots
 
 ### Updates
-- **Update LXMF to 0.9.3**
-- **Update RNS to 1.0.3**
+- Poetry-only tooling and codebase cleanup
+- LXMF 0.9.3, RNS 1.0.3
 
 ## [1.0.3] - 2025-11-03
-### Patch
-- **Updated dependencies**
-  - Updated lxmf to 0.9.1 due to bug.
+
+### Updates
+- LXMF 0.9.1
 
 ## [1.0.2] - 2025-11-03
 
-### Patch
-- **Updated dependencies**
-  - Updated lxmf to 0.9.0
-  - Updated rns to 1.0.1
-  - Updated dependencies in poetry.lock
-
-- **Project Structure Cleanup**
-  - Moved docker files to docker directory
-  - Updated Makefile and README with new paths.
+### Updates
+- LXMF 0.9.0, RNS 1.0.1
+- Docker files moved under docker/
 
 ## [1.0.1] - 2025-09-28
 
-### Patch
-- **Fixed Signature Canonicalization**
-  - Fixed signature canonicalization to use the correct format
-  - updated signature test to use the correct format
+### Fixes
+- Signature canonicalization format and matching tests
 
 ## [1.0.0] - 2025-09-27
 
-### Major Features
-- **Stable Release**: LXMFy reaches version 1.0.0 with full feature stability
-- **Comprehensive Test Suite**: Added extensive test coverage
-- **Code Quality Improvements**: Enhanced type hints, removed unused imports, and improved code consistency
-
-### Testing & CI/CD
-- Added pytest framework with comprehensive test suite
-- Implemented Gitea Actions CI/CD pipeline with automated testing
-- Updated DeepSource configuration to exclude test files from analysis
-- Added pytest-related development dependencies
-
-### Code Quality
-- Refactored type hints across multiple files for better consistency
-- Improved help text formatting in HelpFormatter class
-- Removed unused imports and cleaned up code
-- Updated staticmethod usage for better performance
-
-### Dependencies & Configuration
-- Updated project dependencies and configuration
+### Features
+- Stable 1.0 release
+- Broad pytest coverage and Actions CI
+- Type hint and code quality cleanup
 
 ## [0.8.0] - 2025-09-27
 
-### Major Features
-- **Cryptographic Message Signing & Verification**
-  - Added `signature_verification_enabled` configuration option
-  - Added `require_message_signatures` configuration option
-  - Implemented `SignatureManager` class for cryptographic operations
-  - Added automatic signing of outgoing messages when verification is enabled
-  - Added verification of incoming message signatures
-  - Custom LXMF field `FIELD_SIGNATURE = 0xFA` for storing signatures
-  - CLI commands: `lxmfy signatures test/enable/disable`
-  - Integration with permission system (bypass for privileged users)
-  - Comprehensive validation and best practices checking
+### Features
+- Cryptographic message signing and verification
+- Optional require_message_signatures
+- CLI helpers for signature testing and toggling
 
 ## [0.7.8] - 2025-09-13
-- **Update Dependencies in poetry.lock**
-- **Add Makefile**
+
+### Updates
+- Dependency refresh and Makefile added
 
 ## [0.7.7] - 2025-07-14
 
-- **Docker Enhancements**
-  - Added Arm64 docker support.
-  - Updated docker build test and parameterized Python version in Dockerfile for easier updates.
-
-- **Dependency Updates**
-  - Updated RNS to `1.0.0` and LXMF to `0.8.0`.
-  - Regenerated poetry.lock.
-
-- **Codebase Cleanup**
-  - General code cleanup and maintenance.
+### Updates
+- Arm64 Docker support
+- RNS 1.0.0, LXMF 0.8.0
+- General cleanup
 
 ## [0.7.6] - 2025-07-05
 
-- **New Feature: Threaded Commands**
-  - Introduced `threaded=True` option for `@command` decorator.
-  - Allows long-running command callbacks to execute in a separate thread, improving bot responsiveness.
-  - Implemented `ThreadPoolExecutor` in `LXMFBot` for managing threaded tasks.
-  - Updated `Command` class to support `threaded` attribute.
-  - Updated `docs/api.md` and `docs/creating-bots.md` with usage and safety guidelines.
+### Features
+- Threaded command option for long-running callbacks
 
-- **Dependency Updates**
-  - dependency updates for general maintenance.
+### Updates
+- Dependency maintenance
+
 ## [0.7.5] - 2025-06-22
 
-- **Enhanced cog command loading system**
-  - Improved add_cog method with robust error handling and command binding
-  - Added proper filtering to skip private methods and non-command attributes
-  - Enhanced command descriptor detection and binding logic
-  - Better fallback handling for edge cases in command registration
-
-- **New CogTest template**
-  - Added comprehensive cog testing template for regression prevention
-  - Includes test commands with various decorator types (@Command, admin-only)
-  - Features status reporting command to verify cog loading success
-  - Available via CLI: `lxmfy create --template cogtest` and `lxmfy run cogtest`
-  - Can be used as both standalone template and loadable cog module
+### Features
+- More robust cog command loading
+- CogTest template for regression checks
 
 ## [0.7.4] - 2025-06-22
 
-- **Fix cog command loading issue**
-  - Fixed Command.__get__ method to properly pass all parameters when binding instance methods
-  - Resolves "'method' object has no attribute 'callback'" error when loading cog extensions
-  - Commands in cogs now load correctly with all metadata preserved
+### Fixes
+- Cog command binding preserved metadata correctly
 
 ## [0.7.3] - 2025-05-15
 
-- **Update LXMF to 0.7.1**
-- **Update RNS to 0.9.6**
+### Updates
+- LXMF 0.7.1, RNS 0.9.6
 
 ## [0.7.2] - 2025-05-13
 
-- **Update LXMF to 0.7.0**
-- **Update dependencies**
-- **Python 3.13 now required**
+### Updates
+- LXMF 0.7.0
+- Python 3.13 required
 
 ## [0.7.1] - 2025-05-09
 
-- **Fixed workflow**
+### Fixes
+- Workflow fix
 
 ## [0.7.0] - 2025-05-09
 
-- **Add LXMF fields support**
-- **Update dependencies**
-- **Update docs**
+### Features
+- LXMF fields support
+
+### Updates
+- Dependencies and docs
 
 ## [0.6.9] - 2025-05-07
 
-- **Add opencontainers metadata**
-- **Remove bot Scan (AST)**
-- **Remove bot verification**
-- **Update dependencies**
-- **Performance fixes (Ruff PERF)**
-- **cog loading validation and error handling**
+### Updates
+- Opencontainers metadata
+- Removed bot scan/verification paths
+- Performance and cog loading hardening
 
 ## [0.6.8] - 2025-04-29
 
-- **Update setup.py package name**
-- **Add Dockerfile.Build**
-- **CLI: Colors and Interactive**
+### Features
+- CLI colors and interactive mode
+- Dockerfile.Build added
 
 ## [0.6.7] - 2025-04-29
 
-- **Fix Workflow**
+### Fixes
+- Workflow fix
 
 ## [0.6.6] - 2025-04-29
 
-- **Fix Basic Tests**
-- **Docstrings**
-- **Code Cleanup**
-- **Meme Bot Template**
-- **Update dependencies**
-- **Add ARMv7 and ARM64 Builds**
-- **Remove Bandit**
-- **Remove Meme Bot (Meme API no longer working)**
-- **Remove Requests (Meme Bot dependency)**
+### Updates
+- Basic tests, docs, cleanup
+- ARMv7 and ARM64 builds
+- Removed Bandit, meme bot, and requests
 
 ## [0.6.5] - 2025-04-07
 
-- **Fix Attachment System**
-- **Add more storage error handling**
+### Fixes
+- Attachment system
+- Storage error handling
 
 ## [0.6.4] - 2025-04-06
 
-- **Code refactoring for security and performance**
+### Updates
+- Security and performance refactoring
 
 ## [0.6.3] - 2025-04-06
 
-- **Fix syntax errors**
-- **Manual publish workflow**
-- **Update Poetry.lock**
+### Fixes
+- Syntax errors
+- Manual publish workflow
 
 ## [0.6.0] - 2025-04-06
 
-- **Update lxmf to 0.6.3**
-- **Update rns to 0.9.3**
-- **Add docker-compose.yml file**
-- **Run bot templates directly: lxmfy run echo**
-- **Add basic tests**
-- Fix linting errors
-- **Add LXMF Attachment Support**
+### Features
+- Run bot templates directly (lxmfy run echo)
+- LXMF attachment support
+- Basic tests and docker-compose
+
+### Updates
+- LXMF 0.6.3, RNS 0.9.3
 
 ## [0.5.1] - 2025-02-14
 
-- **Remove unused variables**
-- **Fix version**
+### Fixes
+- Unused variables and version bump
 
 ## [0.5.0] - 2025-02-14
 
-- **Update config, cli and core**
-  - Add missing values
-  - Fix announce system
+### Fixes
+- Config, CLI, core, and announce system
 
 ## [0.4.9] - 2025-02-14
-- **Fix Announce System**
-  - Add ability to disable announces on start.
-  - Fix announcing interval
 
-Bot configuration:
+### Features
+- Disable announces on start and configure announce interval
 
-```python
-    announce=600,  # Set the announce interval in seconds, set to 0 to disable periodic announces
-    announce_enabled=True,  # Set to False to disable all announces (both initial and periodic)
-```
-
-- **Fix Duplicate Responses**
-
-- **Update Dependencies**
-  - Update LXMF from `0.6.1` to `0.6.2`
-  - Regenerate poetry.lock
+### Fixes
+- Duplicate responses
+- LXMF 0.6.2
 
 ## [0.4.8] - 2025-01-25
-- **Fix Storage System**
-  - Serialization errors
-  - SQLite3 Storage Backend
+
+### Fixes
+- Storage serialization
+- SQLite storage backend
 
 ## [0.4.7] - 2025-01-25
-- **Fix Storage System**
-  - Serialization errors
-  
-- **Fix Event System**
-  - Event handling of some attributes
+
+### Fixes
+- Storage serialization
+- Event attribute handling
 
 ## [0.4.6] - 2025-01-25
 
-### Major Features
-- **Middleware System**
-  - Middleware system for processing messages and events
-  - MiddlewareManager class for managing middleware
-  - MiddlewareType enum for middleware types
-  - MiddlewareContext class for passing data through middleware
+### Features
+- Middleware system
+- Task scheduler
 
-- **Task Scheduler**
-  - Task scheduler for scheduling tasks
-  - TaskScheduler class for managing tasks
-  - ScheduledTask class for representing scheduled tasks
-
-- **Update lxmf to 0.6.1**
-
-```python
-from lxmfy import LXMFBot, MiddlewareType, TaskScheduler
-
-bot = LXMFBot(name="MyBot")
-
-# Add middleware
-@bot.middleware.register(MiddlewareType.PRE_COMMAND)
-def log_commands(ctx):
-    print(f"Command received: {ctx.data}")
-    return ctx.data
-
-# Schedule task
-@bot.scheduler.schedule("cleanup", "0 */2 * * *")  # Every 2 hours
-def cleanup_task():
-    print("Running cleanup...")
-```
+### Updates
+- LXMF 0.6.1
 
 ## [0.4.5] - 2025-01-20
 
-### Major Features
-- **Event System**
-  - Event system for handling events and middleware
-  - EventManager class for managing events and handlers
-  - Event class for representing events
-  - EventPriority enum for event priority levels
-  - EventMiddleware for handling event middleware
+### Features
+- Event system with priorities and middleware
 
-```python
-@bot.events.on("custom_event")
-async def handle_custom_event(event):
-    print(f"Custom event received: {event.data}")
-
-# Dispatch custom event
-await bot.events.dispatch(Event("custom_event", {"foo": "bar"}))
-```
-
-- **Update rns and lxmf**
+### Updates
+- RNS and LXMF bumps
 
 ## [0.4.4] - 2025-01-17
 
-### Major Features
-- **Bot Analysis**
-  - Validate bot configuration and best practices
-  - Analyze bot file and provide recommendations
-  - Validate bot file syntax and structure
-  - Check for common issues and suggest improvements
+### Features
+- Bot analysis CLI (lxmfy analyze)
 
-- **Update rns to 0.9.0**
-
-  cli command: `lxmfy analyze bot.py`
-
+### Updates
+- RNS 0.9.0
 
 ## [0.4.3] - 2025-01-04
 
-### Major Features
-- **First Message Handler**
-- **SQLite3 Storage Backend**
-- **Simpler and Better Bot Templates**
-
-Templates Added: EchoBot, ReminderBot, NoteBot
-Templates Removed: FullBot
-
-On First Message Handler:
-
-```python
-
-@bot.on_first_message()
-def welcome_message(sender, message):
-    # Custom welcome message handler
-    bot.send(sender, "Welcome to the bot! Type /help to see available commands.")
-    return True  # Return True to indicate message was handled
-```
-
-SQLite3 Storage Backend:
-
-```python
-bot = LXMFBot(
-    name="mybot",
-    announce=600,  # Announce every 600 seconds (10 minutes)
-    admins=[],  # Add your LXMF hashes here
-    hot_reloading=True,
-    command_prefix="/",
-    first_message_enabled=True,
-    storage_type="sqlite",
-    storage_path="mybot.db",
-)
-```
+### Features
+- First-message handler
+- SQLite storage backend
+- EchoBot, ReminderBot, NoteBot templates (FullBot removed)
 
 ## [0.4.2] - 2025-01-01
 
-### Major Features - Non-Breaking to existing bots
-- **Permission System**
-  - Role-based access control with hierarchical permissions
-  - Default and admin role system
-  - Custom role creation and management
-  - Persistent permission storage
-  - Command-specific permission requirements
-  - Permission flags: READ, WRITE, EXECUTE, MANAGE
-  - Built-in permission sets: USE_BOT, SEND_MESSAGES, USE_COMMANDS, etc.
-  - Permission inheritance through roles
-  - Permission priority system
-  - Integration with existing admin system
-  - Permission system can be disabled/enabled
+### Features
+- Role-based permission system with persistent roles and command checks
 
-### Code Quality
-- **Enhanced Command System**
-  - Permission-aware command decorator
-  - Improved command metadata
-  - Better permission validation
-  - Integration with help system for permission display
+## [0.4.1] - 2024-12-31
 
-### Core Features
-- **Permission Management**
-  - `PermissionManager` class for centralized permission handling
-  - Role assignment and removal
-  - Permission checking utilities
-  - User permission calculation
-  - Role persistence and storage
-
-## [0.4.1] - 2024-31-12
-
-### Major Features
-- **Help Commands**
-  - Detection of existing commands and creates a help command.
+### Features
+- Auto-generated help command
 
 ## [0.4.0] - 2024-12-29
 
-### Major Features
-- **CLI Templates Command**
-  - Basic bot template with example cogs
-  - Full-featured bot template with storage and admin commands
-  - Template selection via CLI: `lxmfy create --template full mybot`
-
-- **CLI Verification Command**
-  - Using `lxmfy verify` to verify a .whl file using a sigstore hash.
-
-- **Fix Rate Limiting and Spam Protection**
-  - Dont process recieved messages at all if banned.
-
+### Features
+- CLI templates (basic and full)
+- Wheel verification via lxmfy verify
+- Stronger rate limiting and spam protection for banned senders
 
 ## [0.3.3] - 2024-12-28
 
-### Major Features
-- **Simplified CLI Interface**
-  - New streamlined command: `lxmfy create mybot ./mybot`
-  - Removed complex flag requirements (`--name`, `--output`)
-  - Intuitive directory structure creation
+### Features
+- Simplified lxmfy create CLI
+- Transport layer path discovery and link caching
+- JSON storage system
+- Initial docs and website polish
 
-### Code Quality
-- **Enhanced Code Quality**
-  - Full Pylint compliance
-  - Improved type hints
-  - Better error handling
-  - Consistent code style
-
-### Core Features
-- **Transport Layer**
-  - Automatic path discovery
-  - Link caching and management
-  - Request handling system
-  - Configurable timeouts
-  - Path persistence
-
-- **Storage System**
-  - JSON file-based persistence
-  - In-memory caching
-  - Key-value operations
-  - Prefix scanning
-  - Custom backend support
-
-### Documentation
-- **Comprehensive Documentation**
-  - Quick start guide
-  - Command creation examples
-  - Storage system usage
-  - Transport layer integration
-  - Moderation tools overview
-  - Cog system tutorials
-- **Website Updates**
-  - Mobile-responsive design (some more improvements to come)
-  - Improved code block readability
-  - Better navigation structure
-
-### Bug Fixes
-- Fixed mobile navigation menu positioning
-- Improved code block scrolling on mobile devices
-- Enhanced responsive layout for feature cards
-- Fixed documentation link accessibility
-
-[0.3.3]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.3.3
-[0.4.0]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.4.0
-[0.4.1]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.4.1
-[0.4.2]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.4.2
-[0.4.3]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.4.3
-[0.4.4]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.4.4
-[0.4.5]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.4.5
-[0.4.6]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.4.6
-[0.4.7]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.4.7
-[0.4.8]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.4.8
-[0.4.9]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.4.9
-[0.5.0]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.5.0
-[0.5.1]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.5.1
-[0.6.0]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.6.0
-[0.6.3]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.6.3
-[0.6.4]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.6.4
-[0.6.5]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.6.5
-[0.6.6]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.6.6
-[0.6.7]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.6.7
-[0.6.8]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.6.8
-[0.6.9]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.6.9
-[0.7.0]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.7.0
-[0.7.1]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.7.1
-[0.7.2]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.7.2
-[0.7.3]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.7.3
-[0.7.4]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.7.4
-[0.7.5]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.7.5
-[0.7.6]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.7.6
-[0.7.7]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.7.7
-[0.7.8]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v0.7.8
-[1.0.0]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v1.0.0
-[1.0.1]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v1.0.1
-[1.0.2]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v1.0.2
-[1.0.3]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v1.0.3
-[1.1.0]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v1.1.0
-[1.2.0]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v1.2.0
-[1.2.1]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v1.2.1
-[1.3.0]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v1.3.0
-[1.4.0]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v1.4.0
-[1.5.0]: https://git.quad4.io/LXMFy/LXMFy/releases/tag/v1.5.0
+### Fixes
+- Mobile navigation and docs link accessibility

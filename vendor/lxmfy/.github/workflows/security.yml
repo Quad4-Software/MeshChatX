@@ -1,0 +1,151 @@
+# Security scans: workflow audit (zizmor), Python SAST (bandit), secrets (gitleaks).
+# Secure-use: least-privilege GITHUB_TOKEN, SHA-pinned actions,
+# pull_request (not pull_request_target), no untrusted input in run scripts.
+
+name: Security
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: "17 5 * * 3"
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  zizmor:
+    name: Workflow audit (zizmor)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          advanced-security: false
+          annotations: true
+          persona: auditor
+
+  bandit:
+    name: Python SAST (bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Install bandit
+        run: pipx install bandit==1.9.4
+
+      - name: Scan lxmfy (medium+ severity gate)
+        run: bandit -r lxmfy -ll
+
+  gitleaks:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        # The action wrapper requires a license for org repos, so the
+        # pinned CLI binary is used instead.
+        run: |
+          curl -sSfL -o /tmp/gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz"
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  /tmp/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+
+      - name: Scan git history for secrets
+        run: /tmp/gitleaks git --redact --verbose .
+
+  vuln-scan:
+    name: Dependency audit (pip-audit + SBOM)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install poetry
+        run: pipx install poetry==2.4.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: poetry
+
+      - name: Install project dependencies
+        run: poetry install --no-interaction --no-ansi
+
+      - name: Install audit tooling
+        run: poetry run pip install --require-hashes -r .github/requirements/audit.txt
+
+      - name: Audit dependencies for known vulnerabilities
+        run: poetry run pip-audit
+
+      - name: Generate SBOM
+        run: |
+          poetry run cyclonedx-py environment "$(poetry env info -p)/bin/python" \
+            --of JSON --mc-type library -o sbom.cdx.json
+          poetry run python - <<'EOF'
+          import json, tomllib
+          with open("pyproject.toml", "rb") as f:
+              meta = tomllib.load(f)["project"]
+          with open("sbom.cdx.json") as f:
+              sbom = json.load(f)
+          sbom.setdefault("metadata", {})["component"] = {
+              "type": "library",
+              "bom-ref": f"pkg:pypi/{meta['name']}@{meta['version']}",
+              "name": meta["name"],
+              "version": meta["version"],
+              "description": meta.get("description", ""),
+          }
+          with open("sbom.cdx.json", "w") as f:
+              json.dump(sbom, f, indent=2)
+          EOF
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom
+          path: sbom.cdx.json
+          retention-days: 90

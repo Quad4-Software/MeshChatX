@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% set og_title %}
+  {%- if page.title and page.title != config.site_name and page.title != "Home" -%}
+    {{ page.title | striptags }} - {{ config.site_name }}
+  {%- else -%}
+    {{ config.site_name }}
+  {%- endif -%}
+{% endset %}
+
+{% block htmltitle %}
+  {% if page.meta and page.meta.title %}
+    <title>{{ page.meta.title }} - {{ config.site_name }}</title>
+  {% elif page.title and page.title != config.site_name and page.title != "Home" %}
+    <title>{{ page.title | striptags }} - {{ config.site_name }}</title>
+  {% else %}
+    <title>{{ config.site_name }} - {{ config.site_description }}</title>
+  {% endif %}
+{% endblock %}
+
+{% block extrahead %}
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ config.site_name }}">
+  <meta property="og:title" content="{{ og_title }}">
+  {% if page.meta and page.meta.description %}
+    <meta property="og:description" content="{{ page.meta.description }}">
+  {% elif config.site_description %}
+    <meta property="og:description" content="{{ config.site_description }}">
+  {% endif %}
+  {% if page.canonical_url %}
+    <meta property="og:url" content="{{ page.canonical_url }}">
+  {% endif %}
+  <meta property="og:image" content="{{ config.site_url }}/assets/social.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="{{ config.site_url }}/assets/social.png">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0b">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f4f5">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "name": "{{ config.site_name }}",
+        "url": "{{ config.site_url }}/",
+        "description": "{{ config.site_description }}",
+        "inLanguage": ["en", "de", "es", "fr", "pt", "ru", "uk", "zh"]
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "name": "{{ config.site_name }}",
+        "url": "{{ config.site_url }}/",
+        "codeRepository": "{{ config.repo_url }}",
+        "programmingLanguage": "Python",
+        "license": "https://opensource.org/license/0bsd"
+      }
+    ]
+  }
+  </script>
+{% endblock %}

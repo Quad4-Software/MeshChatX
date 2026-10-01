@@ -66,9 +66,9 @@ def realistic_cogs_setup():
             # os.chmod is usually set by gcc, but let's be sure
             os.chmod(c_bin, os.stat(c_bin).st_mode | stat.S_IEXEC)
 
-        # 4. Go Cog
-        go_bin = None
-        if shutil.which("go"):
+        # 4. Go Cog (skip if go is present but not runnable)
+        go_path = shutil.which("go")
+        if go_path:
             go_src = temp_path / "hello.go"
             go_src.write_text("""
     package main
@@ -82,15 +82,19 @@ def realistic_cogs_setup():
         }
     }
     """)
-            go_bin = cogs_dir / "go_hello"
-            # Compile with CGO_ENABLED=0 for a static binary (easier for sandbox)
+            candidate = cogs_dir / "go_hello"
             env = os.environ.copy()
             env["CGO_ENABLED"] = "0"
-            subprocess.run(
-                ["go", "build", "-o", str(go_bin), str(go_src)],
-                env=env,
-                check=True,
-            )
+            try:
+                subprocess.run(
+                    [go_path, "build", "-o", str(candidate), str(go_src)],
+                    env=env,
+                    check=True,
+                    capture_output=True,
+                )
+            except (OSError, subprocess.CalledProcessError):
+                if candidate.exists():
+                    candidate.unlink()
 
         yield temp_path
 
@@ -114,9 +118,10 @@ def test_multilang_cogs_execution(realistic_cogs_setup):
         "bash_hello": "Bash: Hello test_sender",
         "perl_hello": "Perl: Hello test_sender",
     }
-    if shutil.which("gcc"):
+    cogs_dir = realistic_cogs_setup / "cogs"
+    if (cogs_dir / "c_hello").exists():
         languages["c_hello"] = "C: Hello test_sender"
-    if shutil.which("go"):
+    if (cogs_dir / "go_hello").exists():
         languages["go_hello"] = "Go: Hello test_sender"
 
     for cmd_name, expected_output in languages.items():

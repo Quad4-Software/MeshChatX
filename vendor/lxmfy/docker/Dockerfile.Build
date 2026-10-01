@@ -1,4 +1,4 @@
-FROM python:3.11-alpine
+FROM python:3.11-alpine@sha256:cd04730b8511def3fbf14204d66a0c1536f290b8e896ed5a94cd64cb15ac1356
 
 WORKDIR /build
 
@@ -7,11 +7,10 @@ RUN apk add --no-cache \
     python3-dev \
     git \
     libffi-dev \
-    openssl-dev \
-    curl
+    openssl-dev
 
-RUN curl -sSL https://install.python-poetry.org | python3 - && \
-    ln -s /root/.local/bin/poetry /usr/local/bin/poetry
+COPY docker/requirements-poetry.txt /tmp/requirements-poetry.txt
+RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements-poetry.txt
 
 COPY pyproject.toml poetry.lock README.md LICENSE ./
 COPY lxmfy ./lxmfy

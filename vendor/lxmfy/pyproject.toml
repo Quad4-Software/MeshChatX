@@ -1,6 +1,6 @@
 [project]
 name = "lxmfy"
-version = "2.0.1"
+version = "2.1.1"
 description = "LXMF bot framework for creating bots for the Reticulum Network"
 authors = [{name = "Quad4", email = "team@quad4.io"}]
 readme = "README.md"
@@ -15,14 +15,15 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "lxmf>=1.0.1",
-    "rns>=1.3.9",
-    "cbor2>=5.4.0",
+    "lxmf>=1.1.1",
+    "rns>=1.5.4",
+    "cborx>=0.2.5",
+    "landlockpy (>=0.2.0,<0.3.0) ; sys_platform == 'linux'",
 ]
 
 [project.urls]
-Homepage = "https://git.quad4.io/LXMFy/LXMFy"
-Repository = "https://git.quad4.io/LXMFy/LXMFy"
+Homepage = "https://github.com/Quad4-Software/LXMFy"
+Repository = "https://github.com/Quad4-Software/LXMFy"
 
 [project.scripts]
 lxmfy = "lxmfy.cli:main"
@@ -31,20 +32,84 @@ lxmfy = "lxmfy.cli:main"
 packages = [{include = "lxmfy"}]
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.15.0"
-pytest = "^8.4.2"
-pytest-asyncio = "^1.2.0"
-pytest-cov = "^7.0.0"
-twine = "^6.2.0"
-psutil = "^7.2.1"
-hypothesis = "^6.150.2"
-pyright = "^1.1.411"
+ruff = "^0.16.0"
+pytest = "^9.1.0"
+pytest-asyncio = "^1.4.0"
+pytest-cov = "^7.1.0"
+twine = "^7.0.0"
+psutil = "^7.2.2"
+hypothesis = "^6.168.0"
+pyright = "^1.1.414"
+pytest-benchmark = "^5.3.0"
+
+[tool.ruff]
+target-version = "py311"
+extend-exclude = ["docs"]
+
+[tool.ruff.lint]
+select = [
+    "A",    # builtins shadowing
+    "B",    # bugbear
+    "BLE",  # blind except
+    "C4",   # comprehensions
+    "DTZ",  # timezone-aware datetimes
+    "E",
+    "F",
+    "FA",   # future annotations
+    "G",    # logging format
+    "I",    # isort
+    "ICN",  # import conventions
+    "LOG",  # logging
+    "PERF", # perflint
+    "RET",  # return style
+    "RUF",
+    "S",    # bandit rules
+    "SIM",  # simplify
+    "SLOT", # __slots__
+    "T20",  # print
+    "TID",  # tidy imports
+    "TRY",  # exception handling
+    "UP",   # pyupgrade
+    "W",
+]
+ignore = [
+    "BLE001", # broad excepts are deliberate at user-callback boundaries
+    "E501",   # line length is handled by the formatter
+    "TRY002", # vanilla exception classes are fine
+    "TRY003", # exception messages as string literals are fine
+    "TRY300", # try/else blocks are a style preference
+    "TRY301", # raise inside try is deliberate for log-and-reraise
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["BLE001", "DTZ", "E501", "S", "T201", "TRY", "A", "B", "PERF", "PTH", "RET", "SIM", "RUF"]
+"lxmfy/cli.py" = ["T201"]
+"lxmfy/colors.py" = ["T201", "RUF001"]
+"lxmfy/debugger.py" = ["T201"]
+"docs/**" = ["A001"]
 
 [tool.pyright]
 include = ["lxmfy"]
 pythonVersion = "3.11"
-typeCheckingMode = "standard"
+typeCheckingMode = "strict"
 reportMissingTypeStubs = false
+# RNS and LXMF ship no type information, so member types resolved through
+# them are Unknown. These rules produce noise without actionable value.
+reportUnknownMemberType = false
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportUnknownParameterType = false
+reportUnknownLambdaType = false
+# Gradual typing: unannotated params and bare generics are accepted.
+reportMissingParameterType = false
+reportMissingTypeArgument = false
+# The mixin split intentionally shares underscore methods across classes.
+reportPrivateUsage = false
+# Command handlers are registered by decorators and event subscriptions,
+# which this rule cannot see. isinstance checks at network and API
+# boundaries validate runtime data that is looser than its declared type.
+reportUnusedFunction = false
+reportUnnecessaryIsInstance = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

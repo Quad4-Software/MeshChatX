@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lxmfy.quad4.io/sitemap.xml

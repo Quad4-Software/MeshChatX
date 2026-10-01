@@ -4,6 +4,10 @@ This template demonstrates proper cog usage and serves as a test case
 for the command loading system.
 """
 
+# pyright: reportUntypedFunctionDecorator=false
+# Command is a class decorator that replaces methods with Command objects
+# which the cog loader collects.
+
 from lxmfy import Command, LXMFBot
 from lxmfy.commands import Cog
 
@@ -46,7 +50,7 @@ class TestCog(Cog):
 class CogTestBot:
     """Template bot that uses cogs for testing command loading."""
 
-    def __init__(self, name="CogTestBot", test_mode=False):
+    def __init__(self, name="CogTestBot", test_mode=False, storage_path="cogtest_data"):
         self.bot = LXMFBot(
             name=name,
             announce=600,
@@ -61,7 +65,7 @@ class CogTestBot:
             cogs_enabled=False,
             permissions_enabled=False,
             storage_type="json",
-            storage_path="cogtest_data",
+            storage_path=storage_path,
             first_message_enabled=True,
             test_mode=test_mode,
         )

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import cbor2
+import cborx
 import pytest
 import RNS
 from hypothesis import given, settings
@@ -13,8 +13,6 @@ from hypothesis import strategies as st
 from lxmfy import BotConfig, LXMFBot
 from lxmfy.rrc import (
     DEFAULT_DEST_NAME,
-    RRCClient,
-    RRCManager,
     RRC_VERSION,
     STATUS_CONNECTED,
     T_ACTION,
@@ -26,6 +24,8 @@ from lxmfy.rrc import (
     T_PING,
     T_PONG,
     T_WELCOME,
+    RRCClient,
+    RRCManager,
     decode_envelope,
     encode_envelope,
     make_envelope,
@@ -96,7 +96,7 @@ def test_envelope_rejects_bad_src():
 
 def test_decode_malformed_returns_none():
     assert decode_envelope(b"not-cbor") is None
-    assert decode_envelope(cbor2.dumps(["list"])) is None
+    assert decode_envelope(cborx.dumps(["list"])) is None
 
 
 def test_unknown_keys_preserved():

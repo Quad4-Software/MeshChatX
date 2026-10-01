@@ -90,6 +90,49 @@ class TestClientBotCommunication:
         # Restore original send method
         test_bot.send = original_send
 
+    def test_async_command_callback_runs(self, test_bot):
+        """An async def command callback is awaited, not dropped."""
+        sent_messages = []
+        test_bot.send = lambda dest, msg, title=None, **kw: sent_messages.append(
+            (dest, msg),
+        )
+
+        @test_bot.command("asyncping")
+        async def async_ping(ctx):
+            ctx.reply("pong")
+
+        mock_message = Mock()
+        mock_message.content = b"/asyncping"
+        mock_message.hash = b"async_hash_1"
+        mock_message.fields = None
+
+        test_bot._process_message(mock_message, "async_sender")
+
+        assert sent_messages == [("async_sender", "pong")]
+
+    def test_async_message_handler_result(self, test_bot):
+        """An async on_message handler's return value decides consumption."""
+        reached = []
+
+        @test_bot.on_message()
+        async def passthrough(sender, message):
+            reached.append("async")
+            return False
+
+        @test_bot.on_message()
+        def second(sender, message):
+            reached.append("sync")
+            return False
+
+        mock_message = Mock()
+        mock_message.content = b"plain text"
+        mock_message.hash = b"async_hash_2"
+        mock_message.fields = None
+
+        test_bot._process_message(mock_message, "async_sender")
+
+        assert reached == ["async", "sync"]
+
     def test_spam_protection(self, test_bot):
         """Test spam protection functionality."""
         sender = "spam_sender_hash"
@@ -224,7 +267,10 @@ class TestTemplateBots:
         """Test creating a cog test bot template."""
         from lxmfy.templates import CogTestBot
 
-        cog_bot = CogTestBot(test_mode=True)
+        cog_bot = CogTestBot(
+            test_mode=True,
+            storage_path=str(test_config_dir / "cogtest_data"),
+        )
 
         assert cog_bot.bot is not None
         assert cog_bot.bot.config.name == "CogTestBot"

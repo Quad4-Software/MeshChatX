@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import logging
 import os
@@ -302,9 +303,12 @@ class RRCClient:
                     f"RRC [{client.hub_hash.hex()[:12]}…] hub announce received",
                     RNS.LOG_INFO,
                 )
-                if client.status in (STATUS_FAILED, STATUS_DISCONNECTED):
-                    if client.auto_reconnect and not client._manual_disconnect:
-                        client.connect()
+                if (
+                    client.status in (STATUS_FAILED, STATUS_DISCONNECTED)
+                    and client.auto_reconnect
+                    and not client._manual_disconnect
+                ):
+                    client.connect()
 
         self._announce_handler = _HubAnnounceHandler()
         try:
@@ -410,12 +414,10 @@ class RRCClient:
     def _on_established(self, link: RNS.Link) -> None:
         try:
             link.identify(self.identity)
-        except Exception as exc:
-            logger.error("RRC identify failed: %s", exc)
-            try:
+        except Exception:
+            logger.exception("RRC identify failed")
+            with contextlib.suppress(Exception):
                 link.teardown()
-            except Exception:
-                pass
             return
 
         try:
@@ -444,19 +446,16 @@ class RRCClient:
                     return
                 try:
                     self._send_hello(cur_link)
-                except Exception as exc:
-                    logger.error("RRC HELLO send failed: %s", exc)
+                except Exception:
+                    logger.exception("RRC HELLO send failed")
                 attempts += 1
                 self._stop_hello.wait(timeout=self.HELLO_INTERVAL_S)
 
             if not self.welcomed and not self._stop_hello.is_set():
                 self._set_status(STATUS_FAILED, "WELCOME timeout")
-                try:
-                    with self._lock:
-                        if self.link is not None:
-                            self.link.teardown()
-                except Exception:
-                    pass
+                with contextlib.suppress(Exception), self._lock:
+                    if self.link is not None:
+                        self.link.teardown()
 
         self._hello_thread = threading.Thread(target=hello_loop, daemon=True)
         self._hello_thread.start()
@@ -540,10 +539,8 @@ class RRCClient:
             link = self.link
             self.link = None
         if link is not None:
-            try:
+            with contextlib.suppress(Exception):
                 link.teardown()
-            except Exception:
-                pass
         self._reset_session_state(preserve_rejoin=False)
         self._deregister_announce_handler()
         self._set_status(STATUS_DISCONNECTED, "Disconnected")
@@ -725,7 +722,7 @@ class RRCClient:
                 )
                 self._send_env(pong, allow_pre_welcome=True)
             except Exception:
-                pass
+                logger.debug("RRC PONG reply failed", exc_info=True)
             return
 
         if msg_type == T_PONG:
@@ -828,28 +825,22 @@ class RRCClient:
                 size = getattr(resource, "size", 0)
         except Exception:
             return False
-        if not isinstance(size, int) or size <= 0 or size > self.MAX_RESOURCE_BYTES:
-            return False
-        return True
+        return isinstance(size, int) and 0 < size <= self.MAX_RESOURCE_BYTES
 
     def _resource_concluded(self, resource) -> None:
         try:
             if resource.status != RNS.Resource.COMPLETE:
-                try:
+                with contextlib.suppress(Exception):
                     if hasattr(resource, "data") and resource.data:
                         resource.data.close()
-                except Exception:
-                    pass
                 return
             data = None
             try:
                 data = resource.data.read()
             finally:
-                try:
+                with contextlib.suppress(Exception):
                     if hasattr(resource, "data") and resource.data:
                         resource.data.close()
-                except Exception:
-                    pass
             if data is None:
                 return
 
@@ -927,7 +918,8 @@ class RRCClient:
             rooms_to_join = sorted(set(self._auto_join_rooms) | set(self._rejoin_rooms))
         self._set_status(STATUS_CONNECTED, "Connected")
         self._emit(
-            "welcome", {"hub_name": self.hub_name, "hub_version": self.hub_version}
+            "welcome",
+            {"hub_name": self.hub_name, "hub_version": self.hub_version},
         )
         if rooms_to_join:
             RNS.log(
@@ -1045,9 +1037,13 @@ class RRCClient:
         mid = env.get(K_ID)
         own_hash = self._src_hash()
 
-        if src is not None and src == own_hash:
-            if isinstance(mid, (bytes, bytearray)) and bytes(mid) in self._sent_ids:
-                return
+        if (
+            src is not None
+            and src == own_hash
+            and isinstance(mid, (bytes, bytearray))
+            and bytes(mid) in self._sent_ids
+        ):
+            return
 
         if src is not None and nick:
             with self._lock:

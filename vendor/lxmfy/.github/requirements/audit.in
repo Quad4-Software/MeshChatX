@@ -1,0 +1,3 @@
+# Source for .github/requirements/audit.txt
+pip-audit==2.10.1
+cyclonedx-bom==7.4.0

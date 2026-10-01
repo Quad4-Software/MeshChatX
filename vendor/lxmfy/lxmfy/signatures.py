@@ -55,10 +55,9 @@ class SignatureManager:
         """
         try:
             message_data = self._canonicalize_message(message)
-            signature = identity.sign(message_data)
-            return signature
-        except Exception as e:
-            self.logger.error("Failed to sign message: %s", str(e))
+            return identity.sign(message_data)
+        except Exception:
+            self.logger.exception("Failed to sign message")
             raise
 
     def verify_message_signature(
@@ -92,7 +91,8 @@ class SignatureManager:
                     )
                     return False
 
-            if getattr(self.bot.config, "identity_pinning_enabled", False) is True:
+            bot_config = getattr(self.bot, "config", None)
+            if getattr(bot_config, "identity_pinning_enabled", False) is True:
                 pin_key = f"pin:{sender_hash}"
                 pinned_pub_key = self.bot.storage.get(pin_key)
                 current_pub_key = identity_to_use.get_public_key()
@@ -132,8 +132,8 @@ class SignatureManager:
 
             message_data = self._canonicalize_message(message)
             return identity_to_use.validate(signature, message_data)
-        except Exception as e:
-            self.logger.error("Failed to verify message signature: %s", str(e))
+        except Exception:
+            self.logger.exception("Failed to verify message signature")
             return False
 
     @staticmethod
@@ -185,13 +185,11 @@ class SignatureManager:
         if not self.verification_enabled:
             return False
         # Only skip verification if permissions are enabled and user has bypass permission
-        if (
+        return not (
             hasattr(self.bot, "permissions")
             and self.bot.permissions.enabled
             and self.bot.permissions.has_permission(sender, DefaultPerms.BYPASS_SPAM)
-        ):
-            return False
-        return True
+        )
 
     def handle_unsigned_message(self, sender: str, message_hash: str) -> bool:
         """Handle a message that lacks a valid signature.
@@ -249,6 +247,17 @@ def verify_incoming_message(bot, message, sender: str) -> bool:
         True if message should be processed, False if it should be rejected.
 
     """
+    # Drop messages with an invalid signature even if verification is optional.
+    # Unknown source and unsigned messages still follow SignatureManager policy.
+    if (
+        hasattr(message, "signature_validated")
+        and not message.signature_validated
+        and getattr(message, "unverified_reason", None)
+        == LXMF.LXMessage.SIGNATURE_INVALID
+    ):
+        logger.warning("Invalid LXMF signature from %s, dropping", sender)
+        return False
+
     if not hasattr(bot, "signature_manager"):
         return True
 
@@ -257,9 +266,6 @@ def verify_incoming_message(bot, message, sender: str) -> bool:
         return True
 
     if not message.signature_validated:
-        if message.unverified_reason == LXMF.LXMessage.SIGNATURE_INVALID:
-            logger.warning("Invalid LXMF signature for message from %s", sender)
-            return False
         if message.unverified_reason == LXMF.LXMessage.SOURCE_UNKNOWN:
             logger.debug(
                 "Could not verify message from %s - source identity unknown",
@@ -267,22 +273,20 @@ def verify_incoming_message(bot, message, sender: str) -> bool:
             )
 
             # Optionally request the identity from the network
-            if sig_manager.request_unknown_identities:
-                if sender not in sig_manager.requested_identities:
-                    try:
-                        sender_hash_bytes = bytes.fromhex(sender)
-                        RNS.Transport.request_path(sender_hash_bytes)
-                        sig_manager.requested_identities.add(sender)
-                        logger.info(
-                            "Requested unknown identity for %s from the network",
-                            sender,
-                        )
-                    except Exception as e:
-                        logger.error(
-                            "Failed to request path for %s: %s",
-                            sender,
-                            str(e),
-                        )
+            if (
+                sig_manager.request_unknown_identities
+                and sender not in sig_manager.requested_identities
+            ):
+                try:
+                    sender_hash_bytes = bytes.fromhex(sender)
+                    RNS.Transport.request_path(sender_hash_bytes)
+                    sig_manager.requested_identities.add(sender)
+                    logger.info(
+                        "Requested unknown identity for %s from the network",
+                        sender,
+                    )
+                except Exception:
+                    logger.exception("Failed to request path for %s", sender)
 
             if sig_manager.require_signatures:
                 logger.warning("Rejected message from %s due to unknown source", sender)

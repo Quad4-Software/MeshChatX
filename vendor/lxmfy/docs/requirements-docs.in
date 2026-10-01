@@ -1,0 +1,13 @@
+# Source for docs/requirements-docs.txt. Docs tooling plus lxmfy's
+# runtime deps (needed to import lxmfy for the API reference) and
+# mike's PyPI deps (mike itself is hash-pinned as a tarball in the txt).
+zensical==0.0.63
+mkdocstrings-python==2.0.8
+griffe2md==1.5.0
+jinja2
+pyparsing>=3.0
+verspec
+rns==1.5.4
+lxmf==1.1.1
+cborx==0.2.5
+landlockpy==0.2.0 ; sys_platform == 'linux'
