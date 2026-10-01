@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-10-01T09:54:51.183199Z
+Generated at: 2026-10-01T10:40:54.904171Z
 Frontend source: pnpm
 
 Python dependencies
@@ -85,6 +85,9 @@ multidict 6.7.1
 numpy 2.4.6
   License: BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0
   Author: Travis E. Oliphant et al.
+packaging 26.3
+  License: Apache-2.0 OR BSD-2-Clause
+  Author: Donald Stufft <donald@stufft.io>
 propcache 0.5.2
   License: Apache-2.0
   Author: Andrew Svetlov

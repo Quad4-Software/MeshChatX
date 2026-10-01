@@ -36,6 +36,7 @@ pyserial = "3.5"
 # Desktop-only floors in pyproject.toml [project].dependencies.
 [pyproject]
 lxst = "0.5.3"
+packaging = "23"
 bcrypt = "5.0.0"
 websockets = "17.1"
 cryptography = "50.0.1"
