@@ -69,7 +69,7 @@
                     type="button"
                     class="ml-auto inline-flex min-h-[44px] min-w-[44px] items-center justify-center -my-2 -mr-2 text-sem-fg-muted hover:text-sem-fg"
                     :aria-label="$t('common.close')"
-                    @click="remove(toast.id)"
+                    @click="remove(toast.id, true)"
                 >
                     <MaterialDesignIcon icon-name="close" class="h-4 w-4" />
                 </button>
@@ -84,6 +84,12 @@ import { EMITTER_EVENTS } from "../js/constants.js";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
 const MAX_TOASTS = 8;
+// When the user dismisses a keyed toast, suppress re-adding that key while
+// emitters keep firing. Poll loops (e.g. propagation sync updates every
+// 500ms) would otherwise resurrect the toast the instant it is closed.
+// The suppression refreshes on each suppressed emit, so it lifts 60s after
+// the emitter goes quiet rather than blocking future uses of the key.
+const DISMISS_SUPPRESS_MS = 60000;
 
 export default {
     name: "Toast",
@@ -95,6 +101,7 @@ export default {
             toasts: [],
             counter: 0,
             swipeThreshold: 100,
+            suppressedKeys: new Map(),
         };
     },
     mounted() {
@@ -105,6 +112,9 @@ export default {
             if (key == null) {
                 return;
             }
+            // An explicit dismiss means the emitter's episode ended, so the
+            // key is free to toast again.
+            this.suppressedKeys.delete(key);
             const index = this.toasts.findIndex((t) => t.key === key);
             if (index !== -1) {
                 this.remove(this.toasts[index].id);
@@ -112,10 +122,17 @@ export default {
         };
         GlobalEmitter.on(EMITTER_EVENTS.TOAST, this.toastHandler);
         GlobalEmitter.on(EMITTER_EVENTS.TOAST_DISMISS, this.dismissHandler);
+        this.escapeHandler = (event) => {
+            if (event.key === "Escape" && this.toasts.length) {
+                this.dismissAll();
+            }
+        };
+        window.addEventListener("keydown", this.escapeHandler);
     },
     beforeUnmount() {
         GlobalEmitter.off(EMITTER_EVENTS.TOAST, this.toastHandler);
         GlobalEmitter.off(EMITTER_EVENTS.TOAST_DISMISS, this.dismissHandler);
+        window.removeEventListener("keydown", this.escapeHandler);
     },
     methods: {
         toastMessage(message) {
@@ -148,6 +165,17 @@ export default {
             let toastKey = toast.key;
             if (toastKey == null) {
                 toastKey = `__unkeyed:${String(toast.type || "info")}:${String(toast.message || "")}`;
+            }
+
+            // User dismissed this key: swallow re-emits while the emitter
+            // keeps firing, and refresh the window on each attempt.
+            const suppressedAt = this.suppressedKeys.get(toastKey);
+            if (suppressedAt != null) {
+                if (Date.now() - suppressedAt < DISMISS_SUPPRESS_MS) {
+                    this.suppressedKeys.set(toastKey, Date.now());
+                    return;
+                }
+                this.suppressedKeys.delete(toastKey);
             }
 
             // Check if a toast with the same key already exists
@@ -216,7 +244,7 @@ export default {
                 }
             }
         },
-        remove(id) {
+        remove(id, userInitiated = false) {
             const index = this.toasts.findIndex((t) => t.id === id);
             if (index !== -1) {
                 const toast = this.toasts[index];
@@ -225,8 +253,16 @@ export default {
                 }
                 this.toasts.splice(index, 1);
                 if (toast.key != null) {
+                    if (userInitiated) {
+                        this.suppressedKeys.set(toast.key, Date.now());
+                    }
                     GlobalEmitter.emit(EMITTER_EVENTS.TOAST_DISMISSED, { key: toast.key });
                 }
+            }
+        },
+        dismissAll() {
+            for (const toast of [...this.toasts]) {
+                this.remove(toast.id, true);
             }
         },
         toastClass(type) {
@@ -268,7 +304,7 @@ export default {
             if (Math.abs(toast._swipeX) >= this.swipeThreshold) {
                 toast.swipeClass = toast._swipeX > 0 ? "toast-swipe-out-right" : "toast-swipe-out-left";
                 this.$nextTick(() => {
-                    setTimeout(() => this.remove(toast.id), 250);
+                    setTimeout(() => this.remove(toast.id, true), 250);
                 });
             } else {
                 toast._swipeX = 0;
