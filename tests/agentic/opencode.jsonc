@@ -30,7 +30,7 @@
         "servers": {
             "playwright": {
                 "type": "local",
-                "command": ["npx", "-y", "@playwright/mcp@latest"],
+                "command": ["bash", "run-playwright-mcp.sh"],
                 "environment": {
                     "PLAYWRIGHT_MCP_BASE_URL": "{env:AGENTIC_BASE_URL}"
                 }
