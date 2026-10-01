@@ -209,3 +209,4 @@ meshchatx/src/_build_meta_baked.py
 tests/agentic/out/
 tests/agentic/.playwright-mcp/
 tests/agentic/crawl-*.png
+tests/agentic/tests/

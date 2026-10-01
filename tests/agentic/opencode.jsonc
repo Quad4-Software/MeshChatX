@@ -30,7 +30,14 @@
         "servers": {
             "playwright": {
                 "type": "local",
-                "command": ["bash", "run-playwright-mcp.sh"],
+                "command": ["bash", "run-playwright-mcp.sh", "chromium"],
+                "environment": {
+                    "PLAYWRIGHT_MCP_BASE_URL": "{env:AGENTIC_BASE_URL}"
+                }
+            },
+            "playwright-firefox": {
+                "type": "local",
+                "command": ["bash", "run-playwright-mcp.sh", "firefox"],
                 "environment": {
                     "PLAYWRIGHT_MCP_BASE_URL": "{env:AGENTIC_BASE_URL}"
                 }
@@ -42,6 +49,30 @@
         "crawler": {
             "description": "Exploratory UI tester: drives the app via Playwright MCP, finds issues, reports them without changing code",
             "mode": "primary",
+            "permissions": [
+                { "action": "edit", "resource": "*", "effect": "deny" },
+                { "action": "shell", "resource": "*", "effect": "deny" }
+            ]
+        },
+        "pair-chromium": {
+            "description": "Paired-instance agent driving the chromium browser",
+            "mode": "primary",
+            "mcp": {
+                "playwright": true,
+                "playwright-firefox": false
+            },
+            "permissions": [
+                { "action": "edit", "resource": "*", "effect": "deny" },
+                { "action": "shell", "resource": "*", "effect": "deny" }
+            ]
+        },
+        "pair-firefox": {
+            "description": "Paired-instance agent driving the firefox browser",
+            "mode": "primary",
+            "mcp": {
+                "playwright": false,
+                "playwright-firefox": true
+            },
             "permissions": [
                 { "action": "edit", "resource": "*", "effect": "deny" },
                 { "action": "shell", "resource": "*", "effect": "deny" }
@@ -71,8 +102,12 @@
             "template": "Read tests/agentic/prompts/heap.md and follow it exactly."
         },
         "agentic-pair": {
-            "description": "Two instances: run pair-up, then launch alice+bob agents",
-            "template": "The user wants the paired two-instance messaging test. Instruct them to run: bash tests/agentic/pair-up.sh && bash tests/agentic/pair-agents.sh. The two agents must run as separate opencode processes, not this session."
+            "description": "Two instances, two agents: messaging scenario",
+            "template": "The user wants the paired two-instance messaging scenario. Instruct them to run: node tests/agentic/orchestrate.cjs tests/agentic/scenarios/pair-messaging.md"
+        },
+        "agentic-pair-features": {
+            "description": "Two instances, two agents: filesync/rncp/rnsh/propnode scenario",
+            "template": "The user wants the paired two-instance feature scenario. Instruct them to run: node tests/agentic/orchestrate.cjs tests/agentic/scenarios/pair-features.md"
         }
     }
 }

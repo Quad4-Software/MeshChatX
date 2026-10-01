@@ -81,7 +81,9 @@
         "dist:linux-prebuilt": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run version:sync && cross-env PLATFORM=linux pnpm run build-backend && electron-builder --linux AppImage deb --publish=never",
         "dist:mac-arm64": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --arm64 --publish=never",
         "dist:mac-universal": "bash scripts/build-macos-universal.sh",
-        "start": "pnpm run electron"
+        "start": "pnpm run electron",
+        "test:agentic:pair": "bash tests/agentic/pair-up.sh && node tests/agentic/pair-messaging.cjs && node tests/agentic/pair-features.cjs",
+        "test:agentic:scenario": "node tests/agentic/orchestrate.cjs"
     },
     "license": "0BSD AND MIT",
     "engines": {
