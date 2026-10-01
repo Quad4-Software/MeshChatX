@@ -175,7 +175,37 @@ export default class MarkdownRenderer {
 
         text = text.replace(icRe, (_m, idx) => inline_codes[Number(idx)] ?? _m);
         text = LinkUtils.restoreAnchors(text, anchors, anchorNonce);
-        return text.replace(/\n/g, "<br>");
+
+        // Blockquotes: consecutive lines starting with "> " (escaped to
+        // "&gt; ") merge into one styled block. Runs last so links and
+        // emphasis inside the quote still render.
+        // An "author: text" lead-in on the first quoted line styles the
+        // author in accent so reply quotes read as attributed.
+        const styleQuoteLine = (line) =>
+            line.replace(/^([^:<>]{1,48}):(\s)/, '<span class="font-semibold not-italic text-sem-accent">$1:</span>$2');
+        const quoteBlock = (lines) =>
+            '<blockquote class="my-1 border-l-2 border-sem-accent/60 pl-2 py-0.5 text-[0.95em] italic text-sem-fg-muted">' +
+            styleQuoteLine(lines[0]) +
+            (lines.length > 1 ? "<br>" + lines.slice(1).join("<br>") : "") +
+            "</blockquote>";
+        const rendered = [];
+        let quoteLines = null;
+        for (const line of text.split("\n")) {
+            const m = line.match(/^&gt;[ \t]?(.*)$/);
+            if (m) {
+                (quoteLines || (quoteLines = [])).push(m[1]);
+                continue;
+            }
+            if (quoteLines) {
+                rendered.push(quoteBlock(quoteLines));
+                quoteLines = null;
+            }
+            rendered.push(line);
+        }
+        if (quoteLines) {
+            rendered.push(quoteBlock(quoteLines));
+        }
+        return rendered.join("<br>");
     }
 
     /**

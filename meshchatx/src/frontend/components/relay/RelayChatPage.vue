@@ -548,9 +548,30 @@
                                 </div>
                             </Transition>
 
+                            <div
+                                v-if="replyTarget && selectedHub && selectedRoom"
+                                class="flex items-center gap-2 border-t border-sem-border bg-sem-surface px-3 py-1.5"
+                            >
+                                <MaterialDesignIcon icon-name="reply" class="size-4 shrink-0 text-sem-accent" />
+                                <div class="min-w-0 flex-1 text-xs">
+                                    <span class="font-semibold text-sem-accent">
+                                        {{ $t("messages.replying_to") }} {{ replyTarget.author }}
+                                    </span>
+                                    <div class="truncate text-sem-fg-muted italic">{{ replyTarget.text }}</div>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="shrink-0 rounded p-1 text-sem-fg-muted hover:bg-sem-surface-raised hover:text-sem-fg"
+                                    :title="$t('common.cancel')"
+                                    @click="replyTarget = null"
+                                >
+                                    <MaterialDesignIcon icon-name="close" class="size-4" />
+                                </button>
+                            </div>
                             <form
                                 v-if="selectedHub && selectedRoom"
                                 class="flex items-center gap-2 p-2.5 border-t border-sem-border bg-sem-canvas"
+                                :class="{ 'border-t-0': replyTarget }"
                                 @submit.prevent="sendMessage"
                             >
                                 <input
@@ -1885,6 +1906,7 @@ export default {
             messageTranslations: {},
             members: [],
             composer: "",
+            replyTarget: null,
             sending: false,
             relayAtBottom: true,
             newMessagesBelow: 0,
@@ -3097,10 +3119,10 @@ export default {
             if (!msg) {
                 return;
             }
-            const author = this.displayName(msg);
-            const prefix = `> ${author}: ${msg.text}\n\n`;
-            const cur = this.composer || "";
-            this.composer = cur + (cur && !cur.endsWith("\n") ? "\n" : "") + prefix;
+            this.replyTarget = {
+                author: this.displayName(msg),
+                text: String(msg.text || ""),
+            };
             nextTick(() => this.$refs.composerInput?.focus?.());
         },
         mentionUserFromMenu() {
@@ -3621,6 +3643,7 @@ export default {
             this.messages = [];
             this.members = [];
             this.nickCycle = null;
+            this.replyTarget = null;
             this.relayAtBottom = true;
             this.newMessagesBelow = 0;
             this.loadDraft(this._relayDraftKey(hubHash, room));
@@ -3778,6 +3801,12 @@ export default {
             return new TextEncoder().encode(text || "").length;
         },
         onComposerKeydown(event) {
+            // Escape clears a pending reply quote before anything else.
+            if (event.key === "Escape" && this.replyTarget) {
+                this.replyTarget = null;
+                event.preventDefault();
+                return;
+            }
             // Arrow-up on an empty composer recalls the last message the local
             // identity sent in this room, the IRC/Discord "fix a typo" move.
             if (event.key === "ArrowUp" && !this.composer) {
@@ -3837,19 +3866,67 @@ export default {
                 }
             });
         },
+        buildQuotePrefix(reply, replyBytes = 0) {
+            if (!reply) {
+                return "";
+            }
+            // Quote each line of the original so multi-line bodies render as
+            // one blockquote. Reserve room for the user's own text so the
+            // wire payload stays under the hub byte limit.
+            const limit = this.composerByteLimit - replyBytes;
+            let quoted = String(reply.text || "").trim();
+            if (!quoted || limit <= 0) {
+                return "";
+            }
+            const build = (body) =>
+                `> ${reply.author}: ${body
+                    .split("\n")
+                    .filter((l) => l.trim())
+                    .join("\n> ")}\n\n`;
+            let prefix = build(quoted);
+            while (quoted && this.composerByteLength(prefix) > limit) {
+                const overflow = this.composerByteLength(prefix) - limit;
+                const ellipsisBytes = this.composerByteLength("…");
+                quoted =
+                    this.truncateToBytes(
+                        quoted,
+                        Math.max(0, this.composerByteLength(quoted) - overflow - ellipsisBytes)
+                    ) + "…";
+                prefix = build(quoted);
+                if (this.composerByteLength(prefix) > limit && !quoted.replace("…", "")) {
+                    return "";
+                }
+            }
+            return this.composerByteLength(prefix) <= limit ? prefix : "";
+        },
+        truncateToBytes(text, limit) {
+            let out = "";
+            for (const ch of text) {
+                if (this.composerByteLength(out + ch) > limit) {
+                    break;
+                }
+                out += ch;
+            }
+            return out;
+        },
         async sendMessage() {
             const text = this.composer.trim();
             if (!text || !this.selectedHub || !this.selectedRoom) {
                 return;
             }
+            const reply = this.replyTarget;
             const isAction = text.startsWith("/me ");
-            const payload = isAction ? { text: text.slice(4), action: true } : { text };
+            const wireText = isAction
+                ? text.slice(4)
+                : this.buildQuotePrefix(reply, this.composerByteLength(text)) + text;
+            const payload = isAction ? { text: wireText, action: true } : { text: wireText };
             this.sending = true;
             const sentRoom = this.selectedRoom;
             const sentHub = this.selectedHubHash;
             // Clear before the await so text typed while the request is in
             // flight is not wiped when it resolves. Restore on failure.
             this.composer = "";
+            this.replyTarget = null;
             this.nickCycle = null;
             try {
                 await window.api.post(
@@ -3860,6 +3937,9 @@ export default {
             } catch (e) {
                 if (!this.composer) {
                     this.composer = text;
+                    if (reply && !this.replyTarget) {
+                        this.replyTarget = reply;
+                    }
                 }
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.send_failed"));
             } finally {

@@ -835,6 +835,53 @@ describe("RelayChatPage.vue", () => {
         expect(wrapper.vm.composer).toBe("");
     });
 
+    it("prepends a quote prefix when a reply target is set", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+
+        wrapper.vm.replyTarget = { author: "Alice", text: "what is up" };
+        wrapper.vm.composer = "not much";
+        await wrapper.vm.sendMessage();
+
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms/lobby/messages`, {
+            text: "> Alice: what is up\n\nnot much",
+        });
+        expect(wrapper.vm.replyTarget).toBeNull();
+    });
+
+    it("quotes multi-line originals on every line", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+
+        const prefix = wrapper.vm.buildQuotePrefix({ author: "Bob", text: "line one\nline two" });
+        expect(prefix).toBe("> Bob: line one\n> line two\n\n");
+    });
+
+    it("drops the quote when it cannot fit alongside the reply text", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+
+        // 350-byte hub limit, 349-byte reply leaves no room for the prefix.
+        const prefix = wrapper.vm.buildQuotePrefix({ author: "Bob", text: "x" }, 349);
+        expect(prefix).toBe("");
+    });
+
+    it("truncates long quoted text to fit the byte budget", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+
+        const longText = "a".repeat(500);
+        const prefix = wrapper.vm.buildQuotePrefix({ author: "Bob", text: longText });
+        const bytes = new TextEncoder().encode(prefix).length;
+        expect(bytes).toBeLessThanOrEqual(350);
+        expect(prefix.endsWith("\n\n")).toBe(true);
+        expect(prefix).toContain("…");
+    });
+
     it("sends an action message when prefixed with /me", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));

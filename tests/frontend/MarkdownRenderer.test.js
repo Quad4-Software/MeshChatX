@@ -529,11 +529,32 @@ describe("renderBasic (RRC / limited chat markdown)", () => {
         expect(result).toContain("code");
     });
 
-    it("does not render headers or blockquotes", () => {
+    it("does not render headers but renders quote lines as blockquotes", () => {
         const result = MarkdownRenderer.renderBasic("# Title\n> quote");
         expect(result).not.toContain("<h1");
-        expect(result).not.toContain("blockquote");
+        expect(result).toContain("<blockquote");
+        expect(result).toContain(">quote<");
         expect(result).toContain("# Title");
+    });
+
+    it("merges consecutive quote lines into one blockquote", () => {
+        const result = MarkdownRenderer.renderBasic("> Alice: hey\n> second line\nreply text");
+        const blocks = result.match(/<blockquote/g) || [];
+        expect(blocks.length).toBe(1);
+        expect(result).toContain("Alice:");
+        expect(result).toContain("second line");
+        expect(result).toContain("reply text");
+    });
+
+    it("styles the author prefix of a reply quote", () => {
+        const result = MarkdownRenderer.renderBasic("> Bob: hello there\nmy reply");
+        expect(result).toContain('font-semibold not-italic text-sem-accent">Bob:</span>');
+    });
+
+    it("does not style a quote line without an author prefix", () => {
+        const result = MarkdownRenderer.renderBasic("> just a quoted line\nreply");
+        expect(result).not.toContain("font-semibold not-italic text-sem-accent");
+        expect(result).toContain("just a quoted line");
     });
 
     it("keeps Nomad path field data after a single backtick as one link", () => {
