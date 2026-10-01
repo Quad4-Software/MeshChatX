@@ -204,3 +204,8 @@ scripts/private/
 
 # Generated at build time (scripts/bake_build_meta.js)
 meshchatx/src/_build_meta_baked.py
+
+# Agentic test artifacts
+tests/agentic/out/
+tests/agentic/.playwright-mcp/
+tests/agentic/crawl-*.png

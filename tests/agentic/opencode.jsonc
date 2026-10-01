@@ -69,6 +69,10 @@
         "agentic-heap": {
             "description": "Correlate heap growth with interactions per route",
             "template": "Read tests/agentic/prompts/heap.md and follow it exactly."
+        },
+        "agentic-pair": {
+            "description": "Two instances: run pair-up, then launch alice+bob agents",
+            "template": "The user wants the paired two-instance messaging test. Instruct them to run: bash tests/agentic/pair-up.sh && bash tests/agentic/pair-agents.sh. The two agents must run as separate opencode processes, not this session."
         }
     }
 }

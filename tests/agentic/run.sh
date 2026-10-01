@@ -15,11 +15,12 @@ BASE_URL="${AGENTIC_BASE_URL:-http://127.0.0.1:5173}"
 OUT=tests/agentic/out
 mkdir -p "$OUT"
 
-WANT_LLM=0 WANT_ELECTRON=0
+WANT_LLM=0 WANT_ELECTRON=0 WANT_PAIR=0
 for a in "$@"; do
     case "$a" in
         --llm) WANT_LLM=1 ;;
         --electron) WANT_ELECTRON=1 ;;
+        --pair) WANT_PAIR=1 ;;
         *) echo "unknown flag $a"; exit 2 ;;
     esac
 done
@@ -52,6 +53,11 @@ fi
 
 if [[ "$WANT_ELECTRON" == "1" ]]; then
     run node tests/agentic/electron-update-flow.cjs
+fi
+
+if [[ "$WANT_PAIR" == "1" ]]; then
+    run bash tests/agentic/pair-up.sh
+    run node tests/agentic/pair-messaging.cjs
 fi
 
 echo "[run] done (rc=$rc); reports in $OUT"
