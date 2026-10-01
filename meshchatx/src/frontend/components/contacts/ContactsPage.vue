@@ -304,10 +304,15 @@
         <!-- Add contact dialog -->
         <div
             v-if="isAddDialogOpen"
+            v-escape-close="closeAddDialog"
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="closeAddDialog"
         >
-            <div class="w-full max-w-lg rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+            <div
+                role="dialog"
+                aria-modal="true"
+                class="w-full max-w-lg rounded-2xl bg-sem-surface shadow-2xl overflow-hidden"
+            >
                 <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
                     <h3 class="text-lg font-bold text-sem-fg">{{ $t("contacts.add_contact") }}</h3>
                     <button type="button" class="text-sem-fg-muted hover:text-sem-fg" @click="closeAddDialog">
@@ -385,10 +390,15 @@
         <!-- Scanner dialog -->
         <div
             v-if="isScannerDialogOpen"
+            v-escape-close="closeScannerDialog"
             class="fixed inset-0 z-220 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs"
             @click.self="closeScannerDialog"
         >
-            <div class="w-full max-w-xl rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+            <div
+                role="dialog"
+                aria-modal="true"
+                class="w-full max-w-xl rounded-2xl bg-sem-surface shadow-2xl overflow-hidden"
+            >
                 <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
                     <h3 class="text-lg font-bold text-sem-fg">{{ $t("contacts.scan_qr") }}</h3>
                     <button type="button" class="text-sem-fg-muted hover:text-sem-fg" @click="closeScannerDialog">
@@ -413,10 +423,15 @@
         <!-- Import contacts dialog -->
         <div
             v-if="isImportDialogOpen"
+            v-escape-close="closeImportDialog"
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="closeImportDialog"
         >
-            <div class="w-full max-w-lg rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+            <div
+                role="dialog"
+                aria-modal="true"
+                class="w-full max-w-lg rounded-2xl bg-sem-surface shadow-2xl overflow-hidden"
+            >
                 <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
                     <h3 class="text-lg font-bold text-sem-fg">
                         {{ $t("contacts.import_modal_title") }}
@@ -452,10 +467,15 @@
         <!-- My identity dialog -->
         <div
             v-if="isMyIdentityDialogOpen"
+            v-escape-close="closeMyIdentityDialog"
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="isMyIdentityDialogOpen = false"
         >
-            <div class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+            <div
+                role="dialog"
+                aria-modal="true"
+                class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden"
+            >
                 <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
                     <h3 class="text-lg font-bold text-sem-fg">
                         {{ $t("contacts.share_my_identity") }}
@@ -767,6 +787,9 @@ export default {
         },
         openMyIdentityDialog() {
             this.isMyIdentityDialogOpen = true;
+        },
+        closeMyIdentityDialog() {
+            this.isMyIdentityDialogOpen = false;
         },
         parseLxmaUri(input) {
             const normalized = input.trim();

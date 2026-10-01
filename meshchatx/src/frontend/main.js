@@ -364,7 +364,7 @@ window.api = createApiClient({
 
 import { waitForMeshReady, waitForNetworkReady } from "./js/networkStartupWait.js";
 import { resolveAuthNavigation } from "./js/authSessionSync.js";
-import { reportFatalError } from "./js/fatalErrorState.js";
+import { reportFatalError, clearFatalError, default as fatalErrorState } from "./js/fatalErrorState.js";
 import { showBootSplashFatalError } from "./js/bootSplashError.js";
 
 function setBootSplashLine(text) {
@@ -549,6 +549,30 @@ if (networkReady) {
                 stack: error?.stack,
                 context: "router",
             });
+        });
+        // A render crash in one view must not brick the whole app: after a
+        // successful navigation, clear the overlay. If the next route also
+        // crashes, the errorHandler re-reports it. Boot failures stay fatal.
+        router.afterEach(() => {
+            if (fatalErrorState.active && fatalErrorState.active !== fatalErrorState.bootFailure) {
+                clearFatalError();
+            }
+        });
+        // v-escape-close="handler" on a v-if dialog wrapper registers an
+        // Escape key listener only while that element is mounted.
+        app.directive("escape-close", {
+            mounted(el, binding) {
+                el.__escapeCloseHandler = (e) => {
+                    if (e.key === "Escape" && typeof binding.value === "function") {
+                        e.stopPropagation();
+                        binding.value(e);
+                    }
+                };
+                document.addEventListener("keydown", el.__escapeCloseHandler);
+            },
+            unmounted(el) {
+                document.removeEventListener("keydown", el.__escapeCloseHandler);
+            },
         });
         try {
             app.use(pinia).use(router).use(i18n).use(vClickOutside).mount("#app");

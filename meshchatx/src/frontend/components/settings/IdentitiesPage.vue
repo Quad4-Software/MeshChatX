@@ -296,10 +296,15 @@
 
         <div
             v-if="showCreateModal"
+            v-escape-close="closeCreateModal"
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="showCreateModal = false"
         >
-            <div class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+            <div
+                role="dialog"
+                aria-modal="true"
+                class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden"
+            >
                 <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
                     <h2 class="text-lg font-bold text-sem-fg">
                         {{ $t("identities.new_identity") }}
@@ -342,10 +347,15 @@
 
         <div
             v-if="showImportModal"
+            v-escape-close="closeImportModal"
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="showImportModal = false"
         >
-            <div class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+            <div
+                role="dialog"
+                aria-modal="true"
+                class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden"
+            >
                 <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
                     <h2 class="text-lg font-bold text-sem-fg">
                         {{ $t("identities.import") }}
@@ -470,6 +480,12 @@ export default {
         GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHING_ABORT, this.onIdentitySwitchAborted);
     },
     methods: {
+        closeCreateModal() {
+            this.showCreateModal = false;
+        },
+        closeImportModal() {
+            this.showImportModal = false;
+        },
         onIdentitySwitchAborted() {
             this.isCreating = false;
         },

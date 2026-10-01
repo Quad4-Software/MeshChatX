@@ -27,7 +27,7 @@ export function useWsDisconnectBanner(options = {}) {
     let wsDisconnectGraceTimer = null;
     let wsReconnectedHideTimer = null;
 
-    function _tickWsDisconnectedLabel() {
+    function tickWsDisconnectedLabel() {
         if (!wsDisconnectedAt.value) {
             wsDisconnectedDurationText.value = "";
             return;
@@ -35,7 +35,7 @@ export function useWsDisconnectBanner(options = {}) {
         wsDisconnectedDurationText.value = formatDisconnectedDuration(Date.now() - wsDisconnectedAt.value);
     }
 
-    function _showWsDisconnectedBannerNow() {
+    function showWsDisconnectedBannerNow() {
         if (!isShellRunning?.()) {
             return;
         }
@@ -46,11 +46,11 @@ export function useWsDisconnectBanner(options = {}) {
         wsDisconnected.value = true;
         wsDisconnectBannerShown.value = true;
         wsDisconnectedAt.value = wsDisconnectedAt.value || Date.now();
-        _tickWsDisconnectedLabel();
+        tickWsDisconnectedLabel();
         if (wsDisconnectTickTimer != null) {
             clearInterval(wsDisconnectTickTimer);
         }
-        wsDisconnectTickTimer = setInterval(() => _tickWsDisconnectedLabel(), 1000);
+        wsDisconnectTickTimer = setInterval(() => tickWsDisconnectedLabel(), 1000);
     }
 
     function onWsShellDisconnected() {
@@ -69,11 +69,11 @@ export function useWsDisconnectBanner(options = {}) {
         wsDisconnectedAt.value = Date.now();
         wsDisconnectGraceTimer = setTimeout(() => {
             wsDisconnectGraceTimer = null;
-            _showWsDisconnectedBannerNow();
+            showWsDisconnectedBannerNow();
         }, WS_DISCONNECT_BANNER_GRACE_MS);
     }
 
-    function _clearWsDisconnectedUi() {
+    function clearWsDisconnectedUi() {
         if (wsDisconnectGraceTimer != null) {
             clearTimeout(wsDisconnectGraceTimer);
             wsDisconnectGraceTimer = null;
@@ -90,7 +90,7 @@ export function useWsDisconnectBanner(options = {}) {
         }
     }
 
-    function _celebrateWsReconnected() {
+    function celebrateWsReconnected() {
         wsReconnectedBanner.value = true;
         if (wsReconnectedHideTimer != null) {
             clearTimeout(wsReconnectedHideTimer);
@@ -118,9 +118,9 @@ export function useWsDisconnectBanner(options = {}) {
             return;
         }
         const sawDisconnectBanner = wsDisconnectBannerShown.value;
-        _clearWsDisconnectedUi();
+        clearWsDisconnectedUi();
         if (sawDisconnectBanner) {
-            _celebrateWsReconnected();
+            celebrateWsReconnected();
         }
     }
 
@@ -131,7 +131,7 @@ export function useWsDisconnectBanner(options = {}) {
         backendProcessExited.value = true;
         backendExitCode.value = payload?.code ?? null;
         // Process exit is serious: show disconnect immediately.
-        _showWsDisconnectedBannerNow();
+        showWsDisconnectedBannerNow();
     }
 
     function clearWsShellUiTimers() {
@@ -151,7 +151,7 @@ export function useWsDisconnectBanner(options = {}) {
 
     function resetWsDisconnectBanner() {
         clearWsShellUiTimers();
-        _clearWsDisconnectedUi();
+        clearWsDisconnectedUi();
         wsReconnectedBanner.value = false;
     }
 
@@ -169,9 +169,9 @@ export function useWsDisconnectBanner(options = {}) {
         onBackendProcessExited,
         clearWsShellUiTimers,
         resetWsDisconnectBanner,
-        _showWsDisconnectedBannerNow,
-        _tickWsDisconnectedLabel,
-        _clearWsDisconnectedUi,
-        _celebrateWsReconnected,
+        showWsDisconnectedBannerNow,
+        tickWsDisconnectedLabel,
+        clearWsDisconnectedUi,
+        celebrateWsReconnected,
     };
 }

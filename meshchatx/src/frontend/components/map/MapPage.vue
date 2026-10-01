@@ -19,7 +19,7 @@
                 :class="
                     useTabToolbar
                         ? 'flex flex-wrap items-center gap-x-1.5 gap-y-1 min-w-0 justify-end'
-                        : 'flex flex-wrap items-center gap-x-1.5 gap-y-2 px-3 py-2 sm:px-4 border-b border-sem-border bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10 relative sm:justify-end min-w-0'
+                        : 'flex items-center gap-x-1.5 gap-y-2 px-3 py-2 sm:px-4 border-b border-sem-border bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10 relative min-w-0 flex-nowrap overflow-x-auto sm:flex-wrap sm:overflow-visible sm:justify-end'
                 "
             >
                 <!-- offline/online toggle -->
@@ -690,11 +690,15 @@
                     <div v-if="coordinateFormat === 'wgs84'" class="flex flex-col space-y-0.5">
                         <div class="flex justify-between space-x-4">
                             <span class="opacity-50 uppercase tracking-tighter">{{ $t("map.coord_lat") }}</span>
-                            <span class="text-sem-fg tabular-nums">{{ displayCoords[1].toFixed(6) }}</span>
+                            <span class="text-sem-fg tabular-nums">{{
+                                displayCoords ? displayCoords[1].toFixed(6) : "--"
+                            }}</span>
                         </div>
                         <div class="flex justify-between space-x-4">
                             <span class="opacity-50 uppercase tracking-tighter">{{ $t("map.coord_lon") }}</span>
-                            <span class="text-sem-fg tabular-nums">{{ displayCoords[0].toFixed(6) }}</span>
+                            <span class="text-sem-fg tabular-nums">{{
+                                displayCoords ? displayCoords[0].toFixed(6) : "--"
+                            }}</span>
                         </div>
                     </div>
                     <div v-else class="text-sem-fg tabular-nums break-all leading-snug">
@@ -885,7 +889,7 @@
                                 >Zoom</span
                             >
                             <span class="text-[10px] font-bold text-sem-fg-muted leading-none tabular-nums">{{
-                                currentZoom.toFixed(1)
+                                Number.isFinite(currentZoom) ? currentZoom.toFixed(1) : "--"
                             }}</span>
                         </div>
                         <div class="flex flex-col items-center border-x border-sem-border col-span-2 px-1">
@@ -896,7 +900,9 @@
                                 class="text-[9px] font-bold text-sem-fg-muted leading-tight tabular-nums text-center break-all"
                                 >{{
                                     coordinateFormat === "wgs84"
-                                        ? `${displayCoords[1].toFixed(4)}, ${displayCoords[0].toFixed(4)}`
+                                        ? displayCoords
+                                            ? `${displayCoords[1].toFixed(4)}, ${displayCoords[0].toFixed(4)}`
+                                            : "--"
                                         : formattedDisplayCoords
                                 }}</span
                             >
@@ -1515,12 +1521,20 @@ export default {
             return Number.isFinite(total) ? total : 0;
         },
         displayCoords() {
-            return this.cursorCoords || this.currentCenter;
+            const c = this.cursorCoords || this.currentCenter;
+            if (Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
+                return c;
+            }
+            return null;
         },
         formattedDisplayCoords() {
             // Depend on geoWasmEpoch so the readout refreshes when WASM becomes ready.
             void this.geoWasmEpoch;
-            const [lon, lat] = this.displayCoords || [0, 0];
+            const c = this.displayCoords;
+            if (!c) {
+                return "--";
+            }
+            const [lon, lat] = c;
             const res = formatCoordinate(lon, lat, this.coordinateFormat, {
                 hasRef: true,
                 refLat: this.currentCenter?.[1] || 0,
@@ -2032,9 +2046,16 @@ export default {
             this._moveEndAttached = true;
             this.map.on("moveend", () => {
                 const view = this.map.getView();
-                this.currentCenter =
-                    view && typeof view.getCenter === "function" ? toLonLat(view.getCenter()) : this.currentCenter;
-                this.currentZoom = view && typeof view.getZoom === "function" ? view.getZoom() : this.currentZoom;
+                // toLonLat and getZoom can return null or NaN, so keep
+                // the last good values and never render garbage.
+                const c = view && typeof view.getCenter === "function" ? toLonLat(view.getCenter()) : null;
+                if (Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
+                    this.currentCenter = c;
+                }
+                const z = view && typeof view.getZoom === "function" ? view.getZoom() : null;
+                if (Number.isFinite(z)) {
+                    this.currentZoom = z;
+                }
                 this.saveMapState();
                 this.updateMarkers();
                 this.scheduleTilePrefetch();
@@ -2078,9 +2099,14 @@ export default {
             }
         },
         async initMap() {
-            const defaultLat = parseFloat(this.config?.map_default_lat || 0);
-            const defaultLon = parseFloat(this.config?.map_default_lon || 0);
-            const defaultZoom = parseInt(this.config?.map_default_zoom || 2);
+            const parsedLat = parseFloat(this.config?.map_default_lat || 0);
+            const parsedLon = parseFloat(this.config?.map_default_lon || 0);
+            const parsedZoom = parseInt(this.config?.map_default_zoom || 2, 10);
+            // Reject stored junk (e.g. non-numeric strings) instead of
+            // seeding the view with NaN.
+            const defaultLat = Number.isFinite(parsedLat) ? parsedLat : 0;
+            const defaultLon = Number.isFinite(parsedLon) ? parsedLon : 0;
+            const defaultZoom = Number.isFinite(parsedZoom) ? parsedZoom : 2;
 
             // Use saved state if available, otherwise use defaults
             const startCenter =
