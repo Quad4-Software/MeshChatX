@@ -104,6 +104,7 @@ tasks:
             - 'uv sync --group dev{{if ne .UV_SYNC_FLAGS ""}} {{.UV_SYNC_FLAGS}}{{end}}'
             - uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
             - uv run python scripts/patch_lxst_codec2_optional.py
+            - uv run python scripts/build-lxst-filterlib.py
 
     deps:backend:rns:
         aliases: [deps:be:rns, pip-rns]
@@ -177,6 +178,7 @@ tasks:
             - 'uv sync --group dev{{if ne .UV_SYNC_FLAGS ""}} {{.UV_SYNC_FLAGS}}{{end}}'
             - uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
             - uv run python scripts/patch_lxst_codec2_optional.py
+            - uv run python scripts/build-lxst-filterlib.py
             - uv run pip install ruff
 
     # --- Execution ---
