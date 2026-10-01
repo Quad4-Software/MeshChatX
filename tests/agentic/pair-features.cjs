@@ -113,7 +113,7 @@ async function filesync() {
         report("filesync browse (alice)", false, "no peer discovered");
         return;
     }
-    // connect_peer only kicks off the link; browse until it lands.
+    // connect_peer only kicks off the link, so browse until it lands.
     const browsed = await poll(async () => {
         const res = await post(ALICE, "/api/v1/filesync/browse", {
             peer_id: peerId,
@@ -133,7 +133,7 @@ async function filesync() {
 }
 
 async function rncp() {
-    // Bob listens with fetch allowed; Alice sends him a file. The
+    // Bob listens with fetch allowed, then Alice sends him a file. The
     // allow-list takes RNS identity hashes, not lxmf addresses.
     const aliceCfg = await get(ALICE, "/api/v1/config");
     const aliceIdentity = aliceCfg.json?.config?.identity_hash;
@@ -146,7 +146,7 @@ async function rncp() {
     if (!destHash) {
         return;
     }
-    // rncp send is jailed to the instance storage dir or the user home;
+    // rncp send is jailed to the instance storage dir or the user home,
     // out/pairshare is outside both, so stage the payload under ~/.
     const stageDir = path.join(require("os").homedir(), ".cache", "meshchatx-agentic-pair");
     fs.mkdirSync(stageDir, { recursive: true });
@@ -162,7 +162,7 @@ async function rncp() {
 }
 
 async function propnode() {
-    // Bob runs a propagation node; Alice sends Bob a message through it.
+    // Bob runs a propagation node, then Alice sends Bob a message through it.
     // There is no /start route: restart enables + starts the local node.
     const start = await post(BOB, "/api/v1/lxmf/propagation-node/restart", {});
     report("propnode start (bob)", start.ok, JSON.stringify(start.json).slice(0, 120));
@@ -182,7 +182,7 @@ async function propnode() {
             (a) => a.destination_hash === bobNodeHash,
         );
         if (!hit) {
-            // Propagation announces ride the app announce; poke it.
+            // Propagation announces ride the app announce, so poke it.
             await post(BOB, "/api/v1/announce", {});
         }
         return hit || null;
@@ -221,7 +221,7 @@ async function propnode() {
 }
 
 async function rnsh() {
-    // Bob opens a listener session; Alice connects and runs a command.
+    // Bob opens a listener session and Alice connects to run a command.
     // Clean up listeners from earlier runs so the fresh one owns the dest.
     const existing = await get(BOB, "/api/v1/rnsh/sessions");
     for (const s of existing.json?.sessions || []) {
@@ -232,7 +232,7 @@ async function rnsh() {
     }
     // announce_period 15 = re-announce every 15s. A one-shot startup
     // announce fires before the TCP link is up and gets dropped.
-    // no_auth accepts any identifying client; the pair is a closed test
+    // no_auth accepts any identifying client and the pair is a closed test
     // mesh so that is safe here.
     const listen = await post(BOB, "/api/v1/rnsh/sessions", {
         mode: "listen",
@@ -255,7 +255,7 @@ async function rnsh() {
     if (!lhash) {
         return;
     }
-    // The client needs a path to the listener dest; it is announced at
+    // The client needs a path to the listener dest, which is announced at
     // listener start and takes a few seconds to cross the link. Retry a
     // few connects. Listeners deny remote_command by default, so drive
     // the interactive shell via the input endpoint instead.

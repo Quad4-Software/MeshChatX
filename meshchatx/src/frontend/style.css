@@ -180,6 +180,12 @@ html[data-ui-glass="0"] .glass-card {
     @apply bg-sem-surface-muted border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full p-2.5 text-sem-fg transition;
 }
 
+/* The forms plugin renders the select chevron in a 2.5rem right pad.
+   The uniform p-2.5 above collapses it, so restore room for the arrow. */
+select.input-field {
+    @apply pr-9;
+}
+
 .search-input {
     @apply block w-full bg-sem-surface-muted border border-sem-border rounded-xl text-sm text-sem-fg transition placeholder:text-sem-fg-muted py-2.5 pl-10 pr-9;
     @apply focus:outline-hidden focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border;

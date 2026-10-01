@@ -6812,12 +6812,26 @@ class ReticulumMeshChat:
 
         if "map_default_lat" in data:
             _map_lat = data["map_default_lat"]
+            if _map_lat is not None:
+                try:
+                    _lat_f = float(_map_lat)
+                except (TypeError, ValueError) as exc:
+                    raise ValueError("map_default_lat must be a number") from exc
+                if not -90.0 <= _lat_f <= 90.0:
+                    raise ValueError("map_default_lat out of range")
             self.config.map_default_lat.set(
                 str(_map_lat) if _map_lat is not None else None,
             )
 
         if "map_default_lon" in data:
             _map_lon = data["map_default_lon"]
+            if _map_lon is not None:
+                try:
+                    _lon_f = float(_map_lon)
+                except (TypeError, ValueError) as exc:
+                    raise ValueError("map_default_lon must be a number") from exc
+                if not -180.0 <= _lon_f <= 180.0:
+                    raise ValueError("map_default_lon out of range")
             self.config.map_default_lon.set(
                 str(_map_lon) if _map_lon is not None else None,
             )
