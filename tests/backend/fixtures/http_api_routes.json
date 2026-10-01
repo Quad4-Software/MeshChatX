@@ -1885,6 +1885,30 @@
             "path": "/api/v1/translation/packs/{pair}"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/update/apply-file"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/update/check"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/update/discard"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/update/download"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/update/pending"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/update/status"
+        },
+        {
             "method": "GET",
             "path": "/call.html"
         },

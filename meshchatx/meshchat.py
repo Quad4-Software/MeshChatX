@@ -566,6 +566,7 @@ class ReticulumMeshChat:
             self.storage_dir,
             current_version=app_version,
             channel=self.get_build_meta().get("build_channel", "local"),
+            config=self.config,
         )
         self.sideband_plugin_loader = SidebandPluginLoader(self)
         self._sideband_telemetry_thread = None

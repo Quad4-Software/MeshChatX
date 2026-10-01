@@ -26,7 +26,6 @@ def canonical_json(manifest: dict) -> bytes:
 
 def sign_manifest(manifest: dict, identity) -> bytes:
     """Return rsm bytes for manifest signed by identity (holds private key)."""
-    import RNS
     from RNS.vendor import umsgpack as mp
 
     if not identity.get_private_key() or not hasattr(identity, "sign"):
