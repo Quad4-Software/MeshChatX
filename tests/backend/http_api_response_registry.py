@@ -137,6 +137,8 @@ from tests.backend.http_api_response_schemas import (
     TELEPHONE_RECORDINGS_SCHEMA,
     TELEPHONE_STATUS_SCHEMA,
     TRANSLATION_PACKS_SCHEMA,
+    UPDATE_PENDING_SCHEMA,
+    UPDATE_STATUS_SCHEMA,
 )
 
 _HEX32 = "a" * 32
@@ -713,6 +715,8 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         TELEPHONE_CONTACT_CHECK_SCHEMA,
         match_info={"identity_hash": _HEX16},
     ),
+    HttpJsonContract("GET", "/api/v1/update/status", UPDATE_STATUS_SCHEMA),
+    HttpJsonContract("GET", "/api/v1/update/pending", UPDATE_PENDING_SCHEMA),
 )
 
 HTTP_JSON_GET_CONTRACT_EXCLUDED: tuple[str, ...] = (

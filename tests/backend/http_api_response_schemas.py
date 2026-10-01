@@ -1062,3 +1062,23 @@ TELEPHONE_CALL_SCHEMA: dict = {
     "type": "object",
     "additionalProperties": True,
 }
+
+UPDATE_STATUS_SCHEMA: dict = {
+    "type": "object",
+    "required": ["enabled", "current_version"],
+    "properties": {
+        "enabled": _BOOLEAN,
+        "current_version": _STRING,
+        "channel": _STRING,
+        "track": {"type": ["string", "null"]},
+        "pending": {"type": ["object", "null"]},
+    },
+    "additionalProperties": True,
+}
+
+UPDATE_PENDING_SCHEMA: dict = {
+    "type": "object",
+    "required": ["pending"],
+    "properties": {"pending": {"type": ["object", "null"]}},
+    "additionalProperties": True,
+}

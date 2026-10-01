@@ -560,6 +560,13 @@ class ReticulumMeshChat:
             on_announce=self._register_local_page_node_announce,
         )
         self.plugin_manager = PluginManager(self.storage_dir, app=self)
+        from meshchatx.src.backend.update_manager import UpdateManager
+
+        self.update_manager = UpdateManager(
+            self.storage_dir,
+            current_version=app_version,
+            channel=self.get_build_meta().get("build_channel", "local"),
+        )
         self.sideband_plugin_loader = SidebandPluginLoader(self)
         self._sideband_telemetry_thread = None
         self._sideband_telemetry_running = False
