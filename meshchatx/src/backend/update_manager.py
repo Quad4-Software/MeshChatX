@@ -152,12 +152,12 @@ class UpdateManager:
         *,
         current_version: str,
         channel: str,
-        config=None,
+        config_getter=None,
     ) -> None:
         self.storage_dir = Path(storage_dir)
         self.current_version = current_version
         self.channel = channel
-        self.config = config
+        self._config_getter = config_getter or (lambda: None)
         self._manifest: dict | None = None
         self._manifest_fetched_at = 0.0
 
@@ -187,7 +187,7 @@ class UpdateManager:
     def _fetch_bytes(self, url: str, max_bytes: int, timeout: int = 20) -> bytes:
         if not url.startswith("https://"):
             raise UpdateError(f"update fetch requires https: {url}")
-        _require_update_clearnet(self.config)
+        _require_update_clearnet(self._config_getter())
         req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})  # noqa: S310 - https enforced above
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - https enforced above
@@ -325,7 +325,7 @@ class UpdateManager:
         url = self.artifact_url(manifest, entry)
         if not url.startswith("https://"):
             raise UpdateError("update download requires https")
-        _require_update_clearnet(self.config)
+        _require_update_clearnet(self._config_getter())
 
         def _dl() -> Path:
             req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})  # noqa: S310 - https enforced above
@@ -445,9 +445,15 @@ class UpdateManager:
 
 def _require_update_clearnet(config) -> None:
     """Privacy-mode gate: no update fetch while outbound HTTP is blocked."""
-    from meshchatx.src.backend.privacy_mode import ensure_outbound_http_allowed
+    from meshchatx.src.backend.privacy_mode import (
+        OutboundHttpBlockedError,
+        ensure_outbound_http_allowed,
+    )
 
-    ensure_outbound_http_allowed(config, feature="update check")
+    try:
+        ensure_outbound_http_allowed(config, feature="update check")
+    except OutboundHttpBlockedError as e:
+        raise UpdateError(str(e)) from e
 
 
 def _sha256_file(path: Path) -> str:

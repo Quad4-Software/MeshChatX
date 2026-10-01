@@ -231,6 +231,25 @@ async def test_check_disabled_channel(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_check_blocked_by_privacy_mode(tmp_path):
+    class _Flag:
+        def get(self):
+            return True
+
+    class _Cfg:
+        privacy_mode_enabled = _Flag()
+
+    mgr = UpdateManager(
+        str(tmp_path),
+        current_version="4.9.4",
+        channel="stable",
+        config_getter=lambda: _Cfg(),
+    )
+    result = await mgr.check()
+    assert "Privacy mode" in result.get("error", "")
+
+
+@pytest.mark.asyncio
 async def test_verify_local_file_match(tmp_path, signer, monkeypatch):
     payload = b"fake-appimage-payload" * 100
     sha = hashlib.sha256(payload).hexdigest()

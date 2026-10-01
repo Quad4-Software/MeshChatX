@@ -45,6 +45,17 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
     uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
     uv run python scripts/patch_lxst_codec2_optional.py
 
+    # LXST ships prebuilt filterlib blobs per CPython ABI. On pre-release
+    # interpreters (3.15 beta legs) none exists, so build it from the bundled
+    # Filters.c. Exit 2 (no compiler) is non-fatal: LXST compiles via cffi at
+    # runtime instead.
+    uv run python scripts/build-lxst-filterlib.py || rc=$?
+    if [[ "${rc:-0}" == "2" ]]; then
+        echo "::warning::no C compiler for LXST filterlib; cffi runtime fallback will compile it"
+    elif [[ "${rc:-0}" != "0" ]]; then
+        exit "${rc}"
+    fi
+
     if [[ "$(uname -s)" == "Darwin" ]]; then
         uv run python -c "
 import numpy
