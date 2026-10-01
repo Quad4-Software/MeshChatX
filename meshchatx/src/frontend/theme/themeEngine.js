@@ -228,7 +228,9 @@ export const THEME_PRESETS = {
             "--mc-text": "#000000",
             "--mc-text-secondary": "#000000",
             "--mc-text-muted": "#374151",
-            "--mc-border": "#000000",
+            // Hairline dividers stay visible without reading as solid bars;
+            // strong/card borders keep full contrast for real boundaries.
+            "--mc-border": "#4b5563",
             "--mc-border-card": "#000000",
             "--mc-border-strong": "#000000",
         },
@@ -237,7 +239,7 @@ export const THEME_PRESETS = {
             "--mc-text": "#ffffff",
             "--mc-text-secondary": "#ffffff",
             "--mc-text-muted": "#d4d4d8",
-            "--mc-border": "#ffffff",
+            "--mc-border": "#9ca3af",
             "--mc-border-card": "#ffffff",
             "--mc-border-strong": "#ffffff",
         },
