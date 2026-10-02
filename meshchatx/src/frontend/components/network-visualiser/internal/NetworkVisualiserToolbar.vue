@@ -177,20 +177,6 @@
                         >
                             {{ $t("visualiser.view_mode_planet") }}
                         </button>
-                        <button
-                            id="visualiser-view-cluster"
-                            type="button"
-                            class="rounded-md px-2.5 py-1 text-[11px] font-bold"
-                            :class="
-                                viewMode === 'cluster'
-                                    ? 'bg-white text-blue-600 shadow-xs dark:bg-zinc-700 dark:text-blue-300'
-                                    : 'text-sem-fg-muted'
-                            "
-                            :aria-pressed="viewMode === 'cluster' ? 'true' : 'false'"
-                            @click="$emit('update:viewMode', 'cluster')"
-                        >
-                            {{ $t("visualiser.view_mode_cluster") }}
-                        </button>
                     </div>
                 </div>
 
@@ -330,7 +316,7 @@ export default {
             type: String,
             default: "flat",
             validator(v) {
-                return v === "flat" || v === "planet" || v === "cluster";
+                return v === "flat" || v === "planet";
             },
         },
         fps: { type: Number, default: 0 },

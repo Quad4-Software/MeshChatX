@@ -176,6 +176,80 @@ html[data-ui-glass="0"] .glass-card {
     -webkit-backdrop-filter: none !important;
 }
 
+/* Glass preset: frosted surfaces over a gradient canvas. The blur needs a
+   busy backdrop to read, so the canvas gets a soft multi-stop gradient; the
+   ui-glass kill switch still wins over everything. */
+html[data-theme-preset="glass"] body,
+html[data-theme-preset="glass"] #app,
+html[data-theme-preset="glass"] .page-canvas,
+html[data-theme-preset="glass"] .page-header-bar {
+    background-image:
+        radial-gradient(1200px 800px at 15% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
+        radial-gradient(1000px 700px at 85% 10%, rgba(56, 189, 248, 0.14), transparent 55%),
+        radial-gradient(900px 900px at 50% 110%, rgba(167, 139, 250, 0.16), transparent 60%);
+    background-attachment: fixed;
+}
+html.dark[data-theme-preset="glass"] body,
+html.dark[data-theme-preset="glass"] #app,
+html.dark[data-theme-preset="glass"] .page-canvas,
+html.dark[data-theme-preset="glass"] .page-header-bar {
+    background-image:
+        radial-gradient(1200px 800px at 15% -10%, rgba(99, 102, 241, 0.22), transparent 60%),
+        radial-gradient(1000px 700px at 85% 10%, rgba(14, 165, 233, 0.18), transparent 55%),
+        radial-gradient(900px 900px at 50% 110%, rgba(139, 92, 246, 0.2), transparent 60%);
+}
+
+html[data-theme-preset="glass"] .page-surface,
+html[data-theme-preset="glass"] .fused-panel,
+html[data-theme-preset="glass"] .glass-card,
+html[data-theme-preset="glass"] .dropdown-panel,
+html[data-theme-preset="glass"] .context-menu-panel,
+html[data-theme-preset="glass"] .modal-panel,
+html[data-theme-preset="glass"] .input-field,
+html[data-theme-preset="glass"] .search-input,
+html[data-theme-preset="glass"] .glass-label,
+html[data-theme-preset="glass"] .address-card {
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
+}
+
+/* Hairline top highlight sells the glass edge on floating surfaces. */
+html[data-theme-preset="glass"] .glass-card,
+html[data-theme-preset="glass"] .fused-panel,
+html[data-theme-preset="glass"] .dropdown-panel,
+html[data-theme-preset="glass"] .context-menu-panel,
+html[data-theme-preset="glass"] .modal-panel {
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.35),
+        0 8px 32px rgb(15 23 42 / 0.12);
+}
+html.dark[data-theme-preset="glass"] .glass-card,
+html.dark[data-theme-preset="glass"] .fused-panel,
+html.dark[data-theme-preset="glass"] .dropdown-panel,
+html.dark[data-theme-preset="glass"] .context-menu-panel,
+html.dark[data-theme-preset="glass"] .modal-panel {
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.08),
+        0 8px 32px rgb(0 0 0 / 0.45);
+}
+
+html[data-theme-preset="glass"][data-ui-glass="0"] .page-surface,
+html[data-theme-preset="glass"][data-ui-glass="0"] .fused-panel,
+html[data-theme-preset="glass"][data-ui-glass="0"] .dropdown-panel,
+html[data-theme-preset="glass"][data-ui-glass="0"] .context-menu-panel,
+html[data-theme-preset="glass"][data-ui-glass="0"] .modal-panel,
+html[data-theme-preset="glass"][data-ui-glass="0"] .input-field,
+html[data-theme-preset="glass"][data-ui-glass="0"] .search-input,
+html[data-theme-preset="glass"][data-ui-glass="0"] .glass-label,
+html[data-theme-preset="glass"][data-ui-glass="0"] .address-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+html[data-theme-preset="glass"][data-ui-glass="0"] body,
+html[data-theme-preset="glass"][data-ui-glass="0"] #app {
+    background-image: none;
+}
+
 .input-field {
     @apply bg-sem-surface-muted border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full p-2.5 text-sem-fg transition;
 }

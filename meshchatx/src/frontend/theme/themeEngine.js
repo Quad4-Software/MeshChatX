@@ -19,6 +19,7 @@ export const THEME_PRESET_IDS = [
     "tokyo",
     "atom_one",
     "neo_brutalist",
+    "glass",
     "custom",
 ];
 
@@ -39,6 +40,7 @@ export const THEME_PRESET_CATALOG = [
     { id: "tokyo", labelKey: "app.theme_preset_tokyo" },
     { id: "atom_one", labelKey: "app.theme_preset_atom_one" },
     { id: "neo_brutalist", labelKey: "app.theme_preset_neo_brutalist" },
+    { id: "glass", labelKey: "app.theme_preset_glass" },
     { id: "custom", labelKey: "app.theme_preset_custom" },
 ];
 
@@ -636,6 +638,49 @@ export const THEME_PRESETS = {
             "--mc-surface-raised": "rgb(34 36 40 / 0.7)",
         },
     },
+    glass: {
+        // Frosted-glass material: translucent surfaces over a tinted canvas
+        // so backdrop blur reads. Borders stay luminous hairlines. The CSS
+        // hooks on html[data-theme-preset="glass"] apply the blur itself.
+        light: {
+            "--mc-bubble-failed": "#dc2626",
+            "--mc-canvas": "#dfe6f5",
+            "--mc-surface": "rgb(255 255 255 / 0.55)",
+            "--mc-surface-muted": "rgb(244 247 255 / 0.45)",
+            "--mc-surface-raised": "rgb(255 255 255 / 0.7)",
+            "--mc-glass-surface": "rgb(255 255 255 / 0.55)",
+            "--mc-border": "rgb(255 255 255 / 0.6)",
+            "--mc-border-card": "rgb(255 255 255 / 0.65)",
+            "--mc-border-strong": "rgb(100 116 139 / 0.4)",
+            "--mc-context-hover": "rgb(255 255 255 / 0.5)",
+            "--mc-text": "#0f172a",
+            "--mc-text-secondary": "#1e293b",
+            "--mc-text-muted": "#475569",
+            "--mc-accent": "#2563eb",
+            "--mc-accent-hover": "#4f46e5",
+            "--mc-action-primary": "#2563eb",
+            "--mc-action-primary-hover": "#4f46e5",
+        },
+        dark: {
+            "--mc-bubble-failed": "#f87171",
+            "--mc-canvas": "#0b1020",
+            "--mc-surface": "rgb(15 23 42 / 0.5)",
+            "--mc-surface-muted": "rgb(15 23 42 / 0.4)",
+            "--mc-surface-raised": "rgb(30 41 59 / 0.6)",
+            "--mc-glass-surface": "rgb(15 23 42 / 0.55)",
+            "--mc-border": "rgb(148 163 184 / 0.22)",
+            "--mc-border-card": "rgb(148 163 184 / 0.26)",
+            "--mc-border-strong": "rgb(203 213 225 / 0.35)",
+            "--mc-context-hover": "rgb(148 163 184 / 0.2)",
+            "--mc-text": "#f1f5f9",
+            "--mc-text-secondary": "#e2e8f0",
+            "--mc-text-muted": "#94a3b8",
+            "--mc-accent": "#60a5fa",
+            "--mc-accent-hover": "#818cf8",
+            "--mc-action-primary": "#3b82f6",
+            "--mc-action-primary-hover": "#6366f1",
+        },
+    },
     custom: {
         light: {},
         dark: {},
@@ -856,6 +901,7 @@ export function applyAppearanceTheme(config, options = {}) {
         doc.documentElement.classList.toggle("dark", effectiveMode === "dark");
         doc.documentElement.dataset.bootTheme = effectiveMode;
         doc.documentElement.dataset.themePreference = preference;
+        doc.documentElement.dataset.themePreset = normalizeThemePreset(config?.theme_preset);
         doc.documentElement.style.colorScheme = effectiveMode;
     }
 

@@ -10,7 +10,6 @@ import { EDGE_STRIDE, NODE_STRIDE } from "./networkVisualiserWebGL.js";
 
 export const PLANET_VIEW = "planet";
 export const FLAT_VIEW = "flat";
-export const CLUSTER_VIEW = "cluster";
 
 export const PLANET_FOV_Y = (48 * Math.PI) / 180;
 export const PLANET_NEAR = 0.18;
@@ -24,8 +23,8 @@ export const DEFAULT_ORBIT_DIST = 6.2;
 export const LAYOUT_SCALE_FLOOR = 160;
 /** Scale above max layout radius so the farthest node stays on the back hemisphere. */
 export const LAYOUT_SCALE_FIT = 1.05;
-/** Minimum wrap scale. A large floor piles a tight cluster onto the front pole. */
-export const PLANET_CLUSTER_SCALE_FLOOR = 48;
+/** Minimum wrap scale. A large floor piles a tight group onto the front pole. */
+export const PLANET_WRAP_SCALE_FLOOR = 48;
 export const PLANET_RADIUS_MIN = 0.5;
 export const PLANET_RADIUS_MAX = 2.65;
 export const PLANET_HUB_GAP = 0.42;
@@ -67,10 +66,10 @@ let worldScratch = [];
 
 /**
  * @param {unknown} raw
- * @returns {"flat"|"planet"|"cluster"}
+ * @returns {"flat"|"planet"}
  */
 export function normalizeVisualiserViewMode(raw) {
-    if (raw === PLANET_VIEW || raw === CLUSTER_VIEW) {
+    if (raw === PLANET_VIEW) {
         return raw;
     }
     return FLAT_VIEW;
@@ -315,7 +314,7 @@ export function clipLineToPositiveW(c1, c2, wMin = CLIP_W_MIN) {
 }
 
 export function stabilizeLayoutScale(computed, prev) {
-    const next = computed > 1e-6 ? computed : PLANET_CLUSTER_SCALE_FLOOR;
+    const next = computed > 1e-6 ? computed : PLANET_WRAP_SCALE_FLOOR;
     if (!(prev > 1e-6)) return next;
     const ratio = next / prev;
     if (ratio >= SCALE_HOLD_LO && ratio <= SCALE_HOLD_HI) return prev;
@@ -747,7 +746,7 @@ function localScaleForPlanet(nodes, srcCount, home, planetIndex, ifaceIndex, fal
         const r = Math.hypot((nodes[kOff] || 0) - ox, (nodes[kOff + 1] || 0) - oy);
         if (r > maxR) maxR = r;
     }
-    return Math.max(maxR * LAYOUT_SCALE_FIT, PLANET_CLUSTER_SCALE_FLOOR);
+    return Math.max(maxR * LAYOUT_SCALE_FIT, PLANET_WRAP_SCALE_FLOOR);
 }
 
 function posKey(x, y) {
@@ -1012,13 +1011,45 @@ export function projectPlanetScene(opts) {
         return spr;
     };
 
+    // Key light fixed in world space (upper-right, slightly toward camera)
+    // so every globe shares one coherent lighting direction.
+    const L = { x: 0.55, y: 0.72, z: 0.42 };
+    const lLen = Math.hypot(L.x, L.y, L.z);
+    L.x /= lLen;
+    L.y /= lLen;
+    L.z /= lLen;
+
     for (let p = 0; p < planets.length; p++) {
         const pl = planets[p];
         const dist = Math.hypot(pl.cx - eye.x, pl.cy - eye.y, pl.cz - eye.z);
         const pxR = Math.max(18, projectedSphereRadiusPx(Math.max(dist, 1.05), PLANET_FOV_Y, height) * pl.radius);
         const fill = pl.fill;
         const bodyA = dark ? 0.9 : 0.92;
+        // Unit vector from the globe center toward the eye: used to nudge
+        // layered sprites slightly in front of or behind the body so the
+        // painter-order z sort keeps the shading stack stable.
+        const ex = (eye.x - pl.cx) / dist;
+        const ey = (eye.y - pl.cy) / dist;
+        const ez = (eye.z - pl.cz) / dist;
+        // Atmosphere halo: wide and faint, then a tighter glow.
+        addSprite(pl.cx, pl.cy, pl.cz, pxR * 1.32, fill[0], fill[1], fill[2], dark ? 0.05 : 0.07, 0, 0, 0);
         addSprite(pl.cx, pl.cy, pl.cz, pxR * 1.08, fill[0], fill[1], fill[2], 0.14, 0, 0, 0);
+        // Rim light: a lit-tinted disc offset toward the light and slightly
+        // behind the body. The body covers its center, so only the lit limb
+        // shows as a crescent.
+        addSprite(
+            pl.cx + L.x * pl.radius * 0.16 - ex * pl.radius * 0.05,
+            pl.cy + L.y * pl.radius * 0.16 - ey * pl.radius * 0.05,
+            pl.cz + L.z * pl.radius * 0.16 - ez * pl.radius * 0.05,
+            pxR * 1.04,
+            Math.min(1, fill[0] * 0.6 + 0.5),
+            Math.min(1, fill[1] * 0.6 + 0.55),
+            Math.min(1, fill[2] * 0.6 + 0.6),
+            dark ? 0.4 : 0.34,
+            0,
+            0,
+            0
+        );
         addSprite(
             pl.cx,
             pl.cy,
@@ -1028,6 +1059,36 @@ export function projectPlanetScene(opts) {
             fill[1] * 0.4 + (dark ? 0.08 : 0.62),
             fill[2] * 0.5 + (dark ? 0.14 : 0.7),
             bodyA,
+            0,
+            0,
+            0
+        );
+        // Terminator: a dark disc offset away from the light and slightly in
+        // front of the body, so the night side reads as a shadowed crescent.
+        const shade = dark ? 0.34 : 0.24;
+        addSprite(
+            pl.cx - L.x * pl.radius * 0.34 + ex * pl.radius * 0.05,
+            pl.cy - L.y * pl.radius * 0.34 + ey * pl.radius * 0.05,
+            pl.cz - L.z * pl.radius * 0.34 + ez * pl.radius * 0.05,
+            pxR * 0.96,
+            fill[0] * 0.12,
+            fill[1] * 0.12,
+            fill[2] * 0.16 + (dark ? 0.02 : 0.04),
+            shade,
+            0,
+            0,
+            0
+        );
+        // Specular glint on the lit limb.
+        addSprite(
+            pl.cx + L.x * pl.radius * 0.44 + ex * pl.radius * 0.08,
+            pl.cy + L.y * pl.radius * 0.44 + ey * pl.radius * 0.08,
+            pl.cz + L.z * pl.radius * 0.44 + ez * pl.radius * 0.08,
+            pxR * 0.16,
+            1,
+            1,
+            1,
+            dark ? 0.5 : 0.42,
             0,
             0,
             0
@@ -1185,6 +1246,12 @@ export function projectPlanetScene(opts) {
         const gc = [pl.fill[0] * 0.7 + 0.15, pl.fill[1] * 0.7 + 0.18, pl.fill[2] * 0.75 + 0.22, dark ? 0.42 : 0.48];
         for (let i = 0; i < grid.length; i++) {
             const ln = grid[i];
+            // Lambert-ish shading: segments on the lit hemisphere glow a bit
+            // brighter, the night side fades out.
+            const lit = Math.max(
+                0,
+                (ln.x1 + ln.x2) * 0.5 * L.x + (ln.y1 + ln.y2) * 0.5 * L.y + (ln.z1 + ln.z2) * 0.5 * L.z
+            );
             writeWorldSeg(
                 pl.cx + ln.x1 * pl.radius,
                 pl.cy + ln.y1 * pl.radius,
@@ -1195,7 +1262,7 @@ export function projectPlanetScene(opts) {
                 gc[0],
                 gc[1],
                 gc[2],
-                gc[3],
+                gc[3] * (0.45 + 0.55 * lit),
                 true,
                 pl.cx,
                 pl.cy,
