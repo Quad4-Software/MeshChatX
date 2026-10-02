@@ -465,7 +465,7 @@
                                         <div
                                             class="absolute top-0 right-0 z-20 flex flex-row gap-1 sm:static sm:z-auto sm:ml-auto sm:flex-col sm:gap-2 sm:shrink-0 sm:self-auto sm:justify-end"
                                         >
-                                            <div class="relative" v-click-outside="closeDiscoveryActionsMenu">
+                                            <div v-click-outside="closeDiscoveryActionsMenu" class="relative">
                                                 <button
                                                     type="button"
                                                     class="secondary-chip p-2! rounded-xl!"

@@ -63,7 +63,7 @@
                     />
                     <SidebarVirtualList
                         v-else-if="mergedContacts.length >= MIN_VIRTUAL_SIDEBAR_ITEMS"
-                        class="flex-1 min-h-0 divide-y divide-gray-100 dark:divide-zinc-800"
+                        class="flex-1 min-h-0 divide-y divide-sem-border/60"
                         :items="mergedContacts"
                         :item-key="(item) => item.id"
                     >
@@ -100,7 +100,7 @@
                                             />
                                             <button
                                                 type="button"
-                                                class="text-xs font-mono text-sem-fg-muted truncate hover:text-blue-600 dark:hover:text-blue-400 text-left"
+                                                class="text-xs font-mono text-sem-fg-muted truncate hover:text-sem-accent text-left"
                                                 :title="contact.remote_destination_hash"
                                                 @click.stop="copyContactHash(contact.remote_destination_hash)"
                                             >
@@ -110,7 +110,7 @@
                                         <div v-if="contact.remote_telephony_hash" class="flex items-center gap-1.5">
                                             <MaterialDesignIcon
                                                 icon-name="phone-outline"
-                                                class="size-4 text-green-600 dark:text-green-400 shrink-0"
+                                                class="size-4 text-sem-success shrink-0"
                                             />
                                             <span class="text-xs font-mono text-sem-fg-muted break-all">{{
                                                 contact.remote_telephony_hash
@@ -136,7 +136,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-green-100 dark:hover:bg-green-900/40 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                                        class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-raised hover:text-sem-accent transition-colors"
                                         :title="$t('contacts.call_contact')"
                                         @click.stop="callContact(contact)"
                                     >
@@ -145,7 +145,7 @@
                                 </div>
                                 <button
                                     type="button"
-                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-gray-700 hover:text-sem-fg transition-colors"
+                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg transition-colors"
                                     :title="$t('contacts.actions')"
                                     @click.stop="openContextMenu($event, contact)"
                                 >
@@ -154,7 +154,7 @@
                             </div>
                         </template>
                     </SidebarVirtualList>
-                    <div v-else class="divide-y divide-gray-100 dark:divide-zinc-800 overflow-y-auto flex-1 min-h-0">
+                    <div v-else class="divide-y divide-sem-border/60 overflow-y-auto flex-1 min-h-0">
                         <div
                             v-for="contact in mergedContacts"
                             :key="contact.id"
@@ -189,7 +189,7 @@
                                         />
                                         <button
                                             type="button"
-                                            class="text-xs font-mono text-sem-fg-muted truncate hover:text-blue-600 dark:hover:text-blue-400 text-left"
+                                            class="text-xs font-mono text-sem-fg-muted truncate hover:text-sem-accent text-left"
                                             :title="contact.remote_destination_hash"
                                             @click.stop="copyContactHash(contact.remote_destination_hash)"
                                         >
@@ -199,7 +199,7 @@
                                     <div v-if="contact.remote_telephony_hash" class="flex items-center gap-1.5">
                                         <MaterialDesignIcon
                                             icon-name="phone-outline"
-                                            class="size-4 text-green-600 dark:text-green-400 shrink-0"
+                                            class="size-4 text-sem-success shrink-0"
                                         />
                                         <span class="text-xs font-mono text-sem-fg-muted break-all">{{
                                             contact.remote_telephony_hash
@@ -225,7 +225,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-green-100 dark:hover:bg-green-900/40 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-raised hover:text-sem-accent transition-colors"
                                     :title="$t('contacts.call_contact')"
                                     @click.stop="callContact(contact)"
                                 >
@@ -234,7 +234,7 @@
                             </div>
                             <button
                                 type="button"
-                                class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-gray-700 hover:text-sem-fg transition-colors"
+                                class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg transition-colors"
                                 :title="$t('contacts.actions')"
                                 @click.stop="openContextMenu($event, contact)"
                             >

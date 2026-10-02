@@ -5,10 +5,10 @@
         class="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4 z-10 flex flex-col sm:flex-row gap-2 pointer-events-none"
     >
         <div
-            class="pointer-events-auto border border-gray-200/50 dark:border-zinc-800/50 bg-white/90 dark:bg-zinc-900/90 rounded-2xl overflow-hidden w-full sm:w-[280px] sm:max-w-[280px] transition-all duration-300"
+            class="pointer-events-auto border border-sem-border/50 bg-sem-surface/90 rounded-2xl overflow-hidden w-full sm:w-[280px] sm:max-w-[280px] transition-all duration-300"
         >
             <div
-                class="flex items-center px-4 sm:px-5 py-3 sm:py-4 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-zinc-800/50 transition-colors"
+                class="flex items-center px-4 sm:px-5 py-3 sm:py-4 cursor-pointer hover:bg-sem-surface-muted/50 transition-colors"
                 @click="$emit('update:isShowingControls', !isShowingControls)"
             >
                 <div class="flex-1 flex flex-col min-w-0 mr-2">
@@ -22,7 +22,7 @@
                 <div class="flex items-center gap-2">
                     <button
                         type="button"
-                        class="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white transition-all active:scale-95 disabled:opacity-60"
+                        class="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text transition-all active:scale-95 disabled:opacity-60"
                         :disabled="isUpdating || isLoading"
                         :aria-label="$t('visualiser.refresh')"
                         @click.stop="$emit('manual-update')"
@@ -36,7 +36,7 @@
                     <div class="w-5 sm:w-6 flex justify-center">
                         <MaterialDesignIcon
                             icon-name="chevron-down"
-                            class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform duration-300"
+                            class="w-4 h-4 sm:w-5 sm:h-5 text-sem-fg-muted transition-transform duration-300"
                             :class="{ 'rotate-180': isShowingControls }"
                         />
                     </div>
@@ -47,7 +47,7 @@
                 v-show="isShowingControls"
                 class="px-5 pb-5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300"
             >
-                <div class="h-px bg-linear-to-r from-transparent via-gray-200 dark:via-zinc-800 to-transparent"></div>
+                <div class="h-px bg-linear-to-r from-transparent via-sem-border to-transparent"></div>
 
                 <div class="grid grid-cols-2 gap-2">
                     <div
@@ -70,7 +70,7 @@
                             <span class="min-w-0 flex-1 truncate">{{ engineTriggerLabel }}</span>
                             <MaterialDesignIcon
                                 icon-name="chevron-down"
-                                class="w-3.5 h-3.5 shrink-0 text-gray-400 transition-transform duration-200"
+                                class="w-3.5 h-3.5 shrink-0 text-sem-fg-muted transition-transform duration-200"
                                 :class="{ 'rotate-180': engineMenuOpen }"
                             />
                         </button>

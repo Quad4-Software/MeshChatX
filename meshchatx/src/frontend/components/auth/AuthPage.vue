@@ -56,7 +56,7 @@
                                 type="password"
                                 required
                                 :minlength="showSetupForm ? 8 : 1"
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sem-fg focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                class="w-full px-4 py-2 input-field"
                                 :placeholder="$t('auth.password_placeholder')"
                                 autocomplete="current-password"
                             />
@@ -75,7 +75,7 @@
                                 type="password"
                                 required
                                 minlength="8"
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sem-fg focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                class="w-full px-4 py-2 input-field"
                                 :placeholder="$t('auth.confirm_password_placeholder')"
                                 autocomplete="new-password"
                             />
