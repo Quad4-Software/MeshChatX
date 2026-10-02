@@ -25,7 +25,7 @@ describe("themeEngine", () => {
         expect(normalizeThemePreference("system")).toBe("system");
         expect(normalizeThemePreference("weird")).toBe("light");
         expect(normalizeThemePreset("oled")).toBe("oled");
-        expect(normalizeThemePreset("nope")).toBe("default");
+        expect(normalizeThemePreset("nope")).toBe("void");
         expect(THEME_PRESET_IDS).toContain("custom");
         expect(THEME_PRESET_IDS).toContain("glass");
         expect(normalizeThemePreset("glass")).toBe("glass");
@@ -81,7 +81,7 @@ describe("themeEngine", () => {
     });
 
     it("derives per-theme message bubble colors", () => {
-        const defaultLight = buildThemeVariableOverrides({}, "light");
+        const defaultLight = buildThemeVariableOverrides({ theme_preset: "default" }, "light");
         expect(defaultLight["--mc-bubble-outbound"]).toBe("#0284c7");
         expect(defaultLight["--mc-bubble-failed"]).toBe("#dc2626");
         expect(defaultLight["--mc-bubble-waiting"]).toBe("#e6e8eb");
@@ -96,7 +96,10 @@ describe("themeEngine", () => {
         expect(nordDark["--mc-bubble-waiting"]).not.toBe(defaultLight["--mc-bubble-waiting"]);
         expect(nordDark["--mc-bubble-waiting-text"]).toBe("#eceff4");
 
-        const accent = buildThemeVariableOverrides({ accent_color: "#ff0000" }, "light");
+        const accent = buildThemeVariableOverrides(
+            { accent_color: "#ff0000", theme_preset: "default" },
+            "light"
+        );
         expect(accent["--mc-bubble-outbound"]).toBe("#ff0000");
     });
 

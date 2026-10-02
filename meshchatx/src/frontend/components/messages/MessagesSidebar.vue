@@ -1309,10 +1309,11 @@ export default {
             return { width: "36px", height: "36px" };
         },
         sidebarRootClass() {
+            const base = "flex flex-col min-h-0 transition-[width] duration-300 ease-in-out overflow-hidden";
             if (this.effectiveCollapsed) {
-                return "flex flex-col w-16 min-w-16 max-w-16 h-full min-h-0";
+                return `${base} w-16 min-w-16 max-w-16`;
             }
-            return "flex flex-col w-full sm:w-80 sm:min-w-80 md:max-lg:w-64 md:max-lg:min-w-64 lg:w-80 lg:min-w-80 min-h-0";
+            return `${base} w-full sm:w-80 sm:min-w-80 md:max-lg:w-64 md:max-lg:min-w-64 lg:w-80 lg:min-w-80`;
         },
         isFilterActive() {
             return (

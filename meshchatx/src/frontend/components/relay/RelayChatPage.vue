@@ -52,7 +52,7 @@
                 <!-- hubs + rooms sidebar -->
                 <div
                     v-if="!isPopoutMode"
-                    class="flex-col shrink-0 border-r border-sem-border bg-sem-canvas relative"
+                    class="flex-col shrink-0 border-r border-sem-border bg-sem-canvas relative transition-[width] duration-300 ease-in-out overflow-hidden"
                     :class="[
                         selectedRoom ? 'hidden md:flex' : 'flex',
                         effectiveSidebarCollapsed ? 'w-16 min-w-16 max-w-16' : 'w-full md:w-72',
