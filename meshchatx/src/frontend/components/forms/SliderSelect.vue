@@ -12,12 +12,12 @@
             :aria-label="label"
             @input="onInput"
         />
-        <div class="flex justify-between mt-1 px-0.5">
+        <div class="flex mt-1" :style="`padding: 0 ${100 / options.length / 2}%`">
             <button
                 v-for="(opt, i) in options"
                 :key="opt.value"
                 type="button"
-                class="text-[10px] font-medium transition-colors"
+                class="flex-1 text-center text-[10px] font-medium transition-colors"
                 :class="i === indexOfValue ? 'text-sem-accent font-semibold' : 'text-sem-fg-muted hover:text-sem-fg'"
                 @click="selectIndex(i)"
             >

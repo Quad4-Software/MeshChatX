@@ -78,7 +78,7 @@
   "network-visualiser/internal/NetworkVisualiserToolbar.vue": 54,
   "nomadnetwork/NomadBrowserContextMenu.vue": 1,
   "nomadnetwork/NomadCrashTab.vue": 8,
-  "nomadnetwork/NomadNetworkBrowser.vue": 10,
+  "nomadnetwork/NomadNetworkBrowser.vue": 13,
   "nomadnetwork/NomadNetworkPage.vue": 67,
   "nomadnetwork/NomadNetworkSidebar.vue": 135,
   "page-nodes/PageNodesPage.vue": 50,
