@@ -27,6 +27,8 @@ export interface Config {
     messages_multi_pane_enabled?: boolean;
     delivery_helptips_enabled?: boolean;
     nomad_tabs_enabled?: boolean;
+    nomad_private_tabs_enabled?: boolean;
+    nomad_history_enabled?: boolean;
     rrc_enabled?: boolean;
     rrc_unread_badges_enabled?: boolean;
     live_transport_mode?: string;
@@ -66,6 +68,8 @@ function defaultConfig(): Config {
         messages_multi_pane_enabled: true,
         delivery_helptips_enabled: true,
         nomad_tabs_enabled: true,
+        nomad_private_tabs_enabled: true,
+        nomad_history_enabled: true,
         rrc_enabled: true,
         rrc_unread_badges_enabled: true,
         live_transport_mode: "auto",

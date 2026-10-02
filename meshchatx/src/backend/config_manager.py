@@ -681,6 +681,16 @@ class ConfigManager:
             "nomad_tabs_enabled",
             True,
         )
+        self.nomad_private_tabs_enabled = self.BoolConfig(
+            self,
+            "nomad_private_tabs_enabled",
+            True,
+        )
+        self.nomad_history_enabled = self.BoolConfig(
+            self,
+            "nomad_history_enabled",
+            True,
+        )
         self.rrc_enabled = self.BoolConfig(self, "rrc_enabled", True)
         self.rrc_unread_badges_enabled = self.BoolConfig(
             self,

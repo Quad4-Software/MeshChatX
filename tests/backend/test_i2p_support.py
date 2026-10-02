@@ -504,7 +504,7 @@ def test_i2p_peer_inherits_configured_mode():
             with patch("RNS.Interfaces.I2PInterface.I2PController") as mock_ctrl:
                 mock_ctrl.return_value.ready = True
                 mock_ctrl.return_value.get_free_port.return_value = 9999
-                # The constructor will block on i2p.ready — patch start to no-op
+                # The constructor will block on i2p.ready - patch start to no-op
                 with patch.object(mock_ctrl.return_value, "start"):
                     from RNS.Interfaces.I2PInterface import I2PInterface
 

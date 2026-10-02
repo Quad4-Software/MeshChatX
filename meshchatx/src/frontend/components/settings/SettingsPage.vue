@@ -974,6 +974,8 @@
                             @ui-glass-enabled-change="onUiGlassEnabledChange"
                             @messages-multi-pane-enabled-change="onMessagesMultiPaneEnabledChange"
                             @nomad-tabs-enabled-change="onNomadTabsEnabledChange"
+                            @nomad-private-tabs-enabled-change="onNomadPrivateTabsEnabledChange"
+                            @nomad-history-enabled-change="onNomadHistoryEnabledChange"
                             @rrc-enabled-change="onRrcEnabledChange"
                             @rrc-unread-badges-enabled-change="onRrcUnreadBadgesEnabledChange"
                             @reset-appearance-defaults="resetAppearanceDefaults"
@@ -3204,6 +3206,8 @@ export default {
                 messages_sidebar_position: "left",
                 messages_multi_pane_enabled: true,
                 nomad_tabs_enabled: true,
+                nomad_private_tabs_enabled: true,
+                nomad_history_enabled: true,
                 rrc_enabled: true,
                 rrc_unread_badges_enabled: true,
                 message_icon_size: 28,
@@ -4504,6 +4508,22 @@ export default {
                     nomad_tabs_enabled: this.config.nomad_tabs_enabled,
                 },
                 "nomad_tabs_enabled"
+            );
+        },
+        async onNomadPrivateTabsEnabledChange() {
+            await this.updateConfig(
+                {
+                    nomad_private_tabs_enabled: this.config.nomad_private_tabs_enabled,
+                },
+                "nomad_private_tabs_enabled"
+            );
+        },
+        async onNomadHistoryEnabledChange() {
+            await this.updateConfig(
+                {
+                    nomad_history_enabled: this.config.nomad_history_enabled,
+                },
+                "nomad_history_enabled"
             );
         },
         async onRrcEnabledChange() {

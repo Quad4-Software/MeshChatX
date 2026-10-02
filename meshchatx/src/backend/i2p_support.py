@@ -380,7 +380,7 @@ def patch_i2p_interface() -> bool:
 
     Reticulum applies the mode from config in _synthesize_interface AFTER
     I2PInterface.__init__ returns. The constructor sets self.mode to MODE_FULL
-    and creates I2PInterfacePeer objects with no mode assignment — the peers
+    and creates I2PInterfacePeer objects with no mode assignment - the peers
     stay MODE_FULL and Boundary/Internal forwarding rules never apply.
 
     This wraps __init__ to resolve the configured mode from the config object
@@ -410,7 +410,7 @@ def patch_i2p_interface() -> bool:
     def _patched_peer_init(self, parent, *args, **kwargs):
         original_peer_init(self, parent, *args, **kwargs)
         # Peers are created inside I2PInterface.__init__ before the configured
-        # mode is applied to the parent — inherit the parent's resolved mode.
+        # mode is applied to the parent - inherit the parent's resolved mode.
         mode = getattr(parent, "_meshchatx_resolved_mode", None)
         if mode is not None:
             self.mode = mode

@@ -306,6 +306,34 @@
                 </span>
             </label>
 
+            <label v-if="config.nomad_tabs_enabled" class="setting-toggle">
+                <Toggle
+                    id="nomad-private-tabs-enabled"
+                    :model-value="config.nomad_private_tabs_enabled"
+                    @update:model-value="onNomadPrivateTabsEnabledToggle"
+                />
+                <MaterialDesignIcon icon-name="incognito" class="size-5 text-sem-fg-muted shrink-0" />
+                <span class="setting-toggle__label">
+                    <span class="setting-toggle__title">{{ $t("app.nomad_private_tabs_enabled") }}</span>
+                    <span class="setting-toggle__description">{{
+                        $t("app.nomad_private_tabs_enabled_description")
+                    }}</span>
+                </span>
+            </label>
+
+            <label v-if="config.nomad_tabs_enabled" class="setting-toggle">
+                <Toggle
+                    id="nomad-history-enabled"
+                    :model-value="config.nomad_history_enabled"
+                    @update:model-value="onNomadHistoryEnabledToggle"
+                />
+                <MaterialDesignIcon icon-name="history" class="size-5 text-sem-fg-muted shrink-0" />
+                <span class="setting-toggle__label">
+                    <span class="setting-toggle__title">{{ $t("app.nomad_history_enabled") }}</span>
+                    <span class="setting-toggle__description">{{ $t("app.nomad_history_enabled_description") }}</span>
+                </span>
+            </label>
+
             <label class="setting-toggle">
                 <Toggle id="rrc-enabled" :model-value="config.rrc_enabled" @update:model-value="onRrcEnabledToggle" />
                 <MaterialDesignIcon icon-name="forum-outline" class="size-5 text-sem-fg-muted shrink-0" />
@@ -587,6 +615,8 @@ export default {
         "ui-glass-enabled-change",
         "messages-multi-pane-enabled-change",
         "nomad-tabs-enabled-change",
+        "nomad-private-tabs-enabled-change",
+        "nomad-history-enabled-change",
         "rrc-enabled-change",
         "rrc-unread-badges-enabled-change",
         "reset-appearance-defaults",
@@ -730,6 +760,12 @@ export default {
         },
         onNomadTabsEnabledToggle(value) {
             this.emitField("nomad_tabs_enabled", value, "nomad-tabs-enabled-change");
+        },
+        onNomadPrivateTabsEnabledToggle(value) {
+            this.emitField("nomad_private_tabs_enabled", value, "nomad-private-tabs-enabled-change");
+        },
+        onNomadHistoryEnabledToggle(value) {
+            this.emitField("nomad_history_enabled", value, "nomad-history-enabled-change");
         },
         onRrcEnabledToggle(value) {
             this.emitField("rrc_enabled", value, "rrc-enabled-change");

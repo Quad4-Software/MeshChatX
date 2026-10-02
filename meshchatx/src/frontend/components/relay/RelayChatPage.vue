@@ -204,14 +204,12 @@
                                         </template>
                                         <template
                                             v-if="
-                                                hasCapability('rrc_hop_count') &&
-                                                hub.connected &&
-                                                hub.hop_count != null
+                                                hasCapability('rrc_hop_count') && hub.connected && hub.hop_count != null
                                             "
                                         >
                                             <span class="text-sem-fg-muted shrink-0">·</span>
                                             <MaterialDesignIcon
-                                                icon-name="route"
+                                                icon-name="share-variant"
                                                 class="size-3 shrink-0 text-sem-fg-muted"
                                             />
                                             <span class="text-sem-fg-muted shrink-0"> {{ hub.hop_count }}</span>

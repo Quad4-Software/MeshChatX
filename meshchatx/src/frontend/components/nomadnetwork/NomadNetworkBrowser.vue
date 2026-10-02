@@ -54,6 +54,7 @@
                     <MaterialDesignIcon icon-name="plus" class="size-4 min-[900px]:size-5" />
                 </button>
                 <button
+                    v-if="privateTabsEnabled"
                     type="button"
                     class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-purple-400 transition-colors hover:bg-purple-900/40 hover:text-purple-200"
                     :title="$t('nomadnet.new_private_tab_shortcut')"
@@ -61,19 +62,11 @@
                 >
                     <MaterialDesignIcon icon-name="incognito" class="size-4 min-[900px]:size-5" />
                 </button>
-                <button
-                    type="button"
-                    class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-purple-400 transition-colors hover:bg-purple-900/40 hover:text-purple-200"
-                    :title="$t('nomadnet.new_private_tab_shortcut')"
-                    @click="addTab('', null, null, true, true)"
-                >
-                    <MaterialDesignIcon icon-name="incognito" class="size-4 min-[900px]:size-5" />
-                </button>
-                <div class="relative flex h-full items-center shrink-0">
+                <div v-if="historyEnabled" class="relative flex h-full items-center shrink-0">
                     <button
                         ref="historyBtn"
                         type="button"
-                        class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
+                        class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80 cursor-pointer"
                         :title="$t('nomadnet.history')"
                         @click="showHistoryMenu = !showHistoryMenu"
                     >
@@ -219,6 +212,12 @@ export default {
     computed: {
         tabsEnabled() {
             return useConfigStore().config?.nomad_tabs_enabled !== false;
+        },
+        privateTabsEnabled() {
+            return useConfigStore().config?.nomad_private_tabs_enabled !== false;
+        },
+        historyEnabled() {
+            return useConfigStore().config?.nomad_history_enabled !== false;
         },
         showTabStrip() {
             return this.isWideViewport && this.tabsEnabled && this.tabs.length > 0;
