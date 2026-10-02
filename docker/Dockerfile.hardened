@@ -4,11 +4,11 @@
 # Runtime uses opus (not Alpine opusfile). Voicemail without espeak-ng is optional.
 
 ARG NODE_IMAGE=cgr.dev/chainguard/node:latest-dev
-ARG NODE_HASH=sha256:585ddbb27d9250036a4248b5cd2ad76923ccfc66fa5d98fb37abdead3f09bf3d
+ARG NODE_HASH=sha256:d42d4728b773969f5f6e612d1d8a7c6b195cbd9ac2a5b1e6d2ff3177431d29bd
 ARG PYTHON_BUILD_IMAGE=cgr.dev/chainguard/python:latest-dev
-ARG PYTHON_BUILD_HASH=sha256:afdbadf8d697739ab8e10a4d355d0850daa439cba3e6f0e39a73f7f2d3d839b7
+ARG PYTHON_BUILD_HASH=sha256:85c70fe9ec4313b5c8b1adcb4f0e7fa45d171ae203d2c64c69c4ea3eb96fb7dc
 ARG PYTHON_RUNTIME_IMAGE=cgr.dev/chainguard/python:latest-dev
-ARG PYTHON_RUNTIME_HASH=sha256:afdbadf8d697739ab8e10a4d355d0850daa439cba3e6f0e39a73f7f2d3d839b7
+ARG PYTHON_RUNTIME_HASH=sha256:85c70fe9ec4313b5c8b1adcb4f0e7fa45d171ae203d2c64c69c4ea3eb96fb7dc
 
 FROM --platform=linux/amd64 ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 USER root

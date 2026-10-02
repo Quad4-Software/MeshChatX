@@ -6,7 +6,7 @@
 # Inside: task lint / task test:backend / task test:frontend work without
 # touching PyPI or npm because uv and pnpm caches are pre-populated.
 
-FROM python:3.14.4-bookworm@sha256:786d12398a4b61918e68bc30d93d0bd679a95136bbbd1dbe4d96f116636516bc
+FROM python:3.14.8-bookworm@sha256:b3c121f5b6b446c964c6ea924d9a099e259b29d7b56df82729e33572a31eadcc
 
 ARG NODE_VERSION=24.0.0
 ARG UV_VERSION=0.11.15

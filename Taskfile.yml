@@ -297,6 +297,11 @@ tasks:
         cmds:
             - "{{.NPM}} run test:ui:pages"
 
+    test:ui:selfcheck:
+        desc: Fast UI selfcheck - crawls every route and menu against a running dev server
+        cmds:
+            - node scripts/ui/selfcheck.mjs --url {{.UI_URL | default "http://127.0.0.1:5173"}} --backend {{.BACKEND_URL | default "https://127.0.0.1:8000"}}
+
     test:ui:screenshots:
         desc: Capture desktop + mobile screenshots of UI pages with seeded demo data
         cmds:
