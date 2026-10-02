@@ -62,7 +62,7 @@ API_LEVEL="24"
 PYCODEC2_VERSION="4.1.1"
 LIBCODEC2_VERSION="1.2.0"
 NUMPY_VERSION="1.26.2"
-LXST_VERSION="0.5.1"
+LXST_VERSION="0.5.4"
 BLEAK_VERSION="3.0.2"
 HTTPX_VERSION="0.28.1"
 PYOPENSSL_VERSION="26.4.0"
@@ -164,7 +164,7 @@ abi_to_platform_tag() {
     case "$1" in
         arm64-v8a) echo "android_21_arm64_v8a" ;;
         x86_64) echo "android_21_x86_64" ;;
-        armeabi-v7a) echo "android_16_armeabi_v7a" ;;
+        armeabi-v7a) echo "android_21_armeabi_v7a" ;;
         x86) echo "android_16_x86" ;;
         *)
             echo "Unsupported ABI: $1" >&2
