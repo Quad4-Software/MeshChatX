@@ -82,7 +82,6 @@ import {
     VIZ_PATH_TABLE_SOFT_CAP,
     buildFullGraph,
     computeLodUpdates,
-    computeClusterPositions,
     declutterLabelBoxes,
     hashposXY,
     lodLevelFromScale,
@@ -266,7 +265,6 @@ export default {
             fpsLastSampleMs: 0,
             cachedPositions: {},
             resetCameraOnNextGraph: false,
-            leavingClusterLayout: false,
             batterySaverPrefs: loadBatterySaverPrefs(),
             suppressLiveLayoutPersist: false,
             suppressAutoReloadPersist: false,
@@ -438,14 +436,6 @@ export default {
                 return;
             }
             if (this.viewMode !== prevViewMode && this.hasRenderer) {
-                // Same transition rules as onViewModeChange: preserve the
-                // force layout when entering cluster, keep ring positions out
-                // of the cache when leaving it, then rebuild.
-                const wasCluster = prevViewMode === "cluster";
-                if (this.viewMode === "cluster") {
-                    this.snapshotLivePositions();
-                }
-                this.leavingClusterLayout = wasCluster;
                 this.resetCameraOnNextGraph = true;
                 this.refreshPhysicsEnabled({ skipSnapshot: true });
                 this.processVisualization();
@@ -628,12 +618,7 @@ export default {
             if (!identityHash) return;
             const pathTable = this.pathTable;
             const announces = this.announces;
-            // Cluster lobe positions must not overwrite the cached force
-            // layout, or flat view would reopen stuck on the lobes.
-            const positions =
-                this.viewMode === "cluster"
-                    ? { ...this.cachedPositions }
-                    : { ...this.cachedPositions, ...this.snapshotNodePositions() };
+            const positions = { ...this.cachedPositions, ...this.snapshotNodePositions() };
             this.cachedPositions = positions;
             await saveVisualiserCache({
                 identityHash,
@@ -1000,23 +985,9 @@ export default {
         onViewModeChange(next) {
             const normalized = normalizeVisualiserViewMode(next);
             if (normalized === this.viewMode) return;
-            const wasCluster = this.viewMode === "cluster";
-            if (normalized === "cluster") {
-                // Preserve the live force layout so flat can restore it on
-                // the way back instead of reopening on ring coordinates.
-                this.snapshotLivePositions();
-            }
             this.viewMode = normalized;
             persistVisualiserViewMode(normalized, { emit: false });
             this.webglEngine?.setViewMode?.(normalized);
-            // Cluster swaps force layout for pinned hop lobes, so switching to
-            // or from it needs a rebuild plus a camera reset.
-            if (normalized === "cluster" || wasCluster) {
-                this.leavingClusterLayout = wasCluster;
-                this.resetCameraOnNextGraph = true;
-                this.refreshPhysicsEnabled({ skipSnapshot: true });
-                this.processVisualization();
-            }
         },
         destroyActiveRenderer() {
             this.hoverTooltip = null;
@@ -1047,7 +1018,7 @@ export default {
             }
             try {
                 this.webglEngine = createVisualiserWebGLEngine(canvas, {
-                    getLiveLayout: () => this.enablePhysics === true && this.viewMode !== "cluster",
+                    getLiveLayout: () => this.enablePhysics === true,
                     isDark: () => this.resolveVisualiserIsDark(),
                     onNodeActivate: (id, meta) => this.onWebGLNodeActivate(id, meta),
                     onHover: (id, meta, x, y) => this.onWebGLHover(id, meta, x, y),
@@ -1068,10 +1039,7 @@ export default {
             }
         },
         refreshPhysicsEnabled(options = {}) {
-            // Ring coordinates must never enter the force-position cache:
-            // not while cluster is active, and not during the cluster-to-flat
-            // transition where the live snapshot is still the lobe layout.
-            const skipSnapshot = options.skipSnapshot === true || this.viewMode === "cluster";
+            const skipSnapshot = options.skipSnapshot === true;
             if (this.webglEngine) {
                 this.webglEngine.setLiveLayout(this.enablePhysics);
                 if (!this.enablePhysics && !skipSnapshot) {
@@ -1088,21 +1056,9 @@ export default {
                 this.snapshotNetworkPositions();
             }
             this.network.setOptions({
-                physics: { enabled: this.enablePhysics && this.viewMode !== "cluster" },
+                physics: { enabled: this.enablePhysics },
                 edges: { smooth: VIZ_EDGE_SMOOTH },
             });
-        },
-        snapshotLivePositions() {
-            if (this.webglEngine) {
-                const snap = this.webglEngine.getPositions() || {};
-                for (const [id, p] of Object.entries(snap)) {
-                    if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
-                        this.cachedPositions[id] = { x: p.x, y: p.y };
-                    }
-                }
-                return;
-            }
-            this.snapshotNetworkPositions();
         },
         snapshotNetworkPositions() {
             if (!this.network || typeof this.network.getPositions !== "function") return;
@@ -1669,19 +1625,15 @@ export default {
                     posById[id] = { x: p.x, y: p.y };
                 }
             }
-            // Leaving cluster: the live snapshot is still the lobe layout.
-            // Skip it so the cached force positions win the rebuild.
-            const skipLiveOverlay = this.leavingClusterLayout === true;
-            this.leavingClusterLayout = false;
             const existingNodeIds = this.nodes.getIds();
-            if (!skipLiveOverlay && this.webglEngine) {
+            if (this.webglEngine) {
                 const snap = this.webglEngine.getPositions() || {};
                 for (const [id, p] of Object.entries(snap)) {
                     if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
                         posById[id] = { x: p.x, y: p.y };
                     }
                 }
-            } else if (!skipLiveOverlay && this.network) {
+            } else if (this.network) {
                 const snap = this.network.getPositions(existingNodeIds);
                 if (snap) {
                     for (const id of existingNodeIds) {
@@ -1793,21 +1745,6 @@ export default {
                         reachable_on: disc.reachable_on ?? null,
                         transport_id: disc.transport_id ?? null,
                     });
-                }
-            }
-
-            const clusterView = this.viewMode === "cluster";
-            if (clusterView) {
-                // Cluster view overrides every position with deterministic hop
-                // rings around me, so nothing is missing and settle is skipped.
-                const clusterPos = computeClusterPositions({
-                    interfaces: [...interfacesPayload.map((i) => i.name), ...pathOnlyPayload.map((i) => i.name)],
-                    discovered: discoveredPayload.map((d) => d.id),
-                    pathTable: this.pathTable,
-                    hopMax: this.hopFilterMax,
-                });
-                for (const [id, p] of Object.entries(clusterPos)) {
-                    posById[id] = p;
                 }
             }
 
@@ -2009,7 +1946,7 @@ export default {
                     x: n.x,
                     y: n.y,
                     mass: n.group === "me" ? 4 : n.group === "interface" ? 2.5 : n.group === "discovered" ? 1.2 : 1,
-                    fixed: clusterView || n.id === "me",
+                    fixed: n.id === "me",
                     radius: Number.isFinite(n.size) ? n.size : 22,
                 }));
                 graph.layout_edges = graphEdges.map((e) => ({
@@ -2026,12 +1963,8 @@ export default {
                 if (n?.id) graphNodeIds.add(n.id);
             }
             graphEdges = graphEdges.filter((e) => e && graphNodeIds.has(e.from) && graphNodeIds.has(e.to));
-            // Cluster pins every node so hop lobes stay put under live layout
-            // and scene ticks. Flat must emit fixed explicitly: vis-network
-            // deep-merges node updates, so a stale fixed pin from cluster
-            // would otherwise survive the switch back.
             for (const node of graphNodes) {
-                node.fixed = clusterView || node.id === "me";
+                node.fixed = node.id === "me";
             }
 
             if (!silent) {
@@ -2103,12 +2036,8 @@ export default {
                 const counts = this.webglEngine.getCounts();
                 this.graphNodeCount = counts.nodes;
                 this.graphEdgeCount = counts.edges;
-                // Cluster lobe positions must not overwrite the cached force
-                // layout, or flat view would reopen stuck on the lobes.
-                if (!clusterView) {
-                    const snap = this.webglEngine.getPositions() || {};
-                    this.cachedPositions = { ...this.cachedPositions, ...snap };
-                }
+                const snap = this.webglEngine.getPositions() || {};
+                this.cachedPositions = { ...this.cachedPositions, ...snap };
                 this.loadedNodesCount = this.pathTable.length;
                 this.totalNodesToLoad = 0;
                 this.loadedNodesCount = 0;
@@ -2167,7 +2096,7 @@ export default {
             } finally {
                 if (pauseSilentPhysics && this.network && !this.physicsPausedForDrag) {
                     this.network.setOptions({
-                        physics: { enabled: this.enablePhysics && this.viewMode !== "cluster" },
+                        physics: { enabled: this.enablePhysics },
                         edges: { smooth: VIZ_EDGE_SMOOTH },
                     });
                 }

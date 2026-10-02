@@ -825,11 +825,15 @@
             <!-- no node selected -->
             <div v-else class="flex flex-col mx-auto my-auto text-center leading-5 dark:text-gray-100">
                 <div class="mx-auto mb-1">
-                    <MaterialDesignIcon icon-name="earth" class="w-6 h-6 dark:text-gray-300" />
+                    <MaterialDesignIcon
+                        :icon-name="isPrivate ? 'incognito' : 'earth'"
+                        class="w-6 h-6"
+                        :class="isPrivate ? 'text-purple-300' : 'dark:text-gray-300'"
+                    />
                 </div>
                 <div class="font-semibold">{{ $t("nomadnet.no_active_node") }}</div>
                 <div>{{ $t("nomadnet.select_node_to_browse") }}</div>
-                <div class="mx-auto mt-3 flex w-full max-w-sm items-center gap-2 px-4">
+                <div class="mx-auto mt-3 flex w-full max-w-md items-center gap-2 px-4 sm:max-w-lg">
                     <input
                         v-model="emptyNomadUrlInput"
                         type="text"
@@ -844,6 +848,17 @@
                     >
                         <MaterialDesignIcon icon-name="arrow-right" class="size-5" />
                     </IconButton>
+                </div>
+                <div
+                    v-if="isPrivate"
+                    class="mx-auto mt-4 w-full max-w-md rounded-xl border border-purple-500/50 bg-purple-950/40 px-4 py-3 text-left sm:max-w-lg"
+                >
+                    <div class="flex items-start gap-2.5">
+                        <MaterialDesignIcon icon-name="incognito" class="mt-0.5 size-4 shrink-0 text-purple-300" />
+                        <div class="text-sm leading-snug text-purple-100/90">
+                            {{ $t("nomadnet.private_browsing_hint") }}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

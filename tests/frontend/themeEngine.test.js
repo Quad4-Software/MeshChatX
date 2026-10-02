@@ -27,6 +27,25 @@ describe("themeEngine", () => {
         expect(normalizeThemePreset("oled")).toBe("oled");
         expect(normalizeThemePreset("nope")).toBe("default");
         expect(THEME_PRESET_IDS).toContain("custom");
+        expect(THEME_PRESET_IDS).toContain("glass");
+        expect(normalizeThemePreset("glass")).toBe("glass");
+    });
+
+    it("glass preset uses translucent surfaces", () => {
+        const glassDark = buildThemeVariableOverrides({ theme_preset: "glass" }, "dark");
+        expect(glassDark["--mc-canvas"]).toBe("#0b1020");
+        expect(glassDark["--mc-surface"]).toMatch(/rgb\(.+\/\s*0\.\d+\)/);
+        expect(glassDark["--mc-glass-surface"]).toMatch(/rgb\(.+\/\s*0\.\d+\)/);
+        const glassLight = buildThemeVariableOverrides({ theme_preset: "glass" }, "light");
+        expect(glassLight["--mc-canvas"]).toBe("#dfe6f5");
+        expect(glassLight["--mc-surface"]).toMatch(/rgb\(.+\/\s*0\.\d+\)/);
+    });
+
+    it("applyAppearanceTheme exposes the preset on the DOM", () => {
+        applyAppearanceTheme({ theme: "dark", theme_preset: "glass" }, { prefersDark: true });
+        expect(document.documentElement.dataset.themePreset).toBe("glass");
+        applyAppearanceTheme({ theme: "dark", theme_preset: "nord" }, { prefersDark: true });
+        expect(document.documentElement.dataset.themePreset).toBe("nord");
     });
 
     it("resolves effective theme including system preference", () => {
