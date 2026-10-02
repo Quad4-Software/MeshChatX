@@ -108,12 +108,12 @@
 
                     <div
                         v-else
-                        class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1.5"
+                        class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2"
                         @contextmenu.prevent="openSidebarContextMenu($event, {})"
                     >
                         <button
                             type="button"
-                            class="flex w-full items-center gap-2 border-b border-sem-border/60 px-2 py-2.5 text-left text-sm text-sem-fg-muted transition-colors hover:bg-sem-surface/40 hover:text-sem-accent"
+                            class="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-sem-border/70 px-3 py-2.5 text-left text-sm text-sem-fg-muted transition-colors hover:border-sem-accent/50 hover:bg-sem-surface/40 hover:text-sem-accent"
                             @click="openAddHub"
                         >
                             <MaterialDesignIcon icon-name="plus" class="size-4 shrink-0" />
@@ -123,8 +123,11 @@
                         <div
                             v-for="(hub, hubIndex) in hubs"
                             :key="hub.hub_hash"
-                            class="border-b border-sem-border/60"
-                            :class="{ 'opacity-60': dragHubIndex === hubIndex }"
+                            class="relay-hub-card rounded-xl border border-sem-border/60 bg-sem-surface/40 overflow-hidden transition-shadow"
+                            :class="{
+                                'opacity-60': dragHubIndex === hubIndex,
+                                'ring-1 ring-sem-accent/40 border-sem-accent/40': hub.hub_hash === selectedHubHash,
+                            }"
                             draggable="true"
                             @dragstart="onHubDragStart(hubIndex, $event)"
                             @dragover.prevent="onHubDragOver(hubIndex)"
@@ -168,7 +171,7 @@
 
                             <div
                                 v-show="isExpanded(hub.hub_hash)"
-                                class="border-t border-sem-border/50 px-2 py-2 space-y-2"
+                                class="border-t border-sem-border/40 bg-sem-canvas/30 px-2.5 py-2.5 space-y-2.5"
                             >
                                 <button
                                     type="button"
@@ -216,13 +219,13 @@
                                     </button>
                                 </div>
 
-                                <ul class="space-y-0">
+                                <ul class="space-y-0.5">
                                     <li
                                         v-for="(roomName, roomIndex) in orderedRoomsFor(hub)"
                                         :key="roomName"
-                                        class="flex items-center justify-between gap-2 px-2 py-1 text-sm cursor-pointer transition-colors hover:bg-sem-surface/60 dark:hover:bg-sem-surface/30"
+                                        class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm cursor-pointer transition-colors hover:bg-sem-surface/70 dark:hover:bg-sem-surface/35"
                                         :class="{
-                                            'bg-sem-action-primary/15 text-sem-accent font-medium':
+                                            'bg-sem-action-primary/15 text-sem-accent font-semibold ring-1 ring-sem-accent/25':
                                                 hub.hub_hash === selectedHubHash && roomName === selectedRoom,
                                             'opacity-60':
                                                 dragRoomHubHash === hub.hub_hash && dragRoomIndex === roomIndex,
@@ -322,18 +325,18 @@
                                     </ul>
                                 </div>
 
-                                <form class="flex flex-col gap-1" @submit.prevent="joinRoom(hub)">
-                                    <div class="flex gap-1">
+                                <form class="flex flex-col gap-1.5 pt-0.5" @submit.prevent="joinRoom(hub)">
+                                    <div class="flex gap-1.5">
                                         <input
                                             v-model="joinRoomForm(hub).name"
                                             type="text"
                                             :data-rrc-join-name="hub.hub_hash"
                                             :placeholder="$t('relay_chat.join_room_placeholder')"
-                                            class="min-w-0 flex-1 rounded-lg border border-sem-border bg-sem-surface-muted px-2 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
+                                            class="min-w-0 flex-1 rounded-lg border border-sem-border/70 bg-sem-surface/60 px-2.5 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
                                         />
                                         <button
                                             type="submit"
-                                            class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-sem-fg-muted transition-colors hover:bg-sem-surface/60 hover:text-sem-accent"
+                                            class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-sem-action-primary text-sem-action-primary-text transition-colors hover:bg-sem-action-primary-hover"
                                             :title="$t('relay_chat.join_room')"
                                         >
                                             <MaterialDesignIcon icon-name="plus" class="size-4" />
@@ -344,7 +347,7 @@
                                         type="password"
                                         :placeholder="$t('relay_chat.join_room_key_placeholder')"
                                         autocomplete="off"
-                                        class="w-full rounded-lg border border-sem-border bg-sem-surface-muted px-2 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
+                                        class="w-full rounded-lg border border-sem-border/70 bg-sem-surface/60 px-2.5 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
                                     />
                                 </form>
                             </div>

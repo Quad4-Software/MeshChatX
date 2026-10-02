@@ -80,8 +80,12 @@
                     </div>
                 </div>
 
-                <!-- search bar -->
-                <div class="sticky top-0 z-10 py-3 sm:py-4 mb-2 border-b border-sem-border bg-transparent min-w-0">
+                <!-- search bar: sticky with opaque backdrop so scrolling content
+                     never bleeds through, and extra bottom gap so the divider
+                     does not sit flush against the sidebar below -->
+                <div
+                    class="sticky top-0 z-10 pt-3 pb-4 sm:pt-4 sm:pb-5 mb-4 border-b border-sem-border bg-sem-canvas/95 backdrop-blur-sm min-w-0"
+                >
                     <div class="relative w-full max-w-6xl xl:max-w-7xl 2xl:max-w-360 mx-auto min-w-0 px-0">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                             <MaterialDesignIcon icon-name="magnify" class="size-5 text-sem-fg-muted" />
