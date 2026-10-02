@@ -23,7 +23,7 @@
         </div>
 
         <div
-            class="theme-preset-cascade flex py-1"
+            class="flex flex-wrap gap-2.5 py-1"
             role="listbox"
             :aria-label="$t('app.theme_preset')"
             @mouseleave="clearPreview"
@@ -33,7 +33,7 @@
                 :key="preset.id"
                 type="button"
                 role="option"
-                class="theme-preset-dot group relative inline-flex items-center justify-center rounded-full transition-all duration-200 ease-out hover:z-20 hover:scale-125 focus-visible:z-20 focus-visible:scale-125"
+                class="theme-preset-dot group relative inline-flex items-center justify-center rounded-full transition-transform duration-150 ease-out hover:z-20 hover:scale-110 focus-visible:z-20 focus-visible:scale-110"
                 :class="
                     preset.id === normalizedValue
                         ? 'ring-2 ring-sem-accent ring-offset-2 ring-offset-sem-canvas z-10'
@@ -151,19 +151,4 @@ export default {
 };
 </script>
 
-<style scoped>
-@reference "../../style.css";
 
-/* Cascaded circles: negative overlap so the dots nestle together,
-   expanding apart when the row is hovered. */
-.theme-preset-cascade .theme-preset-dot + .theme-preset-dot {
-    margin-left: -0.35rem;
-    transition:
-        margin 0.2s ease,
-        transform 0.15s ease;
-}
-.theme-preset-cascade:hover .theme-preset-dot + .theme-preset-dot,
-.theme-preset-cascade:focus-within .theme-preset-dot + .theme-preset-dot {
-    margin-left: 0.4rem;
-}
-</style>
