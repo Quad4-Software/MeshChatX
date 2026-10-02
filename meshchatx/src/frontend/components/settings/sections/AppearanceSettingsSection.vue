@@ -14,11 +14,7 @@
                 <div class="text-sm font-medium text-sem-fg">
                     {{ $t("app.theme") }}
                 </div>
-                <SegmentedControl
-                    :model-value="config.theme"
-                    :options="themeModes"
-                    @change="onThemeModeSelect"
-                />
+                <SegmentedControl :model-value="config.theme" :options="themeModes" @change="onThemeModeSelect" />
             </div>
 
             <div class="space-y-2">
@@ -195,41 +191,37 @@
 
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <div class="text-sm font-medium text-sem-fg">
                         {{ $t("app.message_font_size") }}
                     </div>
-                    <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
-                        {{ config.message_font_size || 14 }}px
-                    </div>
+                    <div class="text-xs font-mono text-sem-accent">{{ config.message_font_size || 14 }}px</div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span class="text-xs text-gray-400">A</span>
+                    <span class="text-xs text-sem-fg-muted">A</span>
                     <input
                         :value="config.message_font_size"
                         type="range"
                         min="10"
                         max="32"
                         step="1"
-                        class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        class="range-input flex-1"
                         @input="onMessageFontSizeInput"
                     />
-                    <span class="text-lg text-gray-400">A</span>
+                    <span class="text-lg text-sem-fg-muted">A</span>
                 </div>
             </div>
 
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <div class="text-sm font-medium text-sem-fg">
                         {{ $t("app.message_icon_size") }}
                     </div>
-                    <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
-                        {{ config.message_icon_size || 28 }}px
-                    </div>
+                    <div class="text-xs font-mono text-sem-accent">{{ config.message_icon_size || 28 }}px</div>
                 </div>
                 <div class="flex items-center gap-3">
                     <MaterialDesignIcon
                         icon-name="account-outline"
-                        class="shrink-0 text-gray-400"
+                        class="shrink-0 text-sem-fg-muted"
                         :style="{ width: '16px', height: '16px' }"
                     />
                     <input
@@ -238,12 +230,12 @@
                         min="16"
                         max="64"
                         step="1"
-                        class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        class="range-input flex-1"
                         @input="onMessageIconSizeInput"
                     />
                     <MaterialDesignIcon
                         icon-name="account"
-                        class="shrink-0 text-gray-500 dark:text-gray-300"
+                        class="shrink-0 text-sem-fg-muted"
                         :style="messageIconPreviewStyle"
                     />
                 </div>
@@ -251,10 +243,10 @@
 
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <div class="text-sm font-medium text-sem-fg">
                         {{ $t("app.ui_transparency") }}
                     </div>
-                    <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
+                    <div class="text-xs font-mono text-sem-accent">
                         {{ Math.max(0, Math.min(100, Number(config.ui_transparency) || 0)) }}%
                     </div>
                 </div>
@@ -266,12 +258,12 @@
                         min="0"
                         max="100"
                         step="1"
-                        class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        class="range-input flex-1"
                         @input="onUiTransparencyInput"
                     />
                     <span class="text-xs text-gray-400">100</span>
                 </div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">
+                <div class="text-xs text-sem-fg-muted">
                     {{ $t("app.ui_transparency_description") }}
                 </div>
             </div>
@@ -316,6 +308,7 @@
 
             <label class="setting-toggle">
                 <Toggle id="rrc-enabled" :model-value="config.rrc_enabled" @update:model-value="onRrcEnabledToggle" />
+                <MaterialDesignIcon icon-name="forum-outline" class="size-5 text-sem-fg-muted shrink-0" />
                 <span class="setting-toggle__label">
                     <span class="setting-toggle__title">{{ $t("app.rrc_enabled") }}</span>
                     <span class="setting-toggle__description">{{ $t("app.rrc_enabled_description") }}</span>
@@ -328,6 +321,7 @@
                     :model-value="config.rrc_unread_badges_enabled"
                     @update:model-value="onRrcUnreadBadgesEnabledToggle"
                 />
+                <MaterialDesignIcon icon-name="bell-badge-outline" class="size-5 text-sem-fg-muted shrink-0" />
                 <span class="setting-toggle__label">
                     <span class="setting-toggle__title">{{ $t("app.rrc_unread_badges_enabled") }}</span>
                     <span class="setting-toggle__description">{{
@@ -358,7 +352,7 @@
                         @change="$emit('detailed-outbound-send-status-change', $event)"
                     />
                     <label for="detailed-outbound-send-status" class="min-w-0 cursor-pointer">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div class="text-sm font-medium text-sem-fg">
                             {{ $t("app.detailed_outbound_send_status") }}
                         </div>
                         <div class="text-xs text-sem-fg-muted mt-0.5">
@@ -376,7 +370,7 @@
                         @change="$emit('outbound-transfer-progress-enabled-change', $event)"
                     />
                     <label for="outbound-transfer-progress-enabled" class="min-w-0 cursor-pointer">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div class="text-sm font-medium text-sem-fg">
                             {{ $t("app.outbound_transfer_progress_enabled") }}
                         </div>
                         <div class="text-xs text-sem-fg-muted mt-0.5">
@@ -394,7 +388,7 @@
                         @change="$emit('message-timestamp-grouping-change', $event)"
                     />
                     <label for="message-timestamp-grouping" class="min-w-0 cursor-pointer">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div class="text-sm font-medium text-sem-fg">
                             {{ $t("app.message_timestamp_grouping") }}
                         </div>
                         <div class="text-xs text-sem-fg-muted mt-0.5">
@@ -405,7 +399,7 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="space-y-2">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div class="text-sm font-medium text-sem-fg">
                             {{ $t("settings.outbound_bubble_color") }}
                         </div>
                         <div class="flex gap-2">
@@ -428,7 +422,7 @@
                     </div>
 
                     <div class="space-y-2">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div class="text-sm font-medium text-sem-fg">
                             {{ $t("settings.failed_bubble_color") }}
                         </div>
                         <div class="flex gap-2">
@@ -451,7 +445,7 @@
                     </div>
 
                     <div class="space-y-2">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div class="text-sm font-medium text-sem-fg">
                             {{ $t("settings.waiting_bubble_color") }}
                         </div>
                         <div class="flex gap-2">
@@ -476,7 +470,7 @@
 
                 <div class="space-y-2">
                     <div class="flex items-center justify-between">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div class="text-sm font-medium text-sem-fg">
                             {{ $t("settings.inbound_bubble_color") }}
                         </div>
                         <button

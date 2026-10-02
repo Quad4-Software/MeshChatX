@@ -165,8 +165,17 @@
                                     <div class="truncate font-medium leading-tight">{{ hubDisplayName(hub) }}</div>
                                     <div class="truncate text-xs" :class="statusTextColor(hub.status)">
                                         {{ statusLabel(hub.status)
-                                        }}<template v-if="hub.connected && hub.rtt_ms != null"
-                                            ><span class="text-sem-fg-muted"> · {{ hub.rtt_ms }} ms</span></template
+                                        }}<template v-if="hub.connected && hub.member_count != null"
+                                            ><span class="text-sem-fg-muted"> · </span
+                                            ><MaterialDesignIcon
+                                                icon-name="account-group"
+                                                class="inline size-3 text-sem-fg-muted align-middle -mt-0.5"
+                                            /><span class="text-sem-fg-muted"> {{ hub.member_count }}</span></template
+                                        ><template v-if="hub.connected && hub.rtt_ms != null"
+                                            ><span class="text-sem-fg-muted">
+                                                · {{ Math.min(hub.rtt_ms, 999)
+                                                }}{{ hub.rtt_ms > 999 ? "+" : "" }} ms</span
+                                            ></template
                                         >
                                     </div>
                                 </div>

@@ -11,7 +11,7 @@ def repositoryBundledWheelsDir = new File(meshchatSourceDir, "public/repository-
 def chaquopyBuildPython = System.getenv("CHAQUOPY_BUILD_PYTHON")
 def pythonTempDir = new File(buildDir, "python-tmp")
 def vendorWheelDir = new File(rootProject.projectDir, "vendor")
-def lxstPatchedWheel = new File(rootProject.projectDir, "vendor/lxst-0.5.1-py3-none-any.whl")
+def lxstPatchedWheel = new File(rootProject.projectDir, "vendor/lxst-0.5.4-py3-none-any.whl")
 def bleakPatchedWheel = new File(rootProject.projectDir, "vendor/bleak-3.0.2-py3-none-any.whl")
 def rnsPatchedWheel = new File(rootProject.projectDir, "vendor/rns-1.5.5-py3-none-any.whl")
 def allAndroidAbis = ["arm64-v8a", "x86_64", "armeabi-v7a"]
@@ -398,7 +398,7 @@ chaquopy {
             install lxstPatchedWheel.absolutePath
             // Per-ABI wheel carrying LXST/filterlib.so so LXST finds a native
             // filter blob via find_spec instead of runtime-compiling Filters.c.
-            install "lxst-filterlib-android==0.5.1"
+            install "lxst-filterlib-android==0.5.4"
             if (!bleakPatchedWheel.exists()) {
                 throw new org.gradle.api.GradleException("Missing patched bleak wheel at ${bleakPatchedWheel}")
             }
