@@ -270,8 +270,8 @@ import {
     startCameraStream,
 } from "../../js/qrScannerUtils";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import { apiPath, WS_EVENTS } from "../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
+import { apiPath, WS_EVENTS } from "../../js/constants";
 
 export default {
     name: "PaperMessagePage",

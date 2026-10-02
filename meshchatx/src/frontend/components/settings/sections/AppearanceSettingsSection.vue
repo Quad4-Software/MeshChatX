@@ -530,7 +530,7 @@ import {
     systemPrefersDark,
 } from "../../../theme/themeEngine.js";
 import { MESHCHAT_THEME_VARIABLES_DARK, MESHCHAT_THEME_VARIABLES_LIGHT } from "../../../theme/designTokens.js";
-import { listNavItems } from "../../../js/registries/navRegistry.js";
+import { listNavItems } from "../../../js/registries/navRegistry";
 import {
     resolveTopNavItemIds,
     resetTopNavItemIds,

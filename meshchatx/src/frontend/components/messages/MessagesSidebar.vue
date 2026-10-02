@@ -1103,7 +1103,7 @@ import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 import ContextMenuSectionLabel from "../contextmenu/ContextMenuSectionLabel.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS, STORAGE_KEYS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS } from "../../js/constants";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import ToastUtils from "../../js/ToastUtils";
 import { getCurrentInstance } from "vue";

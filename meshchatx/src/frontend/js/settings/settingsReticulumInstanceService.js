@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 /**
  * Reticulum shared-instance / RPC / hop-obfuscation settings (Sideband parity).

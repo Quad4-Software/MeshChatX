@@ -3006,13 +3006,13 @@
 <script>
 import { getCurrentInstance } from "vue";
 import { mapStores } from "pinia";
-import { useAuthStore } from "../../js/stores/authStore.js";
+import { useAuthStore } from "../../js/stores/authStore";
 import { useConfigStore } from "../../js/stores/configStore";
 import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
 import { readTextFromClipboard } from "../../js/clipboardUtils.js";
 import { importMessagesFromFile } from "../../js/messageImport";
 import DownloadUtils from "../../js/DownloadUtils";
@@ -3084,10 +3084,10 @@ import {
     settingsSectionSearchExtras,
     settingsTabHasVisibleSections,
 } from "../../js/settings/settingsTabs.js";
-import { getAllSettingsSectionKeywords } from "../../js/registries/settingsSectionRegistry.js";
+import { getAllSettingsSectionKeywords } from "../../js/registries/settingsSectionRegistry";
 import { isMicronWasmBundled } from "../../js/MicronWasmLoader.js";
 import { isAndroidLocationSupported } from "../../js/androidLocation.js";
-import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants";
 import { getMicronWasmRuntimeOverride } from "../../js/MicronWasmRuntimeOverride.js";
 import { getEffectiveMicronWasmReleaseLabel, MICRON_WASM_OVERRIDE_CHANGED_EVENT } from "../../js/micronWasmVersion.js";
 import MicronWasmUpdateModal from "./MicronWasmUpdateModal.vue";

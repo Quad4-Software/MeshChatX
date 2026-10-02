@@ -4,7 +4,7 @@
 // warm it on hover/focus so opening a conversation skips the network round
 // trip, and the viewer stashes each loaded first page so re-opening a peer
 // paints instantly while the resync catches up in the background.
-import { apiPath } from "./constants.js";
+import { apiPath } from "./constants";
 
 const PREFETCH_TTL_MS = 10000;
 const STASH_TTL_MS = 5 * 60 * 1000;

@@ -292,7 +292,7 @@ import {
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import * as nomadnetApi from "../../js/api/nomadnet.js";
 
 const SPLIT_MIN_WIDTH = 1024;

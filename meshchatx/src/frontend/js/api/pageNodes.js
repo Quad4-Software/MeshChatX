@@ -6,7 +6,7 @@
  * endpoints here rather than inlining paths in components.
  */
 
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 export function remove(nodeId, ...rest) {
     return window.api.delete(apiPath(`/page-nodes/${nodeId}`), ...rest);

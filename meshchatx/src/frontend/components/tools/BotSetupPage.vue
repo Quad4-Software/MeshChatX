@@ -141,7 +141,7 @@
 
 <script>
 import ToastUtils from "../../js/ToastUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import LxmfIconEditor, { defaultBotIconDraft } from "../LxmfIconEditor.vue";

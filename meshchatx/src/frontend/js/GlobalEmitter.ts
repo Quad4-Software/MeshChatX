@@ -1,28 +1,23 @@
 // SPDX-License-Identifier: 0BSD
 
-import { createEmitter } from "../libs/emitter.js";
+import { createEmitter } from "../libs/emitter";
 
 class GlobalEmitter {
-    constructor() {
-        this.emitter = createEmitter();
-    }
+    private emitter = createEmitter();
 
-    // add event listener
-    on(event, handler) {
+    on(event: string, handler: (data: unknown) => void): void {
         this.emitter.on(event, handler);
     }
 
-    // remove event listener
-    off(event, handler) {
+    off(event: string, handler: (data: unknown) => void): void {
         this.emitter.off(event, handler);
     }
 
-    // emit event
-    emit(type, event) {
+    emit(type: string, event?: unknown): void {
         this.emitter.emit(type, event);
     }
 
-    listenerCount(event) {
+    listenerCount(event: string): number {
         const list = this.emitter?.all?.get(event);
         return Array.isArray(list) ? list.length : 0;
     }

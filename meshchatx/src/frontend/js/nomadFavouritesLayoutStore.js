@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import { apiPath } from "./constants.js";
+import { apiPath } from "./constants";
 
 export const NOMAD_FAVOURITES_LAYOUT_KEY = "meshchat.nomadnet.favourites.layout";
 export const NOMAD_FAVOURITES_LEGACY_ORDER_KEY = "meshchat.nomadnet.favourites";

@@ -2329,7 +2329,7 @@ import AndroidStorageBridge from "../js/AndroidStorageBridge.js";
 import ToastUtils from "../js/ToastUtils";
 import DialogUtils from "../js/DialogUtils";
 import GlobalEmitter from "../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../js/constants";
 import { bundledReticulumDocsUrl } from "../js/reticulumDocsEntryUrl.js";
 import { useTutorialIdentity } from "../js/tutorial/useTutorialIdentity.js";
 import AppModal from "./AppModal.vue";

@@ -173,7 +173,7 @@
 import QRCode from "qrcode";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import ToastUtils from "../../../js/ToastUtils";
-import { apiPath } from "../../../js/constants.js";
+import { apiPath } from "../../../js/constants";
 import Utils from "../../../js/Utils";
 
 export default {

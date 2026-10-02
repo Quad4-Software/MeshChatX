@@ -143,7 +143,7 @@ import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import NotificationSoundUtils from "../../js/NotificationSoundUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import * as notificationSoundsApi from "../../js/api/notificationSounds.js";
 
 export default {

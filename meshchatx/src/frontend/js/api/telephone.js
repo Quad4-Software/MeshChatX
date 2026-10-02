@@ -6,7 +6,7 @@
  * endpoints here rather than inlining paths in components.
  */
 
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 export function deleteContacts(contactId, ...rest) {
     return window.api.delete(apiPath(`/telephone/contacts/${contactId}`), ...rest);

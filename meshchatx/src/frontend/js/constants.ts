@@ -46,7 +46,7 @@ export const WS_EVENTS = Object.freeze({
     RRC_CHANGE: "rrc.change",
     RRC_MESSAGE: "rrc.message",
     RRC_SERVER_CHANGE: "rrc.server.change",
-});
+})
 
 /** GlobalEmitter in-app event names. */
 export const EMITTER_EVENTS = Object.freeze({
@@ -76,7 +76,7 @@ export const EMITTER_EVENTS = Object.freeze({
     TOAST_DISMISSED: "toast-dismissed",
     TUTORIAL_FINISHED: "tutorial-finished",
     WEBSOCKET_RECONNECTED: "websocket-reconnected",
-});
+})
 
 /** localStorage key names. */
 export const STORAGE_KEYS = Object.freeze({
@@ -99,4 +99,4 @@ export const STORAGE_KEYS = Object.freeze({
     UI_THEME: "meshchatx_ui_theme",
     MICRON_EDITOR_CONTENT: "micron_editor_content",
     RRC_PREFS: "meshchatx.rrc.prefs",
-});
+})

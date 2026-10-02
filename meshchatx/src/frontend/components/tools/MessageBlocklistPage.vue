@@ -211,7 +211,7 @@ import ToolsPageHeader from "./ToolsPageHeader.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import DialogUtils from "../../js/DialogUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 
 function newEntryId() {
     return Math.random().toString(16).slice(2, 18);

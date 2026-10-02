@@ -244,7 +244,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SieveFlowNetwork from "./internal/SieveFlowNetwork.vue";
 import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 
 function newRuleId() {
     if (typeof crypto !== "undefined" && crypto.randomUUID) {

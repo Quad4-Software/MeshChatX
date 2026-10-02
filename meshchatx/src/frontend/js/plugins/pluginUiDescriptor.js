@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 /** Versioned plugin UI descriptor schema (uiDescriptor v1). */
 

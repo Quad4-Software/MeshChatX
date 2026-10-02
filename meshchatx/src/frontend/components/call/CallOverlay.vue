@@ -344,7 +344,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import AudioWaveformPlayer from "../messages/AudioWaveformPlayer.vue";
 import Utils from "../../js/Utils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import ToastUtils from "../../js/ToastUtils";
 import { promptMicrophoneAccessFromWindow } from "../../js/webAudioMicPermission";
 

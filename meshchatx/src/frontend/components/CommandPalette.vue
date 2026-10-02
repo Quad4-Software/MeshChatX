@@ -136,10 +136,10 @@ import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import LxmfUserIcon from "./LxmfUserIcon.vue";
 
 import GlobalEmitter from "../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../js/constants";
 import * as announcesApi from "../js/api/announces.js";
 import ToastUtils from "../js/ToastUtils";
-import { listCommands } from "../js/registries/commandRegistry.js";
+import { listCommands } from "../js/registries/commandRegistry";
 
 const MAX_VISIBLE_RESULTS = 50;
 

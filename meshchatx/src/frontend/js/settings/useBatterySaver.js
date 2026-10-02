@@ -2,7 +2,7 @@
 
 import { ref } from "vue";
 
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 import ToastUtils from "../ToastUtils.js";
 import { loadBatterySaverPrefs, saveBatterySaverPrefs } from "./batterySaverPrefs.js";
 import { applyBatterySaverBitrateLimits, restoreBatterySaverBitrateLimits } from "./batterySaverBitrateApply.js";

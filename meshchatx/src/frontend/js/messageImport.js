@@ -2,7 +2,7 @@
  * Parse and import LXMF message export JSON (v1 messages-only or v2 bundle).
  */
 
-import { apiPath } from "./constants.js";
+import { apiPath } from "./constants";
 
 export function parseMessagesImportJson(text) {
     const data = JSON.parse(text);

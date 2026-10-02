@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD AND MIT
 
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 import { buildBitrateApplyPayload, loadBatterySaverPrefs, saveBatterySaverPrefs } from "./batterySaverPrefs.js";
 
 /**

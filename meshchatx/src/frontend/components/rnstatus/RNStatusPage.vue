@@ -416,9 +416,9 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import ManagementIdentityPicker from "../tools/ManagementIdentityPicker.vue";
 import ToastUtils from "../../js/ToastUtils";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import { EMITTER_EVENTS, WS_EVENTS } from "../../js/constants";
 import * as rnstatusApi from "../../js/api/rnstatus.js";
 
 export default {

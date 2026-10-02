@@ -185,7 +185,7 @@ import IconButton from "../IconButton.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import DialogUtils from "../../js/DialogUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants";
 import * as pingApi from "../../js/api/ping.js";
 import ToastUtils from "../../js/ToastUtils";
 import AndroidBridge from "../../js/rnode/AndroidBridge.js";

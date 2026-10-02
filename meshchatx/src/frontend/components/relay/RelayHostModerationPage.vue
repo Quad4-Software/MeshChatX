@@ -458,7 +458,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import * as rrcApi from "../../js/api/rrc.js";
 import {
     RELAY_HOST_DETAIL_HEADER,

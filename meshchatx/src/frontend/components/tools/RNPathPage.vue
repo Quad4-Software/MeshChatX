@@ -357,7 +357,7 @@ import DialogUtils from "../../js/DialogUtils";
 import Utils from "../../js/Utils";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
 import ManagementIdentityPicker from "./ManagementIdentityPicker.vue";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import * as rnpathApi from "../../js/api/rnpath.js";
 
 export default {

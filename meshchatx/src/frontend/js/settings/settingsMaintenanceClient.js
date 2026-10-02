@@ -2,7 +2,7 @@
  * Maintenance, stickers, folders, and RNS reload API calls used from settings.
  */
 
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 /**
  * @param {{ delete: (path: string, config?: object) => Promise<unknown> }} api

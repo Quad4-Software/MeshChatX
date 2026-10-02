@@ -1,14 +1,19 @@
-// @ts-check
-
 import { defineStore } from "pinia";
+
+export interface AuthState {
+    authSessionResolved: boolean;
+    authEnabled: boolean;
+    isLoopbackBind: boolean;
+    authenticated: boolean;
+    demoMode: boolean;
+    pluginsEnabled: boolean;
+}
 
 /**
  * Session and authentication state for the app shell.
- *
- * Read via useAuthStore() in new code.
  */
 export const useAuthStore = defineStore("auth", {
-    state: () => ({
+    state: (): AuthState => ({
         authSessionResolved: false,
         authEnabled: false,
         isLoopbackBind: true,

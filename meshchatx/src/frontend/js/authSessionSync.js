@@ -1,4 +1,4 @@
-import { apiPath } from "./constants.js";
+import { apiPath } from "./constants";
 import { useAuthStore } from "./stores/authStore.js";
 
 /** Max wait for auth status during navigation guards and reconnect resync. */

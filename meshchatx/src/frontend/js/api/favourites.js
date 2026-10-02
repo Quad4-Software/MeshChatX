@@ -6,7 +6,7 @@
  * endpoints here rather than inlining paths in components.
  */
 
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 export function remove(h, ...rest) {
     return window.api.delete(apiPath(`/favourites/${h}`), ...rest);

@@ -159,7 +159,7 @@
 </template>
 
 <script>
-import { apiPath } from "../../../js/constants.js";
+import { apiPath } from "../../../js/constants";
 
 export default {
     name: "MapRemoteOverlayPanel",

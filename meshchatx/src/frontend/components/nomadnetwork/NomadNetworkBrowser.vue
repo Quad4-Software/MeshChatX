@@ -165,7 +165,7 @@ import NomadNetworkPage from "./NomadNetworkPage.vue";
 import NomadBrowserContextMenu from "./NomadBrowserContextMenu.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { EMITTER_EVENTS } from "../../js/constants.js";
+import { EMITTER_EVENTS } from "../../js/constants";
 import { loadNomadTabs, saveNomadTabs } from "../../js/browserLayoutStore";
 import { getNomadHistory } from "../../js/nomadHistory";
 import LinkUtils from "../../js/LinkUtils";

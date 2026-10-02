@@ -3,24 +3,24 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it, beforeEach } from "vitest";
-import { createRegistry } from "../../meshchatx/src/frontend/js/registries/registryCore.js";
+import { createRegistry } from "../../meshchatx/src/frontend/js/registries/registryCore";
 import {
     navRegistry,
     registerNavItem,
     unregisterNavItem,
     listNavItems,
-} from "../../meshchatx/src/frontend/js/registries/navRegistry.js";
-import { toolsRegistry, registerTool, listTools } from "../../meshchatx/src/frontend/js/registries/toolsRegistry.js";
+} from "../../meshchatx/src/frontend/js/registries/navRegistry";
+import { toolsRegistry, registerTool, listTools } from "../../meshchatx/src/frontend/js/registries/toolsRegistry";
 import {
     commandRegistry,
     registerCommand,
     listCommands,
-} from "../../meshchatx/src/frontend/js/registries/commandRegistry.js";
+} from "../../meshchatx/src/frontend/js/registries/commandRegistry";
 import {
     settingsSectionRegistry,
     registerSettingsSection,
     getAllSettingsSectionKeywords,
-} from "../../meshchatx/src/frontend/js/registries/settingsSectionRegistry.js";
+} from "../../meshchatx/src/frontend/js/registries/settingsSectionRegistry";
 import {
     registerCoreContributions,
     resetCoreContributionsForTests,
@@ -31,7 +31,7 @@ import { CORE_COMMAND_ENTRIES } from "../../meshchatx/src/frontend/js/registries
 import {
     postInstallPromptRegistry,
     listPostInstallPrompts,
-} from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry.js";
+} from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry";
 import { CORE_POST_INSTALL_PROMPT_ENTRIES } from "../../meshchatx/src/frontend/js/registries/corePostInstallPromptEntries.js";
 
 describe("registryCore", () => {

@@ -72,7 +72,7 @@
 
 <script>
 import ToastUtils from "../../../js/ToastUtils";
-import { apiPath } from "../../../js/constants.js";
+import { apiPath } from "../../../js/constants";
 
 function fileToB64(file) {
     return new Promise((resolve, reject) => {

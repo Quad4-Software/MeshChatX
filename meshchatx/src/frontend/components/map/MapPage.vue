@@ -1206,8 +1206,8 @@ import {
     NOMINATIM_FETCH_RETRIES,
     NOMINATIM_FETCH_RETRY_BASE_DELAY_MS,
 } from "../../js/mapTileNetwork";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants";
 import MapClusterPanel from "./internal/MapClusterPanel.vue";
 import MapMarkerPanel from "./internal/MapMarkerPanel.vue";
 import MapDrawingToolbar from "./internal/MapDrawingToolbar.vue";

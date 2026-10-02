@@ -7,7 +7,7 @@
  * rrc://<hub_hash>/<room> is the short paste-friendly form.
  */
 
-import { apiPath } from "./constants.js";
+import { apiPath } from "./constants";
 
 const RELAY_URI_IN_TEXT_RE = /(?:meshchatx|meshchat):\/\/relay\?[^\s<>]*/gi;
 const RRC_URI_IN_TEXT_RE = /rrc:\/\/[^\s<>]+/gi;

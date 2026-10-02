@@ -102,7 +102,7 @@ import MapTabContextMenu from "./internal/MapTabContextMenu.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import TileCache from "../../js/TileCache";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { EMITTER_EVENTS } from "../../js/constants.js";
+import { EMITTER_EVENTS } from "../../js/constants";
 import { loadMapTabs, saveMapTabs } from "../../js/browserLayoutStore";
 import { LEGACY_MAP_STATE_KEY, legacyMapTabStateKey, mapViewStateKey } from "../../js/mapStateKeys.js";
 

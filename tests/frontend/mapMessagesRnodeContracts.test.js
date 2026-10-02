@@ -7,7 +7,7 @@ import { rnodeIntegrityKeyForSrc } from "../../meshchatx/src/frontend/js/rnode/r
 import MessagesPage from "../../meshchatx/src/frontend/components/messages/MessagesPage.vue";
 import MapPage from "../../meshchatx/src/frontend/components/map/MapPage.vue";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
-import { useUnreadStore } from "../../meshchatx/src/frontend/js/stores/unreadStore.js";
+import { useUnreadStore } from "../../meshchatx/src/frontend/js/stores/unreadStore";
 
 describe("map, messages, and rnode integrity contracts", () => {
     it("RNode SRI key for zip.min.js matches integrity.json (not js/zip.min.js)", () => {

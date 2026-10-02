@@ -475,11 +475,11 @@
 
 <script>
 import { mapStores } from "pinia";
-import { useAuthStore } from "../js/stores/authStore.js";
-import { useNetworkStore } from "../js/stores/networkStore.js";
+import { useAuthStore } from "../js/stores/authStore";
+import { useNetworkStore } from "../js/stores/networkStore";
 import { useConfigStore } from "../js/stores/configStore";
 import { useInterfaceChangesStore } from "../js/stores/interfaceChangesStore.js";
-import { useUnreadStore } from "../js/stores/unreadStore.js";
+import { useUnreadStore } from "../js/stores/unreadStore";
 import { useIdentityStore } from "../js/stores/identityStore";
 import { getCurrentInstance, watch } from "vue";
 import { prewarmEmojiPicker } from "../js/emojiPickerPrewarm.js";
@@ -493,7 +493,7 @@ import { countRelayMentions } from "../js/relayMentionCount.js";
 import { isRetryableHttpError } from "../js/httpRetry.js";
 import Utils from "../js/Utils";
 import GlobalEmitter from "../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../js/constants.js";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../js/constants";
 import * as notificationsApi from "../js/api/notifications.js";
 import NotificationUtils from "../js/NotificationUtils";
 import NotificationSoundUtils from "../js/NotificationSoundUtils";
@@ -554,9 +554,9 @@ import { isMeshChatXAndroid } from "../js/webAudioMicPermission.js";
 import { postRequestPath } from "../js/reticulumPathfinding.js";
 import { fetchCsrfToken } from "../js/csrfToken.js";
 import ToneGenerator from "../js/ToneGenerator";
-import { listNavItems } from "../js/registries/navRegistry.js";
+import { listNavItems } from "../js/registries/navRegistry";
 import { orderedTopNavItems, topNavLayoutState } from "../js/appTopNavLayout";
-import { onWsEvent, offWsEvent } from "../js/registries/wsEventRegistry.js";
+import { onWsEvent, offWsEvent } from "../js/registries/wsEventRegistry";
 import { shouldShowMultiSessionToast } from "../js/activeSessions.js";
 import { isDatabaseRecoveryError, recoveryLocationForNetworkError } from "../js/networkRecovery.js";
 import { handleLxmIngestUriResult } from "../js/ingestUriResultNavigation.js";
