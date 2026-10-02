@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="flex flex-1 min-w-0 h-full flex-col overflow-hidden bg-sem-canvas text-sem-fg">
+    <div class="flex flex-1 min-w-0 h-full flex-col overflow-hidden bg-sem-canvas text-sem-fg relative">
         <div
             v-if="showTabStrip"
             class="nomad-tab-strip flex h-8 min-[900px]:h-9 shrink-0 flex-nowrap items-stretch overflow-x-auto overflow-y-hidden border-b border-sem-border bg-sem-surface-muted px-1 pt-0.5"
@@ -65,6 +65,40 @@
             >
                 <MaterialDesignIcon icon-name="incognito" class="size-4 min-[900px]:size-5" />
             </button>
+            <button
+                type="button"
+                class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
+                :title="$t('nomadnet.history')"
+                @click="showHistoryMenu = !showHistoryMenu"
+            >
+                <MaterialDesignIcon icon-name="history" class="size-4 min-[900px]:size-5" />
+            </button>
+        </div>
+
+        <!-- history dropdown -->
+        <div
+            v-if="showHistoryMenu"
+            v-click-outside="{ handler: () => (showHistoryMenu = false), capture: true }"
+            class="absolute right-1 top-8 z-50 max-h-64 w-64 overflow-y-auto rounded-xl border border-sem-border bg-sem-surface shadow-lg"
+        >
+            <div
+                class="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sem-fg-muted border-b border-sem-border"
+            >
+                {{ $t("nomadnet.history") }}
+            </div>
+            <div v-if="historyEntries.length === 0" class="px-3 py-4 text-center text-xs text-sem-fg-muted">
+                {{ $t("nomadnet.no_history") }}
+            </div>
+            <button
+                v-for="entry in historyEntries"
+                :key="`${entry.destinationHash}:${entry.path}:${entry.ts}`"
+                type="button"
+                class="flex w-full flex-col gap-0.5 px-3 py-2 text-left hover:bg-sem-surface-muted transition-colors"
+                @click="onHistoryEntryClick(entry)"
+            >
+                <div class="truncate text-xs font-medium text-sem-fg">{{ entry.title || entry.path }}</div>
+                <div class="truncate font-mono text-[10px] text-sem-fg-muted">{{ entry.path }}</div>
+            </button>
         </div>
 
         <div class="relative flex flex-1 min-h-0 min-w-0 overflow-hidden">
@@ -123,6 +157,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { EMITTER_EVENTS } from "../../js/constants.js";
 import { loadNomadTabs, saveNomadTabs } from "../../js/browserLayoutStore";
+import { getNomadHistory } from "../../js/nomadHistory.js";
 import LinkUtils from "../../js/LinkUtils";
 import ToastUtils from "../../js/ToastUtils";
 
@@ -168,6 +203,7 @@ export default {
                 tabId: null,
             },
             isRouteActive: true,
+            showHistoryMenu: false,
         };
     },
     computed: {
@@ -227,6 +263,9 @@ export default {
         },
         contextMenuCanCloseOtherTabs() {
             return this.tabs.length > 1 && this.contextTabIndex >= 0;
+        },
+        historyEntries() {
+            return getNomadHistory();
         },
     },
     watch: {
@@ -675,6 +714,14 @@ export default {
         onContextNewPrivateTab() {
             this.closeContextMenu();
             this.addTab("", null, null, true, true);
+        },
+        onHistoryEntryClick(entry) {
+            this.showHistoryMenu = false;
+            this.$router.push({
+                name: "nomadnetwork",
+                params: { destinationHash: entry.destinationHash },
+                query: { path: entry.path },
+            });
         },
         syncRoute() {
             const tab = this.activeTab;

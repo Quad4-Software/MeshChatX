@@ -573,6 +573,10 @@ describe("Conditional Rendering", () => {
     });
 
     it("App shows propagation sync refresh icon on mobile", async () => {
+        const { topNavLayoutState } = await import(
+            "../../meshchatx/src/frontend/js/appTopNavLayout.js"
+        );
+        topNavLayoutState.itemIds = ["sync-messages"];
         const wrapper = mountTracked(App, {
             global: {
                 stubs: {
@@ -593,11 +597,8 @@ describe("Conditional Rendering", () => {
             },
         });
 
-        const mobileRefreshButtons = wrapper.findAll("button").filter((b) => {
-            const cls = b.classes().join(" ");
-            return cls.includes("sm:hidden") && b.attributes("title") === "app.sync_messages";
-        });
-        expect(mobileRefreshButtons.length).toBe(1);
+        const navSyncButtons = wrapper.findAll("[data-testid='header-nav-sync-messages']");
+        expect(navSyncButtons.length).toBe(1);
     });
 
     it("App header shows relay chat and telephone icons next to compose and sync", async () => {

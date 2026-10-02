@@ -2931,7 +2931,9 @@
     "export_section": "Export Section",
     "delete_section": "Delete Section",
     "add_section_prompt": "Enter new section name",
-    "normal_browsing_hint": "Browse NomadNet nodes by entering an address above. Tabs keep your session and history."
+    "normal_browsing_hint": "Browse NomadNet nodes by entering an address above. Tabs keep your session and history.",
+    "history": "History",
+    "no_history": "No browsing history yet"
   },
   "forwarder": {
     "title": "LXMF Forwarder",
