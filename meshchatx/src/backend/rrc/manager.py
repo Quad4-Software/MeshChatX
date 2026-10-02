@@ -1916,8 +1916,11 @@ class RRCHub:
     def _hop_count(self):
         """RNS path hop count to this hub's destination, if known."""
         try:
-            hops = RNS.Transport.hops_to(self.hub_hash)
-            return hops if isinstance(hops, int) and hops >= 0 else None
+            dest = bytes.fromhex(self.hub_hash)
+            hops = RNS.Transport.hops_to(dest)
+            if isinstance(hops, int) and 0 <= hops < 64:
+                return hops
+            return None
         except Exception:
             return None
 
