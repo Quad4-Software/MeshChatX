@@ -20,7 +20,7 @@ beforeEach(() => {
 
 describe("appTopNavLayout", () => {
     it("defaults to relay chat, calls, and nomadnet", () => {
-        expect(resolveTopNavItemIds(null)).toEqual(["relay-chat", "call", "nomadnetwork"]);
+        expect(resolveTopNavItemIds(null)).toEqual(["relay-chat", "call", "nomadnetwork", "settings"]);
         expect(DEFAULT_TOP_NAV_ITEM_IDS).toContain("nomadnetwork");
     });
 

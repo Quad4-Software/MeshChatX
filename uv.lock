@@ -1738,7 +1738,7 @@ wheels = [
 
 [[package]]
 name = "lxst"
-version = "0.5.3"
+version = "0.5.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "audioop-lts", marker = "python_full_version >= '3.13'" },
@@ -1749,7 +1749,7 @@ dependencies = [
     { name = "rns" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fe/7a/126dd04964c48ff0c8b20324d49d0bc8178c8d7882b14691d2f21ba20749/lxst-0.5.3-py3-none-any.whl", hash = "sha256:d26281e247510b2c76cf2a67c55ffac178839597f25e29ef14343b6c8da69c87", size = 3689885, upload-time = "2026-09-10T18:18:48.622Z" },
+    { url = "https://files.pythonhosted.org/packages/a6/28/956b52132ca2f3569f1784a2f1a0354489f74ef6b930b04586798ec54985/lxst-0.5.4-py3-none-any.whl", hash = "sha256:feadeb244d12378c27c35dbe48a251ff4db03faf3c8f55b769f9d7656d0adeb7", size = 3690842, upload-time = "2026-10-01T12:40:34.031Z" },
 ]
 
 [[package]]
@@ -2775,7 +2775,7 @@ requires-dist = [
     { name = "httpx", extras = ["http2"], specifier = ">=0.28.1,<1.0" },
     { name = "landlockpy", specifier = ">=0.2.0,<0.3" },
     { name = "lxmf", specifier = ">=1.2.0" },
-    { name = "lxst", specifier = ">=0.5.3" },
+    { name = "lxst", specifier = ">=0.5.4" },
     { name = "miniaudio", specifier = ">=1.70,<2.0" },
     { name = "packaging", specifier = ">=23" },
     { name = "psutil", specifier = ">=7.2.2" },

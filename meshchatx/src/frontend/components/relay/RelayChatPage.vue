@@ -52,12 +52,29 @@
                 <!-- hubs + rooms sidebar -->
                 <div
                     v-if="!isPopoutMode"
-                    class="flex-col shrink-0 border-r border-sem-border bg-sem-canvas"
+                    class="flex-col shrink-0 border-r border-sem-border bg-sem-canvas relative"
                     :class="[
                         selectedRoom ? 'hidden md:flex' : 'flex',
                         effectiveSidebarCollapsed ? 'w-16 min-w-16 max-w-16' : 'w-full md:w-72',
                     ]"
+                    :style="
+                        smUp && !effectiveSidebarCollapsed && relaySidebarWidthPx
+                            ? {
+                                  width: relaySidebarWidthPx + 'px',
+                                  minWidth: relaySidebarWidthPx + 'px',
+                                  maxWidth: relaySidebarWidthPx + 'px',
+                              }
+                            : {}
+                    "
                 >
+                    <!-- resize handle -->
+                    <div
+                        v-if="!effectiveSidebarCollapsed && selectedRoom && smUp"
+                        class="absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-sem-accent/40 transition-colors z-10"
+                        :class="{ 'bg-sem-accent/60': relaySidebarDragging }"
+                        @mousedown="onSidebarResizeStart"
+                        @touchstart="onSidebarResizeStart"
+                    ></div>
                     <div
                         class="flex h-10 shrink-0 items-center border-b border-sem-border px-2"
                         :class="effectiveSidebarCollapsed ? 'justify-center' : 'justify-between gap-2'"
@@ -1916,6 +1933,8 @@ export default {
             hostUptimeAnchorMs: 0,
             hostUptimeTimer: null,
             relaySidebarCollapsed: loadFeatureSidebarCollapsed("relayChat") ?? false,
+            relaySidebarWidthPx: null,
+            relaySidebarDragging: false,
             smUp: false,
             smMq: null,
             showMembers: false,
@@ -2671,6 +2690,7 @@ export default {
                 expandedHubs: { ...this.expandedHubs },
                 availableRoomsExpanded: { ...this.availableRoomsExpanded },
                 relaySidebarCollapsed: this.relaySidebarCollapsed,
+                relaySidebarWidthPx: this.relaySidebarWidthPx,
                 tabOrder: this.tabOrder,
             });
         },
@@ -2687,6 +2707,9 @@ export default {
             }
             if (typeof saved.relaySidebarCollapsed === "boolean") {
                 this.relaySidebarCollapsed = saved.relaySidebarCollapsed;
+            }
+            if (typeof saved.relaySidebarWidthPx === "number" && saved.relaySidebarWidthPx > 0) {
+                this.relaySidebarWidthPx = saved.relaySidebarWidthPx;
             }
             if (Array.isArray(saved.tabOrder)) {
                 this.tabOrder = saved.tabOrder;
@@ -2916,6 +2939,30 @@ export default {
         },
         hasCapability(name) {
             return useConfigStore().hasCapability(name);
+        },
+        onSidebarResizeStart(e) {
+            const startX = e.touches ? e.touches[0].clientX : e.clientX;
+            const startWidth = this.relaySidebarWidthPx || this.$el?.querySelector(".flex-col.shrink-0")?.offsetWidth || 288;
+            this.relaySidebarDragging = true;
+
+            const onMove = (ev) => {
+                const x = ev.touches ? ev.touches[0].clientX : ev.clientX;
+                const next = Math.max(200, Math.min(600, startWidth + (x - startX)));
+                this.relaySidebarWidthPx = Math.round(next);
+            };
+            const onEnd = () => {
+                this.relaySidebarDragging = false;
+                this.persistRelayLayout();
+                window.removeEventListener("mousemove", onMove);
+                window.removeEventListener("mouseup", onEnd);
+                window.removeEventListener("touchmove", onMove);
+                window.removeEventListener("touchend", onEnd);
+            };
+            window.addEventListener("mousemove", onMove);
+            window.addEventListener("mouseup", onEnd);
+            window.addEventListener("touchmove", onMove);
+            window.addEventListener("touchend", onEnd);
+            e.preventDefault();
         },
         statusLabel(status) {
             switch (status) {
