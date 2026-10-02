@@ -82,6 +82,7 @@
                         @search="performSearch"
                         @clear="clearSearch"
                         @focus="isSearchFocused = true"
+                        @blur="isSearchFocused = false"
                         @select="selectSearchResult"
                     />
                 </div>
@@ -172,6 +173,7 @@
                     @search="performSearch"
                     @clear="clearSearch"
                     @focus="isSearchFocused = true"
+                    @blur="isSearchFocused = false"
                     @select="selectSearchResult"
                 />
             </div>

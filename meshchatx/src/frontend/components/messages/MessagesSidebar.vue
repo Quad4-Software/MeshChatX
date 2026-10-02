@@ -200,7 +200,7 @@
                             class="px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
                             :class="[
                                 selectedFolderId === null
-                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20  font-semibold'
+                                    ? 'bg-sem-surface-muted text-sem-accent font-semibold'
                                     : 'text-sem-fg-muted hover:bg-sem-surface-muted',
                                 dragOverFolderId === 'all'
                                     ? 'ring-2 ring-sem-accent ring-inset bg-sem-surface-muted'
@@ -218,7 +218,7 @@
                             class="px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
                             :class="[
                                 selectedFolderId === 0
-                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20  font-semibold'
+                                    ? 'bg-sem-surface-muted text-sem-accent font-semibold'
                                     : 'text-sem-fg-muted hover:bg-sem-surface-muted',
                                 dragOverFolderId === 0 ? 'ring-2 ring-sem-accent ring-inset bg-sem-surface-muted' : '',
                             ]"
@@ -236,7 +236,7 @@
                             class="group px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
                             :class="[
                                 selectedFolderId === folder.id
-                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20  font-semibold'
+                                    ? 'bg-sem-surface-muted text-sem-accent font-semibold'
                                     : 'text-sem-fg-muted hover:bg-sem-surface-muted',
                                 dragOverFolderId === folder.id
                                     ? 'ring-2 ring-sem-accent ring-inset bg-sem-surface-muted'

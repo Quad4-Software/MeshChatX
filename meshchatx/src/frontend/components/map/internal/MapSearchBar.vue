@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="relative">
+    <div v-click-outside="closeResults" class="relative">
         <div class="flex items-center bg-sem-surface rounded-xl shadow-2xl border-0 ring-0">
             <input
                 ref="inputEl"
@@ -72,8 +72,11 @@ export default {
         showResults: { type: Boolean, default: false },
         placeholder: { type: String, default: "" },
     },
-    emits: ["update:modelValue", "input", "search", "clear", "focus", "select"],
+    emits: ["update:modelValue", "input", "search", "clear", "focus", "blur", "select"],
     methods: {
+        closeResults() {
+            this.$emit("blur");
+        },
         onInput(event) {
             this.$emit("update:modelValue", event.target.value);
             this.$emit("input", event);

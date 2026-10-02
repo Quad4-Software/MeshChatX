@@ -484,6 +484,7 @@ import { useInterfaceChangesStore } from "../js/stores/interfaceChangesStore.js"
 import { useUnreadStore } from "../js/stores/unreadStore.js";
 import { useIdentityStore } from "../js/stores/identityStore.js";
 import { getCurrentInstance, watch } from "vue";
+import { prewarmEmojiPicker } from "../js/emojiPickerPrewarm.js";
 import SidebarLink from "./SidebarLink.vue";
 import DialogUtils from "../js/DialogUtils";
 import LiveTransport from "../js/liveTransport.js";
@@ -1006,6 +1007,7 @@ export default {
     },
     mounted() {
         try {
+            prewarmEmojiPicker();
             const savedSidebarCollapsed = loadFeatureSidebarCollapsed("app");
             if (savedSidebarCollapsed !== null) {
                 this.isSidebarCollapsed = savedSidebarCollapsed;

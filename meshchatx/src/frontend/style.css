@@ -196,10 +196,10 @@ html.dark[data-theme-preset="glass"] .page-canvas,
 html.dark[data-theme-preset="glass"] .bg-sem-canvas,
 html.dark[data-theme-preset="glass"] .page-header-bar {
     background-image:
-        radial-gradient(60vmax 40vmax at 8% 0%, rgba(124, 92, 255, 0.5), transparent 65%),
-        radial-gradient(50vmax 35vmax at 92% 4%, rgba(34, 197, 184, 0.35), transparent 60%),
-        radial-gradient(55vmax 45vmax at 50% 108%, rgba(236, 72, 153, 0.32), transparent 65%),
-        radial-gradient(45vmax 35vmax at 62% 42%, rgba(59, 130, 246, 0.22), transparent 62%);
+        radial-gradient(60vmax 40vmax at 8% 0%, rgb(255 255 255 / 0.13), transparent 65%),
+        radial-gradient(50vmax 35vmax at 92% 4%, rgb(148 163 184 / 0.1), transparent 60%),
+        radial-gradient(55vmax 45vmax at 50% 108%, rgb(255 255 255 / 0.1), transparent 65%),
+        radial-gradient(45vmax 35vmax at 62% 42%, rgb(100 116 139 / 0.08), transparent 62%);
     background-attachment: fixed;
 }
 
@@ -305,6 +305,26 @@ html[data-theme-preset="neo_brutalist"] .search-input {
 html[data-theme-preset="neo_brutalist"] .glass-card {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
+}
+html[data-theme-preset="neo_brutalist"] .primary-chip,
+html[data-theme-preset="neo_brutalist"] .secondary-chip,
+html[data-theme-preset="neo_brutalist"] .ghost-chip,
+html[data-theme-preset="neo_brutalist"] .danger-chip,
+html[data-theme-preset="neo_brutalist"] .attachment-action-button,
+html[data-theme-preset="neo_brutalist"] .context-item,
+html[data-theme-preset="neo_brutalist"] .sidebar-nav-link,
+html[data-theme-preset="neo_brutalist"] .composer-pill,
+html[data-theme-preset="neo_brutalist"] button {
+    border-radius: 0;
+}
+html[data-theme-preset="neo_brutalist"] .primary-chip:not(:disabled),
+html[data-theme-preset="neo_brutalist"] .secondary-chip:not(:disabled) {
+    border: 2px solid var(--mc-border-strong);
+    box-shadow: 3px 3px 0 0 var(--mc-border-strong);
+}
+html[data-theme-preset="neo_brutalist"] .composer-pill {
+    border-width: 2px;
+    box-shadow: 4px 4px 0 0 var(--mc-border-strong);
 }
 html.dark[data-theme-preset="neo_brutalist"] .fused-panel,
 html.dark[data-theme-preset="neo_brutalist"] .glass-card,
@@ -573,6 +593,16 @@ select option {
 .context-menu-panel {
     @apply fixed min-w-48 rounded-xl border shadow-xl bg-sem-surface z-300;
     border-color: var(--mc-border);
+}
+
+/* Browsers default buttons to cursor: default. Anything interactive in
+   this app should show the pointer cursor; disabled stays not-allowed. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+select,
+summary,
+label[for] {
+    cursor: pointer;
 }
 
 .context-item {
