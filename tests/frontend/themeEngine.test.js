@@ -33,7 +33,7 @@ describe("themeEngine", () => {
 
     it("glass preset uses translucent surfaces", () => {
         const glassDark = buildThemeVariableOverrides({ theme_preset: "glass" }, "dark");
-        expect(glassDark["--mc-canvas"]).toBe("#0b1020");
+        expect(glassDark["--mc-canvas"]).toBe("#0a0a0c");
         expect(glassDark["--mc-surface"]).toMatch(/rgb\(.+\/\s*0\.\d+\)/);
         expect(glassDark["--mc-glass-surface"]).toMatch(/rgb\(.+\/\s*0\.\d+\)/);
         const glassLight = buildThemeVariableOverrides({ theme_preset: "glass" }, "light");
@@ -66,11 +66,13 @@ describe("themeEngine", () => {
         const tokyoLight = buildThemeVariableOverrides({ theme_preset: "tokyo" }, "light");
         expect(tokyoLight["--mc-accent"]).toBe("#295cdb");
         const neoBrutalistDark = buildThemeVariableOverrides({ theme_preset: "neo_brutalist" }, "dark");
-        expect(neoBrutalistDark["--mc-canvas"]).toBe("#18191b");
-        expect(neoBrutalistDark["--mc-accent"]).toBe("#bc86dd");
+        expect(neoBrutalistDark["--mc-canvas"]).toBe("#1b1b1e");
+        expect(neoBrutalistDark["--mc-accent"]).toBe("#a388ee");
+        expect(neoBrutalistDark["--mc-border"]).toBe("#ffffff");
         const neoBrutalistLight = buildThemeVariableOverrides({ theme_preset: "neo_brutalist" }, "light");
-        expect(neoBrutalistLight["--mc-canvas"]).toBe("#f7f7f5");
-        expect(neoBrutalistLight["--mc-accent"]).toBe("#8080c0");
+        expect(neoBrutalistLight["--mc-canvas"]).toBe("#f0ece3");
+        expect(neoBrutalistLight["--mc-accent"]).toBe("#a388ee");
+        expect(neoBrutalistLight["--mc-border"]).toBe("#000000");
         expect(normalizeThemePreset("hister")).toBe("neo_brutalist");
 
         const accent = buildThemeVariableOverrides({ accent_color: "#ff0000" }, "light");
