@@ -43,6 +43,18 @@
                         />
                         <MaterialDesignIcon v-else icon-name="map-marker-radius" class="size-[18px] sm:size-5" />
                     </button>
+                    <select
+                        v-if="discoveredVisible && discoveredTypes.length > 1"
+                        v-model="discoveredTypeFilter"
+                        class="shrink-0 rounded-md border border-sem-border bg-sem-surface px-2 py-1 text-xs text-sem-fg"
+                        :title="$t('map.filter_type')"
+                        @change="updateMarkers"
+                    >
+                        <option value="">{{ $t("map.all_types") }}</option>
+                        <option v-for="t in discoveredTypes" :key="t" :value="t">
+                            {{ t.replace("Interface", "") }}
+                        </option>
+                    </select>
                     <button
                         :class="!offlineEnabled ? 'bg-sem-surface shadow-xs text-sem-accent' : 'text-sem-fg-muted'"
                         class="px-2 py-1 text-xs sm:px-3 sm:text-sm font-medium rounded-md transition-all shrink-0"
@@ -1324,6 +1336,7 @@ export default {
             discoveredMarkers: [],
             discoveredVisible: false,
             discoveredLoading: false,
+            discoveredTypeFilter: "",
 
             // caching
             cachingEnabled: true,
@@ -1450,6 +1463,22 @@ export default {
         };
     },
     computed: {
+        discoveredTypes() {
+            const types = new Set();
+            for (const f of this.discoveredMarkers) {
+                const t = f.get("discovered")?.type;
+                if (t) types.add(t);
+            }
+            return [...types].sort();
+        },
+        filteredDiscoveredMarkers() {
+            if (!this.discoveredTypeFilter) {
+                return this.discoveredMarkers;
+            }
+            return this.discoveredMarkers.filter(
+                (f) => (f.get("discovered")?.type || "") === this.discoveredTypeFilter
+            );
+        },
         showMetadataBadge() {
             if (!this.metadata || !this.metadata.name) {
                 return false;
@@ -5542,8 +5571,8 @@ export default {
                 candidates.push({ feature, coord, clusterable: true, key });
             }
 
-            if (this.discoveredMarkers && this.discoveredMarkers.length > 0) {
-                for (const feature of this.discoveredMarkers) {
+            if (this.filteredDiscoveredMarkers && this.filteredDiscoveredMarkers.length > 0) {
+                for (const feature of this.filteredDiscoveredMarkers) {
                     const coord = feature.get("originalCoord") || feature.getGeometry().getCoordinates();
                     if (!feature.get("originalCoord")) feature.set("originalCoord", coord);
                     const disc = feature.get("discovered") || {};

@@ -2025,7 +2025,9 @@
     "location_unavailable": "Location unavailable",
     "export_failed": "Export failed",
     "coords_copied": "Coordinates copied to clipboard",
-    "geo_parse_failed": "Could not resolve that location"
+    "geo_parse_failed": "Could not resolve that location",
+    "filter_type": "Filter by type",
+    "all_types": "All types"
   },
   "interface": {
     "disable": "Disable",

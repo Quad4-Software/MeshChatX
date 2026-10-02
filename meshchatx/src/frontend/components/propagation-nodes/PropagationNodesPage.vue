@@ -220,37 +220,69 @@
                     </label>
                     <label class="text-[11px] text-sem-fg-muted">
                         {{ $t("tools.propagation_nodes.transfer_limit_mb") }}
-                        <input
-                            v-model.number="propagationLimitInputMb"
-                            type="number"
-                            min="0.001"
-                            step="0.01"
-                            class="input-field mt-1 py-1.5 text-sm"
-                            @input="onPropagationTransferLimitChange"
-                        />
+                        <div class="flex items-center gap-2 mt-1">
+                            <input
+                                v-model.number="propagationLimitInputMb"
+                                type="range"
+                                min="0.001"
+                                max="10"
+                                step="0.1"
+                                class="range-input flex-1"
+                                @input="onPropagationTransferLimitChange"
+                            />
+                            <input
+                                v-model.number="propagationLimitInputMb"
+                                type="number"
+                                min="0.001"
+                                step="0.01"
+                                class="input-field w-20 py-1 text-sm shrink-0"
+                                @input="onPropagationTransferLimitChange"
+                            />
+                        </div>
                     </label>
                     <label class="text-[11px] text-sem-fg-muted">
                         {{ $t("tools.propagation_nodes.sync_limit_mb") }}
-                        <input
-                            v-model.number="propagationSyncLimitInputMb"
-                            type="number"
-                            min="0.001"
-                            step="0.01"
-                            class="input-field mt-1 py-1.5 text-sm"
-                            @input="onPropagationSyncLimitChange"
-                        />
+                        <div class="flex items-center gap-2 mt-1">
+                            <input
+                                v-model.number="propagationSyncLimitInputMb"
+                                type="range"
+                                min="0.001"
+                                max="50"
+                                step="0.1"
+                                class="range-input flex-1"
+                                @input="onPropagationSyncLimitChange"
+                            />
+                            <input
+                                v-model.number="propagationSyncLimitInputMb"
+                                type="number"
+                                min="0.001"
+                                step="0.01"
+                                class="input-field w-20 py-1 text-sm shrink-0"
+                                @input="onPropagationSyncLimitChange"
+                            />
+                        </div>
                     </label>
                 </div>
                 <label class="block text-[11px] text-sem-fg-muted">
                     {{ $t("tools.propagation_nodes.stamp_cost") }}
-                    <input
-                        v-model.number="config.lxmf_propagation_node_stamp_cost"
-                        type="number"
-                        min="13"
-                        max="254"
-                        class="input-field mt-1 py-1.5 text-sm"
-                        @input="onPropagationStampCostChange"
-                    />
+                    <div class="flex items-center gap-2 mt-1">
+                        <input
+                            v-model.number="config.lxmf_propagation_node_stamp_cost"
+                            type="range"
+                            min="13"
+                            max="254"
+                            class="range-input flex-1"
+                            @input="onPropagationStampCostChange"
+                        />
+                        <input
+                            v-model.number="config.lxmf_propagation_node_stamp_cost"
+                            type="number"
+                            min="13"
+                            max="254"
+                            class="input-field w-16 py-1 text-sm shrink-0"
+                            @input="onPropagationStampCostChange"
+                        />
+                    </div>
                 </label>
                 <button
                     type="button"
@@ -378,7 +410,7 @@
                     :key="propagationNode.destination_hash"
                     class="flex items-center gap-0.5 hover:bg-sem-surface-muted/60"
                     :class="{
-                        'bg-blue-50/70 dark:bg-blue-950/20': isPreferredNode(propagationNode.destination_hash),
+                        'bg-sem-accent/5': isPreferredNode(propagationNode.destination_hash),
                     }"
                 >
                     <button
@@ -386,7 +418,7 @@
                         role="radio"
                         :aria-checked="isPreferredNode(propagationNode.destination_hash) ? 'true' : 'false'"
                         :data-testid="'prop-node-' + propagationNode.destination_hash"
-                        class="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2 text-left"
+                        class="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-sem-surface-muted/50"
                         :title="
                             isPreferredNode(propagationNode.destination_hash)
                                 ? $t('tools.propagation_nodes.preferred_badge')
@@ -394,17 +426,18 @@
                         "
                         @click="selectPreferredNode(propagationNode.destination_hash)"
                     >
-                        <MaterialDesignIcon
-                            :icon-name="
-                                isPreferredNode(propagationNode.destination_hash) ? 'radiobox-marked' : 'radiobox-blank'
-                            "
-                            class="size-5 shrink-0"
-                            :class="
-                                isPreferredNode(propagationNode.destination_hash)
-                                    ? 'text-sem-accent'
-                                    : 'text-sem-fg-muted'
-                            "
-                        />
+                        <div class="flex shrink-0 items-center gap-2">
+                            <div
+                                class="size-2.5 rounded-full shrink-0"
+                                :class="
+                                    isPreferredNode(propagationNode.destination_hash)
+                                        ? 'bg-sem-accent'
+                                        : propagationNode.is_propagation_enabled === false
+                                          ? 'bg-sem-danger/60'
+                                          : 'bg-sem-fg-muted/40'
+                                "
+                            />
+                        </div>
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1.5 min-w-0">
                                 <span class="truncate text-sm font-medium">{{
@@ -413,40 +446,52 @@
                                 }}</span>
                                 <span
                                     v-if="propagationNode.is_propagation_enabled === false"
-                                    class="shrink-0 rounded-full bg-red-100 dark:bg-red-900/30 px-1.5 text-[10px] font-semibold text-red-700 dark:text-red-300"
+                                    class="shrink-0 rounded-full bg-sem-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-sem-danger"
                                 >
                                     {{ $t("tools.propagation_nodes.disabled") }}
                                 </span>
                                 <span
                                     v-if="propagationNode.is_local_node"
-                                    class="shrink-0 rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-1.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300"
+                                    class="shrink-0 rounded-full bg-sem-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-sem-accent"
                                 >
                                     {{ $t("tools.propagation_nodes.our_node") }}
                                 </span>
                             </div>
-                            <div
-                                class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-sem-fg-muted"
-                            >
+                            <div class="mt-0.5 flex items-center gap-1.5 text-[11px] text-sem-fg-muted">
                                 <span class="font-mono truncate" :title="propagationNode.destination_hash">{{
                                     formatDestinationHash(propagationNode.destination_hash)
                                 }}</span>
-                                <span>{{
+                                <span class="shrink-0">·</span>
+                                <span class="shrink-0">{{
                                     $t("tools.propagation_nodes.announced_ago", {
                                         time: formatTimeAgo(propagationNode.updated_at),
                                     })
                                 }}</span>
-                                <span>{{ formatPathLabel(nodePathFor(propagationNode.destination_hash)) }}</span>
+                                <span class="shrink-0">·</span>
+                                <span class="shrink-0 truncate">{{
+                                    formatPathLabel(nodePathFor(propagationNode.destination_hash))
+                                }}</span>
                             </div>
                         </div>
                     </button>
-                    <button
-                        type="button"
-                        class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg mr-2 text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-accent"
-                        :title="$t('tools.propagation_nodes.find_path')"
-                        @click="requestPathForNode(propagationNode.destination_hash)"
-                    >
-                        <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
-                    </button>
+                    <div class="flex shrink-0 items-center gap-1 pr-2">
+                        <button
+                            v-if="isPreferredNode(propagationNode.destination_hash)"
+                            type="button"
+                            class="inline-flex size-8 items-center justify-center rounded-lg text-sem-accent hover:bg-sem-surface-muted"
+                            :title="$t('tools.propagation_nodes.preferred_badge')"
+                        >
+                            <MaterialDesignIcon icon-name="star" class="size-4" />
+                        </button>
+                        <button
+                            type="button"
+                            class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-accent"
+                            :title="$t('tools.propagation_nodes.find_path')"
+                            @click="requestPathForNode(propagationNode.destination_hash)"
+                        >
+                            <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
