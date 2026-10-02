@@ -1614,11 +1614,18 @@ class RRCHub:
         # fanned out to room members with src rewritten to the peer's hash, so
         # without this check any member could spoof nick overrides, room
         # lists, WHO results, or the MOTD. A missing src is unattributed and
-        # can only come from the hub itself.
+        # can only come from the hub itself. Accept both the hub identity hash
+        # and the hub destination hash: foreign server implementations may
+        # stamp either one, and both belong to the endpoint we linked to.
         is_hub_src = src is None or (
-            self._hub_identity_hash is not None
-            and isinstance(src, (bytes, bytearray))
-            and bytes(src) == bytes(self._hub_identity_hash)
+            isinstance(src, (bytes, bytearray))
+            and (
+                (
+                    self._hub_identity_hash is not None
+                    and bytes(src) == bytes(self._hub_identity_hash)
+                )
+                or bytes(src) == bytes(self.hub_hash)
+            )
         )
 
         nick_prefix = "nickname set to "

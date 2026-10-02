@@ -90,3 +90,59 @@ def test_resource_notice_sha256_mismatch_drops(tmp_path):
     hub._resource_concluded(FakeResource(body))
 
     assert hub.available_rooms == {}
+
+
+def _notice_env(text, src=None):
+    return {
+        proto.K_T: proto.T_NOTICE,
+        proto.K_BODY: text,
+        proto.K_ROOM: None,
+        proto.K_SRC: src,
+    }
+
+
+def test_hub_notice_accepts_destination_hash_src(tmp_path):
+    """Foreign hubs may stamp notices with the destination hash."""
+    manager = make_manager(tmp_path, nickname="alice")
+    hub = manager.add_hub(bytes(range(16)))
+    hub._hub_identity_hash = b"\xaa" * 16
+
+    hub._handle_notice(
+        _notice_env("Registered public rooms:\n  lobby", src=bytes(range(16)))
+    )
+    assert hub.available_rooms == {"lobby": None}
+
+
+def test_hub_notice_accepts_identity_hash_src(tmp_path):
+    manager = make_manager(tmp_path, nickname="alice")
+    hub = manager.add_hub(bytes(range(16)))
+    hub._hub_identity_hash = b"\xaa" * 16
+
+    hub._handle_notice(
+        _notice_env("Registered public rooms:\n  lobby", src=b"\xaa" * 16)
+    )
+    assert hub.available_rooms == {"lobby": None}
+
+
+def test_hub_notice_rejects_peer_src(tmp_path):
+    """A peer-stamped src must not drive room list or MOTD state."""
+    manager = make_manager(tmp_path, nickname="alice")
+    hub = manager.add_hub(bytes(range(16)))
+    hub._hub_identity_hash = b"\xaa" * 16
+
+    hub._handle_notice(
+        _notice_env("Registered public rooms:\n  lobby", src=b"\xbb" * 16)
+    )
+    assert hub.available_rooms == {}
+
+    hub._handle_notice(_notice_env("spoofed motd", src=b"\xbb" * 16))
+    assert hub.motd is None
+
+
+def test_hub_notice_motd_accepts_destination_hash_src(tmp_path):
+    manager = make_manager(tmp_path, nickname="alice")
+    hub = manager.add_hub(bytes(range(16)))
+    hub._hub_identity_hash = b"\xaa" * 16
+
+    hub._handle_notice(_notice_env("server rules be nice", src=bytes(range(16))))
+    assert hub.motd == "server rules be nice"
