@@ -860,6 +860,17 @@
                         </div>
                     </div>
                 </div>
+                <div
+                    v-else
+                    class="mx-auto mt-4 w-full max-w-md rounded-xl border border-sem-border bg-sem-surface-muted/50 px-4 py-3 text-left sm:max-w-lg"
+                >
+                    <div class="flex items-start gap-2.5">
+                        <MaterialDesignIcon icon-name="earth" class="mt-0.5 size-4 shrink-0 text-sem-accent" />
+                        <div class="text-sm leading-snug text-sem-fg-muted">
+                            {{ $t("nomadnet.normal_browsing_hint") }}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
