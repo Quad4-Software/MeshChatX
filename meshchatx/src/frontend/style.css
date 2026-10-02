@@ -647,7 +647,14 @@ button:not(:disabled),
 [role="button"]:not([aria-disabled="true"]),
 select,
 summary,
-label[for] {
+label[for],
+[role="radio"],
+[role="tab"],
+[role="option"],
+[role="menuitem"],
+[role="switch"],
+[role="link"],
+a[href] {
     cursor: pointer;
 }
 

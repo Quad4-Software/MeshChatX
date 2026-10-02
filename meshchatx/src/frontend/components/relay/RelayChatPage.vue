@@ -202,7 +202,13 @@
                                                 }}{{ hub.member_count > 999 ? "+" : "" }}</span
                                             >
                                         </template>
-                                        <template v-if="hub.connected && hub.hop_count != null">
+                                        <template
+                                            v-if="
+                                                hasCapability('rrc_hop_count') &&
+                                                hub.connected &&
+                                                hub.hop_count != null
+                                            "
+                                        >
                                             <span class="text-sem-fg-muted shrink-0">·</span>
                                             <MaterialDesignIcon
                                                 icon-name="route"

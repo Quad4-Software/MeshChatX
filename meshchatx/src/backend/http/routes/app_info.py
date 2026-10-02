@@ -331,6 +331,7 @@ def register_app_info_routes(routes, app):
                     # older backend.
                     "capabilities": {
                         "rrc_member_count": True,
+                        "rrc_hop_count": True,
                         "glass_theme": True,
                         "segmented_controls": True,
                         "lxst_hash_format": True,

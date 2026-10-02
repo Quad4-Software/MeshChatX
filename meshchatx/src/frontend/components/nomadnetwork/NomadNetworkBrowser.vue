@@ -2,103 +2,105 @@
 
 <template>
     <div class="flex flex-1 min-w-0 h-full flex-col overflow-hidden bg-sem-canvas text-sem-fg relative">
-        <div
-            v-if="showTabStrip"
-            class="nomad-tab-strip flex h-8 min-[900px]:h-9 shrink-0 flex-nowrap items-stretch overflow-x-auto overflow-y-hidden border-b border-sem-border bg-sem-surface-muted px-1 pt-0.5"
-            role="tablist"
-        >
-            <button
-                v-for="(tab, tabIndex) in tabs"
-                :key="tab.id"
-                type="button"
-                role="tab"
-                draggable="true"
-                :aria-selected="tab.id === activeTabId"
-                class="group flex min-h-0 min-w-[6.5rem] max-w-[12rem] min-[900px]:min-w-[7rem] min-[900px]:max-w-[14rem] shrink-0 cursor-grab items-center gap-1 border border-transparent px-2 min-[900px]:px-3 text-xs min-[900px]:text-sm leading-none transition-[opacity,background-color,border-color] duration-150 rounded-t-lg active:cursor-grabbing"
-                :class="[
-                    tab.private
-                        ? tab.id === activeTabId
-                            ? 'border-purple-500/60 border-b-transparent bg-[#2b1065] font-medium text-purple-100'
-                            : 'text-purple-300/90 hover:bg-purple-900/40'
-                        : tab.id === activeTabId
-                          ? 'border-sem-border border-b-transparent bg-sem-canvas font-medium text-sem-fg'
-                          : 'text-sem-fg-muted hover:bg-sem-surface/50',
-                    dragTabIndex === tabIndex ? 'opacity-50' : '',
-                ]"
-                :title="tab.private ? $t('nomadnet.private_tab') : undefined"
-                @click="selectTab(tab.id)"
-                @dragstart="onTabDragStart(tabIndex, $event)"
-                @dragover.prevent="onTabDragOver(tabIndex)"
-                @drop.prevent="onTabDrop(tabIndex)"
-                @dragend="onTabDragEnd"
-                @contextmenu.prevent="openTabContextMenu($event, tab)"
-            >
-                <MaterialDesignIcon
-                    v-if="tab.private"
-                    icon-name="incognito"
-                    class="size-3.5 min-[900px]:size-4 shrink-0 text-purple-300"
-                />
-                <span class="min-w-0 flex-1 truncate text-left leading-none">{{ tabTitle(tab) }}</span>
-                <span
-                    class="shrink-0 rounded p-0.5 text-sem-fg-muted opacity-0 transition-opacity hover:bg-sem-surface hover:text-sem-fg group-hover:opacity-100 group-focus-within:opacity-100"
-                    :class="tab.private ? 'hover:bg-purple-800/60 hover:text-purple-100' : ''"
-                    :title="$t('common.cancel')"
-                    draggable="false"
-                    @click.stop="closeTab(tab.id)"
-                >
-                    <MaterialDesignIcon icon-name="close" class="size-3.5 min-[900px]:size-4" />
-                </span>
-            </button>
-            <button
-                type="button"
-                class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
-                :title="$t('nomadnet.new_tab_shortcut')"
-                @click="addTab()"
-            >
-                <MaterialDesignIcon icon-name="plus" class="size-4 min-[900px]:size-5" />
-            </button>
-            <button
-                type="button"
-                class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-purple-400 transition-colors hover:bg-purple-900/40 hover:text-purple-200"
-                :title="$t('nomadnet.new_private_tab_shortcut')"
-                @click="addTab('', null, null, true, true)"
-            >
-                <MaterialDesignIcon icon-name="incognito" class="size-4 min-[900px]:size-5" />
-            </button>
-            <button
-                type="button"
-                class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
-                :title="$t('nomadnet.history')"
-                @click="showHistoryMenu = !showHistoryMenu"
-            >
-                <MaterialDesignIcon icon-name="history" class="size-4 min-[900px]:size-5" />
-            </button>
-        </div>
-
-        <!-- history dropdown -->
-        <div
-            v-if="showHistoryMenu"
-            v-click-outside="{ handler: () => (showHistoryMenu = false), capture: true }"
-            class="absolute right-1 top-8 z-50 max-h-64 w-64 overflow-y-auto rounded-xl border border-sem-border bg-sem-surface shadow-lg"
-        >
+        <div class="relative">
             <div
-                class="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sem-fg-muted border-b border-sem-border"
+                v-if="showTabStrip"
+                class="nomad-tab-strip flex h-8 min-[900px]:h-9 shrink-0 flex-nowrap items-stretch overflow-x-auto overflow-y-hidden border-b border-sem-border bg-sem-surface-muted px-1 pt-0.5"
+                role="tablist"
             >
-                {{ $t("nomadnet.history") }}
+                <button
+                    v-for="(tab, tabIndex) in tabs"
+                    :key="tab.id"
+                    type="button"
+                    role="tab"
+                    draggable="true"
+                    :aria-selected="tab.id === activeTabId"
+                    class="group flex min-h-0 min-w-[6.5rem] max-w-[12rem] min-[900px]:min-w-[7rem] min-[900px]:max-w-[14rem] shrink-0 cursor-grab items-center gap-1 border border-transparent px-2 min-[900px]:px-3 text-xs min-[900px]:text-sm leading-none transition-[opacity,background-color,border-color] duration-150 rounded-t-lg active:cursor-grabbing"
+                    :class="[
+                        tab.private
+                            ? tab.id === activeTabId
+                                ? 'border-purple-500/60 border-b-transparent bg-[#2b1065] font-medium text-purple-100'
+                                : 'text-purple-300/90 hover:bg-purple-900/40'
+                            : tab.id === activeTabId
+                              ? 'border-sem-border border-b-transparent bg-sem-canvas font-medium text-sem-fg'
+                              : 'text-sem-fg-muted hover:bg-sem-surface/50',
+                        dragTabIndex === tabIndex ? 'opacity-50' : '',
+                    ]"
+                    :title="tab.private ? $t('nomadnet.private_tab') : undefined"
+                    @click="selectTab(tab.id)"
+                    @dragstart="onTabDragStart(tabIndex, $event)"
+                    @dragover.prevent="onTabDragOver(tabIndex)"
+                    @drop.prevent="onTabDrop(tabIndex)"
+                    @dragend="onTabDragEnd"
+                    @contextmenu.prevent="openTabContextMenu($event, tab)"
+                >
+                    <MaterialDesignIcon
+                        v-if="tab.private"
+                        icon-name="incognito"
+                        class="size-3.5 min-[900px]:size-4 shrink-0 text-purple-300"
+                    />
+                    <span class="min-w-0 flex-1 truncate text-left leading-none">{{ tabTitle(tab) }}</span>
+                    <span
+                        class="shrink-0 rounded p-0.5 text-sem-fg-muted opacity-0 transition-opacity hover:bg-sem-surface hover:text-sem-fg group-hover:opacity-100 group-focus-within:opacity-100"
+                        :class="tab.private ? 'hover:bg-purple-800/60 hover:text-purple-100' : ''"
+                        :title="$t('common.cancel')"
+                        draggable="false"
+                        @click.stop="closeTab(tab.id)"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-3.5 min-[900px]:size-4" />
+                    </span>
+                </button>
+                <button
+                    type="button"
+                    class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
+                    :title="$t('nomadnet.new_tab_shortcut')"
+                    @click="addTab()"
+                >
+                    <MaterialDesignIcon icon-name="plus" class="size-4 min-[900px]:size-5" />
+                </button>
+                <button
+                    type="button"
+                    class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-purple-400 transition-colors hover:bg-purple-900/40 hover:text-purple-200"
+                    :title="$t('nomadnet.new_private_tab_shortcut')"
+                    @click="addTab('', null, null, true, true)"
+                >
+                    <MaterialDesignIcon icon-name="incognito" class="size-4 min-[900px]:size-5" />
+                </button>
+                <button
+                    type="button"
+                    class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
+                    :title="$t('nomadnet.history')"
+                    @click="showHistoryMenu = !showHistoryMenu"
+                >
+                    <MaterialDesignIcon icon-name="history" class="size-4 min-[900px]:size-5" />
+                </button>
             </div>
-            <div v-if="historyEntries.length === 0" class="px-3 py-4 text-center text-xs text-sem-fg-muted">
-                {{ $t("nomadnet.no_history") }}
-            </div>
-            <button
-                v-for="entry in historyEntries"
-                :key="`${entry.destinationHash}:${entry.path}:${entry.ts}`"
-                type="button"
-                class="flex w-full flex-col gap-0.5 px-3 py-2 text-left hover:bg-sem-surface-muted transition-colors"
-                @click="onHistoryEntryClick(entry)"
+
+            <!-- history dropdown -->
+            <div
+                v-if="showHistoryMenu"
+                v-click-outside="{ handler: () => (showHistoryMenu = false), capture: true }"
+                class="absolute right-2 top-full mt-1 z-50 max-h-64 w-64 overflow-y-auto rounded-xl border border-sem-border bg-sem-surface shadow-lg"
             >
-                <div class="truncate text-xs font-medium text-sem-fg">{{ entry.title || entry.path }}</div>
-                <div class="truncate font-mono text-[10px] text-sem-fg-muted">{{ entry.path }}</div>
-            </button>
+                <div
+                    class="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sem-fg-muted border-b border-sem-border"
+                >
+                    {{ $t("nomadnet.history") }}
+                </div>
+                <div v-if="historyEntries.length === 0" class="px-3 py-4 text-center text-xs text-sem-fg-muted">
+                    {{ $t("nomadnet.no_history") }}
+                </div>
+                <button
+                    v-for="entry in historyEntries"
+                    :key="`${entry.destinationHash}:${entry.path}:${entry.ts}`"
+                    type="button"
+                    class="flex w-full flex-col gap-0.5 px-3 py-2 text-left hover:bg-sem-surface-muted transition-colors"
+                    @click="onHistoryEntryClick(entry)"
+                >
+                    <div class="truncate text-xs font-medium text-sem-fg">{{ entry.title || entry.path }}</div>
+                    <div class="truncate font-mono text-[10px] text-sem-fg-muted">{{ entry.path }}</div>
+                </button>
+            </div>
         </div>
 
         <div class="relative flex flex-1 min-h-0 min-w-0 overflow-hidden">

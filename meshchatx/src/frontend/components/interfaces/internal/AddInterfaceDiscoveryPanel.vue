@@ -35,6 +35,7 @@
                             <input
                                 :value="discovery.announce_interval"
                                 type="number"
+                                min="60"
                                 class="input-field"
                                 @input="patchField('announce_interval', Number($event.target.value))"
                             />
