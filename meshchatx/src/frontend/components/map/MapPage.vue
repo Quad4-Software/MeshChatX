@@ -44,9 +44,9 @@
                         <MaterialDesignIcon v-else icon-name="map-marker-radius" class="size-[18px] sm:size-5" />
                     </button>
                     <select
-                        class="shrink-0 rounded-md border border-sem-border bg-sem-surface px-2 py-1 text-xs text-sem-fg"
                         v-if="discoveredVisible"
                         v-model="discoveredTypeFilter"
+                        class="min-w-0 max-w-28 shrink rounded-md border border-sem-border bg-sem-surface px-2 py-1 text-xs text-sem-fg"
                         :title="$t('map.filter_type')"
                         @change="updateMarkers"
                     >

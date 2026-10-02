@@ -228,12 +228,19 @@
                                     min="0.001"
                                     max="10"
                                     step="0.1"
-                                    class="range-input flex-1 min-w-0"
+                                    class="range-input flex-1 min-w-0 touch-pan-x"
+                                    @input="onPropagationTransferLimitChange"
+                                    @change="onPropagationTransferLimitChange"
+                                />
+                                <input
+                                    v-model.number="propagationLimitInputMb"
+                                    type="number"
+                                    min="0.001"
+                                    max="10"
+                                    step="0.01"
+                                    class="input-field !w-16 !py-1 !text-sm shrink-0"
                                     @input="onPropagationTransferLimitChange"
                                 />
-                                <span class="w-14 text-right text-sm text-sem-fg tabular-nums shrink-0">
-                                    {{ propagationLimitInputMb.toFixed(2) }}
-                                </span>
                             </div>
                         </div>
                         <div>
@@ -247,12 +254,19 @@
                                     min="0.001"
                                     max="50"
                                     step="0.1"
-                                    class="range-input flex-1 min-w-0"
+                                    class="range-input flex-1 min-w-0 touch-pan-x"
+                                    @input="onPropagationSyncLimitChange"
+                                    @change="onPropagationSyncLimitChange"
+                                />
+                                <input
+                                    v-model.number="propagationSyncLimitInputMb"
+                                    type="number"
+                                    min="0.001"
+                                    max="50"
+                                    step="0.01"
+                                    class="input-field !w-16 !py-1 !text-sm shrink-0"
                                     @input="onPropagationSyncLimitChange"
                                 />
-                                <span class="w-14 text-right text-sm text-sem-fg tabular-nums shrink-0">
-                                    {{ propagationSyncLimitInputMb.toFixed(2) }}
-                                </span>
                             </div>
                         </div>
                     </div>
@@ -267,12 +281,18 @@
                                     type="range"
                                     min="13"
                                     max="254"
-                                    class="range-input flex-1 min-w-0"
+                                    class="range-input flex-1 min-w-0 touch-pan-x"
+                                    @input="onPropagationStampCostChange"
+                                    @change="onPropagationStampCostChange"
+                                />
+                                <input
+                                    v-model.number="config.lxmf_propagation_node_stamp_cost"
+                                    type="number"
+                                    min="13"
+                                    max="254"
+                                    class="input-field !w-16 !py-1 !text-sm shrink-0"
                                     @input="onPropagationStampCostChange"
                                 />
-                                <span class="w-10 text-right text-sm text-sem-fg tabular-nums shrink-0">
-                                    {{ config.lxmf_propagation_node_stamp_cost }}
-                                </span>
                             </div>
                         </div>
                         <div class="flex items-end">

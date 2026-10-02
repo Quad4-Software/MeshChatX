@@ -8,9 +8,10 @@
             min="0"
             :max="options.length - 1"
             step="1"
-            class="range-input w-full"
+            class="range-input w-full touch-pan-x"
             :aria-label="label"
             @input="onInput"
+            @change="onChange"
         />
         <div class="flex mt-1" :style="`padding: 0 ${100 / options.length / 2}%`">
             <button
@@ -44,6 +45,9 @@ export default {
     },
     methods: {
         onInput(e) {
+            this.selectIndex(Number(e.target.value));
+        },
+        onChange(e) {
             this.selectIndex(Number(e.target.value));
         },
         selectIndex(i) {
