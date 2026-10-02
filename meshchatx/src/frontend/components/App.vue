@@ -2031,6 +2031,13 @@ export default {
                 }
                 this.appInfo = info;
 
+                // Gate features that need a newer backend — hide/disable UI
+                // for capabilities absent from older backends.
+                if (info) {
+                    useConfigStore().backendCapabilities = info.capabilities || {};
+                    useConfigStore().backendApiVersion = info.api_version ?? 1;
+                }
+
                 showDatabaseHealthIssuesToastIfNeeded(this.appInfo.database_health_issues, ToastUtils);
 
                 // check URL params for modal triggers

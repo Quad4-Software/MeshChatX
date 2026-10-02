@@ -51,7 +51,42 @@ export const useConfigStore = defineStore("config", {
         // Server sends arbitrary keys beyond the defaults.
         /** @type {Record<string, any>} */
         config: defaultConfig(),
+        // Backend capability flags from app_info. Populated once appInfo loads.
+        /** @type {Record<string, boolean>} */
+        backendCapabilities: {},
+        /** @type {number|null} */
+        backendApiVersion: null,
     }),
+    getters: {
+        /**
+         * Check if the backend supports a named feature.
+         * Returns true when capabilities haven't loaded yet (assume modern).
+         * @param {string} name
+         * @returns {boolean}
+         */
+        hasCapability:
+            (state) =>
+            (name) => {
+                if (state.backendApiVersion == null) {
+                    return true;
+                }
+                return Boolean(state.backendCapabilities?.[name]);
+            },
+        /**
+         * Check if the backend API version is at least the given version.
+         * Returns true when version hasn't loaded yet (assume modern).
+         * @param {number} min
+         * @returns {boolean}
+         */
+        backendSupports:
+            (state) =>
+            (min) => {
+                if (state.backendApiVersion == null) {
+                    return true;
+                }
+                return state.backendApiVersion >= min;
+            },
+    },
     actions: {
         mergeConfig(next) {
             if (!next || typeof next !== "object") {

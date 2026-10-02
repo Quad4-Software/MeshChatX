@@ -323,6 +323,18 @@ def register_app_info_routes(routes, app):
             {
                 "app_info": {
                     "version": app.get_app_version(),
+                    # API contract version — bump when adding backend capabilities.
+                    # Frontend checks this to gate features that need newer backend.
+                    "api_version": 2,
+                    # Features this backend supports. Frontend hides/disables UI
+                    # for features absent from this list when running against an
+                    # older backend.
+                    "capabilities": {
+                        "rrc_member_count": True,
+                        "glass_theme": True,
+                        "segmented_controls": True,
+                        "lxst_hash_format": True,
+                    },
                     **(app.get_build_meta() if hasattr(app, "get_build_meta") else {}),
                     "lxmf_version": LXMF.__version__,
                     "rns_version": RNS.__version__,
