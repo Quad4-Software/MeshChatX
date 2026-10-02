@@ -301,7 +301,9 @@
                                     </div>
                                 </div>
 
-                                <div class="divide-y divide-sem-border/60 rounded-xl border border-sem-border/60 overflow-hidden">
+                                <div
+                                    class="divide-y divide-sem-border/60 rounded-xl border border-sem-border/60 overflow-hidden"
+                                >
                                     <button
                                         v-for="action in maintenanceActions"
                                         :key="action.key"

@@ -121,7 +121,7 @@
                     <div
                         v-if="isLoading && archives.length === 0"
                         class="grid grid-cols-1 gap-3 p-3 sm:p-4"
-                        :class="{ 'sm:grid-cols-2': !viewingArchive }"
+                        :class="{ 'sm:grid-cols-2 xl:grid-cols-3': !viewingArchive }"
                         aria-hidden="true"
                     >
                         <Skeleton v-for="n in 6" :key="'archive-skel-' + n" variant="card" root-class="h-44" />
@@ -129,7 +129,7 @@
                     <div
                         v-else
                         class="grid grid-cols-1 gap-3 p-3 sm:p-4"
-                        :class="{ 'sm:grid-cols-2': !viewingArchive }"
+                        :class="{ 'sm:grid-cols-2 xl:grid-cols-3': !viewingArchive }"
                     >
                         <ArchiveCard
                             v-for="archive in archives"

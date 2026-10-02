@@ -57,7 +57,7 @@
                         @click="$emit('update-config', { voicemail_enabled: !config.voicemail_enabled })"
                     >
                         <span
-                            class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out"
+                            class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-sem-action-primary-text shadow-sm ring-0 transition duration-200 ease-in-out"
                             :class="config.voicemail_enabled ? 'translate-x-5' : 'translate-x-0'"
                         ></span>
                     </button>

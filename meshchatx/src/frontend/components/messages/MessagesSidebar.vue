@@ -313,7 +313,7 @@
                     </div>
                     <div
                         v-if="selectionMode"
-                        class="flex items-center justify-between px-2 py-1 bg-blue-50 dark:bg-blue-900/10 rounded-lg"
+                        class="flex items-center justify-between px-2 py-1 bg-sem-surface-muted rounded-lg"
                     >
                         <div class="flex items-center gap-2">
                             <input
@@ -322,7 +322,7 @@
                                 class="rounded-sm border-sem-border text-sem-accent focus:ring-sem-focus"
                                 @change="toggleSelectAll"
                             />
-                            <span class="text-xs font-semibold text-blue-700">
+                            <span class="text-xs font-semibold text-sem-fg">
                                 {{ $t("messages.bulk_selected_count", { count: selectedHashes.size }) }}
                             </span>
                         </div>
@@ -424,10 +424,10 @@
                                         'flex cursor-pointer px-2 py-2 relative group conversation-item',
                                         selectionEdgeBorderClass,
                                         conversation.destination_hash === selectedDestinationHash
-                                            ? 'bg-sem-info/15 border-sem-accent'
+                                            ? 'bg-sem-accent/10 border-sem-accent'
                                             : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
                                         selectedHashes.has(conversation.destination_hash)
-                                            ? 'bg-blue-50/50 dark:bg-blue-900/10'
+                                            ? 'bg-sem-surface-muted/80'
                                             : '',
                                     ]"
                                     draggable="true"
@@ -578,11 +578,9 @@
                                     'flex cursor-pointer px-2 py-2 relative group conversation-item',
                                     selectionEdgeBorderClass,
                                     conversation.destination_hash === selectedDestinationHash
-                                        ? 'bg-sem-info/15 border-sem-accent'
+                                        ? 'bg-sem-accent/10 border-sem-accent'
                                         : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
-                                    selectedHashes.has(conversation.destination_hash)
-                                        ? 'bg-blue-50/50 dark:bg-blue-900/10'
-                                        : '',
+                                    selectedHashes.has(conversation.destination_hash) ? 'bg-sem-surface-muted/80' : '',
                                 ]"
                                 draggable="true"
                                 @click="onConversationRowActivate(conversation)"
@@ -848,7 +846,7 @@
                 >
                     <div class="px-4 text-center">
                         <MaterialDesignIcon icon-name="import" class="mx-auto size-8 text-sem-accent" />
-                        <p class="mt-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
+                        <p class="mt-2 text-sm font-semibold text-sem-accent">
                             {{ $t("maintenance.import_messages") }}
                         </p>
                         <p class="text-xs text-sem-accent/80">
@@ -901,7 +899,7 @@
                                     'flex cursor-pointer p-2 relative',
                                     selectionEdgeBorderClass,
                                     peer.destination_hash === selectedDestinationHash
-                                        ? 'bg-sem-info/15 border-sem-accent'
+                                        ? 'bg-sem-accent/10 border-sem-accent'
                                         : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
                                 ]"
                                 @click="onPeerClick(peer)"
@@ -985,7 +983,7 @@
                                     'flex cursor-pointer p-2 relative',
                                     selectionEdgeBorderClass,
                                     peer.destination_hash === selectedDestinationHash
-                                        ? 'bg-sem-info/15 border-sem-accent'
+                                        ? 'bg-sem-accent/10 border-sem-accent'
                                         : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
                                 ]"
                                 @click="onPeerClick(peer)"

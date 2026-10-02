@@ -193,22 +193,30 @@
                                 </button>
                                 <div class="flex items-center gap-1.5">
                                     <button
-                                        v-if="!hub.connected"
                                         type="button"
-                                        :class="[btnPrimary, 'flex-1 py-1.5! text-xs!']"
-                                        @click.stop="connectHub(hub)"
+                                        class="inline-flex flex-1 items-center justify-center rounded-lg border border-sem-border p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                                        :class="
+                                            hub.status === 1
+                                                ? 'bg-sem-surface-muted text-sem-fg-muted'
+                                                : hub.connected
+                                                  ? 'bg-sem-danger/10 text-sem-danger hover:bg-sem-danger/15 hover:border-sem-danger/40'
+                                                  : 'bg-sem-action-primary/10 text-sem-accent hover:bg-sem-action-primary/20 hover:border-sem-accent/40'
+                                        "
+                                        :disabled="hub.status === 1"
+                                        :title="
+                                            hub.status === 1
+                                                ? $t('relay_chat.status_connecting')
+                                                : hub.connected
+                                                  ? $t('relay_chat.disconnect')
+                                                  : $t('relay_chat.connect')
+                                        "
+                                        @click.stop="hub.connected ? disconnectHub(hub) : connectHub(hub)"
                                     >
-                                        <MaterialDesignIcon icon-name="lan-connect" class="size-4" />
-                                        {{ $t("relay_chat.connect") }}
-                                    </button>
-                                    <button
-                                        v-else
-                                        type="button"
-                                        :class="[btnSecondary, 'flex-1 py-1.5! text-xs!']"
-                                        @click.stop="disconnectHub(hub)"
-                                    >
-                                        <MaterialDesignIcon icon-name="lan-disconnect" class="size-4" />
-                                        {{ $t("relay_chat.disconnect") }}
+                                        <MaterialDesignIcon
+                                            :icon-name="hub.connected ? 'lan-disconnect' : 'lan-connect'"
+                                            class="size-4"
+                                            :class="{ 'animate-pulse': hub.status === 1 }"
+                                        />
                                     </button>
                                     <button
                                         type="button"

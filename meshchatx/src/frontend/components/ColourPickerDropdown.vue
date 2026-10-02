@@ -26,12 +26,12 @@
         >
             <div
                 v-if="isShowingMenu"
-                class="absolute left-0 z-100 mt-2 rounded-xl border border-gray-200 bg-white p-3 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+                class="absolute left-0 z-100 mt-2 rounded-xl border border-sem-border bg-sem-surface p-3 shadow-xl"
             >
                 <input
                     :value="normalizedColour"
                     type="color"
-                    class="block h-10 w-full cursor-pointer rounded-lg border border-gray-200 bg-transparent p-0 dark:border-zinc-700"
+                    class="block h-10 w-full cursor-pointer rounded-lg border border-sem-border bg-transparent p-0"
                     @input="onNativeColorInput"
                 />
                 <div class="mt-2 grid grid-cols-6 gap-1.5">

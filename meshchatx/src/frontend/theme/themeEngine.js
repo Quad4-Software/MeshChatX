@@ -669,7 +669,7 @@ export const THEME_PRESETS = {
             // near-black canvas, hairline white borders. Avoid tinted
             // surfaces or the whole UI reads blue.
             "--mc-bubble-failed": "#f87171",
-            "--mc-canvas": "#060607",
+            "--mc-canvas": "#030304",
             "--mc-surface": "rgb(255 255 255 / 0.07)",
             "--mc-surface-muted": "rgb(255 255 255 / 0.04)",
             "--mc-surface-raised": "rgb(255 255 255 / 0.11)",

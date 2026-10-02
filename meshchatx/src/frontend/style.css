@@ -196,10 +196,10 @@ html.dark[data-theme-preset="glass"] .page-canvas,
 html.dark[data-theme-preset="glass"] .bg-sem-canvas,
 html.dark[data-theme-preset="glass"] .page-header-bar {
     background-image:
-        radial-gradient(60vmax 40vmax at 8% 0%, rgb(255 255 255 / 0.13), transparent 65%),
-        radial-gradient(50vmax 35vmax at 92% 4%, rgb(148 163 184 / 0.1), transparent 60%),
-        radial-gradient(55vmax 45vmax at 50% 108%, rgb(255 255 255 / 0.1), transparent 65%),
-        radial-gradient(45vmax 35vmax at 62% 42%, rgb(100 116 139 / 0.08), transparent 62%);
+        radial-gradient(60vmax 40vmax at 8% 0%, rgb(255 255 255 / 0.07), transparent 65%),
+        radial-gradient(50vmax 35vmax at 92% 4%, rgb(148 163 184 / 0.05), transparent 60%),
+        radial-gradient(55vmax 45vmax at 50% 108%, rgb(255 255 255 / 0.05), transparent 65%),
+        radial-gradient(45vmax 35vmax at 62% 42%, rgb(100 116 139 / 0.04), transparent 62%);
     background-attachment: fixed;
 }
 
@@ -603,6 +603,17 @@ select,
 summary,
 label[for] {
     cursor: pointer;
+}
+
+/* Toggle knob: default white works on colored tracks, but glass dark uses a
+   white primary so the knob would vanish. Drive it from the action-primary
+   text var so it always contrasts with the checked track. */
+.toggle-track::after {
+    border-color: var(--mc-border);
+}
+.peer:checked + .toggle-track::after {
+    background-color: var(--mc-action-primary-text, #ffffff);
+    border-color: transparent;
 }
 
 .context-item {

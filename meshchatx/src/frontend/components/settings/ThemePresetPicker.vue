@@ -23,24 +23,28 @@
         </div>
 
         <div
-            class="flex flex-wrap gap-2.5"
+            class="theme-preset-cascade flex py-1"
             role="listbox"
             :aria-label="$t('app.theme_preset')"
+            @mouseleave="clearPreview"
         >
             <button
                 v-for="preset in catalog"
                 :key="preset.id"
                 type="button"
                 role="option"
-                class="group relative inline-flex items-center justify-center rounded-full transition-all hover:scale-110 focus-visible:scale-110"
+                class="theme-preset-dot group relative inline-flex items-center justify-center rounded-full transition-all duration-200 ease-out hover:z-20 hover:scale-125 focus-visible:z-20 focus-visible:scale-125"
                 :class="
                     preset.id === normalizedValue
-                        ? 'ring-2 ring-sem-accent ring-offset-2 ring-offset-sem-canvas'
-                        : 'ring-1 ring-sem-border hover:ring-sem-accent/50'
+                        ? 'ring-2 ring-sem-accent ring-offset-2 ring-offset-sem-canvas z-10'
+                        : 'ring-1 ring-sem-border/80 hover:ring-sem-accent/50'
                 "
                 :title="$t(preset.labelKey)"
                 :aria-selected="preset.id === normalizedValue ? 'true' : 'false'"
                 @click="selectPreset(preset.id)"
+                @mouseenter="previewPreset(preset.id)"
+                @focus="previewPreset(preset.id)"
+                @blur="clearPreview"
             >
                 <ThemePresetSwatch :colors="previewColorsForPreset(preset.id)" size="lg" round />
                 <span
@@ -58,6 +62,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ThemePresetSwatch from "./ThemePresetSwatch.vue";
 import {
     THEME_PRESET_CATALOG,
+    applyAppearanceTheme,
     getThemePresetPreviewColors,
     normalizeThemePreset,
     normalizeThemePreference,
@@ -116,16 +121,49 @@ export default {
             return getThemePresetPreviewColors(this.previewConfigForPreset(presetId), this.previewMode);
         },
         onSelectChange(event) {
+            this.clearPreview();
             this.selectPreset(event.target.value);
+        },
+        previewPreset(presetId) {
+            if (normalizeThemePreset(presetId) === this.normalizedValue) {
+                return;
+            }
+            this._previewActive = true;
+            applyAppearanceTheme(this.previewConfigForPreset(presetId));
+        },
+        clearPreview() {
+            if (!this._previewActive) {
+                return;
+            }
+            this._previewActive = false;
+            applyAppearanceTheme(this.config);
         },
         selectPreset(presetId) {
             const next = normalizeThemePreset(presetId);
             if (next === this.normalizedValue) {
                 return;
             }
+            this._previewActive = false;
             this.$emit("update:value", next);
             this.$emit("change", next);
         },
     },
 };
 </script>
+
+<style scoped>
+@reference "../../style.css";
+
+/* Cascaded circles: negative overlap so the dots nestle together,
+   expanding apart when the row is hovered. */
+.theme-preset-cascade .theme-preset-dot + .theme-preset-dot {
+    margin-left: -0.35rem;
+    transition:
+        margin 0.2s ease,
+        transform 0.15s ease;
+}
+.theme-preset-cascade:hover .theme-preset-dot + .theme-preset-dot,
+.theme-preset-cascade:focus-within .theme-preset-dot + .theme-preset-dot {
+    margin-left: 0.4rem;
+}
+</style>
