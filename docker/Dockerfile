@@ -46,7 +46,9 @@ COPY geo-wasm ./geo-wasm
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
 ENV GOCACHE=/tmp/go-cache
 ENV GOTMPDIR=/tmp/go-tmp
+ENV GOTOOLCHAIN=auto
 ENV STARTER_MBTILES_SKIP=1
+ENV MESHCHATX_SKIP_ELECTRON_CSS=1
 RUN sh scripts/docker/build-frontend.sh
 
 FROM ${PYTHON_IMAGE}@${PYTHON_HASH} AS builder
