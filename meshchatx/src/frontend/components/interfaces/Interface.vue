@@ -140,6 +140,10 @@
                                         <MaterialDesignIcon icon-name="export" class="w-5 h-5" />
                                         <span>{{ $t("interface.export_interface") }}</span>
                                     </DropDownMenuItem>
+                                    <DropDownMenuItem @click="shareInterface">
+                                        <MaterialDesignIcon icon-name="share-variant-outline" class="w-5 h-5" />
+                                        <span>{{ $t("interface.share_interface") }}</span>
+                                    </DropDownMenuItem>
                                     <DropDownMenuItem @click="deleteInterface">
                                         <MaterialDesignIcon icon-name="trash-can" class="w-5 h-5 text-sem-danger" />
                                         <span class="text-sem-danger">{{ $t("interface.delete_interface") }}</span>
@@ -222,7 +226,7 @@ export default {
             default: true,
         },
     },
-    emits: ["enable", "disable", "edit", "export", "delete", "reload"],
+    emits: ["enable", "disable", "edit", "export", "delete", "reload", "share"],
     data() {
         return {};
     },
@@ -396,6 +400,9 @@ export default {
         },
         exportInterface() {
             this.$emit("export");
+        },
+        shareInterface() {
+            this.$emit("share");
         },
         deleteInterface() {
             this.$emit("delete");
