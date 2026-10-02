@@ -19,7 +19,7 @@
                 :class="
                     useTabToolbar
                         ? 'flex flex-wrap items-center gap-x-1.5 gap-y-1 min-w-0 justify-end'
-                        : 'flex items-center gap-x-1.5 gap-y-2 px-3 py-2 sm:px-4 border-b border-sem-border bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10 relative min-w-0 flex-nowrap overflow-x-auto sm:flex-wrap sm:overflow-visible sm:justify-end'
+                        : 'flex items-center gap-x-1.5 gap-y-2 px-3 py-2 sm:px-4 border-b border-sem-border bg-sem-surface z-10 relative min-w-0 flex-nowrap overflow-x-auto sm:flex-wrap sm:overflow-visible sm:justify-end'
                 "
             >
                 <!-- offline/online toggle -->
@@ -27,8 +27,8 @@
                     <button
                         :class="
                             discoveredVisible
-                                ? 'bg-white dark:bg-zinc-700 shadow-xs text-emerald-600 dark:text-emerald-400'
-                                : 'text-gray-500 dark:text-gray-300 hover:bg-gray-200 hover:bg-sem-surface-muted'
+                                ? 'bg-sem-surface shadow-xs text-sem-success'
+                                : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                         "
                         class="p-1.5 sm:p-2 rounded-lg transition-colors shrink-0 mr-1"
                         :title="discoveredVisible ? 'Hide Discovered Interfaces' : 'Show Discovered Interfaces'"
@@ -44,22 +44,14 @@
                         <MaterialDesignIcon v-else icon-name="map-marker-radius" class="size-[18px] sm:size-5" />
                     </button>
                     <button
-                        :class="
-                            !offlineEnabled
-                                ? 'bg-white dark:bg-zinc-700 shadow-xs text-sem-accent'
-                                : 'text-gray-500 dark:text-gray-300'
-                        "
+                        :class="!offlineEnabled ? 'bg-sem-surface shadow-xs text-sem-accent' : 'text-sem-fg-muted'"
                         class="px-2 py-1 text-xs sm:px-3 sm:text-sm font-medium rounded-md transition-all shrink-0"
                         @click="toggleOffline(false)"
                     >
                         {{ $t("map.online_mode") }}
                     </button>
                     <button
-                        :class="
-                            offlineEnabled
-                                ? 'bg-white dark:bg-zinc-700 shadow-xs text-sem-accent'
-                                : 'text-gray-500 dark:text-gray-300'
-                        "
+                        :class="offlineEnabled ? 'bg-sem-surface shadow-xs text-sem-accent' : 'text-sem-fg-muted'"
                         class="px-2 py-1 text-xs sm:px-3 sm:text-sm font-medium rounded-md transition-all shrink-0"
                         @click="toggleOffline(true)"
                     >

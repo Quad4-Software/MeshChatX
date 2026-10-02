@@ -354,6 +354,49 @@ select.input-field {
     @apply py-1.5 pl-9 pr-8 text-xs rounded-lg;
 }
 
+/* Semantic range slider — accent thumb, muted track */
+.range-input {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--mc-surface-muted);
+    outline: none;
+    cursor: pointer;
+}
+.range-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--mc-accent);
+    border: 2px solid var(--mc-canvas);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+    cursor: grab;
+    transition: transform 0.1s ease;
+}
+.range-input::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+}
+.range-input::-webkit-slider-thumb:active {
+    cursor: grabbing;
+}
+.range-input::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--mc-accent);
+    border: 2px solid var(--mc-canvas);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+    cursor: grab;
+}
+.range-input::-moz-range-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--mc-surface-muted);
+}
+
 input[type="color"].color-fill-input {
     -webkit-appearance: none;
     appearance: none;

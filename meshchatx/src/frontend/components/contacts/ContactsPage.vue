@@ -107,14 +107,22 @@
                                                 {{ formatContactHash(contact.remote_destination_hash) }}
                                             </button>
                                         </div>
-                                        <div v-if="contact.remote_telephony_hash" class="flex items-center gap-1.5">
+                                        <div
+                                            v-if="contact.remote_telephony_hash"
+                                            class="flex items-center gap-1.5 min-w-0"
+                                        >
                                             <MaterialDesignIcon
                                                 icon-name="phone-outline"
                                                 class="size-4 text-sem-success shrink-0"
                                             />
-                                            <span class="text-xs font-mono text-sem-fg-muted break-all">{{
-                                                contact.remote_telephony_hash
-                                            }}</span>
+                                            <button
+                                                type="button"
+                                                class="text-xs font-mono text-sem-fg-muted truncate hover:text-sem-accent text-left"
+                                                :title="contact.remote_telephony_hash"
+                                                @click.stop="copyContactHash(contact.remote_telephony_hash)"
+                                            >
+                                                {{ formatContactHash(contact.remote_telephony_hash) }}
+                                            </button>
                                         </div>
                                         <span
                                             v-if="!contact.remote_destination_hash && !contact.remote_telephony_hash"
@@ -196,14 +204,19 @@
                                             {{ formatContactHash(contact.remote_destination_hash) }}
                                         </button>
                                     </div>
-                                    <div v-if="contact.remote_telephony_hash" class="flex items-center gap-1.5">
+                                    <div v-if="contact.remote_telephony_hash" class="flex items-center gap-1.5 min-w-0">
                                         <MaterialDesignIcon
                                             icon-name="phone-outline"
                                             class="size-4 text-sem-success shrink-0"
                                         />
-                                        <span class="text-xs font-mono text-sem-fg-muted break-all">{{
-                                            contact.remote_telephony_hash
-                                        }}</span>
+                                        <button
+                                            type="button"
+                                            class="text-xs font-mono text-sem-fg-muted truncate hover:text-sem-accent text-left"
+                                            :title="contact.remote_telephony_hash"
+                                            @click.stop="copyContactHash(contact.remote_telephony_hash)"
+                                        >
+                                            {{ formatContactHash(contact.remote_telephony_hash) }}
+                                        </button>
                                     </div>
                                     <span
                                         v-if="!contact.remote_destination_hash && !contact.remote_telephony_hash"

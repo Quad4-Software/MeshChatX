@@ -1905,6 +1905,14 @@ class RRCHub:
             return int(rtt * 1000)
         return None
 
+    def _total_member_count(self):
+        """Total unique members across all joined rooms."""
+        with self._lock:
+            seen = set()
+            for hashes in self.members.values():
+                seen.update(hashes)
+            return len(seen)
+
     def to_dict(self):
         """Return a JSON-serializable summary of this hub's state."""
         stored_key_rooms = []
@@ -1942,6 +1950,7 @@ class RRCHub:
                 "stored_key_rooms": stored_key_rooms,
                 "auto_reconnect": bool(self.auto_reconnect),
                 "rtt_ms": self._current_rtt_ms(),
+                "member_count": self._total_member_count(),
                 "auto_list": bool(self.auto_list),
                 "auto_who": bool(self.auto_who),
                 "nick_override": self.nick_override,
