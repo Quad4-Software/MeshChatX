@@ -3,6 +3,7 @@
 import { describe, it, expect } from "vitest";
 import {
     buildRelayMessageTimeline,
+    isRelayPeerJoinPartMessage,
     filterUniqueOlderRelayMessages,
     mergeRelayMessages,
     prependRelayMessageTimeline,
@@ -141,5 +142,54 @@ describe("unread divider", () => {
             unreadBeforeSeq: null,
         });
         expect(timeline.some((e) => e.type === "unreadDivider")).toBe(false);
+    });
+});
+
+describe("hide join/part for notice-kind presence", () => {
+    const notice = (seq, text) => ({ kind: "notice", seq, text, ts: seq * 1000, src: null });
+
+    it("matches common foreign-hub presence notice text", () => {
+        expect(isRelayPeerJoinPartMessage(notice(1, "alice has joined #lobby"))).toBe(true);
+        expect(isRelayPeerJoinPartMessage(notice(2, "bob left"))).toBe(true);
+        expect(isRelayPeerJoinPartMessage(notice(3, "*** carol has joined lobby"))).toBe(true);
+        expect(isRelayPeerJoinPartMessage(notice(4, "*** dave has quit"))).toBe(true);
+        expect(isRelayPeerJoinPartMessage(notice(5, "erin joined"))).toBe(true);
+        expect(isRelayPeerJoinPartMessage(notice(6, "frank parted"))).toBe(true);
+    });
+
+    it("does not match informational or user notices", () => {
+        expect(isRelayPeerJoinPartMessage(notice(1, "welcome to the hub"))).toBe(false);
+        expect(isRelayPeerJoinPartMessage(notice(2, "Registered public rooms:"))).toBe(false);
+        expect(isRelayPeerJoinPartMessage(notice(3, "the lobby was joined by admins"))).toBe(false);
+        expect(isRelayPeerJoinPartMessage(notice(4, "you have left-over credits"))).toBe(false);
+        expect(isRelayPeerJoinPartMessage({ kind: "msg", seq: 5, text: "alice has joined #lobby", ts: 5000 })).toBe(false);
+    });
+
+    it("groups notice join/part as presence when not hidden", () => {
+        const timeline = buildRelayMessageTimeline([
+            msg(1, "hello"),
+            notice(2, "alice has joined #lobby"),
+            notice(3, "bob left"),
+            msg(4, "world"),
+        ]);
+        const types = timeline.filter((e) => e.type !== "dateDivider").map((e) => e.type);
+        expect(types).toEqual(["message", "presenceGroup", "message"]);
+    });
+
+    it("hides notice join/part when hideJoinPart is on", () => {
+        const timeline = buildRelayMessageTimeline(
+            [
+                msg(1, "hello"),
+                notice(2, "alice has joined #lobby"),
+                notice(3, "bob left"),
+                presence(4, "join"),
+                msg(5, "world"),
+            ],
+            { hideJoinPart: true },
+        );
+        const flat = timeline
+            .flatMap((e) => (e.messages || (e.msg ? [e.msg] : [])))
+            .map((m) => m.text);
+        expect(flat).toEqual(["hello", "world"]);
     });
 });
