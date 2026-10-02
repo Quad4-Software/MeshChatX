@@ -783,11 +783,14 @@ export default {
             return useConfigStore().config?.rrc_enabled !== false;
         },
         rawVisibleNavItems() {
+            return listNavItems().filter((item) => !item.action && this.isNavItemVisible(item));
+        },
+        rawTopNavItems() {
             return listNavItems().filter((item) => this.isNavItemVisible(item));
         },
         topNavItems() {
             void topNavLayoutState.itemIds;
-            return orderedTopNavItems(this.rawVisibleNavItems, topNavLayoutState.itemIds);
+            return orderedTopNavItems(this.rawTopNavItems, topNavLayoutState.itemIds);
         },
         activeNavLayout() {
             if (this.isSidebarNavEditing && this.sidebarNavLayoutDraft) {

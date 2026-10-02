@@ -8,7 +8,7 @@ export const APP_TOP_NAV_LAYOUT_KEY = "meshchatx.topnav.layout";
  * Nav section buttons shown in the top bar by default, in order. Ids refer to
  * entries in the nav registry (js/registries/coreNavEntries.js).
  */
-export const DEFAULT_TOP_NAV_ITEM_IDS = ["relay-chat", "call", "nomadnetwork"];
+export const DEFAULT_TOP_NAV_ITEM_IDS = ["relay-chat", "call", "nomadnetwork", "settings"];
 
 const FORBIDDEN_IDS = new Set(["__proto__", "constructor", "prototype"]);
 
