@@ -119,37 +119,49 @@
                             >
                                 <MaterialDesignIcon icon-name="magnify" class="w-5 h-5" />
                             </button>
-                            <button
-                                v-for="item in topNavItems"
-                                :key="item.id"
-                                type="button"
-                                class="relative inline-flex rounded-full p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 items-center justify-center text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
-                                :class="{ 'text-sem-accent': $route.name === item.route?.name }"
-                                :title="$t(item.labelKey)"
-                                :aria-label="$t(item.labelKey)"
-                                :data-testid="`header-nav-${item.id}`"
-                                @click="$router.push(item.route)"
-                            >
-                                <MaterialDesignIcon :icon-name="item.icon" class="w-5 h-5" />
-                                <span
-                                    v-if="navBadgeCount(item) > 0"
-                                    class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-sem-action-danger px-1 text-[10px] font-bold leading-none text-sem-action-danger-text"
-                                >
-                                    {{ navBadgeText(item) }}
-                                </span>
-                            </button>
-                            <button
-                                type="button"
-                                class="sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
-                                :title="isSyncingPropagationNode ? $t('app.syncing') : $t('app.sync_messages')"
-                                @click="syncPropagationNode"
-                            >
-                                <MaterialDesignIcon
-                                    icon-name="refresh"
-                                    class="w-5 h-5"
-                                    :class="{ 'animate-spin': isSyncingPropagationNode }"
+                            <template v-for="item in topNavItems" :key="item.id">
+                                <LanguageSelector
+                                    v-if="item.action === 'languageSelector'"
+                                    :data-testid="`header-nav-${item.id}`"
+                                    @language-change="onLanguageChange"
                                 />
-                            </button>
+                                <button
+                                    v-else
+                                    type="button"
+                                    class="relative inline-flex rounded-full p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 items-center justify-center text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                                    :class="{ 'text-sem-accent': $route.name === item.route?.name }"
+                                    :title="
+                                        item.action === 'syncMessages'
+                                            ? isSyncingPropagationNode
+                                                ? $t('app.syncing')
+                                                : $t(item.labelKey)
+                                            : $t(item.labelKey)
+                                    "
+                                    :aria-label="
+                                        item.action === 'syncMessages'
+                                            ? isSyncingPropagationNode
+                                                ? $t('app.syncing')
+                                                : $t(item.labelKey)
+                                            : $t(item.labelKey)
+                                    "
+                                    :data-testid="`header-nav-${item.id}`"
+                                    @click="onNavItemClick(item)"
+                                >
+                                    <MaterialDesignIcon
+                                        :icon-name="item.icon"
+                                        class="w-5 h-5"
+                                        :class="{
+                                            'animate-spin': item.action === 'syncMessages' && isSyncingPropagationNode,
+                                        }"
+                                    />
+                                    <span
+                                        v-if="navBadgeCount(item) > 0"
+                                        class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-sem-action-danger px-1 text-[10px] font-bold leading-none text-sem-action-danger-text"
+                                    >
+                                        {{ navBadgeText(item) }}
+                                    </span>
+                                </button>
+                            </template>
                             <button
                                 v-if="inboundDeliveryCount > 0"
                                 type="button"
@@ -158,20 +170,6 @@
                                 @click="cancelInboundDeliveries"
                             >
                                 <MaterialDesignIcon icon-name="close-circle-outline" class="w-5 h-5" />
-                            </button>
-                            <button type="button" class="hidden sm:flex rounded-full" @click="syncPropagationNode">
-                                <span
-                                    class="flex items-center text-sem-fg bg-sem-surface-raised border border-sem-border hover:border-sem-accent px-2.5 py-1.5 rounded-full shadow-xs transition"
-                                >
-                                    <MaterialDesignIcon
-                                        icon-name="refresh"
-                                        class="size-5"
-                                        :class="{ 'animate-spin': isSyncingPropagationNode }"
-                                    />
-                                    <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">{{
-                                        isSyncingPropagationNode ? $t("app.syncing") : $t("app.sync_messages")
-                                    }}</span>
-                                </span>
                             </button>
                             <button
                                 v-if="inboundDeliveryCount > 0"
@@ -1091,6 +1089,15 @@ export default {
             const count = this.navBadgeCount(item);
             const cap = item?.badge?.cap ?? 99;
             return count > cap ? `${cap}+` : String(count);
+        },
+        onNavItemClick(item) {
+            if (item.action === "syncMessages") {
+                this.syncPropagationNode();
+            } else if (item.action === "toggleTheme") {
+                this.toggleTheme();
+            } else if (item.route) {
+                this.$router.push(item.route);
+            }
         },
         enterSidebarNavEdit() {
             if (this.isSidebarCollapsed || this.isSidebarNavEditing) {

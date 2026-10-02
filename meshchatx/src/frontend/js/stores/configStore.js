@@ -64,28 +64,24 @@ export const useConfigStore = defineStore("config", {
          * @param {string} name
          * @returns {boolean}
          */
-        hasCapability:
-            (state) =>
-            (name) => {
-                if (state.backendApiVersion == null) {
-                    return true;
-                }
-                return Boolean(state.backendCapabilities?.[name]);
-            },
+        hasCapability: (state) => (name) => {
+            if (state.backendApiVersion == null) {
+                return true;
+            }
+            return Boolean(state.backendCapabilities?.[name]);
+        },
         /**
          * Check if the backend API version is at least the given version.
          * Returns true when version hasn't loaded yet (assume modern).
          * @param {number} min
          * @returns {boolean}
          */
-        backendSupports:
-            (state) =>
-            (min) => {
-                if (state.backendApiVersion == null) {
-                    return true;
-                }
-                return state.backendApiVersion >= min;
-            },
+        backendSupports: (state) => (min) => {
+            if (state.backendApiVersion == null) {
+                return true;
+            }
+            return state.backendApiVersion >= min;
+        },
     },
     actions: {
         mergeConfig(next) {

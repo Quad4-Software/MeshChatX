@@ -190,18 +190,12 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <label class="text-[11px] text-sem-fg-muted block">
                         {{ $t("app.incoming_message_size") }}
-                        <select
+                        <SliderSelect
                             v-model="lxmfIncomingDeliveryPreset"
-                            class="input-field mt-1 py-1.5 text-sm"
+                            :options="incomingSizeOptions"
+                            class="mt-1"
                             @change="onLxmfIncomingDeliveryPresetChange"
-                        >
-                            <option value="1mb">{{ $t("app.incoming_message_size_1mb") }}</option>
-                            <option value="10mb">{{ $t("app.incoming_message_size_10mb") }}</option>
-                            <option value="25mb">{{ $t("app.incoming_message_size_25mb") }}</option>
-                            <option value="50mb">{{ $t("app.incoming_message_size_50mb") }}</option>
-                            <option value="1gb">{{ $t("app.incoming_message_size_1gb") }}</option>
-                            <option value="custom">{{ $t("app.incoming_message_size_custom") }}</option>
-                        </select>
+                        />
                         <div
                             v-if="lxmfIncomingDeliveryPreset === 'custom'"
                             class="mt-1 flex flex-wrap items-center gap-2"
@@ -214,14 +208,14 @@
                                 class="input-field min-w-0 flex-1 py-1.5 text-sm"
                                 @input="onLxmfIncomingDeliveryCustomChange"
                             />
-                            <select
+                            <SegmentedControl
                                 v-model="lxmfIncomingDeliveryCustomUnit"
-                                class="input-field py-1.5 text-sm w-auto"
+                                :options="[
+                                    { value: 'mb', label: 'app.incoming_message_size_unit_mb' },
+                                    { value: 'gb', label: 'app.incoming_message_size_unit_gb' },
+                                ]"
                                 @change="onLxmfIncomingDeliveryCustomChange"
-                            >
-                                <option value="mb">{{ $t("app.incoming_message_size_unit_mb") }}</option>
-                                <option value="gb">{{ $t("app.incoming_message_size_unit_gb") }}</option>
-                            </select>
+                            />
                         </div>
                     </label>
                     <label class="text-[11px] text-sem-fg-muted">
@@ -369,17 +363,7 @@
                     class="input-field pl-11! py-2 text-sm"
                 />
             </div>
-            <select
-                v-model="sortBy"
-                data-testid="prop-nodes-sort"
-                class="shrink-0 w-44 bg-sem-surface-muted border border-sem-border text-sm rounded-2xl px-2.5 py-2 text-sem-fg"
-            >
-                <option value="preferred">{{ $t("tools.propagation_nodes.sort_preferred") }}</option>
-                <option value="recent">{{ $t("tools.propagation_nodes.sort_recent") }}</option>
-                <option value="oldest">{{ $t("tools.propagation_nodes.sort_oldest") }}</option>
-                <option value="name">{{ $t("tools.propagation_nodes.sort_name") }}</option>
-                <option value="name-desc">{{ $t("tools.propagation_nodes.sort_name_desc") }}</option>
-            </select>
+            <SegmentedControl v-model="sortBy" data-testid="prop-nodes-sort" :options="sortOptions" />
         </div>
 
         <div data-testid="prop-nodes-list" class="flex-1 min-h-0 overflow-y-auto">
@@ -526,6 +510,8 @@ import { copyTextToClipboard, readTextFromClipboard } from "../../js/clipboardUt
 import { postDestinationPath } from "../../js/reticulumPathfinding.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
+import SegmentedControl from "../forms/SegmentedControl.vue";
+import SliderSelect from "../forms/SliderSelect.vue";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
@@ -541,6 +527,8 @@ export default {
     components: {
         MaterialDesignIcon,
         ToolsPageHeader,
+        SegmentedControl,
+        SliderSelect,
     },
     data() {
         return {
@@ -577,6 +565,25 @@ export default {
         };
     },
     computed: {
+        incomingSizeOptions() {
+            return [
+                { value: "1mb", label: "app.incoming_message_size_1mb" },
+                { value: "10mb", label: "app.incoming_message_size_10mb" },
+                { value: "25mb", label: "app.incoming_message_size_25mb" },
+                { value: "50mb", label: "app.incoming_message_size_50mb" },
+                { value: "1gb", label: "app.incoming_message_size_1gb" },
+                { value: "custom", label: "app.incoming_message_size_custom" },
+            ];
+        },
+        sortOptions() {
+            return [
+                { value: "preferred", label: "tools.propagation_nodes.sort_preferred" },
+                { value: "recent", label: "tools.propagation_nodes.sort_recent" },
+                { value: "oldest", label: "tools.propagation_nodes.sort_oldest" },
+                { value: "name", label: "tools.propagation_nodes.sort_name" },
+                { value: "name-desc", label: "tools.propagation_nodes.sort_name_desc" },
+            ];
+        },
         localPropagationNode() {
             return this.propagationNodes.find((node) => node.is_local_node) ?? null;
         },

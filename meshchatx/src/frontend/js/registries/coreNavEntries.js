@@ -138,4 +138,29 @@ export const CORE_NAV_ENTRIES = [
         navTier: "more",
         group: "app",
     },
+    // Action entries — not routes, rendered as utility buttons in the top nav.
+    {
+        id: "sync-messages",
+        action: "syncMessages",
+        icon: "email-sync-outline",
+        labelKey: "app.sync_messages",
+        navTier: "primary",
+        group: "app",
+    },
+    {
+        id: "theme-toggle",
+        action: "toggleTheme",
+        icon: "theme-light-dark",
+        labelKey: "app.theme",
+        navTier: "primary",
+        group: "app",
+    },
+    {
+        id: "language-selector",
+        action: "languageSelector",
+        icon: "translate",
+        labelKey: "app.language",
+        navTier: "primary",
+        group: "app",
+    },
 ];
