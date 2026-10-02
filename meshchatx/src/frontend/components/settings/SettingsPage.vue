@@ -976,6 +976,8 @@
                             @nomad-tabs-enabled-change="onNomadTabsEnabledChange"
                             @nomad-private-tabs-enabled-change="onNomadPrivateTabsEnabledChange"
                             @nomad-history-enabled-change="onNomadHistoryEnabledChange"
+                            @ui-font-family-change="onUiFontFamilyChange"
+                            @ui-custom-font-change="onUiCustomFontChange"
                             @rrc-enabled-change="onRrcEnabledChange"
                             @rrc-unread-badges-enabled-change="onRrcUnreadBadgesEnabledChange"
                             @reset-appearance-defaults="resetAppearanceDefaults"
@@ -4525,6 +4527,27 @@ export default {
                 },
                 "nomad_history_enabled"
             );
+        },
+        async onUiFontFamilyChange() {
+            await this.updateConfig(
+                {
+                    ui_font_family: this.config.ui_font_family,
+                },
+                "ui_font_family"
+            );
+        },
+        async onUiCustomFontChange(payload) {
+            if (!payload || typeof payload !== "object") return;
+            const patch = {};
+            if (typeof payload.ui_font_family === "string") patch.ui_font_family = payload.ui_font_family;
+            if (typeof payload.ui_custom_font_name === "string")
+                patch.ui_custom_font_name = payload.ui_custom_font_name;
+            if (typeof payload.ui_custom_font_data === "string")
+                patch.ui_custom_font_data = payload.ui_custom_font_data;
+            if (Object.keys(patch).length) {
+                this.config = { ...this.config, ...patch };
+                await this.updateConfig(patch, "ui_font_family");
+            }
         },
         async onRrcEnabledChange() {
             await this.updateConfig(

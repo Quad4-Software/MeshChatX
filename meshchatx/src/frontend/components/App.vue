@@ -590,6 +590,7 @@ import {
     subscribeSystemTheme,
     systemPrefersDark,
 } from "../theme/themeEngine.js";
+import { applyFontConfig } from "../js/fontLoader.js";
 
 const IDENTITY_SAVE_DEBOUNCE_MS = 500;
 
@@ -1756,6 +1757,7 @@ export default {
             applyAppearanceTheme(config, {
                 prefersDark: this.systemPrefersDark,
             });
+            applyFontConfig(config);
         },
         applyShellAppearance() {
             if (typeof document === "undefined") {

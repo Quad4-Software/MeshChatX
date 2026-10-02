@@ -542,6 +542,9 @@ class ConfigManager:
         self.message_icon_size = self.IntConfig(self, "message_icon_size", 28)
         self.ui_transparency = self.IntConfig(self, "ui_transparency", 0)
         self.ui_glass_enabled = self.BoolConfig(self, "ui_glass_enabled", True)
+        self.ui_font_family = self.StringConfig(self, "ui_font_family", "system")
+        self.ui_custom_font_name = self.StringConfig(self, "ui_custom_font_name", "")
+        self.ui_custom_font_data = self.StringConfig(self, "ui_custom_font_data", "")
         self.message_outbound_bubble_color = self.StringConfig(
             self,
             "message_outbound_bubble_color",

@@ -21,6 +21,9 @@ export interface Config {
     nomad_default_page_path?: string;
     ui_transparency?: number;
     ui_glass_enabled?: boolean;
+    ui_font_family?: string;
+    ui_custom_font_name?: string;
+    ui_custom_font_data?: string;
     message_list_virtualization?: boolean;
     warn_on_stranger_links?: boolean;
     messages_sidebar_position?: string;
@@ -62,6 +65,9 @@ function defaultConfig(): Config {
         nomad_default_page_path: "/page/index.mu",
         ui_transparency: 0,
         ui_glass_enabled: true,
+        ui_font_family: "system",
+        ui_custom_font_name: "",
+        ui_custom_font_data: "",
         message_list_virtualization: true,
         warn_on_stranger_links: true,
         messages_sidebar_position: "left",

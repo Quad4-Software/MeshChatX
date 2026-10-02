@@ -280,6 +280,48 @@
                 </span>
             </label>
 
+            <div class="settings-field">
+                <label class="block text-sm font-medium text-sem-fg mb-1" for="ui-font-family">
+                    {{ $t("app.ui_font_family") }}
+                </label>
+                <div class="flex items-center gap-3">
+                    <select
+                        id="ui-font-family"
+                        :value="config.ui_font_family || 'system'"
+                        class="input-field flex-1"
+                        @change="onFontFamilyChange"
+                    >
+                        <option value="system">{{ $t("app.ui_font_system") }}</option>
+                        <option value="noto-sans">{{ $t("app.ui_font_noto_sans") }}</option>
+                        <option value="roboto-mono-nerd">{{ $t("app.ui_font_roboto_mono_nerd") }}</option>
+                        <option v-if="config.ui_custom_font_name" value="custom">
+                            {{ config.ui_custom_font_name }}
+                        </option>
+                    </select>
+                    <label
+                        class="cursor-pointer rounded-lg border border-sem-border px-3 py-2 text-xs font-medium text-sem-fg-muted hover:border-sem-accent hover:text-sem-accent transition-colors"
+                        :title="$t('app.ui_font_upload_tooltip')"
+                    >
+                        <input
+                            type="file"
+                            accept=".woff2,.ttf,.otf"
+                            class="hidden"
+                            @change="onFontFileUpload"
+                        />
+                        {{ $t("app.ui_font_upload") }}
+                    </label>
+                </div>
+                <div
+                    class="mt-2 rounded-lg border border-sem-border bg-sem-surface-muted p-3 text-sm"
+                    :style="fontPreviewStyle"
+                >
+                    {{ $t("app.ui_font_preview_text") }}
+                </div>
+                <div class="mt-1 text-[11px] text-sem-fg-muted">
+                    {{ $t("app.ui_font_preview_hint") }}
+                </div>
+            </div>
+
             <label class="setting-toggle">
                 <Toggle
                     id="messages-multi-pane-enabled"
@@ -617,6 +659,8 @@ export default {
         "nomad-tabs-enabled-change",
         "nomad-private-tabs-enabled-change",
         "nomad-history-enabled-change",
+        "ui-font-family-change",
+        "ui-custom-font-change",
         "rrc-enabled-change",
         "rrc-unread-badges-enabled-change",
         "reset-appearance-defaults",
@@ -635,6 +679,20 @@ export default {
                 { value: "dark", icon: "weather-night", label: "app.dark_theme" },
                 { value: "system", icon: "monitor", label: "app.system_theme" },
             ];
+        },
+        fontPreviewStyle() {
+            const key = this.config?.ui_font_family || "system";
+            if (key === "custom" && this.config?.ui_custom_font_name) {
+                const name = String(this.config.ui_custom_font_name).replace(/["\\]/g, "");
+                return { fontFamily: `"${name}", ui-sans-serif, system-ui, sans-serif` };
+            }
+            if (key === "noto-sans") {
+                return { fontFamily: '"Noto Sans", ui-sans-serif, system-ui, sans-serif' };
+            }
+            if (key === "roboto-mono-nerd") {
+                return { fontFamily: '"Roboto Mono Nerd Font", ui-monospace, monospace' };
+            }
+            return {};
         },
         sidebarPositionOptions() {
             return [
@@ -754,6 +812,28 @@ export default {
         },
         onUiGlassEnabledToggle(value) {
             this.emitField("ui_glass_enabled", value, "ui-glass-enabled-change");
+        },
+        onFontFamilyChange(event) {
+            const value = event.target.value;
+            this.emitField("ui_font_family", value, "ui-font-family-change");
+        },
+        async onFontFileUpload(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            const name = file.name.replace(/\.(woff2|ttf|otf)$/i, "").replace(/["\\]/g, "") || "Custom Font";
+            const reader = new FileReader();
+            reader.onload = () => {
+                const base64 = btoa(
+                    new Uint8Array(reader.result).reduce((s, b) => s + String.fromCharCode(b), "")
+                );
+                this.$emit("ui-custom-font-change", {
+                    ui_font_family: "custom",
+                    ui_custom_font_name: name,
+                    ui_custom_font_data: base64,
+                });
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = "";
         },
         onMessagesMultiPaneEnabledToggle(value) {
             this.emitField("messages_multi_pane_enabled", value, "messages-multi-pane-enabled-change");

@@ -749,7 +749,16 @@
         "nomad_private_tabs_enabled": "Private NomadNet tabs",
         "nomad_private_tabs_enabled_description": "Show the private tab button in the NomadNet browser. Private tabs are not saved to history.",
         "nomad_history_enabled": "NomadNet history",
-        "nomad_history_enabled_description": "Show the history button in the NomadNet browser. Tracks visited pages locally."
+        "nomad_history_enabled_description": "Show the history button in the NomadNet browser. Tracks visited pages locally.",
+        "theme_preset_void": "Void",
+        "ui_font_family": "UI Font",
+        "ui_font_system": "System default",
+        "ui_font_noto_sans": "Noto Sans",
+        "ui_font_roboto_mono_nerd": "Roboto Mono Nerd Font",
+        "ui_font_upload": "Upload font",
+        "ui_font_upload_tooltip": "Upload a .woff2, .ttf, or .otf font file",
+        "ui_font_preview_text": "The quick brown fox jumps over the lazy dog 0123456789",
+        "ui_font_preview_hint": "Custom fonts are stored locally and applied to the UI."
     },
     "helptips": {
         "title_send_failed": "Что можно попробовать",
