@@ -758,7 +758,11 @@
         "ui_font_upload": "Upload font",
         "ui_font_upload_tooltip": "Upload a .woff2, .ttf, or .otf font file",
         "ui_font_preview_text": "The quick brown fox jumps over the lazy dog 0123456789",
-        "ui_font_preview_hint": "Custom fonts are stored locally and applied to the UI."
+        "ui_font_preview_hint": "Custom fonts are stored locally and applied to the UI.",
+        "ui_font_inter": "Inter",
+        "ui_font_jetbrains_mono": "JetBrains Mono",
+        "ui_font_ibm_plex_sans": "IBM Plex Sans",
+        "ui_font_space_grotesk": "Space Grotesk"
     },
     "helptips": {
         "title_send_failed": "試せる対処",

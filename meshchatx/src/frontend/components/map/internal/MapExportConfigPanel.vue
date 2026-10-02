@@ -52,7 +52,7 @@
                 </button>
                 <button
                     :disabled="exporting || tileLimitExceeded"
-                    class="flex-1 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded-lg font-bold transition-colors shadow-md"
+                    class="flex-1 py-2 bg-blue-500 hover:bg-sem-action-primary disabled:bg-blue-300 text-sem-action-primary-text rounded-lg font-bold transition-colors shadow-md"
                     @click="$emit('start')"
                 >
                     {{ $t("map.start_export") }}

@@ -89,7 +89,7 @@
             <button
                 v-if="checkResult && checkResult.update_available && downloadable.length"
                 type="button"
-                class="px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                class="px-3 py-1.5 rounded-lg bg-sem-action-success text-sem-action-success-text text-sm font-medium hover:bg-green-700 disabled:opacity-50"
                 :disabled="busy"
                 @click="download"
             >

@@ -17,6 +17,10 @@ const FONT_FACE_ID = "meshchat-custom-font-face";
 
 const BUNDLED_FONTS = {
     "noto-sans": '"Noto Sans", ui-sans-serif, system-ui, sans-serif',
+    "inter": '"Inter", ui-sans-serif, system-ui, sans-serif',
+    "jetbrains-mono": '"JetBrains Mono", ui-monospace, monospace',
+    "ibm-plex-sans": '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
+    "space-grotesk": '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
     "roboto-mono-nerd": '"Roboto Mono Nerd Font", ui-monospace, monospace',
 };
 

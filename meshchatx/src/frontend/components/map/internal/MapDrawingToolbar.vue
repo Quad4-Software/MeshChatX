@@ -16,7 +16,7 @@
                 class="p-1.5 sm:p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
                 :class="
                     drawType === tool.type && !measuring && !bearingMode
-                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+                        ? 'bg-sem-action-primary text-sem-action-primary-text shadow-lg shadow-sem-action-primary/30'
                         : 'hover:bg-sem-surface-muted text-sem-fg-muted'
                 "
                 :title="$t(`map.tool_${tool.type.toLowerCase()}`)"
@@ -32,7 +32,7 @@
                 class="p-1.5 sm:p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
                 :class="
                     measuring && !bearingMode
-                        ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
+                        ? 'bg-sem-action-primary text-sem-action-primary-text shadow-lg shadow-sem-action-primary/30'
                         : 'hover:bg-sem-surface-muted text-sem-fg-muted'
                 "
                 :title="$t('map.tool_measure')"

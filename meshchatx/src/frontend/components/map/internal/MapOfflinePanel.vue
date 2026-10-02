@@ -26,7 +26,7 @@
         </label>
         <button
             type="button"
-            class="w-full py-2 text-[10px] font-semibold uppercase rounded-lg bg-blue-500 text-white"
+            class="w-full py-2 text-[10px] font-semibold uppercase rounded-lg bg-sem-action-primary text-sem-action-primary-text"
             @click="$emit('upload')"
         >
             {{ $t("map.upload_mbtiles") }}

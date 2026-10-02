@@ -322,7 +322,7 @@
                         />
                         <button
                             type="button"
-                            class="px-4 py-2.5 sm:py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-500 transition active:scale-95 disabled:opacity-50 shrink-0"
+                            class="px-4 py-2.5 sm:py-2 bg-sem-action-danger text-sem-action-danger-text rounded-lg font-semibold hover:bg-red-500 transition active:scale-95 disabled:opacity-50 shrink-0"
                             :disabled="dropViaHash.length !== 32"
                             @click="dropAllVia"
                         >

@@ -66,7 +66,7 @@
                                 </div>
                                 <button
                                     type="button"
-                                    class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none text-sm"
+                                    class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-xl font-bold shadow-lg shadow-sem-action-primary/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none text-sm"
                                     :disabled="!canGenerate || isGenerating"
                                     @click="generatePaperMessage"
                                 >
@@ -182,7 +182,7 @@
                                     <div class="flex flex-col sm:flex-row gap-2 pt-1">
                                         <button
                                             type="button"
-                                            class="flex-1 flex items-center justify-center gap-2 py-3 sm:py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all active:scale-[0.98] text-sm min-h-[44px]"
+                                            class="flex-1 flex items-center justify-center gap-2 py-3 sm:py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-lg font-bold transition-all active:scale-[0.98] text-sm min-h-[44px]"
                                             @click="printQRCode"
                                         >
                                             <MaterialDesignIcon icon-name="printer" class="size-4" />

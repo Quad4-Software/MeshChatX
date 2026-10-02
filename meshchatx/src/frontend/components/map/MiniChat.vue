@@ -18,7 +18,7 @@
             >
                 <div
                     class="px-2 py-1 rounded-lg text-xs wrap-break-word shadow-xs"
-                    :class="msg.is_outbound ? 'bg-blue-600 text-white' : 'bg-sem-surface text-sem-fg'"
+                    :class="msg.is_outbound ? 'bg-sem-action-primary text-sem-action-primary-text' : 'bg-sem-surface text-sem-fg'"
                 >
                     <!-- Telemetry Header if no content -->
                     <div
@@ -91,7 +91,7 @@
                     :disabled="!newMessage.trim() || sending"
                     :aria-label="$t('messages.send')"
                     :title="$t('messages.send')"
-                    class="p-1.5 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-zinc-700 text-white rounded-md transition-colors"
+                    class="p-1.5 bg-blue-500 hover:bg-sem-action-primary disabled:bg-gray-300 dark:disabled:bg-zinc-700 text-sem-action-primary-text rounded-md transition-colors"
                     @click="sendMessage"
                 >
                     <MaterialDesignIcon

@@ -25,7 +25,7 @@
             class="px-4 py-2 rounded-xl font-bold transition-all shadow-xs flex items-center gap-2"
             :class="[
                 isRecording
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    ? 'bg-sem-action-primary text-sem-action-primary-text hover:bg-blue-700'
                     : 'bg-sem-surface-muted text-sem-fg-muted hover:bg-gray-200 hover:bg-sem-surface-muted',
             ]"
             @click="toggleRecording"

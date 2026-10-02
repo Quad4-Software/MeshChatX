@@ -168,7 +168,7 @@
                                             class="flex-1 rounded px-2 py-1 text-[10px] font-bold transition-colors"
                                             :class="
                                                 (configStore.config.nomad_micron_default_engine || 'js') === 'js'
-                                                    ? 'bg-blue-600 text-white dark:bg-blue-500'
+                                                    ? 'bg-sem-action-primary text-sem-action-primary-text dark:bg-blue-500'
                                                     : 'bg-[var(--mc-surface-hover)] text-[var(--mc-text-secondary)] hover:bg-[var(--mc-border-strong)]'
                                             "
                                             :disabled="!configStore.config.nomad_micron_wasm_enabled"
@@ -184,7 +184,7 @@
                                             class="flex-1 rounded px-2 py-1 text-[10px] font-bold transition-colors"
                                             :class="
                                                 (configStore.config.nomad_micron_default_engine || 'js') === 'wasm'
-                                                    ? 'bg-blue-600 text-white dark:bg-blue-500'
+                                                    ? 'bg-sem-action-primary text-sem-action-primary-text dark:bg-blue-500'
                                                     : 'bg-[var(--mc-surface-hover)] text-[var(--mc-text-secondary)] hover:bg-[var(--mc-border-strong)]'
                                             "
                                             :disabled="!configStore.config.nomad_micron_wasm_enabled"
@@ -704,7 +704,7 @@
                             <div class="text-sm text-sem-fg-muted">{{ $t("nomadnet.archived_version_available") }}</div>
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+                                class="inline-flex items-center gap-2 rounded-lg bg-sem-action-primary px-4 py-2 text-sm font-semibold text-sem-action-primary-text shadow-sm hover:bg-blue-500"
                                 @click="toggleArchiveDropdown"
                             >
                                 <MaterialDesignIcon icon-name="archive" class="size-5" />

@@ -125,7 +125,7 @@
                 </button>
                 <button
                     type="button"
-                    class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm disabled:opacity-50"
+                    class="px-3 py-1.5 rounded-md bg-sem-action-primary text-sem-action-primary-text text-sm disabled:opacity-50"
                     :disabled="confirming || signatureBlocksInstall"
                     @click="confirm"
                 >

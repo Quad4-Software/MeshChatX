@@ -139,7 +139,7 @@
                                     <!-- node item -->
                                     <div class="flex flex-col items-center group relative w-32 shrink-0">
                                         <div
-                                            class="w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-md group-hover:shadow-indigo-500/20 group-hover:scale-110 z-10"
+                                            class="w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-md group-hover:shadow-sem-action-primary/20 group-hover:scale-110 z-10"
                                             :class="getNodeClass(node)"
                                         >
                                             <MaterialDesignIcon :icon-name="getNodeIcon(node)" class="size-7" />
@@ -188,7 +188,7 @@
                                             v-if="
                                                 traceResult.path[idx + 1].type !== 'unknown' && node.type !== 'unknown'
                                             "
-                                            class="absolute right-0 -top-1 w-2 h-2 rounded-full bg-indigo-500 shadow-xs shadow-indigo-500/50"
+                                            class="absolute right-0 -top-1 w-2 h-2 rounded-full bg-indigo-500 shadow-xs shadow-sem-action-primary/50"
                                         ></div>
                                     </div>
                                 </template>
@@ -330,7 +330,7 @@ export default {
             }
         },
         getNodeClass(node) {
-            if (node.type === "local") return "bg-blue-600 text-white";
+            if (node.type === "local") return "bg-sem-action-primary text-sem-action-primary-text";
             if (node.type === "destination") return "bg-emerald-600 text-white";
             if (node.type === "unknown")
                 return "bg-sem-surface-muted text-gray-400 dark:text-gray-600 border-2 border-dashed border-sem-border shadow-none";

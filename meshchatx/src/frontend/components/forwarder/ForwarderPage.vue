@@ -52,7 +52,7 @@
                         </div>
                         <div class="flex justify-end">
                             <button
-                                class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+                                class="px-6 py-2 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-xl font-medium transition-colors flex items-center gap-2"
                                 @click="addRule"
                             >
                                 <MaterialDesignIcon icon-name="plus" class="w-5 h-5" />

@@ -12,6 +12,15 @@ injectMeshchatThemeVariables();
 
 window.DOMPurify = DOMPurify;
 import "./fonts/RobotoMonoNerdFont/font.css";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/700.css";
+import "@fontsource/ibm-plex-sans/400.css";
+import "@fontsource/ibm-plex-sans/700.css";
+import "@fontsource/space-grotesk/400.css";
+import "@fontsource/space-grotesk/700.css";
 import { startCodec2ScriptsBackgroundLoad } from "./js/Codec2Loader";
 import { createApiClient } from "./js/apiClient.js";
 import { fetchCsrfToken } from "./js/csrfToken.js";

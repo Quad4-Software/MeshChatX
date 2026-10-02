@@ -293,6 +293,10 @@
                     >
                         <option value="system">{{ $t("app.ui_font_system") }}</option>
                         <option value="noto-sans">{{ $t("app.ui_font_noto_sans") }}</option>
+                        <option value="inter">{{ $t("app.ui_font_inter") }}</option>
+                        <option value="jetbrains-mono">{{ $t("app.ui_font_jetbrains_mono") }}</option>
+                        <option value="ibm-plex-sans">{{ $t("app.ui_font_ibm_plex_sans") }}</option>
+                        <option value="space-grotesk">{{ $t("app.ui_font_space_grotesk") }}</option>
                         <option value="roboto-mono-nerd">{{ $t("app.ui_font_roboto_mono_nerd") }}</option>
                         <option v-if="config.ui_custom_font_name" value="custom">
                             {{ config.ui_custom_font_name }}
@@ -567,7 +571,7 @@
                             {{ $t("settings.inbound_bubble_default_hint") }}
                             <button
                                 type="button"
-                                class="ml-2 px-2 py-1 bg-blue-500 text-white rounded-lg not-italic font-bold"
+                                class="ml-2 px-2 py-1 bg-sem-action-primary text-sem-action-primary-text rounded-lg not-italic font-bold"
                                 @click="onInboundBubbleCustomize"
                             >
                                 {{ $t("settings.inbound_bubble_customize") }}
@@ -686,13 +690,15 @@ export default {
                 const name = String(this.config.ui_custom_font_name).replace(/["\\]/g, "");
                 return { fontFamily: `"${name}", ui-sans-serif, system-ui, sans-serif` };
             }
-            if (key === "noto-sans") {
-                return { fontFamily: '"Noto Sans", ui-sans-serif, system-ui, sans-serif' };
-            }
-            if (key === "roboto-mono-nerd") {
-                return { fontFamily: '"Roboto Mono Nerd Font", ui-monospace, monospace' };
-            }
-            return {};
+            const stacks = {
+                "noto-sans": '"Noto Sans", ui-sans-serif, system-ui, sans-serif',
+                "inter": '"Inter", ui-sans-serif, system-ui, sans-serif',
+                "jetbrains-mono": '"JetBrains Mono", ui-monospace, monospace',
+                "ibm-plex-sans": '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
+                "space-grotesk": '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
+                "roboto-mono-nerd": '"Roboto Mono Nerd Font", ui-monospace, monospace',
+            };
+            return stacks[key] ? { fontFamily: stacks[key] } : {};
         },
         sidebarPositionOptions() {
             return [

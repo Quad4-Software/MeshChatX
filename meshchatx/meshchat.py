@@ -6399,6 +6399,42 @@ class ReticulumMeshChat:
                 preset = "void"
             self.config.theme_preset.set(preset)
 
+        if "ui_font_family" in data:
+            val = str(data["ui_font_family"] or "system").strip()
+            if val not in (
+                "system",
+                "noto-sans",
+                "inter",
+                "jetbrains-mono",
+                "ibm-plex-sans",
+                "space-grotesk",
+                "roboto-mono-nerd",
+                "custom",
+            ):
+                val = "system"
+            self.config.ui_font_family.set(val)
+
+        if "ui_custom_font_name" in data:
+            val = str(data["ui_custom_font_name"] or "").strip()[:128]
+            self.config.ui_custom_font_name.set(val or None)
+
+        if "ui_custom_font_data" in data:
+            val = str(data["ui_custom_font_data"] or "")
+            if len(val) > 4 * 1024 * 1024:  # 4MB base64 cap
+                val = ""
+            self.config.ui_custom_font_data.set(val or None)
+
+        if "ui_transparency" in data:
+            val = self._coerce_int(data["ui_transparency"])
+            if val is None:
+                val = 0
+            self.config.ui_transparency.set(max(0, min(100, val)))
+
+        if "ui_glass_enabled" in data:
+            self.config.ui_glass_enabled.set(
+                self._parse_bool(data["ui_glass_enabled"]),
+            )
+
         if "accent_color" in data:
             self.config.accent_color.set(
                 self._normalize_optional_hex_color(data["accent_color"]),

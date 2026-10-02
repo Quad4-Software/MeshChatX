@@ -46,7 +46,7 @@
             </button>
             <button
                 type="button"
-                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-sem-action-primary text-sem-action-primary-text rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="disabled || !hasFeatures"
                 @click="$emit('export-geojson')"
             >
@@ -54,7 +54,7 @@
             </button>
             <button
                 type="button"
-                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-sem-action-primary text-sem-action-primary-text rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="disabled || !hasFeatures"
                 @click="$emit('export-kml')"
             >
@@ -62,7 +62,7 @@
             </button>
             <button
                 type="button"
-                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-sem-action-primary text-sem-action-primary-text rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="disabled || !hasFeatures"
                 @click="$emit('export-kmz')"
             >
@@ -70,7 +70,7 @@
             </button>
             <button
                 type="button"
-                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-sem-action-primary text-sem-action-primary-text rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="disabled || !hasFeatures"
                 @click="$emit('export-gpx')"
             >

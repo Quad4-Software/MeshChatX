@@ -21,7 +21,7 @@
                                     class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     :class="
                                         hasChanges && !isSaving
-                                            ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:border-blue-500 dark:hover:bg-blue-600'
+                                            ? 'bg-sem-action-primary text-sem-action-primary-text border-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:border-blue-500 dark:hover:bg-blue-600'
                                             : 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-zinc-800 text-sem-fg-muted dark:border-zinc-700'
                                     "
                                     @click="saveChanges"

@@ -292,7 +292,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-red-300 dark:border-red-800 bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-red-300 dark:border-red-800 bg-sem-action-danger text-sem-action-danger-text hover:bg-red-700 disabled:opacity-60"
                                             :disabled="messageAgePurgeBusy"
                                             @click="purgeOldMessages"
                                         >

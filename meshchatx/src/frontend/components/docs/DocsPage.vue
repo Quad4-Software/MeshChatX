@@ -132,7 +132,7 @@
                                     class="p-2 border-t border-gray-100 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/50"
                                 >
                                     <label
-                                        class="flex items-center justify-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors text-[10px] font-bold uppercase"
+                                        class="flex items-center justify-center gap-2 px-3 py-1.5 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-lg cursor-pointer transition-colors text-[10px] font-bold uppercase"
                                     >
                                         <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
                                         <span>{{ $t("docs.upload_zip") }}</span>
@@ -662,7 +662,7 @@
                         </p>
                     </div>
                     <label
-                        class="px-6 py-2 bg-blue-600 text-white rounded-full text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 cursor-pointer flex items-center gap-2"
+                        class="px-6 py-2 bg-sem-action-primary text-sem-action-primary-text rounded-full text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-sem-action-primary/20 cursor-pointer flex items-center gap-2"
                     >
                         <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
                         <span>{{ $t("docs.btn_upload") }}</span>

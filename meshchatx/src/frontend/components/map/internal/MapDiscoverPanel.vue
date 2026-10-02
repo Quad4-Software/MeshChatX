@@ -9,7 +9,7 @@
             <p class="text-[11px] text-sem-fg-muted leading-snug">{{ $t("map.data_listen_off") }}</p>
             <button
                 type="button"
-                class="w-full py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-blue-500 hover:bg-blue-600 text-white"
+                class="w-full py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-blue-500 hover:bg-sem-action-primary text-sem-action-primary-text"
                 @click="$emit('enable-listen')"
             >
                 {{ $t("map.data_listen_enable") }}
@@ -72,7 +72,7 @@
                         </div>
                         <button
                             type="button"
-                            class="text-[10px] font-semibold bg-blue-500 text-white rounded px-2 py-1 disabled:opacity-40"
+                            class="text-[10px] font-semibold bg-sem-action-primary text-sem-action-primary-text rounded px-2 py-1 disabled:opacity-40"
                             :disabled="busyHash === item.destination_hash + entry.id"
                             @click="addOverlay(item.destination_hash, entry.id)"
                         >

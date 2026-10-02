@@ -46,7 +46,7 @@
                 <span>{{ $t("map.download_now") }}</span>
             </a>
             <button
-                class="flex items-center justify-center space-x-2 w-full py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold transition-colors shadow-md text-xs"
+                class="flex items-center justify-center space-x-2 w-full py-2 bg-blue-500 hover:bg-sem-action-primary text-sem-action-primary-text rounded-lg font-bold transition-colors shadow-md text-xs"
                 @click="$emit('show-offline-maps')"
             >
                 <MaterialDesignIcon icon-name="map-check" class="size-4" />

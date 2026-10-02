@@ -257,7 +257,7 @@
                                             class="absolute inset-0 z-10 flex items-center justify-center bg-white/25 dark:bg-zinc-900/25 md:backdrop-blur-[0.5px] rounded-3xl pointer-events-none"
                                         >
                                             <div
-                                                class="bg-red-500/90 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
+                                                class="bg-sem-action-danger/90 text-sem-action-danger-text px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
                                             >
                                                 <MaterialDesignIcon
                                                     :icon-name="
@@ -781,7 +781,7 @@
 
         <RouterLink
             :to="{ name: 'interfaces.add' }"
-            class="sm:hidden fixed bottom-5 right-4 z-60 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg ring-1 ring-blue-400/30 transition active:scale-95"
+            class="sm:hidden fixed bottom-5 right-4 z-60 flex h-14 w-14 items-center justify-center rounded-full bg-sem-action-primary text-sem-action-primary-text shadow-lg ring-1 ring-blue-400/30 transition active:scale-95"
             :title="$t('interfaces.add_interface')"
         >
             <MaterialDesignIcon icon-name="plus" class="w-7 h-7" />

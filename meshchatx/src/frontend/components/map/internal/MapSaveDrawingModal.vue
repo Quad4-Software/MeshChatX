@@ -37,7 +37,7 @@
                     </button>
                     <button
                         type="button"
-                        class="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/25 hover:bg-blue-500 transition active:scale-95 disabled:opacity-50"
+                        class="flex-1 px-4 py-2.5 rounded-xl bg-sem-action-primary text-sem-action-primary-text text-sm font-semibold shadow-lg shadow-sem-action-primary/25 hover:bg-blue-500 transition active:scale-95 disabled:opacity-50"
                         :disabled="!String(name || '').trim()"
                         @click="$emit('save')"
                     >

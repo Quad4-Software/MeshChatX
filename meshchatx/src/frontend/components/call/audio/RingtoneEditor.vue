@@ -18,7 +18,7 @@
             class="relative bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-4 border border-sem-border min-h-[200px] flex flex-col justify-center"
         >
             <div v-if="loading" class="flex flex-col items-center justify-center space-y-3">
-                <div class="size-8 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                <div class="size-8 border-4 border-sem-action-info/20 border-t-blue-500 rounded-full animate-spin"></div>
                 <p class="text-sm text-sem-fg-muted font-medium">Loading audio...</p>
             </div>
 
@@ -33,18 +33,18 @@
 
                 <!-- Selection Overlays -->
                 <div
-                    class="absolute top-0 bottom-0 bg-blue-500/10 border-x-2 border-blue-500 z-20"
+                    class="absolute top-0 bottom-0 bg-blue-500/10 border-x-2 border-sem-action-info z-20"
                     :style="{ left: startPercent + '%', width: endPercent - startPercent + '%' }"
                 >
                     <!-- Handles -->
                     <div
-                        class="absolute top-1/2 -left-3 -translate-y-1/2 size-6 bg-white dark:bg-zinc-700 border-2 border-blue-500 rounded-full shadow-lg cursor-ew-resize flex items-center justify-center group"
+                        class="absolute top-1/2 -left-3 -translate-y-1/2 size-6 bg-white dark:bg-zinc-700 border-2 border-sem-action-info rounded-full shadow-lg cursor-ew-resize flex items-center justify-center group"
                         @mousedown.stop.prevent="startDragging('start')"
                     >
                         <div class="w-0.5 h-3 bg-blue-500 group-hover:h-4 transition-all"></div>
                     </div>
                     <div
-                        class="absolute top-1/2 -right-3 -translate-y-1/2 size-6 bg-white dark:bg-zinc-700 border-2 border-blue-500 rounded-full shadow-lg cursor-ew-resize flex items-center justify-center group"
+                        class="absolute top-1/2 -right-3 -translate-y-1/2 size-6 bg-white dark:bg-zinc-700 border-2 border-sem-action-info rounded-full shadow-lg cursor-ew-resize flex items-center justify-center group"
                         @mousedown.stop.prevent="startDragging('end')"
                     >
                         <div class="w-0.5 h-3 bg-blue-500 group-hover:h-4 transition-all"></div>
@@ -95,8 +95,8 @@
                     class="flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all w-full"
                     :class="
                         isPlaying
-                            ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
-                            : 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                            ? 'bg-sem-action-warning text-sem-action-warning-text shadow-lg shadow-sem-action-warning/20'
+                            : 'bg-sem-action-primary text-sem-action-primary-text shadow-lg shadow-sem-action-primary/20'
                     "
                     @click="togglePlay"
                 >

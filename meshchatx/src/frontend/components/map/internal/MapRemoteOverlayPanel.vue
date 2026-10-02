@@ -65,7 +65,7 @@
             </label>
             <button
                 type="button"
-                class="py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-40"
+                class="py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-blue-500 hover:bg-sem-action-primary text-sem-action-primary-text disabled:opacity-40"
                 :disabled="disabled || importing || !url.trim()"
                 @click="importSources"
             >

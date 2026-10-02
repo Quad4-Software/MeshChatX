@@ -200,3 +200,76 @@ def test_auto_propagation_config(db):
     assert config.lxmf_preferred_propagation_node_auto_select.get() is False
     config.lxmf_preferred_propagation_node_auto_select.set(True)
     assert config.lxmf_preferred_propagation_node_auto_select.get() is True
+
+
+def test_all_registered_config_keys_are_handled_in_update_config():
+    """Every StringConfig/BoolConfig/IntConfig/FloatConfig key in config_manager.py
+    must be handled in MeshChatX.update_config — otherwise the setting silently
+    drops on save. This test catches missing handlers."""
+    import re
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parents[2]
+    cm_src = (repo / "meshchatx/src/backend/config_manager.py").read_text()
+    app_src = (repo / "meshchatx/meshchat.py").read_text()
+
+    registered = set(
+        re.findall(
+            r'(?:StringConfig|BoolConfig|IntConfig|FloatConfig)\(self,\s*["\']([^"\']+)["\']',
+            cm_src,
+        )
+    )
+    # Keys that are intentionally not handled via update_config (internal only,
+    # set by system paths not user settings, or handled elsewhere).
+    EXEMPT = {
+        "auth_password_hash",
+        "auth_session_secret",
+        "auth_session_epoch",
+        "auth_enabled",
+        "lxmf_address_hash",
+        "lxst_address_hash",
+        "last_announced_at",
+        "csp_extra_frame_src",
+        "csp_extra_img_src",
+        "csp_extra_script_src",
+        "csp_extra_style_src",
+        # Set via dedicated routes, not the generic config PATCH
+        "map_offline_path",
+        "ringtone_filename",
+    }
+    # Extract all keys checked with `in data` inside update_config.
+    # Bound the body by the next top-level `    async def` / `    def` after it.
+    uc_start = app_src.index("async def update_config(self, data):")
+    uc_tail = app_src[uc_start:]
+    m = re.search(r"\n    (?:async )?def \w+\(", uc_tail[10:])
+    uc_end = uc_start + 10 + m.start() if m else len(app_src)
+    uc_body = app_src[uc_start:uc_end]
+    handled = set(re.findall(r'["\']([a-z_]+)["\']\s+in\s+data', uc_body))
+
+    unhandled = registered - handled - EXEMPT
+    assert not unhandled, (
+        f"Config keys registered in config_manager.py but missing from "
+        f"update_config: {sorted(unhandled)}"
+    )
+
+
+def test_font_family_whitelist_matches_frontend_bundled_fonts():
+    """The ui_font_family whitelist in update_config must cover every key in
+    BUNDLED_FONTS plus 'system' and 'custom', or font selection silently resets."""
+    import re
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parents[2]
+    app_src = (repo / "meshchatx/meshchat.py").read_text()
+
+    start = app_src.index('if "ui_font_family" in data:')
+    end = app_src.index("self.config.ui_font_family.set", start)
+    backend_fonts = set(re.findall(r'"([a-z\-]+)"', app_src[start:end]))
+
+    fe_src = (repo / "meshchatx/src/frontend/js/fontLoader.js").read_text()
+    bundled = set(re.findall(r'^\s+"([a-z\-]+)":', fe_src, re.M))
+
+    expected = bundled | {"system", "custom"}
+    assert backend_fonts == expected, (
+        f"backend whitelist {sorted(backend_fonts)} != frontend fonts {sorted(expected)}"
+    )

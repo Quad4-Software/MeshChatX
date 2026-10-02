@@ -31,7 +31,7 @@
                         @change="onInstallFile"
                     />
                     <span
-                        class="px-4 py-2 rounded-md bg-blue-600 text-white text-sm cursor-pointer hover:bg-blue-700"
+                        class="px-4 py-2 rounded-md bg-sem-action-primary text-sem-action-primary-text text-sm cursor-pointer hover:bg-blue-700"
                         :class="installing || previewing ? 'opacity-60 pointer-events-none' : ''"
                     >
                         {{
@@ -125,7 +125,7 @@
                         <button
                             v-if="!plugin.enabled"
                             type="button"
-                            class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm"
+                            class="px-3 py-1.5 rounded-md bg-sem-action-primary text-sem-action-primary-text text-sm"
                             :disabled="busyPluginId === plugin.id"
                             @click="enablePlugin(plugin.id)"
                         >
@@ -223,7 +223,7 @@
                 <div class="flex flex-wrap gap-2">
                     <button
                         type="button"
-                        class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm"
+                        class="px-3 py-1.5 rounded-md bg-sem-action-primary text-sem-action-primary-text text-sm"
                         :disabled="sidebandBusy"
                         @click="saveSidebandConfig"
                     >

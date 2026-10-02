@@ -25,7 +25,7 @@
                     <div v-if="oidcEnabled" class="mb-6">
                         <button
                             type="button"
-                            class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                            class="w-full py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text font-semibold rounded-lg transition-colors"
                             @click="startOidcLogin"
                         >
                             {{ $t("auth.oidc_continue", { name: oidcName }) }}
@@ -84,7 +84,7 @@
                         <button
                             type="submit"
                             :disabled="isLoading || (showSetupForm && password !== confirmPassword)"
-                            class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+                            class="w-full py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover disabled:bg-sem-fg-muted/40 disabled:cursor-not-allowed text-sem-action-primary-text font-semibold rounded-lg transition-colors"
                         >
                             <span v-if="isLoading">{{ $t("auth.processing") }}</span>
                             <span v-else>{{ showSetupForm ? $t("auth.set_password") : $t("auth.login") }}</span>

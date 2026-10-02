@@ -4,7 +4,7 @@
     <div class="absolute inset-x-0 top-0 mt-14 z-20 flex justify-center px-2 pointer-events-none">
         <div class="flex flex-col items-center gap-2 max-w-[min(100vw-2rem,36rem)] w-full pointer-events-auto">
             <div
-                class="px-4 py-2 bg-blue-600 text-white rounded-full shadow-lg font-medium text-sm animate-bounce text-center"
+                class="px-4 py-2 bg-sem-action-primary text-sem-action-primary-text rounded-full shadow-lg font-medium text-sm animate-bounce text-center"
             >
                 {{ $t("map.export_instructions") }}
             </div>

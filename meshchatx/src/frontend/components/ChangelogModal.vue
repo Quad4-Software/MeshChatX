@@ -19,7 +19,7 @@
                 </h2>
                 <span
                     v-if="version"
-                    class="ml-3 inline-flex h-5 items-center rounded-xs bg-blue-600 px-2 text-[10px] font-black uppercase tracking-tighter text-white"
+                    class="ml-3 inline-flex h-5 items-center rounded-xs bg-sem-action-primary px-2 text-[10px] font-black uppercase tracking-tighter text-sem-action-primary-text"
                 >
                     v{{ version }}
                 </span>
@@ -80,7 +80,7 @@
                         </h1>
                         <div class="flex items-center gap-2">
                             <span
-                                class="inline-flex h-5 items-center rounded-xs bg-blue-600 px-2 text-[10px] font-black text-white"
+                                class="inline-flex h-5 items-center rounded-xs bg-sem-action-primary px-2 text-[10px] font-black text-sem-action-primary-text"
                             >
                                 v{{ version }}
                             </span>
@@ -273,7 +273,7 @@ export default {
 
 .changelog-content h2::before {
     content: "VERSION";
-    @apply text-[10px] font-black bg-blue-500 text-white px-1.5 py-0.5 rounded-xs tracking-tighter;
+    @apply text-[10px] font-black bg-sem-action-primary text-sem-action-primary-text px-1.5 py-0.5 rounded-xs tracking-tighter;
 }
 
 .changelog-content h3 {
@@ -318,6 +318,6 @@ export default {
 }
 
 .changelog-content .version-tag {
-    @apply bg-blue-600 text-white px-2 py-0.5 rounded-xs font-black text-sm tracking-tighter;
+    @apply bg-sem-action-primary text-sem-action-primary-text px-2 py-0.5 rounded-xs font-black text-sm tracking-tighter;
 }
 </style>

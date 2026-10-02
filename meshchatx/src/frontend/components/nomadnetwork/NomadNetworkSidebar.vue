@@ -18,7 +18,7 @@
                     class="p-2 rounded-xl transition-colors"
                     :class="
                         tab === 'favourites'
-                            ? 'bg-blue-600 text-white dark:bg-blue-500'
+                            ? 'bg-sem-action-primary text-sem-action-primary-text dark:bg-blue-500'
                             : 'text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800'
                     "
                     @click="tab = 'favourites'"
@@ -30,7 +30,7 @@
                     class="p-2 rounded-xl transition-colors"
                     :class="
                         tab === 'announces'
-                            ? 'bg-blue-600 text-white dark:bg-blue-500'
+                            ? 'bg-sem-action-primary text-sem-action-primary-text dark:bg-blue-500'
                             : 'text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800'
                     "
                     @click="tab = 'announces'"

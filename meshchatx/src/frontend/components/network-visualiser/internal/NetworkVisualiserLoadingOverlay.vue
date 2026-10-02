@@ -20,7 +20,7 @@
             <div v-if="totalNodesToLoad > 0" class="w-48 space-y-2">
                 <div class="h-1.5 bg-gray-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                     <div
-                        class="h-full bg-blue-500 transition-all duration-300 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                        class="h-full bg-sem-action-info transition-all duration-300 shadow-[0_0_8px_var(--mc-action-info)]"
                         :style="{ width: `${(loadedNodesCount / totalNodesToLoad) * 100}%` }"
                     ></div>
                 </div>

@@ -3,7 +3,7 @@
         <div class="flex flex-wrap items-center gap-2">
             <button
                 type="button"
-                class="rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-sm font-medium flex items-center gap-1"
+                class="rounded-xl bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text px-3 py-1.5 text-sm font-medium flex items-center gap-1"
                 @click="openCreatePack"
             >
                 <MaterialDesignIcon icon-name="folder-plus-outline" class="size-4" />
@@ -143,7 +143,7 @@
                     </button>
                     <button
                         type="button"
-                        class="rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-sm"
+                        class="rounded-lg bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text px-3 py-1.5 text-sm"
                         :disabled="!newPackTitle"
                         @click="confirmCreatePack"
                     >

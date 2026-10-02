@@ -7,7 +7,7 @@
         <div class="p-4 border-b border-sem-border flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div
-                    class="size-8 rounded-full flex items-center justify-center bg-blue-600 text-white text-sm font-bold"
+                    class="size-8 rounded-full flex items-center justify-center bg-sem-action-primary text-sem-action-primary-text text-sm font-bold"
                 >
                     {{ cluster.count }}
                 </div>

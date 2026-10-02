@@ -333,7 +333,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="px-2 py-1 text-[10px] font-semibold rounded-lg bg-blue-500 text-white hover:bg-blue-600"
+                                    class="px-2 py-1 text-[10px] font-semibold rounded-lg bg-sem-action-primary text-sem-action-primary-text hover:bg-blue-600"
                                     @click.stop="saveDrawFeatureInfoEdit"
                                 >
                                     {{ $t("common.save") }}
@@ -609,7 +609,7 @@
                     </select>
                     <button
                         type="button"
-                        class="w-full py-2 mb-3 text-sm font-bold bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+                        class="w-full py-2 mb-3 text-sm font-bold bg-blue-500 hover:bg-sem-action-primary text-sem-action-primary-text rounded-lg"
                         :disabled="!pingDestinationHash"
                         @click="sendMapPing"
                     >
@@ -758,7 +758,7 @@
                 <div class="p-3 space-y-4 overflow-y-auto scrollbar-thin flex-1">
                     <div class="grid grid-cols-2 gap-2">
                         <button
-                            class="flex items-center justify-center space-x-1.5 px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95"
+                            class="flex items-center justify-center space-x-1.5 px-2 py-2 bg-blue-500 hover:bg-sem-action-primary text-sem-action-primary-text rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95"
                             @click="setAsDefaultView"
                         >
                             <MaterialDesignIcon icon-name="pin" class="size-3" />
@@ -808,7 +808,7 @@
                                             tileServerUrl.includes('rastertiles/voyager')) ||
                                         (style.id === 'carto-light' &&
                                             tileServerUrl.includes('basemaps.cartocdn.com/light_all'))
-                                            ? 'bg-blue-500 border-blue-600 text-white shadow-xs ring-2 ring-blue-500/20'
+                                            ? 'bg-sem-action-primary border-blue-600 text-sem-action-primary-text shadow-xs ring-2 ring-blue-500/20'
                                             : 'bg-sem-surface border-sem-border text-sem-fg-muted hover:bg-sem-surface-muted'
                                     "
                                     @click="setTileServer(style.id)"
@@ -991,7 +991,7 @@
                         <div class="flex flex-wrap gap-2 pt-1">
                             <button
                                 type="button"
-                                class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-sem-action-primary hover:bg-blue-500 text-sem-action-primary-text transition-colors"
                                 @click="retryMapTiles"
                             >
                                 {{ $t("map.tile_connectivity_retry") }}
@@ -1050,7 +1050,7 @@
                         {{ $t("map.onboarding_text") }}
                     </p>
                     <button
-                        class="w-full px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium"
+                        class="w-full px-3 py-2 bg-blue-500 hover:bg-sem-action-primary text-sem-action-primary-text rounded-lg transition-colors text-sm font-medium"
                         @click="dismissOnboardingTooltip"
                     >
                         {{ $t("map.onboarding_got_it") }}

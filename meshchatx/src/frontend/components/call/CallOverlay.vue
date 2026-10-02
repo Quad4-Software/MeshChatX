@@ -204,7 +204,7 @@
                     class="p-2.5 rounded-full transition-all duration-200"
                     :class="
                         isMicMuted
-                            ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
+                            ? 'bg-sem-action-danger text-sem-action-danger-text shadow-lg shadow-sem-action-danger/30'
                             : 'bg-sem-surface-muted text-sem-fg-muted hover:bg-gray-200 hover:bg-sem-surface-muted'
                     "
                     @click="toggleMicrophone"
@@ -219,7 +219,7 @@
                     class="p-2.5 rounded-full transition-all duration-200"
                     :class="
                         isSpeakerMuted
-                            ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
+                            ? 'bg-sem-action-danger text-sem-action-danger-text shadow-lg shadow-sem-action-danger/30'
                             : 'bg-sem-surface-muted text-sem-fg-muted hover:bg-gray-200 hover:bg-sem-surface-muted'
                     "
                     @click="toggleSpeaker"
@@ -235,7 +235,7 @@
                             ? $t('call.decline_call')
                             : $t('call.hangup_call')
                     "
-                    class="p-2.5 rounded-full bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-600/30 transition-all duration-200"
+                    class="p-2.5 rounded-full bg-sem-action-danger text-sem-action-danger-text hover:bg-sem-action-danger-hover shadow-lg shadow-sem-action-danger/30 transition-all duration-200"
                     @click="hangupCall(null)"
                 >
                     <MaterialDesignIcon icon-name="phone-hangup" class="size-5 rotate-135" />
@@ -246,7 +246,7 @@
                     v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
                     type="button"
                     :title="$t('call.send_to_voicemail')"
-                    class="p-2.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/30 transition-all duration-200"
+                    class="p-2.5 rounded-full bg-sem-action-info text-sem-action-info-text hover:bg-sem-action-info-hover shadow-lg shadow-sem-action-info/30 transition-all duration-200"
                     @click="sendToVoicemail"
                 >
                     <MaterialDesignIcon icon-name="voicemail" class="size-5" />
@@ -257,7 +257,7 @@
                     v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
                     type="button"
                     :title="$t('call.answer_call')"
-                    class="p-2.5 rounded-full bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-600/30"
+                    class="p-2.5 rounded-full bg-sem-action-success text-sem-action-success-text hover:bg-sem-action-success-hover shadow-lg shadow-sem-action-success/30"
                     @click="answerCall(null)"
                 >
                     <MaterialDesignIcon icon-name="phone" class="size-5" />

@@ -32,7 +32,7 @@
         <div class="flex gap-2">
             <button
                 type="button"
-                class="flex-1 py-2 text-[10px] font-semibold uppercase rounded-lg bg-blue-500 text-white disabled:opacity-40"
+                class="flex-1 py-2 text-[10px] font-semibold uppercase rounded-lg bg-sem-action-primary text-sem-action-primary-text disabled:opacity-40"
                 :disabled="publishing"
                 @click="pickFile"
             >
