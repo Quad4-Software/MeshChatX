@@ -68,19 +68,30 @@
                 </button>
                 <button
                     type="button"
-                    class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
-                    :title="$t('nomadnet.history')"
-                    @click="showHistoryMenu = !showHistoryMenu"
+                    class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-purple-400 transition-colors hover:bg-purple-900/40 hover:text-purple-200"
+                    :title="$t('nomadnet.new_private_tab_shortcut')"
+                    @click="addTab('', null, null, true, true)"
                 >
-                    <MaterialDesignIcon icon-name="history" class="size-4 min-[900px]:size-5" />
+                    <MaterialDesignIcon icon-name="incognito" class="size-4 min-[900px]:size-5" />
                 </button>
+                <div class="relative flex h-full items-center shrink-0">
+                    <button
+                        ref="historyBtn"
+                        type="button"
+                        class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
+                        :title="$t('nomadnet.history')"
+                        @click="showHistoryMenu = !showHistoryMenu"
+                    >
+                        <MaterialDesignIcon icon-name="history" class="size-4 min-[900px]:size-5" />
+                    </button>
+                </div>
             </div>
-
-            <!-- history dropdown -->
+            <!-- history dropdown (outside the scrollable strip so it isn't clipped) -->
             <div
                 v-if="showHistoryMenu"
                 v-click-outside="{ handler: () => (showHistoryMenu = false), capture: true }"
-                class="absolute right-2 top-full mt-1 z-50 max-h-64 w-64 overflow-y-auto rounded-xl border border-sem-border bg-sem-surface shadow-lg"
+                class="absolute z-50 max-h-64 w-64 overflow-y-auto rounded-xl border border-sem-border bg-sem-surface shadow-lg"
+                :style="{ top: historyMenuTop + 'px', right: historyMenuRight + 'px' }"
             >
                 <div
                     class="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sem-fg-muted border-b border-sem-border"
@@ -268,6 +279,16 @@ export default {
         },
         historyEntries() {
             return getNomadHistory();
+        },
+        historyMenuTop() {
+            if (!this.$refs.historyBtn) return 32;
+            return this.$refs.historyBtn.getBoundingClientRect().bottom + 4;
+        },
+        historyMenuRight() {
+            if (!this.$refs.historyBtn) return 8;
+            const btnRight = this.$refs.historyBtn.getBoundingClientRect().right;
+            const containerRight = this.$el?.getBoundingClientRect().right || 0;
+            return Math.max(8, containerRight - btnRight);
         },
     },
     watch: {
