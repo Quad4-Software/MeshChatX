@@ -44,9 +44,9 @@
                         <MaterialDesignIcon v-else icon-name="map-marker-radius" class="size-[18px] sm:size-5" />
                     </button>
                     <select
+                        class="shrink-0 rounded-md border border-sem-border bg-sem-surface px-2 py-1 text-xs text-sem-fg"
                         v-if="discoveredVisible && discoveredTypes.length > 1"
                         v-model="discoveredTypeFilter"
-                        class="shrink-0 rounded-md border border-sem-border bg-sem-surface px-2 py-1 text-xs text-sem-fg"
                         :title="$t('map.filter_type')"
                         @change="updateMarkers"
                     >
@@ -600,7 +600,7 @@
                     }}</label>
                     <select
                         v-model="pingDestinationHash"
-                        class="w-full mb-2 bg-gray-50 dark:bg-zinc-800 border border-sem-border rounded-lg px-3 py-2 text-sm text-sem-fg"
+                        class="w-full mb-2 bg-sem-surface border border-sem-border rounded-lg px-3 py-2 text-sm text-sem-fg"
                     >
                         <option value="">{{ $t("map.ping_pick_conversation") }}</option>
                         <option v-for="p in conversationOptions" :key="p.hash" :value="p.hash">

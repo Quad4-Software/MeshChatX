@@ -908,6 +908,7 @@ import {
     isolateNomadLinksInHtml,
 } from "../../js/NomadPageRenderer";
 import DialogUtils from "../../js/DialogUtils";
+import { recordNomadVisit } from "../../js/nomadHistory.js";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import LiveTransport from "../../js/liveTransport.js";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
@@ -2834,6 +2835,12 @@ export default {
             this.isShowingArchivedVersion = false;
             this.archivedAt = null;
             this.nodePagePath = `${destinationHash}:${pagePath}`;
+            recordNomadVisit(
+                destinationHash,
+                pagePath,
+                this.selectedNode?.custom_display_name || this.selectedNode?.display_name || null,
+                this.isPrivate
+            );
             this.nodePageContent = null;
             this.pageArchives = [];
             this.nodePageProgress = 0;
