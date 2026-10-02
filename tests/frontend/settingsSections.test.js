@@ -172,12 +172,12 @@ describe("AppearanceSettingsSection", () => {
             },
         });
         expect(wrapper.text()).toContain("app.appearance");
-        const themeSelect = wrapper.find("select");
-        await themeSelect.setValue("dark");
+        const themeButtons = wrapper.findAll('button[role="radio"]');
+        await themeButtons[1].trigger("click");
         expect(wrapper.emitted("update-field")?.at(-1)).toEqual([{ key: "theme", value: "dark" }]);
         expect(wrapper.emitted("theme-change")).toHaveLength(1);
         expect(config.theme).toBe("light");
-        await themeSelect.setValue("system");
+        await themeButtons[2].trigger("click");
         expect(wrapper.emitted("update-field")?.at(-1)).toEqual([{ key: "theme", value: "system" }]);
         expect(wrapper.emitted("theme-change")).toHaveLength(2);
         expect(config.theme).toBe("light");
@@ -211,8 +211,8 @@ describe("AppearanceSettingsSection", () => {
                 mocks: { $t: (key) => key },
             },
         });
-        const selects = wrapper.findAll("select");
-        await selects[3].setValue("classic");
+        const layoutButtons = wrapper.findAll('button[role="radio"]').slice(-2);
+        await layoutButtons[1].trigger("click");
         expect(wrapper.emitted("update-field")?.at(-1)).toEqual([{ key: "app_sidebar_layout", value: "classic" }]);
         expect(wrapper.emitted("app-sidebar-layout-change")).toHaveLength(1);
         expect(config.app_sidebar_layout).toBe("grouped");
@@ -304,9 +304,11 @@ describe("VisualiserSettingsSection", () => {
             },
         });
         expect(wrapper.text()).toContain("visualiser.title");
-        await wrapper.find("#settings-visualiser-renderer").setValue("webgl");
+        const rendererControl = wrapper.find("#settings-visualiser-renderer");
+        await rendererControl.findAll('button')[1].trigger("click");
         expect(wrapper.emitted("renderer-change")?.at(-1)).toEqual(["webgl"]);
-        await wrapper.find("#settings-visualiser-view-mode").setValue("planet");
+        const viewModeControl = wrapper.find("#settings-visualiser-view-mode");
+        await viewModeControl.findAll('button')[1].trigger("click");
         expect(wrapper.emitted("view-mode-change")?.at(-1)).toEqual(["planet"]);
         const toggles = wrapper.findAllComponents({ name: "Toggle" });
         await toggles[0].vm.$emit("update:modelValue", true);

@@ -20,7 +20,6 @@ describe("ThemePresetPicker", () => {
             },
         });
 
-        expect(wrapper.findAll("select option").length).toBe(THEME_PRESET_CATALOG.length);
         expect(wrapper.findAll('[role="option"]').length).toBe(THEME_PRESET_CATALOG.length);
         expect(wrapper.findAll(".theme-preset-swatch").length).toBe(THEME_PRESET_CATALOG.length + 1);
     });

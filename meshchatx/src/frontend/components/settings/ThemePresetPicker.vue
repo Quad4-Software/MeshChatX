@@ -2,24 +2,9 @@
 
 <template>
     <div class="space-y-3" data-testid="theme-preset-picker">
-        <div
-            class="relative flex items-center gap-3 rounded-2xl border border-sem-border bg-sem-surface-muted px-3 py-2 focus-within:ring-2 focus-within:ring-sem-focus focus-within:border-sem-focus-border"
-        >
+        <div class="flex items-center gap-2 text-sm text-sem-fg-muted">
             <ThemePresetSwatch :colors="selectedPreviewColors" size="md" />
-            <select
-                :value="normalizedValue"
-                class="min-w-0 flex-1 appearance-none bg-none border-0 bg-transparent py-1.5 pr-8 text-sm text-sem-fg focus:outline-hidden focus:ring-0"
-                @change="onSelectChange"
-            >
-                <option v-for="preset in catalog" :key="preset.id" :value="preset.id">
-                    {{ $t(preset.labelKey) }}
-                </option>
-            </select>
-            <MaterialDesignIcon
-                icon-name="chevron-down"
-                class="pointer-events-none absolute right-3 top-1/2 size-5 -translate-y-1/2 text-sem-fg-muted"
-                aria-hidden="true"
-            />
+            <span class="font-medium text-sem-fg">{{ $t(selectedPresetLabelKey) }}</span>
         </div>
 
         <div
@@ -58,7 +43,6 @@
 </template>
 
 <script>
-import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ThemePresetSwatch from "./ThemePresetSwatch.vue";
 import {
     THEME_PRESET_CATALOG,
@@ -73,7 +57,6 @@ import {
 export default {
     name: "ThemePresetPicker",
     components: {
-        MaterialDesignIcon,
         ThemePresetSwatch,
     },
     props: {
@@ -101,6 +84,10 @@ export default {
         },
         selectedPreviewColors() {
             return this.previewColorsForPreset(this.normalizedValue);
+        },
+        selectedPresetLabelKey() {
+            const found = this.catalog.find((p) => p.id === this.normalizedValue);
+            return found ? found.labelKey : "app.theme_preset_default";
         },
     },
     methods: {
@@ -150,5 +137,3 @@ export default {
     },
 };
 </script>
-
-

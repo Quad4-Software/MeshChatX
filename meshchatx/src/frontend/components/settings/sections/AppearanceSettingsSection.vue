@@ -14,11 +14,11 @@
                 <div class="text-sm font-medium text-sem-fg">
                     {{ $t("app.theme") }}
                 </div>
-                <select :value="config.theme" class="input-field" @change="onThemeSelect">
-                    <option value="light">{{ $t("app.light_theme") }}</option>
-                    <option value="dark">{{ $t("app.dark_theme") }}</option>
-                    <option value="system">{{ $t("app.system_theme") }}</option>
-                </select>
+                <SegmentedControl
+                    :model-value="config.theme"
+                    :options="themeModes"
+                    @change="onThemeModeSelect"
+                />
             </div>
 
             <div class="space-y-2">
@@ -113,25 +113,23 @@
                 <div class="text-sm font-medium text-sem-fg">
                     {{ $t("app.messages_sidebar_position") }}
                 </div>
-                <select
-                    :value="config.messages_sidebar_position"
-                    class="input-field"
+                <SegmentedControl
+                    :model-value="config.messages_sidebar_position"
+                    :options="sidebarPositionOptions"
                     @change="onMessagesSidebarPositionSelect"
-                >
-                    <option value="left">{{ $t("app.messages_sidebar_position_left") }}</option>
-                    <option value="right">{{ $t("app.messages_sidebar_position_right") }}</option>
-                </select>
+                />
             </div>
 
             <div class="space-y-2">
-                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div class="text-sm font-medium text-sem-fg">
                     {{ $t("app.app_sidebar_layout") }}
                 </div>
-                <select :value="sidebarLayoutValue" class="input-field" @change="onAppSidebarLayoutSelect">
-                    <option value="grouped">{{ $t("app.app_sidebar_layout_grouped") }}</option>
-                    <option value="classic">{{ $t("app.app_sidebar_layout_classic") }}</option>
-                </select>
-                <p class="text-xs text-gray-600 dark:text-gray-400">
+                <SegmentedControl
+                    :model-value="sidebarLayoutValue"
+                    :options="sidebarLayoutOptions"
+                    @change="onAppSidebarLayoutSelect"
+                />
+                <p class="text-xs text-sem-fg-muted">
                     {{ $t("app.app_sidebar_layout_description") }}
                 </p>
             </div>
@@ -527,6 +525,7 @@
 
 <script>
 import Toggle from "../../forms/Toggle.vue";
+import SegmentedControl from "../../forms/SegmentedControl.vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import ThemePresetPicker from "../ThemePresetPicker.vue";
 import {
@@ -549,6 +548,7 @@ export default {
     name: "AppearanceSettingsSection",
     components: {
         Toggle,
+        SegmentedControl,
         MaterialDesignIcon,
         ThemePresetPicker,
     },
@@ -604,6 +604,29 @@ export default {
     computed: {
         themePresetCatalog() {
             return THEME_PRESET_CATALOG;
+        },
+        themeModes() {
+            return [
+                { value: "light", icon: "weather-sunny", label: "app.light_theme" },
+                { value: "dark", icon: "weather-night", label: "app.dark_theme" },
+                { value: "system", icon: "monitor", label: "app.system_theme" },
+            ];
+        },
+        sidebarPositionOptions() {
+            return [
+                { value: "left", icon: "format-horizontal-align-left", label: "app.messages_sidebar_position_left" },
+                {
+                    value: "right",
+                    icon: "format-horizontal-align-right",
+                    label: "app.messages_sidebar_position_right",
+                },
+            ];
+        },
+        sidebarLayoutOptions() {
+            return [
+                { value: "grouped", icon: "view-grid-outline", label: "app.app_sidebar_layout_grouped" },
+                { value: "classic", icon: "view-list-outline", label: "app.app_sidebar_layout_classic" },
+            ];
         },
         sidebarLayoutValue() {
             const layout = this.config?.app_sidebar_layout;
@@ -667,8 +690,8 @@ export default {
                 }
             }
         },
-        onThemeSelect(event) {
-            this.emitField("theme", event.target.value, "theme-change");
+        onThemeModeSelect(value) {
+            this.emitField("theme", value, "theme-change");
         },
         onThemePresetSelect(event) {
             this.emitField("theme_preset", event.target.value, "theme-preset-change");
@@ -689,12 +712,12 @@ export default {
         onCustomSurfaceInput(event) {
             this.emitField("custom_surface_color", event.target.value || null, "custom-surface-color-change");
         },
-        onMessagesSidebarPositionSelect(event) {
-            this.emitField("messages_sidebar_position", event.target.value, "messages-sidebar-position-change");
+        onMessagesSidebarPositionSelect(value) {
+            this.emitField("messages_sidebar_position", value, "messages-sidebar-position-change");
         },
-        onAppSidebarLayoutSelect(event) {
-            const value = event.target.value === "classic" ? "classic" : "grouped";
-            this.emitField("app_sidebar_layout", value, "app-sidebar-layout-change");
+        onAppSidebarLayoutSelect(value) {
+            const next = value === "classic" ? "classic" : "grouped";
+            this.emitField("app_sidebar_layout", next, "app-sidebar-layout-change");
         },
         onMessageFontSizeInput(event) {
             this.emitField("message_font_size", Number(event.target.value), "message-font-size-change");

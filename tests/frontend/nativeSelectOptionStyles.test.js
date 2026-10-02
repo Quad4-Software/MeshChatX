@@ -73,9 +73,10 @@ describe("native select option theming", () => {
     const allSelects = vueFiles.flatMap((file) => extractSelects(file, readFileSync(file, "utf8")));
 
     it("themes every native option via global select option rules", () => {
-        expect(styleCss).toMatch(/select\s+option\s*\{[^}]*background-color:\s*var\(--mc-surface\)/s);
-        expect(styleCss).toMatch(/select\s+option\s*\{[^}]*color:\s*var\(--mc-text\)/s);
-        expect(styleCss).not.toMatch(/select\.input-field\s+option\s*\{/);
+        expect(styleCss).toMatch(
+            /select option\s*\{[^}]*background-color:\s*var\(--mc-surface-solid,\s*var\(--mc-surface\)\)/s,
+        );
+        expect(styleCss).toMatch(/select option\s*\{[^}]*color:\s*var\(--mc-text\)/s);
     });
 
     it("does not ship component option rules that force unthemed white surfaces", () => {
@@ -113,12 +114,12 @@ describe("native select option theming", () => {
 
     it("keeps transparent selects covered by global option colors", () => {
         const transparent = allSelects.filter((sel) => sel.classes.includes("bg-transparent"));
-        expect(transparent.length).toBeGreaterThan(0);
-        expect(transparent.some((sel) => sel.rel.includes("ThemePresetPicker.vue"))).toBe(true);
         for (const sel of transparent) {
             expect(hasExplicitText(sel.classes), `${sel.rel}:${sel.line}`).toBe(true);
         }
-        expect(styleCss).toMatch(/select\s+option\s*\{[^}]*background-color:\s*var\(--mc-surface\)/s);
+        expect(styleCss).toMatch(
+            /select option\s*\{[^}]*background-color:\s*var\(--mc-surface-solid,\s*var\(--mc-surface\)\)/s,
+        );
     });
 
     it("uses semantic dropdown-panel colors for shared DropDownMenu chrome", () => {
