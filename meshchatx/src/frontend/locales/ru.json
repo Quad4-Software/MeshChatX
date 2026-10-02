@@ -4257,7 +4257,10 @@
         "prefs_hide_join_part_hint": "Строки присутствия о входе или выходе участников скрыты во всех комнатах.",
         "apply_auto_options_all_hubs": "Применить эти автоматические опции ко всем хабам",
         "auto_options_applied_all_hubs": "Автоматические опции применены ко всем хабам",
-        "unignore": "Прекратить игнорировать"
+        "unignore": "Прекратить игнорировать",
+        "members_tooltip": "{count} members online",
+        "hops_tooltip": "{count} network hops to hub",
+        "rtt_tooltip": "Round-trip latency to hub"
     },
     "rncp": {
         "file_transfer": "Передача файлов",

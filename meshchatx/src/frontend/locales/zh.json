@@ -4257,7 +4257,10 @@
         "prefs_hide_join_part_hint": "对等方加入或离开时的状态行将在所有房间中隐藏。",
         "apply_auto_options_all_hubs": "将这些自动选项应用到所有枢纽",
         "auto_options_applied_all_hubs": "自动选项已应用到所有枢纽",
-        "unignore": "取消忽略"
+        "unignore": "取消忽略",
+        "members_tooltip": "{count} members online",
+        "hops_tooltip": "{count} network hops to hub",
+        "rtt_tooltip": "Round-trip latency to hub"
     },
     "rncp": {
         "file_transfer": "文件传输",

@@ -4257,7 +4257,10 @@
         "prefs_hide_join_part_hint": "As linhas de presença de peers que entram ou saem ficam ocultas em todas as salas.",
         "apply_auto_options_all_hubs": "Aplicar estas opções automáticas a todos os hubs",
         "auto_options_applied_all_hubs": "Opções automáticas aplicadas a todos os hubs",
-        "unignore": "Deixar de ignorar"
+        "unignore": "Deixar de ignorar",
+        "members_tooltip": "{count} members online",
+        "hops_tooltip": "{count} network hops to hub",
+        "rtt_tooltip": "Round-trip latency to hub"
     },
     "rncp": {
         "file_transfer": "Transferência de Arquivos",

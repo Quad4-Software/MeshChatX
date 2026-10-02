@@ -355,14 +355,19 @@ select.input-field {
 }
 
 /* Semantic range slider — accent thumb, muted track */
+/* Height is the hit area, not the visual track height. */
 .range-input {
     -webkit-appearance: none;
     appearance: none;
+    height: 16px;
+    background: transparent;
+    outline: none;
+    cursor: pointer;
+}
+.range-input::-webkit-slider-runnable-track {
     height: 6px;
     border-radius: 9999px;
     background: var(--mc-surface-muted);
-    outline: none;
-    cursor: pointer;
 }
 .range-input::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -375,6 +380,8 @@ select.input-field {
     box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
     cursor: grab;
     transition: transform 0.1s ease;
+    /* Center thumb on track */
+    margin-top: -5px;
 }
 .range-input::-webkit-slider-thumb:hover {
     transform: scale(1.15);

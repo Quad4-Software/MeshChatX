@@ -100,12 +100,15 @@
                 data-testid="prop-nodes-hosted-expanded"
                 class="px-3 pb-3 space-y-2 border-t border-sem-border"
             >
-                <div
+                <button
                     v-if="config.lxmf_local_propagation_node_address_hash"
-                    class="pt-2 text-[11px] font-mono text-sem-fg-muted break-all"
+                    type="button"
+                    class="block w-full pt-2 text-left text-[11px] font-mono text-sem-fg-muted break-all cursor-pointer hover:text-sem-accent transition-colors"
+                    :title="$t('tools.propagation_nodes.copy_hash')"
+                    @click="copyLocalNodeHash"
                 >
                     {{ formatDestinationHash(config.lxmf_local_propagation_node_address_hash) }}
-                </div>
+                </button>
                 <div class="text-[11px] text-sem-fg-muted flex items-center gap-2">
                     <span>{{ formatPathLabel(nodePathFor(config.lxmf_local_propagation_node_address_hash)) }}</span>
                     <button
@@ -882,6 +885,18 @@ export default {
         },
         async copyPreferredHash() {
             const hash = this.config.lxmf_preferred_propagation_node_destination_hash;
+            if (!hash) {
+                return;
+            }
+            const ok = await copyTextToClipboard(hash);
+            if (ok) {
+                ToastUtils.success(this.$t("common.copied"));
+            } else {
+                ToastUtils.error(this.$t("common.failed_to_copy"));
+            }
+        },
+        async copyLocalNodeHash() {
+            const hash = this.config.lxmf_local_propagation_node_address_hash;
             if (!hash) {
                 return;
             }

@@ -4257,7 +4257,10 @@
         "prefs_hide_join_part_hint": "Las lineas de presencia de usuarios que entran o salen se ocultan en todas las salas.",
         "apply_auto_options_all_hubs": "Aplicar estas opciones automaticas a todos los hubs",
         "auto_options_applied_all_hubs": "Opciones automaticas aplicadas a todos los hubs",
-        "unignore": "Dejar de ignorar"
+        "unignore": "Dejar de ignorar",
+        "members_tooltip": "{count} members online",
+        "hops_tooltip": "{count} network hops to hub",
+        "rtt_tooltip": "Round-trip latency to hub"
     },
     "rncp": {
         "file_transfer": "Transferencia de Archivos",

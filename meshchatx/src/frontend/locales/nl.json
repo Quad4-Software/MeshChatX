@@ -4257,7 +4257,10 @@
         "prefs_hide_join_part_hint": "Aanwezigheidsregels van peers die binnenkomen of vertrekken worden in elke kamer verborgen.",
         "apply_auto_options_all_hubs": "Deze automatische opties op alle hubs toepassen",
         "auto_options_applied_all_hubs": "Automatische opties op alle hubs toegepast",
-        "unignore": "Negeren opheffen"
+        "unignore": "Negeren opheffen",
+        "members_tooltip": "{count} members online",
+        "hops_tooltip": "{count} network hops to hub",
+        "rtt_tooltip": "Round-trip latency to hub"
     },
     "rncp": {
         "file_transfer": "Bestandsoverdracht",

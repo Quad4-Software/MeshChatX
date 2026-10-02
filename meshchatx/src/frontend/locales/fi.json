@@ -4257,7 +4257,10 @@
         "prefs_hide_join_part_hint": "Liittyvien tai poistuvien käyttäjien läsnäolorivit piilotetaan kaikissa huoneissa.",
         "apply_auto_options_all_hubs": "Käytä näitä automaattiasetuksia kaikissa hubeissa",
         "auto_options_applied_all_hubs": "Automaattiasetukset käytetty kaikissa hubeissa",
-        "unignore": "Poista esto"
+        "unignore": "Poista esto",
+        "members_tooltip": "{count} members online",
+        "hops_tooltip": "{count} network hops to hub",
+        "rtt_tooltip": "Round-trip latency to hub"
     },
     "rncp": {
         "file_transfer": "Tiedostonsiirto",

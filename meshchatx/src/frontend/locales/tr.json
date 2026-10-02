@@ -4257,7 +4257,10 @@
         "prefs_hide_join_part_hint": "Katılan veya ayrılan eşlerin varlık satırları her odada gizlenir.",
         "apply_auto_options_all_hubs": "Bu otomatik seçenekleri tüm hub'lara uygula",
         "auto_options_applied_all_hubs": "Otomatik seçenekler tüm hub'lara uygulandı",
-        "unignore": "Yok saymayı kaldır"
+        "unignore": "Yok saymayı kaldır",
+        "members_tooltip": "{count} members online",
+        "hops_tooltip": "{count} network hops to hub",
+        "rtt_tooltip": "Round-trip latency to hub"
     },
     "rncp": {
         "file_transfer": "Dosya Aktarımı",

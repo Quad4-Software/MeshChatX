@@ -4257,7 +4257,10 @@
         "prefs_hide_join_part_hint": "피어가 입장하거나 퇴장할 때의 프레즌스 줄을 모든 방에서 숨깁니다.",
         "apply_auto_options_all_hubs": "이 자동 옵션을 모든 허브에 적용",
         "auto_options_applied_all_hubs": "자동 옵션이 모든 허브에 적용되었습니다",
-        "unignore": "무시 해제"
+        "unignore": "무시 해제",
+        "members_tooltip": "{count} members online",
+        "hops_tooltip": "{count} network hops to hub",
+        "rtt_tooltip": "Round-trip latency to hub"
     },
     "rncp": {
         "file_transfer": "파일 전송",

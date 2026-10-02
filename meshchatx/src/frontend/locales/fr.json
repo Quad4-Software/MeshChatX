@@ -4257,7 +4257,10 @@
         "prefs_hide_join_part_hint": "Les lignes de présence des pairs qui rejoignent ou quittent sont masquées dans tous les salons.",
         "apply_auto_options_all_hubs": "Appliquer ces options automatiques à tous les hubs",
         "auto_options_applied_all_hubs": "Options automatiques appliquées à tous les hubs",
-        "unignore": "Ne plus ignorer"
+        "unignore": "Ne plus ignorer",
+        "members_tooltip": "{count} members online",
+        "hops_tooltip": "{count} network hops to hub",
+        "rtt_tooltip": "Round-trip latency to hub"
     },
     "rncp": {
         "file_transfer": "Transfert de fichiers",

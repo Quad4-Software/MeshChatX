@@ -196,9 +196,14 @@
                                             <MaterialDesignIcon
                                                 icon-name="account-group"
                                                 class="size-3 shrink-0 text-sem-fg-muted"
+                                                :title="$t('relay_chat.members_tooltip', { count: hub.member_count })"
                                             />
-                                            <span class="text-sem-fg-muted shrink-0">
-                                                {{ Math.min(hub.member_count, 999)
+                                            <span
+                                                class="text-sem-fg-muted shrink-0"
+                                                :title="
+                                                    $t('relay_chat.members_tooltip', { count: hub.member_count })
+                                                "
+                                                >{{ Math.min(hub.member_count, 999)
                                                 }}{{ hub.member_count > 999 ? "+" : "" }}</span
                                             >
                                         </template>
@@ -211,11 +216,20 @@
                                             <MaterialDesignIcon
                                                 icon-name="share-variant"
                                                 class="size-3 shrink-0 text-sem-fg-muted"
+                                                :title="$t('relay_chat.hops_tooltip', { count: hub.hop_count })"
                                             />
-                                            <span class="text-sem-fg-muted shrink-0"> {{ hub.hop_count }}</span>
+                                            <span
+                                                class="text-sem-fg-muted shrink-0"
+                                                :title="$t('relay_chat.hops_tooltip', { count: hub.hop_count })"
+                                            >
+                                                {{ hub.hop_count }}</span
+                                            >
                                         </template>
                                         <template v-if="hub.connected && hub.rtt_ms != null">
-                                            <span class="text-sem-fg-muted shrink-0">
+                                            <span
+                                                class="text-sem-fg-muted shrink-0"
+                                                :title="$t('relay_chat.rtt_tooltip')"
+                                            >
                                                 · {{ Math.min(hub.rtt_ms, 999)
                                                 }}{{ hub.rtt_ms > 999 ? "+" : "" }} ms</span
                                             >

@@ -4257,7 +4257,10 @@
         "prefs_hide_join_part_hint": "Anwesenheitszeilen für beitretende oder austretende Peers werden in allen Räumen ausgeblendet.",
         "apply_auto_options_all_hubs": "Diese Auto-Optionen auf alle Hubs anwenden",
         "auto_options_applied_all_hubs": "Auto-Optionen auf alle Hubs angewendet",
-        "unignore": "Nicht mehr ignorieren"
+        "unignore": "Nicht mehr ignorieren",
+        "members_tooltip": "{count} members online",
+        "hops_tooltip": "{count} network hops to hub",
+        "rtt_tooltip": "Round-trip latency to hub"
     },
     "rncp": {
         "file_transfer": "Dateiübertragung",
