@@ -1914,8 +1914,13 @@ class RRCHub:
             return len(seen)
 
     def _hop_count(self):
-        """RNS path hop count to this hub's destination, if known."""
+        """RNS path hop count to this hub, if known."""
         try:
+            link = self.link
+            if link is not None and not isinstance(link, _LoopbackEndpoint):
+                hops = getattr(link, "expected_hops", None)
+                if isinstance(hops, int) and 0 <= hops < 64:
+                    return hops
             dest = bytes.fromhex(self.hub_hash)
             hops = RNS.Transport.hops_to(dest)
             if isinstance(hops, int) and 0 <= hops < 64:

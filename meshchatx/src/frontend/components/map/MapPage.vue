@@ -45,7 +45,7 @@
                     </button>
                     <select
                         class="shrink-0 rounded-md border border-sem-border bg-sem-surface px-2 py-1 text-xs text-sem-fg"
-                        v-if="discoveredVisible && discoveredTypes.length > 1"
+                        v-if="discoveredVisible"
                         v-model="discoveredTypeFilter"
                         :title="$t('map.filter_type')"
                         @change="updateMarkers"

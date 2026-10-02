@@ -187,25 +187,23 @@
                 <div v-else class="text-[11px] text-sem-fg-muted">
                     {{ $t("tools.propagation_nodes.stats_when_running") }}
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <label class="text-[11px] text-sem-fg-muted block">
-                        {{ $t("app.incoming_message_size") }}
+                <div class="space-y-3">
+                    <div>
+                        <div class="text-[11px] font-medium text-sem-fg-muted mb-1.5">
+                            {{ $t("app.incoming_message_size") }}
+                        </div>
                         <SliderSelect
                             v-model="lxmfIncomingDeliveryPreset"
                             :options="incomingSizeOptions"
-                            class="mt-1"
                             @change="onLxmfIncomingDeliveryPresetChange"
                         />
-                        <div
-                            v-if="lxmfIncomingDeliveryPreset === 'custom'"
-                            class="mt-1 flex flex-wrap items-center gap-2"
-                        >
+                        <div v-if="lxmfIncomingDeliveryPreset === 'custom'" class="mt-2 flex items-center gap-2">
                             <input
                                 v-model.number="lxmfIncomingDeliveryCustomAmount"
                                 type="number"
                                 min="0.001"
                                 step="any"
-                                class="input-field min-w-0 flex-1 py-1.5 text-sm"
+                                class="input-field min-w-0 w-24 py-1.5 text-sm"
                                 @input="onLxmfIncomingDeliveryCustomChange"
                             />
                             <SegmentedControl
@@ -217,81 +215,93 @@
                                 @change="onLxmfIncomingDeliveryCustomChange"
                             />
                         </div>
-                    </label>
-                    <label class="text-[11px] text-sem-fg-muted">
-                        {{ $t("tools.propagation_nodes.transfer_limit_mb") }}
-                        <div class="flex items-center gap-2 mt-1">
-                            <input
-                                v-model.number="propagationLimitInputMb"
-                                type="range"
-                                min="0.001"
-                                max="10"
-                                step="0.1"
-                                class="range-input flex-1"
-                                @input="onPropagationTransferLimitChange"
-                            />
-                            <input
-                                v-model.number="propagationLimitInputMb"
-                                type="number"
-                                min="0.001"
-                                step="0.01"
-                                class="input-field w-20 py-1 text-sm shrink-0"
-                                @input="onPropagationTransferLimitChange"
-                            />
-                        </div>
-                    </label>
-                    <label class="text-[11px] text-sem-fg-muted">
-                        {{ $t("tools.propagation_nodes.sync_limit_mb") }}
-                        <div class="flex items-center gap-2 mt-1">
-                            <input
-                                v-model.number="propagationSyncLimitInputMb"
-                                type="range"
-                                min="0.001"
-                                max="50"
-                                step="0.1"
-                                class="range-input flex-1"
-                                @input="onPropagationSyncLimitChange"
-                            />
-                            <input
-                                v-model.number="propagationSyncLimitInputMb"
-                                type="number"
-                                min="0.001"
-                                step="0.01"
-                                class="input-field w-20 py-1 text-sm shrink-0"
-                                @input="onPropagationSyncLimitChange"
-                            />
-                        </div>
-                    </label>
-                </div>
-                <label class="block text-[11px] text-sem-fg-muted">
-                    {{ $t("tools.propagation_nodes.stamp_cost") }}
-                    <div class="flex items-center gap-2 mt-1">
-                        <input
-                            v-model.number="config.lxmf_propagation_node_stamp_cost"
-                            type="range"
-                            min="13"
-                            max="254"
-                            class="range-input flex-1"
-                            @input="onPropagationStampCostChange"
-                        />
-                        <input
-                            v-model.number="config.lxmf_propagation_node_stamp_cost"
-                            type="number"
-                            min="13"
-                            max="254"
-                            class="input-field w-16 py-1 text-sm shrink-0"
-                            @input="onPropagationStampCostChange"
-                        />
                     </div>
-                </label>
-                <button
-                    type="button"
-                    class="primary-chip text-xs"
-                    :disabled="!localPropagationNode"
-                    @click="useLocalPropagationNode"
-                >
-                    {{ $t("tools.propagation_nodes.use_our_node") }}
-                </button>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <div class="text-[11px] font-medium text-sem-fg-muted mb-1.5">
+                                {{ $t("tools.propagation_nodes.transfer_limit_mb") }}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input
+                                    v-model.number="propagationLimitInputMb"
+                                    type="range"
+                                    min="0.001"
+                                    max="10"
+                                    step="0.1"
+                                    class="range-input flex-1 min-w-0"
+                                    @input="onPropagationTransferLimitChange"
+                                />
+                                <input
+                                    v-model.number="propagationLimitInputMb"
+                                    type="number"
+                                    min="0.001"
+                                    step="0.01"
+                                    class="input-field w-20 py-1 text-sm shrink-0"
+                                    @input="onPropagationTransferLimitChange"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-[11px] font-medium text-sem-fg-muted mb-1.5">
+                                {{ $t("tools.propagation_nodes.sync_limit_mb") }}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input
+                                    v-model.number="propagationSyncLimitInputMb"
+                                    type="range"
+                                    min="0.001"
+                                    max="50"
+                                    step="0.1"
+                                    class="range-input flex-1 min-w-0"
+                                    @input="onPropagationSyncLimitChange"
+                                />
+                                <input
+                                    v-model.number="propagationSyncLimitInputMb"
+                                    type="number"
+                                    min="0.001"
+                                    step="0.01"
+                                    class="input-field w-20 py-1 text-sm shrink-0"
+                                    @input="onPropagationSyncLimitChange"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <div class="text-[11px] font-medium text-sem-fg-muted mb-1.5">
+                                {{ $t("tools.propagation_nodes.stamp_cost") }}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input
+                                    v-model.number="config.lxmf_propagation_node_stamp_cost"
+                                    type="range"
+                                    min="13"
+                                    max="254"
+                                    class="range-input flex-1 min-w-0"
+                                    @input="onPropagationStampCostChange"
+                                />
+                                <input
+                                    v-model.number="config.lxmf_propagation_node_stamp_cost"
+                                    type="number"
+                                    min="13"
+                                    max="254"
+                                    class="input-field w-16 py-1 text-sm shrink-0"
+                                    @input="onPropagationStampCostChange"
+                                />
+                            </div>
+                        </div>
+                        <div class="flex items-end">
+                            <button
+                                type="button"
+                                class="primary-chip text-xs"
+                                :disabled="!localPropagationNode"
+                                @click="useLocalPropagationNode"
+                            >
+                                {{ $t("tools.propagation_nodes.use_our_node") }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

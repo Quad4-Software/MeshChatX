@@ -138,7 +138,7 @@
                                         <input
                                             v-model.number="announceInterval"
                                             type="number"
-                                            min="10"
+                                            min="60"
                                             class="input-field w-full"
                                         />
                                         <p class="mt-1 text-xs text-sem-fg-muted">

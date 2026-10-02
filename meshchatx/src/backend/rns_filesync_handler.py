@@ -803,7 +803,7 @@ class RnsFilesyncHandler:
         # not an explicit choice. Follow the current shared default instead.
         if version < _SETTINGS_VERSION and interval == _LEGACY_ANNOUNCE_INTERVAL:
             interval = constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS
-        if isinstance(interval, int) and interval >= 10:
+        if isinstance(interval, int) and interval >= constants.MIN_ANNOUNCE_INTERVAL_SECONDS:
             self._announce_interval = interval
             if interval != data.get("announce_interval"):
                 self._save_settings()
