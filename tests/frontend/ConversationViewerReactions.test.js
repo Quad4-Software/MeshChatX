@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
 import ToastUtils from "@/js/ToastUtils";
-import { useConfigStore } from "@/js/stores/configStore.js";
+import { useConfigStore } from "@/js/stores/configStore";
 
 describe("ConversationViewer reactions", () => {
     let axiosMock;

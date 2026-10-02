@@ -1108,7 +1108,7 @@
 </template>
 
 <script>
-import { useConfigStore } from "../../js/stores/configStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
 
 import { getCurrentInstance, markRaw } from "vue";
 import "ol/ol.css";

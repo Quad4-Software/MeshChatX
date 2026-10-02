@@ -2,7 +2,7 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
-import { useConfigStore } from "@/js/stores/configStore.js";
+import { useConfigStore } from "@/js/stores/configStore";
 
 describe("ConversationViewer outbound propagation status", () => {
     let axiosMock;

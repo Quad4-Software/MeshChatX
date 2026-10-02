@@ -1717,7 +1717,7 @@
 </template>
 
 <script>
-import { useConfigStore } from "../../js/stores/configStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
 import { useUnreadStore } from "../../js/stores/unreadStore.js";
 import { getCurrentInstance, nextTick } from "vue";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";

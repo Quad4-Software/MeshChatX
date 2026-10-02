@@ -536,7 +536,7 @@ import {
     resetTopNavItemIds,
     saveTopNavItemIds,
     topNavLayoutState,
-} from "../../../js/appTopNavLayout.js";
+} from "../../../js/appTopNavLayout";
 
 export default {
     name: "AppearanceSettingsSection",

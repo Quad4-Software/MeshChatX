@@ -5,7 +5,7 @@ import WebSocketConnection from "@/js/WebSocketConnection";
 import DialogUtils from "@/js/DialogUtils";
 import ToastUtils from "@/js/ToastUtils";
 import { resetHelptipPolicyForTests } from "@/js/helptipPolicy.js";
-import { useConfigStore } from "@/js/stores/configStore.js";
+import { useConfigStore } from "@/js/stores/configStore";
 
 describe("MessageSendingFailures.test.js", () => {
     let axiosMock;

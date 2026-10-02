@@ -189,7 +189,7 @@
 </template>
 
 <script>
-import { useConfigStore } from "../../js/stores/configStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
 
 import * as mdi from "@mdi/js";
 import LxmfUserIcon from "../LxmfUserIcon.vue";

@@ -16,7 +16,7 @@ import { startCodec2ScriptsBackgroundLoad } from "./js/Codec2Loader";
 import { createApiClient } from "./js/apiClient.js";
 import { fetchCsrfToken } from "./js/csrfToken.js";
 import { apiPath, STORAGE_KEYS } from "./js/constants.js";
-import { registerCoreContributions } from "./js/registries/registerCoreContributions.js";
+import { registerCoreContributions } from "./js/registries/registerCoreContributions";
 import { installWsEventBridge } from "./js/registries/wsEventBridge.js";
 import { pluginHost } from "./js/plugins/PluginHost.js";
 import { useAuthStore } from "./js/stores/authStore.js";

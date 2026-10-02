@@ -1,8 +1,8 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import MessagesPage from "@/components/messages/MessagesPage.vue";
-import { useConfigStore } from "@/js/stores/configStore.js";
-import { useIdentityStore } from "@/js/stores/identityStore.js";
+import { useConfigStore } from "@/js/stores/configStore";
+import { useIdentityStore } from "@/js/stores/identityStore";
 
 vi.mock("@/js/Utils", () => ({
     default: {

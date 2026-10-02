@@ -17,7 +17,7 @@
 </template>
 
 <script>
-import { useConfigStore } from "../../js/stores/configStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
 
 import PluginSlotRenderer from "./PluginSlotRenderer.vue";
 import { pluginHost } from "../../js/plugins/PluginHost.js";

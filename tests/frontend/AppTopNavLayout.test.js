@@ -9,7 +9,7 @@ import {
     resolveTopNavItemIds,
     saveTopNavItemIds,
     topNavLayoutState,
-} from "../../meshchatx/src/frontend/js/appTopNavLayout.js";
+} from "../../meshchatx/src/frontend/js/appTopNavLayout";
 
 const item = (id) => ({ id });
 

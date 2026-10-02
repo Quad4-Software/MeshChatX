@@ -10,7 +10,7 @@ import NetworkVisualiser from "../../meshchatx/src/frontend/components/network-v
 import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
 import { normalizeUiLocaleCode } from "../../meshchatx/src/frontend/js/localeLoader.js";
 import { createNetworkVisualiserWebGL } from "../../meshchatx/src/frontend/js/networkVisualiserWebGL.js";
-import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const BOOT_THEME_JS = resolve(ROOT, "meshchatx/src/frontend/public/boot-theme.js");

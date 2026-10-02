@@ -12,35 +12,59 @@ const FOREGROUND_FORCE_RECONNECT_IDLE_MS = 90000;
 const OUTBOUND_QUEUE_MAX = 32;
 const OUTBOUND_QUEUE_TTL_MS = 30000;
 
+/** Events this connection emits. Values are the payload types. */
+export type WsEventMap = {
+    connected: { isReconnect: boolean };
+    disconnected: void;
+    ready: void;
+    message: MessageEvent;
+    queue_expired: { request_id: unknown };
+};
+
+export type WsEventName = keyof WsEventMap;
+
+export type WsHandler<K extends WsEventName> = (event: WsEventMap[K]) => void;
+
+export interface LiveSendBridge {
+    send(message: string): boolean;
+    sendQueued?(message: string): boolean;
+    isOpen?(): boolean;
+}
+
+interface QueuedMessage {
+    message: string;
+    requestId: unknown;
+    expiresAt: number;
+}
+
 class WebSocketConnection {
-    constructor() {
-        this.emitter = createEmitter();
-        this.ws = null;
-        this._heartbeatInterval = null;
-        this._pongTimeout = null;
-        this._reconnectTimeout = null;
-        this._reconnectAttempt = 0;
-        this.initialized = false;
-        this.destroyed = false;
-        this._hadSuccessfulOpen = false;
-        this._pendingReconnectUi = false;
-        this._sessionReady = false;
-        this._lastReceivedTime = Date.now();
-        this._hasEventListeners = false;
-        this._isForcedReconnect = false;
-        this._outboundQueue = [];
-        // When LiveTransport uses WebTransport, page code that still calls
-        // WebSocketConnection.send must ride the active live channel.
-        this._liveSendBridge = null;
-    }
+    emitter = createEmitter();
+    ws: WebSocket | null = null;
+    _heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+    _pongTimeout: ReturnType<typeof setTimeout> | null = null;
+    _reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    _reconnectAttempt = 0;
+    initialized = false;
+    destroyed = false;
+    _hadSuccessfulOpen = false;
+    _pendingReconnectUi = false;
+    _sessionReady = false;
+    _lastReceivedTime = Date.now();
+    _hasEventListeners = false;
+    _isForcedReconnect = false;
+    _outboundQueue: QueuedMessage[] = [];
+    _liveSendBridge: LiveSendBridge | null = null;
+    _bootstrapRetryTimeout: ReturnType<typeof setTimeout> | null = null;
+    _onVisibilityChange: (() => void) | null = null;
+    _onWindowFocus: (() => void) | null = null;
+    _onWindowOnline: (() => void) | null = null;
 
     /**
-     * @param {{ send: (message: string) => boolean, sendQueued?: (message: string) => boolean, isOpen?: () => boolean } | null} bridge
+     * Swap the outbound channel to a live transport bridge (e.g. WebTransport).
+     * Queued messages drain through the bridge so they are not stranded.
      */
-    setLiveSendBridge(bridge) {
+    setLiveSendBridge(bridge: LiveSendBridge | null): void {
         this._liveSendBridge = bridge;
-        // Drain entries queued while the socket was dead so they are not
-        // stranded forever once sends route through the bridge.
         if (bridge && this._outboundQueue.length) {
             const now = Date.now();
             const pending = this._outboundQueue;
@@ -63,13 +87,13 @@ class WebSocketConnection {
         }
     }
 
-    async connect() {
+    async connect(): Promise<void> {
         this.destroyed = false;
         // A fresh connect must not inherit a stale backoff stage from a
         // previous session.
         this._reconnectAttempt = 0;
 
-        if (typeof window === "undefined" || !window.api) {
+        if (typeof window === "undefined" || !(window as any).api) {
             if (this._bootstrapRetryTimeout != null) {
                 clearTimeout(this._bootstrapRetryTimeout);
             }
@@ -105,38 +129,38 @@ class WebSocketConnection {
         this.reconnect();
     }
 
-    on(event, handler) {
-        this.emitter.on(event, handler);
+    on<K extends WsEventName>(event: K, handler: WsHandler<K>): void {
+        this.emitter.on(event, handler as (data: unknown) => void);
     }
 
-    off(event, handler) {
-        this.emitter.off(event, handler);
+    off<K extends WsEventName>(event: K, handler: WsHandler<K>): void {
+        this.emitter.off(event, handler as (data: unknown) => void);
     }
 
-    emit(type, event) {
+    emit<K extends WsEventName>(type: K, event?: WsEventMap[K]): void {
         this.emitter.emit(type, event);
     }
 
-    _clearHeartbeat() {
+    _clearHeartbeat(): void {
         if (this._heartbeatInterval != null) {
             clearInterval(this._heartbeatInterval);
             this._heartbeatInterval = null;
         }
     }
 
-    _clearPongTimeout() {
+    _clearPongTimeout(): void {
         if (this._pongTimeout != null) {
             clearTimeout(this._pongTimeout);
             this._pongTimeout = null;
         }
     }
 
-    _stopHeartbeat() {
+    _stopHeartbeat(): void {
         this._clearHeartbeat();
         this._clearPongTimeout();
     }
 
-    _sendAppPing() {
+    _sendAppPing(): void {
         if (this.destroyed || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
             return;
         }
@@ -163,7 +187,7 @@ class WebSocketConnection {
         }, PONG_TIMEOUT_MS);
     }
 
-    _startHeartbeat() {
+    _startHeartbeat(): void {
         this._stopHeartbeat();
         this._heartbeatInterval = setInterval(() => {
             this._sendAppPing();
@@ -171,7 +195,7 @@ class WebSocketConnection {
         this._sendAppPing();
     }
 
-    reconnect() {
+    reconnect(): void {
         if (!this.initialized || this.destroyed || typeof window === "undefined" || !window.location) {
             return;
         }
@@ -287,7 +311,7 @@ class WebSocketConnection {
             // close event will follow, and reconnect is scheduled there
         });
 
-        socket.onmessage = (message) => {
+        socket.onmessage = (message: MessageEvent) => {
             if (socket !== this.ws) {
                 return;
             }
@@ -314,7 +338,7 @@ class WebSocketConnection {
         };
     }
 
-    handleForegroundOrNetworkChange() {
+    handleForegroundOrNetworkChange(): void {
         if (!this.initialized || this.destroyed) {
             return;
         }
@@ -339,7 +363,7 @@ class WebSocketConnection {
         }
     }
 
-    forceReconnect() {
+    forceReconnect(): void {
         if (!this.initialized || this.destroyed) {
             return;
         }
@@ -361,7 +385,7 @@ class WebSocketConnection {
         this.reconnect();
     }
 
-    destroy() {
+    destroy(): void {
         this.destroyed = true;
         this.initialized = false;
         this._hadSuccessfulOpen = false;
@@ -379,9 +403,9 @@ class WebSocketConnection {
             this._bootstrapRetryTimeout = null;
         }
         if (this._hasEventListeners && typeof window !== "undefined" && window.removeEventListener) {
-            window.removeEventListener("visibilitychange", this._onVisibilityChange);
-            window.removeEventListener("focus", this._onWindowFocus);
-            window.removeEventListener("online", this._onWindowOnline);
+            window.removeEventListener("visibilitychange", this._onVisibilityChange!);
+            window.removeEventListener("focus", this._onWindowFocus!);
+            window.removeEventListener("online", this._onWindowOnline!);
             this._hasEventListeners = false;
             this._onVisibilityChange = null;
             this._onWindowFocus = null;
@@ -397,14 +421,14 @@ class WebSocketConnection {
         }
     }
 
-    isOpen() {
+    isOpen(): boolean {
         if (this._liveSendBridge && typeof this._liveSendBridge.isOpen === "function") {
             return this._liveSendBridge.isOpen();
         }
         return this.ws != null && this.ws.readyState === WebSocket.OPEN;
     }
 
-    _flushOutboundQueue() {
+    _flushOutboundQueue(): void {
         if (this._liveSendBridge) {
             return;
         }
@@ -420,7 +444,7 @@ class WebSocketConnection {
                 continue;
             }
             try {
-                this.ws.send(item.message);
+                this.ws!.send(item.message);
             } catch {
                 // drop
             }
@@ -430,10 +454,8 @@ class WebSocketConnection {
     /**
      * Queue a mutator JSON string until the socket is ready.
      * Only messages that include request_id are queued (idempotent matching).
-     * @param {string} message
-     * @returns {boolean} true if sent or queued
      */
-    sendQueued(message) {
+    sendQueued(message: string): boolean {
         if (typeof message !== "string" || this.destroyed) {
             return false;
         }
@@ -445,13 +467,13 @@ class WebSocketConnection {
         }
         if (this.isOpen() && this._sessionReady) {
             try {
-                this.ws.send(message);
+                this.ws!.send(message);
                 return true;
             } catch {
                 return false;
             }
         }
-        let requestId = null;
+        let requestId: unknown = null;
         try {
             const parsed = JSON.parse(message);
             if (parsed && parsed.request_id != null) {
@@ -466,7 +488,7 @@ class WebSocketConnection {
         if (this._outboundQueue.length >= OUTBOUND_QUEUE_MAX) {
             // Surface the eviction so request_id-correlated callers can settle
             // instead of hanging until their own timeout.
-            const evicted = this._outboundQueue.shift();
+            const evicted = this._outboundQueue.shift()!;
             this.emit("queue_expired", { request_id: evicted.requestId });
         }
         this._outboundQueue.push({
@@ -477,18 +499,18 @@ class WebSocketConnection {
         return true;
     }
 
-    send(message) {
+    send(message: string): boolean {
         if (this._liveSendBridge) {
             return this._liveSendBridge.send(message);
         }
         if (this.isOpen()) {
-            this.ws.send(message);
+            this.ws!.send(message);
             return true;
         }
         return false;
     }
 
-    ping() {
+    ping(): void {
         try {
             this.send(
                 JSON.stringify({

@@ -2,7 +2,7 @@
 
 import { createRegistry } from "./registryCore.js";
 
-/** @typedef {import('./coreNavEntries.js').NavEntry} NavEntry */
+/** @typedef {import('./coreNavEntries').NavEntry} NavEntry */
 
 /** @type {import('./registryCore.js').Registry<NavEntry>} */
 export const navRegistry = createRegistry("navRegistry");

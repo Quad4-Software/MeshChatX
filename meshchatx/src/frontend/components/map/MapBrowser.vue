@@ -95,7 +95,7 @@
 </template>
 
 <script>
-import { useConfigStore } from "../../js/stores/configStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
 
 import MapPage from "./MapPage.vue";
 import MapTabContextMenu from "./internal/MapTabContextMenu.vue";

@@ -7,7 +7,7 @@ import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnec
 import * as localeLoader from "../../meshchatx/src/frontend/js/localeLoader.js";
 import { buildFullServerConfig, createWindowApi } from "./fixtures/settingsPageTestApi.js";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
-import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore";
 
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
     default: {

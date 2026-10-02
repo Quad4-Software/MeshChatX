@@ -2322,7 +2322,7 @@
 
 <script>
 import { getCurrentInstance } from "vue";
-import { useConfigStore } from "../js/stores/configStore.js";
+import { useConfigStore } from "../js/stores/configStore";
 import { useInterfaceChangesStore } from "../js/stores/interfaceChangesStore.js";
 import logoUrl from "../assets/images/logo.png";
 import AndroidStorageBridge from "../js/AndroidStorageBridge.js";
