@@ -80,12 +80,9 @@
                     </div>
                 </div>
 
-                <!-- search bar: sticky with opaque backdrop so scrolling content
-                     never bleeds through, and extra bottom gap so the divider
-                     does not sit flush against the sidebar below -->
-                <div
-                    class="sticky top-0 z-10 pt-3 pb-4 sm:pt-4 sm:pb-5 mb-4 border-b border-sem-border bg-sem-canvas/95 backdrop-blur-sm min-w-0"
-                >
+                <!-- search bar: sticky, transparent so it blends into the page;
+                     extra bottom gap keeps the divider off the sidebar -->
+                <div class="sticky top-0 z-10 pt-3 pb-4 sm:pt-4 sm:pb-5 mb-4 border-b border-sem-border min-w-0">
                     <div class="relative w-full max-w-6xl xl:max-w-7xl 2xl:max-w-360 mx-auto min-w-0 px-0">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                             <MaterialDesignIcon icon-name="magnify" class="size-5 text-sem-fg-muted" />
@@ -304,165 +301,26 @@
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 gap-3">
+                                <div class="divide-y divide-sem-border/60 rounded-xl border border-sem-border/60 overflow-hidden">
                                     <button
+                                        v-for="action in maintenanceActions"
+                                        :key="action.key"
                                         type="button"
-                                        class="btn-maintenance border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/10 hover:bg-sem-danger/10 dark:hover:bg-red-900/20"
-                                        @click="clearMessages"
+                                        class="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-sem-surface-muted/60"
+                                        @click="action.handler"
                                     >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="forum-remove-outline" class="size-4" />
-                                                {{ $t("maintenance.clear_messages") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_messages_desc") }}
-                                            </div>
+                                        <MaterialDesignIcon
+                                            :icon-name="action.icon"
+                                            class="size-5 shrink-0 text-sem-fg-muted"
+                                        />
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-medium text-sem-fg">{{ $t(action.title) }}</div>
+                                            <div class="text-xs text-sem-fg-muted mt-0.5">{{ $t(action.desc) }}</div>
                                         </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-violet-200 dark:border-violet-900/30 text-violet-800 dark:text-violet-200 bg-violet-50 dark:bg-violet-900/10 hover:bg-violet-100 dark:hover:bg-violet-900/20"
-                                        @click="clearDuplicateMessages"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="content-duplicate" class="size-4" />
-                                                {{ $t("maintenance.clear_duplicates") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_duplicates_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/10 hover:bg-orange-100 dark:hover:bg-orange-900/20"
-                                        @click="clearAnnounces"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="broadcast-off" class="size-4" />
-                                                {{ $t("maintenance.clear_announces") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_announces_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-indigo-200 dark:border-indigo-900/30 text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/10 hover:bg-indigo-100 dark:hover:bg-indigo-900/20"
-                                        @click="clearNomadnetFavorites"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="bookmark-remove" class="size-4" />
-                                                {{ $t("maintenance.clear_nomadnet_favs") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_nomadnet_favs_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-emerald-200 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/10 hover:bg-emerald-100 dark:hover:bg-emerald-900/20"
-                                        @click="clearLxmfIcons"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="account-off" class="size-4" />
-                                                {{ $t("maintenance.clear_lxmf_icons") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_lxmf_icons_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-amber-200 dark:border-amber-900/30 text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100 dark:hover:bg-amber-900/20"
-                                        @click="clearStickers"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="emoticon-outline" class="size-4" />
-                                                {{ $t("maintenance.clear_stickers") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_stickers_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-pink-200 dark:border-pink-900/30 text-pink-700 dark:text-pink-300 bg-pink-50 dark:bg-pink-900/10 hover:bg-pink-100 dark:hover:bg-pink-900/20"
-                                        @click="clearGifs"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="file-gif-box" class="size-4" />
-                                                {{ $t("maintenance.clear_gifs") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_gifs_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-blue-200 dark:border-blue-900/30 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20"
-                                        @click="clearArchives"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="delete-sweep" class="size-4" />
-                                                {{ $t("maintenance.clear_archives") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_archives_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/10 hover:bg-orange-100 dark:hover:bg-orange-900/20"
-                                        @click="clearReticulumDocs"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="book-remove" class="size-4" />
-                                                {{ $t("maintenance.clear_reticulum_docs") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_reticulum_docs_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-teal-200 dark:border-teal-900/30 text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/10 hover:bg-teal-100 dark:hover:bg-teal-900/20"
-                                        @click="clearPathTable"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="map-marker-remove" class="size-4" />
-                                                {{ $t("maintenance.clear_path_table") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_path_table_desc") }}
-                                            </div>
-                                        </div>
+                                        <MaterialDesignIcon
+                                            icon-name="chevron-right"
+                                            class="size-4 shrink-0 text-sem-fg-muted/60"
+                                        />
                                     </button>
                                 </div>
 
@@ -3479,6 +3337,80 @@ export default {
         },
         oidcRedirectUri() {
             return window.location.origin + apiPath("/auth/oidc/callback");
+        },
+        maintenanceActions() {
+            return [
+                {
+                    key: "messages",
+                    icon: "forum-remove-outline",
+                    title: "maintenance.clear_messages",
+                    desc: "maintenance.clear_messages_desc",
+                    handler: this.clearMessages,
+                },
+                {
+                    key: "duplicates",
+                    icon: "content-duplicate",
+                    title: "maintenance.clear_duplicates",
+                    desc: "maintenance.clear_duplicates_desc",
+                    handler: this.clearDuplicateMessages,
+                },
+                {
+                    key: "announces",
+                    icon: "broadcast-off",
+                    title: "maintenance.clear_announces",
+                    desc: "maintenance.clear_announces_desc",
+                    handler: this.clearAnnounces,
+                },
+                {
+                    key: "nomadnet_favs",
+                    icon: "bookmark-remove",
+                    title: "maintenance.clear_nomadnet_favs",
+                    desc: "maintenance.clear_nomadnet_favs_desc",
+                    handler: this.clearNomadnetFavorites,
+                },
+                {
+                    key: "lxmf_icons",
+                    icon: "account-off",
+                    title: "maintenance.clear_lxmf_icons",
+                    desc: "maintenance.clear_lxmf_icons_desc",
+                    handler: this.clearLxmfIcons,
+                },
+                {
+                    key: "stickers",
+                    icon: "emoticon-outline",
+                    title: "maintenance.clear_stickers",
+                    desc: "maintenance.clear_stickers_desc",
+                    handler: this.clearStickers,
+                },
+                {
+                    key: "gifs",
+                    icon: "file-gif-box",
+                    title: "maintenance.clear_gifs",
+                    desc: "maintenance.clear_gifs_desc",
+                    handler: this.clearGifs,
+                },
+                {
+                    key: "archives",
+                    icon: "delete-sweep",
+                    title: "maintenance.clear_archives",
+                    desc: "maintenance.clear_archives_desc",
+                    handler: this.clearArchives,
+                },
+                {
+                    key: "reticulum_docs",
+                    icon: "book-remove",
+                    title: "maintenance.clear_reticulum_docs",
+                    desc: "maintenance.clear_reticulum_docs_desc",
+                    handler: this.clearReticulumDocs,
+                },
+                {
+                    key: "path_table",
+                    icon: "map-marker-remove",
+                    title: "maintenance.clear_path_table",
+                    desc: "maintenance.clear_path_table_desc",
+                    handler: this.clearPathTable,
+                },
+            ];
         },
         settingsSearchActive() {
             return normalizeSearchString(this.searchQuery).length > 0;

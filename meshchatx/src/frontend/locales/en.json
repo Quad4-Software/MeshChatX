@@ -356,7 +356,7 @@
         "privacy_data_description": "Manage local message history, telemetry, and other privacy options. Deleting here only affects this device.",
         "privacy_data": "Data & device",
         "privacy_subsection_device": "This device",
-        "privacy_subsection_telemetry": "Mesh telemetry",
+        "privacy_subsection_telemetry": "LXMF telemetry",
         "privacy_mode_enabled": "Privacy mode (block external HTTP/HTTPS)",
         "privacy_mode_description": "Blocks map tiles, geocoding, LibreTranslate, firmware downloads, and other outbound HTTP/HTTPS from the app. The browser Content Security Policy is tightened to same-origin only.",
         "multi_session_warning_enabled": "Warn when multiple sessions are connected",

@@ -2,8 +2,8 @@
 
 <template>
     <div
-        class="theme-preset-swatch inline-grid shrink-0 overflow-hidden rounded-md border border-sem-border shadow-xs"
-        :class="sizeClass"
+        class="theme-preset-swatch inline-grid shrink-0 overflow-hidden border border-sem-border shadow-xs"
+        :class="[sizeClass, round ? 'rounded-full' : 'rounded-md']"
         aria-hidden="true"
     >
         <span class="theme-preset-swatch__band" :style="{ backgroundColor: colors.canvas }" />
@@ -25,6 +25,10 @@ export default {
             type: String,
             default: "md",
             validator: (value) => ["sm", "md", "lg"].includes(value),
+        },
+        round: {
+            type: Boolean,
+            default: false,
         },
     },
     computed: {
