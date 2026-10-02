@@ -107,7 +107,15 @@ const CONNECTION_EVENT_TEXTS = new Set(["Connection lost", "Disconnected from hu
  * @returns {boolean}
  */
 export function isRelayPresenceSystemMessage(msg) {
-    if (!msg || msg.kind !== "system") {
+    if (!msg) {
+        return false;
+    }
+    // Foreign hubs deliver join/part as notices, so they group with
+    // presence the same way local system lines do.
+    if (msg.kind === "notice") {
+        return isRelayPeerJoinPartMessage(msg);
+    }
+    if (msg.kind !== "system") {
         return false;
     }
     if (msg.event === "join" || msg.event === "part") {
@@ -135,14 +143,33 @@ export function isRelayPresenceSystemMessage(msg) {
  * @returns {boolean}
  */
 export function isRelayPeerJoinPartMessage(msg) {
-    if (!msg || msg.kind !== "system") {
+    if (!msg) {
         return false;
     }
-    if (msg.event === "join" || msg.event === "part") {
-        return true;
+    if (msg.kind === "system") {
+        if (msg.event === "join" || msg.event === "part") {
+            return true;
+        }
+        const text = typeof msg.text === "string" ? msg.text.trim() : "";
+        return text.endsWith(" joined") || text.endsWith(" left");
     }
-    const text = typeof msg.text === "string" ? msg.text.trim() : "";
-    return text.endsWith(" joined") || text.endsWith(" left");
+    // Foreign hubs emit join/part as notices, not system events. The text
+    // must read as "<name> [has] joined/left/parted/quit ..." (allowing
+    // IRC-style "***" or "-->" prefixes) so MOTD or room notices stay
+    // visible.
+    if (msg.kind === "notice") {
+        const text = typeof msg.text === "string" ? msg.text.trim() : "";
+        // Strip an optional punctuation lead like "*** " or "--> " so the
+        // name token lands first either way.
+        const bare = text.replace(/^[^\w]+\s+/, "");
+        const tokens = bare.toLowerCase().split(/\s+/);
+        if (tokens.length < 2) {
+            return false;
+        }
+        const verb = tokens[1] === "has" ? tokens[2] : tokens[1];
+        return ["joined", "left", "parted", "quit"].includes((verb || "").replace(/[^a-z]/g, ""));
+    }
+    return false;
 }
 
 /**
@@ -160,7 +187,7 @@ export function relayPresenceEventKind(msg) {
     if (CONNECTION_EVENT_TEXTS.has(text)) {
         return "connection";
     }
-    if (text.endsWith(" left")) {
+    if (text.endsWith(" left") || /\b(?:left|parted|quit)\b/i.test(text)) {
         return "left";
     }
     return "joined";
