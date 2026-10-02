@@ -24,8 +24,8 @@ import {
 import {
     registerCoreContributions,
     resetCoreContributionsForTests,
-} from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
-import { CORE_NAV_ENTRIES } from "../../meshchatx/src/frontend/js/registries/coreNavEntries.js";
+} from "../../meshchatx/src/frontend/js/registries/registerCoreContributions";
+import { CORE_NAV_ENTRIES } from "../../meshchatx/src/frontend/js/registries/coreNavEntries";
 import { CORE_TOOLS_ENTRIES } from "../../meshchatx/src/frontend/js/registries/coreToolsEntries.js";
 import { CORE_COMMAND_ENTRIES } from "../../meshchatx/src/frontend/js/registries/coreCommandEntries.js";
 import {

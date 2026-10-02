@@ -2,7 +2,7 @@
 
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { chooseLiveTransport } from "../../meshchatx/src/frontend/js/wsLiveSync.js";
-import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection.js";
+import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
 import liveTransport from "../../meshchatx/src/frontend/js/liveTransport.js";
 
 class MockWebTransport {

@@ -87,7 +87,7 @@ describe("WebSocketConnection module", () => {
 
         vi.useFakeTimers({ shouldAdvanceTime: true });
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         const connected = vi.fn();
         const disconnected = vi.fn();
@@ -119,7 +119,7 @@ describe("WebSocketConnection module", () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         const connected = vi.fn();
         const ready = vi.fn();
@@ -143,7 +143,7 @@ describe("WebSocketConnection module", () => {
         const SilentWS = makeSilentWsImpl();
         global.WebSocket = SilentWS;
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         const connected = vi.fn();
         const ready = vi.fn();
@@ -163,7 +163,7 @@ describe("WebSocketConnection module", () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         const onMessage = vi.fn();
         WebSocketConnection.on("message", onMessage);
@@ -187,7 +187,7 @@ describe("WebSocketConnection module", () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         const onMessage = vi.fn();
         WebSocketConnection.on("message", onMessage);
@@ -206,7 +206,7 @@ describe("WebSocketConnection module", () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         await WebSocketConnection.connect();
         await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);
@@ -237,7 +237,7 @@ describe("WebSocketConnection module", () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         // connect() has no internal awaits before constructing the socket,
         // so checking readyState right after calling it (without awaiting
@@ -263,7 +263,7 @@ describe("WebSocketConnection module", () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         await WebSocketConnection.connect();
         await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);
@@ -297,7 +297,7 @@ describe("WebSocketConnection module", () => {
 
         vi.useFakeTimers({ shouldAdvanceTime: true });
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         await WebSocketConnection.connect();
         await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);
@@ -333,7 +333,7 @@ describe("WebSocketConnection module", () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         const connected = vi.fn();
         const disconnected = vi.fn();
@@ -395,7 +395,7 @@ describe("WebSocketConnection module", () => {
 
         vi.useFakeTimers({ shouldAdvanceTime: true });
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         const connected = vi.fn();
         const disconnected = vi.fn();
@@ -414,7 +414,7 @@ describe("WebSocketConnection module", () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         const connected = vi.fn();
         WebSocketConnection.on("connected", connected);
@@ -441,7 +441,7 @@ describe("WebSocketConnection module", () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         // never connected yet
         expect(() => WebSocketConnection.handleForegroundOrNetworkChange()).not.toThrow();
@@ -459,7 +459,7 @@ describe("WebSocketConnection module", () => {
     });
 
     it("send() and ping() are safe no-ops when there is no open socket", async () => {
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         expect(WebSocketConnection.ws).toBeNull();
         expect(WebSocketConnection.send("hello")).toBe(false);
@@ -479,7 +479,7 @@ describe("WebSocketConnection module", () => {
             removeEventListener: removeEventListenerSpy,
         };
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         await WebSocketConnection.connect();
         await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);
@@ -504,7 +504,7 @@ describe("WebSocketConnection module", () => {
         global.window = makeWindowMock();
         global.document = { visibilityState: "hidden" };
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         await WebSocketConnection.connect();
         await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);
@@ -534,7 +534,7 @@ describe("WebSocketConnection module", () => {
         global.window = makeWindowMock();
         global.document = { visibilityState: "visible" };
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         await WebSocketConnection.connect();
         await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);
@@ -563,7 +563,7 @@ describe("WebSocketConnection module", () => {
 
         vi.useFakeTimers({ shouldAdvanceTime: true });
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         const disconnected = vi.fn();
         WebSocketConnection.on("disconnected", disconnected);
@@ -588,7 +588,7 @@ describe("WebSocketConnection module", () => {
         global.WebSocket = MockWS;
         global.window = makeWindowMock();
 
-        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
         await WebSocketConnection.connect();
         await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);

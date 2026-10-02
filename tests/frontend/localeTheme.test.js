@@ -12,7 +12,7 @@ import {
     expectedVisualiserIsDark,
 } from "../../meshchatx/src/frontend/js/localeThemeExpectations.js";
 import { normalizeUiLocaleCode, listLocaleCodes } from "../../meshchatx/src/frontend/js/localeLoader.js";
-import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const BOOT_THEME_JS = resolve(ROOT, "meshchatx/src/frontend/public/boot-theme.js");

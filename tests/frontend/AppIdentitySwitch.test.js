@@ -6,7 +6,7 @@ import { clearMessagePanes } from "../../meshchatx/src/frontend/js/browserLayout
 import { micronStorage } from "../../meshchatx/src/frontend/js/MicronStorage";
 import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.js";
 import { useUnreadStore } from "../../meshchatx/src/frontend/js/stores/unreadStore.js";
-import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore.js";
+import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore";
 
 vi.mock("../../meshchatx/src/frontend/js/csrfToken.js", () => ({
     fetchCsrfToken: vi.fn().mockResolvedValue(undefined),

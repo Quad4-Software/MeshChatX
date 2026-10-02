@@ -1459,7 +1459,7 @@ describe("RelayChatPage.vue", () => {
             });
 
             it("saves an unsaved draft under the identity that loaded it on switch", async () => {
-                const { useConfigStore } = await import("@/js/stores/configStore.js");
+                const { useConfigStore } = await import("@/js/stores/configStore");
                 useConfigStore().config = { identity_hash: "id-old" };
                 const wrapper = mountPage();
                 await openRoom(wrapper);
@@ -1494,7 +1494,7 @@ describe("RelayChatPage.vue", () => {
             });
 
             it("persists prefs under the captured identity, not a switched live one", async () => {
-                const { useConfigStore } = await import("@/js/stores/configStore.js");
+                const { useConfigStore } = await import("@/js/stores/configStore");
                 useConfigStore().config = { identity_hash: "id-old" };
                 const wrapper = mountPage();
                 await openRoom(wrapper);
@@ -1510,7 +1510,7 @@ describe("RelayChatPage.vue", () => {
             });
 
             it("reloads prefs under the real identity when config arrives after mount", async () => {
-                const { useConfigStore } = await import("@/js/stores/configStore.js");
+                const { useConfigStore } = await import("@/js/stores/configStore");
                 // Mount before config resolves: prefs load under the "_" bucket.
                 useConfigStore().config = {};
                 localStorage.setItem(
@@ -1527,7 +1527,7 @@ describe("RelayChatPage.vue", () => {
             });
 
             it("migrates prefs toggled during the config race into the real bucket", async () => {
-                const { useConfigStore } = await import("@/js/stores/configStore.js");
+                const { useConfigStore } = await import("@/js/stores/configStore");
                 useConfigStore().config = {};
                 const wrapper = mountPage();
                 await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
@@ -1567,7 +1567,7 @@ describe("RelayChatPage.vue", () => {
             });
 
             it("canIgnoreMessageAuthor excludes own and system messages", async () => {
-                const { useConfigStore } = await import("@/js/stores/configStore.js");
+                const { useConfigStore } = await import("@/js/stores/configStore");
                 useConfigStore().config = { identity_hash: "dd".repeat(16) };
                 const wrapper = mountPage();
                 await openRoom(wrapper);
@@ -1603,7 +1603,7 @@ describe("RelayChatPage.vue", () => {
             });
 
             it("does not flag own, ignored, or already-mentioned messages", async () => {
-                const { useConfigStore } = await import("@/js/stores/configStore.js");
+                const { useConfigStore } = await import("@/js/stores/configStore");
                 useConfigStore().config = { identity_hash: "dd".repeat(16) };
                 const wrapper = mountPage();
                 await openRoom(wrapper);

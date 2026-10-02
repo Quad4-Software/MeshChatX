@@ -5,8 +5,8 @@ import WebSocketConnection from "@/js/WebSocketConnection";
 import DialogUtils from "@/js/DialogUtils";
 import GlobalEmitter from "@/js/GlobalEmitter";
 import * as TranslationService from "@/js/TranslationService.js";
-import { useConfigStore } from "@/js/stores/configStore.js";
-import { useIdentityStore } from "@/js/stores/identityStore.js";
+import { useConfigStore } from "@/js/stores/configStore";
+import { useIdentityStore } from "@/js/stores/identityStore";
 
 vi.mock("@/js/TranslationService.js", () => ({
     listPacks: vi.fn().mockResolvedValue([]),

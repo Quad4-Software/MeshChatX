@@ -1,12 +1,48 @@
-// @ts-check
-
 import { defineStore } from "pinia";
+
+/**
+ * Server-provided app config. All keys are optional — the server may send
+ * any subset, and mergeConfig overlays onto the defaults.
+ */
+export interface Config {
+    show_unknown_contact_banner?: boolean;
+    banished_effect_enabled?: boolean;
+    banished_text?: string;
+    banished_color?: string;
+    message_outbound_bubble_color?: string | null;
+    message_inbound_bubble_color?: string | null;
+    message_failed_bubble_color?: string;
+    message_waiting_bubble_color?: string;
+    nomad_render_markdown_enabled?: boolean;
+    nomad_render_html_enabled?: boolean;
+    nomad_render_plaintext_enabled?: boolean;
+    nomad_micron_wasm_enabled?: boolean;
+    nomad_micron_default_engine?: string;
+    nomad_default_page_path?: string;
+    ui_transparency?: number;
+    ui_glass_enabled?: boolean;
+    message_list_virtualization?: boolean;
+    warn_on_stranger_links?: boolean;
+    messages_sidebar_position?: string;
+    messages_multi_pane_enabled?: boolean;
+    delivery_helptips_enabled?: boolean;
+    nomad_tabs_enabled?: boolean;
+    rrc_enabled?: boolean;
+    rrc_unread_badges_enabled?: boolean;
+    live_transport_mode?: string;
+    webtransport_sidecar_enabled?: boolean;
+    // Allow arbitrary server-provided keys beyond the defaults.
+    [key: string]: unknown;
+}
+
+/** Capability flags the backend may advertise via app_info. */
+export type CapabilityName = string;
 
 /**
  * Default server-provided config. mergeConfig overlays onto this object;
  * resetConfig restores it so a new identity never inherits stale keys.
  */
-function defaultConfig() {
+function defaultConfig(): Config {
     return {
         show_unknown_contact_banner: true,
         banished_effect_enabled: true,
@@ -37,54 +73,59 @@ function defaultConfig() {
     };
 }
 
+export interface ConfigState {
+    detailedOutboundSendStatus: boolean;
+    outboundTransferProgressEnabled: boolean;
+    messageTimestampGroupingEnabled: boolean;
+    activeCallTab: string;
+    config: Config;
+    backendCapabilities: Record<CapabilityName, boolean>;
+    backendApiVersion: number | null;
+}
+
 /**
  * Server-provided app config and UI preference flags shared across pages.
  *
  * Read via useConfigStore() in new code.
  */
 export const useConfigStore = defineStore("config", {
-    state: () => ({
+    state: (): ConfigState => ({
         detailedOutboundSendStatus: false,
         outboundTransferProgressEnabled: true,
         messageTimestampGroupingEnabled: true,
         activeCallTab: "phone",
-        // Server sends arbitrary keys beyond the defaults.
-        /** @type {Record<string, any>} */
         config: defaultConfig(),
-        // Backend capability flags from app_info. Populated once appInfo loads.
-        /** @type {Record<string, boolean>} */
         backendCapabilities: {},
-        /** @type {number|null} */
         backendApiVersion: null,
     }),
     getters: {
         /**
          * Check if the backend supports a named feature.
          * Returns true when capabilities haven't loaded yet (assume modern).
-         * @param {string} name
-         * @returns {boolean}
          */
-        hasCapability: (state) => (name) => {
-            if (state.backendApiVersion == null) {
-                return true;
-            }
-            return Boolean(state.backendCapabilities?.[name]);
-        },
+        hasCapability:
+            (state) =>
+            (name: CapabilityName): boolean => {
+                if (state.backendApiVersion == null) {
+                    return true;
+                }
+                return Boolean(state.backendCapabilities?.[name]);
+            },
         /**
          * Check if the backend API version is at least the given version.
          * Returns true when version hasn't loaded yet (assume modern).
-         * @param {number} min
-         * @returns {boolean}
          */
-        backendSupports: (state) => (min) => {
-            if (state.backendApiVersion == null) {
-                return true;
-            }
-            return state.backendApiVersion >= min;
-        },
+        backendSupports:
+            (state) =>
+            (min: number): boolean => {
+                if (state.backendApiVersion == null) {
+                    return true;
+                }
+                return state.backendApiVersion >= min;
+            },
     },
     actions: {
-        mergeConfig(next) {
+        mergeConfig(next: Partial<Config> | null | undefined) {
             if (!next || typeof next !== "object") {
                 return;
             }

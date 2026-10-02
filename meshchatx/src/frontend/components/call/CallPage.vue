@@ -1713,7 +1713,7 @@
 
 <script>
 import { useNetworkStore } from "../../js/stores/networkStore.js";
-import { useConfigStore } from "../../js/stores/configStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
 import { useUnreadStore } from "../../js/stores/unreadStore.js";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";

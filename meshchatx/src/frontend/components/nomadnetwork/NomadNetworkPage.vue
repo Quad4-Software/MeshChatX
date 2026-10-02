@@ -897,8 +897,8 @@
 <script>
 import { mapStores } from "pinia";
 import { useNetworkStore } from "../../js/stores/networkStore.js";
-import { useConfigStore } from "../../js/stores/configStore.js";
-import { useIdentityStore } from "../../js/stores/identityStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
+import { useIdentityStore } from "../../js/stores/identityStore";
 import MicronParser from "../../js/MicronParser";
 import LinkUtils from "../../js/LinkUtils";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
@@ -908,7 +908,7 @@ import {
     isolateNomadLinksInHtml,
 } from "../../js/NomadPageRenderer";
 import DialogUtils from "../../js/DialogUtils";
-import { recordNomadVisit } from "../../js/nomadHistory.js";
+import { recordNomadVisit } from "../../js/nomadHistory";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import LiveTransport from "../../js/liveTransport.js";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";

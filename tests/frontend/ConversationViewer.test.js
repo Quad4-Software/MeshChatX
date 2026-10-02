@@ -8,7 +8,7 @@ import { MESSAGE_BODY_MAX_DISPLAY_CHARS } from "../../meshchatx/src/frontend/js/
 import DownloadUtils from "@/js/DownloadUtils";
 import GlobalEmitter from "@/js/GlobalEmitter";
 import NotificationUtils from "@/js/NotificationUtils";
-import { useConfigStore } from "@/js/stores/configStore.js";
+import { useConfigStore } from "@/js/stores/configStore";
 import { stashConversationFirstPage, takeConversationPrefetch } from "@/js/conversationPrefetch.js";
 
 vi.mock("@/js/DialogUtils", () => ({

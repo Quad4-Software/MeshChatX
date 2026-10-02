@@ -1644,9 +1644,9 @@
 <script>
 import { getCurrentInstance } from "vue";
 import { mapStores } from "pinia";
-import { useConfigStore } from "../../js/stores/configStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
 import { useUnreadStore } from "../../js/stores/unreadStore.js";
-import { useIdentityStore } from "../../js/stores/identityStore.js";
+import { useIdentityStore } from "../../js/stores/identityStore";
 import Utils from "../../js/Utils";
 import { copyTextToClipboard, copyImageBlobToClipboard, readTextFromClipboard } from "../../js/clipboardUtils.js";
 import { preferNativeTextSelectionMenu } from "../../js/contextMenuUtils.js";

@@ -3007,7 +3007,7 @@
 import { getCurrentInstance } from "vue";
 import { mapStores } from "pinia";
 import { useAuthStore } from "../../js/stores/authStore.js";
-import { useConfigStore } from "../../js/stores/configStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
 import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import DialogUtils from "../../js/DialogUtils";

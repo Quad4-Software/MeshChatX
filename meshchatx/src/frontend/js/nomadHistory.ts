@@ -10,20 +10,28 @@ const MAX_ENTRIES = 50;
 
 const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
-let entries = [];
+export interface NomadHistoryEntry {
+    destinationHash: string;
+    path: string;
+    title: string | null;
+    ts: number;
+}
 
-function load() {
+let entries: NomadHistoryEntry[] = [];
+
+function load(): void {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw == null) return;
-        const parsed = JSON.parse(raw);
+        const parsed: unknown = JSON.parse(raw);
         if (Array.isArray(parsed)) {
             entries = parsed.filter(
-                (e) =>
-                    e &&
-                    typeof e.destinationHash === "string" &&
-                    typeof e.path === "string" &&
-                    !FORBIDDEN_KEYS.has(e.destinationHash)
+                (e): e is NomadHistoryEntry =>
+                    typeof e === "object" &&
+                    e !== null &&
+                    typeof (e as NomadHistoryEntry).destinationHash === "string" &&
+                    typeof (e as NomadHistoryEntry).path === "string" &&
+                    !FORBIDDEN_KEYS.has((e as NomadHistoryEntry).destinationHash)
             );
         }
     } catch {
@@ -31,7 +39,7 @@ function load() {
     }
 }
 
-function persist() {
+function persist(): void {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
     } catch {
@@ -39,17 +47,14 @@ function persist() {
     }
 }
 
-/**
- * Record a page visit.
- * @param {string} destinationHash
- * @param {string} path
- * @param {string|null} title
- * @param {boolean} isPrivate
- */
-export function recordNomadVisit(destinationHash, path, title = null, isPrivate = false) {
+export function recordNomadVisit(
+    destinationHash: string,
+    path: string,
+    title: string | null = null,
+    isPrivate = false
+): void {
     if (isPrivate || !destinationHash || !path) return;
     load();
-    // Dedupe consecutive identical visits
     const last = entries[entries.length - 1];
     if (last && last.destinationHash === destinationHash && last.path === path) return;
     entries.push({
@@ -64,19 +69,12 @@ export function recordNomadVisit(destinationHash, path, title = null, isPrivate 
     persist();
 }
 
-/**
- * Get the history list, newest first.
- * @returns {Array<{destinationHash: string, path: string, title: string|null, ts: number}>}
- */
-export function getNomadHistory() {
+export function getNomadHistory(): NomadHistoryEntry[] {
     load();
     return [...entries].reverse();
 }
 
-/**
- * Clear all history.
- */
-export function clearNomadHistory() {
+export function clearNomadHistory(): void {
     entries = [];
     persist();
 }

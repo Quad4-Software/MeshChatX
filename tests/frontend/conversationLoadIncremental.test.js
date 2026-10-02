@@ -5,7 +5,7 @@ import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
 import { CONVERSATION_MESSAGES_PAGE_SIZE } from "@/components/messages/conversationDisplayGroups.js";
 import { mount, flushPromises } from "@vue/test-utils";
-import { useConfigStore } from "@/js/stores/configStore.js";
+import { useConfigStore } from "@/js/stores/configStore";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {

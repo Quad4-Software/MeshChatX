@@ -6,13 +6,13 @@ export const APP_TOP_NAV_LAYOUT_KEY = "meshchatx.topnav.layout";
 
 /**
  * Nav section buttons shown in the top bar by default, in order. Ids refer to
- * entries in the nav registry (js/registries/coreNavEntries.js).
+ * entries in the nav registry (js/registries/coreNavEntries).
  */
-export const DEFAULT_TOP_NAV_ITEM_IDS = ["relay-chat", "call", "nomadnetwork", "settings"];
+export const DEFAULT_TOP_NAV_ITEM_IDS: string[] = ["relay-chat", "call", "nomadnetwork", "settings"];
 
 const FORBIDDEN_IDS = new Set(["__proto__", "constructor", "prototype"]);
 
-function readRaw() {
+function readRaw(): string | null {
     try {
         if (typeof window === "undefined" || !window.localStorage) {
             return null;
@@ -23,15 +23,11 @@ function readRaw() {
     }
 }
 
-/**
- * @param {unknown} raw
- * @returns {string[] | null}
- */
-export function normalizeTopNavItemIds(raw) {
+export function normalizeTopNavItemIds(raw: unknown): string[] | null {
     if (!Array.isArray(raw)) {
         return null;
     }
-    const ids = [];
+    const ids: string[] = [];
     for (const value of raw) {
         if (typeof value !== "string") {
             continue;
@@ -47,9 +43,8 @@ export function normalizeTopNavItemIds(raw) {
 
 /**
  * Stored item ids, or null when the default set applies.
- * @returns {string[] | null}
  */
-export function loadTopNavItemIds() {
+export function loadTopNavItemIds(): string[] | null {
     const raw = readRaw();
     if (raw == null) {
         return null;
@@ -69,10 +64,7 @@ export const topNavLayoutState = reactive({
     itemIds: loadTopNavItemIds(),
 });
 
-/**
- * @param {string[]} ids
- */
-export function saveTopNavItemIds(ids) {
+export function saveTopNavItemIds(ids: string[]): void {
     const normalized = normalizeTopNavItemIds(ids) || [];
     try {
         if (typeof window !== "undefined" && window.localStorage) {
@@ -84,7 +76,7 @@ export function saveTopNavItemIds(ids) {
     topNavLayoutState.itemIds = normalized;
 }
 
-export function resetTopNavItemIds() {
+export function resetTopNavItemIds(): void {
     try {
         if (typeof window !== "undefined" && window.localStorage) {
             window.localStorage.removeItem(APP_TOP_NAV_LAYOUT_KEY);
@@ -97,23 +89,21 @@ export function resetTopNavItemIds() {
 
 /**
  * Effective pinned ids: the stored set, or defaults when nothing is stored.
- * @param {string[] | null | undefined} itemIds
- * @returns {string[]}
  */
-export function resolveTopNavItemIds(itemIds) {
+export function resolveTopNavItemIds(itemIds: string[] | null | undefined): string[] {
     return itemIds == null ? [...DEFAULT_TOP_NAV_ITEM_IDS] : itemIds;
 }
 
 /**
  * Filter and order nav registry entries by the pinned id list. Ids that are
  * not registered or not currently visible are skipped.
- * @param {Array<{ id: string }>} availableItems
- * @param {string[] | null | undefined} itemIds
- * @returns {typeof availableItems}
  */
-export function orderedTopNavItems(availableItems, itemIds) {
+export function orderedTopNavItems<T extends { id: string }>(
+    availableItems: T[],
+    itemIds: string[] | null | undefined
+): T[] {
     const byId = new Map((availableItems || []).map((item) => [item.id, item]));
-    const ordered = [];
+    const ordered: T[] = [];
     for (const id of resolveTopNavItemIds(itemIds)) {
         const item = byId.get(id);
         if (item) {

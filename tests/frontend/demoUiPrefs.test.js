@@ -12,7 +12,7 @@ import {
 } from "../../meshchatx/src/frontend/js/demoUiPrefs.js";
 import { createApiClient } from "../../meshchatx/src/frontend/js/apiClient.js";
 import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.js";
-import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore";
 
 function memoryStorage() {
     /** @type {Record<string, string>} */

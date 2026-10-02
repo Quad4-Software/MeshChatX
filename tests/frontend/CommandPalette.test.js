@@ -9,7 +9,7 @@ import { settingsSectionRegistry } from "../../meshchatx/src/frontend/js/registr
 import {
     registerCoreContributions,
     resetCoreContributionsForTests,
-} from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
+} from "../../meshchatx/src/frontend/js/registries/registerCoreContributions";
 import { postInstallPromptRegistry } from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry.js";
 
 describe("CommandPalette.vue", () => {

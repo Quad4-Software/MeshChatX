@@ -10,7 +10,7 @@ import { createI18n } from "vue-i18n";
 import TutorialModal from "../../meshchatx/src/frontend/components/TutorialModal.vue";
 import en from "../../meshchatx/src/frontend/locales/en.json";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
-import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore";
 
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {

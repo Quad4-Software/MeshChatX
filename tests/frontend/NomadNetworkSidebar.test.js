@@ -5,8 +5,8 @@ import DialogUtils from "@/js/DialogUtils";
 import GlobalEmitter from "@/js/GlobalEmitter";
 import { _resetNomadFavouritesLayoutSaveStateForTests } from "@/js/nomadFavouritesLayoutStore.js";
 import { _resetNomadFavouritesLayoutSharedStateForTests } from "@/js/nomadnet/useNomadFavouritesLayout.js";
-import { useConfigStore } from "@/js/stores/configStore.js";
-import { useIdentityStore } from "@/js/stores/identityStore.js";
+import { useConfigStore } from "@/js/stores/configStore";
+import { useIdentityStore } from "@/js/stores/identityStore";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {

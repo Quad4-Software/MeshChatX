@@ -1088,8 +1088,8 @@
 
 <script>
 import { mapStores } from "pinia";
-import { useConfigStore } from "../../js/stores/configStore.js";
-import { useIdentityStore } from "../../js/stores/identityStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
+import { useIdentityStore } from "../../js/stores/identityStore";
 import Utils from "../../js/Utils";
 import DialogUtils from "../../js/DialogUtils";
 import EmptyState from "../EmptyState.vue";

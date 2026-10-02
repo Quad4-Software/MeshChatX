@@ -5,8 +5,8 @@ import SettingsPage from "@/components/settings/SettingsPage.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
 import ToastUtils from "@/js/ToastUtils";
 import Utils from "@/js/Utils";
-import { useConfigStore } from "@/js/stores/configStore.js";
-import { useIdentityStore } from "@/js/stores/identityStore.js";
+import { useConfigStore } from "@/js/stores/configStore";
+import { useIdentityStore } from "@/js/stores/identityStore";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {

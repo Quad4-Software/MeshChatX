@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { useTutorialIdentity } from "../../meshchatx/src/frontend/js/tutorial/useTutorialIdentity.js";
-import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter.js";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils.js";
 

@@ -312,7 +312,7 @@
 <script>
 import { getCurrentInstance } from "vue";
 import { useNetworkStore } from "../../js/stores/networkStore.js";
-import { useConfigStore } from "../../js/stores/configStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
 import { useUnreadStore } from "../../js/stores/unreadStore.js";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import Utils from "../../js/Utils";

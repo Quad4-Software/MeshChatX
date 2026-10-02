@@ -2,8 +2,8 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import PropagationNodesPage from "../../meshchatx/src/frontend/components/propagation-nodes/PropagationNodesPage.vue";
 import MessagesSidebar from "../../meshchatx/src/frontend/components/messages/MessagesSidebar.vue";
-import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
-import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore.js";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore";
+import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore";
 import NomadNetworkSidebar from "../../meshchatx/src/frontend/components/nomadnetwork/NomadNetworkSidebar.vue";
 
 const MAX_PROP_NODES_MS = 3000;

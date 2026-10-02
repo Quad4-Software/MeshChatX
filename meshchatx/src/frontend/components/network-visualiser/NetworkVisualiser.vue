@@ -63,7 +63,7 @@
 <script>
 import { getCurrentInstance } from "vue";
 import { useNetworkStore } from "../../js/stores/networkStore.js";
-import { useConfigStore } from "../../js/stores/configStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
 import { useVisualiserIconQueue } from "../../js/network/useVisualiserIconQueue.js";
 
 import "vis-network/styles/vis-network.css";
