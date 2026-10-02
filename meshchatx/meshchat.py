@@ -6388,6 +6388,7 @@ class ReticulumMeshChat:
                 "tokyo",
                 "atom_one",
                 "neo_brutalist",
+                "glass",
                 "custom",
             ):
                 preset = "default"
