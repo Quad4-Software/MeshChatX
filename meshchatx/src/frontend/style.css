@@ -194,9 +194,9 @@ html.dark[data-theme-preset="glass"] #app,
 html.dark[data-theme-preset="glass"] .page-canvas,
 html.dark[data-theme-preset="glass"] .page-header-bar {
     background-image:
-        radial-gradient(1200px 800px at 15% -10%, rgba(99, 102, 241, 0.22), transparent 60%),
-        radial-gradient(1000px 700px at 85% 10%, rgba(14, 165, 233, 0.18), transparent 55%),
-        radial-gradient(900px 900px at 50% 110%, rgba(139, 92, 246, 0.2), transparent 60%);
+        radial-gradient(1200px 800px at 15% -10%, rgb(255 255 255 / 0.06), transparent 60%),
+        radial-gradient(1000px 700px at 85% 10%, rgb(148 163 184 / 0.08), transparent 55%),
+        radial-gradient(900px 900px at 50% 110%, rgb(255 255 255 / 0.05), transparent 60%);
 }
 
 html[data-theme-preset="glass"] .page-surface,
@@ -268,6 +268,47 @@ html[data-theme-preset="glass"][data-ui-glass="0"] .bg-sem-surface-raised {
 html[data-theme-preset="glass"][data-ui-glass="0"] body,
 html[data-theme-preset="glass"][data-ui-glass="0"] #app {
     background-image: none;
+}
+
+/* Neo-brutalist: square corners, hard borders, offset block shadows. */
+html[data-theme-preset="neo_brutalist"] .fused-panel,
+html[data-theme-preset="neo_brutalist"] .glass-card,
+html[data-theme-preset="neo_brutalist"] .modal-panel,
+html[data-theme-preset="neo_brutalist"] .dropdown-panel,
+html[data-theme-preset="neo_brutalist"] .context-menu-panel,
+html[data-theme-preset="neo_brutalist"] .address-card,
+html[data-theme-preset="neo_brutalist"] .input-field,
+html[data-theme-preset="neo_brutalist"] .search-input,
+html[data-theme-preset="neo_brutalist"] .secondary-chip,
+html[data-theme-preset="neo_brutalist"] .danger-chip,
+html[data-theme-preset="neo_brutalist"] .page-surface,
+html[data-theme-preset="neo_brutalist"] .bg-sem-surface,
+html[data-theme-preset="neo_brutalist"] .bg-sem-surface-muted,
+html[data-theme-preset="neo_brutalist"] .bg-sem-surface-raised {
+    border-radius: 0 !important;
+}
+html[data-theme-preset="neo_brutalist"] .fused-panel,
+html[data-theme-preset="neo_brutalist"] .glass-card,
+html[data-theme-preset="neo_brutalist"] .modal-panel,
+html[data-theme-preset="neo_brutalist"] .dropdown-panel,
+html[data-theme-preset="neo_brutalist"] .context-menu-panel,
+html[data-theme-preset="neo_brutalist"] .address-card,
+html[data-theme-preset="neo_brutalist"] .input-field,
+html[data-theme-preset="neo_brutalist"] .search-input {
+    border-width: 2px;
+    box-shadow: 5px 5px 0 0 var(--mc-border-strong);
+}
+html[data-theme-preset="neo_brutalist"] .glass-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+html.dark[data-theme-preset="neo_brutalist"] .fused-panel,
+html.dark[data-theme-preset="neo_brutalist"] .glass-card,
+html.dark[data-theme-preset="neo_brutalist"] .modal-panel,
+html.dark[data-theme-preset="neo_brutalist"] .dropdown-panel,
+html.dark[data-theme-preset="neo_brutalist"] .context-menu-panel,
+html.dark[data-theme-preset="neo_brutalist"] .address-card {
+    box-shadow: 5px 5px 0 0 rgb(255 255 255 / 0.9);
 }
 
 .input-field {
