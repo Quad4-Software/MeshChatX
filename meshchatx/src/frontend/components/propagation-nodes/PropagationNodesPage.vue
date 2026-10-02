@@ -461,13 +461,13 @@
                                 }}</span>
                                 <span
                                     v-if="propagationNode.is_propagation_enabled === false"
-                                    class="shrink-0 rounded-full bg-sem-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-sem-danger"
+                                    class="shrink-0 rounded-full bg-sem-danger/20 px-1.5 py-0.5 text-[10px] font-semibold text-sem-danger"
                                 >
                                     {{ $t("tools.propagation_nodes.disabled") }}
                                 </span>
                                 <span
                                     v-if="propagationNode.is_local_node"
-                                    class="shrink-0 rounded-full bg-sem-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-sem-accent"
+                                    class="shrink-0 rounded-full bg-sem-accent/20 px-1.5 py-0.5 text-[10px] font-semibold text-sem-accent"
                                 >
                                     {{ $t("tools.propagation_nodes.our_node") }}
                                 </span>
