@@ -465,12 +465,12 @@
                                         <div
                                             class="absolute top-0 right-0 z-20 flex flex-row gap-1 sm:static sm:z-auto sm:ml-auto sm:flex-col sm:gap-2 sm:shrink-0 sm:self-auto sm:justify-end"
                                         >
-                                            <div class="relative">
+                                            <div class="relative" v-click-outside="closeDiscoveryActionsMenu">
                                                 <button
                                                     type="button"
                                                     class="secondary-chip p-2! rounded-xl!"
                                                     title="Discovery actions"
-                                                    @click="toggleDiscoveryActionsMenu(iface)"
+                                                    @click.stop="toggleDiscoveryActionsMenu(iface)"
                                                 >
                                                     <MaterialDesignIcon icon-name="dots-vertical" class="w-4 h-4" />
                                                 </button>
@@ -1521,6 +1521,9 @@ export default {
         toggleDiscoveryActionsMenu(iface) {
             const key = this.discoveryKey(iface);
             this.openDiscoveryActionKey = this.openDiscoveryActionKey === key ? null : key;
+        },
+        closeDiscoveryActionsMenu() {
+            this.openDiscoveryActionKey = null;
         },
         normalizeDiscoveryPatternInput(value) {
             if (!value) return [];

@@ -33,7 +33,7 @@ describe("themeEngine", () => {
 
     it("glass preset uses translucent surfaces", () => {
         const glassDark = buildThemeVariableOverrides({ theme_preset: "glass" }, "dark");
-        expect(glassDark["--mc-canvas"]).toBe("#0a0a0c");
+        expect(glassDark["--mc-canvas"]).toBe("#0b0b12");
         expect(glassDark["--mc-surface"]).toMatch(/rgb\(.+\/\s*0\.\d+\)/);
         expect(glassDark["--mc-glass-surface"]).toMatch(/rgb\(.+\/\s*0\.\d+\)/);
         const glassLight = buildThemeVariableOverrides({ theme_preset: "glass" }, "light");
