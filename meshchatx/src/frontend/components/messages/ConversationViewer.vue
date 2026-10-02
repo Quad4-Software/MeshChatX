@@ -463,20 +463,18 @@
                             </div>
                         </div>
 
-                        <!-- text input + send -->
-                        <div class="flex items-center gap-2 min-w-0">
+                        <!-- text input + send: single pill containing paperclip,
+                             textarea, emoji, mic. Round send sits outside. -->
+                        <div class="flex items-end gap-2 min-w-0">
                             <div
                                 v-click-outside="{ handler: onStickerPickerClickOutside, capture: true }"
-                                class="relative flex-1 min-w-0"
+                                class="composer-pill relative flex-1 min-w-0 flex items-end gap-0.5 rounded-2xl border border-sem-border bg-sem-surface-muted/60 pl-1.5 pr-1 transition-all focus-within:ring-2 focus-within:ring-sem-focus focus-within:border-sem-focus-border shadow-xs"
                             >
-                                <!-- mobile: attachments button inside the input, left side -->
-                                <div
-                                    v-click-outside="closeMobileAttachmentMenu"
-                                    class="absolute left-1 top-1/2 -translate-y-1/2 z-10 sm:hidden"
-                                >
+                                <!-- attachments button inside the pill, left side -->
+                                <div v-click-outside="closeMobileAttachmentMenu" class="relative shrink-0 self-center">
                                     <button
                                         type="button"
-                                        class="inline-flex items-center justify-center rounded-lg size-8 text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg transition-colors"
+                                        class="inline-flex items-center justify-center rounded-xl size-8 text-sem-fg-muted hover:bg-sem-surface-raised hover:text-sem-fg transition-colors"
                                         :title="$t('messages.attachments')"
                                         @click.stop="toggleMobileAttachmentMenu"
                                     >
@@ -485,7 +483,7 @@
                                 </div>
                                 <div
                                     v-if="showMobileAttachmentMenu"
-                                    class="absolute left-0 bottom-full mb-2 z-50 min-w-[200px] rounded-xl border border-sem-border bg-sem-surface shadow-lg sm:hidden"
+                                    class="absolute left-0 bottom-full mb-2 z-50 min-w-[200px] rounded-xl border border-sem-border bg-sem-surface shadow-lg"
                                 >
                                     <div
                                         class="absolute -bottom-[5px] left-4 w-2.5 h-2.5 rotate-45 bg-sem-surface border-b border-r border-sem-border"
@@ -563,7 +561,7 @@
                                     ref="message-input"
                                     v-model="newMessageText"
                                     :readonly="isTranslatingMessage"
-                                    class="bg-sem-surface border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full min-w-0 pl-11 sm:pl-4 pr-16 py-2.5 resize-none shadow-xs transition-all placeholder:text-sem-fg-muted min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
+                                    class="composer-textarea bg-transparent border-0 text-sem-fg text-sm block flex-1 min-w-0 px-2 py-2.5 resize-none transition-all placeholder:text-sem-fg-muted min-h-[40px] max-h-[200px] overflow-y-auto leading-snug focus:outline-none focus:ring-0"
                                     rows="1"
                                     spellcheck="true"
                                     :placeholder="composeInputPlaceholder"
@@ -571,7 +569,7 @@
                                     @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
                                     @paste="onMessagePaste"
                                 ></textarea>
-                                <div class="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0">
+                                <div class="shrink-0 self-center flex items-center gap-0">
                                     <AddAudioButton
                                         :is-recording-audio-attachment="isRecordingAudioAttachment"
                                         @start-recording="startRecordingAudioAttachment($event)"
@@ -824,7 +822,7 @@
                                     :can-open-send-menu="Boolean(selectedPeer)"
                                     :can-generate-paper="canGeneratePaperMessage"
                                     :delivery-method="newMessageDeliveryMethod"
-                                    :compact="compactSendLayout"
+                                    :compact="true"
                                     :sending-tooltip="sendMessagePathfindingTooltip"
                                     @send="onComposerSendClick"
                                     @delivery-method-changed="newMessageDeliveryMethod = $event"
@@ -911,57 +909,10 @@
                             </p>
                         </div>
 
-                        <!-- action button (desktop; mobile uses the paperclip menu next to the input) -->
-                        <div class="hidden sm:flex flex-wrap gap-2 items-center mt-2">
-                            <button type="button" class="attachment-action-button" @click="addFilesToMessage">
-                                <MaterialDesignIcon icon-name="paperclip-plus" class="w-4 h-4" />
-                                <span class="hidden sm:inline">{{ $t("messages.add_files") }}</span>
-                            </button>
+                        <!-- hidden AddImageButton keeps the addImage(quality) API the
+                             paperclip menu calls; its own button is not shown. -->
+                        <div class="hidden">
                             <AddImageButton ref="add-image-button" @add-image="onImageSelected" />
-                            <div v-click-outside="closeLocationActionMenu" class="relative">
-                                <button
-                                    type="button"
-                                    class="attachment-action-button"
-                                    :title="$t('messages.location')"
-                                    @click.stop="toggleLocationActionMenu"
-                                >
-                                    <MaterialDesignIcon icon-name="map-marker" class="w-4 h-4" />
-                                    <span class="hidden sm:inline">{{ $t("messages.location") }}</span>
-                                </button>
-                                <div
-                                    v-if="showLocationActionMenu"
-                                    class="absolute left-0 bottom-full mb-2 z-50 min-w-[220px] overflow-hidden rounded-xl border border-sem-border bg-sem-surface shadow-lg dark:bg-sem-surface"
-                                >
-                                    <button
-                                        type="button"
-                                        class="w-full text-left px-3 py-2 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
-                                        @click="selectSendLocation"
-                                    >
-                                        {{ $t("messages.share_location") }}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="w-full text-left px-3 py-2 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
-                                        @click="selectRequestLocation"
-                                    >
-                                        {{ $t("messages.request_location") }}
-                                    </button>
-                                </div>
-                            </div>
-                            <button
-                                v-if="hasTranslator && newMessageText"
-                                type="button"
-                                class="attachment-action-button"
-                                :class="{
-                                    'ring-1 ring-sem-info/60':
-                                        translateTargetBarOpen && translateTargetModalContext?.type === 'compose',
-                                }"
-                                :title="$t('translator.translate')"
-                                @click="toggleComposeTranslateTargetBar"
-                            >
-                                <MaterialDesignIcon icon-name="translate" class="w-4 h-4" />
-                                <span class="hidden sm:inline">{{ $t("translator.translate") }}</span>
-                            </button>
                         </div>
                     </div>
                 </div>

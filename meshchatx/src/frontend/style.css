@@ -182,6 +182,7 @@ html[data-ui-glass="0"] .glass-card {
 html[data-theme-preset="glass"] body,
 html[data-theme-preset="glass"] #app,
 html[data-theme-preset="glass"] .page-canvas,
+html[data-theme-preset="glass"] .bg-sem-canvas,
 html[data-theme-preset="glass"] .page-header-bar {
     background-image:
         radial-gradient(1200px 800px at 15% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
@@ -192,11 +193,14 @@ html[data-theme-preset="glass"] .page-header-bar {
 html.dark[data-theme-preset="glass"] body,
 html.dark[data-theme-preset="glass"] #app,
 html.dark[data-theme-preset="glass"] .page-canvas,
+html.dark[data-theme-preset="glass"] .bg-sem-canvas,
 html.dark[data-theme-preset="glass"] .page-header-bar {
     background-image:
-        radial-gradient(1200px 800px at 15% -10%, rgb(255 255 255 / 0.06), transparent 60%),
-        radial-gradient(1000px 700px at 85% 10%, rgb(148 163 184 / 0.08), transparent 55%),
-        radial-gradient(900px 900px at 50% 110%, rgb(255 255 255 / 0.05), transparent 60%);
+        radial-gradient(60vmax 40vmax at 8% 0%, rgba(124, 92, 255, 0.5), transparent 65%),
+        radial-gradient(50vmax 35vmax at 92% 4%, rgba(34, 197, 184, 0.35), transparent 60%),
+        radial-gradient(55vmax 45vmax at 50% 108%, rgba(236, 72, 153, 0.32), transparent 65%),
+        radial-gradient(45vmax 35vmax at 62% 42%, rgba(59, 130, 246, 0.22), transparent 62%);
+    background-attachment: fixed;
 }
 
 html[data-theme-preset="glass"] .page-surface,

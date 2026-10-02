@@ -6,7 +6,7 @@
             <button
                 :disabled="!canSendMessage && !canOpenSendMenu"
                 type="button"
-                class="inline-flex items-center justify-center rounded-xl p-2.5 min-h-[44px] min-w-[44px] text-white transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 touch-manipulation select-none"
+                class="inline-flex items-center justify-center rounded-full p-2.5 min-h-[42px] min-w-[42px] text-white transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 touch-manipulation select-none"
                 :class="[
                     canSendMessage || canOpenSendMenu
                         ? 'bg-sem-action-primary hover:bg-sem-action-primary-hover focus-visible:outline-sem-focus press-feedback'
