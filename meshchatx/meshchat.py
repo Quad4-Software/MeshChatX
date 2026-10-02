@@ -6393,6 +6393,7 @@ class ReticulumMeshChat:
                 "atom_one",
                 "neo_brutalist",
                 "glass",
+                "void",
                 "custom",
             ):
                 preset = "default"

@@ -237,3 +237,19 @@ describe("applyAppearanceTheme DOM integration", () => {
         expect(el?.textContent).not.toContain(".dark");
     });
 });
+
+describe("theme preset backend parity", () => {
+    it("frontend THEME_PRESET_IDS matches backend whitelist in meshchat.py", () => {
+        const fs = require("fs");
+        const path = require("path");
+        const backendSrc = fs.readFileSync(
+            path.resolve(__dirname, "../../meshchatx/meshchat.py"),
+            "utf8"
+        );
+        const whitelistMatch = backendSrc.match(/if preset not in \(\s*((?:\s*"[^"]+",?\s*)+)\)/s);
+        expect(whitelistMatch).not.toBeNull();
+        const backendPresets = [...whitelistMatch[1].matchAll(/"([a-z_]+)"/g)].map((m) => m[1]).sort();
+        const frontendPresets = [...THEME_PRESET_IDS].sort();
+        expect(frontendPresets).toEqual(backendPresets);
+    });
+});
