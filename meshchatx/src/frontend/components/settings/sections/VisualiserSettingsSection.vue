@@ -17,16 +17,12 @@
                 <p class="text-xs text-gray-600 dark:text-gray-400">
                     {{ $t("visualiser.renderer_desc") }}
                 </p>
-                <select
+                <SegmentedControl
                     id="settings-visualiser-renderer"
-                    :value="renderer"
-                    class="input-field"
-                    @change="$emit('renderer-change', $event.target.value)"
-                >
-                    <option value="auto">{{ $t("visualiser.renderer_option_auto") }}</option>
-                    <option value="webgl">{{ $t("visualiser.renderer_option_webgl") }}</option>
-                    <option value="vis">{{ $t("visualiser.renderer_option_vis") }}</option>
-                </select>
+                    :model-value="renderer"
+                    :options="rendererOptions"
+                    @change="$emit('renderer-change', $event)"
+                />
             </div>
             <div class="space-y-2">
                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -35,15 +31,12 @@
                 <p class="text-xs text-gray-600 dark:text-gray-400">
                     {{ $t("visualiser.view_mode_desc") }}
                 </p>
-                <select
+                <SegmentedControl
                     id="settings-visualiser-view-mode"
-                    :value="viewMode"
-                    class="input-field"
-                    @change="$emit('view-mode-change', $event.target.value)"
-                >
-                    <option value="flat">{{ $t("visualiser.view_mode_flat_full") }}</option>
-                    <option value="planet">{{ $t("visualiser.view_mode_planet_full") }}</option>
-                </select>
+                    :model-value="viewMode"
+                    :options="viewModeOptions"
+                    @change="$emit('view-mode-change', $event)"
+                />
             </div>
             <label class="setting-toggle">
                 <Toggle
@@ -71,10 +64,12 @@
 
 <script>
 import Toggle from "../../forms/Toggle.vue";
+import SegmentedControl from "../../forms/SegmentedControl.vue";
 
 export default {
     name: "VisualiserSettingsSection",
     components: {
+        SegmentedControl,
         Toggle,
     },
     props: {
@@ -100,5 +95,20 @@ export default {
         },
     },
     emits: ["renderer-change", "view-mode-change", "show-disabled-change", "show-discovered-change"],
+    computed: {
+        rendererOptions() {
+            return [
+                { value: "auto", label: "visualiser.renderer_option_auto" },
+                { value: "webgl", label: "visualiser.renderer_option_webgl" },
+                { value: "vis", label: "visualiser.renderer_option_vis" },
+            ];
+        },
+        viewModeOptions() {
+            return [
+                { value: "flat", icon: "earth", label: "visualiser.view_mode_flat_full" },
+                { value: "planet", icon: "orbit", label: "visualiser.view_mode_planet_full" },
+            ];
+        },
+    },
 };
 </script>

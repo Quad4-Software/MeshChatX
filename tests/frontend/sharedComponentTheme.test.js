@@ -76,7 +76,7 @@ describe("shared component theming contract", () => {
 
     it("search-input classes in style.css use semantic tokens", () => {
         const css = readFileSync(join(COMPONENTS_DIR, "../style.css"), "utf8");
-        const block = css.match(/\.search-input\s*\{[^}]+\}/s);
+        const block = css.match(/^\.search-input\s*\{[^}]+\}/ms);
         expect(block, ".search-input rule missing").toBeTruthy();
         expect(block[0]).toContain("sem-");
         expect(block[0]).toContain("pl-10");

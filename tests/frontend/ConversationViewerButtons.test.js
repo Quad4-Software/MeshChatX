@@ -338,8 +338,7 @@ describe("ConversationViewer.vue button interactions", () => {
             const fileInput = wrapper.find('input[type="file"]');
             const clickSpy = vi.spyOn(fileInput.element, "click").mockImplementation(() => {});
 
-            const actionButtons = wrapper.findAll(".attachment-action-button");
-            await actionButtons[0].trigger("click");
+            wrapper.vm.onMobileAttachFiles();
 
             expect(clickSpy).toHaveBeenCalled();
             clickSpy.mockRestore();

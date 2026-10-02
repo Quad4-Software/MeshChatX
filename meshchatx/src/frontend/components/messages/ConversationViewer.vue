@@ -7582,18 +7582,6 @@ export default {
 .attachment-chip__remove {
     @apply inline-flex items-center justify-center text-sem-fg-muted hover:text-sem-danger;
 }
-.attachment-action-button {
-    @apply inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-sem-fg-muted hover:bg-sem-surface-muted transition-colors;
-}
-.attachment-action-button:hover {
-    @apply text-sem-fg;
-}
-.dark .attachment-action-button {
-    @apply text-zinc-300;
-}
-.dark .attachment-action-button:hover {
-    @apply text-white;
-}
 
 .compose-emoji-picker {
     width: 100%;

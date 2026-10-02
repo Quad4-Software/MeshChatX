@@ -31,15 +31,11 @@
                 <p class="text-xs text-sem-fg-muted">
                     {{ $t("settings.experimental.live_transport_mode_desc") }}
                 </p>
-                <select
-                    class="input-field"
-                    :value="liveTransportMode"
-                    @change="$emit('mode-change', $event.target.value)"
-                >
-                    <option value="auto">{{ $t("settings.experimental.mode_auto") }}</option>
-                    <option value="websocket">{{ $t("settings.experimental.mode_websocket") }}</option>
-                    <option value="webtransport">{{ $t("settings.experimental.mode_webtransport") }}</option>
-                </select>
+                <SegmentedControl
+                    :model-value="liveTransportMode"
+                    :options="liveTransportOptions"
+                    @change="$emit('mode-change', $event)"
+                />
             </div>
         </div>
     </section>
@@ -47,15 +43,32 @@
 
 <script>
 import Toggle from "../../forms/Toggle.vue";
+import SegmentedControl from "../../forms/SegmentedControl.vue";
 
 export default {
     name: "ExperimentalLiveSettingsSection",
-    components: { Toggle },
+    components: {
+        SegmentedControl,
+        Toggle,
+    },
     props: {
         visible: { type: Boolean, default: false },
         liveTransportMode: { type: String, default: "auto" },
         sidecarEnabled: { type: Boolean, default: false },
     },
     emits: ["mode-change", "sidecar-change"],
+    computed: {
+        liveTransportOptions() {
+            return [
+                { value: "auto", icon: "auto-fix", label: "settings.experimental.mode_auto" },
+                { value: "websocket", icon: "web", label: "settings.experimental.mode_websocket" },
+                {
+                    value: "webtransport",
+                    icon: "rocket-launch-outline",
+                    label: "settings.experimental.mode_webtransport",
+                },
+            ];
+        },
+    },
 };
 </script>
