@@ -13,7 +13,13 @@ ARG OCI_LICENSES="MIT AND 0BSD"
 
 FROM --platform=linux/amd64 ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
-RUN apk add --no-cache git python3 go
+ARG TINYGO_VERSION=0.42.0
+RUN apk add --no-cache git python3 go gcompat \
+    && wget -qO /tmp/tinygo.tar.gz "https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo${TINYGO_VERSION}.linux-amd64.tar.gz" \
+    && tar -C /usr/local -xzf /tmp/tinygo.tar.gz \
+    && rm /tmp/tinygo.tar.gz \
+    && /usr/local/tinygo/bin/tinygo version
+ENV PATH="/usr/local/tinygo/bin:${PATH}"
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml vite.config.mjs ./
 COPY patches ./patches
 COPY scripts/fetch-micron-wasm.mjs scripts/fetch-micron-wasm.mjs

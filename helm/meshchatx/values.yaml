@@ -1,0 +1,78 @@
+# Default values for meshchatx.
+# This is a YAML-formatted file.
+
+replicaCount: 1
+
+image:
+    repository: quad4io/meshchatx
+    pullPolicy: IfNotPresent
+    tag: "" # defaults to chart appVersion
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    runAsNonRoot: true
+    fsGroup: 1000
+
+securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+        drop:
+            - ALL
+
+service:
+    type: ClusterIP
+    port: 8000
+
+ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    # nginx.ingress.kubernetes.io/proxy-body-size: "256m"
+    hosts:
+        - host: meshchatx.local
+          paths:
+              - path: /
+                pathType: Prefix
+    tls: []
+
+resources:
+    limits:
+        cpu: "2"
+        memory: 1Gi
+    requests:
+        cpu: 250m
+        memory: 256Mi
+
+# Persistent config + identity storage.
+persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 5Gi
+    existingClaim: ""
+
+# Extra tmpfs mounts matching the docker-compose hardening.
+tmpfs:
+    tmpSize: 256Mi
+    homeSize: 64Mi
+
+env: {}
+#   MESHCHAT_NO_HTTPS: "1"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

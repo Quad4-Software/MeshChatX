@@ -1,0 +1,20 @@
+---
+# MeshChatX Ansible role defaults.
+
+meshchatx_version: "latest"
+meshchatx_image: "quad4io/meshchatx"
+meshchatx_container_name: "reticulum-meshchatx"
+meshchatx_port: 8000
+meshchatx_bind: "127.0.0.1"
+meshchatx_config_dir: "/opt/meshchatx/config"
+meshchatx_user: "meshchatx"
+meshchatx_uid: 1000
+meshchatx_gid: 1000
+
+# Set to deploy behind a reverse proxy (nginx). Disabled by default.
+meshchatx_nginx_enabled: false
+meshchatx_domain: "meshchatx.local"
+
+# Extra docker run args.
+meshchatx_extra_env: {}
+meshchatx_extra_args: []

@@ -1,0 +1,43 @@
+{
+    "name": "MeshChatX Dev",
+    "image": "mcr.microsoft.com/devcontainers/python:3.14-bookworm",
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "24"
+        },
+        "ghcr.io/devcontainers/features/go:1": {
+            "version": "1.27"
+        },
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/devcontainers/features/git:1": {}
+    },
+    "postCreateCommand": "bash .devcontainer/post-create.sh",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "Vue.volar",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "golang.go",
+                "redhat.vscode-yaml",
+                "task.vscode-task"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "editor.defaultFormatter": "esbenp.prettier-vscode",
+                "python.defaultInterpreterPath": "/workspaces/meshchatx/.venv/bin/python",
+                "[python]": {
+                    "editor.defaultFormatter": "charliermarsh.ruff"
+                }
+            }
+        }
+    },
+    "forwardPorts": [5173, 8000],
+    "portsAttributes": {
+        "5173": { "label": "Vite dev server" },
+        "8000": { "label": "MeshChatX backend" }
+    },
+    "remoteUser": "vscode"
+}

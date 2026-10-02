@@ -12,7 +12,7 @@ MeshChatX is also focused on security and privacy, including usage of native OS 
 
 - Website: [meshchatx.com](https://meshchatx.com)
 - Source: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
-- Mirror: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
+- Mirror: [CodeFloe](https://codefloe.com/Ivan/MeshChatX)
 - PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Donate: [donate.md](donate.md)
