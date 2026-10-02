@@ -34,11 +34,6 @@
                     @dragend="onTabDragEnd"
                     @contextmenu.prevent="openTabContextMenu($event, tab)"
                 >
-                    <MaterialDesignIcon
-                        v-if="tab.private"
-                        icon-name="incognito"
-                        class="size-3.5 min-[900px]:size-4 shrink-0 text-purple-300"
-                    />
                     <span class="min-w-0 flex-1 truncate text-left leading-none">{{ tabTitle(tab) }}</span>
                     <span
                         class="shrink-0 rounded p-0.5 text-sem-fg-muted opacity-0 transition-opacity hover:bg-sem-surface hover:text-sem-fg group-hover:opacity-100 group-focus-within:opacity-100"
@@ -86,32 +81,34 @@
                     </button>
                 </div>
             </div>
-            <!-- history dropdown (outside the scrollable strip so it isn't clipped) -->
-            <div
-                v-if="showHistoryMenu"
-                v-click-outside="{ handler: () => (showHistoryMenu = false), capture: true }"
-                class="absolute z-50 max-h-64 w-64 overflow-y-auto rounded-xl border border-sem-border bg-sem-surface shadow-lg"
-                :style="{ top: historyMenuTop + 'px', right: historyMenuRight + 'px' }"
-            >
+            <!-- history dropdown — fixed positioning so the scrollable strip doesn't clip it -->
+            <Teleport to="body">
                 <div
-                    class="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sem-fg-muted border-b border-sem-border"
+                    v-if="showHistoryMenu"
+                    v-click-outside="{ handler: () => (showHistoryMenu = false), capture: true }"
+                    class="fixed z-50 max-h-64 w-64 overflow-y-auto rounded-xl border border-sem-border bg-sem-surface shadow-lg"
+                    :style="{ top: historyMenuTop + 'px', right: historyMenuRight + 'px' }"
                 >
-                    {{ $t("nomadnet.history") }}
+                    <div
+                        class="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sem-fg-muted border-b border-sem-border"
+                    >
+                        {{ $t("nomadnet.history") }}
+                    </div>
+                    <div v-if="historyEntries.length === 0" class="px-3 py-4 text-center text-xs text-sem-fg-muted">
+                        {{ $t("nomadnet.no_history") }}
+                    </div>
+                    <button
+                        v-for="entry in historyEntries"
+                        :key="`${entry.destinationHash}:${entry.path}:${entry.ts}`"
+                        type="button"
+                        class="flex w-full flex-col gap-0.5 px-3 py-2 text-left cursor-pointer hover:bg-sem-surface-muted transition-colors"
+                        @click="onHistoryEntryClick(entry)"
+                    >
+                        <div class="truncate text-xs font-medium text-sem-fg">{{ entry.title || entry.path }}</div>
+                        <div class="truncate font-mono text-[10px] text-sem-fg-muted">{{ entry.path }}</div>
+                    </button>
                 </div>
-                <div v-if="historyEntries.length === 0" class="px-3 py-4 text-center text-xs text-sem-fg-muted">
-                    {{ $t("nomadnet.no_history") }}
-                </div>
-                <button
-                    v-for="entry in historyEntries"
-                    :key="`${entry.destinationHash}:${entry.path}:${entry.ts}`"
-                    type="button"
-                    class="flex w-full flex-col gap-0.5 px-3 py-2 text-left hover:bg-sem-surface-muted transition-colors"
-                    @click="onHistoryEntryClick(entry)"
-                >
-                    <div class="truncate text-xs font-medium text-sem-fg">{{ entry.title || entry.path }}</div>
-                    <div class="truncate font-mono text-[10px] text-sem-fg-muted">{{ entry.path }}</div>
-                </button>
-            </div>
+            </Teleport>
         </div>
 
         <div class="relative flex flex-1 min-h-0 min-w-0 overflow-hidden">
@@ -281,14 +278,15 @@ export default {
             return getNomadHistory();
         },
         historyMenuTop() {
-            if (!this.$refs.historyBtn) return 32;
-            return this.$refs.historyBtn.getBoundingClientRect().bottom + 4;
+            const btn = this.$refs.historyBtn;
+            if (!btn) return 32;
+            return btn.getBoundingClientRect().bottom + 4;
         },
         historyMenuRight() {
-            if (!this.$refs.historyBtn) return 8;
-            const btnRight = this.$refs.historyBtn.getBoundingClientRect().right;
-            const containerRight = this.$el?.getBoundingClientRect().right || 0;
-            return Math.max(8, containerRight - btnRight);
+            const btn = this.$refs.historyBtn;
+            if (!btn) return 8;
+            const rect = btn.getBoundingClientRect();
+            return Math.max(8, window.innerWidth - rect.right);
         },
     },
     watch: {
