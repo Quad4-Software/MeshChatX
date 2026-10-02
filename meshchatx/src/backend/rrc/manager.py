@@ -1913,6 +1913,14 @@ class RRCHub:
                 seen.update(hashes)
             return len(seen)
 
+    def _hop_count(self):
+        """RNS path hop count to this hub's destination, if known."""
+        try:
+            hops = RNS.Transport.hops_to(self.hub_hash)
+            return hops if isinstance(hops, int) and hops >= 0 else None
+        except Exception:
+            return None
+
     def to_dict(self):
         """Return a JSON-serializable summary of this hub's state."""
         stored_key_rooms = []
@@ -1950,6 +1958,7 @@ class RRCHub:
                 "stored_key_rooms": stored_key_rooms,
                 "auto_reconnect": bool(self.auto_reconnect),
                 "rtt_ms": self._current_rtt_ms(),
+                "hop_count": self._hop_count(),
                 "member_count": self._total_member_count(),
                 "auto_list": bool(self.auto_list),
                 "auto_who": bool(self.auto_who),
