@@ -18,20 +18,29 @@
                 role="tablist"
             >
                 <button
-                    v-for="tab in tabs"
+                    v-for="(tab, tabIndex) in orderedTabs"
                     :key="tab.id"
                     type="button"
                     role="tab"
                     :aria-selected="view === tab.id"
                     :aria-label="ICON_ONLY_TAB_IDS.has(tab.id) ? $t(tab.label) : undefined"
                     :title="ICON_ONLY_TAB_IDS.has(tab.id) ? $t(tab.label) : undefined"
+                    draggable="true"
                     class="inline-flex items-center gap-1.5 px-3 sm:px-4 border-r border-sem-border text-sm transition-colors shrink-0"
-                    :class="
+                    :class="[
                         view === tab.id
                             ? 'bg-sem-canvas text-sem-fg font-medium'
-                            : 'text-sem-fg-muted hover:bg-sem-surface/80 dark:hover:bg-sem-surface/30'
-                    "
+                            : 'text-sem-fg-muted hover:bg-sem-surface/80 dark:hover:bg-sem-surface/30',
+                        dragTabIndex === tabIndex ? 'opacity-50' : '',
+                        dragOverTabIndex === tabIndex && dragTabIndex !== tabIndex
+                            ? 'border-l-2 border-sem-accent'
+                            : '',
+                    ]"
                     @click="selectView(tab.id)"
+                    @dragstart="onTabDragStart(tabIndex, $event)"
+                    @dragover.prevent="onTabDragOver(tabIndex)"
+                    @drop.prevent="onTabDrop(tabIndex)"
+                    @dragend="onTabDragEnd"
                 >
                     <MaterialDesignIcon :icon-name="tab.icon" class="size-4 shrink-0 opacity-70" />
                     <span :class="{ 'hidden md:inline': ICON_ONLY_TAB_IDS.has(tab.id) }">{{ $t(tab.label) }}</span>
@@ -1849,6 +1858,9 @@ export default {
                 { id: "search", label: "relay_chat.tab_search", icon: "magnify" },
             ],
             view: "chat",
+            tabOrder: null,
+            dragTabIndex: null,
+            dragOverTabIndex: null,
             discovered: [],
             discoverySearch: "",
             discoverySearchTimer: null,
@@ -1958,6 +1970,24 @@ export default {
         };
     },
     computed: {
+        orderedTabs() {
+            if (!Array.isArray(this.tabOrder) || this.tabOrder.length === 0) {
+                return this.tabs;
+            }
+            const byId = new Map(this.tabs.map((t) => [t.id, t]));
+            const ordered = [];
+            for (const id of this.tabOrder) {
+                const tab = byId.get(id);
+                if (tab) {
+                    ordered.push(tab);
+                    byId.delete(id);
+                }
+            }
+            for (const tab of byId.values()) {
+                ordered.push(tab);
+            }
+            return ordered;
+        },
         rrcEnabled() {
             return useConfigStore().config?.rrc_enabled !== false;
         },
@@ -2580,6 +2610,34 @@ export default {
                 this.fetchServers();
             }
         },
+        onTabDragStart(index, event) {
+            this.dragTabIndex = index;
+            if (event?.dataTransfer) {
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", String(index));
+            }
+        },
+        onTabDragOver(index) {
+            if (this.dragTabIndex == null) {
+                return;
+            }
+            this.dragOverTabIndex = index;
+        },
+        onTabDrop(index) {
+            if (this.dragTabIndex == null || index === this.dragTabIndex) {
+                return;
+            }
+            const order = this.orderedTabs.map((t) => t.id);
+            const [moved] = order.splice(this.dragTabIndex, 1);
+            order.splice(index, 0, moved);
+            this.tabOrder = order;
+            this.persistRelayLayout();
+            this.onTabDragEnd();
+        },
+        onTabDragEnd() {
+            this.dragTabIndex = null;
+            this.dragOverTabIndex = null;
+        },
         persistRelayLayout() {
             if (this.isPopoutMode || this._suppressRelayLayoutPersist) {
                 return;
@@ -2591,6 +2649,7 @@ export default {
                 expandedHubs: { ...this.expandedHubs },
                 availableRoomsExpanded: { ...this.availableRoomsExpanded },
                 relaySidebarCollapsed: this.relaySidebarCollapsed,
+                tabOrder: this.tabOrder,
             });
         },
         restoreRelayLayout() {
@@ -2606,6 +2665,9 @@ export default {
             }
             if (typeof saved.relaySidebarCollapsed === "boolean") {
                 this.relaySidebarCollapsed = saved.relaySidebarCollapsed;
+            }
+            if (Array.isArray(saved.tabOrder)) {
+                this.tabOrder = saved.tabOrder;
             }
             if (saved.expandedHubs && typeof saved.expandedHubs === "object") {
                 this.expandedHubs = { ...saved.expandedHubs };

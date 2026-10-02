@@ -8,7 +8,7 @@
             <ThemePresetSwatch :colors="selectedPreviewColors" size="md" />
             <select
                 :value="normalizedValue"
-                class="min-w-0 flex-1 appearance-none border-0 bg-transparent py-1.5 pr-8 text-sm text-sem-fg focus:outline-hidden focus:ring-0"
+                class="min-w-0 flex-1 appearance-none bg-none border-0 bg-transparent py-1.5 pr-8 text-sm text-sem-fg focus:outline-hidden focus:ring-0"
                 @change="onSelectChange"
             >
                 <option v-for="preset in catalog" :key="preset.id" :value="preset.id">
@@ -23,7 +23,7 @@
         </div>
 
         <div
-            class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
+            class="flex flex-wrap gap-2.5"
             role="listbox"
             :aria-label="$t('app.theme_preset')"
         >
@@ -32,17 +32,20 @@
                 :key="preset.id"
                 type="button"
                 role="option"
-                class="flex min-w-0 items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors hover:bg-sem-surface-muted"
+                class="group relative inline-flex items-center justify-center rounded-full transition-all hover:scale-110 focus-visible:scale-110"
                 :class="
                     preset.id === normalizedValue
-                        ? 'border-sem-accent bg-sem-surface-muted ring-1 ring-sem-accent/40'
-                        : 'border-sem-border'
+                        ? 'ring-2 ring-sem-accent ring-offset-2 ring-offset-sem-canvas'
+                        : 'ring-1 ring-sem-border hover:ring-sem-accent/50'
                 "
+                :title="$t(preset.labelKey)"
                 :aria-selected="preset.id === normalizedValue ? 'true' : 'false'"
                 @click="selectPreset(preset.id)"
             >
-                <ThemePresetSwatch :colors="previewColorsForPreset(preset.id)" size="md" />
-                <span class="min-w-0 flex-1 truncate text-xs font-medium leading-tight text-sem-fg">
+                <ThemePresetSwatch :colors="previewColorsForPreset(preset.id)" size="lg" round />
+                <span
+                    class="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-sem-surface-raised px-2 py-0.5 text-[10px] font-medium text-sem-fg opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 z-10"
+                >
                     {{ $t(preset.labelKey) }}
                 </span>
             </button>
