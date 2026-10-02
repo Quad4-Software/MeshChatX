@@ -420,6 +420,91 @@ def _csrf_exempt_path(path: str) -> bool:
     return path == f"{API_V1_PREFIX}/auth/csrf"
 
 
+class _TrackedConfigData(dict):
+    """dict subclass that records every key probed via `in`, [] access,
+    or .get(). update_config uses the record to apply a generic catch-all
+    for registered config fields that no explicit handler consumed.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._accessed = set()
+
+    def __contains__(self, key):
+        self._accessed.add(key)
+        return super().__contains__(key)
+
+    def __getitem__(self, key):
+        self._accessed.add(key)
+        return super().__getitem__(key)
+
+    def get(self, key, default=None):
+        if super().__contains__(key):
+            self._accessed.add(key)
+        return super().get(key, default)
+
+    def pop(self, key, *args):
+        self._accessed.add(key)
+        return super().pop(key, *args)
+
+    def setdefault(self, key, default=None):
+        self._accessed.add(key)
+        return super().setdefault(key, default)
+
+
+# Config keys that must never be written through the generic catch-all in
+# update_config. These are secrets, server-computed values, CSP controls, or
+# filesystem paths managed by dedicated routes.
+GENERIC_CONFIG_DENY = frozenset(
+    {
+        "auth_enabled",
+        "auth_password_hash",
+        "auth_session_secret",
+        "auth_session_epoch",
+        "lxmf_address_hash",
+        "lxst_address_hash",
+        "last_announced_at",
+        "csp_extra_frame_src",
+        "csp_extra_img_src",
+        "csp_extra_script_src",
+        "csp_extra_style_src",
+        "map_offline_path",
+        "ringtone_filename",
+        "oidc_client_secret",
+        "ui_custom_font_data",
+    }
+)
+
+
+def _apply_generic_config_fields(cm, data) -> None:
+    """Store any registered config key in `data` that explicit handlers did
+    not consume. Coerces by field type. Denylisted keys are never set here.
+    `data` must be a _TrackedConfigData (or anything exposing ._accessed).
+    """
+    accessed = getattr(data, "_accessed", set())
+    for key, value in data.items():
+        if key in accessed or key in GENERIC_CONFIG_DENY:
+            continue
+        field = getattr(cm, key, None)
+        if field is None or not hasattr(field, "set"):
+            continue
+        if isinstance(field, cm.BoolConfig):
+            # Mirrors ReticulumMeshChat._parse_bool.
+            if value is None:
+                field.set(False)
+            elif isinstance(value, str):
+                field.set(value.lower() == "true")
+            else:
+                field.set(bool(value))
+        elif isinstance(field, cm.IntConfig):
+            try:
+                field.set(None if value is None else int(value))
+            except (TypeError, ValueError):
+                continue
+        elif isinstance(field, cm.StringConfig):
+            field.set(None if value is None else str(value))
+
+
 class ReticulumMeshChat:
     DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES = 3
 
@@ -6336,6 +6421,13 @@ class ReticulumMeshChat:
         return None
 
     async def update_config(self, data):
+        # Wrap the payload so every `in` / get / [] probe records the key.
+        # Any registered config field that no explicit handler touches is
+        # applied generically at the bottom of this method — new settings
+        # can no longer be silently dropped on save.
+        if not isinstance(data, _TrackedConfigData):
+            data = _TrackedConfigData(data or {})
+
         # Validate before any .set() call: config fields persist to SQLite
         # immediately, so a late ValueError would leave a partial update.
         if "oidc_issuer_url" in data:
@@ -7435,6 +7527,10 @@ class ReticulumMeshChat:
             self.config.telephone_web_audio_allow_fallback.set(
                 self._parse_bool(data["telephone_web_audio_allow_fallback"]),
             )
+
+        # Generic catch-all: any registered config field sent by the client
+        # that no explicit handler consumed is type-coerced and stored here.
+        _apply_generic_config_fields(self.config, data)
 
         # send config to websocket clients
         await self.send_config_to_websocket_clients()
