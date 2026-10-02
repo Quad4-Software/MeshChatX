@@ -165,7 +165,12 @@
                                     <div class="truncate font-medium leading-tight">{{ hubDisplayName(hub) }}</div>
                                     <div class="truncate text-xs" :class="statusTextColor(hub.status)">
                                         {{ statusLabel(hub.status)
-                                        }}<template v-if="hub.connected && hub.member_count != null"
+                                        }}<template
+                                            v-if="
+                                                hasCapability('rrc_member_count') &&
+                                                hub.connected &&
+                                                hub.member_count != null
+                                            "
                                             ><span class="text-sem-fg-muted"> · </span
                                             ><MaterialDesignIcon
                                                 icon-name="account-group"
@@ -2908,6 +2913,9 @@ export default {
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
             }
+        },
+        hasCapability(name) {
+            return useConfigStore().hasCapability(name);
         },
         statusLabel(status) {
             switch (status) {
