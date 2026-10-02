@@ -107,6 +107,25 @@ async function seedUiDemoData(request) {
     await prepareE2eSession(request);
     const localHash = await getE2eLocalLxmfHash(request);
 
+    // Suppress the testing/beta channel modal so it does not cover every page.
+    try {
+        const infoRes = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/app/info`);
+        if (infoRes.ok()) {
+            const infoBody = await infoRes.json();
+            const ai = infoBody?.app_info || {};
+            const channel = String(ai.build_channel || "").toLowerCase();
+            const version = String(ai.display_version || ai.version || "unknown").trim() || "unknown";
+            const short =
+                String(ai.git_commit_short || "").trim() ||
+                (ai.git_commit ? String(ai.git_commit).slice(0, 7) : "") ||
+                "unknown";
+            const key = `${channel}:${version}:${short}`;
+            await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/app/channel-prompt/seen`, { key });
+        }
+    } catch {
+        // best effort only
+    }
+
     const contacts = DEMO_PEERS.map((peer) => ({
         name: peer.name,
         remote_identity_hash: peer.hash,
