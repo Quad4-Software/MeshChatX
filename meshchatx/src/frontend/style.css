@@ -208,9 +208,26 @@ html[data-theme-preset="glass"] .modal-panel,
 html[data-theme-preset="glass"] .input-field,
 html[data-theme-preset="glass"] .search-input,
 html[data-theme-preset="glass"] .glass-label,
-html[data-theme-preset="glass"] .address-card {
+html[data-theme-preset="glass"] .address-card,
+html[data-theme-preset="glass"] .bg-sem-surface,
+html[data-theme-preset="glass"] .bg-sem-surface-muted,
+html[data-theme-preset="glass"] .bg-sem-surface-raised {
     backdrop-filter: blur(14px) saturate(1.5);
     -webkit-backdrop-filter: blur(14px) saturate(1.5);
+}
+
+/* Softer, more pillowed corners read as glass panes instead of flat cards. */
+html[data-theme-preset="glass"] .fused-panel,
+html[data-theme-preset="glass"] .glass-card,
+html[data-theme-preset="glass"] .modal-panel,
+html[data-theme-preset="glass"] .dropdown-panel,
+html[data-theme-preset="glass"] .context-menu-panel,
+html[data-theme-preset="glass"] .address-card {
+    border-radius: 1.25rem;
+}
+html[data-theme-preset="glass"] .input-field,
+html[data-theme-preset="glass"] .search-input {
+    border-radius: 0.9rem;
 }
 
 /* Hairline top highlight sells the glass edge on floating surfaces. */
@@ -241,7 +258,10 @@ html[data-theme-preset="glass"][data-ui-glass="0"] .modal-panel,
 html[data-theme-preset="glass"][data-ui-glass="0"] .input-field,
 html[data-theme-preset="glass"][data-ui-glass="0"] .search-input,
 html[data-theme-preset="glass"][data-ui-glass="0"] .glass-label,
-html[data-theme-preset="glass"][data-ui-glass="0"] .address-card {
+html[data-theme-preset="glass"][data-ui-glass="0"] .address-card,
+html[data-theme-preset="glass"][data-ui-glass="0"] .bg-sem-surface,
+html[data-theme-preset="glass"][data-ui-glass="0"] .bg-sem-surface-muted,
+html[data-theme-preset="glass"][data-ui-glass="0"] .bg-sem-surface-raised {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
