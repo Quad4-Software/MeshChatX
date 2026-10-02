@@ -378,9 +378,12 @@ input[type="color"].color-fill-input::-moz-color-swatch {
     border-radius: inherit;
 }
 
-/* Native option popups ignore most select utilities. Theme every option. */
+/* Native option popups ignore most select utilities and cannot use
+   backdrop-filter — a translucent --mc-surface would render over the OS
+   chrome (often white). --mc-surface-solid is always opaque. */
+select.input-field,
 select option {
-    background-color: var(--mc-surface);
+    background-color: var(--mc-surface-solid, var(--mc-surface));
     color: var(--mc-text);
 }
 
