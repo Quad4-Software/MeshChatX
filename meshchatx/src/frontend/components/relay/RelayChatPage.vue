@@ -180,34 +180,42 @@
                                 />
                                 <div class="min-w-0 flex-1">
                                     <div class="truncate font-medium leading-tight">{{ hubDisplayName(hub) }}</div>
-                                    <div class="truncate text-xs" :class="statusTextColor(hub.status)">
-                                        {{ statusLabel(hub.status)
-                                        }}<template
+                                    <div
+                                        class="flex items-center gap-1 text-xs whitespace-nowrap overflow-hidden"
+                                        :class="statusTextColor(hub.status)"
+                                    >
+                                        <span class="truncate">{{ statusLabel(hub.status) }}</span>
+                                        <template
                                             v-if="
                                                 hasCapability('rrc_member_count') &&
                                                 hub.connected &&
                                                 hub.member_count != null
                                             "
-                                            ><span class="text-sem-fg-muted"> · </span
-                                            ><MaterialDesignIcon
+                                        >
+                                            <span class="text-sem-fg-muted shrink-0">·</span>
+                                            <MaterialDesignIcon
                                                 icon-name="account-group"
-                                                class="inline size-3 text-sem-fg-muted align-middle -mt-0.5"
-                                            /><span class="text-sem-fg-muted">
+                                                class="size-3 shrink-0 text-sem-fg-muted"
+                                            />
+                                            <span class="text-sem-fg-muted shrink-0">
                                                 {{ Math.min(hub.member_count, 999)
                                                 }}{{ hub.member_count > 999 ? "+" : "" }}</span
-                                            ></template
-                                        ><template v-if="hub.connected && hub.hop_count != null"
-                                            ><span class="text-sem-fg-muted"> · </span
-                                            ><MaterialDesignIcon
+                                            >
+                                        </template>
+                                        <template v-if="hub.connected && hub.hop_count != null">
+                                            <span class="text-sem-fg-muted shrink-0">·</span>
+                                            <MaterialDesignIcon
                                                 icon-name="route"
-                                                class="inline size-3 text-sem-fg-muted align-middle -mt-0.5"
-                                            /><span class="text-sem-fg-muted"> {{ hub.hop_count }}</span></template
-                                        ><template v-if="hub.connected && hub.rtt_ms != null"
-                                            ><span class="text-sem-fg-muted">
+                                                class="size-3 shrink-0 text-sem-fg-muted"
+                                            />
+                                            <span class="text-sem-fg-muted shrink-0"> {{ hub.hop_count }}</span>
+                                        </template>
+                                        <template v-if="hub.connected && hub.rtt_ms != null">
+                                            <span class="text-sem-fg-muted shrink-0">
                                                 · {{ Math.min(hub.rtt_ms, 999)
                                                 }}{{ hub.rtt_ms > 999 ? "+" : "" }} ms</span
-                                            ></template
-                                        >
+                                            >
+                                        </template>
                                     </div>
                                 </div>
                                 <span
