@@ -6396,7 +6396,7 @@ class ReticulumMeshChat:
                 "void",
                 "custom",
             ):
-                preset = "default"
+                preset = "void"
             self.config.theme_preset.set(preset)
 
         if "accent_color" in data:

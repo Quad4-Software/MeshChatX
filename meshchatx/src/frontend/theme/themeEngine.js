@@ -71,7 +71,7 @@ export function normalizeThemePreset(value) {
     if (typeof value === "string" && THEME_PRESET_IDS.includes(value)) {
         return value;
     }
-    return "default";
+    return "void";
 }
 
 /**

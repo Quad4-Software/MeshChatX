@@ -19,7 +19,7 @@ class ConfigManager:
         )
         self.last_announced_at = self.IntConfig(self, "last_announced_at", None)
         self.theme = self.StringConfig(self, "theme", "light")
-        self.theme_preset = self.StringConfig(self, "theme_preset", "default")
+        self.theme_preset = self.StringConfig(self, "theme_preset", "void")
         self.accent_color = self.StringConfig(self, "accent_color", None)
         self.custom_canvas_color = self.StringConfig(self, "custom_canvas_color", None)
         self.custom_surface_color = self.StringConfig(
