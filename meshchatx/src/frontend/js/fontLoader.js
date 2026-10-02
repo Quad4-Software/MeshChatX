@@ -72,17 +72,49 @@ export function applyFontFamily(fontKey, customFontName = "MeshChatCustom") {
     document.head.appendChild(el);
 }
 
+let _customFontCache = null;
+
+/**
+ * Fetch the uploaded custom font blob on demand. The base64 payload is kept
+ * out of config broadcasts (can be several MB), so it is loaded lazily from
+ * the dedicated endpoint only when the custom font is selected.
+ */
+async function loadCustomFont() {
+    if (_customFontCache) return _customFontCache;
+    try {
+        const { apiPath } = await import("./constants");
+        const res = await fetch(apiPath("/app/custom-font"), { credentials: "same-origin" });
+        if (!res.ok) return null;
+        const body = await res.json();
+        if (body && body.name && body.data) {
+            _customFontCache = { name: body.name, data: body.data };
+            return _customFontCache;
+        }
+    } catch {
+        // font fetch is best effort
+    }
+    return null;
+}
+
 /**
  * Read font config and apply it. Call after config loads and on config change.
  * @param {object} config - the config object from the store
  */
-export function applyFontConfig(config) {
+export async function applyFontConfig(config) {
     if (!config) return;
     const fontKey = config.ui_font_family || "system";
-    const customName = config.ui_custom_font_name || "MeshChatCustom";
-    const customData = config.ui_custom_font_data || "";
-    if (fontKey === "custom" && customData) {
-        injectCustomFontFace(customData, customName);
+    let customName = config.ui_custom_font_name || "MeshChatCustom";
+    if (fontKey === "custom") {
+        const cached = _customFontCache;
+        if (!cached || cached.name !== customName) {
+            const font = await loadCustomFont();
+            if (font) {
+                customName = font.name;
+                injectCustomFontFace(font.data, font.name);
+            }
+        } else {
+            injectCustomFontFace(cached.data, cached.name);
+        }
     }
     applyFontFamily(fontKey, customName);
 }

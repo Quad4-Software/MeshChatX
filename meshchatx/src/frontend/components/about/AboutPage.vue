@@ -6,6 +6,7 @@
             class="flex-1 overflow-y-auto overflow-x-hidden w-full min-w-0 px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6 text-sem-fg"
         >
             <div class="space-y-0 w-full max-w-4xl mx-auto pb-16 sm:pb-24 min-w-0">
+                <div v-if="!appInfo" class="about-section h-[51rem] animate-pulse" aria-hidden="true" />
                 <div v-if="appInfo" class="about-section">
                     <div class="flex flex-col gap-8 lg:flex-row lg:items-center">
                         <!-- Logo & Title -->
@@ -343,6 +344,7 @@
 
                 <div class="space-y-6">
                     <!-- Security & Integrity -->
+                    <div v-if="!appInfo" class="about-section hidden sm:block h-[38rem] animate-pulse" aria-hidden="true" />
                     <div v-if="appInfo" class="about-section hidden sm:block">
                         <div
                             class="text-xs font-black text-sem-accent uppercase tracking-[0.2em] flex items-center gap-2 mb-6"
@@ -564,6 +566,7 @@
                     </div>
 
                     <!-- Advanced Tech Info -->
+                    <div v-if="!appInfo" class="about-section h-[42rem] animate-pulse" aria-hidden="true" />
                     <div v-if="appInfo" class="about-section">
                         <div
                             class="text-xs font-black text-sem-accent uppercase tracking-[0.2em] mb-6 flex items-center gap-2"
@@ -1395,9 +1398,7 @@ export default {
         return {
             Utils,
             logoUrl,
-            appInfo: {
-                version: "unknown",
-            },
+            appInfo: null,
             updateInterval: null,
             healthInterval: null,
             databaseHealth: null,

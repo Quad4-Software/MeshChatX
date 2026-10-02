@@ -210,3 +210,4 @@ tests/agentic/out/
 tests/agentic/.playwright-mcp/
 tests/agentic/crawl-*.png
 tests/agentic/tests/
+microvm/state/

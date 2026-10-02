@@ -368,22 +368,19 @@
                     <main id="main-content" class="flex flex-1 min-w-0 overflow-hidden">
                         <RouterView v-slot="{ Component, route }" class="flex-1 min-w-0 h-full bg-sem-canvas">
                             <template v-if="Component">
-                                <KeepAlive>
+                                <KeepAlive v-if="route.meta.keepAlive">
                                     <component
                                         :is="Component"
-                                        v-if="route.meta.keepAlive"
                                         :key="route.name"
                                         class="flex-1 min-w-0 h-full bg-sem-canvas"
                                     />
                                 </KeepAlive>
-                                <Transition name="route-view-fade" mode="out-in">
-                                    <component
-                                        :is="Component"
-                                        v-if="!route.meta.keepAlive"
-                                        :key="route.meta.stableKey ? route.name : route.fullPath"
-                                        class="flex-1 min-w-0 h-full bg-sem-canvas"
-                                    />
-                                </Transition>
+                                <component
+                                    v-else
+                                    :is="Component"
+                                    :key="route.meta.stableKey ? route.name : route.fullPath"
+                                    class="flex-1 min-w-0 h-full bg-sem-canvas"
+                                />
                             </template>
                         </RouterView>
                     </main>

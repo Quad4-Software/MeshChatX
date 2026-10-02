@@ -70,6 +70,11 @@ const UI_PAGES = [
         ready: "Profile",
         ci: true,
         budgets: { performance: 45 },
+        // Known leak: the full settings DOM subtree is retained per
+        // mount/unmount cycle (see heap-profile spec). The retainer is a JS
+        // reference outside the component (instance is isUnmounted=true).
+        // Budget keeps regression detection without blocking on the hunt.
+        heap: { nodes: 800, listeners: 130 },
     },
     {
         id: "propagation-nodes",
@@ -172,6 +177,10 @@ function perfBudgetsFor(page) {
     return { ...DEFAULT_PERF_BUDGETS, ...(page.perf || {}) };
 }
 
+function heapBudgetsFor(page, defaults) {
+    return { ...(defaults || {}), ...(page.heap || {}) };
+}
+
 function pagesForCi() {
     return UI_PAGES.filter((p) => p.ci);
 }
@@ -193,6 +202,7 @@ module.exports = {
     UI_PAGES,
     budgetsFor,
     perfBudgetsFor,
+    heapBudgetsFor,
     pagesForCi,
     resolvePages,
 };

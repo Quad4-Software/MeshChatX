@@ -15,7 +15,7 @@ const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 const path = require("path");
 const { dismissMapOnboardingTooltip } = require("../e2e/helpers");
-const { resolvePages } = require("./pages");
+const { resolvePages, heapBudgetsFor } = require("./pages");
 const { seedUiSimulatedData } = require("./seed");
 const { gotoUiPage } = require("./ready");
 
@@ -191,17 +191,19 @@ test.describe("heap profile across pages", () => {
                     `intervals ${String(row.intervals).padStart(3)} ` +
                     `rafs ${String(row.rafs).padStart(4)}`
             );
+            const pageEntry = pages.find((p) => p.id === row.page);
+            const budgets = heapBudgetsFor(pageEntry, HEAP_BUDGETS);
             fs.writeFileSync(
                 path.join(REPORT_DIR, `${row.page}.json`),
-                JSON.stringify({ budgets: HEAP_BUDGETS, ...row }, null, 2)
+                JSON.stringify({ budgets, ...row }, null, 2)
             );
             const checks = [
-                ["heapDelta", row.heapDelta, HEAP_BUDGETS.heapDeltaMb * 1048576],
-                ["nodes", row.nodes, HEAP_BUDGETS.nodes],
-                ["listeners", row.listeners, HEAP_BUDGETS.listeners],
-                ["timeouts", row.timeouts, HEAP_BUDGETS.timeouts],
-                ["intervals", row.intervals, HEAP_BUDGETS.intervals],
-                ["rafs", row.rafs, HEAP_BUDGETS.rafs],
+                ["heapDelta", row.heapDelta, budgets.heapDeltaMb * 1048576],
+                ["nodes", row.nodes, budgets.nodes],
+                ["listeners", row.listeners, budgets.listeners],
+                ["timeouts", row.timeouts, budgets.timeouts],
+                ["intervals", row.intervals, budgets.intervals],
+                ["rafs", row.rafs, budgets.rafs],
             ];
             for (const [name, actual, budget] of checks) {
                 if (actual > budget) {

@@ -476,6 +476,21 @@ GENERIC_CONFIG_DENY = frozenset(
 )
 
 
+# Config keys that must never leave the process in serialized config output.
+# Secrets are exposed to clients only as booleans (e.g. oidc_client_secret_set)
+# in the explicit dict above.
+SERIALIZE_CONFIG_DENY = frozenset(
+    {
+        "auth_password_hash",
+        "auth_session_secret",
+        "auth_session_epoch",
+        "oidc_client_secret",
+        # multi-megabyte base64 blob, fetched via dedicated path if needed
+        "ui_custom_font_data",
+    }
+)
+
+
 def _apply_generic_config_fields(cm, data) -> None:
     """Store any registered config key in `data` that explicit handlers did
     not consume. Coerces by field type. Denylisted keys are never set here.
@@ -8269,7 +8284,7 @@ class ReticulumMeshChat:
         if not ctx:
             return {}
         oidc_settings = self._oidc_settings()
-        return {
+        config_dict = {
             "display_name": ctx.config.display_name.get(),
             "identity_hash": ctx.identity.hash.hex(),
             "identity_public_key": ctx.identity.get_public_key().hex(),
@@ -8462,6 +8477,17 @@ class ReticulumMeshChat:
             or "days",
             "message_blocklist_enabled": ctx.config.message_blocklist_enabled.get(),
         }
+        # Generic serialization: registered config fields not already in the
+        # literal above are emitted with their stored values, so a new
+        # setting can never be persisted but invisible to the client.
+        # SERIALIZE_CONFIG_DENY keeps secrets out of the broadcast payload.
+        cm = ctx.config
+        for attr, field in vars(cm).items():
+            if attr in config_dict or attr in SERIALIZE_CONFIG_DENY:
+                continue
+            if isinstance(field, (cm.StringConfig, cm.BoolConfig, cm.IntConfig)):
+                config_dict[field.key] = field.get()
+        return config_dict
 
     # try and get a name for the provided identity hash
     def get_name_for_identity_hash(self, identity_hash: str):

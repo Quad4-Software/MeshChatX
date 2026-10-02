@@ -602,6 +602,18 @@ def register_app_info_routes(routes, app):
         app.config.set("channel_prompt_seen", seen_key)
         return web.json_response({"message": "Channel prompt marked as seen"})
 
+    # custom font blob, served on demand instead of inside config broadcasts
+    @routes.get(API_V1_PREFIX + "/app/custom-font")
+    async def app_custom_font(request):
+        ctx = app.current_context
+        if ctx is None or not ctx.config:
+            return web.json_response({"name": None, "data": None})
+        name = ctx.config.ui_custom_font_name.get()
+        data = ctx.config.ui_custom_font_data.get()
+        if not name or not data:
+            return web.json_response({"name": None, "data": None})
+        return web.json_response({"name": name, "data": data})
+
     # shutdown app
 
     # shutdown app

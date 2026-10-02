@@ -217,8 +217,9 @@ def test_all_registered_config_keys_are_handled_in_update_config():
 
     registered = set(
         re.findall(
-            r'(?:StringConfig|BoolConfig|IntConfig|FloatConfig)\(self,\s*["\']([^"\']+)["\']',
+            r'(?:StringConfig|BoolConfig|IntConfig|FloatConfig)\(\s*self\s*,\s*["\']([^"\']+)["\']',
             cm_src,
+            re.S,
         )
     )
     # Keys set through dedicated routes/system paths, never via update_config.
@@ -270,6 +271,18 @@ def test_all_registered_config_keys_are_handled_in_update_config():
     assert not unknown_deny, (
         f"GENERIC_CONFIG_DENY entries that are not registered config keys: "
         f"{sorted(unknown_deny)}"
+    )
+
+    # SERIALIZE_CONFIG_DENY entries likewise must be real registered keys.
+    ser_start = app_src.index("SERIALIZE_CONFIG_DENY = frozenset(")
+    ser_end = app_src.index("\n)", ser_start)
+    ser_denylisted = set(
+        re.findall(r'"([a-z_]+)"', app_src[ser_start:ser_end])
+    )
+    unknown_ser = ser_denylisted - registered
+    assert not unknown_ser, (
+        f"SERIALIZE_CONFIG_DENY entries that are not registered config keys: "
+        f"{sorted(unknown_ser)}"
     )
 
 
