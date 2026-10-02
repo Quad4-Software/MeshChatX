@@ -1777,6 +1777,10 @@ class ReticulumMeshChat:
         guard_rnode_interfaces_on_desktop(config_path)
         guard_invalid_rnode_txpower_in_config(config_path)
         i2p_support.guard_i2p_interfaces_in_config(config_path)
+        # Fix I2PInterface so outbound peers inherit the configured boundary
+        # mode — without this they default to MODE_FULL before the parent
+        # mode is applied, leaking I2P announces onto internal interfaces.
+        i2p_support.patch_i2p_interface()
         ensure_safe_reticulum_runtime_flags(config_path)
         try:
             from meshchatx.src.backend.interface_module_store import (
