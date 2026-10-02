@@ -108,7 +108,7 @@ export default {
 @reference "../../style.css";
 
 .settings-nav {
-    @apply flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-x-visible lg:pb-0 lg:gap-0.5 lg:w-52 lg:shrink-0 lg:sticky lg:top-20 lg:self-start;
+    @apply flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-x-visible lg:pb-0 lg:gap-0.5 lg:w-52 lg:shrink-0 lg:sticky lg:top-24 lg:self-start;
 }
 
 .settings-nav__mode {

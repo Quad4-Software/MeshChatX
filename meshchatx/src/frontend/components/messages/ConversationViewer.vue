@@ -266,9 +266,9 @@
                 </div>
             </Transition>
 
-            <!-- send message -->
+            <!-- send message: floating composer, transparent backdrop -->
             <div
-                class="w-full border-t border-sem-border bg-sem-surface px-3 sm:px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+                class="w-full px-3 sm:px-4 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
                 :style="composerChromeStyle"
             >
                 <div class="w-full">
