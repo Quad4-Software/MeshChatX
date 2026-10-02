@@ -175,7 +175,7 @@ import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import LinkUtils from "../../js/LinkUtils.js";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 
 export default {
     name: "RepositoryServerPage",

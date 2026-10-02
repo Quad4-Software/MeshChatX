@@ -113,7 +113,7 @@ import AppModal from "./AppModal.vue";
 import LoadingState from "./LoadingState.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import GlobalEmitter from "../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../js/constants";
 import logoUrl from "../assets/images/logo.png";
 
 export default {

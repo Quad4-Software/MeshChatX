@@ -6,7 +6,7 @@
  * endpoints here rather than inlining paths in components.
  */
 
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 export function postLxmfDelivery(destinationHash, data, ...rest) {
     return window.api.post(apiPath(`/ping/${destinationHash}/lxmf.delivery`), data, ...rest);

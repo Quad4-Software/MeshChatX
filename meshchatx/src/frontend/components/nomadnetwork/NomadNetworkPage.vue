@@ -896,7 +896,7 @@
 
 <script>
 import { mapStores } from "pinia";
-import { useNetworkStore } from "../../js/stores/networkStore.js";
+import { useNetworkStore } from "../../js/stores/networkStore";
 import { useConfigStore } from "../../js/stores/configStore";
 import { useIdentityStore } from "../../js/stores/identityStore";
 import MicronParser from "../../js/MicronParser";
@@ -911,8 +911,8 @@ import DialogUtils from "../../js/DialogUtils";
 import { recordNomadVisit } from "../../js/nomadHistory";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import LiveTransport from "../../js/liveTransport.js";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants";
 import * as announcesApi from "../../js/api/announces.js";
 import * as favouritesApi from "../../js/api/favourites.js";
 import NomadNetworkSidebar from "./NomadNetworkSidebar.vue";

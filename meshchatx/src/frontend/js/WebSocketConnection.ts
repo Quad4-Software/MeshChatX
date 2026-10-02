@@ -1,4 +1,4 @@
-import { createEmitter } from "../libs/emitter.js";
+import { createEmitter } from "../libs/emitter";
 import { reconnectDelayWithJitterMs } from "./wsConnectionSupport";
 
 const PING_INTERVAL_MS = 25000;

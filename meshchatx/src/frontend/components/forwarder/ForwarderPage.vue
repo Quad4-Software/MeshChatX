@@ -148,8 +148,8 @@ import GlobalEmitter from "../../js/GlobalEmitter";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import { EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
+import { EMITTER_EVENTS, WS_EVENTS } from "../../js/constants";
 
 export default {
     name: "ForwarderPage",

@@ -792,7 +792,7 @@
 </template>
 
 <script>
-import { useNetworkStore } from "../../js/stores/networkStore.js";
+import { useNetworkStore } from "../../js/stores/networkStore";
 import { useInterfaceChangesStore } from "../../js/stores/interfaceChangesStore.js";
 import DialogUtils from "../../js/DialogUtils";
 import ElectronUtils from "../../js/ElectronUtils";
@@ -808,7 +808,7 @@ import { copyTextToClipboard } from "../../js/clipboardUtils.js";
 import Toggle from "../forms/Toggle.vue";
 import BundledDocsHint from "./BundledDocsHint.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS, STORAGE_KEYS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS } from "../../js/constants";
 import { useInterfaceListFilters } from "../../js/interfaces/useInterfaceListFilters.js";
 import { BATTERY_SAVER_CHANGED_EVENT, loadBatterySaverPrefs } from "../../js/settings/batterySaverPrefs.js";
 

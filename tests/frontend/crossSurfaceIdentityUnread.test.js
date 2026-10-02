@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import MessagesPage from "../../meshchatx/src/frontend/components/messages/MessagesPage.vue";
 import App from "../../meshchatx/src/frontend/components/App.vue";
 import { isLocalMapServiceUrl, isPrivateOrLocalHostname } from "../../meshchatx/src/frontend/js/mapLocalUrl.js";
-import { useUnreadStore } from "../../meshchatx/src/frontend/js/stores/unreadStore.js";
+import { useUnreadStore } from "../../meshchatx/src/frontend/js/stores/unreadStore";
 
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {

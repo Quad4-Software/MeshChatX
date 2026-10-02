@@ -322,8 +322,8 @@ import RNSHSessionTerminal from "./RNSHSessionTerminal.vue";
 import ToastUtils from "../../js/ToastUtils";
 import { loadRnxLayout, saveRnxLayout } from "../../js/browserLayoutStore";
 import { renderTerminalOutput } from "../../js/terminalRender";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants";
 import GlobalEmitter from "../../js/GlobalEmitter";
 
 const EMPTY_LAYOUT = {

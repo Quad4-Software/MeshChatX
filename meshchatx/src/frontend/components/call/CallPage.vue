@@ -1712,11 +1712,11 @@
 </template>
 
 <script>
-import { useNetworkStore } from "../../js/stores/networkStore.js";
+import { useNetworkStore } from "../../js/stores/networkStore";
 import { useConfigStore } from "../../js/stores/configStore";
-import { useUnreadStore } from "../../js/stores/unreadStore.js";
+import { useUnreadStore } from "../../js/stores/unreadStore";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants";
 import * as announcesApi from "../../js/api/announces.js";
 import * as telephoneApi from "../../js/api/telephone.js";
 import Utils from "../../js/Utils";

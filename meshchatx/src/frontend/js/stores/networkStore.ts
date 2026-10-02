@@ -1,16 +1,19 @@
-// @ts-check
-
 import { defineStore } from "pinia";
+
+export interface NetworkState {
+    networkDegraded: boolean;
+    networkDegradedError: string | null;
+    networkStarting: boolean;
+    networkReady: boolean;
+    liveTransportReady: boolean;
+}
 
 /**
  * Backend connectivity and startup phase state.
- *
- * Read via useNetworkStore() in new code.
  */
 export const useNetworkStore = defineStore("network", {
-    state: () => ({
+    state: (): NetworkState => ({
         networkDegraded: false,
-        /** @type {string | null} */
         networkDegradedError: null,
         networkStarting: false,
         networkReady: true,

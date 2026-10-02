@@ -98,7 +98,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import EmptyState from "../EmptyState.vue";
 import ToolListRow from "./ToolListRow.vue";
-import { listTools } from "../../js/registries/toolsRegistry.js";
+import { listTools } from "../../js/registries/toolsRegistry";
 
 const TOOL_GROUP_ORDER = ["diagnostics", "transfer", "messaging", "network", "other"];
 const COLLAPSED_GROUPS_KEY = "meshchatx.tools.collapsedGroups";

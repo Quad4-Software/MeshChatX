@@ -139,7 +139,7 @@
 
 <script>
 import DialogUtils from "../../js/DialogUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import Utils from "../../js/Utils";
 import Toggle from "../forms/Toggle.vue";
 

@@ -681,7 +681,7 @@ import DropDownMenu from "../DropDownMenu.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import * as docsApi from "../../js/api/docs.js";
 import * as meshchatxDocsApi from "../../js/api/meshchatxDocs.js";
 import { bundledReticulumDocsUrl } from "../../js/reticulumDocsEntryUrl.js";

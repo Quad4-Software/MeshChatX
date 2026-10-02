@@ -1,4 +1,4 @@
-import { apiPath } from "./constants.js";
+import { apiPath } from "./constants";
 
 class NotificationSoundUtils {
     static _player = null;

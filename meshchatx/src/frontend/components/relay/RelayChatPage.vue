@@ -1718,10 +1718,10 @@
 
 <script>
 import { useConfigStore } from "../../js/stores/configStore";
-import { useUnreadStore } from "../../js/stores/unreadStore.js";
+import { useUnreadStore } from "../../js/stores/unreadStore";
 import { getCurrentInstance, nextTick } from "vue";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants";
 import * as announcesApi from "../../js/api/announces.js";
 import * as rrcApi from "../../js/api/rrc.js";
 import GlobalEmitter from "../../js/GlobalEmitter";

@@ -471,7 +471,7 @@ import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
 import Utils from "../../js/Utils";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants";
 import * as pageNodesApi from "../../js/api/pageNodes.js";
 
 const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 21600;

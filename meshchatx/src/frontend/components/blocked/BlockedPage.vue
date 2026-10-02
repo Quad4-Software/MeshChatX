@@ -254,7 +254,7 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import DialogUtils from "../../js/DialogUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import ToastUtils from "../../js/ToastUtils";
 import Utils from "../../js/Utils";
 

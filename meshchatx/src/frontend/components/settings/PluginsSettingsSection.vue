@@ -283,8 +283,8 @@ import ElectronUtils from "../../js/ElectronUtils";
 import AndroidBridge from "../../js/rnode/AndroidBridge";
 import { permissionLabel } from "../../js/plugins/pluginPermissions.js";
 import { pluginHost } from "../../js/plugins/PluginHost.js";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import { apiPath, WS_EVENTS } from "../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
+import { apiPath, WS_EVENTS } from "../../js/constants";
 
 export default {
     name: "PluginsSettingsSection",

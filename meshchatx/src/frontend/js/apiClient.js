@@ -2,7 +2,7 @@
  * Axios-shaped HTTP helpers backed by fetch (same-origin API calls).
  */
 
-import { apiPath } from "./constants.js";
+import { apiPath } from "./constants";
 import { fetchCsrfToken, getCsrfToken } from "./csrfToken.js";
 import {
     isDemoReadonlyRejection,

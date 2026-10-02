@@ -7,7 +7,7 @@ import {
     relayPrefsEqualIgnored,
     saveRelayPrefs,
 } from "@/js/relay/relayPrefsStore.js";
-import { STORAGE_KEYS } from "@/js/constants.js";
+import { STORAGE_KEYS } from "@/js/constants";
 
 const OWN = "aa".repeat(16);
 const PEER = "bb".repeat(16);

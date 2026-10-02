@@ -6,7 +6,7 @@
  * endpoints here rather than inlining paths in components.
  */
 
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 export function importMessages(data, ...rest) {
     return window.api.post(apiPath("/maintenance/messages/import"), data, ...rest);

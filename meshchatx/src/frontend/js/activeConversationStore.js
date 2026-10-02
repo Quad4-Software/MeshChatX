@@ -4,7 +4,7 @@
  * Tracks destination hashes open in Messages panes for notification suppress/clear.
  */
 
-import { EMITTER_EVENTS } from "./constants.js";
+import { EMITTER_EVENTS } from "./constants";
 import { normalizeDestinationHash } from "./notificationPolicy.js";
 import GlobalEmitter from "./GlobalEmitter";
 

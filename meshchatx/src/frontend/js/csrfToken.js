@@ -1,4 +1,4 @@
-import { apiPath } from "./constants.js";
+import { apiPath } from "./constants";
 
 let csrfToken = null;
 

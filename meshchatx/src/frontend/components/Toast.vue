@@ -80,7 +80,7 @@
 
 <script>
 import GlobalEmitter from "../js/GlobalEmitter";
-import { EMITTER_EVENTS } from "../js/constants.js";
+import { EMITTER_EVENTS } from "../js/constants";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
 const MAX_TOASTS = 8;

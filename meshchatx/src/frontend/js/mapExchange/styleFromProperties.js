@@ -12,7 +12,7 @@ import {
     MCX_ICON_SCALE,
     MCX_STROKE_COLOR,
     MCX_STROKE_WIDTH,
-} from "./constants.js";
+} from "./constants";
 
 const SIMPLE_MARKER_COLOR = "marker-color";
 const SIMPLE_MARKER_SIZE_KEY = "marker-size";

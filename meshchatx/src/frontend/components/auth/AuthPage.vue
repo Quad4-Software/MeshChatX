@@ -105,7 +105,7 @@
 
 <script>
 import logoUrl from "../../assets/images/logo.png";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 
 export default {
     name: "AuthPage",

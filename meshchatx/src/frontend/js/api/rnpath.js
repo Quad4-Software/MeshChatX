@@ -6,7 +6,7 @@
  * endpoints here rather than inlining paths in components.
  */
 
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 export function listRates(...rest) {
     return window.api.get(apiPath("/rnpath/rates"), ...rest);

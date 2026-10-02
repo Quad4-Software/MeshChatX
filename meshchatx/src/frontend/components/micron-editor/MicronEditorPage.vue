@@ -278,7 +278,7 @@ import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import PublishSiteModal from "./PublishSiteModal.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { EMITTER_EVENTS } from "../../js/constants.js";
+import { EMITTER_EVENTS } from "../../js/constants";
 import * as pageNodesApi from "../../js/api/pageNodes.js";
 import { useMicronPublish } from "../../js/micron/useMicronPublish.js";
 

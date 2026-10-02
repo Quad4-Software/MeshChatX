@@ -88,8 +88,8 @@
 <script>
 import ToastUtils from "../../../js/ToastUtils";
 import GlobalEmitter from "../../../js/GlobalEmitter";
-import { onWsEvent, offWsEvent } from "../../../js/registries/wsEventRegistry.js";
-import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../../js/registries/wsEventRegistry";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../../js/constants";
 import * as mapApi from "../../../js/api/map.js";
 
 function errorMessage(t, code) {

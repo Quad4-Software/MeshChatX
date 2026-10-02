@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import { STORAGE_KEYS } from "../constants.js";
+import { STORAGE_KEYS } from "../constants";
 
 /**
  * Local-only relay chat preferences: the client-side ignore list and custom

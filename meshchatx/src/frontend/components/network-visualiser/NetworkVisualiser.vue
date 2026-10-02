@@ -62,7 +62,7 @@
 
 <script>
 import { getCurrentInstance } from "vue";
-import { useNetworkStore } from "../../js/stores/networkStore.js";
+import { useNetworkStore } from "../../js/stores/networkStore";
 import { useConfigStore } from "../../js/stores/configStore";
 import { useVisualiserIconQueue } from "../../js/network/useVisualiserIconQueue.js";
 
@@ -110,7 +110,7 @@ import {
     VISUALISER_DISPLAY_PREFS_CHANGED,
 } from "../../js/settings/settingsVisualiserPrefs.js";
 import ToastUtils from "../../js/ToastUtils";
-import { EMITTER_EVENTS } from "../../js/constants.js";
+import { EMITTER_EVENTS } from "../../js/constants";
 import * as announcesApi from "../../js/api/announces.js";
 import * as configApi from "../../js/api/config.js";
 import * as interfaceStatsApi from "../../js/api/interfaceStats.js";

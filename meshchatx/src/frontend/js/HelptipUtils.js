@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import { apiPath } from "./constants.js";
+import { apiPath } from "./constants";
 import ToastUtils from "./ToastUtils.js";
 import { buildDeliveryHelptips, mapSendFailureKind } from "./deliveryHelptips.js";
 import {

@@ -73,12 +73,12 @@
 </template>
 
 <script>
-import { useAuthStore } from "../js/stores/authStore.js";
+import { useAuthStore } from "../js/stores/authStore";
 
 import ElectronUtils from "../js/ElectronUtils.js";
 import AndroidBridge from "../js/rnode/AndroidBridge.js";
 import ToastUtils from "../js/ToastUtils";
-import { apiPath } from "../js/constants.js";
+import { apiPath } from "../js/constants";
 import SettingToggleRow from "./settings/SettingToggleRow.vue";
 
 export default {

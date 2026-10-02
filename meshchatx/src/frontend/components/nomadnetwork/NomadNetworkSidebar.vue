@@ -865,7 +865,7 @@ import { useNomadFavouritesLayout } from "../../js/nomadnet/useNomadFavouritesLa
 import { loadNomadAnnouncesSort, saveNomadAnnouncesSort } from "../../js/browserLayoutStore.js";
 import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
 import SidebarVirtualList from "../SidebarVirtualList.vue";
-import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants";
 
 // Remember the last picked sidebar tab for this session so a fresh sidebar
 // (new tab, remount) reopens where the user left off instead of Favourites.

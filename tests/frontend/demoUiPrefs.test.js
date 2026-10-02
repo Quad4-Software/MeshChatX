@@ -11,7 +11,7 @@ import {
     pickDemoUiPrefs,
 } from "../../meshchatx/src/frontend/js/demoUiPrefs.js";
 import { createApiClient } from "../../meshchatx/src/frontend/js/apiClient.js";
-import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.js";
+import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore";
 import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore";
 
 function memoryStorage() {

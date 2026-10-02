@@ -2330,7 +2330,7 @@
 <script>
 import { useInterfaceChangesStore } from "../../js/stores/interfaceChangesStore.js";
 import DialogUtils from "../../js/DialogUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import ToastUtils from "../../js/ToastUtils";
 import { numOrNull, parseRNodeFrequencyHz } from "../../js/interfaceDiscoveryUtils";
 import ExpandingSection from "./ExpandingSection.vue";

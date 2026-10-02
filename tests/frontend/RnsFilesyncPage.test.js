@@ -12,7 +12,7 @@ vi.mock("@/js/ToastUtils", () => ({
     },
 }));
 
-vi.mock("@/js/registries/wsEventRegistry.js", () => ({
+vi.mock("@/js/registries/wsEventRegistry", () => ({
     onWsEvent: vi.fn(),
     offWsEvent: vi.fn(),
 }));

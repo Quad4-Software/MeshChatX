@@ -139,7 +139,7 @@
 
 <script>
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
-import { apiPath } from "../../../js/constants.js";
+import { apiPath } from "../../../js/constants";
 import * as telephoneApi from "../../../js/api/telephone.js";
 import ToastUtils from "../../../js/ToastUtils";
 

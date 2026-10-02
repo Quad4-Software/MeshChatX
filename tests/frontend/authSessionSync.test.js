@@ -9,7 +9,7 @@ import {
     fetchAuthStatus,
     resolveAuthNavigation,
 } from "../../meshchatx/src/frontend/js/authSessionSync.js";
-import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.js";
+import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.ts";
 
 describe("authSessionSync", () => {
     beforeEach(() => {
@@ -101,7 +101,7 @@ describe("authSessionSync", () => {
 
 describe("auth boot defaults", () => {
     it("keeps authSessionResolved false until status is applied", () => {
-        const src = readFileSync("meshchatx/src/frontend/js/stores/authStore.js", "utf8");
+        const src = readFileSync("meshchatx/src/frontend/js/stores/authStore.ts", "utf8");
         expect(src).toMatch(/authSessionResolved:\s*false/);
     });
 });

@@ -4,7 +4,7 @@ import GeoJSON from "ol/format/GeoJSON";
 import { normalizeFeatureMetadataProps } from "./metadataUtils.js";
 import { copyStyleMetadataToProperties, styleFromMcxProperties } from "./styleFromProperties.js";
 import { isAllowedDataImageHref, isRemoteHref } from "./kmlSanitize.js";
-import { MCX_ICON_DATA_URL, MCX_ICON_HREF } from "./constants.js";
+import { MCX_ICON_DATA_URL, MCX_ICON_HREF } from "./constants";
 
 const ICON_URL_KEYS = new Set(["href", "url", "icon", "image", "iconurl", MCX_ICON_HREF, "marker-symbol"]);
 

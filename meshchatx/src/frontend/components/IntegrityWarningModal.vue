@@ -65,7 +65,7 @@
 import AppModal from "./AppModal.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import ToastUtils from "../js/ToastUtils";
-import { apiPath, STORAGE_KEYS } from "../js/constants.js";
+import { apiPath, STORAGE_KEYS } from "../js/constants";
 
 export default {
     name: "IntegrityWarningModal",

@@ -2,7 +2,7 @@
 
 import { computed, onMounted, ref, watch } from "vue";
 
-import { STORAGE_KEYS } from "../constants.js";
+import { STORAGE_KEYS } from "../constants";
 import Utils from "../Utils.js";
 
 /**

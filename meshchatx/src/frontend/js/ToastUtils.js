@@ -1,4 +1,4 @@
-import { EMITTER_EVENTS } from "./constants.js";
+import { EMITTER_EVENTS } from "./constants";
 import GlobalEmitter from "./GlobalEmitter";
 
 class ToastUtils {

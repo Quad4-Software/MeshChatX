@@ -403,9 +403,9 @@ import FilesyncDirectoryBrowserModal from "./FilesyncDirectoryBrowserModal.vue";
 import FilesyncFileManager from "./FilesyncFileManager.vue";
 import ElectronUtils from "../../js/ElectronUtils";
 import Utils from "../../js/Utils";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants";
 
 export default {
     name: "RnsFilesyncPage",

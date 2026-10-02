@@ -6,7 +6,7 @@ import DialogUtils from "../DialogUtils.js";
 import DownloadUtils from "../DownloadUtils.js";
 import ToastUtils from "../ToastUtils.js";
 import * as databaseApi from "../api/database.js";
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 /**
  * Database snapshot and auto-backup state for AboutPage: listing,

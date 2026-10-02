@@ -15,12 +15,12 @@ import "./fonts/RobotoMonoNerdFont/font.css";
 import { startCodec2ScriptsBackgroundLoad } from "./js/Codec2Loader";
 import { createApiClient } from "./js/apiClient.js";
 import { fetchCsrfToken } from "./js/csrfToken.js";
-import { apiPath, STORAGE_KEYS } from "./js/constants.js";
+import { apiPath, STORAGE_KEYS } from "./js/constants";
 import { registerCoreContributions } from "./js/registries/registerCoreContributions";
 import { installWsEventBridge } from "./js/registries/wsEventBridge.js";
 import { pluginHost } from "./js/plugins/PluginHost.js";
-import { useAuthStore } from "./js/stores/authStore.js";
-import { useNetworkStore } from "./js/stores/networkStore.js";
+import { useAuthStore } from "./js/stores/authStore";
+import { useNetworkStore } from "./js/stores/networkStore";
 import { recoveryLocationForNetworkError } from "./js/networkRecovery.js";
 import ElectronUtils from "./js/ElectronUtils.js";
 import {

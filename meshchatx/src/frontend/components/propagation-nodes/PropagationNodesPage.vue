@@ -572,9 +572,9 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import SegmentedControl from "../forms/SegmentedControl.vue";
 import SliderSelect from "../forms/SliderSelect.vue";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants";
 import * as lxmfApi from "../../js/api/lxmf.js";
 import {
     incomingDeliveryBytesFromCustom,

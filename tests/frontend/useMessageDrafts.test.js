@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import { useMessageDrafts } from "../../meshchatx/src/frontend/js/messages/useMessageDrafts.js";
-import { STORAGE_KEYS } from "../../meshchatx/src/frontend/js/constants.js";
+import { STORAGE_KEYS } from "../../meshchatx/src/frontend/js/constants";
 
 const KEY = STORAGE_KEYS.MESSAGE_DRAFTS;
 

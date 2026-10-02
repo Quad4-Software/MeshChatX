@@ -280,8 +280,8 @@ import ToastUtils from "../../js/ToastUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { loadRnshLayout, saveRnshLayout } from "../../js/browserLayoutStore";
 import { renderTerminalOutput } from "../../js/terminalRender";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants";
 
 const EMPTY_LAYOUT = {
     selectedSessionId: null,

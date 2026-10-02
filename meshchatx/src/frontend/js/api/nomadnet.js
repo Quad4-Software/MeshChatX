@@ -6,7 +6,7 @@
  * endpoints here rather than inlining paths in components.
  */
 
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 export function deleteArchives(...rest) {
     return window.api.delete(apiPath("/nomadnet/archives"), ...rest);

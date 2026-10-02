@@ -3,7 +3,7 @@
 import { computed, ref } from "vue";
 
 import ToastUtils from "../ToastUtils.js";
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 import { buildMeshchatMapUri } from "../mapLinkUtils.js";
 
 /**

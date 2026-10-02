@@ -1,6 +1,6 @@
 import { LatencyOptimisedTranslator } from "@browsermt/bergamot-translator";
 
-import { apiPath } from "./constants.js";
+import { apiPath } from "./constants";
 import { BergamotBacking } from "./translation/BergamotBacking.js";
 
 let translator = null;

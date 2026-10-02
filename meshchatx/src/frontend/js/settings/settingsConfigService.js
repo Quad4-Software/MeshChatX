@@ -2,9 +2,9 @@
  * Pure helpers and HTTP-backed config load/patch for settings UI.
  */
 
-import { apiPath, EMITTER_EVENTS } from "../constants.js";
+import { apiPath, EMITTER_EVENTS } from "../constants";
 import { useConfigStore } from "../stores/configStore.js";
-import GlobalEmitter from "../GlobalEmitter.js";
+import GlobalEmitter from "../GlobalEmitter";
 import { sanitizeThemeConfigFields } from "../../theme/themeEngine.js";
 
 /**

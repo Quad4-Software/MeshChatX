@@ -1645,7 +1645,7 @@
 import { getCurrentInstance } from "vue";
 import { mapStores } from "pinia";
 import { useConfigStore } from "../../js/stores/configStore";
-import { useUnreadStore } from "../../js/stores/unreadStore.js";
+import { useUnreadStore } from "../../js/stores/unreadStore";
 import { useIdentityStore } from "../../js/stores/identityStore";
 import Utils from "../../js/Utils";
 import { copyTextToClipboard, copyImageBlobToClipboard, readTextFromClipboard } from "../../js/clipboardUtils.js";
@@ -1702,7 +1702,7 @@ import {
     warmPathIfNeeded,
 } from "../../js/reticulumPathfinding.js";
 import WebSocketConnection from "../../js/WebSocketConnection";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
 import AddAudioButton from "./composer/AddAudioButton.vue";
 import { fromNow } from "../../libs/datetime.js";
 
@@ -1760,7 +1760,7 @@ import InViewAnimatedImg from "./InViewAnimatedImg.vue";
 import TelemetryHistoryModal from "./telemetry/TelemetryHistoryModal.vue";
 import { uuidv4 } from "../../libs/uuid.js";
 import * as TranslationService from "../../js/TranslationService.js";
-import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants";
 import * as gifsApi from "../../js/api/gifs.js";
 import * as lxmfMessagesApi from "../../js/api/lxmfMessages.js";
 import * as stickersApi from "../../js/api/stickers.js";

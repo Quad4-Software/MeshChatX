@@ -160,7 +160,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import StickerView from "./StickerView.vue";
 import ToastUtils from "../../js/ToastUtils.js";
 import DialogUtils from "../../js/DialogUtils.js";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 
 export default {
     name: "StickerPacksManager",

@@ -4,7 +4,7 @@ import AboutPage from "@/components/about/AboutPage.vue";
 import ElectronUtils from "@/js/ElectronUtils";
 import DialogUtils from "@/js/DialogUtils";
 import ToastUtils from "@/js/ToastUtils";
-import { dispatchWsEvent } from "@/js/registries/wsEventRegistry.js";
+import { dispatchWsEvent } from "@/js/registries/wsEventRegistry";
 
 vi.mock("@/js/ToastUtils", () => ({
     default: {

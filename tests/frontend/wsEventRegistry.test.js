@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 import { describe, expect, it, vi } from "vitest";
-import { dispatchWsEvent, onWsEvent, offWsEvent } from "../../meshchatx/src/frontend/js/registries/wsEventRegistry.js";
+import { dispatchWsEvent, onWsEvent, offWsEvent } from "../../meshchatx/src/frontend/js/registries/wsEventRegistry";
 
 describe("wsEventRegistry", () => {
     it("dispatches to registered handlers by type", async () => {

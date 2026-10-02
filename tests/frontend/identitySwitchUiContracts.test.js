@@ -42,7 +42,7 @@ vi.mock("../../meshchatx/src/frontend/js/ElectronUtils", () => ({
     },
 }));
 
-vi.mock("../../meshchatx/src/frontend/js/registries/wsEventRegistry.js", () => ({
+vi.mock("../../meshchatx/src/frontend/js/registries/wsEventRegistry", () => ({
     onWsEvent: vi.fn(),
     offWsEvent: vi.fn(),
 }));
