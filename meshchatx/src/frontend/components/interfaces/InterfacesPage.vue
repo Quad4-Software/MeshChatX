@@ -156,6 +156,7 @@
                                     @disable="disableInterface(iface._name)"
                                     @edit="editInterface(iface._name)"
                                     @export="exportInterface(iface._name)"
+                                    @share="shareInterface(iface)"
                                     @delete="deleteInterface(iface._name)"
                                     @reload="restartInterface(iface._name)"
                                 />
@@ -803,6 +804,7 @@ import DownloadUtils from "../../js/DownloadUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import ToastUtils from "../../js/ToastUtils";
+import { copyTextToClipboard } from "../../js/clipboardUtils.js";
 import Toggle from "../forms/Toggle.vue";
 import BundledDocsHint from "./BundledDocsHint.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
@@ -1227,6 +1229,19 @@ export default {
 
                 // download file to browser
                 await DownloadUtils.downloadFile(`${interfaceName}.txt`, new Blob([response.data]));
+            } catch (e) {
+                DialogUtils.alert(this.$t("interfaces.failed_export_single"));
+                console.error(e);
+            }
+        },
+        async shareInterface(iface) {
+            try {
+                const response = await window.api.post(apiPath("/reticulum/interfaces/export"), {
+                    selected_interface_names: [iface._name],
+                });
+                const text = typeof response.data === "string" ? response.data : String(response.data || "");
+                await copyTextToClipboard(text);
+                ToastUtils.success(this.$t("interfaces.copied_share"));
             } catch (e) {
                 DialogUtils.alert(this.$t("interfaces.failed_export_single"));
                 console.error(e);

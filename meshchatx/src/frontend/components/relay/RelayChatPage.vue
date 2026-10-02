@@ -192,7 +192,10 @@
                                             ><MaterialDesignIcon
                                                 icon-name="account-group"
                                                 class="inline size-3 text-sem-fg-muted align-middle -mt-0.5"
-                                            /><span class="text-sem-fg-muted"> {{ hub.member_count }}</span></template
+                                            /><span class="text-sem-fg-muted">
+                                                {{ Math.min(hub.member_count, 999)
+                                                }}{{ hub.member_count > 999 ? "+" : "" }}</span
+                                            ></template
                                         ><template v-if="hub.connected && hub.rtt_ms != null"
                                             ><span class="text-sem-fg-muted">
                                                 · {{ Math.min(hub.rtt_ms, 999)
@@ -2942,7 +2945,8 @@ export default {
         },
         onSidebarResizeStart(e) {
             const startX = e.touches ? e.touches[0].clientX : e.clientX;
-            const startWidth = this.relaySidebarWidthPx || this.$el?.querySelector(".flex-col.shrink-0")?.offsetWidth || 288;
+            const startWidth =
+                this.relaySidebarWidthPx || this.$el?.querySelector(".flex-col.shrink-0")?.offsetWidth || 288;
             this.relaySidebarDragging = true;
 
             const onMove = (ev) => {

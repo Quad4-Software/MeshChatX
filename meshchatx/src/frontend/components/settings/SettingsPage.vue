@@ -2971,16 +2971,18 @@
                                     </div>
                                 </button>
                                 <div v-show="shortcutsExpanded" class="settings-section__body">
-                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                                    <div
+                                        class="divide-y divide-sem-border/60 rounded-xl border border-sem-border/60 overflow-hidden"
+                                    >
                                         <div
                                             v-for="shortcut in KeyboardShortcuts.getDefaultShortcuts()"
                                             :key="shortcut.action"
-                                            class="bg-sem-surface-muted/50 dark:bg-sem-surface-raised/30 rounded-2xl p-4 sm:p-5 border border-sem-border"
+                                            class="flex items-center gap-3 px-4 py-3"
                                         >
-                                            <div class="flex items-center justify-between mb-3">
-                                                <span class="text-sm font-bold text-sem-fg uppercase tracking-wide">
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-sm font-medium text-sem-fg">
                                                     {{ shortcut.description }}
-                                                </span>
+                                                </div>
                                             </div>
                                             <ShortcutRecorder
                                                 :model-value="getShortcutKeys(shortcut.action)"
