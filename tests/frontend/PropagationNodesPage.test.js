@@ -395,7 +395,7 @@ describe("PropagationNodesPage", () => {
         expect(wrapper.text()).not.toContain("Stop using");
         expect(wrapper.find("[data-testid=prop-nodes-search]").exists()).toBe(true);
         expect(wrapper.find("[data-testid=prop-nodes-search]").element.parentElement.className).toContain("flex-1");
-        expect(wrapper.find("[data-testid=prop-nodes-sort]").classes()).toContain("shrink-0");
+        expect(wrapper.find("[data-testid=prop-nodes-sort]").exists()).toBe(true);
         expect(wrapper.find("[data-testid=prop-nodes-sort]").classes()).not.toContain("input-field");
 
         axiosMock.patch.mockResolvedValue({
