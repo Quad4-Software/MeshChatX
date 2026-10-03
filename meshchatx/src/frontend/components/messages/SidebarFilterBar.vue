@@ -42,24 +42,27 @@
         >
             <MaterialDesignIcon icon-name="plus" class="size-3.5" />
         </button>
-        <div class="relative" @click.stop>
-            <button
-                type="button"
-                class="relative p-1 text-sem-fg-muted transition-colors hover:text-sem-accent"
-                :title="$t('messages.more_filters')"
-                @click="menu.show = !menu.show"
+        <button
+            ref="menuButton"
+            type="button"
+            class="relative p-1 text-sem-fg-muted transition-colors hover:text-sem-accent"
+            :title="$t('messages.more_filters')"
+            @click="toggleMenu"
+        >
+            <MaterialDesignIcon icon-name="filter-variant" class="size-5" />
+            <span
+                v-if="hiddenActiveCount > 0"
+                class="absolute -right-0.5 -top-0.5 flex size-3.5 items-center justify-center rounded-full bg-sem-action-primary text-[9px] font-bold text-sem-action-primary-text"
+                >{{ hiddenActiveCount }}</span
             >
-                <MaterialDesignIcon icon-name="filter-variant" class="size-5" />
-                <span
-                    v-if="hiddenActiveCount > 0"
-                    class="absolute -right-0.5 -top-0.5 flex size-3.5 items-center justify-center rounded-full bg-sem-action-primary text-[9px] font-bold text-sem-action-primary-text"
-                    >{{ hiddenActiveCount }}</span
-                >
-            </button>
+        </button>
+        <Teleport to="body">
             <div
                 v-if="menu.show"
-                v-click-outside="{ handler: () => (menu.show = false), capture: true }"
-                class="absolute right-0 top-full z-200 mt-1 animate-in fade-in zoom-in duration-100"
+                v-click-outside="{ handler: onOutsideClick, capture: true }"
+                class="fixed z-300 animate-in fade-in zoom-in duration-100"
+                :style="menuStyle"
+                @click.stop
             >
                 <div
                     class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-l border-t border-sem-border"
@@ -87,7 +90,7 @@
                         type="button"
                         class="flex w-full items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted transition-colors hover:bg-sem-surface-muted"
                         @click="
-                            menu.show = false;
+                            closeMenu();
                             editModal.show = true;
                         "
                     >
@@ -96,7 +99,7 @@
                     </button>
                 </div>
             </div>
-        </div>
+        </Teleport>
         <SidebarFilterEditModal
             :show="editModal.show"
             :context="context"
@@ -139,7 +142,7 @@ export default {
             layout: loadSidebarFilterLayout(),
             draggingId: null,
             dropTargetId: null,
-            menu: { show: false },
+            menu: { show: false, top: 0, right: 0 },
             editModal: { show: false },
         };
     },
@@ -160,8 +163,37 @@ export default {
             const visible = new Set(this.layout[this.context] || []);
             return this.active.filter((id) => !visible.has(id)).length;
         },
+        menuStyle() {
+            return {
+                top: `${this.menu.top}px`,
+                right: `${this.menu.right}px`,
+            };
+        },
     },
     methods: {
+        toggleMenu() {
+            if (this.menu.show) {
+                this.menu.show = false;
+                return;
+            }
+            // Fixed positioning escapes every ancestor stacking context and
+            // overflow clip, so the menu always renders above the sidebar.
+            const rect = this.$refs.menuButton.getBoundingClientRect();
+            this.menu.top = Math.round(rect.bottom + 4);
+            this.menu.right = Math.max(4, Math.round(window.innerWidth - rect.right));
+            this.menu.show = true;
+        },
+        closeMenu() {
+            this.menu.show = false;
+        },
+        onOutsideClick(event) {
+            // Trigger clicks are "outside" the teleported panel, so skip them
+            // here and let the button toggle do its close-then-reopen dance.
+            if (this.$refs.menuButton?.contains(event.target)) {
+                return;
+            }
+            this.menu.show = false;
+        },
         onLayoutSave(order) {
             const next = { ...this.layout, [this.context]: order };
             saveSidebarFilterLayout(next);
