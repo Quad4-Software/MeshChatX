@@ -27,9 +27,13 @@ function makeSyncContext(axiosMock, tOverrides = {}) {
             lxmf_preferred_propagation_node_destination_hash: "deadbeef",
         },
         propagationNodeStatus: null,
+        propagationSyncResult: null,
+        propagationSyncResultTimer: null,
         _propagationSyncPollTimer: null,
         _isPropagationSyncPolling: false,
         userInitiatedPropagationSync: false,
+        emitPropagationSyncState: App.methods.emitPropagationSyncState,
+        markPropagationSyncResult: App.methods.markPropagationSyncResult,
         propagationSyncLiveToastMessage: App.methods.propagationSyncLiveToastMessage,
         propagationSyncStatusLabel: App.methods.propagationSyncStatusLabel,
         get isSyncingPropagationNode() {

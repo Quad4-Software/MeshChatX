@@ -896,6 +896,16 @@ DESTINATION_PATH_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+CUSTOM_FONT_SCHEMA: dict = {
+    "type": "object",
+    "required": ["name", "data"],
+    "properties": {
+        "name": {"type": ["string", "null"]},
+        "data": {"type": ["string", "null"]},
+    },
+    "additionalProperties": True,
+}
+
 DESTINATION_DISPLAY_NAME_SCHEMA: dict = {
     "type": "object",
     "required": ["custom_display_name"],

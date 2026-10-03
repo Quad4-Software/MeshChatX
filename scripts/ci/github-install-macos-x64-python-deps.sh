@@ -208,7 +208,7 @@ arch -x86_64 "$_PY" -c "
 import importlib.metadata
 import numpy
 import pycodec2
-from numpy._core._multiarray_umath import _add_newdoc_ufunc
+from numpy._core._multiarray_umath import _ARRAY_API
 print('x64 venv numpy', numpy.__version__, 'pycodec2', importlib.metadata.version('pycodec2'), 'ok')
 "
 

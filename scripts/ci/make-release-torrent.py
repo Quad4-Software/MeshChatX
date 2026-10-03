@@ -105,11 +105,11 @@ def github_url(tag: str, name: str) -> str:
 
 
 def head_ok(url: str, timeout: int = 20) -> bool:
-    req = urllib.request.Request(
+    req = urllib.request.Request(  # noqa: S310
         url, method="HEAD", headers={"User-Agent": USER_AGENT}
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
             return 200 <= resp.status < 300
     except (urllib.error.URLError, TimeoutError, OSError):
         return False
@@ -125,14 +125,14 @@ def local_files(directory: Path) -> list[tuple[str, int, Path]]:
 
 
 def github_assets(tag: str) -> list[tuple[str, int, str]]:
-    req = urllib.request.Request(
+    req = urllib.request.Request(  # noqa: S310
         f"{GITHUB_API}{urllib.parse.quote(tag)}",
         headers={
             "Accept": "application/vnd.github+json",
             "User-Agent": USER_AGENT,
         },
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310
         data = json.loads(resp.read().decode())
     out: list[tuple[str, int, str]] = []
     for asset in data.get("assets") or []:
@@ -159,11 +159,11 @@ class PieceHasher:
         while len(self._buf) >= self.piece_length:
             piece = bytes(self._buf[: self.piece_length])
             del self._buf[: self.piece_length]
-            self.pieces.append(hashlib.sha1(piece).digest())
+            self.pieces.append(hashlib.sha1(piece).digest())  # noqa: S324
 
     def finish(self) -> bytes:
         if self._buf:
-            self.pieces.append(hashlib.sha1(bytes(self._buf)).digest())
+            self.pieces.append(hashlib.sha1(bytes(self._buf)).digest())  # noqa: S324
             self._buf.clear()
         return b"".join(self.pieces)
 
@@ -178,8 +178,8 @@ def hash_path(path: Path, hasher: PieceHasher) -> None:
 
 
 def hash_url(url: str, hasher: PieceHasher, expected: int) -> None:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=120) as resp:
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})  # noqa: S310
+    with urllib.request.urlopen(req, timeout=120) as resp:  # noqa: S310
         got = 0
         while True:
             chunk = resp.read(1024 * 1024)
@@ -193,10 +193,8 @@ def hash_url(url: str, hasher: PieceHasher, expected: int) -> None:
 
 def magnet_link(infohash: str, name: str, webseeds: list[str], trackers: tuple[str, ...]) -> str:
     parts = [f"magnet:?xt=urn:btih:{infohash}", f"dn={urllib.parse.quote(name)}"]
-    for tr in trackers:
-        parts.append(f"tr={urllib.parse.quote(tr, safe='')}")
-    for ws in webseeds:
-        parts.append(f"ws={urllib.parse.quote(ws, safe='')}")
+    parts.extend(f"tr={urllib.parse.quote(tr, safe='')}" for tr in trackers)
+    parts.extend(f"ws={urllib.parse.quote(ws, safe='')}" for ws in webseeds)
     return "&".join(parts)
 
 
@@ -228,7 +226,7 @@ def build_torrent(
         ],
     }
     raw = bencode(payload)
-    infohash = hashlib.sha1(bencode(info)).hexdigest()
+    infohash = hashlib.sha1(bencode(info)).hexdigest()  # noqa: S324
     magnet = magnet_link(infohash, f"MeshChatX-{tag}", payload["url-list"], TRACKERS)
     return raw, infohash, magnet
 

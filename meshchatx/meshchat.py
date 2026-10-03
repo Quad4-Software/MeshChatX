@@ -423,9 +423,10 @@ def _csrf_exempt_path(path: str) -> bool:
 
 
 class _TrackedConfigData(dict):
-    """dict subclass that records every key probed via `in`, [] access,
-    or .get(). update_config uses the record to apply a generic catch-all
-    for registered config fields that no explicit handler consumed.
+    """dict subclass that records every key probed via `in`, [] access, or .get().
+
+    update_config uses the record to apply a generic catch-all for
+    registered config fields that no explicit handler consumed.
     """
 
     def __init__(self, *args, **kwargs):
@@ -494,8 +495,9 @@ SERIALIZE_CONFIG_DENY = frozenset(
 
 
 def _apply_generic_config_fields(cm, data) -> None:
-    """Store any registered config key in `data` that explicit handlers did
-    not consume. Coerces by field type. Denylisted keys are never set here.
+    """Store any registered config key in `data` that explicit handlers did not consume.
+
+    Coerces by field type. Denylisted keys are never set here.
     `data` must be a _TrackedConfigData (or anything exposing ._accessed).
     """
     accessed = getattr(data, "_accessed", set())

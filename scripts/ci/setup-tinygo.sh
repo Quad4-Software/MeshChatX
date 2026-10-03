@@ -15,7 +15,13 @@ if command -v tinygo >/dev/null 2>&1 && tinygo version | grep -q "${VERSION}"; t
 fi
 
 curl -fsSL -o "/tmp/${TARBALL}" "${URL}"
-tar -C /usr/local -xzf "/tmp/${TARBALL}"
+
+# /usr/local is not runner-writable on the Ubuntu 26 image, so sudo when needed.
+TAR="tar"
+if [ ! -w /usr/local ] && command -v sudo >/dev/null 2>&1; then
+    TAR="sudo tar"
+fi
+${TAR} -C /usr/local -xzf "/tmp/${TARBALL}"
 
 if [ -n "${GITHUB_PATH:-}" ]; then
     echo "/usr/local/tinygo/bin" >> "${GITHUB_PATH}"

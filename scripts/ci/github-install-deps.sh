@@ -59,7 +59,7 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
     if [[ "$(uname -s)" == "Darwin" ]]; then
         uv run python -c "
 import numpy
-from numpy._core._multiarray_umath import _add_newdoc_ufunc
+from numpy._core._multiarray_umath import _ARRAY_API
 print('arm64 venv numpy', numpy.__version__, 'ok')
 "
         # The published macOS wheel bundles libcodec2 under pycodec2/.dylibs/. Flatten

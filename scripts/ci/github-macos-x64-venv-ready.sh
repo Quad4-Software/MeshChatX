@@ -63,7 +63,7 @@ if ! arch -x86_64 "$_PY" -c "
 import importlib.metadata
 import numpy
 import pycodec2
-from numpy._core._multiarray_umath import _add_newdoc_ufunc
+from numpy._core._multiarray_umath import _ARRAY_API
 
 want_numpy = '${_NUMPY_VERSION}'
 want_pycodec2 = '${_PYCODEC2_VERSION}'

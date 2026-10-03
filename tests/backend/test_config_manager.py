@@ -203,11 +203,13 @@ def test_auto_propagation_config(db):
 
 
 def test_all_registered_config_keys_are_handled_in_update_config():
-    """Every StringConfig/BoolConfig/IntConfig/FloatConfig key registered in
-    config_manager.py must reach storage via update_config - either through an
-    explicit `in data` handler or the generic catch-all. Keys in
+    """Every registered config key must reach storage via update_config.
+
+    StringConfig/BoolConfig/IntConfig/FloatConfig keys reach storage either
+    through an explicit `in data` handler or the generic catch-all. Keys in
     GENERIC_CONFIG_DENY bypass the generic pass, so a denylisted key with no
-    explicit handler and no dedicated route is silently dropped: flag those."""
+    explicit handler and no dedicated route is silently dropped: flag those.
+    """
     import re
     from pathlib import Path
 
@@ -287,12 +289,14 @@ def test_all_registered_config_keys_are_handled_in_update_config():
 
 
 def test_generic_config_pass_sets_and_denies(db):
-    """_apply_generic_config_fields stores unhandled registered keys with type
-    coercion and refuses denylisted keys."""
+    """_apply_generic_config_fields stores unhandled registered keys.
+
+    Applies type coercion and refuses denylisted keys.
+    """
     from meshchatx.meshchat import (
         GENERIC_CONFIG_DENY,
-        _TrackedConfigData,
         _apply_generic_config_fields,
+        _TrackedConfigData,
     )
 
     config = ConfigManager(db)
@@ -319,8 +323,11 @@ def test_generic_config_pass_sets_and_denies(db):
 
 
 def test_font_family_whitelist_matches_frontend_bundled_fonts():
-    """The ui_font_family whitelist in update_config must cover every key in
-    BUNDLED_FONTS plus 'system' and 'custom', or font selection silently resets."""
+    """The ui_font_family whitelist must cover every bundled font.
+
+    update_config must accept every key in BUNDLED_FONTS plus 'system' and
+    'custom', or font selection silently resets.
+    """
     import re
     from pathlib import Path
 
