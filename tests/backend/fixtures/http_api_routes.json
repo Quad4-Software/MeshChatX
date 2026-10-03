@@ -1878,7 +1878,15 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/translation/catalog"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/translation/packs"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/translation/packs/fetch"
         },
         {
             "method": "POST",
