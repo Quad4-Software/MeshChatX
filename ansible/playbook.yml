@@ -1,0 +1,8 @@
+---
+# Deploy MeshChatX via Ansible.
+# Usage: ansible-playbook -i inventory ansible/playbook.yml
+- name: Deploy MeshChatX
+  hosts: meshchatx
+  become: true
+  roles:
+    - meshchatx

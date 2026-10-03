@@ -147,8 +147,8 @@ class Transport:
 
             raise Exception("Path lookup timed out")
 
-        except Exception as e:
-            self.logger.error("Error establishing link: %s", str(e))
+        except Exception:
+            self.logger.exception("Error establishing link")
             raise
         finally:
             self.save_paths()
@@ -202,8 +202,8 @@ class Transport:
 
             raise Exception("Link establishment timed out")
 
-        except Exception as e:
-            self.logger.error("Error creating link: %s", str(e))
+        except Exception:
+            self.logger.exception("Error creating link")
             raise
 
     def request_page(

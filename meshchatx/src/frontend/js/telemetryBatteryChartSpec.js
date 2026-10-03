@@ -76,7 +76,7 @@ function smoothLinePath(pts) {
  *   plotBottom: number;
  *   gradientId: string;
  *   strokeGradientId: string;
- *   layout: { PL: number; PR: number; PT: number; PB: number; plotBottom: number; minX: number; maxX: number };
+ *   layout: { PL: number; PR: number; PT: number; PB: number. plotBottom: number. minX: number. maxX: number };
  *   viewBox: string;
  * }}
  */

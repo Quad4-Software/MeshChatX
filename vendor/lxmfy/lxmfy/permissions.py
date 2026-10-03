@@ -73,6 +73,7 @@ class PermissionManager:
 
     storage: Any
     enabled: bool = False
+    admins: set[str] | None = None
     default_role: Role = field(
         default_factory=lambda: Role(
             "user",
@@ -184,6 +185,9 @@ class PermissionManager:
 
     def get_user_permissions(self, user: str) -> DefaultPerms:
         """Get combined permissions for a user"""
+        if self.admins and user in self.admins:
+            return self.admin_role.permissions
+
         if user not in self.user_roles:
             return self.default_role.permissions
 

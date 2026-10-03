@@ -41,7 +41,8 @@ env:
     NODE_VERSION: "24"
     UV_VERSION: "0.11.15"
     PNPM_VERSION: "12.7.0"
-    GO_VERSION: "1.24.x"
+    GO_VERSION: "1.27.x"
+    TINYGO_VERSION: "0.42.0"
     RNS_REQUIRED_SIGNER: e46112d44649266d71fe2193e00a4710
 
 jobs:
@@ -160,6 +161,9 @@ jobs:
               with:
                   go-version: ${{ env.GO_VERSION }}
 
+            - name: Install TinyGo
+              run: sh scripts/ci/setup-tinygo.sh ${{ env.TINYGO_VERSION }}
+
             - name: Setup Task
               env:
                   GITHUB_TOKEN: ${{ github.token }}
@@ -205,6 +209,9 @@ jobs:
               uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
               with:
                   go-version: ${{ env.GO_VERSION }}
+
+            - name: Install TinyGo
+              run: sh scripts/ci/setup-tinygo.sh ${{ env.TINYGO_VERSION }}
 
             - name: Setup Task
               env:
@@ -312,6 +319,46 @@ jobs:
                       --fail-under=80 \
                       --markdown-report diff-cover-report.md
                   cat diff-cover-report.md >> "$GITHUB_STEP_SUMMARY"
+
+    backend-tests-py315:
+        # Advisory while 3.15 is pre-release: surfaces stdlib removals and
+        # dependency gaps early without gating merges on ecosystem lag.
+        # UV_PYTHON steers uv sync/uv run to the 3.15 interpreter; the
+        # libcodec2-dev install in github-install-deps.sh lets the
+        # sdist-only pycodec2 build.
+        name: Backend tests (Python 3.15 beta)
+        runs-on: ubuntu-latest
+        timeout-minutes: 40
+        continue-on-error: true
+        permissions:
+            contents: read
+        env:
+            UV_PYTHON: "3.15"
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Set up development environment
+              uses: $/.github/actions/setup-dev-environment
+              with:
+                  python-version: "3.15"
+                  python-allow-prereleases: "true"
+                  uv-version: ${{ env.UV_VERSION }}
+                  install-node: "false"
+
+            - name: Run backend tests
+              env:
+                  PYTEST_ARGS: --reruns 1 -rR
+              run: task test:backend
+
+            - name: Verify workspace clean
+              uses: $/.github/actions/verify-workspace-clean
 
     mutation-changed:
         name: Mutation (changed backend modules, advisory)
@@ -708,6 +755,7 @@ jobs:
                       test-results/lighthouse/
                       test-results/perf/
                       test-results/heap/
+                      test-results/metrics/
                   if-no-files-found: ignore
                   retention-days: 14
 

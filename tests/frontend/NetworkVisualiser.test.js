@@ -650,75 +650,16 @@ describe("NetworkVisualiser.vue", () => {
         expect(processSpy).toHaveBeenCalledWith({ silent: true });
     });
 
-    it("cluster view pins nodes in interface lobes around me", async () => {
-        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
-        const wrapper = mountVisualiser();
-        wrapper.vm.network = {
-            getPositions: vi.fn().mockReturnValue({}),
-            setOptions: vi.fn(),
-            redraw: vi.fn(),
-            on: vi.fn(),
-            destroy: vi.fn(),
-            getScale: vi.fn().mockReturnValue(1),
-            fit: vi.fn(),
-        };
-        wrapper.vm.config = { display_name: "Me", identity_hash: "abc" };
-        wrapper.vm.interfaces = [{ name: "eth0", status: true, bitrate: 1000, txb: 0, rxb: 0 }];
-        wrapper.vm.pathTable = [
-            { hash: "node1", interface: "eth0", hops: 1 },
-            { hash: "node2", interface: "eth0", hops: 2 },
-        ];
-        wrapper.vm.announces = {
-            node1: {
-                destination_hash: "node1",
-                aspect: "lxmf.delivery",
-                display_name: "Near",
-                updated_at: new Date().toISOString(),
-            },
-            node2: {
-                destination_hash: "node2",
-                aspect: "lxmf.delivery",
-                display_name: "Far",
-                updated_at: new Date().toISOString(),
-            },
-        };
-        wrapper.vm.viewMode = "cluster";
-        await wrapper.vm.processVisualization();
-
-        const me = wrapper.vm.nodes.get("me");
-        const iface = wrapper.vm.nodes.get("eth0");
-        const n1 = wrapper.vm.nodes.get("node1");
-        const n2 = wrapper.vm.nodes.get("node2");
-        expect(me.x).toBe(0);
-        expect(me.y).toBe(0);
-        expect(Math.hypot(iface.x, iface.y)).toBeCloseTo(320, 1);
-        expect(Math.hypot(n1.x, n1.y)).toBeGreaterThan(520);
-        expect(Math.hypot(n1.x, n1.y)).toBeLessThan(640);
-        expect(Math.hypot(n2.x, n2.y)).toBeGreaterThan(770);
-        expect(Math.hypot(n2.x, n2.y)).toBeLessThan(890);
-        for (const n of wrapper.vm.nodes.get()) {
-            expect(n.fixed).toBe(true);
-        }
-        wrapper.unmount();
-    });
-
-    it("onViewModeChange to cluster rebuilds the graph with a camera reset", async () => {
+    it("onViewModeChange flat to planet is render-only, no rebuild", async () => {
         vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
         const wrapper = mountVisualiser();
         const proc = vi.spyOn(wrapper.vm, "processVisualization").mockResolvedValue();
         wrapper.vm.onViewModeChange("planet");
-        // Flat -> planet is render-only and must not rebuild.
         expect(proc).not.toHaveBeenCalled();
-        expect(wrapper.vm.resetCameraOnNextGraph).toBe(false);
-        wrapper.vm.onViewModeChange("cluster");
-        expect(wrapper.vm.viewMode).toBe("cluster");
-        expect(wrapper.vm.resetCameraOnNextGraph).toBe(true);
-        expect(proc).toHaveBeenCalled();
-        // Leaving cluster restores force layout, so it rebuilds too.
-        wrapper.vm.resetCameraOnNextGraph = false;
-        proc.mockClear();
+        expect(wrapper.vm.viewMode).toBe("planet");
         wrapper.vm.onViewModeChange("flat");
-        expect(proc).toHaveBeenCalled();
+        expect(wrapper.vm.viewMode).toBe("flat");
+        expect(proc).not.toHaveBeenCalled();
         wrapper.unmount();
     });
 

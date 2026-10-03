@@ -6,6 +6,10 @@ inputs:
         description: Python version (used when install-python is true)
         required: false
         default: "3.14"
+    python-allow-prereleases:
+        description: Allow pre-release Python versions via setup-python
+        required: false
+        default: "false"
     uv-version:
         description: UV version installed from GitHub releases
         required: false
@@ -47,6 +51,7 @@ runs:
           uses: $/.github/actions/setup-python-uv
           with:
               python-version: ${{ inputs.python-version }}
+              python-allow-prereleases: ${{ inputs.python-allow-prereleases }}
               uv-version: ${{ inputs.uv-version }}
 
         - name: Set up Node and pnpm

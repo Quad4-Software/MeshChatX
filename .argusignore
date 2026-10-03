@@ -18,4 +18,34 @@ CNT-001 docker/Dockerfile.build
 CNT-001 docker/Dockerfile.dev
 AUR-002 packaging/arch/PKGBUILD
 MAL-030 scripts/rpi/install_meshchatx.sh
+MAL-030 proxmox/build-lxc.sh
+MAL-030 proxmox/build-vm-template.sh
 MAL-061 tests/backend/test_http_helpers.py
+
+# Argus ruleset drift (the pinned action installs the latest argus binary at
+# run time, so new rules land without a workflow change). Suppressions below
+# are verified false positives; revisit when the scanner is fixed.
+
+# QIX-016/QIX-018 misattribute package versions inside pnpm-lock snapshot
+# blocks: the 256-byte version window after a name match picks up an
+# unrelated entry (cliui@9.0.1, color-convert@2.0.1). Resolved versions are
+# wrap-ansi 6.2.0/7.0.0/9.0.2 and color-name 1.1.4; the phished versions
+# 9.0.1 and 2.0.1 are not in the lockfile.
+QIX-016 pnpm-lock.yaml
+QIX-018 pnpm-lock.yaml
+
+# JS-003 fires on spawnSync/execSync in build and test tooling. All call
+# sites pass argument arrays with shell disabled.
+JS-003 scripts/build-backend.js
+JS-003 scripts/build-electron-shell-css.mjs
+JS-003 scripts/build-geo-wasm.mjs
+JS-003 scripts/build-visualiser-wasm.mjs
+JS-003 scripts/fetch-starter-mbtiles.mjs
+JS-003 scripts/mutation/run.mjs
+JS-003 scripts/ui/metrics-check.mjs
+JS-003 tests/e2e/mobile-crawl.spec.js
+JS-003 tests/frontend/bakeBuildMeta.test.js
+
+# OWASP-001: the alg:none JWT in this test is a rejection fixture asserting
+# the verifier refuses unsigned tokens.
+OWASP-001 tests/backend/test_oidc.py

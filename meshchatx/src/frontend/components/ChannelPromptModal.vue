@@ -45,7 +45,7 @@
 <script>
 import AppUpdatePrompt from "./AppUpdatePrompt.vue";
 import ToastUtils from "../js/ToastUtils";
-import { apiPath } from "../js/constants.js";
+import { apiPath } from "../js/constants";
 import {
     channelBugReportTarget,
     channelLabelKey,

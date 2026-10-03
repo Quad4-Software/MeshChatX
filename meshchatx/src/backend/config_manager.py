@@ -19,7 +19,7 @@ class ConfigManager:
         )
         self.last_announced_at = self.IntConfig(self, "last_announced_at", None)
         self.theme = self.StringConfig(self, "theme", "light")
-        self.theme_preset = self.StringConfig(self, "theme_preset", "default")
+        self.theme_preset = self.StringConfig(self, "theme_preset", "void")
         self.accent_color = self.StringConfig(self, "accent_color", None)
         self.custom_canvas_color = self.StringConfig(self, "custom_canvas_color", None)
         self.custom_surface_color = self.StringConfig(
@@ -542,6 +542,9 @@ class ConfigManager:
         self.message_icon_size = self.IntConfig(self, "message_icon_size", 28)
         self.ui_transparency = self.IntConfig(self, "ui_transparency", 0)
         self.ui_glass_enabled = self.BoolConfig(self, "ui_glass_enabled", True)
+        self.ui_font_family = self.StringConfig(self, "ui_font_family", "system")
+        self.ui_custom_font_name = self.StringConfig(self, "ui_custom_font_name", "")
+        self.ui_custom_font_data = self.StringConfig(self, "ui_custom_font_data", "")
         self.message_outbound_bubble_color = self.StringConfig(
             self,
             "message_outbound_bubble_color",
@@ -679,6 +682,16 @@ class ConfigManager:
         self.nomad_tabs_enabled = self.BoolConfig(
             self,
             "nomad_tabs_enabled",
+            True,
+        )
+        self.nomad_private_tabs_enabled = self.BoolConfig(
+            self,
+            "nomad_private_tabs_enabled",
+            True,
+        )
+        self.nomad_history_enabled = self.BoolConfig(
+            self,
+            "nomad_history_enabled",
             True,
         )
         self.rrc_enabled = self.BoolConfig(self, "rrc_enabled", True)

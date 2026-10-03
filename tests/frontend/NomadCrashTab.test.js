@@ -85,11 +85,31 @@ describe("NomadCrashTab.vue", () => {
         return wrapper;
     };
 
+    it("emits the local-network-access allow token on Chromium only", () => {
+        const prev = Object.getOwnPropertyDescriptor(Navigator.prototype, "userAgentData");
+        Object.defineProperty(Navigator.prototype, "userAgentData", {
+            configurable: true,
+            get: () => ({ brands: [] }),
+        });
+        try {
+            const wrapper = mountCrashTab();
+            expect(wrapper.vm.$refs.frame.getAttribute("allow")).toBe("local-network-access");
+        } finally {
+            if (prev) {
+                Object.defineProperty(Navigator.prototype, "userAgentData", prev);
+            } else {
+                delete Navigator.prototype.userAgentData;
+            }
+        }
+    });
+
     it("abortRender skips re-push after iframe reload ready", async () => {
         const wrapper = mountCrashTab();
         const frame = wrapper.vm.$refs.frame;
         expect(frame.getAttribute("sandbox")).toBe("allow-scripts");
-        expect(frame.getAttribute("allow")).toBe("local-network-access");
+        // allow= is emitted only on Chromium (navigator.userAgentData)
+        // because Firefox warns on the unsupported token.
+        expect(frame.getAttribute("allow")).toBeFalsy();
         expect(frame.style.position).toBe("fixed");
         const frameEl = frame;
         Object.defineProperty(frameEl, "contentWindow", {
@@ -525,7 +545,7 @@ describe("NomadCrashTab.vue", () => {
             wrapper = mountCrashTab();
             expect(wrapper.vm.frameReady).toBe(false);
             await Promise.resolve();
-            // Boot retries fire at 8s and 16s; exhaustion surfaces 'hung' ~24s.
+            // Boot retries fire at 8s and 16s. exhaustion surfaces 'hung' ~24s.
             vi.advanceTimersByTime(25000);
             expect(wrapper.vm.status).toBe("hung");
             expect(wrapper.emitted("hung")?.length).toBe(1);
@@ -818,7 +838,7 @@ describe("NomadCrashTab.vue", () => {
             expect(wrapper.vm.frameBootRetries).toBe(2);
             expect(wrapper.vm.frameSrc).not.toBe(secondSrc);
 
-            // Retries are capped; no further reloads once exhausted.
+            // Retries are capped. no further reloads once exhausted.
             const lastSrc = wrapper.vm.frameSrc;
             await vi.advanceTimersByTimeAsync(17000);
             expect(wrapper.vm.frameBootRetries).toBe(2);

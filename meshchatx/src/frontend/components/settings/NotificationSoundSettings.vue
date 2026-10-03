@@ -53,7 +53,7 @@
                     </label>
                     <select
                         :value="config.notification_sound_preferred_id"
-                        class="input-field py-1.5! px-3! text-sm! rounded-xl! border-gray-200! dark:border-zinc-800! w-full max-w-md"
+                        class="input-field py-1.5! px-3! text-sm! rounded-xl! border-sem-border! dark:border-sem-border! w-full max-w-md"
                         @change="onPreferredChange"
                     >
                         <option :value="0">{{ $t("app.notification_sound_primary_default") }}</option>
@@ -104,7 +104,7 @@
                         <div class="flex items-center gap-2 shrink-0">
                             <button
                                 type="button"
-                                class="rounded-lg p-1.5 text-gray-500 hover:bg-sem-surface-muted"
+                                class="rounded-lg p-1.5 text-sem-fg-muted hover:bg-sem-surface-muted"
                                 :title="$t('app.notification_sound_preview')"
                                 @click="previewSound(sound)"
                             >
@@ -116,14 +116,14 @@
                             <button
                                 v-if="!sound.is_primary"
                                 type="button"
-                                class="rounded-lg px-2 py-1 text-xs font-semibold text-sem-accent hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                class="rounded-lg px-2 py-1 text-xs font-semibold text-sem-accent hover:bg-sem-info/15 dark:hover:bg-sem-info/15"
                                 @click="setPrimarySound(sound)"
                             >
                                 {{ $t("app.notification_sound_set_primary") }}
                             </button>
                             <button
                                 type="button"
-                                class="rounded-lg p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                class="rounded-lg p-1.5 text-sem-danger hover:bg-sem-danger/15 dark:hover:bg-sem-danger/15"
                                 :title="$t('app.notification_sound_remove')"
                                 @click="deleteSound(sound)"
                             >
@@ -143,7 +143,7 @@ import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import NotificationSoundUtils from "../../js/NotificationSoundUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import * as notificationSoundsApi from "../../js/api/notificationSounds.js";
 
 export default {

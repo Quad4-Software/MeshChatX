@@ -211,7 +211,7 @@ class _DeadlinedRpcConnection:
 
     def recv_bytes(self, maxlength=None):
         # Absolute deadline across the whole frame. poll() only promises
-        # at least one byte; a frame that stalls mid-body would otherwise
+        # at least one byte. a frame that stalls mid-body would otherwise
         # park the thread forever inside recv_bytes. Reads mirror the
         # multiprocessing.connection wire format: a 4-byte signed length,
         # -1 meaning an 8-byte unsigned length, then the body.
@@ -273,7 +273,7 @@ def install_shared_instance_rpc_deadline(
             except Exception as exc:
                 result["error"] = exc
 
-        t = threading.Thread(target=_make, daemon=True)
+        t = threading.Thread(target=_make, daemon=True, name="mcx-rns-recovery")
         t.start()
         t.join(timeout_s)
         if "conn" in result:
@@ -554,7 +554,7 @@ def _close_quietly(resource) -> None:
                 resource.shutdown()
             done.set()
 
-        threading.Thread(target=_shutdown, daemon=True).start()
+        threading.Thread(target=_shutdown, daemon=True, name="mcx-rns-recovery").start()
         done.wait(timeout=3)
         with contextlib.suppress(Exception):
             resource.server_close()

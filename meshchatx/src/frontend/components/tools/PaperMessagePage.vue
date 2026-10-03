@@ -14,16 +14,18 @@
                     <!-- composer -->
                     <div class="space-y-4 min-w-0">
                         <section class="rounded-lg border border-sem-border overflow-hidden bg-sem-surface">
-                            <div class="px-4 py-3 border-b border-sem-border bg-gray-50/80 dark:bg-zinc-900/50">
+                            <div
+                                class="px-4 py-3 border-b border-sem-border bg-sem-surface-muted/80 dark:bg-sem-surface"
+                            >
                                 <h2 class="flex items-center gap-2 text-base font-semibold text-sem-fg">
                                     <MaterialDesignIcon
                                         icon-name="pencil-outline"
-                                        class="size-5 text-gray-400 shrink-0"
+                                        class="size-5 text-sem-fg-muted shrink-0"
                                     />
                                     Compose Message
                                 </h2>
                             </div>
-                            <div class="px-4 py-4 space-y-3 text-gray-900 dark:text-gray-100">
+                            <div class="px-4 py-4 space-y-3 text-sem-fg">
                                 <div>
                                     <label
                                         class="block text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1.5"
@@ -66,7 +68,7 @@
                                 </div>
                                 <button
                                     type="button"
-                                    class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none text-sm"
+                                    class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-xl font-bold shadow-lg shadow-sem-action-primary/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none text-sm"
                                     :disabled="!canGenerate || isGenerating"
                                     @click="generatePaperMessage"
                                 >
@@ -86,14 +88,19 @@
 
                         <!-- read / ingest section -->
                         <section class="rounded-lg border border-sem-border overflow-hidden bg-sem-surface">
-                            <div class="px-4 py-3 border-b border-sem-border bg-gray-50/80 dark:bg-zinc-900/50">
+                            <div
+                                class="px-4 py-3 border-b border-sem-border bg-sem-surface-muted/80 dark:bg-sem-surface"
+                            >
                                 <h2 class="flex items-center gap-2 text-base font-semibold text-sem-fg">
-                                    <MaterialDesignIcon icon-name="qrcode-scan" class="size-5 text-gray-400 shrink-0" />
+                                    <MaterialDesignIcon
+                                        icon-name="qrcode-scan"
+                                        class="size-5 text-sem-fg-muted shrink-0"
+                                    />
                                     Ingest Paper Message
                                 </h2>
                             </div>
-                            <div class="px-4 py-4 space-y-3 text-gray-900 dark:text-gray-100">
-                                <p class="text-xs text-gray-600 dark:text-gray-400">
+                            <div class="px-4 py-4 space-y-3 text-sem-fg">
+                                <p class="text-xs text-sem-fg-muted">
                                     Paste an LXMF, LXMA, or LXM URI to decode and ingest.
                                 </p>
                                 <div class="flex flex-col sm:flex-row gap-2">
@@ -106,7 +113,7 @@
                                     />
                                     <button
                                         type="button"
-                                        class="inline-flex items-center justify-center gap-2 px-3 py-2.5 sm:py-2 bg-sem-surface-muted text-sem-fg-muted rounded-lg hover:bg-gray-200 hover:bg-sem-surface-muted transition-colors shrink-0"
+                                        class="inline-flex items-center justify-center gap-2 px-3 py-2.5 sm:py-2 bg-sem-surface-muted text-sem-fg-muted rounded-lg hover:bg-sem-surface-muted hover:bg-sem-surface-muted transition-colors shrink-0"
                                         @click="pasteFromClipboard"
                                     >
                                         <MaterialDesignIcon icon-name="content-paste" class="size-5" />
@@ -115,7 +122,7 @@
                                     <button
                                         v-if="cameraSupported"
                                         type="button"
-                                        class="inline-flex items-center justify-center gap-2 px-3 py-2.5 sm:py-2 bg-sem-surface-muted text-sem-fg-muted rounded-lg hover:bg-gray-200 hover:bg-sem-surface-muted transition-colors shrink-0"
+                                        class="inline-flex items-center justify-center gap-2 px-3 py-2.5 sm:py-2 bg-sem-surface-muted text-sem-fg-muted rounded-lg hover:bg-sem-surface-muted hover:bg-sem-surface-muted transition-colors shrink-0"
                                         @click="openIngestScannerModal"
                                     >
                                         <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
@@ -124,7 +131,7 @@
                                 </div>
                                 <button
                                     type="button"
-                                    class="w-full py-2.5 px-4 bg-sem-surface-muted text-sem-fg-secondary rounded-xl font-bold hover:bg-gray-200 hover:bg-sem-surface-muted transition-all active:scale-[0.98] text-sm"
+                                    class="w-full py-2.5 px-4 bg-sem-surface-muted text-sem-fg-secondary rounded-xl font-bold hover:bg-sem-surface-muted hover:bg-sem-surface-muted transition-all active:scale-[0.98] text-sm"
                                     :disabled="!ingestUri"
                                     @click="ingestPaperMessage"
                                 >
@@ -143,11 +150,11 @@
                             v-if="generatedUri"
                             class="rounded-lg border border-sem-border overflow-hidden bg-sem-surface"
                         >
-                            <div class="px-4 py-3 border-b border-sem-border bg-blue-50/80 dark:bg-blue-900/20">
+                            <div class="px-4 py-3 border-b border-sem-border bg-sem-info/15 dark:bg-sem-info/15">
                                 <h2 class="text-base font-semibold text-sem-accent">Generated QR Code</h2>
                             </div>
-                            <div class="px-4 py-4 sm:p-6 flex flex-col items-center text-gray-900 dark:text-gray-100">
-                                <div class="p-3 bg-white rounded-2xl shadow-inner border border-gray-100 mb-6">
+                            <div class="px-4 py-4 sm:p-6 flex flex-col items-center text-sem-fg">
+                                <div class="p-3 bg-sem-surface rounded-2xl shadow-inner border border-sem-border mb-6">
                                     <div class="size-40 sm:size-48 flex items-center justify-center overflow-hidden">
                                         <canvas ref="qrcode"></canvas>
                                     </div>
@@ -155,7 +162,7 @@
 
                                 <div class="w-full space-y-3">
                                     <div
-                                        class="bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-3 border border-gray-100 dark:border-zinc-700/50"
+                                        class="bg-sem-surface-muted/50 rounded-2xl p-3 border border-sem-border border-sem-border/50"
                                     >
                                         <label
                                             class="block text-[9px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1.5"
@@ -170,7 +177,7 @@
                                             </div>
                                             <button
                                                 type="button"
-                                                class="size-9 flex items-center justify-center bg-sem-surface text-sem-fg-muted rounded-lg border border-sem-border hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-xs"
+                                                class="size-9 flex items-center justify-center bg-sem-surface text-sem-fg-muted rounded-lg border border-sem-border hover:bg-sem-info/15 hover:text-sem-info hover:border-sem-info transition-all shadow-xs"
                                                 title="Copy URI"
                                                 @click="copyUri"
                                             >
@@ -182,7 +189,7 @@
                                     <div class="flex flex-col sm:flex-row gap-2 pt-1">
                                         <button
                                             type="button"
-                                            class="flex-1 flex items-center justify-center gap-2 py-3 sm:py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all active:scale-[0.98] text-sm min-h-[44px]"
+                                            class="flex-1 flex items-center justify-center gap-2 py-3 sm:py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-lg font-bold transition-all active:scale-[0.98] text-sm min-h-[44px]"
                                             @click="printQRCode"
                                         >
                                             <MaterialDesignIcon icon-name="printer" class="size-4" />
@@ -190,7 +197,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="flex-1 flex items-center justify-center gap-2 py-3 sm:py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold transition-all active:scale-[0.98] text-sm min-h-[44px]"
+                                            class="flex-1 flex items-center justify-center gap-2 py-3 sm:py-2.5 px-4 bg-sem-success hover:bg-sem-success text-white rounded-lg font-bold transition-all active:scale-[0.98] text-sm min-h-[44px]"
                                             :disabled="isSending"
                                             @click="sendPaperMessage"
                                         >
@@ -212,9 +219,9 @@
 
                         <div
                             v-else
-                            class="rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900/30 flex flex-col items-center justify-center p-6 sm:p-8 text-center min-h-[240px] sm:min-h-[280px] sm:h-[320px]"
+                            class="rounded-lg border border-dashed border-sem-border bg-sem-surface-muted/80 dark:bg-sem-surface flex flex-col items-center justify-center p-6 sm:p-8 text-center min-h-[240px] sm:min-h-[280px] sm:h-[320px]"
                         >
-                            <div class="p-3 bg-sem-surface-muted text-gray-400 rounded-full mb-3">
+                            <div class="p-3 bg-sem-surface-muted text-sem-fg-muted rounded-full mb-3">
                                 <MaterialDesignIcon icon-name="qrcode" class="size-10" />
                             </div>
                             <h3 class="text-base font-bold text-sem-fg mb-1">No QR Code Generated</h3>
@@ -270,8 +277,8 @@ import {
     startCameraStream,
 } from "../../js/qrScannerUtils";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import { apiPath, WS_EVENTS } from "../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
+import { apiPath, WS_EVENTS } from "../../js/constants";
 
 export default {
     name: "PaperMessagePage",
@@ -577,6 +584,6 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .input-field {
-    @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-50 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
+    @apply bg-sem-surface-muted/80 dark:bg-sem-surface/80 border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-sem-info focus:border-sem-info dark:focus:ring-blue-50 dark:focus:border-sem-accent block w-full p-2.5 text-sem-fg transition;
 }
 </style>

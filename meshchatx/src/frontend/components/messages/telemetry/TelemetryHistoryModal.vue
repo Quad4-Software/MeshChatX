@@ -19,7 +19,7 @@
                     </div>
                     <button
                         type="button"
-                        class="text-sem-fg-muted hover:text-sem-fg-muted dark:hover:text-zinc-300 transition-colors shrink-0"
+                        class="text-sem-fg-muted hover:text-sem-fg-muted dark:hover:text-sem-fg-secondary transition-colors shrink-0"
                         @click="close"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-6" />
@@ -38,7 +38,7 @@
                     />
                 </div>
                 <div
-                    class="flex flex-col gap-3 border-t border-sem-border bg-sem-surface-muted/40 px-6 py-4 dark:bg-zinc-900/25"
+                    class="flex flex-col gap-3 border-t border-sem-border bg-sem-surface-muted/40 px-6 py-4 dark:bg-sem-surface"
                 >
                     <TelemetryBatteryChart
                         v-if="batteryHistory.length > 1"
@@ -58,7 +58,7 @@
                                 @change="onShowTelemetryChange"
                             />
                             <span
-                                class="text-xs font-medium text-sem-fg-muted group-hover:text-sem-fg dark:group-hover:text-zinc-200"
+                                class="text-xs font-medium text-sem-fg-muted group-hover:text-sem-fg dark:group-hover:text-sem-fg"
                                 >{{ $t("messages.telemetry_show_in_chat") }}</span
                             >
                         </label>

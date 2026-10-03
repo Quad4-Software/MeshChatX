@@ -9,7 +9,7 @@
         <div class="space-y-4">
             <div
                 class="rounded-xl border-2 border-dashed border-sem-border bg-sem-surface-muted/40 p-6 text-center transition-colors"
-                :class="dragActive ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/20' : ''"
+                :class="dragActive ? 'border-sem-accent bg-sem-info/15 dark:bg-sem-info/15' : ''"
                 @dragenter.prevent="dragActive = true"
                 @dragover.prevent="dragActive = true"
                 @dragleave.prevent="dragActive = false"
@@ -31,7 +31,7 @@
                         @change="onInstallFile"
                     />
                     <span
-                        class="px-4 py-2 rounded-md bg-blue-600 text-white text-sm cursor-pointer hover:bg-blue-700"
+                        class="px-4 py-2 rounded-md bg-sem-action-primary text-sem-action-primary-text text-sm cursor-pointer hover:bg-sem-info"
                         :class="installing || previewing ? 'opacity-60 pointer-events-none' : ''"
                     >
                         {{
@@ -59,8 +59,8 @@
                                 class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide"
                                 :class="
                                     plugin.enabled
-                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200'
-                                        : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 text-sem-fg-muted'
+                                        ? 'bg-sem-success/15 text-sem-success dark:bg-sem-success/15 text-sem-success'
+                                        : 'bg-sem-surface-muted text-sem-fg dark:bg-sem-surface text-sem-fg-muted'
                                 "
                             >
                                 {{
@@ -71,49 +71,49 @@
                             </span>
                             <span
                                 v-if="plugin.has_frontend"
-                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-200"
+                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-sem-info/15 text-sky-800 dark:bg-sem-info/15 text-sem-info"
                             >
                                 {{ $t("plugins.settings.badge_frontend") }}
                             </span>
                             <span
                                 v-if="plugin.has_backend && plugin.backend_type === 'python'"
-                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200"
+                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-sem-success/15 text-sem-success dark:bg-sem-success/15 text-sem-success"
                             >
                                 {{ $t("plugins.settings.badge_python") }}
                             </span>
                             <span
                                 v-else-if="plugin.has_backend"
-                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-200"
+                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-sem-info/15 text-violet-800 dark:bg-sem-info/15 text-sem-info"
                             >
                                 {{ $t("plugins.settings.badge_wasm") }}
                             </span>
                             <span
                                 v-if="plugin.requires_network_fetch"
-                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
+                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-sem-warning/15 text-sem-warning dark:bg-sem-warning/15 dark:text-sem-warning"
                             >
                                 {{ $t("plugins.settings.badge_network") }}
                             </span>
                             <span
                                 v-if="plugin.signature?.trusted"
-                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200"
+                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-sem-success/15 text-sem-success dark:bg-sem-success/15 text-sem-success"
                             >
                                 {{ $t("plugins.settings.badge_trusted") }}
                             </span>
                             <span
                                 v-else-if="plugin.signature?.valid"
-                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-200"
+                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-sem-info/15 text-sky-800 dark:bg-sem-info/15 text-sem-info"
                             >
                                 {{ $t("plugins.settings.badge_signed") }}
                             </span>
                             <span
                                 v-else-if="plugin.signature?.present && !plugin.signature?.valid"
-                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200"
+                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-sem-danger/15 text-sem-danger dark:bg-sem-danger/15 text-sem-danger"
                             >
                                 {{ $t("plugins.settings.badge_invalid_signature") }}
                             </span>
                             <span
                                 v-if="plugin.tampered"
-                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200"
+                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-sem-danger/15 text-sem-danger dark:bg-sem-danger/15 text-sem-danger"
                             >
                                 {{ $t("plugins.settings.badge_tampered") }}
                             </span>
@@ -125,7 +125,7 @@
                         <button
                             v-if="!plugin.enabled"
                             type="button"
-                            class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm"
+                            class="px-3 py-1.5 rounded-md bg-sem-action-primary text-sem-action-primary-text text-sm"
                             :disabled="busyPluginId === plugin.id"
                             @click="enablePlugin(plugin.id)"
                         >
@@ -142,7 +142,7 @@
                         </button>
                         <button
                             type="button"
-                            class="px-3 py-1.5 rounded-md border border-red-300 text-red-600 text-sm"
+                            class="px-3 py-1.5 rounded-md border border-sem-danger text-sem-danger text-sm"
                             :disabled="busyPluginId === plugin.id"
                             @click="confirmRemove(plugin)"
                         >
@@ -168,12 +168,12 @@
                         </li>
                     </ul>
                 </div>
-                <p v-if="plugin.auto_disabled_reason" class="text-sm text-amber-700 dark:text-amber-300">
+                <p v-if="plugin.auto_disabled_reason" class="text-sm text-sem-warning">
                     {{ $t("plugins.settings.auto_disabled", { reason: plugin.auto_disabled_reason }) }}
                 </p>
             </div>
 
-            <section class="rounded-lg border border-amber-300 dark:border-amber-800 p-4 space-y-3">
+            <section class="rounded-lg border border-sem-warning dark:border-sem-warning p-4 space-y-3">
                 <div>
                     <h3 class="text-sm font-semibold text-sem-fg">
                         {{ $t("plugins.sideband.title") }}
@@ -223,7 +223,7 @@
                 <div class="flex flex-wrap gap-2">
                     <button
                         type="button"
-                        class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm"
+                        class="px-3 py-1.5 rounded-md bg-sem-action-primary text-sem-action-primary-text text-sm"
                         :disabled="sidebandBusy"
                         @click="saveSidebandConfig"
                     >
@@ -250,9 +250,9 @@
                         >
                             <p class="font-medium text-sem-fg">
                                 {{ item.name }}
-                                <span class="uppercase text-gray-500">({{ item.type }})</span>
+                                <span class="uppercase text-sem-fg-muted">({{ item.type }})</span>
                             </p>
-                            <p v-if="item.error" class="text-red-600 dark:text-red-400">{{ item.error }}</p>
+                            <p v-if="item.error" class="text-sem-danger">{{ item.error }}</p>
                             <ul v-if="(item.security_findings || []).length" class="list-disc pl-4 text-sem-fg-muted">
                                 <li v-for="finding in item.security_findings" :key="finding.id">
                                     {{ finding.message }}
@@ -283,8 +283,8 @@ import ElectronUtils from "../../js/ElectronUtils";
 import AndroidBridge from "../../js/rnode/AndroidBridge";
 import { permissionLabel } from "../../js/plugins/pluginPermissions.js";
 import { pluginHost } from "../../js/plugins/PluginHost.js";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import { apiPath, WS_EVENTS } from "../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
+import { apiPath, WS_EVENTS } from "../../js/constants";
 
 export default {
     name: "PluginsSettingsSection",

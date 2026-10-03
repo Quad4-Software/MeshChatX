@@ -63,13 +63,13 @@
                     />
                     <SidebarVirtualList
                         v-else-if="mergedContacts.length >= MIN_VIRTUAL_SIDEBAR_ITEMS"
-                        class="flex-1 min-h-0 divide-y divide-gray-100 dark:divide-zinc-800"
+                        class="flex-1 min-h-0 divide-y divide-sem-border/60"
                         :items="mergedContacts"
                         :item-key="(item) => item.id"
                     >
                         <template #item="{ item: contact }">
                             <div
-                                class="group flex cursor-default items-center gap-3 px-1 py-3 transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-900/70"
+                                class="group flex cursor-default items-center gap-3 px-1 py-3 transition-colors hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface"
                                 @contextmenu.prevent="openContextMenu($event, contact)"
                             >
                                 <div class="shrink-0">
@@ -96,25 +96,33 @@
                                         >
                                             <MaterialDesignIcon
                                                 icon-name="message-text-outline"
-                                                class="size-4 text-blue-500 dark:text-blue-400 shrink-0"
+                                                class="size-4 text-sem-info shrink-0"
                                             />
                                             <button
                                                 type="button"
-                                                class="text-xs font-mono text-sem-fg-muted truncate hover:text-blue-600 dark:hover:text-blue-400 text-left"
+                                                class="text-xs font-mono text-sem-fg-muted truncate hover:text-sem-accent text-left"
                                                 :title="contact.remote_destination_hash"
                                                 @click.stop="copyContactHash(contact.remote_destination_hash)"
                                             >
                                                 {{ formatContactHash(contact.remote_destination_hash) }}
                                             </button>
                                         </div>
-                                        <div v-if="contact.remote_telephony_hash" class="flex items-center gap-1.5">
+                                        <div
+                                            v-if="contact.remote_telephony_hash"
+                                            class="flex items-center gap-1.5 min-w-0"
+                                        >
                                             <MaterialDesignIcon
                                                 icon-name="phone-outline"
-                                                class="size-4 text-green-600 dark:text-green-400 shrink-0"
+                                                class="size-4 text-sem-success shrink-0"
                                             />
-                                            <span class="text-xs font-mono text-sem-fg-muted break-all">{{
-                                                contact.remote_telephony_hash
-                                            }}</span>
+                                            <button
+                                                type="button"
+                                                class="text-xs font-mono text-sem-fg-muted truncate hover:text-sem-accent text-left"
+                                                :title="contact.remote_telephony_hash"
+                                                @click.stop="copyContactHash(contact.remote_telephony_hash)"
+                                            >
+                                                {{ formatContactHash(contact.remote_telephony_hash) }}
+                                            </button>
                                         </div>
                                         <span
                                             v-if="!contact.remote_destination_hash && !contact.remote_telephony_hash"
@@ -136,7 +144,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-green-100 dark:hover:bg-green-900/40 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                                        class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-raised hover:text-sem-accent transition-colors"
                                         :title="$t('contacts.call_contact')"
                                         @click.stop="callContact(contact)"
                                     >
@@ -145,7 +153,7 @@
                                 </div>
                                 <button
                                     type="button"
-                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-gray-700 hover:text-sem-fg transition-colors"
+                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg transition-colors"
                                     :title="$t('contacts.actions')"
                                     @click.stop="openContextMenu($event, contact)"
                                 >
@@ -154,11 +162,11 @@
                             </div>
                         </template>
                     </SidebarVirtualList>
-                    <div v-else class="divide-y divide-gray-100 dark:divide-zinc-800 overflow-y-auto flex-1 min-h-0">
+                    <div v-else class="divide-y divide-sem-border/60 overflow-y-auto flex-1 min-h-0">
                         <div
                             v-for="contact in mergedContacts"
                             :key="contact.id"
-                            class="group flex cursor-default items-center gap-3 px-1 py-3 transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-900/70"
+                            class="group flex cursor-default items-center gap-3 px-1 py-3 transition-colors hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface"
                             @contextmenu.prevent="openContextMenu($event, contact)"
                         >
                             <div class="shrink-0">
@@ -185,25 +193,30 @@
                                     >
                                         <MaterialDesignIcon
                                             icon-name="message-text-outline"
-                                            class="size-4 text-blue-500 dark:text-blue-400 shrink-0"
+                                            class="size-4 text-sem-info shrink-0"
                                         />
                                         <button
                                             type="button"
-                                            class="text-xs font-mono text-sem-fg-muted truncate hover:text-blue-600 dark:hover:text-blue-400 text-left"
+                                            class="text-xs font-mono text-sem-fg-muted truncate hover:text-sem-accent text-left"
                                             :title="contact.remote_destination_hash"
                                             @click.stop="copyContactHash(contact.remote_destination_hash)"
                                         >
                                             {{ formatContactHash(contact.remote_destination_hash) }}
                                         </button>
                                     </div>
-                                    <div v-if="contact.remote_telephony_hash" class="flex items-center gap-1.5">
+                                    <div v-if="contact.remote_telephony_hash" class="flex items-center gap-1.5 min-w-0">
                                         <MaterialDesignIcon
                                             icon-name="phone-outline"
-                                            class="size-4 text-green-600 dark:text-green-400 shrink-0"
+                                            class="size-4 text-sem-success shrink-0"
                                         />
-                                        <span class="text-xs font-mono text-sem-fg-muted break-all">{{
-                                            contact.remote_telephony_hash
-                                        }}</span>
+                                        <button
+                                            type="button"
+                                            class="text-xs font-mono text-sem-fg-muted truncate hover:text-sem-accent text-left"
+                                            :title="contact.remote_telephony_hash"
+                                            @click.stop="copyContactHash(contact.remote_telephony_hash)"
+                                        >
+                                            {{ formatContactHash(contact.remote_telephony_hash) }}
+                                        </button>
                                     </div>
                                     <span
                                         v-if="!contact.remote_destination_hash && !contact.remote_telephony_hash"
@@ -225,7 +238,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-green-100 dark:hover:bg-green-900/40 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-raised hover:text-sem-accent transition-colors"
                                     :title="$t('contacts.call_contact')"
                                     @click.stop="callContact(contact)"
                                 >
@@ -234,7 +247,7 @@
                             </div>
                             <button
                                 type="button"
-                                class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-gray-700 hover:text-sem-fg transition-colors"
+                                class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg transition-colors"
                                 :title="$t('contacts.actions')"
                                 @click.stop="openContextMenu($event, contact)"
                             >
@@ -295,7 +308,7 @@
                 {{ $t("contacts.copy_contact_uri") }}
             </ContextMenuItem>
             <ContextMenuDivider />
-            <ContextMenuItem item-class="text-red-600 dark:text-red-400" @click="removeContact(contextMenu.contact)">
+            <ContextMenuItem item-class="text-sem-danger" @click="removeContact(contextMenu.contact)">
                 <MaterialDesignIcon icon-name="delete-outline" class="size-4" />
                 {{ $t("contacts.remove_contact") }}
             </ContextMenuItem>
@@ -304,10 +317,15 @@
         <!-- Add contact dialog -->
         <div
             v-if="isAddDialogOpen"
+            v-escape-close="closeAddDialog"
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="closeAddDialog"
         >
-            <div class="w-full max-w-lg rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+            <div
+                role="dialog"
+                aria-modal="true"
+                class="w-full max-w-lg rounded-2xl bg-sem-surface shadow-2xl overflow-hidden"
+            >
                 <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
                     <h3 class="text-lg font-bold text-sem-fg">{{ $t("contacts.add_contact") }}</h3>
                     <button type="button" class="text-sem-fg-muted hover:text-sem-fg" @click="closeAddDialog">
@@ -316,7 +334,7 @@
                 </div>
                 <div class="p-5 space-y-4">
                     <div>
-                        <label class="block text-xs uppercase tracking-wider font-semibold text-gray-500 mb-1">
+                        <label class="block text-xs uppercase tracking-wider font-semibold text-sem-fg-muted mb-1">
                             {{ $t("contacts.contact_name_optional") }}
                         </label>
                         <input
@@ -327,7 +345,7 @@
                         />
                     </div>
                     <div>
-                        <label class="block text-xs uppercase tracking-wider font-semibold text-gray-500 mb-1">
+                        <label class="block text-xs uppercase tracking-wider font-semibold text-sem-fg-muted mb-1">
                             {{ $t("contacts.hash_or_uri") }}
                         </label>
                         <div class="relative">
@@ -385,10 +403,15 @@
         <!-- Scanner dialog -->
         <div
             v-if="isScannerDialogOpen"
+            v-escape-close="closeScannerDialog"
             class="fixed inset-0 z-220 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs"
             @click.self="closeScannerDialog"
         >
-            <div class="w-full max-w-xl rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+            <div
+                role="dialog"
+                aria-modal="true"
+                class="w-full max-w-xl rounded-2xl bg-sem-surface shadow-2xl overflow-hidden"
+            >
                 <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
                     <h3 class="text-lg font-bold text-sem-fg">{{ $t("contacts.scan_qr") }}</h3>
                     <button type="button" class="text-sem-fg-muted hover:text-sem-fg" @click="closeScannerDialog">
@@ -413,10 +436,15 @@
         <!-- Import contacts dialog -->
         <div
             v-if="isImportDialogOpen"
+            v-escape-close="closeImportDialog"
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="closeImportDialog"
         >
-            <div class="w-full max-w-lg rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+            <div
+                role="dialog"
+                aria-modal="true"
+                class="w-full max-w-lg rounded-2xl bg-sem-surface shadow-2xl overflow-hidden"
+            >
                 <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
                     <h3 class="text-lg font-bold text-sem-fg">
                         {{ $t("contacts.import_modal_title") }}
@@ -444,7 +472,7 @@
                         <MaterialDesignIcon icon-name="file-upload" class="size-4" />
                         {{ $t("contacts.import_contacts") }}
                     </button>
-                    <p v-if="importError" class="text-sm text-red-600 dark:text-red-400">{{ importError }}</p>
+                    <p v-if="importError" class="text-sm text-sem-danger">{{ importError }}</p>
                 </div>
             </div>
         </div>
@@ -452,10 +480,15 @@
         <!-- My identity dialog -->
         <div
             v-if="isMyIdentityDialogOpen"
+            v-escape-close="closeMyIdentityDialog"
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="isMyIdentityDialogOpen = false"
         >
-            <div class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+            <div
+                role="dialog"
+                aria-modal="true"
+                class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden"
+            >
                 <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
                     <h3 class="text-lg font-bold text-sem-fg">
                         {{ $t("contacts.share_my_identity") }}
@@ -474,7 +507,7 @@
                             v-if="myQrDataUrl"
                             :src="myQrDataUrl"
                             alt="Identity QR"
-                            class="w-52 h-52 rounded-xl border border-sem-border bg-white"
+                            class="w-52 h-52 rounded-xl border border-sem-border bg-sem-surface"
                         />
                     </div>
                     <div class="text-xs font-mono break-all text-center text-sem-fg-muted">
@@ -511,8 +544,8 @@ import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import DialogUtils from "../../js/DialogUtils";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import * as announcesApi from "../../js/api/announces.js";
 import * as telephoneApi from "../../js/api/telephone.js";
@@ -767,6 +800,9 @@ export default {
         },
         openMyIdentityDialog() {
             this.isMyIdentityDialogOpen = true;
+        },
+        closeMyIdentityDialog() {
+            this.isMyIdentityDialogOpen = false;
         },
         parseLxmaUri(input) {
             const normalized = input.trim();

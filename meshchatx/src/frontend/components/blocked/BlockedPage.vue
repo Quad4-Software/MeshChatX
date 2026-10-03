@@ -152,7 +152,7 @@
                                 <div
                                     class="flex size-8 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted"
                                 >
-                                    <MaterialDesignIcon icon-name="account-off" class="size-4 text-red-500" />
+                                    <MaterialDesignIcon icon-name="account-off" class="size-4 text-sem-danger" />
                                 </div>
                                 <div class="min-w-0 flex-1">
                                     <div class="mb-1 flex min-w-0 items-center gap-1.5">
@@ -254,7 +254,7 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import DialogUtils from "../../js/DialogUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import ToastUtils from "../../js/ToastUtils";
 import Utils from "../../js/Utils";
 

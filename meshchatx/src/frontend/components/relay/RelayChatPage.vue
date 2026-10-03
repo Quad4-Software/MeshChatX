@@ -18,20 +18,29 @@
                 role="tablist"
             >
                 <button
-                    v-for="tab in tabs"
+                    v-for="(tab, tabIndex) in orderedTabs"
                     :key="tab.id"
                     type="button"
                     role="tab"
                     :aria-selected="view === tab.id"
                     :aria-label="ICON_ONLY_TAB_IDS.has(tab.id) ? $t(tab.label) : undefined"
                     :title="ICON_ONLY_TAB_IDS.has(tab.id) ? $t(tab.label) : undefined"
+                    draggable="true"
                     class="inline-flex items-center gap-1.5 px-3 sm:px-4 border-r border-sem-border text-sm transition-colors shrink-0"
-                    :class="
+                    :class="[
                         view === tab.id
                             ? 'bg-sem-canvas text-sem-fg font-medium'
-                            : 'text-sem-fg-muted hover:bg-sem-surface/80 dark:hover:bg-sem-surface/30'
-                    "
+                            : 'text-sem-fg-muted hover:bg-sem-surface/80 dark:hover:bg-sem-surface/30',
+                        dragTabIndex === tabIndex ? 'opacity-50' : '',
+                        dragOverTabIndex === tabIndex && dragTabIndex !== tabIndex
+                            ? 'border-l-2 border-sem-accent'
+                            : '',
+                    ]"
                     @click="selectView(tab.id)"
+                    @dragstart="onTabDragStart(tabIndex, $event)"
+                    @dragover.prevent="onTabDragOver(tabIndex)"
+                    @drop.prevent="onTabDrop(tabIndex)"
+                    @dragend="onTabDragEnd"
                 >
                     <MaterialDesignIcon :icon-name="tab.icon" class="size-4 shrink-0 opacity-70" />
                     <span :class="{ 'hidden md:inline': ICON_ONLY_TAB_IDS.has(tab.id) }">{{ $t(tab.label) }}</span>
@@ -43,12 +52,29 @@
                 <!-- hubs + rooms sidebar -->
                 <div
                     v-if="!isPopoutMode"
-                    class="flex-col shrink-0 border-r border-sem-border bg-sem-canvas"
+                    class="flex-col shrink-0 border-r border-sem-border bg-sem-canvas relative transition-[width] duration-300 ease-in-out overflow-hidden"
                     :class="[
                         selectedRoom ? 'hidden md:flex' : 'flex',
                         effectiveSidebarCollapsed ? 'w-16 min-w-16 max-w-16' : 'w-full md:w-72',
                     ]"
+                    :style="
+                        smUp && !effectiveSidebarCollapsed && relaySidebarWidthPx
+                            ? {
+                                  width: relaySidebarWidthPx + 'px',
+                                  minWidth: relaySidebarWidthPx + 'px',
+                                  maxWidth: relaySidebarWidthPx + 'px',
+                              }
+                            : {}
+                    "
                 >
+                    <!-- resize handle -->
+                    <div
+                        v-if="!effectiveSidebarCollapsed && selectedRoom && smUp"
+                        class="absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-sem-accent/40 transition-colors z-10"
+                        :class="{ 'bg-sem-accent/60': relaySidebarDragging }"
+                        @mousedown="onSidebarResizeStart"
+                        @touchstart="onSidebarResizeStart"
+                    ></div>
                     <div
                         class="flex h-10 shrink-0 items-center border-b border-sem-border px-2"
                         :class="effectiveSidebarCollapsed ? 'justify-center' : 'justify-between gap-2'"
@@ -99,7 +125,7 @@
                             />
                             <span
                                 v-if="showUnreadBadges && hubTotalUnread(hub) > 0"
-                                class="absolute -top-0.5 -right-0.5 min-w-[14px] rounded-full bg-red-500 px-0.5 text-[9px] font-bold leading-tight text-white"
+                                class="absolute -top-0.5 -right-0.5 min-w-[14px] rounded-full bg-sem-danger px-0.5 text-[9px] font-bold leading-tight text-white"
                             >
                                 {{ formatUnreadBadge(hubTotalUnread(hub)) }}
                             </span>
@@ -108,12 +134,12 @@
 
                     <div
                         v-else
-                        class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1.5"
+                        class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2"
                         @contextmenu.prevent="openSidebarContextMenu($event, {})"
                     >
                         <button
                             type="button"
-                            class="flex w-full items-center gap-2 border-b border-sem-border/60 px-2 py-2.5 text-left text-sm text-sem-fg-muted transition-colors hover:bg-sem-surface/40 hover:text-sem-accent"
+                            class="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-sem-border/70 px-3 py-2.5 text-left text-sm text-sem-fg-muted transition-colors hover:border-sem-accent/50 hover:bg-sem-surface/40 hover:text-sem-accent"
                             @click="openAddHub"
                         >
                             <MaterialDesignIcon icon-name="plus" class="size-4 shrink-0" />
@@ -123,8 +149,11 @@
                         <div
                             v-for="(hub, hubIndex) in hubs"
                             :key="hub.hub_hash"
-                            class="border-b border-sem-border/60"
-                            :class="{ 'opacity-60': dragHubIndex === hubIndex }"
+                            class="relay-hub-card rounded-xl border border-sem-border/60 bg-sem-surface/40 overflow-hidden transition-shadow"
+                            :class="{
+                                'opacity-60': dragHubIndex === hubIndex,
+                                'ring-1 ring-sem-accent/40 border-sem-accent/40': hub.hub_hash === selectedHubHash,
+                            }"
                             draggable="true"
                             @dragstart="onHubDragStart(hubIndex, $event)"
                             @dragover.prevent="onHubDragOver(hubIndex)"
@@ -151,16 +180,63 @@
                                 />
                                 <div class="min-w-0 flex-1">
                                     <div class="truncate font-medium leading-tight">{{ hubDisplayName(hub) }}</div>
-                                    <div class="truncate text-xs" :class="statusTextColor(hub.status)">
-                                        {{ statusLabel(hub.status)
-                                        }}<template v-if="hub.connected && hub.rtt_ms != null"
-                                            ><span class="text-sem-fg-muted"> · {{ hub.rtt_ms }} ms</span></template
+                                    <div
+                                        class="flex items-center gap-1 text-xs whitespace-nowrap overflow-hidden"
+                                        :class="statusTextColor(hub.status)"
+                                    >
+                                        <span class="truncate">{{ statusLabel(hub.status) }}</span>
+                                        <template
+                                            v-if="
+                                                hasCapability('rrc_member_count') &&
+                                                hub.connected &&
+                                                hub.member_count != null
+                                            "
                                         >
+                                            <span class="text-sem-fg-muted shrink-0">·</span>
+                                            <MaterialDesignIcon
+                                                icon-name="account-group"
+                                                class="size-3 shrink-0 text-sem-fg-muted"
+                                                :title="$t('relay_chat.members_tooltip', { count: hub.member_count })"
+                                            />
+                                            <span
+                                                class="text-sem-fg-muted shrink-0"
+                                                :title="$t('relay_chat.members_tooltip', { count: hub.member_count })"
+                                                >{{ Math.min(hub.member_count, 999)
+                                                }}{{ hub.member_count > 999 ? "+" : "" }}</span
+                                            >
+                                        </template>
+                                        <template
+                                            v-if="
+                                                hasCapability('rrc_hop_count') && hub.connected && hub.hop_count != null
+                                            "
+                                        >
+                                            <span class="text-sem-fg-muted shrink-0">·</span>
+                                            <MaterialDesignIcon
+                                                icon-name="share-variant"
+                                                class="size-3 shrink-0 text-sem-fg-muted"
+                                                :title="$t('relay_chat.hops_tooltip', { count: hub.hop_count })"
+                                            />
+                                            <span
+                                                class="text-sem-fg-muted shrink-0"
+                                                :title="$t('relay_chat.hops_tooltip', { count: hub.hop_count })"
+                                            >
+                                                {{ hub.hop_count }}</span
+                                            >
+                                        </template>
+                                        <template v-if="hub.connected && hub.rtt_ms != null">
+                                            <span
+                                                class="text-sem-fg-muted shrink-0"
+                                                :title="$t('relay_chat.rtt_tooltip')"
+                                            >
+                                                · {{ Math.min(hub.rtt_ms, 999)
+                                                }}{{ hub.rtt_ms > 999 ? "+" : "" }} ms</span
+                                            >
+                                        </template>
                                     </div>
                                 </div>
                                 <span
                                     v-if="showUnreadBadges && hubTotalUnread(hub) > 0"
-                                    class="shrink-0 min-w-[1.25rem] rounded-full bg-red-500 px-1.5 py-0.5 text-center text-xs font-bold text-white"
+                                    class="shrink-0 min-w-[1.25rem] rounded-full bg-sem-danger px-1.5 py-0.5 text-center text-xs font-bold text-white"
                                 >
                                     {{ formatUnreadBadge(hubTotalUnread(hub)) }}
                                 </span>
@@ -168,7 +244,7 @@
 
                             <div
                                 v-show="isExpanded(hub.hub_hash)"
-                                class="border-t border-sem-border/50 px-2 py-2 space-y-2"
+                                class="border-t border-sem-border/40 bg-sem-canvas/30 px-2.5 py-2.5 space-y-2.5"
                             >
                                 <button
                                     type="button"
@@ -181,22 +257,30 @@
                                 </button>
                                 <div class="flex items-center gap-1.5">
                                     <button
-                                        v-if="!hub.connected"
                                         type="button"
-                                        :class="[btnPrimary, 'flex-1 py-1.5! text-xs!']"
-                                        @click.stop="connectHub(hub)"
+                                        class="inline-flex flex-1 items-center justify-center rounded-lg border border-sem-border p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                                        :class="
+                                            hub.status === 1
+                                                ? 'bg-sem-surface-muted text-sem-fg-muted'
+                                                : hub.connected
+                                                  ? 'bg-sem-danger/10 text-sem-danger hover:bg-sem-danger/15 hover:border-sem-danger/40'
+                                                  : 'bg-sem-action-primary/10 text-sem-accent hover:bg-sem-action-primary/20 hover:border-sem-accent/40'
+                                        "
+                                        :disabled="hub.status === 1"
+                                        :title="
+                                            hub.status === 1
+                                                ? $t('relay_chat.status_connecting')
+                                                : hub.connected
+                                                  ? $t('relay_chat.disconnect')
+                                                  : $t('relay_chat.connect')
+                                        "
+                                        @click.stop="hub.connected ? disconnectHub(hub) : connectHub(hub)"
                                     >
-                                        <MaterialDesignIcon icon-name="lan-connect" class="size-4" />
-                                        {{ $t("relay_chat.connect") }}
-                                    </button>
-                                    <button
-                                        v-else
-                                        type="button"
-                                        :class="[btnSecondary, 'flex-1 py-1.5! text-xs!']"
-                                        @click.stop="disconnectHub(hub)"
-                                    >
-                                        <MaterialDesignIcon icon-name="lan-disconnect" class="size-4" />
-                                        {{ $t("relay_chat.disconnect") }}
+                                        <MaterialDesignIcon
+                                            :icon-name="hub.connected ? 'lan-disconnect' : 'lan-connect'"
+                                            class="size-4"
+                                            :class="{ 'animate-pulse': hub.status === 1 }"
+                                        />
                                     </button>
                                     <button
                                         type="button"
@@ -216,13 +300,13 @@
                                     </button>
                                 </div>
 
-                                <ul class="space-y-0">
+                                <ul class="space-y-0.5">
                                     <li
                                         v-for="(roomName, roomIndex) in orderedRoomsFor(hub)"
                                         :key="roomName"
-                                        class="flex items-center justify-between gap-2 px-2 py-1 text-sm cursor-pointer transition-colors hover:bg-sem-surface/60 dark:hover:bg-sem-surface/30"
+                                        class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm cursor-pointer transition-colors hover:bg-sem-surface/70 dark:hover:bg-sem-surface/35"
                                         :class="{
-                                            'bg-sem-action-primary/15 text-sem-accent font-medium':
+                                            'bg-sem-action-primary/15 text-sem-accent font-semibold ring-1 ring-sem-accent/25':
                                                 hub.hub_hash === selectedHubHash && roomName === selectedRoom,
                                             'opacity-60':
                                                 dragRoomHubHash === hub.hub_hash && dragRoomIndex === roomIndex,
@@ -244,7 +328,7 @@
                                         </span>
                                         <span
                                             v-if="showUnreadBadges && roomUnreadCount(hub, roomName) > 0"
-                                            class="shrink-0 min-w-[1.125rem] rounded-full bg-red-500 px-1 text-center text-[10px] font-bold leading-4 text-white"
+                                            class="shrink-0 min-w-[1.125rem] rounded-full bg-sem-danger px-1 text-center text-[10px] font-bold leading-4 text-white"
                                         >
                                             {{ formatUnreadBadge(roomUnreadCount(hub, roomName)) }}
                                         </span>
@@ -322,18 +406,18 @@
                                     </ul>
                                 </div>
 
-                                <form class="flex flex-col gap-1" @submit.prevent="joinRoom(hub)">
-                                    <div class="flex gap-1">
+                                <form class="flex flex-col gap-1.5 pt-0.5" @submit.prevent="joinRoom(hub)">
+                                    <div class="flex gap-1.5">
                                         <input
                                             v-model="joinRoomForm(hub).name"
                                             type="text"
                                             :data-rrc-join-name="hub.hub_hash"
                                             :placeholder="$t('relay_chat.join_room_placeholder')"
-                                            class="min-w-0 flex-1 rounded-lg border border-sem-border bg-sem-surface-muted px-2 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
+                                            class="min-w-0 flex-1 rounded-lg border border-sem-border/70 bg-sem-surface/60 px-2.5 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
                                         />
                                         <button
                                             type="submit"
-                                            class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-sem-fg-muted transition-colors hover:bg-sem-surface/60 hover:text-sem-accent"
+                                            class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-sem-action-primary text-sem-action-primary-text transition-colors hover:bg-sem-action-primary-hover"
                                             :title="$t('relay_chat.join_room')"
                                         >
                                             <MaterialDesignIcon icon-name="plus" class="size-4" />
@@ -344,7 +428,7 @@
                                         type="password"
                                         :placeholder="$t('relay_chat.join_room_key_placeholder')"
                                         autocomplete="off"
-                                        class="w-full rounded-lg border border-sem-border bg-sem-surface-muted px-2 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
+                                        class="w-full rounded-lg border border-sem-border/70 bg-sem-surface/60 px-2.5 py-1.5 text-xs text-sem-fg shadow-xs placeholder:text-sem-fg-muted outline-hidden transition focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/40"
                                     />
                                 </form>
                             </div>
@@ -548,23 +632,47 @@
                                 </div>
                             </Transition>
 
+                            <div
+                                v-if="replyTarget && selectedHub && selectedRoom"
+                                class="mx-3 mt-2 flex items-center gap-2 rounded-xl border border-sem-border bg-sem-surface px-3 py-1.5 shadow-xs"
+                            >
+                                <MaterialDesignIcon icon-name="reply" class="size-4 shrink-0 text-sem-accent" />
+                                <div class="min-w-0 flex-1 text-xs">
+                                    <span class="font-semibold text-sem-accent">
+                                        {{ $t("messages.replying_to") }} {{ replyTarget.author }}
+                                    </span>
+                                    <div class="truncate text-sem-fg-muted italic">{{ replyTarget.text }}</div>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="shrink-0 rounded p-1 text-sem-fg-muted hover:bg-sem-surface-raised hover:text-sem-fg"
+                                    :title="$t('common.cancel')"
+                                    @click="replyTarget = null"
+                                >
+                                    <MaterialDesignIcon icon-name="close" class="size-4" />
+                                </button>
+                            </div>
                             <form
                                 v-if="selectedHub && selectedRoom"
-                                class="flex items-center gap-2 p-2.5 border-t border-sem-border bg-sem-canvas"
+                                class="flex items-end gap-2 px-3 pb-3 pt-2"
                                 @submit.prevent="sendMessage"
                             >
-                                <input
-                                    ref="composerInput"
-                                    v-model="composer"
-                                    type="text"
-                                    :maxlength="selectedHub.max_msg_body_bytes || 350"
-                                    :placeholder="$t('relay_chat.message_placeholder')"
-                                    class="input-field"
-                                    @keydown="onComposerKeydown"
-                                />
+                                <div
+                                    class="composer-pill relative flex-1 min-w-0 rounded-2xl border border-sem-border bg-sem-surface-muted/60 px-3 transition-all focus-within:ring-2 focus-within:ring-sem-focus focus-within:border-sem-focus-border shadow-xs"
+                                >
+                                    <input
+                                        ref="composerInput"
+                                        v-model="composer"
+                                        type="text"
+                                        :maxlength="selectedHub.max_msg_body_bytes || 350"
+                                        :placeholder="$t('relay_chat.message_placeholder')"
+                                        class="block w-full bg-transparent border-0 px-0 py-2.5 text-sm text-sem-fg placeholder:text-sem-fg-muted focus:outline-none focus:ring-0"
+                                        @keydown="onComposerKeydown"
+                                    />
+                                </div>
                                 <button
                                     type="submit"
-                                    :class="[btnPrimary, 'shrink-0 p-2.5!']"
+                                    :class="[btnPrimary, 'shrink-0 rounded-full p-2.5!']"
                                     :title="$t('relay_chat.send')"
                                     :disabled="!composer.trim() || sending"
                                 >
@@ -1622,11 +1730,11 @@
 </template>
 
 <script>
-import { useConfigStore } from "../../js/stores/configStore.js";
-import { useUnreadStore } from "../../js/stores/unreadStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
+import { useUnreadStore } from "../../js/stores/unreadStore";
 import { getCurrentInstance, nextTick } from "vue";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants";
 import * as announcesApi from "../../js/api/announces.js";
 import * as rrcApi from "../../js/api/rrc.js";
 import GlobalEmitter from "../../js/GlobalEmitter";
@@ -1825,6 +1933,9 @@ export default {
                 { id: "search", label: "relay_chat.tab_search", icon: "magnify" },
             ],
             view: "chat",
+            tabOrder: null,
+            dragTabIndex: null,
+            dragOverTabIndex: null,
             discovered: [],
             discoverySearch: "",
             discoverySearchTimer: null,
@@ -1858,6 +1969,8 @@ export default {
             hostUptimeAnchorMs: 0,
             hostUptimeTimer: null,
             relaySidebarCollapsed: loadFeatureSidebarCollapsed("relayChat") ?? false,
+            relaySidebarWidthPx: null,
+            relaySidebarDragging: false,
             smUp: false,
             smMq: null,
             showMembers: false,
@@ -1885,6 +1998,7 @@ export default {
             messageTranslations: {},
             members: [],
             composer: "",
+            replyTarget: null,
             sending: false,
             relayAtBottom: true,
             newMessagesBelow: 0,
@@ -1933,6 +2047,24 @@ export default {
         };
     },
     computed: {
+        orderedTabs() {
+            if (!Array.isArray(this.tabOrder) || this.tabOrder.length === 0) {
+                return this.tabs;
+            }
+            const byId = new Map(this.tabs.map((t) => [t.id, t]));
+            const ordered = [];
+            for (const id of this.tabOrder) {
+                const tab = byId.get(id);
+                if (tab) {
+                    ordered.push(tab);
+                    byId.delete(id);
+                }
+            }
+            for (const tab of byId.values()) {
+                ordered.push(tab);
+            }
+            return ordered;
+        },
         rrcEnabled() {
             return useConfigStore().config?.rrc_enabled !== false;
         },
@@ -2555,6 +2687,34 @@ export default {
                 this.fetchServers();
             }
         },
+        onTabDragStart(index, event) {
+            this.dragTabIndex = index;
+            if (event?.dataTransfer) {
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", String(index));
+            }
+        },
+        onTabDragOver(index) {
+            if (this.dragTabIndex == null) {
+                return;
+            }
+            this.dragOverTabIndex = index;
+        },
+        onTabDrop(index) {
+            if (this.dragTabIndex == null || index === this.dragTabIndex) {
+                return;
+            }
+            const order = this.orderedTabs.map((t) => t.id);
+            const [moved] = order.splice(this.dragTabIndex, 1);
+            order.splice(index, 0, moved);
+            this.tabOrder = order;
+            this.persistRelayLayout();
+            this.onTabDragEnd();
+        },
+        onTabDragEnd() {
+            this.dragTabIndex = null;
+            this.dragOverTabIndex = null;
+        },
         persistRelayLayout() {
             if (this.isPopoutMode || this._suppressRelayLayoutPersist) {
                 return;
@@ -2566,6 +2726,8 @@ export default {
                 expandedHubs: { ...this.expandedHubs },
                 availableRoomsExpanded: { ...this.availableRoomsExpanded },
                 relaySidebarCollapsed: this.relaySidebarCollapsed,
+                relaySidebarWidthPx: this.relaySidebarWidthPx,
+                tabOrder: this.tabOrder,
             });
         },
         restoreRelayLayout() {
@@ -2581,6 +2743,12 @@ export default {
             }
             if (typeof saved.relaySidebarCollapsed === "boolean") {
                 this.relaySidebarCollapsed = saved.relaySidebarCollapsed;
+            }
+            if (typeof saved.relaySidebarWidthPx === "number" && saved.relaySidebarWidthPx > 0) {
+                this.relaySidebarWidthPx = saved.relaySidebarWidthPx;
+            }
+            if (Array.isArray(saved.tabOrder)) {
+                this.tabOrder = saved.tabOrder;
             }
             if (saved.expandedHubs && typeof saved.expandedHubs === "object") {
                 this.expandedHubs = { ...saved.expandedHubs };
@@ -2804,6 +2972,34 @@ export default {
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
             }
+        },
+        hasCapability(name) {
+            return useConfigStore().hasCapability(name);
+        },
+        onSidebarResizeStart(e) {
+            const startX = e.touches ? e.touches[0].clientX : e.clientX;
+            const startWidth =
+                this.relaySidebarWidthPx || this.$el?.querySelector(".flex-col.shrink-0")?.offsetWidth || 288;
+            this.relaySidebarDragging = true;
+
+            const onMove = (ev) => {
+                const x = ev.touches ? ev.touches[0].clientX : ev.clientX;
+                const next = Math.max(200, Math.min(600, startWidth + (x - startX)));
+                this.relaySidebarWidthPx = Math.round(next);
+            };
+            const onEnd = () => {
+                this.relaySidebarDragging = false;
+                this.persistRelayLayout();
+                window.removeEventListener("mousemove", onMove);
+                window.removeEventListener("mouseup", onEnd);
+                window.removeEventListener("touchmove", onMove);
+                window.removeEventListener("touchend", onEnd);
+            };
+            window.addEventListener("mousemove", onMove);
+            window.addEventListener("mouseup", onEnd);
+            window.addEventListener("touchmove", onMove);
+            window.addEventListener("touchend", onEnd);
+            e.preventDefault();
         },
         statusLabel(status) {
             switch (status) {
@@ -3097,10 +3293,10 @@ export default {
             if (!msg) {
                 return;
             }
-            const author = this.displayName(msg);
-            const prefix = `> ${author}: ${msg.text}\n\n`;
-            const cur = this.composer || "";
-            this.composer = cur + (cur && !cur.endsWith("\n") ? "\n" : "") + prefix;
+            this.replyTarget = {
+                author: this.displayName(msg),
+                text: String(msg.text || ""),
+            };
             nextTick(() => this.$refs.composerInput?.focus?.());
         },
         mentionUserFromMenu() {
@@ -3621,6 +3817,7 @@ export default {
             this.messages = [];
             this.members = [];
             this.nickCycle = null;
+            this.replyTarget = null;
             this.relayAtBottom = true;
             this.newMessagesBelow = 0;
             this.loadDraft(this._relayDraftKey(hubHash, room));
@@ -3778,6 +3975,12 @@ export default {
             return new TextEncoder().encode(text || "").length;
         },
         onComposerKeydown(event) {
+            // Escape clears a pending reply quote before anything else.
+            if (event.key === "Escape" && this.replyTarget) {
+                this.replyTarget = null;
+                event.preventDefault();
+                return;
+            }
             // Arrow-up on an empty composer recalls the last message the local
             // identity sent in this room, the IRC/Discord "fix a typo" move.
             if (event.key === "ArrowUp" && !this.composer) {
@@ -3837,19 +4040,67 @@ export default {
                 }
             });
         },
+        buildQuotePrefix(reply, replyBytes = 0) {
+            if (!reply) {
+                return "";
+            }
+            // Quote each line of the original so multi-line bodies render as
+            // one blockquote. Reserve room for the user's own text so the
+            // wire payload stays under the hub byte limit.
+            const limit = this.composerByteLimit - replyBytes;
+            let quoted = String(reply.text || "").trim();
+            if (!quoted || limit <= 0) {
+                return "";
+            }
+            const build = (body) =>
+                `> ${reply.author}: ${body
+                    .split("\n")
+                    .filter((l) => l.trim())
+                    .join("\n> ")}\n\n`;
+            let prefix = build(quoted);
+            while (quoted && this.composerByteLength(prefix) > limit) {
+                const overflow = this.composerByteLength(prefix) - limit;
+                const ellipsisBytes = this.composerByteLength("…");
+                quoted =
+                    this.truncateToBytes(
+                        quoted,
+                        Math.max(0, this.composerByteLength(quoted) - overflow - ellipsisBytes)
+                    ) + "…";
+                prefix = build(quoted);
+                if (this.composerByteLength(prefix) > limit && !quoted.replace("…", "")) {
+                    return "";
+                }
+            }
+            return this.composerByteLength(prefix) <= limit ? prefix : "";
+        },
+        truncateToBytes(text, limit) {
+            let out = "";
+            for (const ch of text) {
+                if (this.composerByteLength(out + ch) > limit) {
+                    break;
+                }
+                out += ch;
+            }
+            return out;
+        },
         async sendMessage() {
             const text = this.composer.trim();
             if (!text || !this.selectedHub || !this.selectedRoom) {
                 return;
             }
+            const reply = this.replyTarget;
             const isAction = text.startsWith("/me ");
-            const payload = isAction ? { text: text.slice(4), action: true } : { text };
+            const wireText = isAction
+                ? text.slice(4)
+                : this.buildQuotePrefix(reply, this.composerByteLength(text)) + text;
+            const payload = isAction ? { text: wireText, action: true } : { text: wireText };
             this.sending = true;
             const sentRoom = this.selectedRoom;
             const sentHub = this.selectedHubHash;
             // Clear before the await so text typed while the request is in
             // flight is not wiped when it resolves. Restore on failure.
             this.composer = "";
+            this.replyTarget = null;
             this.nickCycle = null;
             try {
                 await window.api.post(
@@ -3860,6 +4111,9 @@ export default {
             } catch (e) {
                 if (!this.composer) {
                     this.composer = text;
+                    if (reply && !this.replyTarget) {
+                        this.replyTarget = reply;
+                    }
                 }
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.send_failed"));
             } finally {
@@ -4248,7 +4502,7 @@ export default {
                     this.expandedHubs[added.hub_hash] = true;
                 }
                 // Stay on the discovery view so several hubs can be added in
-                // a row; the row button flips to Open once the hub is added.
+                // a row. the row button flips to Open once the hub is added.
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
             }
@@ -4470,7 +4724,7 @@ export default {
                 // One toast per message: re-pushes of the same seq must not
                 // stack notifications on top of the in-line hint.
                 // Key on the envelope id so a retried message that fails
-                // again still warns; seq stays constant across retries.
+                // again still warns. seq stays constant across retries.
                 const key = `df-${json.hub_hash}-${json.room}-${json.message.mid || json.message.seq}`;
                 if (!this.deliveryFailToasted.has(key)) {
                     this.deliveryFailToasted.add(key);

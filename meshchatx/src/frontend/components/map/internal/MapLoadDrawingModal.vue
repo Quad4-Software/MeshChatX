@@ -8,17 +8,17 @@
             <div class="p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-xl font-bold text-sem-fg flex items-center gap-2">
-                        <MaterialDesignIcon icon-name="folder-open-outline" class="size-6 text-blue-500" />
+                        <MaterialDesignIcon icon-name="folder-open-outline" class="size-6 text-sem-info" />
                         {{ $t("map.load_drawing_title") }}
                     </h2>
-                    <button class="text-gray-400 hover:text-gray-600" @click="$emit('close')">
+                    <button class="text-sem-fg-muted hover:text-sem-fg-secondary" @click="$emit('close')">
                         <MaterialDesignIcon icon-name="close" class="size-6" />
                     </button>
                 </div>
 
                 <div v-if="loading" class="py-12 flex flex-col items-center justify-center">
-                    <MaterialDesignIcon icon-name="loading" class="size-10 animate-spin text-blue-500 mb-4" />
-                    <span class="text-sm font-medium text-gray-500">{{ $t("map.loading_drawings") }}</span>
+                    <MaterialDesignIcon icon-name="loading" class="size-10 animate-spin text-sem-info mb-4" />
+                    <span class="text-sm font-medium text-sem-fg-muted">{{ $t("map.loading_drawings") }}</span>
                 </div>
 
                 <div
@@ -26,7 +26,7 @@
                     class="py-12 flex flex-col items-center justify-center text-center"
                 >
                     <div class="size-16 bg-sem-surface-muted rounded-full flex items-center justify-center mb-4">
-                        <MaterialDesignIcon icon-name="folder-outline" class="size-8 text-gray-400" />
+                        <MaterialDesignIcon icon-name="folder-outline" class="size-8 text-sem-fg-muted" />
                     </div>
                     <h3 class="text-lg font-bold text-sem-fg">{{ $t("map.no_drawings") }}</h3>
                     <p class="text-sm text-sem-fg-muted mt-1">{{ $t("map.no_drawings_desc") }}</p>
@@ -36,7 +36,7 @@
                     <div
                         v-for="drawing in drawings"
                         :key="drawing.id"
-                        class="group p-4 bg-gray-50 dark:bg-zinc-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-2xl border border-transparent hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer flex items-center justify-between"
+                        class="group p-4 bg-sem-surface-muted/50 hover:bg-sem-info/15 dark:hover:bg-sem-info/15 rounded-2xl border border-transparent hover:border-sem-info dark:hover:border-sem-info transition-all cursor-pointer flex items-center justify-between"
                         @click="$emit('load', drawing)"
                     >
                         <div class="flex-1 min-w-0 mr-4">
@@ -46,7 +46,7 @@
                             </div>
                         </div>
                         <button
-                            class="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                            class="p-2 text-sem-fg-muted hover:text-sem-danger transition-colors"
                             :title="$t('common.delete')"
                             @click.stop="$emit('delete', drawing)"
                         >
@@ -58,7 +58,7 @@
                 <div class="mt-8 flex justify-end">
                     <button
                         type="button"
-                        class="px-6 py-2.5 rounded-xl border border-sem-border text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted transition"
+                        class="px-6 py-2.5 rounded-xl border border-sem-border text-sm font-semibold text-sem-fg hover:bg-sem-surface-muted transition"
                         @click="$emit('close')"
                     >
                         {{ $t("common.close") }}

@@ -25,7 +25,7 @@
                     <div v-if="oidcEnabled" class="mb-6">
                         <button
                             type="button"
-                            class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                            class="w-full py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text font-semibold rounded-lg transition-colors"
                             @click="startOidcLogin"
                         >
                             {{ $t("auth.oidc_continue", { name: oidcName }) }}
@@ -56,7 +56,7 @@
                                 type="password"
                                 required
                                 :minlength="showSetupForm ? 8 : 1"
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sem-fg focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                class="w-full px-4 py-2 input-field"
                                 :placeholder="$t('auth.password_placeholder')"
                                 autocomplete="current-password"
                             />
@@ -75,7 +75,7 @@
                                 type="password"
                                 required
                                 minlength="8"
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sem-fg focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                class="w-full px-4 py-2 input-field"
                                 :placeholder="$t('auth.confirm_password_placeholder')"
                                 autocomplete="new-password"
                             />
@@ -84,7 +84,7 @@
                         <button
                             type="submit"
                             :disabled="isLoading || (showSetupForm && password !== confirmPassword)"
-                            class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+                            class="w-full py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover disabled:bg-sem-fg-muted/40 disabled:cursor-not-allowed text-sem-action-primary-text font-semibold rounded-lg transition-colors"
                         >
                             <span v-if="isLoading">{{ $t("auth.processing") }}</span>
                             <span v-else>{{ showSetupForm ? $t("auth.set_password") : $t("auth.login") }}</span>
@@ -93,9 +93,9 @@
 
                     <div
                         v-if="error"
-                        class="mt-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                        class="mt-6 p-3 bg-sem-danger/15 border border-sem-danger dark:border-sem-danger rounded-lg"
                     >
-                        <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
+                        <p class="text-sm text-sem-danger text-sem-danger">{{ error }}</p>
                     </div>
                 </div>
             </div>
@@ -105,7 +105,7 @@
 
 <script>
 import logoUrl from "../../assets/images/logo.png";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 
 export default {
     name: "AuthPage",

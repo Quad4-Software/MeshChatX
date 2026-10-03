@@ -79,7 +79,7 @@ describe("useNomadNodesList", () => {
             data: { announces: [{ destination_hash: "y".repeat(32) }], total_count: 5 },
         });
         await list.getNomadnetworkNodeAnnounces();
-        // Live announce arrives before load-more; it must not inflate offset.
+        // Live announce arrives before load-more. it must not inflate offset.
         list.updateNodeFromAnnounce({ destination_hash: "x".repeat(32) });
         api.get.mockResolvedValueOnce({
             data: { announces: [{ destination_hash: "z".repeat(32) }], total_count: 5 },

@@ -19,7 +19,7 @@ import {
     unregisterPostInstallPrompt,
     listPostInstallPrompts,
     listPostInstallPromptsByPriority,
-} from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry.js";
+} from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry";
 
 const i18n = createI18n({
     legacy: false,

@@ -8,14 +8,14 @@
         >
             <div
                 v-click-outside="close"
-                class="w-full max-w-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-sem-border overflow-hidden flex flex-col max-h-[min(70dvh,70vh)] pointer-events-auto mt-2 sm:mt-8"
+                class="w-full max-w-2xl bg-sem-surface dark:bg-sem-surface backdrop-blur-md rounded-2xl shadow-2xl border border-sem-border overflow-hidden flex flex-col max-h-[min(70dvh,70vh)] pointer-events-auto mt-2 sm:mt-8"
                 role="dialog"
                 aria-modal="true"
                 :aria-label="$t('command_palette.dialog_label')"
             >
                 <!-- search input -->
                 <div class="relative flex items-center p-4 border-b border-sem-border">
-                    <MaterialDesignIcon icon-name="magnify" class="size-6 text-gray-400 mr-3" />
+                    <MaterialDesignIcon icon-name="magnify" class="size-6 text-sem-fg-muted mr-3" />
                     <input
                         ref="input"
                         v-model="query"
@@ -40,7 +40,7 @@
                     />
                     <div class="flex items-center gap-1 ml-2">
                         <kbd
-                            class="px-2 py-1 text-xs font-semibold text-gray-500 bg-sem-surface-muted border border-sem-border rounded-lg shadow-xs"
+                            class="px-2 py-1 text-xs font-semibold text-sem-fg-muted bg-sem-surface-muted border border-sem-border rounded-lg shadow-xs"
                             >ESC</kbd
                         >
                     </div>
@@ -54,7 +54,7 @@
                     <div v-else class="space-y-1">
                         <div v-for="(group, groupName) in groupedResults" :key="groupName" role="group">
                             <div
-                                class="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest"
+                                class="px-3 py-2 text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest"
                                 role="presentation"
                             >
                                 {{ $t(`command_palette.${groupName}`) }}
@@ -79,7 +79,7 @@
                                     class="size-10 rounded-xl flex items-center justify-center shrink-0 border transition-colors"
                                     :class="[
                                         highlightedId === result.id
-                                            ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-200 dark:border-blue-800'
+                                            ? 'bg-sem-info/15 border-sem-info dark:border-sem-info'
                                             : 'bg-sem-surface-muted border-sem-border',
                                     ]"
                                 >
@@ -109,18 +109,14 @@
 
                 <!-- footer -->
                 <div
-                    class="p-3 bg-gray-50/50 dark:bg-zinc-900/50 border-t border-sem-border flex justify-center gap-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest"
+                    class="p-3 bg-sem-surface-muted/80 dark:bg-sem-surface border-t border-sem-border flex justify-center gap-6 text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest"
                 >
                     <div class="flex items-center gap-1.5">
-                        <kbd
-                            class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border border-sem-border rounded-sm shadow-xs"
-                            >↑↓</kbd
-                        >
+                        <kbd class="px-1.5 py-0.5 bg-sem-surface border border-sem-border rounded-sm shadow-xs">↑↓</kbd>
                         <span>{{ $t("command_palette.footer_navigate") }}</span>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <kbd
-                            class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border border-sem-border rounded-sm shadow-xs"
+                        <kbd class="px-1.5 py-0.5 bg-sem-surface border border-sem-border rounded-sm shadow-xs"
                             >Enter</kbd
                         >
                         <span>{{ $t("command_palette.footer_select") }}</span>
@@ -136,10 +132,10 @@ import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import LxmfUserIcon from "./LxmfUserIcon.vue";
 
 import GlobalEmitter from "../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../js/constants";
 import * as announcesApi from "../js/api/announces.js";
 import ToastUtils from "../js/ToastUtils";
-import { listCommands } from "../js/registries/commandRegistry.js";
+import { listCommands } from "../js/registries/commandRegistry";
 
 const MAX_VISIBLE_RESULTS = 50;
 

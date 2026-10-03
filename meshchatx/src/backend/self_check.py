@@ -773,7 +773,7 @@ def check_loopback_tcp() -> dict[str, str]:
             finally:
                 conn.close()
 
-        thread = threading.Thread(target=_accept, daemon=True)
+        thread = threading.Thread(target=_accept, daemon=True, name="mcx-self-check")
         thread.start()
         client = socket.create_connection((host, port), timeout=5)
         try:
@@ -984,6 +984,13 @@ def check_lxst_telephony() -> dict[str, str]:
                 False,
                 "LXST filterlib native did not load (USE_NATIVE_FILTERS is False)",
             )
+
+        try:
+            from meshchatx import android_codec2
+
+            android_codec2.ensure_lxst_codec2_binding()
+        except Exception:
+            pass
 
         from LXST.Codecs import Codec2
 
@@ -1302,9 +1309,9 @@ async def _probe_rns_link_api(ws: Any, *, timeout: float = 10.0) -> dict[str, st
                 },
             ),
         )
-        deadline = asyncio.get_event_loop().time() + timeout
+        deadline = asyncio.get_running_loop().time() + timeout
         while True:
-            remaining = deadline - asyncio.get_event_loop().time()
+            remaining = deadline - asyncio.get_running_loop().time()
             if remaining <= 0:
                 return _status(False, "rns.link.close reply timed out")
             msg = await asyncio.wait_for(ws.receive(), timeout=remaining)

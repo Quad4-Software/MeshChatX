@@ -4,7 +4,7 @@
     <div :class="sidebarRootClass">
         <div
             v-if="effectiveCollapsed"
-            :class="['flex flex-col h-full min-h-0 bg-sem-canvas border-sem-border', edgeBorderClass]"
+            :class="['flex flex-col h-full min-h-0 bg-sem-surface border-sem-border', edgeBorderClass]"
         >
             <div class="hidden sm:flex h-10 shrink-0 items-center justify-center border-b border-sem-border px-2">
                 <button
@@ -52,7 +52,7 @@
                     class="shrink-0 p-0.5 rounded-xl transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-sem-focus"
                     :class="
                         selectedDestinationHash === c.destination_hash
-                            ? 'ring-2 ring-indigo-500 ring-offset-1 ring-offset-sem-surface'
+                            ? 'ring-2 ring-sem-info/50 ring-offset-1 ring-offset-sem-surface'
                             : 'hover:bg-sem-surface/10'
                     "
                     :title="c.custom_display_name ?? c.display_name"
@@ -73,7 +73,7 @@
         </div>
         <template v-else>
             <!-- tabs (h-10 matches sidebar collapse row height) -->
-            <div :class="['bg-sem-canvas border-b border-sem-border', edgeBorderClass]">
+            <div :class="['bg-sem-surface border-b border-sem-border', edgeBorderClass]">
                 <div class="-mb-px flex h-10 min-w-0 items-stretch" :class="{ 'flex-row-reverse': isRightSidebar }">
                     <div class="flex min-w-0 flex-1">
                         <div
@@ -139,7 +139,7 @@
                         <div class="flex gap-1" @click.stop>
                             <button
                                 type="button"
-                                class="p-1 text-sem-fg-muted hover:text-indigo-500 hover:bg-sem-surface-muted/50 rounded-lg transition-colors"
+                                class="p-1 text-sem-fg-muted hover:text-sem-info hover:bg-sem-surface-muted/50 rounded-lg transition-colors"
                                 :title="$t('messages.create_folder')"
                                 @click="createFolder"
                             >
@@ -200,7 +200,7 @@
                             class="px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
                             :class="[
                                 selectedFolderId === null
-                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20  font-semibold'
+                                    ? 'bg-sem-surface-muted text-sem-accent font-semibold'
                                     : 'text-sem-fg-muted hover:bg-sem-surface-muted',
                                 dragOverFolderId === 'all'
                                     ? 'ring-2 ring-sem-accent ring-inset bg-sem-surface-muted'
@@ -218,7 +218,7 @@
                             class="px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
                             :class="[
                                 selectedFolderId === 0
-                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20  font-semibold'
+                                    ? 'bg-sem-surface-muted text-sem-accent font-semibold'
                                     : 'text-sem-fg-muted hover:bg-sem-surface-muted',
                                 dragOverFolderId === 0 ? 'ring-2 ring-sem-accent ring-inset bg-sem-surface-muted' : '',
                             ]"
@@ -236,7 +236,7 @@
                             class="group px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
                             :class="[
                                 selectedFolderId === folder.id
-                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20  font-semibold'
+                                    ? 'bg-sem-surface-muted text-sem-accent font-semibold'
                                     : 'text-sem-fg-muted hover:bg-sem-surface-muted',
                                 dragOverFolderId === folder.id
                                     ? 'ring-2 ring-sem-accent ring-inset bg-sem-surface-muted'
@@ -277,43 +277,30 @@
                     <SearchInput
                         :model-value="conversationSearchTerm"
                         :placeholder="$t('messages.search_placeholder', { count: conversations.length })"
+                        compact
                         @update:model-value="onConversationSearchInput"
                     />
-                    <div class="flex flex-wrap items-center gap-1">
-                        <button
-                            type="button"
-                            class="p-1 mr-1 text-sem-fg-muted hover:text-sem-accent transition-colors"
-                            :title="$t('nomadnet.sidebar_selection_mode')"
-                            :class="{ 'text-sem-accent ': selectionMode }"
-                            @click="toggleSelectionMode"
-                        >
-                            <MaterialDesignIcon icon-name="checkbox-multiple-marked-outline" class="size-5" />
-                        </button>
-                        <button
-                            type="button"
-                            :class="filterChipClasses(filterUnreadOnly)"
-                            @click="toggleFilter('unread')"
-                        >
-                            {{ $t("messages.unread") }}
-                        </button>
-                        <button
-                            type="button"
-                            :class="filterChipClasses(filterFailedOnly)"
-                            @click="toggleFilter('failed')"
-                        >
-                            {{ $t("messages.failed") }}
-                        </button>
-                        <button
-                            type="button"
-                            :class="filterChipClasses(filterHasAttachmentsOnly)"
-                            @click="toggleFilter('attachments')"
-                        >
-                            {{ $t("messages.attachments") }}
-                        </button>
-                    </div>
+                    <SidebarFilterBar
+                        context="conversations"
+                        :active="activeConversationFilterIds"
+                        @toggle="onSidebarFilterToggle"
+                        @defs-changed="onSidebarDefsChanged"
+                    >
+                        <template #leading>
+                            <button
+                                type="button"
+                                class="p-1 mr-1 text-sem-fg-muted hover:text-sem-accent transition-colors"
+                                :title="$t('nomadnet.sidebar_selection_mode')"
+                                :class="{ 'text-sem-accent ': selectionMode }"
+                                @click="toggleSelectionMode"
+                            >
+                                <MaterialDesignIcon icon-name="checkbox-multiple-marked-outline" class="size-5" />
+                            </button>
+                        </template>
+                    </SidebarFilterBar>
                     <div
                         v-if="selectionMode"
-                        class="flex items-center justify-between px-2 py-1 bg-blue-50 dark:bg-blue-900/10 rounded-lg"
+                        class="flex items-center justify-between px-2 py-1 bg-sem-surface-muted rounded-lg"
                     >
                         <div class="flex items-center gap-2">
                             <input
@@ -322,7 +309,7 @@
                                 class="rounded-sm border-sem-border text-sem-accent focus:ring-sem-focus"
                                 @change="toggleSelectAll"
                             />
-                            <span class="text-xs font-semibold text-blue-700">
+                            <span class="text-xs font-semibold text-sem-fg">
                                 {{ $t("messages.bulk_selected_count", { count: selectedHashes.size }) }}
                             </span>
                         </div>
@@ -336,7 +323,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="text-xs font-medium text-red-600 dark:text-red-400 hover:underline"
+                                class="text-xs font-medium text-sem-danger hover:underline"
                                 @click="bulkDelete"
                             >
                                 {{ $t("common.delete") }}
@@ -424,10 +411,10 @@
                                         'flex cursor-pointer px-2 py-2 relative group conversation-item',
                                         selectionEdgeBorderClass,
                                         conversation.destination_hash === selectedDestinationHash
-                                            ? 'bg-sem-info/15 border-sem-accent'
+                                            ? 'bg-sem-accent/10 border-sem-accent'
                                             : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
                                         selectedHashes.has(conversation.destination_hash)
-                                            ? 'bg-blue-50/50 dark:bg-blue-900/10'
+                                            ? 'bg-sem-surface-muted/80'
                                             : '',
                                     ]"
                                     draggable="true"
@@ -539,7 +526,7 @@
                                                 <div class="bg-sem-accent rounded-full p-1"></div>
                                             </div>
                                             <div v-else-if="conversation.failed_messages_count" class="my-auto ml-1">
-                                                <div class="bg-red-500 dark:bg-red-400 rounded-full p-1"></div>
+                                                <div class="bg-sem-danger dark:bg-sem-danger rounded-full p-1"></div>
                                             </div>
                                         </div>
                                         <button
@@ -578,11 +565,9 @@
                                     'flex cursor-pointer px-2 py-2 relative group conversation-item',
                                     selectionEdgeBorderClass,
                                     conversation.destination_hash === selectedDestinationHash
-                                        ? 'bg-sem-info/15 border-sem-accent'
+                                        ? 'bg-sem-accent/10 border-sem-accent'
                                         : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
-                                    selectedHashes.has(conversation.destination_hash)
-                                        ? 'bg-blue-50/50 dark:bg-blue-900/10'
-                                        : '',
+                                    selectedHashes.has(conversation.destination_hash) ? 'bg-sem-surface-muted/80' : '',
                                 ]"
                                 draggable="true"
                                 @click="onConversationRowActivate(conversation)"
@@ -687,7 +672,7 @@
                                             <div class="bg-sem-accent rounded-full p-1"></div>
                                         </div>
                                         <div v-else-if="conversation.failed_messages_count" class="my-auto ml-1">
-                                            <div class="bg-red-500 dark:bg-red-400 rounded-full p-1"></div>
+                                            <div class="bg-sem-danger dark:bg-sem-danger rounded-full p-1"></div>
                                         </div>
                                     </div>
                                     <button
@@ -745,7 +730,7 @@
                             </ContextMenuItem>
                             <ContextMenuItem
                                 v-if="contextMenu.targetHash && isBlocked(contextMenu.targetHash)"
-                                item-class="text-emerald-600 dark:text-emerald-400"
+                                item-class="text-sem-success"
                                 @click="liftBanishmentFromConversationMenu"
                             >
                                 <MaterialDesignIcon icon-name="check-circle" class="size-4" />
@@ -791,7 +776,7 @@
                                 </ContextMenuItem>
                             </div>
                             <ContextMenuDivider />
-                            <ContextMenuItem item-class="text-red-600 dark:text-red-400" @click="bulkDelete">
+                            <ContextMenuItem item-class="text-sem-danger" @click="bulkDelete">
                                 <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
                                 {{ $t("common.delete") }}
                             </ContextMenuItem>
@@ -848,7 +833,7 @@
                 >
                     <div class="px-4 text-center">
                         <MaterialDesignIcon icon-name="import" class="mx-auto size-8 text-sem-accent" />
-                        <p class="mt-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
+                        <p class="mt-2 text-sm font-semibold text-sem-accent">
                             {{ $t("maintenance.import_messages") }}
                         </p>
                         <p class="text-xs text-sem-accent/80">
@@ -866,13 +851,20 @@
                     edgeBorderClass,
                 ]"
             >
-                <!-- search -->
-                <div class="p-1 border-b border-sem-border">
+                <!-- search + filters -->
+                <div class="p-1 border-b border-sem-border space-y-1.5">
                     <SearchInput
                         :model-value="peersSearchTerm"
                         :placeholder="$t('messages.search_placeholder_announces', { count: totalPeersCount })"
                         :loading="isSearchingAnnounces"
+                        compact
                         @update:model-value="onPeersSearchInput"
+                    />
+                    <SidebarFilterBar
+                        context="announces"
+                        :active="activeAnnounceFilterIds"
+                        @toggle="onAnnounceFilterToggle"
+                        @defs-changed="onSidebarDefsChanged"
                     />
                 </div>
 
@@ -901,7 +893,7 @@
                                     'flex cursor-pointer p-2 relative',
                                     selectionEdgeBorderClass,
                                     peer.destination_hash === selectedDestinationHash
-                                        ? 'bg-sem-info/15 border-sem-accent'
+                                        ? 'bg-sem-accent/10 border-sem-accent'
                                         : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
                                 ]"
                                 @click="onPeerClick(peer)"
@@ -985,7 +977,7 @@
                                     'flex cursor-pointer p-2 relative',
                                     selectionEdgeBorderClass,
                                     peer.destination_hash === selectedDestinationHash
-                                        ? 'bg-sem-info/15 border-sem-accent'
+                                        ? 'bg-sem-accent/10 border-sem-accent'
                                         : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
                                 ]"
                                 @click="onPeerClick(peer)"
@@ -1090,8 +1082,8 @@
 
 <script>
 import { mapStores } from "pinia";
-import { useConfigStore } from "../../js/stores/configStore.js";
-import { useIdentityStore } from "../../js/stores/identityStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
+import { useIdentityStore } from "../../js/stores/identityStore";
 import Utils from "../../js/Utils";
 import DialogUtils from "../../js/DialogUtils";
 import EmptyState from "../EmptyState.vue";
@@ -1105,7 +1097,7 @@ import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 import ContextMenuSectionLabel from "../contextmenu/ContextMenuSectionLabel.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS, STORAGE_KEYS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS } from "../../js/constants";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import ToastUtils from "../../js/ToastUtils";
 import { getCurrentInstance } from "vue";
@@ -1113,6 +1105,8 @@ import { useSidebarDrag } from "../../js/messages/useSidebarDrag.js";
 import { sortConversationsPinnedFirst } from "../../js/lxmfConversationListSync";
 import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
 import SidebarVirtualList from "../SidebarVirtualList.vue";
+import SidebarFilterBar from "./SidebarFilterBar.vue";
+import { isCustomFilterId, loadSidebarFilterLayout, matchesCustomQuery } from "../../js/messages/sidebarFilters.js";
 
 export default {
     name: "MessagesSidebar",
@@ -1124,6 +1118,7 @@ export default {
         SearchInput,
         LxmfUserIcon,
         SidebarVirtualList,
+        SidebarFilterBar,
         ContextMenuDivider,
         ContextMenuItem,
         ContextMenuPanel,
@@ -1282,6 +1277,12 @@ export default {
             smUp: typeof window !== "undefined" ? window.innerWidth >= 640 : true,
             conversationLongPressTimer: null,
             conversationLongPressFired: false,
+            convoFavOnly: false,
+            convoCustomIds: new Set(),
+            annFilterIds: new Set(),
+            // id -> query map for custom filters, refreshed from the bar
+            convoCustomQueries: {},
+            annCustomQueries: {},
         };
     },
     computed: {
@@ -1311,18 +1312,40 @@ export default {
             return { width: "36px", height: "36px" };
         },
         sidebarRootClass() {
+            const base = "flex flex-col min-h-0 transition-[width] duration-300 ease-in-out overflow-hidden";
             if (this.effectiveCollapsed) {
-                return "flex flex-col w-16 min-w-16 max-w-16 h-full min-h-0";
+                return `${base} w-16 min-w-16 max-w-16`;
             }
-            return "flex flex-col w-full sm:w-80 sm:min-w-80 md:max-lg:w-64 md:max-lg:min-w-64 lg:w-80 lg:min-w-80 min-h-0";
+            return `${base} w-full sm:w-80 sm:min-w-80 md:max-lg:w-64 md:max-lg:min-w-64 lg:w-80 lg:min-w-80`;
         },
         isFilterActive() {
             return (
                 this.conversationSearchTerm !== "" ||
                 this.filterUnreadOnly ||
                 this.filterFailedOnly ||
-                this.filterHasAttachmentsOnly
+                this.filterHasAttachmentsOnly ||
+                this.convoFavOnly
             );
+        },
+        activeConversationFilterIds() {
+            const ids = [];
+            if (this.filterUnreadOnly) {
+                ids.push("unread");
+            }
+            if (this.filterFailedOnly) {
+                ids.push("failed");
+            }
+            if (this.filterHasAttachmentsOnly) {
+                ids.push("attachments");
+            }
+            if (this.convoFavOnly) {
+                ids.push("favourites");
+            }
+            ids.push(...this.convoCustomIds);
+            return ids;
+        },
+        activeAnnounceFilterIds() {
+            return [...this.annFilterIds];
         },
         blockedDestinations() {
             return useIdentityStore().blockedDestinations;
@@ -1334,7 +1357,16 @@ export default {
             return Boolean(this.contextMenu.targetHash && this.pinnedSet.has(this.contextMenu.targetHash));
         },
         displayedConversations() {
-            return sortConversationsPinnedFirst(this.conversations, this.pinnedSet);
+            const ordered = sortConversationsPinnedFirst(this.conversations, this.pinnedSet);
+            let filtered = ordered;
+            if (this.convoFavOnly) {
+                filtered = filtered.filter((c) => this.pinnedSet.has(c.destination_hash));
+            }
+            for (const id of this.convoCustomIds) {
+                const query = this.convoCustomQueries[id];
+                filtered = filtered.filter((c) => matchesCustomQuery(c, query));
+            }
+            return filtered;
         },
         peersCount() {
             return Object.keys(this.peers).length;
@@ -1352,10 +1384,13 @@ export default {
         searchedPeers() {
             const search = (this.peersSearchTerm || "").toLowerCase();
             const ordered = this.peersOrderedByLatestAnnounce;
-            if (!search) {
-                return ordered;
-            }
             return ordered.filter((peer) => {
+                if (this.annFilterIds.size > 0 && !this.announcePeerMatches(peer)) {
+                    return false;
+                }
+                if (!search) {
+                    return true;
+                }
                 const matchesDisplayName = peer.display_name.toLowerCase().includes(search);
                 const matchesCustomDisplayName = peer.custom_display_name?.toLowerCase()?.includes(search) === true;
                 const matchesDestinationHash = peer.destination_hash.toLowerCase().includes(search);
@@ -1394,6 +1429,7 @@ export default {
     },
     mounted() {
         GlobalEmitter.on(EMITTER_EVENTS.CONTACT_UPDATED, this.onContactUpdated);
+        this.refreshCustomQueries();
         const tickMs = 60 * 1000;
         this._timeAgoInterval = setInterval(() => {
             this.timeAgoTick = Date.now();
@@ -1672,8 +1708,63 @@ export default {
         onConversationSearchInput(value) {
             this.$emit("conversation-search-changed", value);
         },
-        toggleFilter(filterKey) {
-            this.$emit("conversation-filter-changed", filterKey);
+        onSidebarFilterToggle(filterId) {
+            // favourites is a client-side filter: the conversations list is
+            // already loaded and the pinned set lives here, so no refetch.
+            if (filterId === "favourites") {
+                this.convoFavOnly = !this.convoFavOnly;
+                return;
+            }
+            if (isCustomFilterId(filterId)) {
+                const next = new Set(this.convoCustomIds);
+                if (next.has(filterId)) {
+                    next.delete(filterId);
+                } else {
+                    next.add(filterId);
+                }
+                this.convoCustomIds = next;
+                return;
+            }
+            this.$emit("conversation-filter-changed", filterId);
+        },
+        refreshCustomQueries() {
+            const layout = loadSidebarFilterLayout();
+            this.convoCustomQueries = Object.fromEntries(
+                (layout.custom?.conversations || []).map((d) => [d.id, d.query])
+            );
+            this.annCustomQueries = Object.fromEntries((layout.custom?.announces || []).map((d) => [d.id, d.query]));
+        },
+        onSidebarDefsChanged() {
+            this.refreshCustomQueries();
+        },
+        onAnnounceFilterToggle(filterId) {
+            const next = new Set(this.annFilterIds);
+            if (next.has(filterId)) {
+                next.delete(filterId);
+            } else {
+                next.add(filterId);
+            }
+            this.annFilterIds = next;
+        },
+        announcePeerMatches(peer) {
+            for (const id of this.annFilterIds) {
+                if (isCustomFilterId(id) && !matchesCustomQuery(peer, this.annCustomQueries[id])) {
+                    return false;
+                }
+                if (id === "direct" && !(peer.hops === 0 || peer.hops === 1)) {
+                    return false;
+                }
+                if (id === "nearby" && !(peer.hops != null && peer.hops !== 128 && peer.hops <= 3)) {
+                    return false;
+                }
+                if (id === "pinned" && !this.pinnedSet.has(peer.destination_hash)) {
+                    return false;
+                }
+                if (id === "blocked" && !this.isBlocked(peer.destination_hash)) {
+                    return false;
+                }
+            }
+            return true;
         },
         onConversationsScroll(event) {
             const element = event.target;
@@ -1695,13 +1786,6 @@ export default {
         },
         onPeersSearchInput(value) {
             this.$emit("peers-search-changed", value);
-        },
-        filterChipClasses(isActive) {
-            const base = "px-2 py-0.5 rounded-full text-xs font-medium transition-colors";
-            if (isActive) {
-                return `${base} bg-sem-action-primary text-sem-action-primary-text`;
-            }
-            return `${base} bg-sem-surface-muted text-sem-fg`;
         },
         async copyConversationHash(hash) {
             if (!hash) {

@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import RNS
+import RNS.vendor.umsgpack as msgpack
 from LXMF import LXMessage
 
 from .attachments import Attachment, AttachmentType
@@ -211,8 +212,8 @@ class JSONStorage(StorageBackend):
                     data = json.load(f)
                     self.cache[key] = data
                     return data
-        except Exception as e:
-            self.logger.error("Error reading %s: %s", key, str(e))
+        except Exception:
+            self.logger.exception("Error reading %s", key)
         return default
 
     def set(self, key: str, value: Any) -> None:
@@ -228,8 +229,8 @@ class JSONStorage(StorageBackend):
             with open(file_path, "w") as f:
                 json.dump(value, f, indent=2)
             self.cache[key] = value
-        except Exception as e:
-            self.logger.error("Error writing %s: %s", key, str(e))
+        except Exception:
+            self.logger.exception("Error writing %s", key)
             raise
 
     def delete(self, key: str) -> None:
@@ -244,8 +245,8 @@ class JSONStorage(StorageBackend):
             if file_path.exists():
                 file_path.unlink()
             self.cache.pop(key, None)
-        except Exception as e:
-            self.logger.error("Error deleting %s: %s", key, str(e))
+        except Exception:
+            self.logger.exception("Error deleting %s", key)
             raise
 
     def exists(self, key: str) -> bool:
@@ -276,8 +277,120 @@ class JSONStorage(StorageBackend):
                 key = file.stem
                 if key.startswith(prefix):
                     results.append(key)
-        except Exception as e:
-            self.logger.error("Error scanning with prefix %s: %s", prefix, str(e))
+        except Exception:
+            self.logger.exception("Error scanning with prefix %s", prefix)
+        return results
+
+
+class MsgPackStorage(StorageBackend):
+    """MsgPack file-based storage backend.
+
+    Uses the msgpack implementation vendored with RNS
+    (``RNS.vendor.umsgpack``), so no extra dependency is needed. Stores
+    each key in its own ``{key}.msgpack`` file, mirroring JSONStorage.
+    """
+
+    def __init__(self, directory: str):
+        """Initialize a new MsgPackStorage instance.
+
+        Args:
+            directory: The directory to store the msgpack files in.
+
+        """
+        self.directory = Path(directory)
+        self.directory.mkdir(parents=True, exist_ok=True)
+        self.cache: dict[str, Any] = {}
+        self.logger = logging.getLogger(__name__)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Retrieve a value from storage.
+
+        Args:
+            key: The key to retrieve.
+            default: The default value to return if the key is not found.
+
+        Returns:
+            The value associated with the key, or the default value if not found.
+
+        """
+        if key in self.cache:
+            return self.cache[key]
+
+        file_path = self.directory / f"{key}.msgpack"
+        try:
+            if file_path.exists():
+                data = msgpack.unpackb(file_path.read_bytes())
+                self.cache[key] = data
+                return data
+        except Exception:
+            self.logger.exception("Error reading %s", key)
+        return default
+
+    def set(self, key: str, value: Any) -> None:
+        """Store a value in storage.
+
+        Args:
+            key: The key to store the value under.
+            value: The value to store.
+
+        """
+        file_path = self.directory / f"{key}.msgpack"
+        tmp_path = file_path.with_suffix(".msgpack.tmp")
+        try:
+            tmp_path.write_bytes(msgpack.packb(value))
+            tmp_path.replace(file_path)
+            self.cache[key] = value
+        except Exception:
+            self.logger.exception("Error writing %s", key)
+            tmp_path.unlink(missing_ok=True)
+            raise
+
+    def delete(self, key: str) -> None:
+        """Delete a value from storage.
+
+        Args:
+            key: The key to delete.
+
+        """
+        file_path = self.directory / f"{key}.msgpack"
+        try:
+            if file_path.exists():
+                file_path.unlink()
+            self.cache.pop(key, None)
+        except Exception:
+            self.logger.exception("Error deleting %s", key)
+            raise
+
+    def exists(self, key: str) -> bool:
+        """Check if a key exists in storage.
+
+        Args:
+            key: The key to check.
+
+        Returns:
+            True if the key exists, False otherwise.
+
+        """
+        return (self.directory / f"{key}.msgpack").exists()
+
+    def scan(self, prefix: str) -> list:
+        """Scan for keys with a given prefix.
+
+        Args:
+            prefix: The prefix to scan for.
+
+        Returns:
+            A list of keys that start with the prefix.
+
+        """
+        results = []
+        try:
+            for file in self.directory.glob(f"{prefix}*.msgpack"):
+                key = file.stem
+                if key.startswith(prefix):
+                    results.append(key)
+        except Exception:
+            self.logger.exception("Error scanning with prefix %s", prefix)
         return results
 
 
@@ -303,12 +416,8 @@ class SQLiteStorage(StorageBackend):
         db_dir = db_path.parent
         try:
             db_dir.mkdir(parents=True, exist_ok=True)
-        except Exception as e:
-            self.logger.error(
-                "Failed to create database directory %s: %s",
-                db_dir,
-                str(e),
-            )
+        except Exception:
+            self.logger.exception("Failed to create database directory %s", db_dir)
             raise
 
     def _init_db(self):
@@ -327,15 +436,13 @@ class SQLiteStorage(StorageBackend):
                 conn.execute("""
                     CREATE INDEX IF NOT EXISTS idx_key_prefix ON key_value(key)
                 """)
-        except sqlite3.OperationalError as e:
-            self.logger.error(
-                "Failed to initialize database at %s: %s",
-                self.database_path,
-                str(e),
+        except sqlite3.OperationalError:
+            self.logger.exception(
+                "Failed to initialize database at %s", self.database_path
             )
             raise
-        except Exception as e:
-            self.logger.error("Unexpected error initializing database: %s", str(e))
+        except Exception:
+            self.logger.exception("Unexpected error initializing database")
             raise
 
     def get(self, key: str, default: Any = None) -> Any:
@@ -366,8 +473,8 @@ class SQLiteStorage(StorageBackend):
                         return value
                     except json.JSONDecodeError:
                         return row[0]
-        except Exception as e:
-            self.logger.error("Error reading %s: %s", key, str(e))
+        except Exception:
+            self.logger.exception("Error reading %s", key)
         return default
 
     def set(self, key: str, value: Any) -> None:
@@ -393,8 +500,8 @@ class SQLiteStorage(StorageBackend):
                     (key, serialized, type(value).__name__),
                 )
             self.cache[key] = value
-        except Exception as e:
-            self.logger.error("Error writing %s: %s", key, str(e))
+        except Exception:
+            self.logger.exception("Error writing %s", key)
             raise
 
     def delete(self, key: str) -> None:
@@ -408,8 +515,8 @@ class SQLiteStorage(StorageBackend):
             with sqlite3.connect(self.database_path) as conn:
                 conn.execute("DELETE FROM key_value WHERE key = ?", (key,))
             self.cache.pop(key, None)
-        except Exception as e:
-            self.logger.error("Error deleting %s: %s", key, str(e))
+        except Exception:
+            self.logger.exception("Error deleting %s", key)
             raise
 
     def exists(self, key: str) -> bool:
@@ -426,8 +533,8 @@ class SQLiteStorage(StorageBackend):
             with sqlite3.connect(self.database_path) as conn:
                 cursor = conn.execute("SELECT 1 FROM key_value WHERE key = ?", (key,))
                 return cursor.fetchone() is not None
-        except Exception as e:
-            self.logger.error("Error checking existence of %s: %s", key, str(e))
+        except Exception:
+            self.logger.exception("Error checking existence of %s", key)
             return False
 
     def scan(self, prefix: str) -> list:
@@ -447,8 +554,8 @@ class SQLiteStorage(StorageBackend):
                     (f"{prefix}%",),
                 )
                 return [row[0] for row in cursor.fetchall()]
-        except Exception as e:
-            self.logger.error("Error scanning with prefix %s: %s", prefix, str(e))
+        except Exception:
+            self.logger.exception("Error scanning with prefix %s", prefix)
             return []
 
 

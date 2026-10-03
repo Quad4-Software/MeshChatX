@@ -16,7 +16,7 @@
                     <span class="setting-toggle__title">{{ $t("app.desktop_open_calls_in_separate_window") }}</span>
                     <span class="setting-toggle__description">
                         {{ $t("app.desktop_open_calls_in_separate_window_description") }}
-                        <span class="text-blue-500 font-bold block mt-1">(Phased out for now)</span>
+                        <span class="text-sem-info font-bold block mt-1">(Phased out for now)</span>
                     </span>
                 </span>
             </label>
@@ -51,22 +51,12 @@
             <label class="flex flex-col gap-2">
                 <span class="text-sm font-medium text-sem-fg">{{ $t("app.desktop_close_behavior") }}</span>
                 <span class="text-xs text-sem-fg-muted">{{ $t("app.desktop_close_behavior_description") }}</span>
-                <select
+                <SegmentedControl
                     id="desktop-close-behavior"
-                    :value="desktopCloseSettings.closeBehavior"
-                    class="input-field"
-                    @change="$emit('close-behavior-change', $event.target.value)"
-                >
-                    <option value="ask">{{ $t("app.desktop_close_behavior_ask") }}</option>
-                    <option value="quit">{{ $t("app.desktop_close_behavior_quit") }}</option>
-                    <option value="background">
-                        {{
-                            desktopCloseSettings.trayEnabled
-                                ? $t("app.desktop_close_behavior_background")
-                                : $t("app.desktop_close_behavior_background_no_tray")
-                        }}
-                    </option>
-                </select>
+                    :model-value="desktopCloseSettings.closeBehavior"
+                    :options="closeBehaviorOptions"
+                    @change="$emit('close-behavior-change', $event)"
+                />
             </label>
         </div>
     </section>
@@ -74,11 +64,13 @@
 
 <script>
 import Toggle from "../../forms/Toggle.vue";
+import SegmentedControl from "../../forms/SegmentedControl.vue";
 import ElectronUtils from "../../../js/ElectronUtils";
 
 export default {
     name: "DesktopSettingsSection",
     components: {
+        SegmentedControl,
         Toggle,
     },
     props: {
@@ -97,6 +89,19 @@ export default {
     },
     emits: ["hardware-acceleration-change", "tray-enabled-change", "close-behavior-change"],
     computed: {
+        closeBehaviorOptions() {
+            return [
+                { value: "ask", icon: "help-circle-outline", label: "app.desktop_close_behavior_ask" },
+                { value: "quit", icon: "close-circle-outline", label: "app.desktop_close_behavior_quit" },
+                {
+                    value: "background",
+                    icon: "arrow-down-circle-outline",
+                    label: this.desktopCloseSettings.trayEnabled
+                        ? "app.desktop_close_behavior_background"
+                        : "app.desktop_close_behavior_background_no_tray",
+                },
+            ];
+        },
         isElectron() {
             return ElectronUtils.isElectron();
         },

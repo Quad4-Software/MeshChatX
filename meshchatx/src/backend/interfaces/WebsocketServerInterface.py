@@ -57,7 +57,7 @@ class WebsocketServerInterface(Interface):
         self.listen_port = int(str(listen_port).strip())
 
         # run websocket server
-        thread = threading.Thread(target=self.serve)
+        thread = threading.Thread(target=self.serve, name="mcx-ws-serve")
         thread.daemon = True
         thread.start()
 

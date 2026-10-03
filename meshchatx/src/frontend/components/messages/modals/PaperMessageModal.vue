@@ -10,10 +10,10 @@
         >
             <!-- header -->
             <div
-                class="px-6 py-5 border-b border-sem-border flex items-center justify-between bg-sem-surface-muted/50 dark:bg-zinc-900/50"
+                class="px-6 py-5 border-b border-sem-border flex items-center justify-between bg-sem-surface-muted/50 dark:bg-sem-surface"
             >
                 <div class="flex items-center gap-3">
-                    <div class="p-2 bg-blue-100 dark:bg-blue-900/30 text-sem-accent rounded-xl">
+                    <div class="p-2 bg-sem-info/15 text-sem-accent rounded-xl">
                         <MaterialDesignIcon icon-name="qrcode" class="size-6" />
                     </div>
                     <h3 class="text-xl font-bold text-sem-fg tracking-tight">Paper Message</h3>
@@ -36,7 +36,9 @@
                 </div>
                 <template v-else-if="uri">
                     <!-- QR code container -->
-                    <div class="p-3 bg-white rounded-2xl shadow-inner border border-sem-border mb-6 relative group">
+                    <div
+                        class="p-3 bg-sem-surface rounded-2xl shadow-inner border border-sem-border mb-6 relative group"
+                    >
                         <div class="size-40 sm:size-48 flex items-center justify-center overflow-hidden">
                             <canvas ref="qrcode"></canvas>
                         </div>
@@ -44,7 +46,7 @@
                             class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/10 backdrop-blur-[2px] rounded-2xl pointer-events-none"
                         >
                             <div
-                                class="p-2 bg-white/90 dark:bg-zinc-900/90 rounded-xl shadow-xl border border-sem-border"
+                                class="p-2 bg-sem-surface dark:bg-sem-surface rounded-xl shadow-xl border border-sem-border"
                             >
                                 <MaterialDesignIcon icon-name="magnify-plus-outline" class="size-6 text-sem-accent" />
                             </div>
@@ -66,7 +68,7 @@
                                 </div>
                                 <button
                                     type="button"
-                                    class="size-9 flex items-center justify-center bg-sem-surface text-sem-fg-muted rounded-lg border border-sem-border hover:bg-blue-50 hover:text-sem-accent hover:border-blue-200 transition-all shadow-xs"
+                                    class="size-9 flex items-center justify-center bg-sem-surface text-sem-fg-muted rounded-lg border border-sem-border hover:bg-sem-info/15 hover:text-sem-accent hover:border-sem-info transition-all shadow-xs"
                                     title="Copy URI"
                                     @click="copyUri"
                                 >
@@ -78,7 +80,7 @@
                         <div class="flex gap-2 pt-1">
                             <button
                                 type="button"
-                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] text-sm"
+                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-xl font-bold shadow-lg shadow-sem-action-primary/20 transition-all active:scale-[0.98] text-sm"
                                 @click="printQRCode"
                             >
                                 <MaterialDesignIcon icon-name="printer" class="size-4" />
@@ -86,7 +88,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] text-sm"
+                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-success hover:bg-sem-success text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] text-sm"
                                 :disabled="isSending"
                                 @click="sendPaperMessage"
                             >
@@ -118,7 +120,7 @@
                                 </div>
                                 <button
                                     type="button"
-                                    class="size-9 flex items-center justify-center bg-sem-surface text-sem-fg-muted rounded-lg border border-sem-border hover:bg-blue-50 hover:text-sem-accent hover:border-blue-200 transition-all shadow-xs"
+                                    class="size-9 flex items-center justify-center bg-sem-surface text-sem-fg-muted rounded-lg border border-sem-border hover:bg-sem-info/15 hover:text-sem-accent hover:border-sem-info transition-all shadow-xs"
                                     title="Copy URI"
                                     @click="copyUri"
                                 >
@@ -130,7 +132,7 @@
                         <div class="flex gap-2 pt-1">
                             <button
                                 type="button"
-                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] text-sm"
+                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-xl font-bold shadow-lg shadow-sem-action-primary/20 transition-all active:scale-[0.98] text-sm"
                                 @click="printQRCode"
                             >
                                 <MaterialDesignIcon icon-name="printer" class="size-4" />
@@ -148,7 +150,7 @@
                     </div>
                 </template>
                 <div v-else class="flex flex-col items-center py-12 text-center">
-                    <div class="p-4 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full mb-4">
+                    <div class="p-4 bg-sem-danger/15 text-sem-danger rounded-full mb-4">
                         <MaterialDesignIcon icon-name="alert-circle-outline" class="size-12" />
                     </div>
                     <h4 class="text-lg font-bold text-sem-fg mb-2">Message Not Available</h4>
@@ -173,7 +175,7 @@
 import QRCode from "qrcode";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import ToastUtils from "../../../js/ToastUtils";
-import { apiPath } from "../../../js/constants.js";
+import { apiPath } from "../../../js/constants";
 import Utils from "../../../js/Utils";
 
 export default {

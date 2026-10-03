@@ -40,6 +40,11 @@ function copyToPublic() {
     fs.copyFileSync(ELECTRON_OUT, PUBLIC_OUT);
 }
 
+if (process.env.MESHCHATX_SKIP_ELECTRON_CSS === "1") {
+    console.log("build-electron-shell-css: skipped (MESHCHATX_SKIP_ELECTRON_CSS=1)");
+    process.exit(0);
+}
+
 if (!fs.existsSync(SRC_CSS)) {
     console.error(`build-electron-shell-css: missing source ${SRC_CSS}`);
     process.exit(1);

@@ -1,11 +1,11 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div v-if="image" class="p-4 rounded-2xl bg-zinc-950 flex flex-col items-center gap-2 border border-zinc-800">
+    <div v-if="image" class="p-4 rounded-2xl bg-sem-surface flex flex-col items-center gap-2 border border-sem-border">
         <img :src="image" alt="RNode display" class="h-24 sm:h-28 pixelated" />
         <button
             type="button"
-            class="text-[10px] font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-200"
+            class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted hover:text-sem-fg"
             @click="$emit('clear')"
         >
             {{ $t("common.clear") }}

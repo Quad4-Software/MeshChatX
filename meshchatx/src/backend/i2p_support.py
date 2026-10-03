@@ -339,6 +339,88 @@ def disable_all_i2p_in_config(config_path: str) -> bool:
     return True
 
 
+_I2P_MODE_MAP = None
+
+
+def _interface_mode_map() -> dict:
+    """Lazily resolve the RNS Interface mode constants."""
+    global _I2P_MODE_MAP
+    if _I2P_MODE_MAP is None:
+        from RNS.Interfaces.Interface import Interface
+
+        _I2P_MODE_MAP = {
+            "full": Interface.MODE_FULL,
+            "access_point": Interface.MODE_ACCESS_POINT,
+            "accesspoint": Interface.MODE_ACCESS_POINT,
+            "ap": Interface.MODE_ACCESS_POINT,
+            "pointtopoint": Interface.MODE_POINT_TO_POINT,
+            "ptp": Interface.MODE_POINT_TO_POINT,
+            "roaming": Interface.MODE_ROAMING,
+            "boundary": Interface.MODE_BOUNDARY,
+            "gateway": Interface.MODE_GATEWAY,
+            "gw": Interface.MODE_GATEWAY,
+            "internal": Interface.MODE_INTERNAL,
+        }
+    return _I2P_MODE_MAP
+
+
+def _resolve_interface_mode(c: dict) -> int:
+    """Resolve the configured interface mode from a ConfigObj section."""
+    mode_map = _interface_mode_map()
+    raw = None
+    if "interface_mode" in c:
+        raw = str(c["interface_mode"]).lower()
+    elif "mode" in c:
+        raw = str(c["mode"]).lower()
+    return mode_map.get(raw, mode_map["full"])
+
+
+def patch_i2p_interface() -> bool:
+    """Fix I2PInterface so outbound peers inherit the configured mode.
+
+    Reticulum applies the mode from config in _synthesize_interface AFTER
+    I2PInterface.__init__ returns. The constructor sets self.mode to MODE_FULL
+    and creates I2PInterfacePeer objects with no mode assignment - the peers
+    stay MODE_FULL and Boundary/Internal forwarding rules never apply.
+
+    This wraps __init__ to resolve the configured mode from the config object
+    and assigns it to self.mode and every spawned I2PInterfacePeer after the
+    original init runs. Peers are added to RNS.Transport during init but cannot
+    receive announces before the I2P tunnel connects, so post-init fixup is
+    safe.
+    """
+    try:
+        from RNS.Interfaces.I2PInterface import I2PInterface, I2PInterfacePeer
+        from RNS.Interfaces.Interface import Interface
+    except Exception:
+        return False
+
+    if getattr(I2PInterface, "_meshchatx_mode_patched", False):
+        return True
+
+    original_init = I2PInterface.__init__
+    original_peer_init = I2PInterfacePeer.__init__
+
+    def _patched_init(self, owner, configuration):
+        c = Interface.get_config_obj(configuration)
+        self._meshchatx_resolved_mode = _resolve_interface_mode(c)
+        original_init(self, owner, configuration)
+        self.mode = self._meshchatx_resolved_mode
+
+    def _patched_peer_init(self, parent, *args, **kwargs):
+        original_peer_init(self, parent, *args, **kwargs)
+        # Peers are created inside I2PInterface.__init__ before the configured
+        # mode is applied to the parent - inherit the parent's resolved mode.
+        mode = getattr(parent, "_meshchatx_resolved_mode", None)
+        if mode is not None:
+            self.mode = mode
+
+    I2PInterface.__init__ = _patched_init
+    I2PInterfacePeer.__init__ = _patched_peer_init
+    I2PInterface._meshchatx_mode_patched = True
+    return True
+
+
 def guard_i2p_interfaces_in_config(config_path: str) -> bool:
     """Repair I2P entries in a Reticulum config file before startup.
 

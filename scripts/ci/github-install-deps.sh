@@ -37,25 +37,46 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
     # with PyOggError until the shared libraries are present.
     if [[ "$(uname -s)" == "Linux" ]] && command -v apt-get >/dev/null 2>&1; then
         run_priv apt-get update -y
-        run_priv apt-get install -y libopus0 libogg0
+        run_priv apt-get install -y libopus0 libogg0 libcodec2-dev
     fi
 
     uv lock --check
-    uv sync --group dev
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        # The ctypes binding in meshchatx/pycodec2_ctypes.py covers the
+        # Codec2 API LXST uses, so macOS slices skip the pycodec2
+        # extension and ship the Homebrew libcodec2 for it to dlopen.
+        uv sync --group dev --no-install-package pycodec2
+    else
+        uv sync --group dev
+    fi
     uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
     uv run python scripts/patch_lxst_codec2_optional.py
 
+    # LXST ships prebuilt filterlib blobs per CPython ABI. On pre-release
+    # interpreters (3.15 beta legs) none exists, so build it from the bundled
+    # Filters.c. Exit 2 (no compiler) is non-fatal: LXST compiles via cffi at
+    # runtime instead.
+    uv run python scripts/build-lxst-filterlib.py || rc=$?
+    if [[ "${rc:-0}" == "2" ]]; then
+        echo "::warning::no C compiler for LXST filterlib; cffi runtime fallback will compile it"
+    elif [[ "${rc:-0}" != "0" ]]; then
+        exit "${rc}"
+    fi
+
     if [[ "$(uname -s)" == "Darwin" ]]; then
+        # Ship libcodec2 at the site-packages root, matching the darwin-x64
+        # slice, so the ctypes binding finds it and the two trees merge
+        # cleanly under scripts/unify-backend-plain-files.sh.
+        _site_packages="$(uv run python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')"
+        cp -f "${_codec2_prefix}/lib/libcodec2.dylib" "${_site_packages}/libcodec2.dylib"
         uv run python -c "
 import numpy
-from numpy._core._multiarray_umath import _add_newdoc_ufunc
-print('arm64 venv numpy', numpy.__version__, 'ok')
+from numpy._core._multiarray_umath import _ARRAY_API
+from meshchatx import pycodec2_ctypes
+codec = pycodec2_ctypes.Codec2(1600)
+assert codec.samples_per_frame() > 0
+print('arm64 venv numpy', numpy.__version__, 'codec2-ctypes ok')
 "
-        # The published macOS wheel bundles libcodec2 under pycodec2/.dylibs/. Flatten
-        # it to pycodec2/libcodec2.dylib so this tree's relative layout matches the
-        # darwin-x64 slice built in scripts/ci/github-install-macos-x64-python-deps.sh,
-        # which scripts/unify-backend-plain-files.sh requires to merge the two trees.
-        bash "$(dirname "$0")/macos-normalize-pycodec2-dylib.sh" "${ROOT}/.venv/bin/python"
         bash "$(dirname "$0")/macos-normalize-pyogg-dylibs.sh" "${ROOT}/.venv/bin/python"
     fi
 

@@ -298,6 +298,33 @@ class MessageDAO:
                 f"AND EXCLUDED.is_incoming = 1 "
                 f"THEN lxmf_messages.{field} ELSE EXCLUDED.{field} END"
             )
+        if field == "state":
+            # An inbound copy of an outbound message carries the fresh-object
+            # GENERATING state, so it must never touch the stored state. A
+            # terminal state also must not regress to an in-flight one, matching
+            # the update_lxmf_message_state guard.
+            return (
+                "state = CASE "
+                "WHEN lxmf_messages.is_incoming = 0 AND EXCLUDED.is_incoming = 1 "
+                "THEN lxmf_messages.state "
+                "WHEN lxmf_messages.state IN ('delivered', 'rejected', 'cancelled', 'failed') "
+                "AND EXCLUDED.state IN ('generating', 'outbound', 'sending', 'sent') "
+                "THEN lxmf_messages.state "
+                "ELSE EXCLUDED.state END"
+            )
+        if field in (
+            "progress",
+            "method",
+            "delivery_attempts",
+            "next_delivery_attempt_at",
+        ):
+            # Delivery tracking fields belong to the outbound lifecycle. An
+            # inbound copy would reset them to fresh-object values.
+            return (
+                f"{field} = CASE WHEN lxmf_messages.is_incoming = 0 "
+                f"AND EXCLUDED.is_incoming = 1 "
+                f"THEN lxmf_messages.{field} ELSE EXCLUDED.{field} END"
+            )
         if field not in _LXMF_KEEP_IF_INCOMING_BLANK:
             return f"{field} = EXCLUDED.{field}"
         if field in ("fields", "fields_meta"):

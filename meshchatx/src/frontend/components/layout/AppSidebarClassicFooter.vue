@@ -38,7 +38,7 @@
                         @blur="$emit('save-identity')"
                     />
                 </div>
-                <div class="p-2 dark:border-zinc-900 overflow-hidden text-xs">
+                <div class="p-2 dark:border-sem-border overflow-hidden text-xs">
                     <div>{{ $t("app.identity_hash") }}</div>
                     <div
                         class="text-[10px] text-sem-fg-muted truncate font-mono cursor-pointer"
@@ -48,7 +48,7 @@
                         {{ config.identity_hash }}
                     </div>
                 </div>
-                <div class="p-2 dark:border-zinc-900 overflow-hidden text-xs">
+                <div class="p-2 dark:border-sem-border overflow-hidden text-xs">
                     <div>{{ $t("app.lxmf_address") }}</div>
                     <div class="flex min-w-0 items-center gap-1">
                         <div
@@ -60,7 +60,7 @@
                         </div>
                         <button
                             type="button"
-                            class="shrink-0 rounded-lg p-1 text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                            class="shrink-0 rounded-lg p-1 text-sem-fg-muted hover:text-sem-info dark:hover:text-sem-info transition-colors"
                             :title="$t('app.show_qr')"
                             @click.stop="$emit('open-lxmf-qr')"
                         >
@@ -71,9 +71,9 @@
             </div>
         </div>
 
-        <div class="bg-white border-t border-sem-border dark:bg-zinc-950">
+        <div class="bg-sem-surface border-t border-sem-border dark:bg-sem-surface">
             <div
-                class="flex text-gray-700 cursor-pointer dark:text-white"
+                class="flex text-sem-fg cursor-pointer dark:text-white"
                 :class="isCollapsed ? 'justify-center p-2' : 'p-3'"
                 data-testid="sidebar-announce-header"
                 @click="isShowingAnnounceSection = !isShowingAnnounceSection"
@@ -94,7 +94,7 @@
                 <div v-if="!isCollapsed" class="ml-auto shrink-0">
                     <button
                         type="button"
-                        class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-xs hover:bg-gray-400 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-white hover:bg-sem-surface-muted dark:focus-visible:outline-zinc-500"
+                        class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-xs hover:bg-gray-400 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 bg-sem-surface dark:text-white hover:bg-sem-surface-muted dark:focus-visible:outline-zinc-500"
                         @click.stop="$emit('send-announce')"
                     >
                         {{ $t("app.announce_now") }}
@@ -103,12 +103,12 @@
             </div>
             <div
                 v-if="isShowingAnnounceSection && !isCollapsed"
-                class="divide-y divide-gray-200 text-gray-900 border-t border-gray-200 dark:divide-zinc-800 text-sem-fg dark:border-zinc-800"
+                class="divide-y divide-gray-200 text-sem-fg border-t border-sem-border dark:divide-zinc-800 text-sem-fg dark:border-sem-border"
             >
-                <div class="p-2 dark:border-zinc-800">
+                <div class="p-2 dark:border-sem-border">
                     <select
                         :value="config.auto_announce_interval_seconds"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-800 dark:border-zinc-600 text-sem-fg dark:focus:ring-blue-400 dark:focus:border-blue-400"
+                        class="bg-sem-surface-muted border border-sem-border text-sem-fg text-sm rounded-lg focus:ring-sem-accent focus:border-sem-accent block w-full p-2.5 bg-sem-surface dark:border-sem-border text-sem-fg dark:focus:ring-sem-info dark:focus:border-sem-info"
                         @change="$emit('announce-interval-change', Number($event.target.value))"
                     >
                         <option :value="0">{{ $t("app.disabled") }}</option>
@@ -121,7 +121,7 @@
                         <option :value="86400">{{ $t("app.announce_interval_24h") }}</option>
                     </select>
                     <div
-                        class="text-[10px] leading-snug text-gray-700 text-sem-fg mt-1"
+                        class="text-[10px] leading-snug text-sem-fg text-sem-fg mt-1"
                         data-testid="sidebar-last-announced"
                     >
                         <span v-if="config.last_announced_at">

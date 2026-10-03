@@ -896,6 +896,39 @@ DESTINATION_PATH_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+TRANSLATION_CATALOG_SCHEMA: dict = {
+    "type": "object",
+    "required": ["pairs"],
+    "properties": {
+        "pairs": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["pair", "from", "to", "architecture", "size", "files"],
+                "properties": {
+                    "pair": {"type": "string"},
+                    "from": {"type": "string"},
+                    "to": {"type": "string"},
+                    "architecture": {"type": "string"},
+                    "size": {"type": "integer"},
+                    "files": {"type": "array"},
+                },
+            },
+        }
+    },
+    "additionalProperties": True,
+}
+
+CUSTOM_FONT_SCHEMA: dict = {
+    "type": "object",
+    "required": ["name", "data"],
+    "properties": {
+        "name": {"type": ["string", "null"]},
+        "data": {"type": ["string", "null"]},
+    },
+    "additionalProperties": True,
+}
+
 DESTINATION_DISPLAY_NAME_SCHEMA: dict = {
     "type": "object",
     "required": ["custom_display_name"],
@@ -1060,5 +1093,25 @@ TELEPHONE_CODEC2_STATUS_SCHEMA: dict = {
 
 TELEPHONE_CALL_SCHEMA: dict = {
     "type": "object",
+    "additionalProperties": True,
+}
+
+UPDATE_STATUS_SCHEMA: dict = {
+    "type": "object",
+    "required": ["enabled", "current_version"],
+    "properties": {
+        "enabled": _BOOLEAN,
+        "current_version": _STRING,
+        "channel": _STRING,
+        "track": {"type": ["string", "null"]},
+        "pending": {"type": ["object", "null"]},
+    },
+    "additionalProperties": True,
+}
+
+UPDATE_PENDING_SCHEMA: dict = {
+    "type": "object",
+    "required": ["pending"],
+    "properties": {"pending": {"type": ["object", "null"]}},
     "additionalProperties": True,
 }

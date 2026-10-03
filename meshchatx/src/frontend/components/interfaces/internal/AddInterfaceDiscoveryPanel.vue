@@ -8,7 +8,7 @@
                 <div class="flex items-center justify-between">
                     <div class="max-w-md">
                         <FormLabel class="glass-label mb-0!">Publish Discovery Announce</FormLabel>
-                        <p class="text-xs text-gray-400">Makes your node visible to others on the network.</p>
+                        <p class="text-xs text-sem-fg-muted">Makes your node visible to others on the network.</p>
                     </div>
                     <Toggle
                         :model-value="discovery.discoverable"
@@ -35,6 +35,7 @@
                             <input
                                 :value="discovery.announce_interval"
                                 type="number"
+                                min="60"
                                 class="input-field"
                                 @input="patchField('announce_interval', Number($event.target.value))"
                             />

@@ -265,6 +265,6 @@ export default {
 <style scoped>
 @reference "../../../style.css";
 .glass-label {
-    @apply block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1;
+    @apply block text-sm font-semibold text-sem-fg mb-1;
 }
 </style>

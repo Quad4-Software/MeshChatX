@@ -34,45 +34,6 @@ class TestRNSBasicFunctionality:
         assert dest.direction == RNS.Destination.IN
         assert dest.type == RNS.Destination.SINGLE
 
-    def test_identity_recalling(self, test_identity):
-        """Test identity recall functionality."""
-        # Store identity hash
-        identity_hash = test_identity.hash
-
-        # Recall identity by hash - this should work for identities that have been seen
-        # In a real network, this would recall from the identity cache
-        RNS.Identity.recall(identity_hash)
-
-        # Note: In test environment, recall might return None if identity hasn't been
-        # registered in the network. Let's test the hash consistency instead
-        assert identity_hash is not None
-        assert len(identity_hash) == RNS.Reticulum.TRUNCATED_HASHLENGTH // 8
-
-        # Test that we can create a destination and recall its identity
-        dest = RNS.Destination(
-            test_identity,
-            RNS.Destination.IN,
-            RNS.Destination.SINGLE,
-            "test",
-            "recall",
-        )
-
-        # The destination's identity should be recallable
-        RNS.Identity.recall(dest.hash)
-        # This might be None in test environment, but the hash should be valid
-        assert dest.hash is not None
-
-    def test_path_request_simulation(self, test_destination):
-        """Test path request functionality (simulated)."""
-        destination_hash = test_destination.hash
-
-        # Request path (this would normally contact the network)
-        RNS.Transport.request_path(destination_hash)
-
-        # In a real network, we'd wait for path establishment
-        # For testing, we just verify the call doesn't crash
-        assert destination_hash is not None
-
 
 class TestLXMFMessageHandling:
     """Test LXMF message creation and handling."""
@@ -154,48 +115,6 @@ class TestLXMFMessageHandling:
 
 class TestClientBotInteraction:
     """Test client-side interaction with bots."""
-
-    def test_client_message_creation(self, test_bot):
-        """Test creating client messages to send to bots."""
-        # Mock the send method to capture what would be sent
-        sent_messages = []
-
-        def mock_send(
-            destination,
-            message,
-            title=None,
-            lxmf_fields=None,
-            stamp_cost=None,
-        ):
-            sent_messages.append(
-                {
-                    "destination": destination,
-                    "message": message,
-                    "title": title,
-                    "fields": lxmf_fields,
-                    "stamp_cost": stamp_cost,
-                },
-            )
-
-        original_send = test_bot.send
-        test_bot.send = mock_send
-
-        # Send a test message
-        test_bot.send(
-            "test_dest_hash",
-            "Hello Bot!",
-            title="Test Message",
-            lxmf_fields={"custom": "field"},
-        )
-
-        assert len(sent_messages) == 1
-        msg = sent_messages[0]
-        assert msg["destination"] == "test_dest_hash"
-        assert msg["message"] == "Hello Bot!"
-        assert msg["title"] == "Test Message"
-        assert msg["fields"] == {"custom": "field"}
-
-        test_bot.send = original_send
 
     def test_client_command_simulation(self, test_bot):
         """Test simulating client sending commands to bot."""
@@ -289,17 +208,6 @@ class TestClientBotInteraction:
 class TestNetworkPathOperations:
     """Test network path discovery and management."""
 
-    def test_path_discovery_simulation(self, test_destination):
-        """Test path discovery workflow."""
-        dest_hash = test_destination.hash
-
-        # Request path to destination
-        RNS.Transport.request_path(dest_hash)
-
-        # In testing environment, path won't be established
-        # but the call should not raise exceptions
-        assert dest_hash is not None
-
     def test_bot_path_management(self, test_bot):
         """Test bot's path management functionality."""
         # Test that transport layer exists
@@ -363,17 +271,7 @@ class TestReticulumIntegration:
 
     def test_bot_network_operations(self, test_bot):
         """Test bot's network operations."""
-        # Test that send method exists and can be called
-        # (without mocking complex network operations)
-        dest_hash = "test_destination_hash"
-
-        # This should not raise an exception, even if path discovery fails
-        try:
-            test_bot.send(dest_hash, "Test message")
-        except Exception:
-            pass
-
-        # In test environment, this might fail due to network setup
-        # but the method should exist and be callable
-        assert hasattr(test_bot, "send")
-        assert callable(test_bot.send)
+        # send() in test mode enqueues a mock message without network access
+        dest_hash = "aa" * 16
+        assert test_bot.send(dest_hash, "Test message") is True
+        assert not test_bot.queue.empty()

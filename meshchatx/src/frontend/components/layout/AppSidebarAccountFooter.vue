@@ -79,7 +79,7 @@
                     <div class="text-sem-fg-muted">{{ $t("app.identity_hash") }}</div>
                     <button
                         type="button"
-                        class="mt-0.5 block w-full truncate text-left font-mono text-[11px] text-sem-fg-muted hover:text-blue-600 dark:hover:text-blue-400"
+                        class="mt-0.5 block w-full truncate text-left font-mono text-[11px] text-sem-fg-muted hover:text-sem-info dark:hover:text-sem-info"
                         :title="config.identity_hash"
                         @click="$emit('copy-value', config.identity_hash, $t('app.identity_hash'))"
                     >
@@ -90,7 +90,7 @@
                     <div class="text-sem-fg-muted">{{ $t("app.lxmf_address") }}</div>
                     <button
                         type="button"
-                        class="mt-0.5 block w-full truncate text-left font-mono text-[11px] text-sem-fg-muted hover:text-blue-600 dark:hover:text-blue-400"
+                        class="mt-0.5 block w-full truncate text-left font-mono text-[11px] text-sem-fg-muted hover:text-sem-info dark:hover:text-sem-info"
                         :title="config.lxmf_address_hash"
                         @click="$emit('copy-value', config.lxmf_address_hash, $t('app.lxmf_address'))"
                     >
@@ -105,7 +105,7 @@
                 </label>
                 <select
                     :value="config.auto_announce_interval_seconds"
-                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-800 dark:border-zinc-600 text-sem-fg dark:focus:ring-blue-400 dark:focus:border-blue-400"
+                    class="bg-sem-surface-muted border border-sem-border text-sem-fg text-sm rounded-lg focus:ring-sem-accent focus:border-sem-accent block w-full p-2.5 bg-sem-surface dark:border-sem-border text-sem-fg dark:focus:ring-sem-info dark:focus:border-sem-info"
                     @change="$emit('announce-interval-change', Number($event.target.value))"
                 >
                     <option :value="0">{{ $t("app.disabled") }}</option>
@@ -122,7 +122,7 @@
             <div class="p-2">
                 <RouterLink
                     :to="{ name: 'identities' }"
-                    class="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    class="text-xs font-semibold text-sem-info hover:text-sem-info dark:hover:text-sem-info"
                 >
                     {{ $t("app.manage_identities") }}
                 </RouterLink>

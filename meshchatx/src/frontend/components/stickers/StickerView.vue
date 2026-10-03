@@ -3,7 +3,7 @@
         <video v-if="isVideo" ref="videoEl" :src="src" class="sticker-media" loop muted playsinline @error="onError" />
         <div
             v-else-if="isAnimated"
-            class="w-full h-full flex items-center justify-center bg-gray-200/80 dark:bg-zinc-700/50 text-sem-fg-muted"
+            class="w-full h-full flex items-center justify-center bg-gray-200/80 bg-sem-surface text-sem-fg-muted"
             :title="alt || 'TGS'"
             :aria-label="alt || 'Animated sticker'"
         >

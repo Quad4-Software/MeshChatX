@@ -64,7 +64,7 @@ async function localLxmfHash(request) {
 
 test.describe("Live mesh e2e (real RNS peer)", () => {
     test.setTimeout(120000);
-    // RRC cold-connect spans a full path-request window; give it headroom.
+    // RRC cold-connect spans a full path-request window. give it headroom.
     test.skip(!peerReady(), "live peer subprocess not running");
 
     test.beforeEach(async ({ request }) => {
@@ -112,7 +112,7 @@ test.describe("Live mesh e2e (real RNS peer)", () => {
         const marker = `e2e-inbound-${Date.now()}`;
         fs.appendFileSync(PEER_OUTBOX, `${JSON.stringify({ dest: localHash, content: marker })}\n`);
 
-        // Peer sends to the backend lxmf.delivery destination; the backend
+        // Peer sends to the backend lxmf.delivery destination. the backend
         // stores it under the peer's conversation hash.
         await expect
             .poll(
@@ -173,7 +173,7 @@ test.describe("Live mesh e2e (real RNS peer)", () => {
         });
         expect(send.ok(), await send.text()).toBeTruthy();
 
-        // The hub relays our message back over the link; the echo flips the
+        // The hub relays our message back over the link. the echo flips the
         // delivery state to sent and lands in room history.
         await expect
             .poll(
@@ -261,14 +261,14 @@ test.describe("Live mesh traffic budget", () => {
         const before = await interfaceBytes(request);
         expect(before, "interface-stats must report byte counters").not.toBeNull();
 
-        // Let the peer's announce loop and any backend churn run; a #125-class
+        // Let the peer's announce loop and any backend churn run. a #125-class
         // announce/path storm would blow through this in seconds.
         await new Promise((r) => setTimeout(r, 20000));
 
         const after = await interfaceBytes(request);
         const deltaRx = after.rx - before.rx;
         const deltaTx = after.tx - before.tx;
-        // Peer announces 3 destinations every ~2s plus keepalives; budget is
+        // Peer announces 3 destinations every ~2s plus keepalives. budget is
         // generous for jitter but orders of magnitude under any storm.
         expect(deltaRx).toBeLessThan(1_000_000);
         expect(deltaTx).toBeLessThan(1_000_000);
@@ -281,7 +281,7 @@ test.describe("Live mesh traffic budget", () => {
         expect(before).not.toBeNull();
 
         // One real RRC round-trip plus an LXMF exchange, then measure. The
-        // flows themselves are a few KB; the cap catches unbounded retries.
+        // flows themselves are a few KB. the cap catches unbounded retries.
         const marker = `e2e-budget-${Date.now()}`;
         await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/lxmf-messages/send`, {
             lxmf_message: { destination_hash: peer.lxmf_dest, content: marker },
@@ -649,7 +649,7 @@ test.describe("Live mesh adversarial announce storm", () => {
         const hubs = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs`);
         expect(hubs.ok()).toBeTruthy();
 
-        // Traffic bounded: storm announces are small; runaway re-announces or
+        // Traffic bounded: storm announces are small. runaway re-announces or
         // path storms would blow past 4MB in 25s.
         const b1 = await interfaceBytes(request);
         const total = b1.rx - b0.rx + (b1.tx - b0.tx);
@@ -816,7 +816,7 @@ test.describe("Live mesh RRC history and pagination", () => {
             .toBe(2);
         await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms`, { room: "lobby" });
 
-        // One uniquely marked message; after restart it must come back from
+        // One uniquely marked message. after restart it must come back from
         // disk history, not from the live link.
         const send = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/rrc/hubs/${hubHash}/rooms/lobby/messages`, {
             text: `${marker}-old`,

@@ -57,56 +57,52 @@ def _get_sandbox_setup(bot, script_path: str) -> SandboxSetup | None:
     if sandbox_type == "none":
         return None
 
-    if sandbox_type == "landlock" or (
-        sandbox_type == "auto" and _landlock_available(bot)
-    ):
-        if _landlock_available(bot):
-            return SandboxSetup(preexec_fn=_make_cog_landlock_preexec(bot, script_path))
+    if sandbox_type in ("landlock", "auto") and _landlock_available(bot):
+        return SandboxSetup(preexec_fn=_make_cog_landlock_preexec(bot, script_path))
 
     bwrap_path = shutil.which("bwrap")
     firejail_path = shutil.which("firejail")
 
-    if sandbox_type == "bwrap" or (sandbox_type == "auto" and bwrap_path):
-        if bwrap_path:
-            cmd = [
-                bwrap_path,
-                "--unshare-all",
-                "--new-session",
-                "--proc",
-                "/proc",
-                "--dev",
-                "/dev",
-                "--tmpfs",
-                "/tmp",  # noqa: S108
-                "--ro-bind",
-                "/usr",
-                "/usr",
-            ]
+    if bwrap_path and sandbox_type in ("bwrap", "auto"):
+        cmd = [
+            bwrap_path,
+            "--unshare-all",
+            "--new-session",
+            "--proc",
+            "/proc",
+            "--dev",
+            "/dev",
+            # Fresh tmpfs, intentionally not a host path.
+            "--tmpfs",
+            "/tmp",  # noqa: S108  # nosec B108
+            "--ro-bind",
+            "/usr",
+            "/usr",
+        ]
 
-            for path in ["/bin", "/lib", "/lib64", "/sbin"]:
-                if os.path.islink(path):
-                    target = os.readlink(path)
-                    cmd.extend(["--symlink", target, path])
-                elif os.path.exists(path):
-                    cmd.extend(["--ro-bind", path, path])
+        for path in ["/bin", "/lib", "/lib64", "/sbin"]:
+            if os.path.islink(path):
+                target = os.readlink(path)
+                cmd.extend(["--symlink", target, path])
+            elif os.path.exists(path):
+                cmd.extend(["--ro-bind", path, path])
 
-            if os.path.exists("/etc/alternatives"):
-                cmd.extend(["--ro-bind", "/etc/alternatives", "/etc/alternatives"])
+        if os.path.exists("/etc/alternatives"):
+            cmd.extend(["--ro-bind", "/etc/alternatives", "/etc/alternatives"])
 
-            cmd.extend(["--ro-bind", script_path, script_path])
-            return SandboxSetup(cmd_prefix=cmd)
+        cmd.extend(["--ro-bind", script_path, script_path])
+        return SandboxSetup(cmd_prefix=cmd)
 
-    if sandbox_type == "firejail" or (sandbox_type == "auto" and firejail_path):
-        if firejail_path:
-            return SandboxSetup(
-                cmd_prefix=[
-                    firejail_path,
-                    "--quiet",
-                    "--private",
-                    "--net=none",
-                    "--noprofile",
-                ],
-            )
+    if firejail_path and sandbox_type in ("firejail", "auto"):
+        return SandboxSetup(
+            cmd_prefix=[
+                firejail_path,
+                "--quiet",
+                "--private",
+                "--net=none",
+                "--noprofile",
+            ],
+        )
 
     return None
 
@@ -181,13 +177,13 @@ def load_cogs_from_directory(bot, directory="cogs"):
                             # Apply sandbox if enabled and available
                             sandbox_setup = _get_sandbox_setup(bot, script_path)
                             if sandbox_setup and sandbox_setup.cmd_prefix:
-                                full_cmd = (
-                                    sandbox_setup.cmd_prefix
-                                    + [script_path]
-                                    + script_args
-                                )
+                                full_cmd = [
+                                    *sandbox_setup.cmd_prefix,
+                                    script_path,
+                                    *script_args,
+                                ]
                             else:
-                                full_cmd = [script_path] + script_args
+                                full_cmd = [script_path, *script_args]
 
                             run_kwargs: dict = {
                                 "capture_output": True,

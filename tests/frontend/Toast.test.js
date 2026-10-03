@@ -253,3 +253,92 @@ describe("Toast.vue", () => {
         expect(toastVm._swipeX).toBe(0);
     });
 });
+
+describe("Toast dismissal suppression", () => {
+    let wrapper;
+
+    beforeEach(() => {
+        vi.useFakeTimers();
+        wrapper = mount(Toast, {
+            global: {
+                mocks: { $t: (msg) => msg },
+                stubs: {
+                    TransitionGroup: { template: "<div><slot /></div>" },
+                    MaterialDesignIcon: {
+                        name: "MaterialDesignIcon",
+                        template: '<div class="mdi-stub"></div>',
+                        props: ["iconName"],
+                    },
+                },
+            },
+        });
+    });
+
+    afterEach(() => {
+        if (wrapper) wrapper.unmount();
+        vi.useRealTimers();
+    });
+
+    it("does not re-show a keyed toast re-emitted after user dismissal", async () => {
+        GlobalEmitter.emit("toast", { message: "Syncing", type: "loading", duration: 0, key: "sync-key" });
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).toContain("Syncing");
+
+        wrapper.findAll("button").at(-1).trigger("click");
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).not.toContain("Syncing");
+
+        GlobalEmitter.emit("toast", { message: "Syncing", type: "loading", duration: 0, key: "sync-key" });
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).not.toContain("Syncing");
+    });
+
+    it("lifts suppression when the emitter calls dismiss(key)", async () => {
+        GlobalEmitter.emit("toast", { message: "Job", type: "loading", duration: 0, key: "job" });
+        await wrapper.vm.$nextTick();
+        wrapper.findAll("button").at(-1).trigger("click");
+        await wrapper.vm.$nextTick();
+
+        GlobalEmitter.emit("toast-dismiss", { key: "job" });
+        GlobalEmitter.emit("toast", { message: "Job", type: "loading", duration: 0, key: "job" });
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).toContain("Job");
+    });
+
+    it("suppression expires after the quiet window", async () => {
+        GlobalEmitter.emit("toast", { message: "Ping", duration: 0, key: "p" });
+        await wrapper.vm.$nextTick();
+        wrapper.findAll("button").at(-1).trigger("click");
+        await wrapper.vm.$nextTick();
+
+        vi.advanceTimersByTime(61000);
+        GlobalEmitter.emit("toast", { message: "Ping", duration: 0, key: "p" });
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).toContain("Ping");
+    });
+
+    it("auto-dismiss does not suppress future identical toasts", async () => {
+        GlobalEmitter.emit("toast", { message: "Hi", duration: 500, key: "k" });
+        await wrapper.vm.$nextTick();
+        vi.advanceTimersByTime(600);
+        await wrapper.vm.$nextTick();
+
+        GlobalEmitter.emit("toast", { message: "Hi", duration: 0, key: "k" });
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).toContain("Hi");
+    });
+
+    it("Escape clears all toasts and suppresses their keys", async () => {
+        GlobalEmitter.emit("toast", { message: "A", duration: 0, key: "ka" });
+        GlobalEmitter.emit("toast", { message: "B", duration: 0, key: "kb" });
+        await wrapper.vm.$nextTick();
+
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+        await wrapper.vm.$nextTick();
+        expect(wrapper.findAll(".pointer-events-auto").length).toBe(0);
+
+        GlobalEmitter.emit("toast", { message: "A", duration: 0, key: "ka" });
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).not.toContain("A");
+    });
+});

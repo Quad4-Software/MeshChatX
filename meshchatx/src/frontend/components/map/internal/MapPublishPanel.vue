@@ -32,7 +32,7 @@
         <div class="flex gap-2">
             <button
                 type="button"
-                class="flex-1 py-2 text-[10px] font-semibold uppercase rounded-lg bg-blue-500 text-white disabled:opacity-40"
+                class="flex-1 py-2 text-[10px] font-semibold uppercase rounded-lg bg-sem-action-primary text-sem-action-primary-text disabled:opacity-40"
                 :disabled="publishing"
                 @click="pickFile"
             >
@@ -48,10 +48,10 @@
             </button>
         </div>
         <input ref="fileInput" type="file" accept=".geojson,.json,.kml,.kmz" class="hidden" @change="onFile" />
-        <p v-if="strippedPreview.length" class="text-[10px] text-amber-600 dark:text-amber-400">
+        <p v-if="strippedPreview.length" class="text-[10px] text-sem-warning">
             {{ $t("map.data_stripped") }}: {{ strippedPreview.join(", ") }}
         </p>
-        <div v-if="!published.length" class="text-[11px] text-gray-500">{{ $t("map.data_no_published") }}</div>
+        <div v-if="!published.length" class="text-[11px] text-sem-fg-muted">{{ $t("map.data_no_published") }}</div>
         <div
             v-for="row in published"
             :key="row.map_id"
@@ -59,11 +59,11 @@
         >
             <div class="min-w-0">
                 <div class="text-[12px] font-semibold truncate">{{ row.name }}</div>
-                <div class="text-[9px] text-gray-500">
+                <div class="text-[9px] text-sem-fg-muted">
                     {{ row.format }} · {{ $t("map.data_published_size", { size: formatSize(row.size) }) }}
                 </div>
             </div>
-            <button type="button" class="text-[10px] text-red-500 font-semibold" @click="unpublish(row.map_id)">
+            <button type="button" class="text-[10px] text-sem-danger font-semibold" @click="unpublish(row.map_id)">
                 {{ $t("map.data_unpublish") }}
             </button>
         </div>
@@ -72,7 +72,7 @@
 
 <script>
 import ToastUtils from "../../../js/ToastUtils";
-import { apiPath } from "../../../js/constants.js";
+import { apiPath } from "../../../js/constants";
 
 function fileToB64(file) {
     return new Promise((resolve, reject) => {

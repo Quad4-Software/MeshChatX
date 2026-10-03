@@ -10,7 +10,7 @@
         />
         <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-3 sm:py-4 min-w-0">
             <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl mx-auto min-w-0">
-                <div class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6 space-y-3">
+                <div class="w-full border-b border-sem-border dark:border-sem-border py-4 sm:py-6 space-y-3">
                     <h2 class="text-sm font-semibold text-sem-fg">
                         {{ $t("tools.repository_server.http_heading") }}
                     </h2>
@@ -39,7 +39,7 @@
                         <div class="flex flex-wrap gap-2">
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:pointer-events-none"
+                                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-sem-success text-white text-sm font-medium hover:bg-sem-success disabled:opacity-50 disabled:pointer-events-none"
                                 :disabled="httpBusy || loading || httpRunning"
                                 @click="startHttp"
                             >
@@ -48,7 +48,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-600 bg-sem-surface text-sem-fg text-sm font-medium hover:bg-sem-surface-muted disabled:opacity-50 disabled:pointer-events-none"
+                                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-sem-border dark:border-sem-border bg-sem-surface text-sem-fg text-sm font-medium hover:bg-sem-surface-muted disabled:opacity-50 disabled:pointer-events-none"
                                 :disabled="httpBusy || loading || !httpRunning"
                                 @click="stopHttp"
                             >
@@ -57,7 +57,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-600 bg-sem-surface text-sem-fg text-sm font-medium hover:bg-sem-surface-muted disabled:opacity-50 disabled:pointer-events-none"
+                                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-sem-border dark:border-sem-border bg-sem-surface text-sem-fg text-sm font-medium hover:bg-sem-surface-muted disabled:opacity-50 disabled:pointer-events-none"
                                 :disabled="httpBusy || loading"
                                 @click="restartHttp"
                             >
@@ -69,14 +69,14 @@
                     <div v-if="httpRunning && status?.http?.url" class="text-xs space-y-1">
                         <div class="text-sem-fg-muted">
                             {{ $t("tools.repository_server.http_listen_label") }}
-                            <span class="font-mono text-gray-900 text-sem-fg">{{ status.http.url }}</span>
+                            <span class="font-mono text-sem-fg text-sem-fg">{{ status.http.url }}</span>
                         </div>
                         <a
                             v-if="browserRepoUrl"
                             :href="browserRepoUrl"
                             target="_blank"
                             rel="noopener noreferrer"
-                            class="inline-flex items-center gap-1 text-sky-600 dark:text-sky-400 font-medium hover:underline"
+                            class="inline-flex items-center gap-1 text-sem-info font-medium hover:underline"
                         >
                             <MaterialDesignIcon icon-name="open-in-new" class="size-4" />
                             {{ $t("tools.repository_server.open_http") }}
@@ -84,19 +84,19 @@
                     </div>
                 </div>
 
-                <div class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6 space-y-3">
+                <div class="w-full border-b border-sem-border dark:border-sem-border py-4 sm:py-6 space-y-3">
                     <h2 class="text-sm font-semibold text-sem-fg">
                         {{ $t("tools.repository_server.upload_heading") }}
                     </h2>
                     <div class="flex flex-wrap items-center gap-3">
                         <label
-                            class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-sky-600 text-white text-sm font-medium cursor-pointer hover:bg-sky-700 transition-colors"
+                            class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-sem-info text-white text-sm font-medium cursor-pointer hover:bg-sem-info transition-colors"
                         >
                             <MaterialDesignIcon icon-name="upload" class="size-4" />
                             {{ $t("tools.repository_server.choose_file") }}
                             <input type="file" class="hidden" @change="onUpload" />
                         </label>
-                        <p v-if="lastUploadError" class="text-xs text-red-600 dark:text-red-400">
+                        <p v-if="lastUploadError" class="text-xs text-sem-danger">
                             {{ lastUploadError }}
                         </p>
                     </div>
@@ -104,10 +104,10 @@
 
                 <div
                     v-if="status?.last_refresh_failed && Object.keys(status.last_refresh_failed).length"
-                    class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6"
+                    class="w-full border-b border-sem-border dark:border-sem-border py-4 sm:py-6"
                 >
                     <div
-                        class="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200"
+                        class="rounded-xl border border-sem-warning dark:border-sem-warning bg-sem-warning/15 dark:bg-sem-warning/15 p-3 text-xs text-sem-warning dark:text-sem-warning"
                     >
                         <div class="font-semibold mb-1">{{ $t("tools.repository_server.refresh_partial") }}</div>
                         <ul class="list-disc pl-4 space-y-1">
@@ -124,17 +124,17 @@
                         <h2 class="text-sm font-semibold text-sem-fg">
                             {{ $t("tools.repository_server.files_heading") }}
                         </h2>
-                        <span class="text-xs text-gray-500">{{ entries.length }}</span>
+                        <span class="text-xs text-sem-fg-muted">{{ entries.length }}</span>
                     </div>
-                    <div v-if="loading" class="text-center text-sm text-gray-500 py-6">
+                    <div v-if="loading" class="text-center text-sm text-sem-fg-muted py-6">
                         {{ $t("common.loading") }}
                     </div>
-                    <div v-else-if="entries.length === 0" class="text-center text-sm text-gray-500 py-6">
+                    <div v-else-if="entries.length === 0" class="text-center text-sm text-sem-fg-muted py-6">
                         {{ $t("tools.repository_server.empty") }}
                     </div>
                     <table v-else class="w-full text-left text-xs">
                         <thead
-                            class="text-gray-500 uppercase tracking-wide border-b border-gray-200/60 dark:border-zinc-800/60"
+                            class="text-sem-fg-muted uppercase tracking-wide border-b border-sem-border dark:border-sem-border"
                         >
                             <tr>
                                 <th class="px-4 py-2 font-semibold">{{ $t("tools.repository_server.col_name") }}</th>
@@ -154,7 +154,7 @@
                                     <button
                                         v-if="row.source === 'upload'"
                                         type="button"
-                                        class="text-red-600 dark:text-red-400 hover:underline text-xs font-medium"
+                                        class="text-sem-danger hover:underline text-xs font-medium"
                                         @click="deleteUpload(row.name)"
                                     >
                                         {{ $t("tools.repository_server.delete") }}
@@ -175,7 +175,7 @@ import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import LinkUtils from "../../js/LinkUtils.js";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 
 export default {
     name: "RepositoryServerPage",

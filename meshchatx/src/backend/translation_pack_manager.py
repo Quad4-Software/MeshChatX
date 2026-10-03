@@ -169,6 +169,16 @@ class TranslationPackManager:
             except OSError:
                 pass
 
+    def install_files_dir(self, files_dir: str, pair: str) -> list[str]:
+        """Install a downloaded pair directory (files already on disk)."""
+        norm = os.path.normpath(files_dir)
+        if os.path.basename(norm).lower() != pair:
+            raise TranslationPackError(f"Pair directory missing: {pair}")
+        pack = self._infer_pack_from_directory(norm, pair)
+        installed = self._install_pack(os.path.dirname(norm), pack)
+        self._rebuild_registry()
+        return installed
+
     def remove_pack(self, pair: str) -> bool:
         if not _PAIR_CODE_RE.match(pair):
             return False

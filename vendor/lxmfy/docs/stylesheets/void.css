@@ -1,0 +1,187 @@
+/* Quad4 void theme for LXMFy docs.
+   Dark scheme "void" is the default look, light scheme "paper" inverts it.
+   Palette taken from quad4.io design tokens. */
+
+[data-md-color-scheme="void"] {
+  color-scheme: dark;
+
+  --md-default-fg-color:           #f4f4f5e0;
+  --md-default-fg-color--light:    #f4f4f58f;
+  --md-default-fg-color--lighter:  #f4f4f552;
+  --md-default-fg-color--lightest: #f4f4f51f;
+  --md-default-bg-color:           #0a0a0b;
+  --md-default-bg-color--light:    #0a0a0b8a;
+  --md-default-bg-color--lighter:  #0a0a0b42;
+  --md-default-bg-color--lightest: #0a0a0b12;
+
+  --md-primary-fg-color:           #fafafa;
+  --md-primary-fg-color--light:    #a1a1aa;
+  --md-primary-fg-color--dark:     #52525b;
+  --md-primary-bg-color:           #fafafad9;
+  --md-primary-bg-color--light:    #fafafa70;
+  --md-accent-fg-color:            #fafafa;
+  --md-accent-fg-color--transparent: #fafafa1a;
+  --md-accent-bg-color:            #fafafa33;
+  --md-accent-bg-color--light:     #fafafa1a;
+
+  --md-code-fg-color:              #e4e4e7;
+  --md-code-bg-color:              #16161a;
+  --md-code-bg-color--light:       #16161ae6;
+  --md-code-bg-color--lighter:     #16161a8a;
+  --md-code-hl-color:              #fb923c;
+  --md-code-hl-color--light:       #fb923c1a;
+  --md-code-hl-number-color:       #c4b5fd;
+  --md-code-hl-special-color:      #fdba74;
+  --md-code-hl-function-color:     #93c5fd;
+  --md-code-hl-constant-color:     #c4b5fd;
+  --md-code-hl-keyword-color:      #fb923c;
+  --md-code-hl-string-color:       #86efac;
+  --md-code-hl-name-color:         var(--md-code-fg-color);
+  --md-code-hl-operator-color:     #a1a1aa;
+  --md-code-hl-punctuation-color:  #a1a1aa;
+  --md-code-hl-comment-color:      #71717a;
+  --md-code-hl-generic-color:      #a1a1aa;
+  --md-code-hl-variable-color:     #e4e4e7;
+
+  --md-typeset-color:              var(--md-default-fg-color);
+  --md-typeset-a-color:            #fafafa;
+  --md-typeset-kbd-color:          #f4f4f51f;
+  --md-typeset-kbd-accent-color:   #f4f4f533;
+  --md-typeset-kbd-border-color:   #2a2a31;
+  --md-typeset-mark-color:         #fb923c4d;
+  --md-typeset-table-color:        #f4f4f51f;
+  --md-typeset-table-color--light: #f4f4f509;
+
+  --md-admonition-fg-color:        var(--md-default-fg-color);
+  --md-admonition-bg-color:        #101013;
+
+  --md-footer-bg-color:            #101013dc;
+  --md-footer-bg-color--dark:      #050506;
+
+  --md-shadow-z1: 0 .2rem .5rem #0000000d, 0 0 .05rem #ffffff1a;
+  --md-shadow-z2: 0 .2rem .5rem #00000040, 0 0 .05rem #ffffff59;
+  --md-shadow-z3: 0 .5rem 2rem #0006, 0 0 .05rem #00000059;
+}
+
+[data-md-color-scheme="paper"] {
+  color-scheme: light;
+
+  --md-default-fg-color:           #0a0a0be0;
+  --md-default-fg-color--light:    #0a0a0b8f;
+  --md-default-fg-color--lighter:  #0a0a0b52;
+  --md-default-fg-color--lightest: #0a0a0b1f;
+  --md-default-bg-color:           #fafafa;
+  --md-default-bg-color--light:    #fafafa8a;
+  --md-default-bg-color--lighter:  #fafafa42;
+  --md-default-bg-color--lightest: #fafafa12;
+
+  --md-primary-fg-color:           #0a0a0b;
+  --md-primary-fg-color--light:    #52525b;
+  --md-primary-fg-color--dark:     #d4d4d8;
+  --md-primary-bg-color:           #0a0a0bd9;
+  --md-primary-bg-color--light:    #0a0a0b70;
+  --md-accent-fg-color:            #0a0a0b;
+  --md-accent-fg-color--transparent: #0a0a0b1a;
+  --md-accent-bg-color:            #0a0a0b26;
+  --md-accent-bg-color--light:     #0a0a0b12;
+
+  --md-code-fg-color:              #27272a;
+  --md-code-bg-color:              #f4f4f5;
+  --md-code-bg-color--light:       #f4f4f5e6;
+  --md-code-bg-color--lighter:     #f4f4f58a;
+  --md-code-hl-color:              #c2410c;
+  --md-code-hl-color--light:       #c2410c1a;
+  --md-code-hl-number-color:       #7c3aed;
+  --md-code-hl-special-color:      #ea580c;
+  --md-code-hl-function-color:     #1d4ed8;
+  --md-code-hl-constant-color:     #7c3aed;
+  --md-code-hl-keyword-color:      #c2410c;
+  --md-code-hl-string-color:       #15803d;
+  --md-code-hl-name-color:         var(--md-code-fg-color);
+  --md-code-hl-operator-color:     #71717a;
+  --md-code-hl-punctuation-color:  #71717a;
+  --md-code-hl-comment-color:      #71717a;
+  --md-code-hl-generic-color:      #71717a;
+  --md-code-hl-variable-color:     #27272a;
+
+  --md-typeset-color:              var(--md-default-fg-color);
+  --md-typeset-a-color:            #0a0a0b;
+  --md-typeset-kbd-color:          #0a0a0b1f;
+  --md-typeset-kbd-accent-color:   #0a0a0b33;
+  --md-typeset-kbd-border-color:   #d9d9de;
+  --md-typeset-mark-color:         #fb923c66;
+  --md-typeset-table-color:        #0a0a0b1f;
+  --md-typeset-table-color--light: #0a0a0b09;
+
+  --md-admonition-fg-color:        var(--md-default-fg-color);
+  --md-admonition-bg-color:        #f4f4f5;
+
+  --md-footer-bg-color:            #f4f4f5dc;
+  --md-footer-bg-color--dark:      #e9e9ec;
+
+  --md-shadow-z1: 0 .2rem .5rem #0000000d, 0 0 .05rem #0000001a;
+  --md-shadow-z2: 0 .2rem .5rem #00000014, 0 0 .05rem #00000026;
+  --md-shadow-z3: 0 .5rem 2rem #0000001f, 0 0 .05rem #00000026;
+}
+
+/* Links: monochrome accent, distinguished by underline like quad4.io */
+.md-typeset a {
+  text-decoration: underline;
+  text-decoration-color: var(--md-default-fg-color--lighter);
+  text-underline-offset: .2em;
+}
+
+.md-typeset a:hover {
+  text-decoration-color: currentColor;
+}
+
+.md-typeset a code,
+.md-typeset a .md-icon {
+  text-decoration: none;
+}
+
+/* Flat surfaces, hairline borders, quad4 radii */
+.md-typeset .admonition,
+.md-typeset details,
+.md-typeset pre,
+.md-typeset .highlight,
+.md-typeset .highlighttable,
+.md-typeset .md-content__inner .tabbed-set,
+.md-typeset table:not([class]) {
+  border-radius: .4rem;
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border: .05rem solid var(--md-default-fg-color--lightest);
+  box-shadow: none;
+}
+
+/* Code blocks: the code element carries the background, so the border
+   lives on the .highlight wrapper. The pre inside keeps 1em margins by
+   default, which leaves unstyled strips inside the border, so move the
+   block spacing onto the wrapper and let pre hug the code. */
+.md-typeset .highlight,
+.md-typeset .highlighttable {
+  margin: 1em 0;
+  border: .05rem solid var(--md-default-fg-color--lightest);
+}
+
+.md-typeset .highlight>pre,
+.md-typeset .highlighttable pre {
+  margin: 0;
+}
+
+.md-nav__link--active,
+.md-nav__link:active {
+  font-weight: 600;
+}
+
+/* Header right side: search, repo link, language picker, palette last */
+.md-header__option {
+  order: 1;
+  margin-inline-start: .4rem;
+}
+.md-header__option[data-md-component="palette"] {
+  order: 2;
+}

@@ -5,6 +5,7 @@ import io
 import json
 import logging
 import os
+import posixpath
 import re
 import shutil
 import stat
@@ -23,6 +24,19 @@ logger = logging.getLogger(__name__)
 BUNDLED_DOCS_SUBDIR = os.path.join("reticulum-docs-bundled", "current")
 MANIFEST_FILENAME = "manifest.json"
 DOC_FILE_SUFFIXES = (".md", ".txt")
+# Binary doc assets (screenshots, diagrams, clips) live beside the markdown
+# and must be synced so /meshchatx-docs/ can serve them in-app.
+DOC_ASSET_SUFFIXES = (
+    ".webp",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".svg",
+    ".webm",
+    ".mp4",
+    ".ico",
+)
 
 
 MAX_DOCS_ZIP_BYTES = 256 * 1024 * 1024
@@ -270,7 +284,12 @@ class DocsManager:
             )
             os.makedirs(target_root, exist_ok=True)
             for file in files:
-                if file == MANIFEST_FILENAME or file.endswith(DOC_FILE_SUFFIXES):
+                suffix = os.path.splitext(file)[1].lower()
+                if (
+                    file == MANIFEST_FILENAME
+                    or file.endswith(DOC_FILE_SUFFIXES)
+                    or suffix in DOC_ASSET_SUFFIXES
+                ):
                     src_path = os.path.join(root, file)
                     dest_path = os.path.join(target_root, file)
                     if os.path.abspath(src_path) != os.path.abspath(dest_path):
@@ -601,9 +620,16 @@ class DocsManager:
 
         try:
             if path.endswith(".md"):
+                # Relative image srcs resolve under /meshchatx-docs/<dir>/ so
+                # docs can ship sibling assets (docs/en/assets/x.webp) and have
+                # them render in-app while staying relative for web readers.
+                doc_dir = posixpath.dirname(path)
+                img_base = (
+                    f"/meshchatx-docs/{doc_dir}/" if doc_dir else "/meshchatx-docs/"
+                )
                 return {
                     "content": content,
-                    "html": MarkdownRenderer.render(content),
+                    "html": MarkdownRenderer.render(content, img_base=img_base),
                     "type": "markdown",
                 }
             return {

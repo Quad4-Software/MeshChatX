@@ -1,0 +1,92 @@
+---
+- name: Create meshchatx user
+  ansible.builtin.user:
+    name: "{{ meshchatx_user }}"
+    uid: "{{ meshchatx_uid }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Create config directory
+  ansible.builtin.file:
+    path: "{{ meshchatx_config_dir }}"
+    state: directory
+    owner: "{{ meshchatx_uid }}"
+    group: "{{ meshchatx_gid }}"
+    mode: "0750"
+
+- name: Pull meshchatx image
+  containers.podman.podman_image:
+    name: "{{ meshchatx_image }}:{{ meshchatx_version }}"
+    pull: true
+  when: ansible_facts.packages.podman is defined
+
+- name: Pull meshchatx image (docker)
+  community.docker.docker_image:
+    name: "{{ meshchatx_image }}:{{ meshchatx_version }}"
+    source: pull
+  when: ansible_facts.packages.podman is not defined
+
+- name: Run meshchatx container
+  containers.podman.podman_container:
+    name: "{{ meshchatx_container_name }}"
+    image: "{{ meshchatx_image }}:{{ meshchatx_version }}"
+    state: started
+    restart_policy: unless-stopped
+    read_only: true
+    no_new_privileges: true
+    cap_drop:
+      - ALL
+    ports:
+      - "{{ meshchatx_bind }}:{{ meshchatx_port }}:8000"
+    volumes:
+      - "{{ meshchatx_config_dir }}:/config:Z"
+    tmpfs:
+      - /tmp:noexec,nosuid,size=256m
+      - /home/meshchat:nosuid,size=64m
+    ulimits:
+      - "nofile=65536:65536"
+    env: "{{ meshchatx_extra_env }}"
+    command_args: "{{ meshchatx_extra_args }}"
+  when: ansible_facts.packages.podman is defined
+
+- name: Run meshchatx container (docker)
+  community.docker.docker_container:
+    name: "{{ meshchatx_container_name }}"
+    image: "{{ meshchatx_image }}:{{ meshchatx_version }}"
+    state: started
+    restart_policy: unless-stopped
+    read_only: true
+    no_new_privileges: true
+    cap_drop:
+      - ALL
+    ports:
+      - "{{ meshchatx_bind }}:{{ meshchatx_port }}:8000"
+    volumes:
+      - "{{ meshchatx_config_dir }}:/config"
+    tmpfs:
+      - /tmp:noexec,nosuid,size=256m
+      - /home/meshchat:nosuid,size=64m
+    ulimits:
+      - "nofile=65536:65536"
+    env: "{{ meshchatx_extra_env }}"
+  when: ansible_facts.packages.podman is not defined
+
+- name: Configure nginx reverse proxy
+  when: meshchatx_nginx_enabled
+  block:
+    - name: Install nginx config
+      ansible.builtin.template:
+        src: nginx.conf.j2
+        dest: "/etc/nginx/sites-available/{{ meshchatx_domain }}.conf"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload nginx
+
+    - name: Enable nginx site
+      ansible.builtin.file:
+        src: "/etc/nginx/sites-available/{{ meshchatx_domain }}.conf"
+        dest: "/etc/nginx/sites-enabled/{{ meshchatx_domain }}.conf"
+        state: link
+      notify: Reload nginx

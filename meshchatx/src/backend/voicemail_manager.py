@@ -296,7 +296,9 @@ class VoicemailManager:
                             RNS.LOG_DEBUG,
                         )
 
-        threading.Thread(target=voicemail_job, daemon=True).start()
+        threading.Thread(
+            target=voicemail_job, daemon=True, name="mcx-voicemail"
+        ).start()
 
     def start_voicemail_session(self, caller_identity):
         telephone = self.telephone_manager.telephone
@@ -438,7 +440,7 @@ class VoicemailManager:
                     if not prev_receive_muted:
                         self.telephone_manager.unmute_receive()
 
-        threading.Thread(target=session_job, daemon=True).start()
+        threading.Thread(target=session_job, daemon=True, name="mcx-voicemail").start()
 
     def start_recording(self, caller_identity):
         telephone = self.telephone_manager.telephone
@@ -507,7 +509,7 @@ class VoicemailManager:
             finally:
                 done.set()
 
-        threading.Thread(target=_stop, daemon=True).start()
+        threading.Thread(target=_stop, daemon=True, name="mcx-voicemail").start()
         done.wait(timeout_s)
 
     def stop_recording(self):

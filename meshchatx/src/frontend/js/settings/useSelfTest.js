@@ -2,7 +2,7 @@
 
 import { computed, ref } from "vue";
 
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 const SELF_TEST_KEYS = [
     "stack_up",

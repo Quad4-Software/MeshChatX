@@ -24,3 +24,12 @@ pnpm exec playwright test --config playwright.ui.config.js tests/ui/perf.spec.js
 MESHCHAT_HEAP_CYCLES="${MESHCHAT_HEAP_CYCLES:-3}" \
     pnpm exec playwright test --config playwright.ui.config.js tests/ui/heap-profile.spec.js
 pnpm exec playwright test --config playwright.lighthouse.config.js
+
+# Aggregate perf/heap/lighthouse results, append to metrics history, and fail
+# on regressions versus the checked-in baseline. Report-only when no baseline
+# exists yet so the check introduces itself gradually.
+if [ -f tests/ui/baseline.json ]; then
+    node scripts/ui/metrics-check.mjs
+else
+    node scripts/ui/metrics-check.mjs --report || true
+fi

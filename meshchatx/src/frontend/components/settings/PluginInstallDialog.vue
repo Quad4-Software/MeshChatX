@@ -47,7 +47,7 @@
                     {{ preview.signature.signer }}
                     <span v-if="preview.signature.signer_name"> ({{ preview.signature.signer_name }})</span>
                 </p>
-                <p v-if="preview.signature?.error" class="text-xs text-red-600 dark:text-red-400">
+                <p v-if="preview.signature?.error" class="text-xs text-sem-danger">
                     {{ preview.signature.error }}
                 </p>
                 <label v-if="canTrustPublisher" class="inline-flex items-center gap-2 text-xs text-sem-fg">
@@ -94,7 +94,7 @@
                 <h3 class="text-sm font-semibold text-sem-fg">
                     {{ $t("plugins.install_dialog.network_endpoints") }}
                 </h3>
-                <p v-if="!networkFetchGranted" class="text-xs text-amber-700 dark:text-amber-300">
+                <p v-if="!networkFetchGranted" class="text-xs text-sem-warning">
                     {{ $t("plugins.install_dialog.network_endpoints_blocked") }}
                 </p>
                 <ul
@@ -125,7 +125,7 @@
                 </button>
                 <button
                     type="button"
-                    class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm disabled:opacity-50"
+                    class="px-3 py-1.5 rounded-md bg-sem-action-primary text-sem-action-primary-text text-sm disabled:opacity-50"
                     :disabled="confirming || signatureBlocksInstall"
                     @click="confirm"
                 >
@@ -181,13 +181,13 @@ export default {
         signatureClass() {
             const signature = this.preview?.signature || {};
             if (signature.present && !signature.valid) {
-                return "text-red-700 dark:text-red-300";
+                return "text-sem-danger";
             }
             if (signature.valid && signature.trusted) {
-                return "text-green-700 dark:text-green-300";
+                return "text-sem-success";
             }
             if (signature.valid) {
-                return "text-sky-700 dark:text-sky-300";
+                return "text-sem-info";
             }
             return "text-sem-fg-muted";
         },

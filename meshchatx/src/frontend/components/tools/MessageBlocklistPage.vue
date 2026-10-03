@@ -11,14 +11,14 @@
         <div class="flex-1 overflow-y-auto w-full pb-[max(1rem,env(safe-area-inset-bottom))]">
             <div class="p-3 sm:p-4 md:p-6 max-w-4xl mx-auto w-full space-y-4 min-w-0">
                 <div
-                    class="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 flex items-start gap-3"
+                    class="rounded-xl border border-sem-warning dark:border-sem-warning bg-sem-warning/15 dark:bg-sem-warning/15 px-4 py-3 flex items-start gap-3"
                 >
                     <MaterialDesignIcon
                         icon-name="alert-circle-outline"
-                        class="size-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"
+                        class="size-5 text-sem-warning shrink-0 mt-0.5"
                     />
                     <div class="min-w-0">
-                        <div class="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                        <div class="text-sm font-semibold text-sem-warning dark:text-sem-warning">
                             {{ $t("tools.message_blocklist.beta_notice_title") }}
                         </div>
                         <p class="text-xs text-amber-800/90 dark:text-amber-300/90 mt-1 leading-relaxed">
@@ -32,7 +32,7 @@
                         <input
                             v-model="enabled"
                             type="checkbox"
-                            class="rounded-sm border-gray-300 size-4"
+                            class="rounded-sm border-sem-border size-4"
                             @change="onEnabledChange"
                         />
                         <span class="text-sm font-medium text-sem-fg">
@@ -55,7 +55,7 @@
                         <div class="flex flex-wrap items-center gap-2">
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-sem-border text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-sem-border text-sem-fg hover:bg-gray-50 dark:hover:bg-sem-surface transition-colors"
                                 @click="exportList"
                             >
                                 <MaterialDesignIcon icon-name="export" class="size-4" />
@@ -63,7 +63,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-sem-border text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-sem-border text-sem-fg hover:bg-gray-50 dark:hover:bg-sem-surface transition-colors"
                                 @click="triggerImport"
                             >
                                 <MaterialDesignIcon icon-name="import" class="size-4" />
@@ -112,19 +112,19 @@
                             <div class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest">
                                 {{ $t("tools.message_blocklist.match_in_label") }}
                             </div>
-                            <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                            <label class="inline-flex items-center gap-2 text-sm text-sem-fg">
                                 <input
                                     v-model="blocklist.match_message"
                                     type="checkbox"
-                                    class="rounded-sm border-gray-300"
+                                    class="rounded-sm border-sem-border"
                                 />
                                 {{ $t("tools.message_blocklist.match_message") }}
                             </label>
-                            <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                            <label class="inline-flex items-center gap-2 text-sm text-sem-fg">
                                 <input
                                     v-model="blocklist.match_peer_fields"
                                     type="checkbox"
-                                    class="rounded-sm border-gray-300"
+                                    class="rounded-sm border-sem-border"
                                 />
                                 {{ $t("tools.message_blocklist.match_peer_fields") }}
                             </label>
@@ -139,17 +139,21 @@
                         <div
                             v-for="(entry, index) in blocklist.entries"
                             :key="entry.id"
-                            class="rounded-lg border border-sem-border p-3 space-y-3 bg-gray-50/80 dark:bg-zinc-900/40"
+                            class="rounded-lg border border-sem-border p-3 space-y-3 bg-sem-surface-muted/80 dark:bg-sem-surface"
                         >
                             <div class="flex flex-wrap items-center justify-between gap-2">
-                                <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
-                                    <input v-model="entry.enabled" type="checkbox" class="rounded-sm border-gray-300" />
+                                <label class="inline-flex items-center gap-2 text-sm text-sem-fg">
+                                    <input
+                                        v-model="entry.enabled"
+                                        type="checkbox"
+                                        class="rounded-sm border-sem-border"
+                                    />
                                     {{ $t("tools.message_blocklist.entry_enabled") }}
                                 </label>
                                 <div class="flex items-center gap-1">
                                     <button
                                         type="button"
-                                        class="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                                        class="p-1.5 rounded-lg text-sem-danger hover:bg-sem-danger/15 dark:hover:bg-red-950/40"
                                         :title="$t('tools.message_blocklist.remove_entry')"
                                         @click="removeEntry(index)"
                                     >
@@ -192,7 +196,7 @@
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-sem-border text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-sem-border text-sem-fg hover:bg-gray-50 dark:hover:bg-sem-surface transition-colors"
                             @click="reload"
                         >
                             <MaterialDesignIcon icon-name="refresh" class="size-4" />
@@ -211,7 +215,7 @@ import ToolsPageHeader from "./ToolsPageHeader.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import DialogUtils from "../../js/DialogUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 
 function newEntryId() {
     return Math.random().toString(16).slice(2, 18);

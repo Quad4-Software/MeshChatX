@@ -323,6 +323,19 @@ def register_app_info_routes(routes, app):
             {
                 "app_info": {
                     "version": app.get_app_version(),
+                    # API contract version - bump when adding backend capabilities.
+                    # Frontend checks this to gate features that need newer backend.
+                    "api_version": 2,
+                    # Features this backend supports. Frontend hides/disables UI
+                    # for features absent from this list when running against an
+                    # older backend.
+                    "capabilities": {
+                        "rrc_member_count": True,
+                        "rrc_hop_count": True,
+                        "glass_theme": True,
+                        "segmented_controls": True,
+                        "lxst_hash_format": True,
+                    },
                     **(app.get_build_meta() if hasattr(app, "get_build_meta") else {}),
                     "lxmf_version": LXMF.__version__,
                     "rns_version": RNS.__version__,
@@ -588,6 +601,18 @@ def register_app_info_routes(routes, app):
             return http_bad_request("key too long")
         app.config.set("channel_prompt_seen", seen_key)
         return web.json_response({"message": "Channel prompt marked as seen"})
+
+    # custom font blob, served on demand instead of inside config broadcasts
+    @routes.get(API_V1_PREFIX + "/app/custom-font")
+    async def app_custom_font(request):
+        ctx = app.current_context
+        if ctx is None or not ctx.config:
+            return web.json_response({"name": None, "data": None})
+        name = ctx.config.ui_custom_font_name.get()
+        data = ctx.config.ui_custom_font_data.get()
+        if not name or not data:
+            return web.json_response({"name": None, "data": None})
+        return web.json_response({"name": name, "data": data})
 
     # shutdown app
 

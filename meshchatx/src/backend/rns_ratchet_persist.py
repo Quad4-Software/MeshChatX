@@ -70,7 +70,7 @@ def _worker_loop() -> None:
         if item is None:
             return
         if _IO_PRESSURE:
-            # Disk is stalling. Put the signal back and back off; the
+            # Disk is stalling. Put the signal back and back off. the
             # latest map still carries the newest ratchet bytes.
             try:
                 _QUEUE.put_nowait(item)

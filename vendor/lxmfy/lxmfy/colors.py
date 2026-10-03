@@ -1,9 +1,15 @@
 """Color support module for LXMFy CLI.
 
 Provides cross-platform color support for terminal output.
+Honours NO_COLOR / FORCE_COLOR, skips ANSI when not a TTY, and enables
+Windows Virtual Terminal Processing when available (modern Windows Terminal,
+PowerShell, and CMD). Classic consoles without VT fall back to plain text.
 """
 
+from __future__ import annotations
+
 import os
+import re
 import sys
 
 
@@ -19,12 +25,25 @@ class Colors:
     GREEN = "\033[92m"
     YELLOW = "\033[93m"
     RED = "\033[91m"
+    MAGENTA = "\033[95m"
+    DIM = "\033[2m"
     ENDC = "\033[0m"
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
 
     _colors_enabled: bool | None = None
     _windows_vt_enabled: bool = False
+
+    @classmethod
+    def reset(cls) -> None:
+        """Clear cached color support state (for tests and --no-color)."""
+        cls._colors_enabled = None
+        cls._windows_vt_enabled = False
+
+    @classmethod
+    def set_enabled(cls, enabled: bool) -> None:
+        """Force colors on or off, overriding auto-detection."""
+        cls._colors_enabled = bool(enabled)
 
     @classmethod
     def enable_windows_colors(cls) -> bool:
@@ -41,6 +60,12 @@ class Colors:
             cls._colors_enabled = True
             return True
 
+        # Third-party ANSI wrappers (legacy CMD / ConEmu)
+        if os.environ.get("ANSICON") or os.environ.get("ConEmuANSI") == "ON":  # noqa: SIM112 - ConEmu exports this exact name
+            cls._windows_vt_enabled = True
+            cls._colors_enabled = True
+            return True
+
         try:
             import ctypes
             from ctypes import wintypes
@@ -51,6 +76,7 @@ class Colors:
             STD_ERROR_HANDLE = -12
             ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
 
+            enabled_any = False
             for std_handle in [STD_OUTPUT_HANDLE, STD_ERROR_HANDLE]:
                 handle = kernel32.GetStdHandle(std_handle)
                 if handle == -1 or handle == 0:
@@ -63,6 +89,11 @@ class Colors:
                 mode.value |= ENABLE_VIRTUAL_TERMINAL_PROCESSING
                 if not kernel32.SetConsoleMode(handle, mode):
                     continue
+                enabled_any = True
+
+            if not enabled_any:
+                cls._colors_enabled = False
+                return False
 
             cls._windows_vt_enabled = True
             cls._colors_enabled = True
@@ -83,12 +114,27 @@ class Colors:
         if cls._colors_enabled is not None:
             return cls._colors_enabled
 
-        if sys.platform == "win32":
-            return cls.enable_windows_colors()
+        # https://no-color.org/
+        if os.environ.get("NO_COLOR", ""):
+            cls._colors_enabled = False
+            return False
+
+        force = os.environ.get("FORCE_COLOR", "") or os.environ.get(
+            "CLICOLOR_FORCE",
+            "",
+        )
+        if force and force != "0":
+            if sys.platform == "win32":
+                cls.enable_windows_colors()
+            cls._colors_enabled = True
+            return True
 
         if not hasattr(sys.stdout, "isatty") or not sys.stdout.isatty():
             cls._colors_enabled = False
             return False
+
+        if sys.platform == "win32":
+            return cls.enable_windows_colors()
 
         term = os.environ.get("TERM", "")
         if term == "dumb" or not term:
@@ -127,8 +173,6 @@ class Colors:
             Text with ANSI codes removed.
 
         """
-        import re
-
         ansi_escape = re.compile(r"\033\[[0-9;]*m")
         return ansi_escape.sub("", text)
 
@@ -160,6 +204,19 @@ def print_header(text: str) -> None:
         print(f"\n{'=' * 50}")
         print(f"{text.center(50)}")
         print(f"{'=' * 50}\n")
+
+
+def print_section(text: str) -> None:
+    """Print a section title.
+
+    Args:
+        text: The section title.
+
+    """
+    if Colors.is_colors_supported():
+        print(f"\n{Colors.CYAN}{Colors.BOLD}--- {text} ---{Colors.ENDC}")
+    else:
+        print(f"\n--- {text} ---")
 
 
 def print_success(text: str) -> None:
@@ -214,6 +271,81 @@ def print_warning(text: str) -> None:
         print(f"[WARNING] {text}")
 
 
+def print_dim(text: str) -> None:
+    """Print a dimmed / secondary detail line.
+
+    Args:
+        text: The detail text.
+
+    """
+    if Colors.is_colors_supported():
+        print(f"{Colors.DIM}  {text}{Colors.ENDC}")
+    else:
+        print(f"  {text}")
+
+
+def print_kv(key: str, value: str, *, ok: bool | None = None) -> None:
+    """Print a key/value diagnostic line.
+
+    Args:
+        key: Label.
+        value: Value text.
+        ok: Optional status tint (True green, False red, None neutral).
+
+    """
+    if Colors.is_colors_supported():
+        label = f"{Colors.BOLD}{key}:{Colors.ENDC}"
+        if ok is True:
+            val = f"{Colors.GREEN}{value}{Colors.ENDC}"
+        elif ok is False:
+            val = f"{Colors.RED}{value}{Colors.ENDC}"
+        else:
+            val = f"{Colors.CYAN}{value}{Colors.ENDC}"
+        print(f"  {label} {val}")
+    else:
+        print(f"  {key}: {value}")
+
+
+def print_check(
+    label: str,
+    status: str,
+    detail: str = "",
+    hint: str | None = None,
+) -> None:
+    """Print a diagnostic check result.
+
+    Args:
+        label: Check name.
+        status: One of ok, warn, fail, info.
+        detail: Optional detail text.
+        hint: Optional remediation hint.
+
+    """
+    status = status.lower()
+    if Colors.is_colors_supported():
+        markers = {
+            "ok": f"{Colors.GREEN}{Colors.BOLD}[OK]{Colors.ENDC}",
+            "warn": f"{Colors.YELLOW}{Colors.BOLD}[WARN]{Colors.ENDC}",
+            "fail": f"{Colors.RED}{Colors.BOLD}[FAIL]{Colors.ENDC}",
+            "info": f"{Colors.BLUE}{Colors.BOLD}[INFO]{Colors.ENDC}",
+        }
+        marker = markers.get(status, markers["info"])
+        line = f"  {marker} {Colors.BOLD}{label}{Colors.ENDC}"
+        if detail:
+            line += f"  {Colors.DIM}{detail}{Colors.ENDC}"
+        print(line)
+        if hint:
+            print(f"         {Colors.YELLOW}hint: {hint}{Colors.ENDC}")
+    else:
+        tag = f"[{status.upper()}]"
+        line = f"  {tag} {label}"
+        if detail:
+            line += f"  {detail}"
+        print(line)
+        if hint:
+            print(f"         hint: {hint}")
+
+
 def print_menu() -> None:
     """Print the interactive menu."""
     print_header("LXMFy Bot Framework")
@@ -221,10 +353,12 @@ def print_menu() -> None:
         print(f"{Colors.CYAN}Available Commands:{Colors.ENDC}")
         print(f"{Colors.BOLD}1.{Colors.ENDC} Create a new bot")
         print(f"{Colors.BOLD}2.{Colors.ENDC} Run a template bot")
-        print(f"{Colors.BOLD}3.{Colors.ENDC} Exit")
+        print(f"{Colors.BOLD}3.{Colors.ENDC} Debugger")
+        print(f"{Colors.BOLD}4.{Colors.ENDC} Exit")
     else:
         print("Available Commands:")
         print("1. Create a new bot")
         print("2. Run a template bot")
-        print("3. Exit")
+        print("3. Debugger")
+        print("4. Exit")
     print()

@@ -5,16 +5,16 @@
         <!-- Progress Bar -->
         <div
             v-if="status.status === 'extracting'"
-            class="w-full h-1 bg-gray-200 dark:bg-zinc-800 overflow-hidden relative shrink-0"
+            class="w-full h-1 bg-sem-surface-muted overflow-hidden relative shrink-0"
         >
-            <div class="bg-blue-500 h-full transition-all duration-300" :style="{ width: status.progress + '%' }"></div>
-            <div class="absolute inset-0 bg-blue-500/30 animate-pulse"></div>
+            <div class="bg-sem-info h-full transition-all duration-300" :style="{ width: status.progress + '%' }"></div>
+            <div class="absolute inset-0 bg-sem-info/30 animate-pulse"></div>
         </div>
 
         <div class="flex-1 relative bg-sem-surface overflow-hidden flex min-h-0">
             <!-- Docs control column -->
             <aside
-                class="hidden lg:flex flex-col w-72 shrink-0 border-r border-sem-border bg-sem-canvas/80 dark:bg-zinc-950/80 z-30"
+                class="hidden lg:flex flex-col w-72 shrink-0 border-r border-sem-border bg-sem-canvas/80 dark:bg-sem-surface z-30"
             >
                 <div class="p-3 border-b border-sem-border space-y-3 shrink-0">
                     <RouterLink
@@ -31,8 +31,8 @@
                             class="flex-1 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5"
                             :class="
                                 activeTab === 'meshchatx'
-                                    ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
-                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
+                                    ? 'bg-sem-surface dark:bg-sem-surface-muted text-sem-accent shadow-xs'
+                                    : 'text-sem-fg-muted hover:text-sem-fg dark:hover:text-sem-fg-secondary'
                             "
                             @click="activeTab = 'meshchatx'"
                         >
@@ -43,8 +43,8 @@
                             class="flex-1 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5"
                             :class="
                                 activeTab === 'reticulum'
-                                    ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
-                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
+                                    ? 'bg-sem-surface dark:bg-sem-surface-muted text-sem-accent shadow-xs'
+                                    : 'text-sem-fg-muted hover:text-sem-fg dark:hover:text-sem-fg-secondary'
                             "
                             @click="activeTab = 'reticulum'"
                         >
@@ -71,7 +71,7 @@
                         >
                             <button
                                 v-click-outside="() => (showVersions = false)"
-                                class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-1.5"
+                                class="p-1.5 text-sem-fg-muted hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-1.5"
                                 :class="{ 'bg-sem-surface-muted': showVersions }"
                                 @click="showVersions = !showVersions"
                             >
@@ -82,12 +82,12 @@
                             </button>
                             <div
                                 v-if="showVersions"
-                                class="absolute left-0 mt-2 w-48 bg-white dark:bg-zinc-800 border border-sem-border rounded-xl shadow-xl z-50 overflow-hidden"
+                                class="absolute left-0 mt-2 w-48 bg-sem-surface border border-sem-border rounded-xl shadow-xl z-50 overflow-hidden"
                             >
                                 <div
-                                    class="p-2 border-b border-gray-100 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/50"
+                                    class="p-2 border-b border-sem-border dark:border-sem-border bg-sem-surface-muted/80 dark:bg-sem-surface/80"
                                 >
-                                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{{
+                                    <span class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider">{{
                                         $t("docs.versions")
                                     }}</span>
                                 </div>
@@ -95,7 +95,7 @@
                                     <button
                                         v-for="version in status.versions"
                                         :key="version"
-                                        class="w-full px-4 py-2 text-left text-[11px] hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between group"
+                                        class="w-full px-4 py-2 text-left text-[11px] hover:bg-sem-info/15 dark:hover:bg-sem-info/15 transition-colors flex items-center justify-between group"
                                         :class="
                                             status.current_version === version
                                                 ? 'text-sem-accent font-bold'
@@ -113,7 +113,7 @@
                                             <button
                                                 v-if="status.versions.length > 1"
                                                 type="button"
-                                                class="p-1 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                class="p-1 hover:text-sem-danger opacity-0 group-hover:opacity-100 transition-opacity"
                                                 title="Delete this version"
                                                 @click.stop="deleteVersion(version)"
                                             >
@@ -123,16 +123,16 @@
                                     </button>
                                     <div
                                         v-if="status.versions.length === 0"
-                                        class="px-4 py-3 text-center text-gray-500 text-[10px]"
+                                        class="px-4 py-3 text-center text-sem-fg-muted text-[10px]"
                                     >
                                         {{ $t("docs.no_versions") }}
                                     </div>
                                 </div>
                                 <div
-                                    class="p-2 border-t border-gray-100 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/50"
+                                    class="p-2 border-t border-sem-border dark:border-sem-border bg-sem-surface-muted/80 dark:bg-sem-surface/80"
                                 >
                                     <label
-                                        class="flex items-center justify-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors text-[10px] font-bold uppercase"
+                                        class="flex items-center justify-center gap-2 px-3 py-1.5 bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text rounded-lg cursor-pointer transition-colors text-[10px] font-bold uppercase"
                                     >
                                         <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
                                         <span>{{ $t("docs.upload_zip") }}</span>
@@ -145,7 +145,7 @@
                         <div v-if="activeTab === 'reticulum' && status.has_docs" class="relative">
                             <button
                                 v-click-outside="() => (showLanguages = false)"
-                                class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-1.5"
+                                class="p-1.5 text-sem-fg-muted hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-1.5"
                                 :class="{ 'bg-sem-surface-muted': showLanguages }"
                                 @click="showLanguages = !showLanguages"
                             >
@@ -175,7 +175,7 @@
 
                         <button
                             v-if="status.has_docs || status.has_meshchatx_docs"
-                            class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors"
+                            class="p-1.5 text-sem-fg-muted hover:bg-sem-surface-muted rounded-lg transition-colors"
                             title="Export all documentation as ZIP"
                             @click="exportDocs"
                         >
@@ -184,7 +184,7 @@
 
                         <button
                             v-if="status.has_docs"
-                            class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors"
+                            class="p-1.5 text-sem-fg-muted hover:bg-sem-surface-muted rounded-lg transition-colors"
                             :title="$t('docs.btn_share')"
                             @click="exportReticulumDocs"
                         >
@@ -193,7 +193,7 @@
 
                         <label
                             :class="{ 'opacity-50 pointer-events-none': status.status === 'extracting' }"
-                            class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors cursor-pointer"
+                            class="p-1.5 text-sem-fg-muted hover:bg-sem-surface-muted rounded-lg transition-colors cursor-pointer"
                             :title="$t('docs.btn_upload')"
                         >
                             <MaterialDesignIcon
@@ -215,7 +215,7 @@
                             :href="localDocsUrl"
                             target="_blank"
                             rel="noopener noreferrer"
-                            class="inline-flex items-center px-2 py-1 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:opacity-90 transition-opacity font-bold text-[10px] shadow-xs"
+                            class="inline-flex items-center px-2 py-1 bg-sem-surface dark:bg-sem-surface text-white dark:text-sem-fg rounded-lg hover:opacity-90 transition-opacity font-bold text-[10px] shadow-xs"
                         >
                             <MaterialDesignIcon icon-name="open-in-new" class="w-3 h-3 mr-1" />
                             {{ $t("docs.open_external") }}
@@ -228,13 +228,13 @@
                         </h3>
                         <p
                             v-if="manifestWarning"
-                            class="text-[11px] leading-relaxed text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-lg px-2.5 py-2"
+                            class="text-[11px] leading-relaxed text-sem-warning bg-sem-warning/15 dark:bg-sem-warning/15 border border-sem-warning dark:border-sem-warning rounded-lg px-2.5 py-2"
                         >
                             {{ manifestWarning }}
                         </p>
                         <p
                             v-if="meshchatxListError"
-                            class="text-[11px] leading-relaxed text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 rounded-lg px-2.5 py-2"
+                            class="text-[11px] leading-relaxed text-sem-danger bg-sem-danger/15 dark:bg-sem-danger/15 border border-sem-danger dark:border-sem-danger rounded-lg px-2.5 py-2"
                         >
                             {{ meshchatxListError }}
                         </p>
@@ -246,7 +246,7 @@
                                 class="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide transition-colors"
                                 :class="
                                     meshchatxDocsLang === lang.code
-                                        ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300'
+                                        ? 'bg-sem-info/15 dark:bg-sem-info/15 text-sem-info dark:text-sem-info'
                                         : 'bg-sem-surface-muted text-sem-fg-muted hover:text-sem-fg'
                                 "
                                 @click="setMeshchatxDocsLang(lang.code)"
@@ -273,7 +273,7 @@
                                 class="w-full text-left px-3 py-2 rounded-xl text-xs transition-all flex items-center gap-2.5"
                                 :class="
                                     selectedDocPath === item.path
-                                        ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 font-semibold shadow-xs ring-1 ring-cyan-200/80 dark:ring-cyan-800/60'
+                                        ? 'bg-cyan-50 dark:bg-sem-info/15 text-sem-info dark:text-sem-info font-semibold shadow-xs ring-1 ring-cyan-200/80 dark:ring-cyan-800/60'
                                         : 'text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg'
                                 "
                                 @click="selectDoc(item.path)"
@@ -415,11 +415,11 @@
                 >
                     <div class="max-w-2xl mx-auto p-6 space-y-6">
                         <div class="flex items-center justify-between px-2">
-                            <h2 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            <h2 class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest">
                                 {{ $t("docs.search_results") }}
                             </h2>
                             <span
-                                class="text-[10px] font-bold text-blue-500 px-2 py-0.5 bg-sem-surface-muted rounded-full"
+                                class="text-[10px] font-bold text-sem-info px-2 py-0.5 bg-sem-surface-muted rounded-full"
                                 >{{ $t("docs.matches_count", { count: searchResults.length }) }}</span
                             >
                         </div>
@@ -427,22 +427,22 @@
                             <div
                                 v-for="result in searchResults"
                                 :key="result.path"
-                                class="group p-4 hover:bg-sem-surface-muted/50 rounded-2xl cursor-pointer transition-colors border border-sem-border/50 hover:border-blue-200 dark:hover:border-blue-900/30"
+                                class="group p-4 hover:bg-sem-surface-muted/50 rounded-2xl cursor-pointer transition-colors border border-sem-border/50 hover:border-sem-info dark:hover:border-sem-info"
                                 @click="navigateTo(result.path)"
                             >
                                 <div class="flex items-start justify-between gap-4">
                                     <div
-                                        class="font-bold text-sm text-sem-fg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                                        class="font-bold text-sm text-sem-fg group-hover:text-sem-info dark:group-hover:text-sem-info transition-colors"
                                     >
                                         {{ result.title }}
                                     </div>
                                     <div class="flex items-center space-x-2">
                                         <span
-                                            class="px-1.5 py-0.5 rounded-sm bg-sem-surface-muted text-[8px] font-bold text-gray-500 uppercase tracking-tighter"
+                                            class="px-1.5 py-0.5 rounded-sm bg-sem-surface-muted text-[8px] font-bold text-sem-fg-muted uppercase tracking-tighter"
                                         >
                                             {{ result.source }}
                                         </span>
-                                        <div class="text-[9px] text-gray-400 uppercase font-mono mt-0.5 shrink-0">
+                                        <div class="text-[9px] text-sem-fg-muted uppercase font-mono mt-0.5 shrink-0">
                                             {{ result.path.split("/").pop() }}
                                         </div>
                                     </div>
@@ -463,15 +463,13 @@
                     v-if="searchQuery && !isSearching && searchResults.length === 0 && !searchError"
                     class="absolute inset-0 z-20 bg-sem-surface flex flex-col items-center justify-center p-8 text-center"
                 >
-                    <div
-                        class="w-16 h-16 bg-gray-50 dark:bg-zinc-800/50 rounded-full flex items-center justify-center mb-4"
-                    >
-                        <MaterialDesignIcon icon-name="text-search" class="w-8 h-8 text-gray-300 dark:text-zinc-600" />
+                    <div class="w-16 h-16 bg-sem-surface-muted/50 rounded-full flex items-center justify-center mb-4">
+                        <MaterialDesignIcon icon-name="text-search" class="w-8 h-8 text-sem-fg-muted" />
                     </div>
                     <h3 class="text-sm font-medium text-sem-fg">{{ $t("docs.no_results") }}</h3>
                     <p class="text-xs text-sem-fg-muted mt-1">{{ $t("docs.no_results_hint") }}</p>
                     <button
-                        class="mt-4 text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors"
+                        class="mt-4 text-xs font-bold text-sem-info hover:text-sem-info transition-colors"
                         @click="clearSearch"
                     >
                         {{ $t("docs.clear_search") }}
@@ -483,14 +481,14 @@
                     class="absolute inset-0 z-20 bg-sem-surface flex flex-col items-center justify-center p-8 text-center"
                 >
                     <div
-                        class="w-16 h-16 bg-red-50 dark:bg-red-950/30 rounded-full flex items-center justify-center mb-4"
+                        class="w-16 h-16 bg-sem-danger/15 dark:bg-sem-danger/15 rounded-full flex items-center justify-center mb-4"
                     >
-                        <MaterialDesignIcon icon-name="alert-circle-outline" class="w-8 h-8 text-red-400" />
+                        <MaterialDesignIcon icon-name="alert-circle-outline" class="w-8 h-8 text-sem-danger" />
                     </div>
                     <h3 class="text-sm font-medium text-sem-fg">{{ $t("docs.search_failed") }}</h3>
                     <p class="text-xs text-sem-fg-muted mt-1 max-w-sm">{{ searchError }}</p>
                     <button
-                        class="mt-4 text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors"
+                        class="mt-4 text-xs font-bold text-sem-info hover:text-sem-info transition-colors"
                         @click="clearSearch"
                     >
                         {{ $t("docs.clear_search") }}
@@ -499,24 +497,24 @@
 
                 <div
                     v-if="status.last_error"
-                    class="absolute inset-0 z-10 flex items-center justify-center p-6 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xs"
+                    class="absolute inset-0 z-10 flex items-center justify-center p-6 bg-sem-surface dark:bg-sem-surface backdrop-blur-xs"
                 >
                     <div
-                        class="max-w-md w-full p-6 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-2xl text-red-600 dark:text-red-400 text-center shadow-xl"
+                        class="max-w-md w-full p-6 bg-sem-danger/15 border border-red-100 dark:border-sem-danger rounded-2xl text-sem-danger text-center shadow-xl"
                     >
                         <MaterialDesignIcon icon-name="alert-circle-outline" class="w-12 h-12 mx-auto mb-3" />
                         <div class="text-lg font-bold mb-2">{{ $t("docs.error") }}</div>
                         <div class="text-sm opacity-80">{{ status.last_error }}</div>
                         <div class="flex flex-col gap-4 mt-6">
                             <label
-                                class="w-full px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center gap-2"
+                                class="w-full px-6 py-2.5 bg-sem-surface dark:bg-sem-surface text-white dark:text-sem-fg rounded-xl text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center gap-2"
                             >
                                 <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
                                 <span>{{ $t("docs.btn_upload") }}</span>
                                 <input type="file" accept=".zip" class="hidden" @change="handleZipUpload" />
                             </label>
                             <button
-                                class="text-[10px] font-bold text-red-500/60 hover:text-red-500 uppercase tracking-widest transition-colors"
+                                class="text-[10px] font-bold text-red-500/60 hover:text-sem-danger uppercase tracking-widest transition-colors"
                                 @click="dismissError"
                             >
                                 {{ $t("docs.dismiss") }}
@@ -527,21 +525,19 @@
 
                 <div
                     v-if="status.status === 'extracting'"
-                    class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md"
+                    class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-sem-surface dark:bg-sem-surface backdrop-blur-md"
                 >
                     <div class="relative w-24 h-24 mb-6">
+                        <div class="absolute inset-0 border-4 border-sem-info dark:border-sem-info rounded-full"></div>
                         <div
-                            class="absolute inset-0 border-4 border-blue-100 dark:border-blue-900/30 rounded-full"
-                        ></div>
-                        <div
-                            class="absolute inset-0 border-4 border-blue-600 rounded-full transition-all duration-300"
+                            class="absolute inset-0 border-4 border-sem-info rounded-full transition-all duration-300"
                             :style="{ clipPath: `inset(0 0 0 0)`, transform: `rotate(${status.progress * 3.6}deg)` }"
                             style="border-color: transparent; border-top-color: currentColor"
                         ></div>
                         <div class="absolute inset-0 flex items-center justify-center">
                             <MaterialDesignIcon
                                 icon-name="folder-zip-outline"
-                                class="w-10 h-10 text-blue-600 animate-bounce"
+                                class="w-10 h-10 text-sem-info animate-bounce"
                             />
                         </div>
                     </div>
@@ -555,7 +551,7 @@
 
                 <!-- MeshChatX Docs View -->
                 <div v-if="activeTab === 'meshchatx' && !searchQuery" class="flex flex-1 min-h-0 overflow-hidden">
-                    <div class="flex-1 flex min-w-0 bg-sem-surface dark:bg-zinc-900 overflow-hidden">
+                    <div class="flex-1 flex min-w-0 bg-sem-surface dark:bg-sem-surface overflow-hidden">
                         <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
                             <div
                                 v-if="selectedDocContent"
@@ -579,7 +575,7 @@
                             >
                                 <MaterialDesignIcon
                                     icon-name="alert-circle-outline"
-                                    class="w-12 h-12 mb-4 text-red-400"
+                                    class="w-12 h-12 mb-4 text-sem-danger"
                                 />
                                 <h3 class="text-sm font-semibold text-sem-fg">{{ $t("docs.load_doc_failed") }}</h3>
                                 <p class="text-xs mt-2 max-w-sm text-sem-fg-muted">{{ docLoadError }}</p>
@@ -606,7 +602,7 @@
 
                         <aside
                             v-if="docToc.length > 0 && selectedDocContent"
-                            class="hidden xl:flex flex-col w-56 shrink-0 border-l border-sem-border bg-sem-canvas/50 dark:bg-zinc-950/50"
+                            class="hidden xl:flex flex-col w-56 shrink-0 border-l border-sem-border bg-sem-canvas/50 dark:bg-sem-surface"
                         >
                             <div class="p-4 border-b border-sem-border">
                                 <h3 class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest">
@@ -618,7 +614,7 @@
                                     v-for="entry in docToc"
                                     :key="entry.id"
                                     :href="`#${entry.id}`"
-                                    class="block py-1 text-xs text-sem-fg-muted hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                                    class="block py-1 text-xs text-sem-fg-muted hover:text-sem-info dark:hover:text-sem-info transition-colors"
                                     :class="entry.level === 3 ? 'pl-3' : ''"
                                     @click.prevent="scrollToHeading(entry.id)"
                                 >
@@ -650,8 +646,8 @@
                     "
                     class="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4"
                 >
-                    <div class="w-16 h-16 bg-gray-50 dark:bg-zinc-800/50 rounded-full flex items-center justify-center">
-                        <MaterialDesignIcon icon-name="book-outline" class="w-8 h-8 text-gray-300 dark:text-zinc-600" />
+                    <div class="w-16 h-16 bg-sem-surface-muted/50 rounded-full flex items-center justify-center">
+                        <MaterialDesignIcon icon-name="book-outline" class="w-8 h-8 text-sem-fg-muted" />
                     </div>
                     <div>
                         <h3 class="text-sm font-medium text-sem-fg">
@@ -662,7 +658,7 @@
                         </p>
                     </div>
                     <label
-                        class="px-6 py-2 bg-blue-600 text-white rounded-full text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 cursor-pointer flex items-center gap-2"
+                        class="px-6 py-2 bg-sem-action-primary text-sem-action-primary-text rounded-full text-xs font-bold hover:bg-sem-info transition-colors shadow-lg shadow-sem-action-primary/20 cursor-pointer flex items-center gap-2"
                     >
                         <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
                         <span>{{ $t("docs.btn_upload") }}</span>
@@ -681,7 +677,7 @@ import DropDownMenu from "../DropDownMenu.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import * as docsApi from "../../js/api/docs.js";
 import * as meshchatxDocsApi from "../../js/api/meshchatxDocs.js";
 import { bundledReticulumDocsUrl } from "../../js/reticulumDocsEntryUrl.js";
@@ -869,7 +865,11 @@ export default {
                     this.meshchatxDocsLang = this.defaultDocsLanguage || "en";
                 }
                 if (this.meshchatxDocs.length > 0 && !this.selectedDocPath) {
-                    const start = this.firstDocPath;
+                    const requested = this.$route?.query?.doc;
+                    const start =
+                        requested && this.meshchatxDocs.some((d) => d.path === requested)
+                            ? requested
+                            : this.firstDocPath;
                     if (start) {
                         this.selectDoc(start);
                     }
@@ -1119,10 +1119,7 @@ export default {
             const query = this.searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
             // eslint-disable-next-line security/detect-non-literal-regexp -- query is escaped above
             const regex = new RegExp(`(${query})`, "gi");
-            return escapedText.replace(
-                regex,
-                '<span class="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-0.5 rounded-sm">$1</span>'
-            );
+            return escapedText.replace(regex, '<span class="bg-sem-info/15 text-sem-info px-0.5 rounded-sm">$1</span>');
         },
         handleDocClick(event) {
             const link = event.target.closest("a");

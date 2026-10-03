@@ -8,6 +8,7 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <!-- Shell/WebView canvas. Default dark so native splash (white text) and dark UI do not flash light. -->
+    <color name="launcher_background">#FF121212</color>
     <color name="meshchat_canvas">#FF09090B</color>
     <color name="meshchat_canvas_dark">#FF09090B</color>
     <color name="meshchat_canvas_light">#FFF8FAFC</color>

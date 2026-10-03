@@ -2,14 +2,14 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
 import App from "../../meshchatx/src/frontend/components/App.vue";
-import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore";
 import SettingsPage from "../../meshchatx/src/frontend/components/settings/SettingsPage.vue";
 import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
 import ConfirmDialog from "../../meshchatx/src/frontend/components/ConfirmDialog.vue";
 import ChangelogModal from "../../meshchatx/src/frontend/components/ChangelogModal.vue";
 import LanguageSelector from "../../meshchatx/src/frontend/components/LanguageSelector.vue";
-import { registerCoreContributions } from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
-import { resetTopNavItemIds, saveTopNavItemIds } from "../../meshchatx/src/frontend/js/appTopNavLayout.js";
+import { registerCoreContributions } from "../../meshchatx/src/frontend/js/registries/registerCoreContributions";
+import { resetTopNavItemIds, saveTopNavItemIds } from "../../meshchatx/src/frontend/js/appTopNavLayout";
 
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
     default: {
@@ -573,6 +573,10 @@ describe("Conditional Rendering", () => {
     });
 
     it("App shows propagation sync refresh icon on mobile", async () => {
+        const { topNavLayoutState } = await import(
+            "../../meshchatx/src/frontend/js/appTopNavLayout"
+        );
+        topNavLayoutState.itemIds = ["sync-messages"];
         const wrapper = mountTracked(App, {
             global: {
                 stubs: {
@@ -593,11 +597,8 @@ describe("Conditional Rendering", () => {
             },
         });
 
-        const mobileRefreshButtons = wrapper.findAll("button").filter((b) => {
-            const cls = b.classes().join(" ");
-            return cls.includes("sm:hidden") && b.attributes("title") === "app.sync_messages";
-        });
-        expect(mobileRefreshButtons.length).toBe(1);
+        const navSyncButtons = wrapper.findAll("[data-testid='header-nav-sync-messages']");
+        expect(navSyncButtons.length).toBe(1);
     });
 
     it("App header shows relay chat and telephone icons next to compose and sync", async () => {

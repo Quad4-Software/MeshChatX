@@ -472,7 +472,7 @@ class RRCHubServer:
                 self._send_payload(member, payload)
         for room, peer in reconnect_invites:
             with contextlib.suppress(Exception):
-                # rooms registry is shared with packet threads; hold the lock.
+                # rooms registry is shared with packet threads. hold the lock.
                 with self._lock:
                     self.rooms.add_invite(room, peer, ttl_s=INVITE_DEFAULT_TTL_S)
                     self.rooms.persist(room)
@@ -590,7 +590,7 @@ class RRCHubServer:
             if link not in extras:
                 if self.replay_log:
                     self._record_replay(env)
-                # A malformed envelope can raise inside a handler; contain
+                # A malformed envelope can raise inside a handler. contain
                 # it so one bad packet cannot kill the hub session loop.
                 try:
                     self._route(link, sess, env, outgoing)

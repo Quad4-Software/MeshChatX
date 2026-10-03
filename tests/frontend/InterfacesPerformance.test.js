@@ -95,7 +95,7 @@ describe("InterfacesPage Performance", () => {
         const end = performance.now();
         console.log(`Rendered ${numDiscovered} discovered interfaces in ${(end - start).toFixed(2)}ms`);
 
-        const disconnectedBadges = wrapper.findAll(".bg-red-500\\/90");
+        const disconnectedBadges = wrapper.findAll(".bg-sem-action-danger\\/90");
         expect(disconnectedBadges.length).toBe(numDiscovered);
         expect(end - start).toBeLessThan(60000);
     }, 60000);

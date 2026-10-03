@@ -67,7 +67,7 @@ def reset_test_temp_root() -> None:
         return
     if not TEST_TEMP_ROOT.exists():
         return
-    # Another suite holds a live marker; wiping the shared root mid-run
+    # Another suite holds a live marker. wiping the shared root mid-run
     # deletes its basetemp and coverage files. Skip the reset instead.
     if any(m != _marker_path() for m in _live_markers()):
         return

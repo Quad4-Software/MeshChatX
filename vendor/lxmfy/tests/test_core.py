@@ -38,9 +38,78 @@ class TestBotConfig:
         assert config.require_stamps is True
         assert config.request_unknown_identities is True
         assert config.stamp_cost == 16
+        assert config.include_tickets is True
 
 
-class TestLXMFBot:
+class TestOutboundStampTicketWiring:
+    """Outbound stamp cost and reply ticket behavior."""
+
+    def test_send_does_not_apply_inbound_stamp_cost(self, test_bot, monkeypatch):
+        """BotConfig.stamp_cost must not be forced onto outbound messages."""
+        test_bot.config.stamp_cost = 16
+        test_bot.config.test_mode = False
+        test_bot.config.opportunistic_sending = True
+        test_bot.local = object()
+
+        dest_hex = "ab" * 16
+        dest_bytes = bytes.fromhex(dest_hex)
+        identity = object()
+
+        class FakeDest:
+            OUT = 1
+            SINGLE = 2
+            hash = dest_bytes
+
+            def __init__(self, *args, **kwargs):
+                pass
+
+        captured = {}
+
+        class FakeLXMessage:
+            OPPORTUNISTIC = 0x01
+            DIRECT = 0x02
+            PROPAGATED = 0x03
+
+            def __init__(self, *args, **kwargs):
+                captured.update(kwargs)
+                self.desired_method = kwargs.get("desired_method")
+                self.fields = kwargs.get("fields")
+
+            def register_delivery_callback(self, _cb):
+                return None
+
+            def register_failed_callback(self, _cb):
+                return None
+
+        monkeypatch.setattr("lxmfy.core.RNS.Identity.recall", lambda _h: identity)
+        monkeypatch.setattr(
+            "lxmfy.core.RNS.Identity.current_ratchet_id",
+            lambda _h: None,
+        )
+        monkeypatch.setattr("lxmfy.core.RNS.Destination", FakeDest)
+        monkeypatch.setattr("lxmfy._outbound.LXMessage", FakeLXMessage)
+        monkeypatch.setattr(
+            "lxmfy._outbound.sign_outgoing_message",
+            lambda _bot, lxm: lxm,
+        )
+        monkeypatch.setattr(
+            test_bot,
+            "_enqueue_outbound",
+            lambda _lxm: True,
+        )
+
+        assert test_bot.send(dest_hex, "hello", title="") is True
+        assert captured.get("stamp_cost") is None
+        assert captured.get("include_ticket") is True
+
+    def test_send_include_ticket_override(self, test_bot):
+        """Per-send include_ticket override is stored in test mode."""
+        test_bot.config.include_tickets = True
+        assert test_bot.send("aa" * 16, "hi", include_ticket=False) is True
+        queued = test_bot.queue.get_nowait()
+        assert queued.include_ticket is False
+        assert queued.stamp_cost is None
+
     """Test LXMFBot basic functionality."""
 
     def test_bot_initialization(self, test_bot):

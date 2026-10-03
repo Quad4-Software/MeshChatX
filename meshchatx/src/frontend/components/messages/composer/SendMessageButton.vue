@@ -6,7 +6,7 @@
             <button
                 :disabled="!canSendMessage && !canOpenSendMenu"
                 type="button"
-                class="inline-flex items-center justify-center rounded-xl p-2.5 min-h-[44px] min-w-[44px] text-white transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 touch-manipulation select-none"
+                class="inline-flex items-center justify-center rounded-full p-2.5 min-h-[42px] min-w-[42px] text-sem-action-primary-text transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 touch-manipulation select-none"
                 :class="[
                     canSendMessage || canOpenSendMenu
                         ? 'bg-sem-action-primary hover:bg-sem-action-primary-hover focus-visible:outline-sem-focus press-feedback'
@@ -40,7 +40,7 @@
             <button
                 :disabled="!canSendMessage"
                 type="button"
-                class="inline-flex items-center gap-2 rounded-l-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2"
+                class="inline-flex items-center gap-2 rounded-l-xl px-4 py-2.5 text-sm font-semibold text-sem-action-primary-text transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2"
                 :class="[
                     canSendMessage
                         ? 'bg-sem-action-primary hover:bg-sem-action-primary-hover focus-visible:outline-sem-focus press-feedback'
@@ -75,7 +75,7 @@
                 <button
                     :disabled="!canSendMessage && !canOpenSendMenu"
                     type="button"
-                    class="border-l relative inline-flex items-center justify-center rounded-r-xl px-2.5 h-full text-white transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2"
+                    class="border-l relative inline-flex items-center justify-center rounded-r-xl px-2.5 h-full text-sem-action-primary-text transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2"
                     :class="[
                         canSendMessage || canOpenSendMenu
                             ? 'bg-sem-action-primary hover:bg-sem-action-primary-hover focus-visible:outline-sem-focus border-sem-action-primary-hover press-feedback'

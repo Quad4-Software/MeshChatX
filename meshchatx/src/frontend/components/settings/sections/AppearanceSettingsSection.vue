@@ -14,11 +14,7 @@
                 <div class="text-sm font-medium text-sem-fg">
                     {{ $t("app.theme") }}
                 </div>
-                <select :value="config.theme" class="input-field" @change="onThemeSelect">
-                    <option value="light">{{ $t("app.light_theme") }}</option>
-                    <option value="dark">{{ $t("app.dark_theme") }}</option>
-                    <option value="system">{{ $t("app.system_theme") }}</option>
-                </select>
+                <SegmentedControl :model-value="config.theme" :options="themeModes" @change="onThemeModeSelect" />
             </div>
 
             <div class="space-y-2">
@@ -113,25 +109,23 @@
                 <div class="text-sm font-medium text-sem-fg">
                     {{ $t("app.messages_sidebar_position") }}
                 </div>
-                <select
-                    :value="config.messages_sidebar_position"
-                    class="input-field"
+                <SegmentedControl
+                    :model-value="config.messages_sidebar_position"
+                    :options="sidebarPositionOptions"
                     @change="onMessagesSidebarPositionSelect"
-                >
-                    <option value="left">{{ $t("app.messages_sidebar_position_left") }}</option>
-                    <option value="right">{{ $t("app.messages_sidebar_position_right") }}</option>
-                </select>
+                />
             </div>
 
             <div class="space-y-2">
-                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div class="text-sm font-medium text-sem-fg">
                     {{ $t("app.app_sidebar_layout") }}
                 </div>
-                <select :value="sidebarLayoutValue" class="input-field" @change="onAppSidebarLayoutSelect">
-                    <option value="grouped">{{ $t("app.app_sidebar_layout_grouped") }}</option>
-                    <option value="classic">{{ $t("app.app_sidebar_layout_classic") }}</option>
-                </select>
-                <p class="text-xs text-gray-600 dark:text-gray-400">
+                <SegmentedControl
+                    :model-value="sidebarLayoutValue"
+                    :options="sidebarLayoutOptions"
+                    @change="onAppSidebarLayoutSelect"
+                />
+                <p class="text-xs text-sem-fg-muted">
                     {{ $t("app.app_sidebar_layout_description") }}
                 </p>
             </div>
@@ -197,41 +191,37 @@
 
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <div class="text-sm font-medium text-sem-fg">
                         {{ $t("app.message_font_size") }}
                     </div>
-                    <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
-                        {{ config.message_font_size || 14 }}px
-                    </div>
+                    <div class="text-xs font-mono text-sem-accent">{{ config.message_font_size || 14 }}px</div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span class="text-xs text-gray-400">A</span>
+                    <span class="text-xs text-sem-fg-muted">A</span>
                     <input
                         :value="config.message_font_size"
                         type="range"
                         min="10"
                         max="32"
                         step="1"
-                        class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        class="range-input flex-1"
                         @input="onMessageFontSizeInput"
                     />
-                    <span class="text-lg text-gray-400">A</span>
+                    <span class="text-lg text-sem-fg-muted">A</span>
                 </div>
             </div>
 
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <div class="text-sm font-medium text-sem-fg">
                         {{ $t("app.message_icon_size") }}
                     </div>
-                    <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
-                        {{ config.message_icon_size || 28 }}px
-                    </div>
+                    <div class="text-xs font-mono text-sem-accent">{{ config.message_icon_size || 28 }}px</div>
                 </div>
                 <div class="flex items-center gap-3">
                     <MaterialDesignIcon
                         icon-name="account-outline"
-                        class="shrink-0 text-gray-400"
+                        class="shrink-0 text-sem-fg-muted"
                         :style="{ width: '16px', height: '16px' }"
                     />
                     <input
@@ -240,12 +230,12 @@
                         min="16"
                         max="64"
                         step="1"
-                        class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        class="range-input flex-1"
                         @input="onMessageIconSizeInput"
                     />
                     <MaterialDesignIcon
                         icon-name="account"
-                        class="shrink-0 text-gray-500 dark:text-gray-300"
+                        class="shrink-0 text-sem-fg-muted"
                         :style="messageIconPreviewStyle"
                     />
                 </div>
@@ -253,27 +243,27 @@
 
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <div class="text-sm font-medium text-sem-fg">
                         {{ $t("app.ui_transparency") }}
                     </div>
-                    <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
+                    <div class="text-xs font-mono text-sem-accent">
                         {{ Math.max(0, Math.min(100, Number(config.ui_transparency) || 0)) }}%
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span class="text-xs text-gray-400">0</span>
+                    <span class="text-xs text-sem-fg-muted">0</span>
                     <input
                         :value="config.ui_transparency"
                         type="range"
                         min="0"
                         max="100"
                         step="1"
-                        class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        class="range-input flex-1"
                         @input="onUiTransparencyInput"
                     />
-                    <span class="text-xs text-gray-400">100</span>
+                    <span class="text-xs text-sem-fg-muted">100</span>
                 </div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">
+                <div class="text-xs text-sem-fg-muted">
                     {{ $t("app.ui_transparency_description") }}
                 </div>
             </div>
@@ -289,6 +279,47 @@
                     <span class="setting-toggle__description">{{ $t("app.ui_glass_enabled_description") }}</span>
                 </span>
             </label>
+
+            <div class="settings-field">
+                <label class="block text-sm font-medium text-sem-fg mb-1" for="ui-font-family">
+                    {{ $t("app.ui_font_family") }}
+                </label>
+                <div class="flex items-center gap-3">
+                    <select
+                        id="ui-font-family"
+                        :value="config.ui_font_family || 'system'"
+                        class="input-field flex-1"
+                        @change="onFontFamilyChange"
+                    >
+                        <option value="system">{{ $t("app.ui_font_system") }}</option>
+                        <option value="noto-sans">{{ $t("app.ui_font_noto_sans") }}</option>
+                        <option value="inter">{{ $t("app.ui_font_inter") }}</option>
+                        <option value="jetbrains-mono">{{ $t("app.ui_font_jetbrains_mono") }}</option>
+                        <option value="ibm-plex-sans">{{ $t("app.ui_font_ibm_plex_sans") }}</option>
+                        <option value="space-grotesk">{{ $t("app.ui_font_space_grotesk") }}</option>
+                        <option value="roboto-mono-nerd">{{ $t("app.ui_font_roboto_mono_nerd") }}</option>
+                        <option v-if="config.ui_custom_font_name" value="custom">
+                            {{ config.ui_custom_font_name }}
+                        </option>
+                    </select>
+                    <label
+                        class="cursor-pointer rounded-lg border border-sem-border px-3 py-2 text-xs font-medium text-sem-fg-muted hover:border-sem-accent hover:text-sem-accent transition-colors"
+                        :title="$t('app.ui_font_upload_tooltip')"
+                    >
+                        <input type="file" accept=".woff2,.ttf,.otf" class="hidden" @change="onFontFileUpload" />
+                        {{ $t("app.ui_font_upload") }}
+                    </label>
+                </div>
+                <div
+                    class="mt-2 rounded-lg border border-sem-border bg-sem-surface-muted p-3 text-sm"
+                    :style="fontPreviewStyle"
+                >
+                    {{ $t("app.ui_font_preview_text") }}
+                </div>
+                <div class="mt-1 text-[11px] text-sem-fg-muted">
+                    {{ $t("app.ui_font_preview_hint") }}
+                </div>
+            </div>
 
             <label class="setting-toggle">
                 <Toggle
@@ -316,8 +347,37 @@
                 </span>
             </label>
 
+            <label v-if="config.nomad_tabs_enabled" class="setting-toggle">
+                <Toggle
+                    id="nomad-private-tabs-enabled"
+                    :model-value="config.nomad_private_tabs_enabled"
+                    @update:model-value="onNomadPrivateTabsEnabledToggle"
+                />
+                <MaterialDesignIcon icon-name="incognito" class="size-5 text-sem-fg-muted shrink-0" />
+                <span class="setting-toggle__label">
+                    <span class="setting-toggle__title">{{ $t("app.nomad_private_tabs_enabled") }}</span>
+                    <span class="setting-toggle__description">{{
+                        $t("app.nomad_private_tabs_enabled_description")
+                    }}</span>
+                </span>
+            </label>
+
+            <label v-if="config.nomad_tabs_enabled" class="setting-toggle">
+                <Toggle
+                    id="nomad-history-enabled"
+                    :model-value="config.nomad_history_enabled"
+                    @update:model-value="onNomadHistoryEnabledToggle"
+                />
+                <MaterialDesignIcon icon-name="history" class="size-5 text-sem-fg-muted shrink-0" />
+                <span class="setting-toggle__label">
+                    <span class="setting-toggle__title">{{ $t("app.nomad_history_enabled") }}</span>
+                    <span class="setting-toggle__description">{{ $t("app.nomad_history_enabled_description") }}</span>
+                </span>
+            </label>
+
             <label class="setting-toggle">
                 <Toggle id="rrc-enabled" :model-value="config.rrc_enabled" @update:model-value="onRrcEnabledToggle" />
+                <MaterialDesignIcon icon-name="forum-outline" class="size-5 text-sem-fg-muted shrink-0" />
                 <span class="setting-toggle__label">
                     <span class="setting-toggle__title">{{ $t("app.rrc_enabled") }}</span>
                     <span class="setting-toggle__description">{{ $t("app.rrc_enabled_description") }}</span>
@@ -330,6 +390,7 @@
                     :model-value="config.rrc_unread_badges_enabled"
                     @update:model-value="onRrcUnreadBadgesEnabledToggle"
                 />
+                <MaterialDesignIcon icon-name="bell-badge-outline" class="size-5 text-sem-fg-muted shrink-0" />
                 <span class="setting-toggle__label">
                     <span class="setting-toggle__title">{{ $t("app.rrc_unread_badges_enabled") }}</span>
                     <span class="setting-toggle__description">{{
@@ -355,12 +416,12 @@
                     <input
                         id="detailed-outbound-send-status"
                         type="checkbox"
-                        class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
+                        class="mt-1 rounded-sm border-sem-border dark:border-sem-border"
                         :checked="detailedOutboundSendStatus"
                         @change="$emit('detailed-outbound-send-status-change', $event)"
                     />
                     <label for="detailed-outbound-send-status" class="min-w-0 cursor-pointer">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div class="text-sm font-medium text-sem-fg">
                             {{ $t("app.detailed_outbound_send_status") }}
                         </div>
                         <div class="text-xs text-sem-fg-muted mt-0.5">
@@ -373,12 +434,12 @@
                     <input
                         id="outbound-transfer-progress-enabled"
                         type="checkbox"
-                        class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
+                        class="mt-1 rounded-sm border-sem-border dark:border-sem-border"
                         :checked="outboundTransferProgressEnabled"
                         @change="$emit('outbound-transfer-progress-enabled-change', $event)"
                     />
                     <label for="outbound-transfer-progress-enabled" class="min-w-0 cursor-pointer">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div class="text-sm font-medium text-sem-fg">
                             {{ $t("app.outbound_transfer_progress_enabled") }}
                         </div>
                         <div class="text-xs text-sem-fg-muted mt-0.5">
@@ -391,12 +452,12 @@
                     <input
                         id="message-timestamp-grouping"
                         type="checkbox"
-                        class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
+                        class="mt-1 rounded-sm border-sem-border dark:border-sem-border"
                         :checked="messageTimestampGroupingEnabled"
                         @change="$emit('message-timestamp-grouping-change', $event)"
                     />
                     <label for="message-timestamp-grouping" class="min-w-0 cursor-pointer">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div class="text-sm font-medium text-sem-fg">
                             {{ $t("app.message_timestamp_grouping") }}
                         </div>
                         <div class="text-xs text-sem-fg-muted mt-0.5">
@@ -407,7 +468,7 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="space-y-2">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div class="text-sm font-medium text-sem-fg">
                             {{ $t("settings.outbound_bubble_color") }}
                         </div>
                         <div class="flex gap-2">
@@ -430,7 +491,7 @@
                     </div>
 
                     <div class="space-y-2">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div class="text-sm font-medium text-sem-fg">
                             {{ $t("settings.failed_bubble_color") }}
                         </div>
                         <div class="flex gap-2">
@@ -453,7 +514,7 @@
                     </div>
 
                     <div class="space-y-2">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div class="text-sm font-medium text-sem-fg">
                             {{ $t("settings.waiting_bubble_color") }}
                         </div>
                         <div class="flex gap-2">
@@ -478,13 +539,13 @@
 
                 <div class="space-y-2">
                     <div class="flex items-center justify-between">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div class="text-sm font-medium text-sem-fg">
                             {{ $t("settings.inbound_bubble_color") }}
                         </div>
                         <button
                             v-if="config.message_inbound_bubble_color"
                             type="button"
-                            class="text-[10px] text-red-500 font-bold uppercase hover:underline"
+                            class="text-[10px] text-sem-danger font-bold uppercase hover:underline"
                             @click="onInboundBubbleReset"
                         >
                             {{ $t("settings.inbound_bubble_reset") }}
@@ -500,12 +561,12 @@
                         />
                         <div
                             v-if="!config.message_inbound_bubble_color"
-                            class="flex-1 flex items-center px-3 text-xs text-gray-400 bg-sem-surface-muted rounded-xl border border-dashed border-sem-border italic"
+                            class="flex-1 flex items-center px-3 text-xs text-sem-fg-muted bg-sem-surface-muted rounded-xl border border-dashed border-sem-border italic"
                         >
                             {{ $t("settings.inbound_bubble_default_hint") }}
                             <button
                                 type="button"
-                                class="ml-2 px-2 py-1 bg-blue-500 text-white rounded-lg not-italic font-bold"
+                                class="ml-2 px-2 py-1 bg-sem-action-primary text-sem-action-primary-text rounded-lg not-italic font-bold"
                                 @click="onInboundBubbleCustomize"
                             >
                                 {{ $t("settings.inbound_bubble_customize") }}
@@ -527,6 +588,7 @@
 
 <script>
 import Toggle from "../../forms/Toggle.vue";
+import SegmentedControl from "../../forms/SegmentedControl.vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import ThemePresetPicker from "../ThemePresetPicker.vue";
 import {
@@ -537,18 +599,19 @@ import {
     systemPrefersDark,
 } from "../../../theme/themeEngine.js";
 import { MESHCHAT_THEME_VARIABLES_DARK, MESHCHAT_THEME_VARIABLES_LIGHT } from "../../../theme/designTokens.js";
-import { listNavItems } from "../../../js/registries/navRegistry.js";
+import { listNavItems } from "../../../js/registries/navRegistry";
 import {
     resolveTopNavItemIds,
     resetTopNavItemIds,
     saveTopNavItemIds,
     topNavLayoutState,
-} from "../../../js/appTopNavLayout.js";
+} from "../../../js/appTopNavLayout";
 
 export default {
     name: "AppearanceSettingsSection",
     components: {
         Toggle,
+        SegmentedControl,
         MaterialDesignIcon,
         ThemePresetPicker,
     },
@@ -593,6 +656,10 @@ export default {
         "ui-glass-enabled-change",
         "messages-multi-pane-enabled-change",
         "nomad-tabs-enabled-change",
+        "nomad-private-tabs-enabled-change",
+        "nomad-history-enabled-change",
+        "ui-font-family-change",
+        "ui-custom-font-change",
         "rrc-enabled-change",
         "rrc-unread-badges-enabled-change",
         "reset-appearance-defaults",
@@ -604,6 +671,45 @@ export default {
     computed: {
         themePresetCatalog() {
             return THEME_PRESET_CATALOG;
+        },
+        themeModes() {
+            return [
+                { value: "light", icon: "weather-sunny", label: "app.light_theme" },
+                { value: "dark", icon: "weather-night", label: "app.dark_theme" },
+                { value: "system", icon: "monitor", label: "app.system_theme" },
+            ];
+        },
+        fontPreviewStyle() {
+            const key = this.config?.ui_font_family || "system";
+            if (key === "custom" && this.config?.ui_custom_font_name) {
+                const name = String(this.config.ui_custom_font_name).replace(/["\\]/g, "");
+                return { fontFamily: `"${name}", ui-sans-serif, system-ui, sans-serif` };
+            }
+            const stacks = {
+                "noto-sans": '"Noto Sans", ui-sans-serif, system-ui, sans-serif',
+                inter: '"Inter", ui-sans-serif, system-ui, sans-serif',
+                "jetbrains-mono": '"JetBrains Mono", ui-monospace, monospace',
+                "ibm-plex-sans": '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
+                "space-grotesk": '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
+                "roboto-mono-nerd": '"Roboto Mono Nerd Font", ui-monospace, monospace',
+            };
+            return stacks[key] ? { fontFamily: stacks[key] } : {};
+        },
+        sidebarPositionOptions() {
+            return [
+                { value: "left", icon: "format-horizontal-align-left", label: "app.messages_sidebar_position_left" },
+                {
+                    value: "right",
+                    icon: "format-horizontal-align-right",
+                    label: "app.messages_sidebar_position_right",
+                },
+            ];
+        },
+        sidebarLayoutOptions() {
+            return [
+                { value: "grouped", icon: "view-grid-outline", label: "app.app_sidebar_layout_grouped" },
+                { value: "classic", icon: "view-list-outline", label: "app.app_sidebar_layout_classic" },
+            ];
         },
         sidebarLayoutValue() {
             const layout = this.config?.app_sidebar_layout;
@@ -667,8 +773,8 @@ export default {
                 }
             }
         },
-        onThemeSelect(event) {
-            this.emitField("theme", event.target.value, "theme-change");
+        onThemeModeSelect(value) {
+            this.emitField("theme", value, "theme-change");
         },
         onThemePresetSelect(event) {
             this.emitField("theme_preset", event.target.value, "theme-preset-change");
@@ -689,12 +795,12 @@ export default {
         onCustomSurfaceInput(event) {
             this.emitField("custom_surface_color", event.target.value || null, "custom-surface-color-change");
         },
-        onMessagesSidebarPositionSelect(event) {
-            this.emitField("messages_sidebar_position", event.target.value, "messages-sidebar-position-change");
+        onMessagesSidebarPositionSelect(value) {
+            this.emitField("messages_sidebar_position", value, "messages-sidebar-position-change");
         },
-        onAppSidebarLayoutSelect(event) {
-            const value = event.target.value === "classic" ? "classic" : "grouped";
-            this.emitField("app_sidebar_layout", value, "app-sidebar-layout-change");
+        onAppSidebarLayoutSelect(value) {
+            const next = value === "classic" ? "classic" : "grouped";
+            this.emitField("app_sidebar_layout", next, "app-sidebar-layout-change");
         },
         onMessageFontSizeInput(event) {
             this.emitField("message_font_size", Number(event.target.value), "message-font-size-change");
@@ -708,11 +814,37 @@ export default {
         onUiGlassEnabledToggle(value) {
             this.emitField("ui_glass_enabled", value, "ui-glass-enabled-change");
         },
+        onFontFamilyChange(event) {
+            const value = event.target.value;
+            this.emitField("ui_font_family", value, "ui-font-family-change");
+        },
+        async onFontFileUpload(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            const name = file.name.replace(/\.(woff2|ttf|otf)$/i, "").replace(/["\\]/g, "") || "Custom Font";
+            const reader = new FileReader();
+            reader.onload = () => {
+                const base64 = btoa(new Uint8Array(reader.result).reduce((s, b) => s + String.fromCharCode(b), ""));
+                this.$emit("ui-custom-font-change", {
+                    ui_font_family: "custom",
+                    ui_custom_font_name: name,
+                    ui_custom_font_data: base64,
+                });
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = "";
+        },
         onMessagesMultiPaneEnabledToggle(value) {
             this.emitField("messages_multi_pane_enabled", value, "messages-multi-pane-enabled-change");
         },
         onNomadTabsEnabledToggle(value) {
             this.emitField("nomad_tabs_enabled", value, "nomad-tabs-enabled-change");
+        },
+        onNomadPrivateTabsEnabledToggle(value) {
+            this.emitField("nomad_private_tabs_enabled", value, "nomad-private-tabs-enabled-change");
+        },
+        onNomadHistoryEnabledToggle(value) {
+            this.emitField("nomad_history_enabled", value, "nomad-history-enabled-change");
         },
         onRrcEnabledToggle(value) {
             this.emitField("rrc_enabled", value, "rrc-enabled-change");

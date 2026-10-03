@@ -195,7 +195,7 @@
                                         </div>
                                         <div
                                             v-if="(activeCall || lastCall)?.is_contact || !!initiationTargetName"
-                                            class="inline-flex items-center gap-1 px-2 py-0.5 bg-sem-info/10 text-sem-accent text-[10px] font-bold rounded-full uppercase tracking-wider"
+                                            class="inline-flex items-center gap-1 px-2 py-0.5 bg-sem-info/10 text-sem-info text-[10px] font-bold rounded-full uppercase tracking-wider"
                                         >
                                             <MaterialDesignIcon icon-name="check-decagram" class="size-3" />
                                             Contact
@@ -601,7 +601,7 @@
                                                             class="px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors"
                                                             :class="[
                                                                 index === selectedSuggestionIndex
-                                                                    ? 'bg-sem-info/10 text-sem-accent'
+                                                                    ? 'bg-sem-info/10 text-sem-info'
                                                                     : 'hover:bg-sem-surface-muted/50 text-sem-fg-muted',
                                                             ]"
                                                             @mousedown.prevent="selectSuggestion(suggestion)"
@@ -1130,7 +1130,7 @@
                                                     "
                                                 >
                                                     <span
-                                                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out"
+                                                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-sem-action-primary-text shadow-sm ring-0 transition duration-200 ease-in-out"
                                                         :class="
                                                             config.custom_ringtone_enabled
                                                                 ? 'translate-x-5'
@@ -1190,7 +1190,7 @@
                                                     "
                                                 >
                                                     <span
-                                                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out"
+                                                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-sem-action-primary-text shadow-sm ring-0 transition duration-200 ease-in-out"
                                                         :class="
                                                             config.telephone_tone_generator_enabled
                                                                 ? 'translate-x-5'
@@ -1232,7 +1232,7 @@
                                     </div>
 
                                     <!-- Preferred Ringtone for Non-Contacts -->
-                                    <div class="p-4 rounded-xl bg-sem-info/10 border border-sem-info/20">
+                                    <div class="p-4 rounded-xl bg-sem-surface-muted border border-sem-border">
                                         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                             <div>
                                                 <div class="text-sm font-semibold text-sem-fg">
@@ -1472,7 +1472,7 @@
                                                     <!-- RX Play -->
                                                     <button
                                                         type="button"
-                                                        class="px-2 py-1 rounded-md bg-sem-info/50/10 hover:bg-sem-info/50/20 text-sem-accent text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1"
+                                                        class="px-2 py-1 rounded-md bg-sem-info/10 hover:bg-sem-info/20 text-sem-info text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1"
                                                         @click="playRecording(recording, 'rx')"
                                                     >
                                                         <MaterialDesignIcon
@@ -1489,7 +1489,7 @@
                                                     <!-- TX Play -->
                                                     <button
                                                         type="button"
-                                                        class="px-2 py-1 rounded-md bg-sem-success/10 hover:bg-sem-success/20 text-green-600 dark:text-green-400 text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1"
+                                                        class="px-2 py-1 rounded-md bg-sem-success/10 hover:bg-sem-success/20 text-sem-success text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1"
                                                         @click="playRecording(recording, 'tx')"
                                                     >
                                                         <MaterialDesignIcon
@@ -1712,11 +1712,11 @@
 </template>
 
 <script>
-import { useNetworkStore } from "../../js/stores/networkStore.js";
-import { useConfigStore } from "../../js/stores/configStore.js";
-import { useUnreadStore } from "../../js/stores/unreadStore.js";
+import { useNetworkStore } from "../../js/stores/networkStore";
+import { useConfigStore } from "../../js/stores/configStore";
+import { useUnreadStore } from "../../js/stores/unreadStore";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants";
 import * as announcesApi from "../../js/api/announces.js";
 import * as telephoneApi from "../../js/api/telephone.js";
 import Utils from "../../js/Utils";

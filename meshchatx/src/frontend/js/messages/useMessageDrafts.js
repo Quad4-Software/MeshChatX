@@ -1,6 +1,6 @@
 // @ts-check
 
-import { STORAGE_KEYS } from "../constants.js";
+import { STORAGE_KEYS } from "../constants";
 import { useIdentityScope } from "../identityScope.js";
 
 /**

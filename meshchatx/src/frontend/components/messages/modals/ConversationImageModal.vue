@@ -22,7 +22,7 @@
             <div class="relative max-w-7xl max-h-full group/image-modal" @click.stop>
                 <button
                     type="button"
-                    class="absolute -top-12 left-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 dark:bg-zinc-900/10 hover:bg-white/20 dark:hover:bg-zinc-900/20 text-white transition-colors opacity-0 group-hover/image-modal:opacity-100 focus:opacity-100"
+                    class="absolute -top-12 left-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 dark:bg-sem-surface hover:bg-white/20 dark:hover:bg-sem-surface text-white transition-colors opacity-0 group-hover/image-modal:opacity-100 focus:opacity-100"
                     :title="$t('messages.save_image_to_device')"
                     @click="$emit('download')"
                 >
@@ -30,7 +30,7 @@
                 </button>
                 <button
                     type="button"
-                    class="absolute -top-12 right-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 dark:bg-zinc-900/10 hover:bg-white/20 dark:hover:bg-zinc-900/20 text-white transition-colors"
+                    class="absolute -top-12 right-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 dark:bg-sem-surface hover:bg-white/20 dark:hover:bg-sem-surface text-white transition-colors"
                     @click="$emit('close')"
                 >
                     <MaterialDesignIcon icon-name="close" class="size-5" />

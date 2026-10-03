@@ -544,3 +544,44 @@ def test_get_doc_content_returns_none_on_read_error(tmp_path, monkeypatch):
 
     monkeypatch.setattr("builtins.open", fail_open)
     assert dm.get_doc_content("en/guide.md") is None
+
+
+def test_sync_docs_tree_copies_asset_suffixes(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+    en_dir = docs_dir / "en"
+    en_dir.mkdir()
+    assets_dir = docs_dir / "assets"
+    assets_dir.mkdir()
+    (en_dir / "intro.md").write_text("# Hello\n")
+    (assets_dir / "shot.webp").write_bytes(b"RIFFxxxxWEBP")
+    (assets_dir / "note.bin").write_bytes(b"nope")
+    (docs_dir / "manifest.json").write_text(
+        '{"version":1,"default_language":"en","languages":[{"code":"en","name":"English"}],'
+        '"sections":[{"id":"main","order":1,"title":{"en":"Main"},"items":'
+        '[{"path":"en/intro.md","lang":"en","title":{"en":"Intro"}}]}]}',
+    )
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir), project_root=str(tmp_path))
+    dm.populate_meshchatx_docs()
+
+    synced = dm.meshchatx_docs_dir
+    assert os.path.isfile(os.path.join(synced, "assets", "shot.webp"))
+    assert not os.path.exists(os.path.join(synced, "assets", "note.bin"))
+
+
+def test_get_doc_content_rewrites_relative_image_src(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    en_dir = public_dir / "meshchatx-docs" / "en"
+    en_dir.mkdir(parents=True)
+    (en_dir / "guide.md").write_text("![shot](../assets/guides/g/x.webp)\n")
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir))
+    out = dm.get_doc_content("en/guide.md")
+    assert out is not None
+    assert 'src="/meshchatx-docs/en/../assets/guides/g/x.webp"' in out["html"]

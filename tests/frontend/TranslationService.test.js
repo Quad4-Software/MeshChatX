@@ -112,6 +112,54 @@ describe("TranslationService", () => {
         await p;
     });
 
+    it("fetches the remote pack catalog", async () => {
+        const pairs = [{ pair: "enes", from: "en", to: "es", architecture: "base-memory", size: 10, files: [] }];
+        const get = vi.fn().mockResolvedValue({ data: { pairs } });
+        vi.stubGlobal("api", { get });
+
+        const result = await TranslationService.fetchCatalog();
+
+        expect(get).toHaveBeenCalledWith("/api/v1/translation/catalog");
+        expect(result).toEqual(pairs);
+    });
+
+    it("posts a pair download", async () => {
+        const post = vi.fn().mockResolvedValue({ data: { installed: ["enes"], failed: [] } });
+        vi.stubGlobal("api", { post });
+
+        await TranslationService.downloadPack("enes");
+
+        const [url, body] = post.mock.calls[0];
+        // The client keys CSRF and auth handling on the leading /api/
+        // segment, so service calls must pass the relative path.
+        expect(url).toBe("/api/v1/translation/packs/fetch");
+        expect(body).toEqual({ pair: "enes" });
+    });
+
+    it("reloads an initialized translator after a pack download", async () => {
+        const post = vi.fn().mockResolvedValue({ data: { installed: ["enes"], failed: [] } });
+        vi.stubGlobal("api", { post });
+        mockTranslate.mockResolvedValue({ target: { text: "hola" } });
+
+        await TranslationService.translate({ from: "en", to: "es", text: "hi" });
+        await TranslationService.downloadPack("enes");
+
+        expect(mockDelete).toHaveBeenCalledTimes(1);
+    });
+
+    it("posts an all-pairs download", async () => {
+        const post = vi.fn().mockResolvedValue({ data: { installed: ["enes"], failed: [] } });
+        vi.stubGlobal("api", { post });
+
+        await TranslationService.downloadAllPacks();
+
+        const [url, body] = post.mock.calls[0];
+        // The client keys CSRF and auth handling on the leading /api/
+        // segment, so service calls must pass the relative path.
+        expect(url).toBe("/api/v1/translation/packs/fetch");
+        expect(body).toEqual({ all: true });
+    });
+
     it("does not set an explicit Content-Type on pack upload", async () => {
         const post = vi.fn().mockResolvedValue({ data: { pairs: ["enes"] } });
         vi.stubGlobal("api", { post });

@@ -6,6 +6,7 @@
             class="flex-1 overflow-y-auto overflow-x-hidden w-full min-w-0 px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6 text-sem-fg"
         >
             <div class="space-y-0 w-full max-w-4xl mx-auto pb-16 sm:pb-24 min-w-0">
+                <div v-if="!appInfo" class="about-section h-[51rem] animate-pulse" aria-hidden="true" />
                 <div v-if="appInfo" class="about-section">
                     <div class="flex flex-col gap-8 lg:flex-row lg:items-center">
                         <!-- Logo & Title -->
@@ -182,7 +183,7 @@
                                 </div>
                                 <MaterialDesignIcon
                                     :icon-name="showContactSupport ? 'chevron-up' : 'chevron-down'"
-                                    class="size-[22px] shrink-0 text-sem-fg-muted group-hover:text-sem-fg dark:group-hover:text-zinc-200 transition-colors"
+                                    class="size-[22px] shrink-0 text-sem-fg-muted group-hover:text-sem-fg dark:group-hover:text-sem-fg transition-colors"
                                 />
                             </button>
 
@@ -204,14 +205,14 @@
                                                         name: 'messages',
                                                         params: { destinationHash: developerLxmfPrimary },
                                                     }"
-                                                    class="flex-1 min-w-0 text-sm font-mono text-sem-fg-muted hover:text-sem-accent dark:hover:text-blue-400 break-all leading-snug text-left"
+                                                    class="flex-1 min-w-0 text-sm font-mono text-sem-fg-muted hover:text-sem-accent dark:hover:text-sem-info break-all leading-snug text-left"
                                                     :title="$t('about.contact_open_messages')"
                                                 >
                                                     {{ developerLxmfPrimary }}
                                                 </router-link>
                                                 <button
                                                     type="button"
-                                                    class="shrink-0 rounded-lg p-1.5 text-sem-fg-muted hover:text-sem-accent text-sem-fg-muted dark:hover:text-blue-400 hover:bg-sem-surface-muted transition-colors"
+                                                    class="shrink-0 rounded-lg p-1.5 text-sem-fg-muted hover:text-sem-accent text-sem-fg-muted dark:hover:text-sem-info hover:bg-sem-surface-muted transition-colors"
                                                     :aria-label="$t('about.contact_copy_address')"
                                                     @click="
                                                         copyValue(developerLxmfPrimary, 'about.contact_lxmf_address')
@@ -228,14 +229,14 @@
                                                         name: 'messages',
                                                         params: { destinationHash: developerLxmfAlternate },
                                                     }"
-                                                    class="flex-1 min-w-0 text-sm font-mono text-sem-fg-muted hover:text-sem-accent dark:hover:text-blue-400 break-all leading-snug text-left"
+                                                    class="flex-1 min-w-0 text-sm font-mono text-sem-fg-muted hover:text-sem-accent dark:hover:text-sem-info break-all leading-snug text-left"
                                                     :title="$t('about.contact_open_messages')"
                                                 >
                                                     {{ developerLxmfAlternate }}
                                                 </router-link>
                                                 <button
                                                     type="button"
-                                                    class="shrink-0 rounded-lg p-1.5 text-sem-fg-muted hover:text-sem-accent text-sem-fg-muted dark:hover:text-blue-400 hover:bg-sem-surface-muted transition-colors"
+                                                    class="shrink-0 rounded-lg p-1.5 text-sem-fg-muted hover:text-sem-accent text-sem-fg-muted dark:hover:text-sem-info hover:bg-sem-surface-muted transition-colors"
                                                     :aria-label="$t('about.contact_copy_address')"
                                                     @click="
                                                         copyValue(developerLxmfAlternate, 'about.contact_alternate')
@@ -280,7 +281,7 @@
                                                 >
                                                 <button
                                                     type="button"
-                                                    class="shrink-0 rounded-lg p-1.5 text-sem-fg-muted hover:text-sem-accent text-sem-fg-muted dark:hover:text-blue-400 hover:bg-sem-surface-muted transition-colors"
+                                                    class="shrink-0 rounded-lg p-1.5 text-sem-fg-muted hover:text-sem-accent text-sem-fg-muted dark:hover:text-sem-info hover:bg-sem-surface-muted transition-colors"
                                                     :aria-label="$t('about.donate_copy_monero')"
                                                     @click="copyValue(moneroDonateAddress, 'about.donate_monero_label')"
                                                 >
@@ -343,6 +344,11 @@
 
                 <div class="space-y-6">
                     <!-- Security & Integrity -->
+                    <div
+                        v-if="!appInfo"
+                        class="about-section hidden sm:block h-[38rem] animate-pulse"
+                        aria-hidden="true"
+                    />
                     <div v-if="appInfo" class="about-section hidden sm:block">
                         <div
                             class="text-xs font-black text-sem-accent uppercase tracking-[0.2em] flex items-center gap-2 mb-6"
@@ -374,11 +380,7 @@
                                                 appInfo.integrity_issues.length === 0 ? 'shield-check' : 'shield-alert'
                                             "
                                             class="size-3.5 shrink-0"
-                                            :class="
-                                                appInfo.integrity_issues.length === 0
-                                                    ? 'text-emerald-600 dark:text-emerald-400'
-                                                    : ''
-                                            "
+                                            :class="appInfo.integrity_issues.length === 0 ? 'text-sem-success' : ''"
                                         />
                                         {{
                                             appInfo.integrity_issues.length === 0
@@ -400,17 +402,15 @@
 
                             <div
                                 v-if="Array.isArray(appInfo.integrity_issues) && appInfo.integrity_issues.length > 0"
-                                class="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl"
+                                class="p-4 bg-sem-warning/15 dark:bg-sem-warning/15 border border-sem-warning dark:border-sem-warning rounded-xl"
                             >
                                 <div
-                                    class="text-xs font-black text-amber-700 dark:text-amber-400 mb-3 uppercase tracking-wider flex items-center gap-2"
+                                    class="text-xs font-black text-sem-warning mb-3 uppercase tracking-wider flex items-center gap-2"
                                 >
                                     <MaterialDesignIcon icon-name="alert" class="size-4" />
                                     {{ $t("about.technical_issues_detected") }}
                                 </div>
-                                <ul
-                                    class="text-[11px] text-amber-700 dark:text-amber-300 space-y-2 list-none font-mono"
-                                >
+                                <ul class="text-[11px] text-sem-warning space-y-2 list-none font-mono">
                                     <li
                                         v-for="(issue, index) in appInfo.integrity_issues"
                                         :key="index"
@@ -423,11 +423,11 @@
                             </div>
                             <div
                                 v-else
-                                class="text-sm text-sem-fg dark:text-emerald-200 flex items-center gap-3 bg-emerald-500/10 dark:bg-emerald-900/30 p-4 rounded-xl border border-emerald-500/20 dark:border-emerald-500/30"
+                                class="text-sm text-sem-fg text-sem-success flex items-center gap-3 bg-sem-warning/15 dark:bg-sem-success/15 p-4 rounded-xl border border-sem-success dark:border-sem-success"
                             >
                                 <MaterialDesignIcon
                                     icon-name="check-decagram"
-                                    class="size-5 text-emerald-600 dark:text-emerald-400 shrink-0"
+                                    class="size-5 text-sem-success shrink-0"
                                 />
                                 <span class="font-bold tracking-tight">{{ $t("about.no_integrity_violations") }}</span>
                             </div>
@@ -450,7 +450,7 @@
                                     <MaterialDesignIcon
                                         :icon-name="sandboxSummaryActive ? 'shield-check' : 'shield-off'"
                                         class="size-3.5 shrink-0"
-                                        :class="sandboxSummaryActive ? 'text-emerald-600 dark:text-emerald-400' : ''"
+                                        :class="sandboxSummaryActive ? 'text-sem-success' : ''"
                                     />
                                     {{ $t(sandboxSummaryTypeKey) }}
                                 </span>
@@ -493,7 +493,7 @@
                                     </div>
                                     <p
                                         class="text-[11px] leading-relaxed text-sem-fg-muted mt-2"
-                                        :class="card.active ? 'text-emerald-700 dark:text-emerald-300' : ''"
+                                        :class="card.active ? 'text-sem-success' : ''"
                                     >
                                         {{ $t(card.noteKey) }}
                                     </p>
@@ -525,7 +525,7 @@
                             <li
                                 v-for="session in activeSessions"
                                 :key="session.id"
-                                class="rounded-xl border border-sem-border bg-sem-surface-muted/70 dark:bg-zinc-900/40 p-3 min-w-0"
+                                class="rounded-xl border border-sem-border bg-sem-surface-muted/70 dark:bg-sem-surface p-3 min-w-0"
                             >
                                 <div class="grid gap-2 text-[11px] sm:grid-cols-2">
                                     <div class="min-w-0">
@@ -564,6 +564,7 @@
                     </div>
 
                     <!-- Advanced Tech Info -->
+                    <div v-if="!appInfo" class="about-section h-[42rem] animate-pulse" aria-hidden="true" />
                     <div v-if="appInfo" class="about-section">
                         <div
                             class="text-xs font-black text-sem-accent uppercase tracking-[0.2em] mb-6 flex items-center gap-2"
@@ -577,7 +578,7 @@
                                     {{ $t("about.reticulum_config") }}
                                 </div>
                                 <div
-                                    class="monospace-field bg-zinc-50! dark:bg-zinc-950! break-all text-[11px] p-3! rounded-xl border border-zinc-100"
+                                    class="monospace-field bg-sem-surface-muted! dark:bg-sem-surface! break-all text-[11px] p-3! rounded-xl border border-sem-border"
                                 >
                                     {{ appInfo.reticulum_config_path || $t("about.path_unknown") }}
                                 </div>
@@ -596,7 +597,7 @@
                                     {{ $t("about.database_path") }}
                                 </div>
                                 <div
-                                    class="monospace-field bg-zinc-50! dark:bg-zinc-950! break-all text-[11px] p-3! rounded-xl border border-zinc-100"
+                                    class="monospace-field bg-sem-surface-muted! dark:bg-sem-surface! break-all text-[11px] p-3! rounded-xl border border-sem-border"
                                 >
                                     {{ appInfo.database_path || $t("about.path_unknown") }}
                                 </div>
@@ -622,7 +623,7 @@
                         class="about-section"
                     >
                         <div
-                            class="text-xs font-black text-cyan-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-2"
+                            class="text-xs font-black text-sem-info uppercase tracking-[0.2em] mb-6 flex items-center gap-2"
                         >
                             <MaterialDesignIcon icon-name="gauge" class="size-3.5" />
                             {{ $t("about.usage_insights") }}
@@ -636,11 +637,7 @@
                                 }}</span>
                                 <span
                                     class="font-mono text-xs font-bold tabular-nums shrink-0"
-                                    :class="
-                                        batterySaverPrefs.enabled
-                                            ? 'text-emerald-600 dark:text-emerald-400'
-                                            : 'opacity-70'
-                                    "
+                                    :class="batterySaverPrefs.enabled ? 'text-sem-success' : 'opacity-70'"
                                 >
                                     {{
                                         batterySaverPrefs.enabled
@@ -806,12 +803,12 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 ml-6 relative">
+                                <div class="flex items-center gap-5 pl-5 border-l-2 border-sem-border ml-6 relative">
                                     <div
                                         class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-blue-500 to-emerald-500"
                                     ></div>
                                     <div
-                                        class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-600 shadow-xs"
+                                        class="w-12 h-12 rounded-2xl bg-sem-warning/15 flex items-center justify-center border border-sem-success text-sem-success shadow-xs"
                                     >
                                         <MaterialDesignIcon icon-name="robot" class="size-6" />
                                     </div>
@@ -822,12 +819,12 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 ml-6 relative">
+                                <div class="flex items-center gap-5 pl-5 border-l-2 border-sem-border ml-6 relative">
                                     <div
                                         class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-emerald-500 to-purple-500"
                                     ></div>
                                     <div
-                                        class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 text-purple-600 shadow-xs"
+                                        class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 text-sem-info shadow-xs"
                                     >
                                         <MaterialDesignIcon icon-name="message-text" class="size-6" />
                                     </div>
@@ -840,13 +837,13 @@
                                 </div>
                                 <div
                                     v-if="appInfo.lxst_version"
-                                    class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 ml-6 relative"
+                                    class="flex items-center gap-5 pl-5 border-l-2 border-sem-border ml-6 relative"
                                 >
                                     <div
                                         class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-purple-500 to-rose-500"
                                     ></div>
                                     <div
-                                        class="w-12 h-12 rounded-2xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20 text-rose-600 shadow-xs"
+                                        class="w-12 h-12 rounded-2xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20 text-sem-info shadow-xs"
                                     >
                                         <MaterialDesignIcon icon-name="phone" class="size-6" />
                                     </div>
@@ -857,12 +854,12 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 ml-6 relative">
+                                <div class="flex items-center gap-5 pl-5 border-l-2 border-sem-border ml-6 relative">
                                     <div
                                         class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-rose-500 to-indigo-500"
                                     ></div>
                                     <div
-                                        class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-600 shadow-xs"
+                                        class="w-12 h-12 rounded-2xl bg-sem-warning/15 flex items-center justify-center border border-indigo-500/20 text-sem-info shadow-xs"
                                     >
                                         <MaterialDesignIcon icon-name="lan" class="size-6" />
                                     </div>
@@ -876,7 +873,7 @@
                                                 :class="[
                                                     appInfo.is_connected_to_shared_instance
                                                         ? 'bg-sem-accent/10 text-sem-accent border-sem-accent/20'
-                                                        : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+                                                        : 'bg-sem-warning/15 text-sem-success border-sem-success',
                                                 ]"
                                                 class="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-sm border max-w-full wrap-break-word"
                                             >
@@ -1019,12 +1016,14 @@
                         <div v-if="databaseHealth" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 lg:gap-8 mb-8">
                             <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 md:border md:rounded-xl">
                                 <div
-                                    class="text-[9px] font-black text-sem-fg-muted dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
+                                    class="text-[9px] font-black text-sem-fg-muted dark:text-sem-fg-secondary uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
                                     {{ $t("about.integrity") }}
                                 </div>
                                 <div
-                                    :class="[databaseHealth.quick_check === 'ok' ? 'text-emerald-500' : 'text-red-500']"
+                                    :class="[
+                                        databaseHealth.quick_check === 'ok' ? 'text-sem-success' : 'text-sem-danger',
+                                    ]"
                                     class="text-lg font-black uppercase tracking-tight"
                                 >
                                     {{ databaseHealth.quick_check }}
@@ -1032,7 +1031,7 @@
                             </div>
                             <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 md:border md:rounded-xl">
                                 <div
-                                    class="text-[9px] font-black text-sem-fg-muted dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
+                                    class="text-[9px] font-black text-sem-fg-muted dark:text-sem-fg-secondary uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
                                     {{ $t("about.journal_short") }}
                                 </div>
@@ -1042,7 +1041,7 @@
                             </div>
                             <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 md:border md:rounded-xl">
                                 <div
-                                    class="text-[9px] font-black text-sem-fg-muted dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
+                                    class="text-[9px] font-black text-sem-fg-muted dark:text-sem-fg-secondary uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
                                     {{ $t("about.page_count_label") }}
                                 </div>
@@ -1052,17 +1051,17 @@
                             </div>
                             <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 md:border md:rounded-xl">
                                 <div
-                                    class="text-[9px] font-black text-sem-fg-muted dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
+                                    class="text-[9px] font-black text-sem-fg-muted dark:text-sem-fg-secondary uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
                                     {{ $t("about.free_space") }}
                                 </div>
-                                <div class="text-lg font-black text-amber-500 tracking-tight tabular-nums">
+                                <div class="text-lg font-black text-sem-warning tracking-tight tabular-nums">
                                     {{ formatBytes(databaseHealth.estimated_free_bytes) }}
                                 </div>
                             </div>
                         </div>
 
-                        <div id="about-database-backups" class="border-t border-zinc-100 pt-8 space-y-8">
+                        <div id="about-database-backups" class="border-t border-sem-border pt-8 space-y-8">
                             <!-- Backups -->
                             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                                 <div class="space-y-1">
@@ -1115,7 +1114,7 @@
                                         <div
                                             class="font-black text-sem-fg text-sm tracking-tight flex items-center gap-2"
                                         >
-                                            <MaterialDesignIcon icon-name="camera" class="size-4 text-purple-500" />
+                                            <MaterialDesignIcon icon-name="camera" class="size-4 text-sem-info" />
                                             {{ $t("about.local_snapshots_title") }}
                                         </div>
                                         <div class="text-xs text-sem-fg-muted">
@@ -1127,7 +1126,7 @@
                                             v-model="snapshotName"
                                             type="text"
                                             :placeholder="$t('about.snapshot_placeholder')"
-                                            class="bg-zinc-50 dark:bg-zinc-900 px-4 py-2 rounded-xl text-sm border border-zinc-100 focus:outline-hidden focus:ring-2 focus:ring-sem-focus/20 flex-1 md:min-w-[200px]"
+                                            class="bg-sem-surface-muted px-4 py-2 rounded-xl text-sm border border-sem-border focus:outline-hidden focus:ring-2 focus:ring-sem-focus/20 flex-1 md:min-w-[200px]"
                                         />
                                         <button
                                             type="button"
@@ -1279,7 +1278,7 @@
 
                                     <div
                                         v-if="autoBackups.some((b) => b.name.includes('SUSPICIOUS'))"
-                                        class="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2"
+                                        class="mt-4 p-3 rounded-xl bg-sem-warning/15 dark:bg-sem-warning/15 border border-sem-warning dark:border-sem-warning text-xs text-sem-warning flex items-start gap-2"
                                     >
                                         <MaterialDesignIcon icon-name="alert" class="size-4 shrink-0 mt-0.5" />
                                         <span
@@ -1323,7 +1322,7 @@
                                 </div>
                                 <div
                                     v-else
-                                    class="rounded-xl border border-dashed border-zinc-200 px-4 py-6 text-center text-xs text-sem-fg-muted"
+                                    class="rounded-xl border border-dashed border-sem-border px-4 py-6 text-center text-xs text-sem-fg-muted"
                                 >
                                     {{ $t("about.automatic_backups_empty") }}
                                 </div>
@@ -1344,8 +1343,8 @@ import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
-import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants";
 import * as databaseApi from "../../js/api/database.js";
 import {
     appBatteryUsageToneClass,
@@ -1395,9 +1394,7 @@ export default {
         return {
             Utils,
             logoUrl,
-            appInfo: {
-                version: "unknown",
-            },
+            appInfo: null,
             updateInterval: null,
             healthInterval: null,
             databaseHealth: null,
@@ -1559,7 +1556,7 @@ export default {
         memoryPressureToneClass() {
             const cleanup = this.appInfo?.reticulum_stats?.memory_cleanup;
             if (cleanup && typeof cleanup === "object" && cleanup.sqlite_relaxed) {
-                return "text-amber-600 dark:text-amber-400";
+                return "text-sem-warning";
             }
             return "opacity-70";
         },
@@ -1591,14 +1588,14 @@ export default {
                 return "opacity-70";
             }
             if (this.batteryStatus.charging) {
-                return "text-emerald-600 dark:text-emerald-400";
+                return "text-sem-success";
             }
             const level = this.batteryStatus.level;
             if (level != null && level <= 15) {
-                return "text-sem-danger dark:text-red-400";
+                return "text-sem-danger dark:text-sem-danger";
             }
             if (level != null && level <= 30) {
-                return "text-amber-600 dark:text-amber-400";
+                return "text-sem-warning";
             }
             return "";
         },
@@ -2095,38 +2092,38 @@ export default {
         },
         statusPillClass(isGood) {
             return isGood
-                ? "inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 px-3 py-1 text-xs font-semibold"
-                : "inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300 px-3 py-1 text-xs font-semibold";
+                ? "inline-flex items-center gap-1 rounded-full bg-sem-success/15 text-sem-success dark:bg-sem-success/15 dark:text-sem-success px-3 py-1 text-xs font-semibold"
+                : "inline-flex items-center gap-1 rounded-full bg-sem-warning/15 text-sem-warning dark:bg-sem-warning/15 dark:text-sem-warning px-3 py-1 text-xs font-semibold";
         },
         sandboxCardClass(card) {
             if (card.active) {
-                return "border-emerald-500/35 bg-emerald-500/5 dark:bg-emerald-900/20";
+                return "border-sem-success bg-sem-success/5 dark:bg-sem-success/15";
             }
             if (card.warn) {
-                return "border-amber-500/35 bg-amber-500/5 dark:bg-amber-950/20";
+                return "border-amber-500/35 bg-sem-warning/5 dark:bg-sem-warning/15";
             }
             return "border-sem-border/60";
         },
         sandboxIconClass(card) {
             if (card.active) {
-                return "text-emerald-600 dark:text-emerald-400 border-emerald-500/35 bg-emerald-500/10";
+                return "text-sem-success border-sem-success bg-sem-warning/15";
             }
             if (card.unavailable) {
-                return "text-sem-fg-muted border-sem-border/60 bg-sem-surface-muted/70 dark:bg-zinc-900/40";
+                return "text-sem-fg-muted border-sem-border/60 bg-sem-surface-muted/70 dark:bg-sem-surface";
             }
             return "text-sem-fg-muted border-sem-border/60";
         },
         sandboxBadgeClass(card) {
             if (card.active) {
-                return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300";
+                return "bg-sem-success/15 text-sem-success dark:bg-sem-success/15 dark:text-sem-success";
             }
             if (card.unavailable) {
-                return "bg-sem-surface-muted text-sem-fg-muted dark:bg-sem-surface-raised dark:text-gray-300";
+                return "bg-sem-surface-muted text-sem-fg-muted dark:bg-sem-surface-raised dark:text-sem-fg-secondary";
             }
             if (card.warn) {
-                return "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300";
+                return "bg-sem-warning/15 text-sem-warning dark:bg-sem-warning/15 dark:text-sem-warning";
             }
-            return "bg-sem-surface-muted text-sem-fg-muted dark:bg-sem-surface-raised dark:text-gray-300";
+            return "bg-sem-surface-muted text-sem-fg-muted dark:bg-sem-surface-raised dark:text-sem-fg-secondary";
         },
     },
 };

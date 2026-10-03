@@ -106,7 +106,7 @@ def test_stale_link_close_does_not_clear_session(tmp_path):
     hub.welcomed = True
     hub.rooms.add("lobby")
 
-    # A reconnect replaced the link; the old link's late close arrives after.
+    # A reconnect replaced the link. the old link's late close arrives after.
     hub.link = new_link
     hub._on_closed(old_link)
 
@@ -126,7 +126,7 @@ def test_current_link_close_clears_session(tmp_path):
 
     assert hub.link is None
     assert not hub.welcomed
-    # Room membership is retained for reconnect; session state is cleared.
+    # Room membership is retained for reconnect. session state is cleared.
     assert not hub.members
 
 
@@ -448,7 +448,7 @@ class TestIOPressure:
 
         hm = HealthMonitor(None)
         psi = hm._read_io_pressure()
-        # Linux CI hosts expose PSI; containers may not. Either way the
+        # Linux CI hosts expose PSI. containers may not. Either way the
         # reader must not throw and must return None or a float.
         assert psi is None or psi >= 0.0
 

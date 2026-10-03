@@ -6,7 +6,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { config } from "@vue/test-utils";
 import createDOMPurify from "dompurify";
 import { injectMeshchatThemeVariables } from "../../meshchatx/src/frontend/theme/designTokens.js";
-import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.js";
+import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore";
 import { clearConversationPrefetchCache } from "../../meshchatx/src/frontend/js/conversationPrefetch.js";
 
 // CI and slower local machines can need more than the default 1000ms for async

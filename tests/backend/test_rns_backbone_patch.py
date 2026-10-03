@@ -204,6 +204,7 @@ def test_autoconnect_builds_tcp_client_without_epoll(
         "port": 4242,
         "network_id": "aa" * 16,
         "transport_id": "bb" * 16,
+        "transport": True,
         "config_entry": "",
     }
 
@@ -248,6 +249,7 @@ def test_degraded_interface_dedup_via_interface_exists(
         "port": 4242,
         "network_id": "aa" * 16,
         "transport_id": "bb" * 16,
+        "transport": True,
         "config_entry": "",
     }
     discovery.autoconnect(info)

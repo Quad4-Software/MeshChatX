@@ -7,7 +7,7 @@
         >
             <div class="p-6">
                 <h2 class="text-xl font-bold text-sem-fg flex items-center gap-2">
-                    <MaterialDesignIcon icon-name="content-save-outline" class="size-6 text-blue-500" />
+                    <MaterialDesignIcon icon-name="content-save-outline" class="size-6 text-sem-info" />
                     {{ $t("map.save_drawing_title") }}
                 </h2>
                 <p class="text-sm text-sem-fg-muted mt-1">{{ $t("map.save_drawing_desc") }}</p>
@@ -20,7 +20,7 @@
                         ref="newDrawingNameInput"
                         :value="name"
                         type="text"
-                        class="w-full px-4 py-3 bg-gray-50 dark:bg-zinc-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+                        class="w-full px-4 py-3 bg-sem-surface-muted border-none rounded-xl text-sm focus:ring-2 focus:ring-sem-accent transition-all dark:text-white"
                         :placeholder="$t('map.drawing_name_placeholder')"
                         @input="$emit('update:name', $event.target.value)"
                         @keyup.enter="$emit('save')"
@@ -30,14 +30,14 @@
                 <div class="mt-8 flex gap-3">
                     <button
                         type="button"
-                        class="flex-1 px-4 py-2.5 rounded-xl border border-sem-border text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted transition"
+                        class="flex-1 px-4 py-2.5 rounded-xl border border-sem-border text-sm font-semibold text-sem-fg hover:bg-sem-surface-muted transition"
                         @click="$emit('close')"
                     >
                         {{ $t("common.close") }}
                     </button>
                     <button
                         type="button"
-                        class="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/25 hover:bg-blue-500 transition active:scale-95 disabled:opacity-50"
+                        class="flex-1 px-4 py-2.5 rounded-xl bg-sem-action-primary text-sem-action-primary-text text-sm font-semibold shadow-lg shadow-sem-action-primary/25 hover:bg-sem-info transition active:scale-95 disabled:opacity-50"
                         :disabled="!String(name || '').trim()"
                         @click="$emit('save')"
                     >

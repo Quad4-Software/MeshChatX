@@ -10,7 +10,7 @@
         >
             <template #actions>
                 <button
-                    class="p-2 text-gray-500 hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors"
+                    class="p-2 text-sem-fg-muted hover:text-sem-info text-sem-fg-muted dark:hover:text-sem-info transition-colors"
                     title="Refresh"
                     @click="refreshAll"
                 >
@@ -36,8 +36,8 @@
                         class="shrink-0 px-4 sm:px-6 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px"
                         :class="[
                             tab === t
-                                ? 'text-indigo-600 border-indigo-500 dark:text-indigo-400 dark:border-indigo-400'
-                                : 'text-gray-500 border-transparent hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+                                ? 'text-sem-info border-sem-info dark:text-sem-info dark:border-sem-info'
+                                : 'text-sem-fg-muted border-transparent hover:text-sem-fg text-sem-fg-muted dark:hover:text-sem-fg',
                         ]"
                         @click="tab = t"
                     >
@@ -50,7 +50,7 @@
             <div v-if="tab === 'table'" class="space-y-4">
                 <div class="rounded-lg border border-sem-border bg-sem-surface p-3 sm:p-4 space-y-3">
                     <div class="text-sm font-semibold">{{ $t("rnstatus.remote_query") }}</div>
-                    <p class="text-xs text-gray-500">{{ $t("rnstatus.remote_query_hint") }}</p>
+                    <p class="text-xs text-sem-fg-muted">{{ $t("rnstatus.remote_query_hint") }}</p>
                     <div class="grid gap-3 lg:grid-cols-2">
                         <input
                             v-model="remoteHash"
@@ -68,7 +68,7 @@
                     </div>
                     <ManagementIdentityPicker v-model="identityPath" default-name="mgmt" />
                     <div v-if="activeRemoteHash" class="flex flex-wrap items-center gap-2 text-xs">
-                        <span class="font-mono text-amber-700 dark:text-amber-300">{{
+                        <span class="font-mono text-sem-warning">{{
                             $t("rnstatus.remote_active", { hash: activeRemoteHash })
                         }}</span>
                         <button type="button" class="secondary-chip px-2 py-1 text-xs" @click="clearRemote">
@@ -90,7 +90,7 @@
                         />
                         <MaterialDesignIcon
                             icon-name="magnify"
-                            class="pointer-events-none absolute right-3 top-1/2 size-5 -translate-y-1/2 text-gray-400"
+                            class="pointer-events-none absolute right-3 top-1/2 size-5 -translate-y-1/2 text-sem-fg-muted"
                             aria-hidden="true"
                         />
                     </div>
@@ -101,7 +101,7 @@
                         </option>
                     </select>
                     <div class="flex items-center gap-2">
-                        <span class="text-xs font-semibold text-gray-500 uppercase min-w-fit">Hops:</span>
+                        <span class="text-xs font-semibold text-sem-fg-muted uppercase min-w-fit">Hops:</span>
                         <input
                             v-model.number="filterHops"
                             type="number"
@@ -115,27 +115,23 @@
                         class="flex flex-wrap items-center justify-start sm:justify-end gap-x-4 gap-y-2 sm:flex-nowrap lg:col-span-1"
                     >
                         <div class="flex flex-col items-start sm:items-end">
-                            <span class="text-[10px] font-bold text-gray-400 uppercase">Total</span>
+                            <span class="text-[10px] font-bold text-sem-fg-muted uppercase">Total</span>
                             <span class="text-sm font-bold">{{ totalItems }}</span>
                         </div>
                         <div class="flex flex-col items-start sm:items-end">
-                            <span class="text-[10px] font-bold text-green-500 uppercase">Responsive</span>
-                            <span class="text-sm font-bold text-green-600 dark:text-green-400">{{
-                                responsiveItems
-                            }}</span>
+                            <span class="text-[10px] font-bold text-sem-success uppercase">Responsive</span>
+                            <span class="text-sm font-bold text-sem-success">{{ responsiveItems }}</span>
                         </div>
                         <div class="flex flex-col items-start sm:items-end">
-                            <span class="text-[10px] font-bold text-red-500 uppercase">Unresponsive</span>
-                            <span class="text-sm font-bold text-red-600 dark:text-red-400">{{
-                                unresponsiveItems
-                            }}</span>
+                            <span class="text-[10px] font-bold text-sem-danger uppercase">Unresponsive</span>
+                            <span class="text-sm font-bold text-sem-danger">{{ unresponsiveItems }}</span>
                         </div>
                     </div>
                 </div>
 
                 <div
                     v-if="pathTable.length === 0"
-                    class="rounded-lg border border-sem-border bg-sem-surface p-8 sm:p-12 text-center text-gray-500"
+                    class="rounded-lg border border-sem-border bg-sem-surface p-8 sm:p-12 text-center text-sem-fg-muted"
                 >
                     No paths found matching your criteria.
                 </div>
@@ -154,11 +150,11 @@
                     >
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-2 mb-1">
-                                <span class="font-mono text-sm font-bold text-indigo-600 dark:text-indigo-400 truncate">
+                                <span class="font-mono text-sm font-bold text-sem-info dark:text-sem-info truncate">
                                     {{ path.hash }}
                                 </span>
                                 <span
-                                    class="px-2 py-0.5 text-[10px] font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-sm uppercase tracking-wider"
+                                    class="px-2 py-0.5 text-[10px] font-bold bg-sem-info/15 dark:bg-sem-info/15 text-sem-info dark:text-sem-info rounded-sm uppercase tracking-wider"
                                 >
                                     {{ path.hops }} {{ path.hops === 1 ? "hop" : "hops" }}
                                 </span>
@@ -173,20 +169,20 @@
                                 via {{ path.via }} on {{ path.interface }}
                             </div>
                             <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px]">
-                                <div class="text-gray-400">
+                                <div class="text-sem-fg-muted">
                                     <span class="font-semibold uppercase">Last Updated:</span>
                                     {{ path.timestamp ? formatDate(path.timestamp) : "Unknown" }}
                                 </div>
-                                <div class="text-gray-400">
+                                <div class="text-sem-fg-muted">
                                     <span class="font-semibold uppercase">Expires:</span> {{ formatDate(path.expires) }}
                                 </div>
-                                <div v-if="path.announce_hash" class="text-gray-400">
+                                <div v-if="path.announce_hash" class="text-sem-fg-muted">
                                     <span class="font-semibold uppercase">Announce Hash:</span> {{ path.announce_hash }}
                                 </div>
                             </div>
                         </div>
                         <button
-                            class="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-colors border border-red-200 dark:border-red-900/30"
+                            class="px-3 py-1.5 text-xs font-semibold text-sem-danger hover:bg-sem-danger/15 dark:text-sem-danger dark:hover:bg-sem-danger/15 rounded-lg transition-colors border border-sem-danger dark:border-sem-danger"
                             @click="dropPath(path.hash)"
                         >
                             Drop Path
@@ -217,7 +213,7 @@
                         </button>
                     </div>
                     <div class="flex items-center gap-2 justify-between sm:justify-end w-full sm:w-auto">
-                        <span class="text-xs text-gray-500 uppercase font-semibold">Show:</span>
+                        <span class="text-xs text-sem-fg-muted uppercase font-semibold">Show:</span>
                         <select
                             v-model="itemsPerPage"
                             class="bg-transparent border-none text-sm font-bold text-sem-fg focus:ring-0 cursor-pointer"
@@ -235,7 +231,7 @@
             <div v-if="tab === 'rates'" class="space-y-4">
                 <div
                     v-if="rateTable.length === 0"
-                    class="rounded-lg border border-sem-border bg-sem-surface p-8 sm:p-12 text-center text-gray-500"
+                    class="rounded-lg border border-sem-border bg-sem-surface p-8 sm:p-12 text-center text-sem-fg-muted"
                 >
                     No announce rate data available.
                 </div>
@@ -246,36 +242,36 @@
                         class="rounded-lg border border-sem-border bg-sem-surface p-3 sm:p-4"
                     >
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                            <span class="font-mono text-sm font-bold text-indigo-600 dark:text-indigo-400 truncate">
+                            <span class="font-mono text-sm font-bold text-sem-info dark:text-sem-info truncate">
                                 {{ rate.hash }}
                             </span>
                             <span
                                 v-if="rate.blocked_until > Date.now() / 1000"
-                                class="px-2 py-0.5 text-[10px] font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-sm"
+                                class="px-2 py-0.5 text-[10px] font-bold bg-sem-danger/15 text-sem-danger rounded-sm"
                             >
                                 RATE LIMITED
                             </span>
                         </div>
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                             <div>
-                                <div class="text-[10px] uppercase text-gray-500">Last Heard</div>
+                                <div class="text-[10px] uppercase text-sem-fg-muted">Last Heard</div>
                                 <div class="text-xs font-medium">{{ formatTimeAgo(rate.last) }}</div>
                             </div>
                             <div>
-                                <div class="text-[10px] uppercase text-gray-500">Announces</div>
+                                <div class="text-[10px] uppercase text-sem-fg-muted">Announces</div>
                                 <div class="text-xs font-medium">{{ rate.timestamps.length }}</div>
                             </div>
                             <div>
-                                <div class="text-[10px] uppercase text-gray-500">Violations</div>
+                                <div class="text-[10px] uppercase text-sem-fg-muted">Violations</div>
                                 <div
                                     class="text-xs font-medium"
-                                    :class="rate.rate_violations > 0 ? 'text-red-500' : ''"
+                                    :class="rate.rate_violations > 0 ? 'text-sem-danger' : ''"
                                 >
                                     {{ rate.rate_violations }}
                                 </div>
                             </div>
                             <div>
-                                <div class="text-[10px] uppercase text-gray-500">Rate</div>
+                                <div class="text-[10px] uppercase text-sem-fg-muted">Rate</div>
                                 <div class="text-xs font-medium">{{ calculateRate(rate) }} / hr</div>
                             </div>
                         </div>
@@ -288,7 +284,7 @@
                 <!-- request path -->
                 <section class="rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-6 space-y-4">
                     <h2 class="text-lg font-bold">Request Path</h2>
-                    <p class="text-sm text-gray-500">Broadcast a path request for a destination hash.</p>
+                    <p class="text-sm text-sem-fg-muted">Broadcast a path request for a destination hash.</p>
                     <div class="flex flex-col sm:flex-row gap-2">
                         <input
                             v-model="requestHash"
@@ -298,7 +294,7 @@
                         />
                         <button
                             type="button"
-                            class="px-4 py-2.5 sm:py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-500 transition active:scale-95 disabled:opacity-50 shrink-0"
+                            class="px-4 py-2.5 sm:py-2 bg-sem-info text-white rounded-lg font-semibold hover:bg-sem-info transition active:scale-95 disabled:opacity-50 shrink-0"
                             :disabled="requestHash.length !== 32"
                             @click="requestPath"
                         >
@@ -310,7 +306,7 @@
                 <!-- drop all via -->
                 <section class="rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-6 space-y-4">
                     <h2 class="text-lg font-bold">Drop All Via</h2>
-                    <p class="text-sm text-gray-500">
+                    <p class="text-sm text-sem-fg-muted">
                         Remove all known paths routed through a specific transport instance.
                     </p>
                     <div class="flex flex-col sm:flex-row gap-2">
@@ -322,7 +318,7 @@
                         />
                         <button
                             type="button"
-                            class="px-4 py-2.5 sm:py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-500 transition active:scale-95 disabled:opacity-50 shrink-0"
+                            class="px-4 py-2.5 sm:py-2 bg-sem-action-danger text-sem-action-danger-text rounded-lg font-semibold hover:bg-sem-danger transition active:scale-95 disabled:opacity-50 shrink-0"
                             :disabled="dropViaHash.length !== 32"
                             @click="dropAllVia"
                         >
@@ -334,12 +330,12 @@
                 <!-- drop queues -->
                 <section class="rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-6 space-y-4">
                     <h2 class="text-lg font-bold">Drop Announce Queues</h2>
-                    <p class="text-sm text-gray-500">
+                    <p class="text-sm text-sem-fg-muted">
                         Clear all outbound announce packets currently queued on all interfaces.
                     </p>
                     <button
                         type="button"
-                        class="w-full px-4 py-3 bg-zinc-800 text-white rounded-lg font-semibold hover:bg-zinc-700 transition active:scale-95"
+                        class="w-full px-4 py-3 bg-sem-surface text-white rounded-lg font-semibold hover:bg-sem-surface-muted transition active:scale-95"
                         @click="dropAnnounceQueues"
                     >
                         Purge All Queues
@@ -357,7 +353,7 @@ import DialogUtils from "../../js/DialogUtils";
 import Utils from "../../js/Utils";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
 import ManagementIdentityPicker from "./ManagementIdentityPicker.vue";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import * as rnpathApi from "../../js/api/rnpath.js";
 
 export default {
@@ -509,7 +505,7 @@ export default {
         async fetchPathTable() {
             const remoteParams = this.remoteQueryParams();
             if (remoteParams.remote && !remoteParams.identity_path) {
-                // Remote queries require a management identity; skip the
+                // Remote queries require a management identity. skip the
                 // request instead of returning a guaranteed 400 per poll.
                 return {
                     table: [],
@@ -539,9 +535,9 @@ export default {
             return res.data;
         },
         getStateColor(state) {
-            if (state === 2) return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
-            if (state === 1) return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
-            return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400";
+            if (state === 2) return "bg-sem-success/15 text-sem-success dark:bg-sem-success/15 dark:text-sem-success";
+            if (state === 1) return "bg-sem-danger/15 text-sem-danger dark:bg-sem-danger/15 dark:text-sem-danger";
+            return "bg-sem-surface-muted text-sem-fg bg-sem-surface dark:text-sem-fg-muted";
         },
         getStateText(state) {
             if (state === 2) return "RESPONSIVE";
@@ -621,6 +617,6 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .input-field {
-    @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-sem-border text-sm rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 dark:focus:ring-indigo-500 dark:focus:border-indigo-500 block w-full p-3 text-gray-900 dark:text-gray-100 transition;
+    @apply bg-sem-surface-muted/80 dark:bg-sem-surface/80 border border-sem-border text-sm rounded-xl focus:ring-2 focus:ring-sem-info focus:border-sem-info dark:focus:ring-sem-info/50 dark:focus:border-sem-info block w-full p-3 text-sem-fg transition;
 }
 </style>

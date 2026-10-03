@@ -3,4 +3,4 @@
 Do not edit by hand. Run: pnpm run version:sync
 """
 
-__version__ = "4.9.3"
+__version__ = "4.10.0"

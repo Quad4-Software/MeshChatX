@@ -5,7 +5,7 @@ import ElectronUtils from "../ElectronUtils.js";
 /**
  * Core post-install / existing-user prompts.
  *
- * To re-prompt users who already dismissed a prompt, bump `revision`.
+ * To re-prompt users who already dismissed a prompt, bump revision.
  * Add entries here and register them via registerCoreContributions.
  *
  * @type {import('./postInstallPromptRegistry.js').PostInstallPromptEntry[]}

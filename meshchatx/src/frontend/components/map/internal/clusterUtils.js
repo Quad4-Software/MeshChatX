@@ -28,7 +28,7 @@ export function extentDiagonal(extent) {
 
 /**
  * Resolve the original (unclustered) coordinate of a feature, falling back to
- * its geometry's current coordinates when no `originalCoord` was tracked.
+ * its geometry's current coordinates when no originalCoord was tracked.
  *
  * @param {object} feature
  * @returns {Array<number>|null}

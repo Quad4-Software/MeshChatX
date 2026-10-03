@@ -3,7 +3,7 @@
         <div class="flex flex-wrap items-center gap-2">
             <button
                 type="button"
-                class="rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-sm font-medium flex items-center gap-1"
+                class="rounded-xl bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text px-3 py-1.5 text-sm font-medium flex items-center gap-1"
                 @click="openCreatePack"
             >
                 <MaterialDesignIcon icon-name="folder-plus-outline" class="size-4" />
@@ -11,7 +11,7 @@
             </button>
             <button
                 type="button"
-                class="rounded-xl border border-gray-300 dark:border-zinc-600 px-3 py-1.5 text-sm hover:border-teal-500 flex items-center gap-1"
+                class="rounded-xl border border-sem-border dark:border-sem-border px-3 py-1.5 text-sm hover:border-sem-success flex items-center gap-1"
                 @click="triggerInstallInput"
             >
                 <MaterialDesignIcon icon-name="package-down" class="size-4" />
@@ -34,7 +34,7 @@
             <div
                 v-for="pack in packs"
                 :key="pack.id"
-                class="rounded-xl border border-sem-border p-3 bg-white/60 dark:bg-zinc-800/60 flex flex-col gap-2"
+                class="rounded-xl border border-sem-border p-3 bg-white/60 dark:bg-sem-surface/80 flex flex-col gap-2"
             >
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
@@ -54,7 +54,7 @@
                     <div class="flex items-center gap-1 shrink-0">
                         <button
                             type="button"
-                            class="rounded-lg p-1.5 hover:bg-gray-100 hover:bg-sem-surface-muted text-sem-fg-muted"
+                            class="rounded-lg p-1.5 hover:bg-sem-surface-muted hover:bg-sem-surface-muted text-sem-fg-muted"
                             :title="$t('sticker_packs.export')"
                             @click="exportPack(pack)"
                         >
@@ -62,7 +62,7 @@
                         </button>
                         <button
                             type="button"
-                            class="rounded-lg p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600"
+                            class="rounded-lg p-1.5 hover:bg-sem-danger/15 dark:hover:bg-red-950/30 text-sem-danger"
                             :title="$t('sticker_packs.delete')"
                             @click="deletePack(pack)"
                         >
@@ -99,27 +99,27 @@
                     <input
                         v-model="newPackTitle"
                         type="text"
-                        class="rounded-lg border border-gray-300 dark:border-zinc-600 px-2 py-1.5 bg-white dark:bg-zinc-800"
+                        class="rounded-lg border border-sem-border dark:border-sem-border px-2 py-1.5 bg-sem-surface"
                         :placeholder="$t('sticker_packs.field_title')"
                         maxlength="80"
                     />
                     <input
                         v-model="newPackShortName"
                         type="text"
-                        class="rounded-lg border border-gray-300 dark:border-zinc-600 px-2 py-1.5 bg-white dark:bg-zinc-800"
+                        class="rounded-lg border border-sem-border dark:border-sem-border px-2 py-1.5 bg-sem-surface"
                         :placeholder="$t('sticker_packs.field_short_name')"
                         maxlength="32"
                     />
                     <textarea
                         v-model="newPackDescription"
-                        class="rounded-lg border border-gray-300 dark:border-zinc-600 px-2 py-1.5 bg-white dark:bg-zinc-800"
+                        class="rounded-lg border border-sem-border dark:border-sem-border px-2 py-1.5 bg-sem-surface"
                         :placeholder="$t('sticker_packs.field_description')"
                         rows="2"
                         maxlength="280"
                     />
                     <select
                         v-model="newPackType"
-                        class="rounded-lg border border-gray-300 dark:border-zinc-600 px-2 py-1.5 bg-white dark:bg-zinc-800 text-sem-fg"
+                        class="rounded-lg border border-sem-border dark:border-sem-border px-2 py-1.5 bg-sem-surface text-sem-fg"
                     >
                         <option value="static">{{ $t("sticker_packs.type_static") }}</option>
                         <option value="animated">{{ $t("sticker_packs.type_animated") }}</option>
@@ -136,14 +136,14 @@
                 >
                     <button
                         type="button"
-                        class="rounded-lg border border-gray-300 dark:border-zinc-600 px-3 py-1.5 text-sm"
+                        class="rounded-lg border border-sem-border dark:border-sem-border px-3 py-1.5 text-sm"
                         @click="createOpen = false"
                     >
                         {{ $t("common.cancel") }}
                     </button>
                     <button
                         type="button"
-                        class="rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-sm"
+                        class="rounded-lg bg-sem-action-primary hover:bg-sem-action-primary-hover text-sem-action-primary-text px-3 py-1.5 text-sm"
                         :disabled="!newPackTitle"
                         @click="confirmCreatePack"
                     >
@@ -160,7 +160,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import StickerView from "./StickerView.vue";
 import ToastUtils from "../../js/ToastUtils.js";
 import DialogUtils from "../../js/DialogUtils.js";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 
 export default {
     name: "StickerPacksManager",

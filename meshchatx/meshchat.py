@@ -223,11 +223,13 @@ from meshchatx.src.backend.web_audio_proxy import LazyWebAudioBridge
 from meshchatx.src.env_config import MeshchatEnv
 from meshchatx.src.env_utils import env_bool, env_int, env_set, env_str
 from meshchatx.src.path_utils import (
+    PathJailError,
     get_file_path,
     is_loopback_bind_host,
     is_path_within_dir,
     resolve_log_dir,
     resolve_meshchat_data_roots,
+    resolve_under_root,
 )
 from meshchatx.src.path_utils import (
     request_client_ip as _request_client_ip,
@@ -420,6 +422,108 @@ def _csrf_exempt_path(path: str) -> bool:
     return path == f"{API_V1_PREFIX}/auth/csrf"
 
 
+class _TrackedConfigData(dict):
+    """dict subclass that records every key probed via `in`, [] access, or .get().
+
+    update_config uses the record to apply a generic catch-all for
+    registered config fields that no explicit handler consumed.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._accessed = set()
+
+    def __contains__(self, key):
+        self._accessed.add(key)
+        return super().__contains__(key)
+
+    def __getitem__(self, key):
+        self._accessed.add(key)
+        return super().__getitem__(key)
+
+    def get(self, key, default=None):
+        if super().__contains__(key):
+            self._accessed.add(key)
+        return super().get(key, default)
+
+    def pop(self, key, *args):
+        self._accessed.add(key)
+        return super().pop(key, *args)
+
+    def setdefault(self, key, default=None):
+        self._accessed.add(key)
+        return super().setdefault(key, default)
+
+
+# Config keys that must never be written through the generic catch-all in
+# update_config. These are secrets, server-computed values, CSP controls, or
+# filesystem paths managed by dedicated routes.
+GENERIC_CONFIG_DENY = frozenset(
+    {
+        "auth_enabled",
+        "auth_password_hash",
+        "auth_session_secret",
+        "auth_session_epoch",
+        "lxmf_address_hash",
+        "lxst_address_hash",
+        "last_announced_at",
+        "csp_extra_frame_src",
+        "csp_extra_img_src",
+        "csp_extra_script_src",
+        "csp_extra_style_src",
+        "map_offline_path",
+        "ringtone_filename",
+        "oidc_client_secret",
+        "ui_custom_font_data",
+    }
+)
+
+
+# Config keys that must never leave the process in serialized config output.
+# Secrets are exposed to clients only as booleans (e.g. oidc_client_secret_set)
+# in the explicit dict above.
+SERIALIZE_CONFIG_DENY = frozenset(
+    {
+        "auth_password_hash",
+        "auth_session_secret",
+        "auth_session_epoch",
+        "oidc_client_secret",
+        # multi-megabyte base64 blob, fetched via dedicated path if needed
+        "ui_custom_font_data",
+    }
+)
+
+
+def _apply_generic_config_fields(cm, data) -> None:
+    """Store any registered config key in `data` that explicit handlers did not consume.
+
+    Coerces by field type. Denylisted keys are never set here.
+    `data` must be a _TrackedConfigData (or anything exposing ._accessed).
+    """
+    accessed = getattr(data, "_accessed", set())
+    for key, value in data.items():
+        if key in accessed or key in GENERIC_CONFIG_DENY:
+            continue
+        field = getattr(cm, key, None)
+        if field is None or not hasattr(field, "set"):
+            continue
+        if isinstance(field, cm.BoolConfig):
+            # Mirrors ReticulumMeshChat._parse_bool.
+            if value is None:
+                field.set(False)
+            elif isinstance(value, str):
+                field.set(value.lower() == "true")
+            else:
+                field.set(bool(value))
+        elif isinstance(field, cm.IntConfig):
+            try:
+                field.set(None if value is None else int(value))
+            except (TypeError, ValueError):
+                continue
+        elif isinstance(field, cm.StringConfig):
+            field.set(None if value is None else str(value))
+
+
 class ReticulumMeshChat:
     DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES = 3
 
@@ -560,6 +664,14 @@ class ReticulumMeshChat:
             on_announce=self._register_local_page_node_announce,
         )
         self.plugin_manager = PluginManager(self.storage_dir, app=self)
+        from meshchatx.src.backend.update_manager import UpdateManager
+
+        self.update_manager = UpdateManager(
+            self.storage_dir,
+            current_version=app_version,
+            channel=self.get_build_meta().get("build_channel", "local"),
+            config_getter=lambda: self.config,
+        )
         self.sideband_plugin_loader = SidebandPluginLoader(self)
         self._sideband_telemetry_thread = None
         self._sideband_telemetry_running = False
@@ -1769,6 +1881,10 @@ class ReticulumMeshChat:
         guard_rnode_interfaces_on_desktop(config_path)
         guard_invalid_rnode_txpower_in_config(config_path)
         i2p_support.guard_i2p_interfaces_in_config(config_path)
+        # Fix I2PInterface so outbound peers inherit the configured boundary
+        # mode. Without this they default to MODE_FULL before the parent
+        # mode is applied, leaking I2P announces onto internal interfaces.
+        i2p_support.patch_i2p_interface()
         ensure_safe_reticulum_runtime_flags(config_path)
         try:
             from meshchatx.src.backend.interface_module_store import (
@@ -5934,7 +6050,7 @@ class ReticulumMeshChat:
         # called when web app has started
         async def on_startup(app):
             # remember main event loop
-            AsyncUtils.set_main_loop(asyncio.get_event_loop())
+            AsyncUtils.set_main_loop(asyncio.get_running_loop())
 
             if not self._network_ready:
                 self.start_network_setup_in_background()
@@ -6029,18 +6145,29 @@ class ReticulumMeshChat:
 
         app.router.add_get("/reticulum-docs/{filename:.*}", reticulum_docs_handler)
 
-        dm = self.docs_manager
-        if (
-            dm
-            and dm.meshchatx_docs_dir
-            and os.path.exists(dm.meshchatx_docs_dir)
-            and not dm.meshchatx_docs_dir.startswith(public_dir)
-        ):
-            app.router.add_static(
-                "/meshchatx-docs/",
-                dm.meshchatx_docs_dir,
-                name="meshchatx_docs_storage",
-            )
+        # Serve synced MeshChatX docs assets (markdown + images/clips) from
+        # per-identity storage. Resolved lazily: the docs manager only exists
+        # once an identity context starts, so add_static cannot be wired here.
+        async def meshchatx_docs_handler(request):
+            dm = self.docs_manager
+            root = getattr(dm, "meshchatx_docs_dir", None) if dm else None
+            if not root or not os.path.isdir(root):
+                return web.json_response(
+                    {"error": "Documentation unavailable"},
+                    status=503,
+                )
+            filename = request.match_info.get("filename", "")
+            if not filename:
+                return web.json_response({"error": "Not found"}, status=404)
+            try:
+                resolved = resolve_under_root(
+                    root, filename, strict=True, must_be_file=True
+                )
+            except PathJailError:
+                return web.json_response({"error": "Not found"}, status=404)
+            return web.FileResponse(resolved)
+
+        app.router.add_get("/meshchatx-docs/{filename:.*}", meshchatx_docs_handler)
 
         if os.path.exists(public_dir):
             app.router.add_static("/", public_dir, name="static")
@@ -6324,6 +6451,13 @@ class ReticulumMeshChat:
         return None
 
     async def update_config(self, data):
+        # Wrap the payload so every `in` / get / [] probe records the key.
+        # Any registered config field that no explicit handler touches is
+        # applied generically at the bottom of this method — new settings
+        # can no longer be silently dropped on save.
+        if not isinstance(data, _TrackedConfigData):
+            data = _TrackedConfigData(data or {})
+
         # Validate before any .set() call: config fields persist to SQLite
         # immediately, so a late ValueError would leave a partial update.
         if "oidc_issuer_url" in data:
@@ -6380,10 +6514,48 @@ class ReticulumMeshChat:
                 "tokyo",
                 "atom_one",
                 "neo_brutalist",
+                "glass",
+                "void",
                 "custom",
             ):
-                preset = "default"
+                preset = "void"
             self.config.theme_preset.set(preset)
+
+        if "ui_font_family" in data:
+            val = str(data["ui_font_family"] or "system").strip()
+            if val not in (
+                "system",
+                "noto-sans",
+                "inter",
+                "jetbrains-mono",
+                "ibm-plex-sans",
+                "space-grotesk",
+                "roboto-mono-nerd",
+                "custom",
+            ):
+                val = "system"
+            self.config.ui_font_family.set(val)
+
+        if "ui_custom_font_name" in data:
+            val = str(data["ui_custom_font_name"] or "").strip()[:128]
+            self.config.ui_custom_font_name.set(val or None)
+
+        if "ui_custom_font_data" in data:
+            val = str(data["ui_custom_font_data"] or "")
+            if len(val) > 4 * 1024 * 1024:  # 4MB base64 cap
+                val = ""
+            self.config.ui_custom_font_data.set(val or None)
+
+        if "ui_transparency" in data:
+            val = self._coerce_int(data["ui_transparency"])
+            if val is None:
+                val = 0
+            self.config.ui_transparency.set(max(0, min(100, val)))
+
+        if "ui_glass_enabled" in data:
+            self.config.ui_glass_enabled.set(
+                self._parse_bool(data["ui_glass_enabled"]),
+            )
 
         if "accent_color" in data:
             self.config.accent_color.set(
@@ -6804,12 +6976,26 @@ class ReticulumMeshChat:
 
         if "map_default_lat" in data:
             _map_lat = data["map_default_lat"]
+            if _map_lat is not None:
+                try:
+                    _lat_f = float(_map_lat)
+                except (TypeError, ValueError) as exc:
+                    raise ValueError("map_default_lat must be a number") from exc
+                if not -90.0 <= _lat_f <= 90.0:
+                    raise ValueError("map_default_lat out of range")
             self.config.map_default_lat.set(
                 str(_map_lat) if _map_lat is not None else None,
             )
 
         if "map_default_lon" in data:
             _map_lon = data["map_default_lon"]
+            if _map_lon is not None:
+                try:
+                    _lon_f = float(_map_lon)
+                except (TypeError, ValueError) as exc:
+                    raise ValueError("map_default_lon must be a number") from exc
+                if not -180.0 <= _lon_f <= 180.0:
+                    raise ValueError("map_default_lon out of range")
             self.config.map_default_lon.set(
                 str(_map_lon) if _map_lon is not None else None,
             )
@@ -7371,6 +7557,10 @@ class ReticulumMeshChat:
             self.config.telephone_web_audio_allow_fallback.set(
                 self._parse_bool(data["telephone_web_audio_allow_fallback"]),
             )
+
+        # Generic catch-all: any registered config field sent by the client
+        # that no explicit handler consumed is type-coerced and stored here.
+        _apply_generic_config_fields(self.config, data)
 
         # send config to websocket clients
         await self.send_config_to_websocket_clients()
@@ -8109,7 +8299,7 @@ class ReticulumMeshChat:
         if not ctx:
             return {}
         oidc_settings = self._oidc_settings()
-        return {
+        config_dict = {
             "display_name": ctx.config.display_name.get(),
             "identity_hash": ctx.identity.hash.hex(),
             "identity_public_key": ctx.identity.get_public_key().hex(),
@@ -8302,6 +8492,17 @@ class ReticulumMeshChat:
             or "days",
             "message_blocklist_enabled": ctx.config.message_blocklist_enabled.get(),
         }
+        # Generic serialization: registered config fields not already in the
+        # literal above are emitted with their stored values, so a new
+        # setting can never be persisted but invisible to the client.
+        # SERIALIZE_CONFIG_DENY keeps secrets out of the broadcast payload.
+        cm = ctx.config
+        for attr, field in vars(cm).items():
+            if attr in config_dict or attr in SERIALIZE_CONFIG_DENY:
+                continue
+            if isinstance(field, (cm.StringConfig, cm.BoolConfig, cm.IntConfig)):
+                config_dict[field.key] = field.get()
+        return config_dict
 
     # try and get a name for the provided identity hash
     def get_name_for_identity_hash(self, identity_hash: str):

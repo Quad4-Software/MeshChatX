@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <AppModal v-model="visible" :max-width="500" persistent panel-class="bg-amber-500 text-white">
+    <AppModal v-model="visible" :max-width="500" persistent panel-class="bg-sem-warning text-white">
         <template #header>
             <MaterialDesignIcon icon-name="alert-decagram" class="size-6 shrink-0" />
             <h2 class="min-w-0 flex-1 text-lg font-semibold">{{ $t("about.security_integrity") }}</h2>
@@ -51,7 +51,7 @@
                 <button
                     v-if="integrity.data && !integrity.data.ok"
                     type="button"
-                    class="rounded-lg bg-white px-4 py-2 text-sm font-bold text-amber-600 transition-colors hover:bg-amber-50"
+                    class="rounded-lg bg-sem-surface px-4 py-2 text-sm font-bold text-sem-warning transition-colors hover:bg-sem-warning/15"
                     @click="acknowledgeAndReset"
                 >
                     {{ $t("common.acknowledge_reset") }}
@@ -65,7 +65,7 @@
 import AppModal from "./AppModal.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import ToastUtils from "../js/ToastUtils";
-import { apiPath, STORAGE_KEYS } from "../js/constants.js";
+import { apiPath, STORAGE_KEYS } from "../js/constants";
 
 export default {
     name: "IntegrityWarningModal",

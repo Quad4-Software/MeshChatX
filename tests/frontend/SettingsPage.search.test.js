@@ -5,8 +5,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import SettingsPage from "../../meshchatx/src/frontend/components/settings/SettingsPage.vue";
 import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
 import { createWindowApi, buildFullServerConfig } from "./fixtures/settingsPageTestApi.js";
-import { registerCoreContributions } from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
-import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.js";
+import { registerCoreContributions } from "../../meshchatx/src/frontend/js/registries/registerCoreContributions";
+import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore";
 
 registerCoreContributions();
 

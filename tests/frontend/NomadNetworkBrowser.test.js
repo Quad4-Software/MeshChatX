@@ -27,7 +27,7 @@ vi.mock("@/components/nomadnetwork/NomadNetworkPage.vue", () => ({
 
 import NomadNetworkBrowser from "@/components/nomadnetwork/NomadNetworkBrowser.vue";
 import ToastUtils from "@/js/ToastUtils";
-import { useConfigStore } from "@/js/stores/configStore.js";
+import { useConfigStore } from "@/js/stores/configStore";
 
 vi.mock("@/js/ToastUtils", () => ({
     default: {

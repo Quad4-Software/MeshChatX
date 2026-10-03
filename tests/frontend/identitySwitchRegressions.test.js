@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import RelayChatPage from "@/components/relay/RelayChatPage.vue";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import { mountToolsPageGlobals } from "./testI18n.js";
-import { useConfigStore } from "@/js/stores/configStore.js";
+import { useConfigStore } from "@/js/stores/configStore";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {

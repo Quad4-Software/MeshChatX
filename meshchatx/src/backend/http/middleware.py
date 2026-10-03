@@ -101,20 +101,27 @@ def build_permissions_policy() -> str:
     return ", ".join(_PERMISSIONS_POLICY_CORE)
 
 
-def build_nomad_crash_tab_csp() -> str:
+def build_nomad_crash_tab_csp(request_host: str | None = None) -> str:
     """CSP for /nomad-crash-tab.html only.
 
     Keeps Micron JS, Micron WASM (fetch + blob: wasm_exec inject), fonts, and
     inline styles. Drops map tiles, websocket, and other shell clearnet sources
     so CSS network paints cannot beacon even if style scrub misses.
+
+    The frame is sandboxed without allow-same-origin, so the document runs in
+    an opaque origin where 'self' never matches. Emit the request host as a
+    literal source for both schemes so same-host asset URLs still load.
     """
+    same_origin = "'self'"
+    if request_host:
+        same_origin = f"'self' http://{request_host} https://{request_host}"
     return (
         "default-src 'none'; "
-        "script-src 'self' 'wasm-unsafe-eval' blob:; "
-        "style-src 'self' 'unsafe-inline'; "
-        "font-src 'self' data:; "
-        "img-src 'self' data: blob:; "
-        "connect-src 'self'; "
+        f"script-src {same_origin} 'wasm-unsafe-eval' blob:; "
+        f"style-src {same_origin} 'unsafe-inline'; "
+        f"font-src {same_origin} data:; "
+        f"img-src {same_origin} data: blob:; "
+        f"connect-src {same_origin}; "
         "worker-src 'none'; "
         "media-src 'none'; "
         "frame-src 'none'; "
@@ -485,7 +492,9 @@ def create_security_middleware(app):
             if is_opaque_frame_cors_resource(path):
                 response.headers["Access-Control-Allow-Origin"] = "*"
                 response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
-            response.headers["Content-Security-Policy"] = build_nomad_crash_tab_csp()
+            response.headers["Content-Security-Policy"] = build_nomad_crash_tab_csp(
+                request.host
+            )
             return response
 
         # IPv6 loopback with a port wildcard is not a valid CSP source

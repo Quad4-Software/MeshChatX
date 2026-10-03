@@ -4,7 +4,7 @@ import { ref } from "vue";
 
 import DialogUtils from "../DialogUtils";
 import ToastUtils from "../ToastUtils";
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 const NOMAD_DESTINATION_HASH = /^[a-fA-F0-9]{32}$/;
 const PAGE_EXTENSIONS = [".mu", ".html", ".md", ".txt"];

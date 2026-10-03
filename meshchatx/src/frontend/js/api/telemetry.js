@@ -6,7 +6,7 @@
  * endpoints here rather than inlining paths in components.
  */
 
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 export function getHistoryX(hash, ...rest) {
     return window.api.get(apiPath(`/telemetry/history/${hash}?limit=50`), ...rest);

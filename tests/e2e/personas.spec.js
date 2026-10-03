@@ -65,7 +65,7 @@ const IGNORED_CONSOLE_ERRORS = [
     /failed to fetch/i,
     /WebSocket/i,
     /404/,
-    // Adversarial input is expected to produce 4xx rejections; the frontend
+    // Adversarial input is expected to produce 4xx rejections. the frontend
     // surfaces those as validation toasts. 5xx still means a real crash.
     /Failed to load resource: the server responded with a status of 4\d\d/i,
 ];

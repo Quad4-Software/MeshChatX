@@ -1,8 +1,12 @@
 """Help command system for LXMFy."""
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from .permissions import DefaultPerms
+
+if TYPE_CHECKING:
+    from .core import LXMFBot
 
 
 @dataclass
@@ -101,7 +105,7 @@ class HelpFormatter:
 class HelpSystem:
     """A system for providing help information about available commands."""
 
-    def __init__(self, bot, formatter=None):
+    def __init__(self, bot: "LXMFBot", formatter: HelpFormatter | None = None):
         """Initialize the HelpSystem.
 
         Args:

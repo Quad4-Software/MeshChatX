@@ -50,7 +50,7 @@
                             <button
                                 v-else
                                 type="button"
-                                class="secondary-chip text-red-600! dark:text-red-300! border-red-200! dark:border-red-500/50!"
+                                class="secondary-chip text-sem-danger! dark:text-sem-danger! border-sem-danger! dark:border-sem-danger/50!"
                                 @click="stop"
                             >
                                 <MaterialDesignIcon icon-name="pause" class="w-4 h-4" />
@@ -70,8 +70,8 @@
                             <span
                                 :class="[
                                     isRunning
-                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
-                                        : 'bg-gray-200 text-gray-700 dark:bg-zinc-800 dark:text-gray-200',
+                                        ? 'bg-sem-success/15 text-sem-success dark:bg-sem-success/15 text-sem-success'
+                                        : 'bg-sem-surface-muted text-sem-fg bg-sem-surface text-sem-fg',
                                     'rounded-full px-3 py-1',
                                 ]"
                             >
@@ -79,13 +79,13 @@
                             </span>
                             <span
                                 v-if="lastPingSummary?.duration"
-                                class="rounded-full px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200"
+                                class="rounded-full px-3 py-1 bg-sem-info/15 text-sem-info dark:bg-sem-info/15 text-sem-info"
                             >
                                 {{ $t("ping.last_rtt") }}: {{ lastPingSummary.duration }}
                             </span>
                             <span
                                 v-if="lastPingSummary?.error"
-                                class="rounded-full px-3 py-1 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200"
+                                class="rounded-full px-3 py-1 bg-sem-danger/15 text-sem-danger dark:bg-sem-danger/15 text-sem-danger"
                             >
                                 {{ $t("ping.last_error") }}: {{ lastPingSummary.error }}
                             </span>
@@ -107,7 +107,7 @@
 
                         <div
                             v-if="lastPingSummary && !lastPingSummary.error"
-                            class="flex flex-wrap gap-2 text-xs text-gray-700 dark:text-gray-200"
+                            class="flex flex-wrap gap-2 text-xs text-sem-fg"
                         >
                             <span v-if="lastPingSummary.hopsThere != null" class="stat-chip"
                                 >{{ $t("rnprobe.hops") }} there: {{ lastPingSummary.hopsThere }}</span
@@ -131,7 +131,7 @@
 
                         <div
                             id="results"
-                            class="flex-1 overflow-y-auto rounded-2xl bg-black/80 text-emerald-300 font-mono text-xs p-3 space-y-1 shadow-inner border border-zinc-900"
+                            class="flex-1 overflow-y-auto rounded-2xl bg-black/80 text-sem-success font-mono text-xs p-3 space-y-1 shadow-inner border border-sem-border"
                         >
                             <div v-if="pingResults.length === 0" class="text-emerald-500/80">
                                 {{ $t("ping.no_pings_yet") }}
@@ -153,7 +153,7 @@
 
 <script>
 import DialogUtils from "../../js/DialogUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import * as pingApi from "../../js/api/ping.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";

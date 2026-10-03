@@ -45,10 +45,19 @@ test.describe("Lighthouse page scores (simulated data)", () => {
                 await Promise.all(regs.map((r) => r.unregister()));
             });
 
+            // Let post-mount work settle (router redirects, ws handshakes)
+            // before the audit takes over the target. A mid-audit navigation
+            // kills the perf gatherer with "Inspected target navigated or
+            // closed".
+            await page.waitForTimeout(2500);
+
             const url = page.url();
-            // Lighthouse navigates the shared CDP target itself; a concurrent
+            // Lighthouse navigates the shared CDP target itself. a concurrent
             // evaluate or teardown can race it into "Inspected target
             // navigated or closed". Retry only that transient protocol error.
+            // If the app navigated the tab mid-audit (router redirect after a
+            // session event), re-open the target first so retries audit the
+            // intended page rather than wherever the tab ended up.
             let runnerResult;
             for (let attempt = 1; ; attempt++) {
                 try {
@@ -56,11 +65,20 @@ test.describe("Lighthouse page scores (simulated data)", () => {
                     break;
                 } catch (err) {
                     const msg = String((err && err.message) || err);
-                    if (attempt >= 3 || !/navigated or closed|Protocol error/.test(msg)) {
+                    if (attempt >= 5 || !/navigated or closed|Protocol error/.test(msg)) {
                         throw err;
                     }
                     // eslint-disable-next-line no-console
                     console.log(`LH ${entry.id}: retrying audit after transient error: ${msg.split("\n")[0]}`);
+                    try {
+                        if (page.url() !== url) {
+                            await gotoUiPage(page, entry, baseURL);
+                            await page.waitForTimeout(2500);
+                        }
+                    } catch {
+                        // The next audit attempt fails on its own if the
+                        // re-navigation itself is broken.
+                    }
                 }
             }
             const scores = scoresFromLhr(runnerResult.lhr);

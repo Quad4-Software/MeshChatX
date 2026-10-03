@@ -25,6 +25,8 @@ KNOWN_CLEARNET_FETCH_FILES = frozenset(
         "map_manager.py",
         "oidc.py",
         "repository_server_manager.py",
+        "translation_catalog.py",
+        "update_manager.py",
     },
 )
 
@@ -70,4 +72,5 @@ def test_allowlisted_app_fetches_mention_a_privacy_gate():
         assert rel in {
             "map_manager.py",
             "repository_server_manager.py",
+            "translation_catalog.py",
         }, f"{rel} opens a clearnet socket without a privacy-mode or URL guard"

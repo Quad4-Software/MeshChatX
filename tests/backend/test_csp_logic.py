@@ -179,6 +179,7 @@ async def test_security_middleware_allows_nomad_crash_tab_frame_and_cors(
             request = MagicMock(spec=web.Request)
             request.path = path
             request.app = {}
+            request.host = "meshchatx.example"
             response = await security_middleware(request, mock_handler)
             assert response.headers.get("Access-Control-Allow-Origin") == "*", path
             assert (
@@ -230,7 +231,10 @@ async def test_nomad_crash_tab_csp_is_tighter_than_shell(
         assert "api.example.com" not in crash_csp
         assert "ws://127.0.0.1:*" not in crash_csp
         assert "default-src 'none'" in crash_csp
-        assert "script-src 'self' 'wasm-unsafe-eval' blob:" in crash_csp
+        assert (
+            "script-src 'self' http://meshchatx.example https://meshchatx.example 'wasm-unsafe-eval' blob:"
+            in crash_csp
+        )
 
 
 @pytest.mark.asyncio
@@ -399,6 +403,7 @@ async def _csp_for_path(app_instance, path: str) -> str:
     request = MagicMock(spec=web.Request)
     request.path = path
     request.app = {}
+    request.host = "meshchatx.example"
 
     async def mock_handler(req):
         return web.Response(text="test")

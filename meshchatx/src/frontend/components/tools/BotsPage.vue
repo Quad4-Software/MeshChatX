@@ -21,7 +21,7 @@
                             <div
                                 v-for="template in templates"
                                 :key="template.id"
-                                class="relative rounded-lg border border-sem-border bg-sem-surface p-4 hover:border-blue-400 dark:hover:border-blue-600 transition cursor-pointer flex flex-col justify-between min-h-[140px] pr-12"
+                                class="relative rounded-lg border border-sem-border bg-sem-surface p-4 hover:border-sem-info dark:hover:border-sem-info transition cursor-pointer flex flex-col justify-between min-h-[140px] pr-12"
                                 @click="openSetup(template)"
                             >
                                 <div class="flex items-start gap-3 min-w-0">
@@ -34,13 +34,13 @@
                                     />
                                     <div class="min-w-0">
                                         <div class="font-bold text-sem-fg">{{ template.name }}</div>
-                                        <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                        <div class="text-sm text-sem-fg-muted mt-1">
                                             {{ template.description }}
                                         </div>
                                     </div>
                                 </div>
                                 <div
-                                    class="absolute bottom-3 right-3 p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors pointer-events-none"
+                                    class="absolute bottom-3 right-3 p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-sem-fg hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 transition-colors pointer-events-none"
                                 >
                                     <MaterialDesignIcon icon-name="chevron-right" class="size-6" />
                                 </div>
@@ -52,7 +52,7 @@
                         <h3 class="text-lg font-semibold text-sem-fg">
                             {{ $t("bots.saved_bots") }}
                         </h3>
-                        <div v-if="bots.length === 0" class="text-sm text-gray-500 italic">
+                        <div v-if="bots.length === 0" class="text-sm text-sem-fg-muted italic">
                             {{ $t("bots.no_bots_running") }}
                         </div>
                         <div v-else class="space-y-2 sm:space-y-3">
@@ -70,7 +70,7 @@
                                     <button
                                         v-if="lxmfAddressFor(bot)"
                                         type="button"
-                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-info dark:hover:text-sem-info hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 transition-colors"
                                         :title="$t('bots.chat_with_bot')"
                                         @click="openChatWithBot(bot)"
                                     >
@@ -79,7 +79,7 @@
                                     <button
                                         v-if="bot.running"
                                         type="button"
-                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-amber-600 dark:hover:text-amber-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-amber-600 dark:hover:text-sem-warning hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 transition-colors"
                                         :title="$t('bots.force_announce')"
                                         @click="forceAnnounce(bot)"
                                     >
@@ -88,7 +88,7 @@
                                     <button
                                         v-if="bot.running"
                                         type="button"
-                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-info dark:hover:text-sem-info hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 transition-colors"
                                         :title="$t('bots.restart_bot')"
                                         @click="restartExisting(bot)"
                                     >
@@ -97,7 +97,7 @@
                                     <button
                                         v-if="bot.running"
                                         type="button"
-                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-red-600 dark:hover:text-sem-danger hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 transition-colors"
                                         :title="$t('bots.stop_bot')"
                                         @click="stopBot(bot.id)"
                                     >
@@ -106,7 +106,7 @@
                                     <button
                                         v-if="!bot.running"
                                         type="button"
-                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-success dark:hover:text-sem-success hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 transition-colors"
                                         :title="$t('bots.start_bot')"
                                         @click="startExisting(bot)"
                                     >
@@ -114,7 +114,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-violet-600 dark:hover:text-violet-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-info dark:hover:text-sem-info hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 transition-colors"
                                         :title="$t('bots.view_process_log')"
                                         @click="openProcessLog(bot)"
                                     >
@@ -122,7 +122,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-fuchsia-600 dark:hover:text-fuchsia-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-fuchsia-600 dark:hover:text-fuchsia-400 hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 transition-colors"
                                         :title="$t('bots.edit_icon')"
                                         @click="openIconEditor(bot)"
                                     >
@@ -131,7 +131,7 @@
                                     <button
                                         v-if="(bot.template_id || bot.template) === 'custom'"
                                         type="button"
-                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-white hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 transition-colors"
                                         :title="$t('bots.edit_custom_commands')"
                                         @click="openCustomEditor(bot)"
                                     >
@@ -140,7 +140,7 @@
                                     <button
                                         v-if="(bot.template_id || bot.template) === 'rrc'"
                                         type="button"
-                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-teal-600 dark:hover:text-teal-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-success dark:hover:text-sem-success hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 transition-colors"
                                         :title="$t('bots.edit_rrc')"
                                         @click="openRrcEditor(bot)"
                                     >
@@ -148,7 +148,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-white hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 transition-colors"
                                         :title="$t('bots.edit_lxmf_config')"
                                         @click="openLxmfConfig(bot)"
                                     >
@@ -156,7 +156,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-white hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 transition-colors"
                                         :title="$t('bots.export_identity')"
                                         @click="exportIdentity(bot.id)"
                                     >
@@ -164,7 +164,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-red-600 dark:hover:text-sem-danger hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 transition-colors"
                                         :title="$t('bots.delete_bot')"
                                         @click="deleteBot(bot.id)"
                                     >
@@ -180,7 +180,7 @@
                                         :icon-background-colour="displayIconFor(bot).bg_color"
                                         icon-class="size-10"
                                     />
-                                    <div v-else class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg shrink-0">
+                                    <div v-else class="p-2 bg-sem-info/15 rounded-lg shrink-0">
                                         <MaterialDesignIcon icon-name="robot" class="size-6 text-sem-accent" />
                                     </div>
                                     <div class="min-w-0 flex-1 space-y-1.5 sm:pr-2">
@@ -203,7 +203,7 @@
                                                 />
                                                 <button
                                                     type="button"
-                                                    class="p-1 rounded-lg text-gray-500 hover:text-emerald-600 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 shrink-0"
+                                                    class="p-1 rounded-lg text-sem-fg-muted hover:text-sem-success hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 shrink-0"
                                                     :title="$t('common.save')"
                                                     @click="saveBotName(bot)"
                                                 >
@@ -211,7 +211,7 @@
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    class="p-1 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 shrink-0"
+                                                    class="p-1 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-white hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 shrink-0"
                                                     :title="$t('common.cancel')"
                                                     @click="cancelEditName"
                                                 >
@@ -222,7 +222,7 @@
                                                 <span class="font-bold text-sem-fg truncate">{{ bot.name }}</span>
                                                 <button
                                                     type="button"
-                                                    class="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 shrink-0"
+                                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-sem-fg hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 shrink-0"
                                                     :title="$t('bots.edit_name')"
                                                     @click="startEditName(bot)"
                                                 >
@@ -233,7 +233,7 @@
                                         <div class="flex items-center gap-2 text-[11px] text-sem-fg-muted">
                                             <span
                                                 class="inline-block size-2 rounded-full shrink-0"
-                                                :class="bot.running ? 'bg-emerald-500' : 'bg-gray-400 dark:bg-gray-500'"
+                                                :class="bot.running ? 'bg-sem-success' : 'bg-gray-400 dark:bg-gray-500'"
                                             ></span>
                                             <span>{{
                                                 bot.running ? $t("bots.status_running") : $t("bots.status_stopped")
@@ -276,7 +276,7 @@
                                                     <button
                                                         v-if="lxmfAddressFor(bot)"
                                                         type="button"
-                                                        class="font-mono text-[11px] break-all text-left w-full max-w-full text-gray-800 dark:text-gray-200 hover:underline leading-snug"
+                                                        class="font-mono text-[11px] break-all text-left w-full max-w-full text-sem-fg hover:underline leading-snug"
                                                         @click="copyLxmfAddress(bot)"
                                                     >
                                                         {{ lxmfAddressFor(bot) }}
@@ -292,7 +292,7 @@
                                                 >
                                                     {{ $t("bots.last_announce") }}
                                                 </dt>
-                                                <dd class="m-0 text-gray-700 dark:text-gray-200 leading-snug">
+                                                <dd class="m-0 text-sem-fg leading-snug">
                                                     <span v-if="bot.last_announce_at">{{
                                                         formatRelativeSince(bot.last_announce_at)
                                                     }}</span>
@@ -305,7 +305,7 @@
                                         </dl>
                                         <div
                                             v-if="botLastError(bot)"
-                                            class="rounded-lg border border-red-200/90 dark:border-red-900/70 bg-red-50/90 dark:bg-red-950/50 px-2.5 py-2 text-[11px] text-red-900 dark:text-red-100"
+                                            class="rounded-lg border border-sem-danger dark:border-sem-danger bg-sem-danger/15 dark:bg-sem-danger/15 px-2.5 py-2 text-[11px] text-sem-danger dark:text-red-100"
                                         >
                                             <div class="font-semibold flex items-center gap-1.5">
                                                 <MaterialDesignIcon
@@ -318,7 +318,7 @@
                                                 class="mt-1.5 m-0 whitespace-pre-wrap wrap-break-word font-mono text-[10px] leading-relaxed text-red-800/95 dark:text-red-100/90"
                                                 >{{ botLastError(bot) }}</pre>
                                         </div>
-                                        <div class="text-[10px] text-gray-400 pt-0.5">
+                                        <div class="text-[10px] text-sem-fg-muted pt-0.5">
                                             {{ bot.template_id || bot.template }}
                                         </div>
                                     </div>
@@ -343,17 +343,17 @@
                         <h3 class="text-lg sm:text-xl font-bold text-sem-fg">
                             {{ $t("bots.process_log_title") }}
                         </h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+                        <p class="text-sm text-sem-fg-muted mt-0.5 truncate">
                             {{ processLogModalBot.name }}
                         </p>
-                        <p v-if="processLogTruncated" class="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                        <p v-if="processLogTruncated" class="text-xs text-sem-warning mt-1">
                             {{ $t("bots.process_log_truncated") }}
                         </p>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
                         <button
                             type="button"
-                            class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                            class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-white hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80"
                             :title="$t('bots.copy_process_log')"
                             :disabled="!processLogText"
                             @click="copyProcessLog"
@@ -362,7 +362,7 @@
                         </button>
                         <button
                             type="button"
-                            class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                            class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-white hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80"
                             @click="closeProcessLog"
                         >
                             <MaterialDesignIcon icon-name="close" class="size-5" />
@@ -381,7 +381,7 @@
                         class="flex-1 min-h-0 max-sm:min-h-[55dvh] sm:min-h-[12rem] overflow-auto rounded-lg border border-sem-border bg-sem-surface-muted touch-pan-x"
                     >
                         <pre
-                            class="bots-process-log-text m-0 min-h-full w-max min-w-full p-2 sm:p-3 font-mono text-gray-800 dark:text-gray-200 whitespace-pre select-text"
+                            class="bots-process-log-text m-0 min-h-full w-max min-w-full p-2 sm:p-3 font-mono text-sem-fg whitespace-pre select-text"
                             >{{ processLogDisplayText }}</pre>
                     </div>
                 </div>
@@ -401,13 +401,13 @@
                         <h3 class="text-lg sm:text-xl font-bold text-sem-fg">
                             {{ $t("bots.icon_modal_title") }}
                         </h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+                        <p class="text-sm text-sem-fg-muted mt-0.5 truncate">
                             {{ iconModalBot.name }}
                         </p>
                     </div>
                     <button
                         type="button"
-                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-white hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80"
                         @click="closeIconEditor"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-5" />
@@ -416,21 +416,21 @@
 
                 <LxmfIconEditor v-model="iconDraft" />
 
-                <p v-if="iconModalBot.running" class="text-xs text-amber-700 dark:text-amber-400">
+                <p v-if="iconModalBot.running" class="text-xs text-sem-warning">
                     {{ $t("bots.restart_hint_generic") }}
                 </p>
 
                 <div class="flex justify-end gap-2 pt-2">
                     <button
                         type="button"
-                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-white hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80"
                         @click="closeIconEditor"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-6" />
                     </button>
                     <button
                         type="button"
-                        class="p-2 rounded-lg text-gray-500 hover:text-emerald-600 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 disabled:opacity-40"
+                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-success hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 disabled:opacity-40"
                         :disabled="iconSaving"
                         @click="saveIcon"
                     >
@@ -457,13 +457,13 @@
                         <h3 class="text-lg sm:text-xl font-bold text-sem-fg">
                             {{ $t("bots.custom_modal_title") }}
                         </h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+                        <p class="text-sm text-sem-fg-muted mt-0.5 truncate">
                             {{ customModalBot.name }}
                         </p>
                     </div>
                     <button
                         type="button"
-                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-white hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80"
                         @click="closeCustomEditor"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-5" />
@@ -472,21 +472,21 @@
 
                 <BotCustomCommandsEditor v-model="customDraft" />
 
-                <p v-if="customModalBot.running" class="text-xs text-amber-700 dark:text-amber-400">
+                <p v-if="customModalBot.running" class="text-xs text-sem-warning">
                     {{ $t("bots.restart_hint_generic") }}
                 </p>
 
                 <div class="flex justify-end gap-2 pt-2">
                     <button
                         type="button"
-                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-white hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80"
                         @click="closeCustomEditor"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-6" />
                     </button>
                     <button
                         type="button"
-                        class="p-2 rounded-lg text-gray-500 hover:text-emerald-600 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 disabled:opacity-40"
+                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-success hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 disabled:opacity-40"
                         :disabled="customSaving"
                         @click="saveCustom"
                     >
@@ -513,13 +513,13 @@
                         <h3 class="text-lg sm:text-xl font-bold text-sem-fg">
                             {{ $t("bots.rrc_modal_title") }}
                         </h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+                        <p class="text-sm text-sem-fg-muted mt-0.5 truncate">
                             {{ rrcModalBot.name }}
                         </p>
                     </div>
                     <button
                         type="button"
-                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-white hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80"
                         @click="closeRrcEditor"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-5" />
@@ -528,21 +528,21 @@
 
                 <BotRrcFields v-model="rrcDraft" />
 
-                <p v-if="rrcModalBot.running" class="text-xs text-amber-700 dark:text-amber-400">
+                <p v-if="rrcModalBot.running" class="text-xs text-sem-warning">
                     {{ $t("bots.restart_hint_generic") }}
                 </p>
 
                 <div class="flex justify-end gap-2 pt-2">
                     <button
                         type="button"
-                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-white hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80"
                         @click="closeRrcEditor"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-6" />
                     </button>
                     <button
                         type="button"
-                        class="p-2 rounded-lg text-gray-500 hover:text-emerald-600 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 disabled:opacity-40"
+                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-success hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 disabled:opacity-40"
                         :disabled="rrcSaving"
                         @click="saveRrc"
                     >
@@ -569,13 +569,13 @@
                         <h3 class="text-lg sm:text-xl font-bold text-sem-fg">
                             {{ $t("bots.lxmf_config_title") }}
                         </h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+                        <p class="text-sm text-sem-fg-muted mt-0.5 truncate">
                             {{ lxmfConfigModalBot.name }}
                         </p>
                     </div>
                     <button
                         type="button"
-                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-white hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80"
                         @click="closeLxmfConfig"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-5" />
@@ -586,7 +586,7 @@
 
                 <div
                     v-if="lxmfConfigModalBot.effective_lxmf_config"
-                    class="rounded-lg border border-sem-border bg-sem-surface-muted p-3 text-[11px] text-gray-700 dark:text-gray-300"
+                    class="rounded-lg border border-sem-border bg-sem-surface-muted p-3 text-[11px] text-sem-fg"
                 >
                     <div class="font-semibold mb-1">{{ $t("bots.effective_settings_heading") }}</div>
                     <pre class="m-0 whitespace-pre-wrap wrap-break-word font-mono">{{
@@ -594,21 +594,21 @@
                     }}</pre>
                 </div>
 
-                <p v-if="lxmfConfigModalBot.running" class="text-xs text-amber-700 dark:text-amber-400">
+                <p v-if="lxmfConfigModalBot.running" class="text-xs text-sem-warning">
                     {{ $t("bots.lxmf_config_restart_hint") }}
                 </p>
 
                 <div class="flex justify-end gap-2 pt-2">
                     <button
                         type="button"
-                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-fg dark:hover:text-white hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80"
                         @click="closeLxmfConfig"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-6" />
                     </button>
                     <button
                         type="button"
-                        class="p-2 rounded-lg text-gray-500 hover:text-emerald-600 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 disabled:opacity-40"
+                        class="p-2 rounded-lg text-sem-fg-muted hover:text-sem-success hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 disabled:opacity-40"
                         :disabled="lxmfConfigSaving"
                         @click="saveLxmfConfig"
                     >
@@ -625,13 +625,13 @@
 </template>
 
 <script>
-import { useNetworkStore } from "../../js/stores/networkStore.js";
+import { useNetworkStore } from "../../js/stores/networkStore";
 
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants";
 import * as botsApi from "../../js/api/bots.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
@@ -1141,7 +1141,7 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .glass-label {
-    @apply block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1;
+    @apply block text-sm font-semibold text-sem-fg mb-1;
 }
 .bots-process-log-text {
     font-size: 0.6875rem;

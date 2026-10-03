@@ -122,7 +122,7 @@ export function classifyShellRequest(request, url) {
     if (isHashedAssetPath(pathname)) {
         return "asset";
     }
-    // Subframes are never shell navigations, including for "/" — a frame
+    // Subframes are never shell navigations, including for "/" - a frame
     // fetch must not overwrite or receive the app-shell fallback slot.
     const dest = request.destination;
     const subframe = Boolean(dest && dest !== "document");

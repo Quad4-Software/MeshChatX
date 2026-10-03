@@ -72,7 +72,7 @@ class ForwardingManager:
                 )
                 # Replies are addressed to the alias DESTINATION hash, so the
                 # forwarding maps must key on it. Rows written before this
-                # stored the identity hash and were unreachable; heal them.
+                # stored the identity hash and were unreachable. heal them.
                 dest_hash = alias_destination.hash.hex()
                 if dest_hash != alias_hash:
                     try:

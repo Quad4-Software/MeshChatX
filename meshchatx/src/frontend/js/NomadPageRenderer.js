@@ -139,7 +139,7 @@ function isAllowedNomadHref(href) {
 
 /**
  * Rewrites in-renderer links so the browser does not follow relative or mesh paths as normal navigation.
- * Produces `href="#"` plus `data-nomadnet-url` for use with NomadNetworkPage `onElementClick`.
+ * Produces `href="#"` plus data-nomadnet-url for use with NomadNetworkPage onElementClick.
  */
 export function isolateNomadLinksInHtml(html, destinationHash) {
     if (!html || !destinationHash || typeof destinationHash !== "string") {
@@ -334,7 +334,7 @@ export function renderNomadHtmlPage(html, options = {}) {
 
 /**
  * Returns a CSS background value to paint the Nomad page shell when the rendered
- * document root uses a full-page background (e.g. HTML body styles on `.nomad-html-root`).
+ * document root uses a full-page background (e.g. HTML body styles on .nomad-html-root).
  */
 export function resolveNomadPageShellBackground(rootEl) {
     if (!rootEl || typeof window === "undefined" || typeof window.getComputedStyle !== "function") {

@@ -19,7 +19,7 @@
                 class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors"
                 :class="
                     selectedSetupMode === 'external'
-                        ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-950/30'
+                        ? 'border-sem-accent bg-sem-info/15 dark:bg-sem-info/15'
                         : 'border-sem-border'
                 "
             >
@@ -37,7 +37,7 @@
                 class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors"
                 :class="
                     selectedSetupMode === 'internal'
-                        ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-950/30'
+                        ? 'border-sem-accent bg-sem-info/15 dark:bg-sem-info/15'
                         : 'border-sem-border'
                 "
             >

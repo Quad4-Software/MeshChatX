@@ -19,18 +19,18 @@
             <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl mx-auto min-w-0">
                 <div
                     v-if="loading"
-                    class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-8 sm:py-12 text-center"
+                    class="w-full border-b border-sem-border dark:border-sem-border py-8 sm:py-12 text-center"
                 >
                     <div class="text-sem-fg-muted">{{ $t("tools.mesh_server.loading") }}</div>
                 </div>
 
                 <div
                     v-else-if="nodes.length === 0"
-                    class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-8 sm:py-12 text-center"
+                    class="w-full border-b border-sem-border dark:border-sem-border py-8 sm:py-12 text-center"
                 >
-                    <MaterialDesignIcon icon-name="server-network" class="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                    <div class="text-gray-600 dark:text-gray-400 mb-2">{{ $t("tools.mesh_server.empty_title") }}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-500">
+                    <MaterialDesignIcon icon-name="server-network" class="w-12 h-12 mx-auto mb-4 text-sem-fg-muted" />
+                    <div class="text-sem-fg-muted mb-2">{{ $t("tools.mesh_server.empty_title") }}</div>
+                    <div class="text-sm text-sem-fg-muted">
                         {{ $t("tools.mesh_server.empty_description") }}
                     </div>
                 </div>
@@ -46,7 +46,7 @@
                             <div class="flex items-center gap-3 min-w-0">
                                 <div
                                     class="w-3 h-3 rounded-full shrink-0"
-                                    :class="node.running ? 'bg-green-500' : 'bg-gray-400'"
+                                    :class="node.running ? 'bg-sem-success' : 'bg-gray-400'"
                                 ></div>
                                 <div class="min-w-0">
                                     <div class="flex items-center gap-2">
@@ -55,7 +55,7 @@
                                         </div>
                                         <span
                                             v-if="!node.announce_enabled"
-                                            class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 shrink-0"
+                                            class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-sem-warning/15 text-sem-warning shrink-0"
                                         >
                                             {{ $t("tools.mesh_server.announce_off_badge") }}
                                         </span>
@@ -86,7 +86,7 @@
                                 </button>
                                 <button
                                     v-else
-                                    class="secondary-chip py-1! px-2.5! text-xs! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+                                    class="secondary-chip py-1! px-2.5! text-xs! text-sem-danger! hover:bg-sem-danger/15! dark:hover:bg-sem-danger/15!"
                                     @click.stop="stopNode(node.node_id)"
                                 >
                                     {{ $t("tools.mesh_server.stop") }}
@@ -107,7 +107,7 @@
                                     {{ $t("tools.mesh_server.view") }}
                                 </button>
                                 <button
-                                    class="secondary-chip py-1! px-2.5! text-xs! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+                                    class="secondary-chip py-1! px-2.5! text-xs! text-sem-danger! hover:bg-sem-danger/15! dark:hover:bg-sem-danger/15!"
                                     @click.stop="deleteNode(node.node_id)"
                                 >
                                     <MaterialDesignIcon icon-name="delete" class="w-3.5 h-3.5" />
@@ -162,7 +162,7 @@
                 <!-- Selected Node Detail -->
                 <div
                     v-if="selectedNode"
-                    class="w-full py-4 sm:py-6 space-y-4 border-t border-gray-200/60 dark:border-zinc-800/60"
+                    class="w-full py-4 sm:py-6 space-y-4 border-t border-sem-border dark:border-sem-border"
                 >
                     <div class="flex items-center justify-between">
                         <div class="text-lg font-semibold text-sem-fg">
@@ -178,10 +178,7 @@
                         </div>
                     </div>
 
-                    <div
-                        v-if="selectedNode.destination_hash"
-                        class="p-3 rounded-lg bg-sem-surface-muted text-blue-700 dark:text-blue-300"
-                    >
+                    <div v-if="selectedNode.destination_hash" class="p-3 rounded-lg bg-sem-surface-muted text-sem-info">
                         <div class="flex items-center justify-between mb-1">
                             <div class="text-xs font-bold uppercase tracking-wider">
                                 {{ $t("tools.mesh_server.destination_hash") }}
@@ -199,7 +196,9 @@
                     </div>
 
                     <!-- Announce settings -->
-                    <div class="p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/50 border border-sem-border space-y-3">
+                    <div
+                        class="p-3 rounded-lg bg-sem-surface-muted dark:bg-sem-surface/80 border border-sem-border space-y-3"
+                    >
                         <div class="text-xs font-bold uppercase tracking-wider text-sem-fg-muted">
                             {{ $t("tools.mesh_server.announce_settings") }}
                         </div>
@@ -249,12 +248,12 @@
                     </div>
 
                     <!-- Tabs: Pages / Files -->
-                    <div class="flex gap-2 border-b border-gray-200/60 dark:border-zinc-800/60">
+                    <div class="flex gap-2 border-b border-sem-border dark:border-sem-border">
                         <button
                             :class="[
                                 detailTab === 'pages'
-                                    ? 'border-b-2 border-blue-500 text-sem-accent'
-                                    : 'text-gray-600 dark:text-gray-400',
+                                    ? 'border-b-2 border-sem-accent text-sem-accent'
+                                    : 'text-sem-fg-muted',
                                 'px-4 py-2 font-semibold transition text-sm -mb-px',
                             ]"
                             @click="detailTab = 'pages'"
@@ -268,8 +267,8 @@
                         <button
                             :class="[
                                 detailTab === 'files'
-                                    ? 'border-b-2 border-blue-500 text-sem-accent'
-                                    : 'text-gray-600 dark:text-gray-400',
+                                    ? 'border-b-2 border-sem-accent text-sem-accent'
+                                    : 'text-sem-fg-muted',
                                 'px-4 py-2 font-semibold transition text-sm -mb-px',
                             ]"
                             @click="detailTab = 'files'"
@@ -305,14 +304,17 @@
                         <div
                             v-for="page in selectedNode.pages"
                             :key="page.name"
-                            class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/50 border border-sem-border"
+                            class="flex items-center justify-between p-3 rounded-lg bg-sem-surface-muted dark:bg-sem-surface/80 border border-sem-border"
                         >
                             <div class="flex items-center gap-2">
-                                <MaterialDesignIcon icon-name="file-document-outline" class="w-4 h-4 text-teal-500" />
+                                <MaterialDesignIcon
+                                    icon-name="file-document-outline"
+                                    class="w-4 h-4 text-sem-success"
+                                />
                                 <span class="text-sm font-mono text-sem-fg">{{ page.name }}</span>
                                 <span
                                     v-if="page.executable"
-                                    class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300"
+                                    class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-sem-info/15 dark:bg-sem-info/15 text-sem-info dark:text-sem-info"
                                 >
                                     {{ $t("tools.mesh_server.executable_badge") }}
                                 </span>
@@ -322,7 +324,7 @@
                                     {{ $t("common.edit") }}
                                 </button>
                                 <button
-                                    class="secondary-chip py-0.5! px-2! text-xs! text-red-500!"
+                                    class="secondary-chip py-0.5! px-2! text-xs! text-sem-danger!"
                                     @click="deletePage(page.name)"
                                 >
                                     <MaterialDesignIcon icon-name="delete" class="w-3 h-3" />
@@ -358,7 +360,7 @@
                             </div>
                             <textarea
                                 v-model="editingPageContent"
-                                class="w-full h-64 bg-sem-surface text-sem-fg p-3 font-mono text-sm rounded-lg border border-sem-border resize-y focus:outline-hidden focus:ring-2 focus:ring-blue-500/50"
+                                class="w-full h-64 bg-sem-surface text-sem-fg p-3 font-mono text-sm rounded-lg border border-sem-border resize-y focus:outline-hidden focus:ring-2 focus:ring-sem-info/50"
                             ></textarea>
                         </div>
                     </div>
@@ -380,15 +382,15 @@
                         <div
                             v-for="file in selectedNode.files"
                             :key="file.name"
-                            class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/50 border border-sem-border"
+                            class="flex items-center justify-between p-3 rounded-lg bg-sem-surface-muted dark:bg-sem-surface/80 border border-sem-border"
                         >
                             <div class="flex items-center gap-2">
-                                <MaterialDesignIcon icon-name="file-outline" class="w-4 h-4 text-blue-500" />
+                                <MaterialDesignIcon icon-name="file-outline" class="w-4 h-4 text-sem-info" />
                                 <span class="text-sm font-mono text-sem-fg">{{ file.name }}</span>
                                 <span class="text-xs text-sem-fg-muted">{{ formatFileSize(file.size) }}</span>
                             </div>
                             <button
-                                class="secondary-chip py-0.5! px-2! text-xs! text-red-500!"
+                                class="secondary-chip py-0.5! px-2! text-xs! text-sem-danger!"
                                 @click="deleteFile(file.name)"
                             >
                                 <MaterialDesignIcon icon-name="delete" class="w-3 h-3" />
@@ -471,7 +473,7 @@ import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
 import Utils from "../../js/Utils";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants";
 import * as pageNodesApi from "../../js/api/pageNodes.js";
 
 const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 21600;

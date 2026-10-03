@@ -9,7 +9,7 @@
         </template>
         <template #items>
             <DropDownMenuItem v-if="hasFailedMessages" @click="$emit('retry-failed')">
-                <MaterialDesignIcon icon-name="refresh" class="size-5 text-red-500" />
+                <MaterialDesignIcon icon-name="refresh" class="size-5 text-sem-danger" />
                 <span>{{ $t("messages.retry_failed") }}</span>
             </DropDownMenuItem>
             <DropDownMenuItem @click="$emit('start-call')">
@@ -81,19 +81,19 @@
 
             <div class="border-t">
                 <DropDownMenuItem v-if="!isBlocked" @click="onBlockDestination">
-                    <MaterialDesignIcon icon-name="gavel" class="size-5 text-red-500" />
-                    <span class="text-red-500">{{ $t("messages.banish_user") }}</span>
+                    <MaterialDesignIcon icon-name="gavel" class="size-5 text-sem-danger" />
+                    <span class="text-sem-danger">{{ $t("messages.banish_user") }}</span>
                 </DropDownMenuItem>
                 <DropDownMenuItem v-else @click="onUnblockDestination">
-                    <MaterialDesignIcon icon-name="check-circle" class="size-5 text-green-500" />
-                    <span class="text-green-500">{{ $t("banishment.lift_banishment") }}</span>
+                    <MaterialDesignIcon icon-name="check-circle" class="size-5 text-sem-success" />
+                    <span class="text-sem-success">{{ $t("banishment.lift_banishment") }}</span>
                 </DropDownMenuItem>
             </div>
 
             <div class="border-t">
                 <DropDownMenuItem @click="onDeleteMessageHistory">
-                    <MaterialDesignIcon icon-name="delete" class="size-5 text-red-500" />
-                    <span class="text-red-500">{{ $t("messages.delete_message_history") }}</span>
+                    <MaterialDesignIcon icon-name="delete" class="size-5 text-sem-danger" />
+                    <span class="text-sem-danger">{{ $t("messages.delete_message_history") }}</span>
                 </DropDownMenuItem>
             </div>
         </template>
@@ -105,7 +105,7 @@
             class="shrink-0"
             @click="$emit('retry-failed')"
         >
-            <MaterialDesignIcon icon-name="refresh" class="size-5 text-red-500" />
+            <MaterialDesignIcon icon-name="refresh" class="size-5 text-sem-danger" />
         </IconButton>
         <IconButton :title="$t('messages.start_call')" class="shrink-0" @click="$emit('start-call')">
             <MaterialDesignIcon icon-name="phone" class="size-5" />
@@ -150,16 +150,16 @@
                     <span>{{ $t("messages.set_custom_display_name") }}</span>
                 </DropDownMenuItem>
                 <DropDownMenuItem v-if="!isBlocked" @click="onBlockDestination">
-                    <MaterialDesignIcon icon-name="gavel" class="size-5 text-red-500" />
-                    <span class="text-red-500">{{ $t("messages.banish_user") }}</span>
+                    <MaterialDesignIcon icon-name="gavel" class="size-5 text-sem-danger" />
+                    <span class="text-sem-danger">{{ $t("messages.banish_user") }}</span>
                 </DropDownMenuItem>
                 <DropDownMenuItem v-else @click="onUnblockDestination">
-                    <MaterialDesignIcon icon-name="check-circle" class="size-5 text-green-500" />
-                    <span class="text-green-500">{{ $t("banishment.lift_banishment") }}</span>
+                    <MaterialDesignIcon icon-name="check-circle" class="size-5 text-sem-success" />
+                    <span class="text-sem-success">{{ $t("banishment.lift_banishment") }}</span>
                 </DropDownMenuItem>
                 <DropDownMenuItem @click="onDeleteMessageHistory">
-                    <MaterialDesignIcon icon-name="delete" class="size-5 text-red-500" />
-                    <span class="text-red-500">{{ $t("messages.delete_message_history") }}</span>
+                    <MaterialDesignIcon icon-name="delete" class="size-5 text-sem-danger" />
+                    <span class="text-sem-danger">{{ $t("messages.delete_message_history") }}</span>
                 </DropDownMenuItem>
             </template>
         </DropDownMenu>
@@ -176,8 +176,8 @@
 
 <script>
 import { mapStores } from "pinia";
-import { useConfigStore } from "../../js/stores/configStore.js";
-import { useIdentityStore } from "../../js/stores/identityStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
+import { useIdentityStore } from "../../js/stores/identityStore";
 
 import DropDownMenu from "../DropDownMenu.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
@@ -185,7 +185,7 @@ import IconButton from "../IconButton.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import DialogUtils from "../../js/DialogUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants";
 import * as pingApi from "../../js/api/ping.js";
 import ToastUtils from "../../js/ToastUtils";
 import AndroidBridge from "../../js/rnode/AndroidBridge.js";

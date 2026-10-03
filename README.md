@@ -4,15 +4,15 @@
 
 Initially MeshChatX was a fork of Reticulum MeshChat by Liam Cottle. It has evolved to be very much different and focused on modern software development principles. It may be buggy due to many changes and adapted to make it more maintainable and end goal of improving stability.
 
-There are many changes from MeshChat: LXST, [RRC](https://rrc.kc1awv.net/0) relay chat, a dedicated Map that is offline ready, raw SQL instead of an ORM, native fetch instead of Axios, latest stable Electron, wheels with bundled frontend, i18n, pnpm 11+ with supply chain security.
+There are many changes from MeshChat: LXST, [RRC](https://rrc.kc1awv.net/0) relay chat, a dedicated Map that is offline ready, raw SQL instead of an ORM, native fetch instead of Axios, latest stable Electron, wheels with bundled frontend, i18n, pnpm 12+ with supply chain security.
 
 MeshChatX is also focused on security and privacy, including usage of native OS sandboxing like AppContainer for windows and Landlock for linux.
 
-**AI Disclaimer:** Open-weight local LLMs may be used to assist with development and maintaining the project, but all code is reviewed by humans and follows best practices.
+**AI Disclaimer:** LLMs may be used to assist with development and maintaining the project, but all code is reviewed by humans and follows best practices.
 
 - Website: [meshchatx.com](https://meshchatx.com)
 - Source: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
-- Mirror: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
+- Mirror: [CodeFloe](https://codefloe.com/Ivan/MeshChatX)
 - PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Donate: [donate.md](donate.md)

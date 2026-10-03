@@ -4,9 +4,9 @@ import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 import { clearMessagePanes } from "../../meshchatx/src/frontend/js/browserLayoutStore";
 import { micronStorage } from "../../meshchatx/src/frontend/js/MicronStorage";
-import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore.js";
-import { useUnreadStore } from "../../meshchatx/src/frontend/js/stores/unreadStore.js";
-import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore.js";
+import { useAuthStore } from "../../meshchatx/src/frontend/js/stores/authStore";
+import { useUnreadStore } from "../../meshchatx/src/frontend/js/stores/unreadStore";
+import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore";
 
 vi.mock("../../meshchatx/src/frontend/js/csrfToken.js", () => ({
     fetchCsrfToken: vi.fn().mockResolvedValue(undefined),

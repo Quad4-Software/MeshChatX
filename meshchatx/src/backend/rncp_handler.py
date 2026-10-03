@@ -786,9 +786,9 @@ class RNCPHandler:
             msg = "Unknown error during fetch request"
             raise Exception(msg)
 
-        resolve_deadline = asyncio.get_event_loop().time() + 120.0
+        resolve_deadline = asyncio.get_running_loop().time() + 120.0
         while not resource_resolved:
-            if asyncio.get_event_loop().time() > resolve_deadline:
+            if asyncio.get_running_loop().time() > resolve_deadline:
                 with contextlib.suppress(Exception):
                     link.teardown()
                 msg = "Timed out waiting for remote resource"

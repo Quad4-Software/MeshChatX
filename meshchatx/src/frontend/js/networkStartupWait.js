@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD AND MIT
 
-import { apiPath } from "./constants.js";
+import { apiPath } from "./constants";
 
 const PER_POLL_TIMEOUT_MS = 8000;
 

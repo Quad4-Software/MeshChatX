@@ -135,6 +135,7 @@ The Interfaces UI links into the Reticulum manual sections on interface options.
 
 - Run only the interfaces you need. Each open port or radio adds attack surface and power draw.
 - On Raspberry Pi and Android, prefer a single well-known TCP uplink if LoRa hardware is not attached.
+- Interface changes apply live where possible: enabling, disabling, deleting, editing, and bitrate changes attach, detach, or reload the affected interface without restarting the RNS stack (requires RNS 1.5.5 runtime interface management). Use **Restart Interface** in the interface menu to bounce a running interface after editing its Reticulum config externally.
 - After editing Reticulum config externally, use the reload controls or restart MeshChatX so changes apply cleanly.
 - Keep firmware on RNodes current using the flasher tool before debugging RF issues.
 

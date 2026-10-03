@@ -176,7 +176,7 @@ async def test_resend_broadcasts_deleted_row(web_resend_app):
 
 
 @pytest.mark.asyncio
-async def test_resend_rejects_incoming_and_active(web_resend_app):
+async def test_resend_rejects_incoming_delivered_and_rejected(web_resend_app):
     incoming = _stored_row("ee" * 16, {})
     incoming["is_incoming"] = 1
     web_resend_app.database.messages.get_lxmf_message_by_hash.return_value = incoming
@@ -185,10 +185,28 @@ async def test_resend_rejects_incoming_and_active(web_resend_app):
         response = await client.post(f"/api/v1/lxmf-messages/{'ee' * 16}/resend")
         assert response.status == 400
 
-    active = _stored_row("ff" * 16, {})
-    active["state"] = "sending"
-    web_resend_app.database.messages.get_lxmf_message_by_hash.return_value = active
-    async with TestClient(TestServer(aio_app)) as client:
-        response = await client.post(f"/api/v1/lxmf-messages/{'ff' * 16}/resend")
-        assert response.status == 409
+    for state in ("delivered", "rejected"):
+        row = _stored_row("ff" * 16, {})
+        row["state"] = state
+        web_resend_app.database.messages.get_lxmf_message_by_hash.return_value = row
+        async with TestClient(TestServer(aio_app)) as client:
+            response = await client.post(f"/api/v1/lxmf-messages/{'ff' * 16}/resend")
+            assert response.status == 409
     web_resend_app.send_message.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_resend_cancels_live_copy_and_requeues(web_resend_app):
+    message_hash = "ab" * 16
+    row = _stored_row(message_hash, {})
+    row["state"] = "sending"
+    web_resend_app.database.messages.get_lxmf_message_by_hash.return_value = row
+    aio_app = _build_aio_app(web_resend_app)
+    async with TestClient(TestServer(aio_app)) as client:
+        response = await client.post(f"/api/v1/lxmf-messages/{message_hash}/resend")
+        assert response.status == 200
+
+    web_resend_app.message_router.cancel_outbound.assert_called_once_with(
+        bytes.fromhex(message_hash),
+    )
+    web_resend_app.send_message.assert_called_once()

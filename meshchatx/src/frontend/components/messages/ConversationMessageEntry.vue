@@ -246,30 +246,16 @@
                 :elevated="entry.items[0].is_outbound && cv.showOutboundTransferProgress(entry.items[0].lxmf_message)"
             />
         </div>
+        <!-- image group: inline timestamp row (no bubble chrome) -->
         <div
-            class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md min-w-0 px-3 py-2"
-            :class="[
-                ['cancelled', 'failed'].includes(entry.items[0].lxmf_message.state)
-                    ? 'shadow-xs'
-                    : entry.items[0].lxmf_message.is_spam
-                      ? 'bg-sem-warning/10 text-sem-warning border border-sem-warning shadow-xs'
-                      : cv.isOutboundWaitingBubble(entry.items[0])
-                        ? 'shadow-xs'
-                        : entry.items[0].is_outbound
-                          ? cv.outboundBubbleSurfaceClass(entry.items[0])
-                          : 'bg-sem-surface text-sem-fg border border-sem-border shadow-xs',
-            ]"
-            :style="cv.bubbleStyles(entry.items[0])"
+            v-if="entry.showTimestamp !== false || entry.items[0].is_outbound"
+            class="flex items-center justify-end gap-1.5 select-none mt-0.5 min-w-0"
             @contextmenu="cv.onMessageContextMenu($event, entry.items[0], true)"
         >
-            <div
-                v-if="entry.showTimestamp !== false || entry.items[0].is_outbound"
-                class="flex items-center justify-end gap-1.5 select-none h-3"
-            >
+            <div class="flex items-center justify-end gap-1.5 select-none h-3">
                 <span
                     v-if="entry.showTimestamp !== false"
-                    class="text-[9px] opacity-80 font-medium"
-                    :class="cv.outboundBubbleFooterTimeClass(entry.items[0])"
+                    class="text-[9px] opacity-50 font-medium"
                     :title="cv.getMessageInfoLines(entry.items[0].lxmf_message, entry.items[0].is_outbound).join('\n')"
                 >
                     {{ cv.formatTimeAgo(entry.items[0].lxmf_message.created_at) }}
@@ -278,13 +264,13 @@
                     <span
                         v-if="cv.isOpportunisticDeferredDelivery(entry.items[0].lxmf_message)"
                         class="text-[9px] font-bold uppercase tracking-wider"
-                        :class="cv.isThemeOutboundBubble(entry.items[0]) ? 'text-sem-warning' : 'text-amber-200'"
+                        :class="cv.isThemeOutboundBubble(entry.items[0]) ? 'text-sem-warning' : 'text-sem-warning'"
                     >
                         {{ $t("messages.opportunistic_deferred_label") }}
                     </span>
                     <span
                         v-else-if="['failed', 'cancelled', 'rejected'].includes(entry.items[0].lxmf_message.state)"
-                        class="text-[9px] font-bold uppercase tracking-wider text-white"
+                        class="text-[9px] font-bold uppercase tracking-wider text-sem-danger"
                     >
                         {{
                             entry.items[0].lxmf_message.state === "rejected"
@@ -293,26 +279,24 @@
                         }}
                     </span>
                     <button
-                        v-if="['failed', 'cancelled'].includes(entry.items[0].lxmf_message.state)"
+                        v-if="cv.isOutboundResendable(entry.items[0])"
                         type="button"
-                        class="ml-0.5 p-0.5 rounded-sm hover:bg-sem-surface/20 transition-colors"
+                        class="ml-0.5 p-0.5 rounded-sm hover:bg-sem-surface-muted transition-colors"
                         :title="$t('messages.retry')"
                         @click.stop="cv.retrySendingMessage(entry.items[0])"
                     >
-                        <MaterialDesignIcon icon-name="refresh" class="size-3 text-white" />
+                        <MaterialDesignIcon icon-name="refresh" class="size-3 text-sem-fg-muted" />
                     </button>
                     <MaterialDesignIcon
                         v-if="entry.items[0].lxmf_message.state === 'delivered'"
                         :icon-name="cv.outboundBubbleStatusIconName(entry.items[0].lxmf_message)"
-                        class="size-3"
-                        :class="cv.outboundBubbleDeliveredIconClass(entry.items[0])"
+                        class="size-3 opacity-50"
                         :title="cv.outboundBubbleStatusTitle(entry.items[0].lxmf_message)"
                     />
                     <MaterialDesignIcon
                         v-else-if="['sent', 'propagated', 'unknown'].includes(entry.items[0].lxmf_message.state)"
                         :icon-name="cv.outboundBubbleStatusIconName(entry.items[0].lxmf_message)"
-                        class="size-3"
-                        :class="cv.outboundBubbleSentCheckIconClass(entry.items[0])"
+                        class="size-3 opacity-50"
                         :title="cv.outboundBubbleStatusTitle(entry.items[0].lxmf_message)"
                     />
                     <svg
@@ -320,8 +304,7 @@
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
-                        class="animate-spin size-3.5 shrink-0"
-                        :class="cv.outboundSendingStatusIconClass(entry.items[0])"
+                        class="animate-spin size-3.5 shrink-0 opacity-60"
                         :title="cv.outboundBubbleStatusHoverTitle(entry.items[0].lxmf_message)"
                     >
                         <title>
@@ -344,8 +327,7 @@
                     <MaterialDesignIcon
                         v-else-if="cv.isOutboundPendingForUi(entry.items[0])"
                         icon-name="check"
-                        class="size-3"
-                        :class="cv.outboundBubblePendingCheckIconClass(entry.items[0])"
+                        class="size-3 opacity-50"
                         :title="$t('messages.sending_ellipsis')"
                     />
                     <div
@@ -358,7 +340,7 @@
                     <MaterialDesignIcon
                         v-else-if="['failed', 'cancelled', 'rejected'].includes(entry.items[0].lxmf_message.state)"
                         icon-name="alert-circle-outline"
-                        class="size-3 text-white"
+                        class="size-3 text-sem-danger"
                         :title="cv.outboundBubbleFailedTitle(entry.items[0].lxmf_message)"
                     />
                     <button
@@ -632,9 +614,9 @@
                         :class="
                             chatItem.is_outbound
                                 ? cv.isThemeOutboundBubble(chatItem)
-                                    ? 'text-orange-800 dark:text-orange-300'
-                                    : 'text-orange-200'
-                                : 'text-orange-700 dark:text-orange-300'
+                                    ? 'text-sem-warning dark:text-sem-warning'
+                                    : 'text-sem-warning'
+                                : 'text-sem-warning'
                         "
                     >
                         <MaterialDesignIcon icon-name="alert-decagram" class="size-4" />
@@ -991,9 +973,9 @@
 
                         <div
                             v-if="parsedItems.relayLink"
-                            class="flex flex-col gap-2 p-3 rounded-xl bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/50"
+                            class="flex flex-col gap-2 p-3 rounded-xl bg-sem-info/15 dark:bg-sem-info/15 border border-sem-info dark:border-sem-info"
                         >
-                            <div class="flex items-center gap-2 text-violet-800 dark:text-violet-300">
+                            <div class="flex items-center gap-2 text-violet-800 dark:text-sem-info">
                                 <MaterialDesignIcon icon-name="forum-outline" class="size-5" />
                                 <span class="text-sm font-bold">{{
                                     parsedItems.relayLink.parsed.room
@@ -1018,14 +1000,14 @@
                             </div>
                             <button
                                 type="button"
-                                class="w-full py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                                class="w-full py-2 bg-sem-info hover:bg-sem-info text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
                                 @click="cv.openRelayShareFromParsed(parsedItems.relayLink.parsed)"
                             >
                                 {{ $t("messages.relay_link_join") }}
                             </button>
                             <button
                                 type="button"
-                                class="w-full py-2 bg-sem-surface border border-violet-200 dark:border-violet-800 text-violet-800 dark:text-violet-200 rounded-lg text-xs font-bold"
+                                class="w-full py-2 bg-sem-surface border border-sem-info dark:border-sem-info text-sem-info text-sem-info rounded-lg text-xs font-bold"
                                 @click="cv.copyRelayShareUri(parsedItems.relayLink.uri)"
                             >
                                 {{ $t("messages.relay_link_copy_uri") }}
@@ -1243,7 +1225,7 @@
                             <span
                                 v-if="cv.isOpportunisticDeferredDelivery(chatItem.lxmf_message)"
                                 class="text-[9px] font-bold uppercase tracking-wider"
-                                :class="cv.isThemeOutboundBubble(chatItem) ? 'text-sem-warning' : 'text-amber-200'"
+                                :class="cv.isThemeOutboundBubble(chatItem) ? 'text-sem-warning' : 'text-sem-warning'"
                             >
                                 {{ $t("messages.opportunistic_deferred_label") }}
                             </span>
@@ -1258,7 +1240,7 @@
                                 }}
                             </span>
                             <button
-                                v-if="['failed', 'cancelled'].includes(chatItem.lxmf_message.state)"
+                                v-if="cv.isOutboundResendable(chatItem)"
                                 type="button"
                                 class="ml-0.5 p-0.5 rounded-sm hover:bg-sem-surface/20 transition-colors"
                                 :title="$t('messages.retry')"

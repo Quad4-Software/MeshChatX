@@ -37,6 +37,16 @@ async function e2ePost(request, url, data) {
     return request.post(url, { headers, data });
 }
 
+/**
+ * PATCH with session cookie and CSRF header.
+ */
+async function e2ePatch(request, url, data) {
+    const origin = new URL(url).origin;
+    const token = await ensureE2eCsrf(request, origin);
+    const headers = { [CSRF_HEADER]: token };
+    return request.patch(url, { headers, data });
+}
+
 function buildE2eLxmfRow({ peerHash, localHash, index, total, inbound }) {
     const hash = crypto.randomBytes(16).toString("hex");
     const baseTs = Math.floor(Date.now() / 1000) - total;
@@ -189,6 +199,7 @@ module.exports = {
     buildE2eLxmfRow,
     dismissMapOnboardingTooltip,
     e2ePost,
+    e2ePatch,
     ensureE2eCsrf,
     openCommandPalette,
     prepareE2eSession,

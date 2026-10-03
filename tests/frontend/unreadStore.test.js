@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { useUnreadStore } from "@/js/stores/unreadStore.js";
+import { useUnreadStore } from "@/js/stores/unreadStore";
 
 describe("unreadStore", () => {
     it("has initial values", () => {

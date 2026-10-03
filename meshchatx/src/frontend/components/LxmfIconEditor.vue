@@ -3,7 +3,7 @@
 <template>
     <div class="space-y-4">
         <div class="flex items-center gap-4">
-            <div class="p-4 bg-gray-50 dark:bg-zinc-800 rounded-xl shrink-0">
+            <div class="p-4 bg-sem-surface-muted rounded-xl shrink-0">
                 <LxmfUserIcon
                     :key="draftKey"
                     :icon-name="draft.icon_name"
@@ -20,7 +20,7 @@
                         <input
                             :value="draft.bg_color"
                             type="text"
-                            class="w-24 px-2 py-1.5 text-xs border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sem-fg font-mono"
+                            class="w-24 px-2 py-1.5 text-xs border border-sem-border rounded-lg bg-sem-surface text-sem-fg font-mono"
                             placeholder="#e5e7eb"
                             @input="setBg($event.target.value)"
                         />
@@ -33,7 +33,7 @@
                         <input
                             :value="draft.fg_color"
                             type="text"
-                            class="w-24 px-2 py-1.5 text-xs border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sem-fg font-mono"
+                            class="w-24 px-2 py-1.5 text-xs border border-sem-border rounded-lg bg-sem-surface text-sem-fg font-mono"
                             placeholder="#6b7280"
                             @input="setFg($event.target.value)"
                         />
@@ -50,8 +50,8 @@
                 v-for="name of searchedIconNames"
                 :key="name"
                 type="button"
-                class="flex flex-col items-center justify-center p-2.5 rounded-lg border-2 transition-all hover:bg-sem-surface-muted hover:border-blue-500 dark:hover:border-blue-500"
-                :class="draft.icon_name === name ? 'border-blue-500 bg-sem-surface-muted' : 'border-sem-border'"
+                class="flex flex-col items-center justify-center p-2.5 rounded-lg border-2 transition-all hover:bg-sem-surface-muted hover:border-sem-accent dark:hover:border-sem-accent"
+                :class="draft.icon_name === name ? 'border-sem-accent bg-sem-surface-muted' : 'border-sem-border'"
                 :title="name"
                 @click="selectIcon(name)"
             >
@@ -72,12 +72,7 @@
 
         <div class="flex items-center justify-between gap-2">
             <span class="text-xs text-sem-fg-muted">{{ $t("bots.icon_hint") }}</span>
-            <button
-                v-if="modelValue"
-                type="button"
-                class="text-xs text-red-600 dark:text-red-400 hover:underline"
-                @click="clear"
-            >
+            <button v-if="modelValue" type="button" class="text-xs text-sem-danger hover:underline" @click="clear">
                 {{ $t("bots.icon_remove") }}
             </button>
         </div>

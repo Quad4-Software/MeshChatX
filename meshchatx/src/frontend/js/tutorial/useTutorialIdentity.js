@@ -3,8 +3,8 @@
 import { computed, ref } from "vue";
 
 import * as identityApi from "../api/identity.js";
-import { apiPath, EMITTER_EVENTS } from "../constants.js";
-import GlobalEmitter from "../GlobalEmitter.js";
+import { apiPath, EMITTER_EVENTS } from "../constants";
+import GlobalEmitter from "../GlobalEmitter";
 import { useConfigStore } from "../stores/configStore.js";
 import ToastUtils from "../ToastUtils.js";
 import Utils from "../Utils.js";

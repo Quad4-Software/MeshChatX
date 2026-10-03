@@ -295,6 +295,7 @@
         "theme_preset_tokyo": "Tokyo Night",
         "theme_preset_atom_one": "Atom One",
         "theme_preset_neo_brutalist": "新粗野主义",
+        "theme_preset_glass": "玻璃",
         "theme_preset_custom": "自定义颜色",
         "theme_preset_description": "调整基础调色板。自定义可为当前浅色或深色模式选择画布和表面颜色。色带预览画布、表面、强调色和边框。",
         "error_frontend_title": "出现问题",
@@ -630,7 +631,7 @@
         "network_degraded": "RNS 不可用。应用仍在运行，便于诊断和恢复而无需清除数据。",
         "recover_network": "重试 RNS",
         "open_settings": "打开设置",
-                "lan_bind_no_auth_banner": "此界面可在局域网无密码访问。请在设置中启用身份验证，或绑定 127.0.0.1。",
+        "lan_bind_no_auth_banner": "此界面可在局域网无密码访问。请在设置中启用身份验证，或绑定 127.0.0.1。",
         "lan_bind_no_auth_dismiss": "关闭",
         "open_backups": "打开备份",
         "open_interfaces": "打开接口",
@@ -744,7 +745,24 @@
         "message_waiting_bubble_color": "等待中的消息气泡颜色",
         "reload_rns_success": "RNS 重新加载成功",
         "reload_rns_failed": "RNS 重新加载失败",
-        "oidc_client_secret_clear": "清除"
+        "oidc_client_secret_clear": "清除",
+        "nomad_private_tabs_enabled": "Private NomadNet tabs",
+        "nomad_private_tabs_enabled_description": "Show the private tab button in the NomadNet browser. Private tabs are not saved to history.",
+        "nomad_history_enabled": "NomadNet history",
+        "nomad_history_enabled_description": "Show the history button in the NomadNet browser. Tracks visited pages locally.",
+        "theme_preset_void": "Void",
+        "ui_font_family": "UI Font",
+        "ui_font_system": "System default",
+        "ui_font_noto_sans": "Noto Sans",
+        "ui_font_roboto_mono_nerd": "Roboto Mono Nerd Font",
+        "ui_font_upload": "Upload font",
+        "ui_font_upload_tooltip": "Upload a .woff2, .ttf, or .otf font file",
+        "ui_font_preview_text": "The quick brown fox jumps over the lazy dog 0123456789",
+        "ui_font_preview_hint": "Custom fonts are stored locally and applied to the UI.",
+        "ui_font_inter": "Inter",
+        "ui_font_jetbrains_mono": "JetBrains Mono",
+        "ui_font_ibm_plex_sans": "IBM Plex Sans",
+        "ui_font_space_grotesk": "Space Grotesk"
     },
     "helptips": {
         "title_send_failed": "可尝试的方法",
@@ -818,7 +836,8 @@
         "copy_text": "复制文本",
         "settings": "设置",
         "saved": "已保存",
-        "copy_failed": "复制失败"
+        "copy_failed": "复制失败",
+        "done": "完成"
     },
     "stickers": {
         "settings_title": "贴纸",
@@ -1572,7 +1591,10 @@
         "failed_export_all": "导出接口失败",
         "failed_export_single": "导出接口失败",
         "failed_reload": "重新加载 Reticulum 失败！",
+        "reloaded": "接口已重启",
+        "failed_reload_interface": "接口重启失败",
         "interface_not_found": "未找到要编辑的选定接口。",
+        "discovered_impl_hint": "由 RNS 发现报告的实现",
         "discovery_settings_saved": "发现设置已保存",
         "discovery_list_refreshed": "已刷新发现的接口列表。",
         "discovery_list_refresh_failed": "无法刷新发现的接口列表。",
@@ -1606,6 +1628,8 @@
         "autoconnect_interface_gravity_hint": "自动连接的已发现接口的重力（RNS autoconnect_interface_gravity）。",
         "autoconnect_announces_to_internal_label": "自动连接通告到内部",
         "autoconnect_announces_to_internal_hint": "允许自动连接的接口将通告传播到 internal 模式接口。",
+        "autoconnect_unverified_label": "自动连接到未验证的实现",
+        "autoconnect_unverified_hint": "允许自动连接到其通告未识别已知 Reticulum 实现的已发现接口 (RNS 1.5.5+)。",
         "location_cmd_label": "位置命令（可选）",
         "location_cmd_placeholder": "/path/to/gps-script",
         "location_cmd_hint": "可执行文件的绝对路径，输出 latitude,longitude,height。Reticulum 会在发现通告时运行它（RNS location_cmd）。",
@@ -1740,7 +1764,8 @@
         "kernel_iface_picker_title": "本机网络接口",
         "kernel_iface_loading": "加载中…",
         "kernel_iface_picker_help": "“设备”为可选，填写一个内核网卡名，或留空仅按 Listen IP 绑定。点击一行填入输入框。",
-        "auto_iface_ifname_chips_hint": "本机接口：点击可在上方字段中添加或移除名称。"
+        "auto_iface_ifname_chips_hint": "本机接口：点击可在上方字段中添加或移除名称。",
+        "copied_share": "Interface config copied — paste in a message to share"
     },
     "map": {
         "title": "地图",
@@ -2018,7 +2043,9 @@
         "location_unavailable": "位置不可用",
         "export_failed": "导出失败",
         "coords_copied": "坐标已复制到剪贴板",
-        "geo_parse_failed": "无法解析该位置"
+        "geo_parse_failed": "无法解析该位置",
+        "filter_type": "Filter by type",
+        "all_types": "All types"
     },
     "interface": {
         "disable": "禁用",
@@ -2026,6 +2053,7 @@
         "edit_interface": "编辑接口",
         "export_interface": "导出接口",
         "delete_interface": "删除接口",
+        "restart_interface": "重启接口",
         "listen": "听着",
         "forward": "前进",
         "port": "端口",
@@ -2042,7 +2070,8 @@
         "clients": "客户",
         "link_up": "链路已连通",
         "link_down": "链路未连通",
-        "link_unknown": "链路状态未知"
+        "link_unknown": "链路状态未知",
+        "share_interface": "Share via chat"
     },
     "messages": {
         "title": "消息",
@@ -2130,7 +2159,7 @@
         "telemetry_history_done": "完成",
         "telemetry_show_in_chat": "在主聊天中显示遥测",
         "telemetry_battery_trend": "电量趋势",
-        "telemetry_battery_range": "{from}% → {to}%",
+        "telemetry_battery_range": "{from}% -> {to}%",
         "telemetry_label_sent": "已发送",
         "telemetry_label_received": "已接收",
         "telemetry_battery_level": "电量：{percent}%",
@@ -2405,7 +2434,27 @@
         "conversation_files_other": "{name} 发送了 {count} 个文件",
         "message_not_found_in_cache": "缓存中未找到消息",
         "scroll_to_bottom": "滚动到底部",
-        "copied_to_clipboard": "已复制到剪贴板"
+        "copied_to_clipboard": "已复制到剪贴板",
+        "filter_favourites": "收藏",
+        "filter_direct": "直连",
+        "filter_nearby": "附近",
+        "filter_pinned": "已置顶",
+        "filter_blocked": "已屏蔽",
+        "more_filters": "更多筛选",
+        "filters_edit": "编辑筛选器",
+        "filters_edit_title": "侧边栏筛选器",
+        "filters_edit_hint": "切换要显示为筛选标签的筛选器。拖动行可更改顺序。",
+        "filters_add_chip": "编辑筛选标签",
+        "filter_shown_in_bar": "显示为标签",
+        "filter_hidden_in_bar": "不显示为标签，仍可在筛选菜单中使用",
+        "filter_move_up": "上移筛选器",
+        "filter_move_down": "下移筛选器",
+        "filters_custom_title": "自定义筛选",
+        "filters_custom_hint": "以逗号分隔的词条与名称和哈希匹配",
+        "filters_custom_name": "筛选名称",
+        "filters_custom_query": "例如 family, mom, a1b2c3",
+        "filters_custom_add": "添加筛选",
+        "filters_custom_remove": "删除自定义筛选"
     },
     "settings": {
         "tabs": {
@@ -2691,11 +2740,9 @@
         "view_mode": "视图",
         "view_mode_flat": "平面",
         "view_mode_planet": "行星",
-        "view_mode_cluster": "集群",
         "view_mode_flat_full": "平面 (2D)",
         "view_mode_planet_full": "行星 (按接口)",
-        "view_mode_cluster_full": "集群（按接口）",
-        "view_mode_desc": "平面是力导向图。行星将每个接口显示为球体。集群将节点按宣布它们的接口分组。行星视图仅支持 WebGL。",
+        "view_mode_desc": "平面是力导向图。行星将每个接口显示为球体。行星视图仅支持 WebGL。",
         "nodes": "节点",
         "links": "链路",
         "interfaces": "接口",
@@ -2921,7 +2968,10 @@
         "move_to_section": "移动到分组",
         "export_section": "导出分组",
         "delete_section": "删除分组",
-        "add_section_prompt": "输入新分组名称"
+        "add_section_prompt": "输入新分组名称",
+        "normal_browsing_hint": "Browse NomadNet nodes by entering an address above. Tabs keep your session and history.",
+        "history": "History",
+        "no_history": "No browsing history yet"
     },
     "forwarder": {
         "title": "LXMF 转发器",
@@ -3434,7 +3484,7 @@
             "downloading": "正在下载...",
             "done_description": "如果你走得这么远 所有之前的步骤都成功 你的RNode应该准备好使用",
             "meshchat_usage": "要使用 MeshChat 的 RNode, 您需要在 Interface 中添加 RNode Interface 。",
-            "sideband_usage": "要用 Sideband 来使用 RNode, 您需要用硬件 → RNode 来配置它, 并启用 Connectivity → 通过 RNode 连接 。",
+            "sideband_usage": "要用 Sideband 来使用 RNode, 您需要用硬件 -> RNode 来配置它, 并启用 Connectivity -> 通过 RNode 连接 。",
             "restart_warning": "您必须重新启动 MeshChat 和 Sideband 以启动界面设置更改, 否则不会发生任何事情 !",
             "advanced_tools": "高级工具",
             "detect_rnode": "检测 R 节点",
@@ -4241,7 +4291,10 @@
         "prefs_hide_join_part_hint": "对等方加入或离开时的状态行将在所有房间中隐藏。",
         "apply_auto_options_all_hubs": "将这些自动选项应用到所有枢纽",
         "auto_options_applied_all_hubs": "自动选项已应用到所有枢纽",
-        "unignore": "取消忽略"
+        "unignore": "取消忽略",
+        "members_tooltip": "{count} members online",
+        "hops_tooltip": "{count} network hops to hub",
+        "rtt_tooltip": "Round-trip latency to hub"
     },
     "rncp": {
         "file_transfer": "文件传输",
@@ -4697,6 +4750,16 @@
         "importing": "Importing...",
         "remove": "Remove",
         "no_packs": "No packs installed. Import a pack archive to translate offline.",
+        "show_catalog": "Download packs",
+        "hide_catalog": "Hide available packs",
+        "download": "Download",
+        "downloading": "Downloading...",
+        "download_all": "Download all",
+        "installed": "Installed",
+        "catalog_failed": "Could not load the pack catalog. Outbound downloads may be blocked by privacy mode.",
+        "download_failed": "Download failed for {pair}.",
+        "download_failed_some": "{count} pack(s) failed to download.",
+        "download_failed_all": "Pack download failed.",
         "pair_code": "Pair {pair}",
         "size_kb": "{size} KB",
         "source_language": "源语言",
@@ -5364,5 +5427,27 @@
         "url_copied": "问题报告 URL 已复制",
         "url_copy_failed": "无法复制 URL",
         "privacy_mode_hint": "隐私模式已开启。不会自动打开公网链接。如需该链接，请复制 URL。"
+    },
+    "updates": {
+        "settings_title": "Updates",
+        "settings_description": "Check for and apply signed updates from the release CDN, or apply a manually downloaded update file.",
+        "current_version": "Current version",
+        "disabled_notice": "Updates are disabled for this install channel.",
+        "available": "Update available: {version}",
+        "up_to_date": "You are up to date.",
+        "checking": "Checking...",
+        "check_now": "Check for updates",
+        "download_apply": "Download and stage",
+        "downloading": "Downloading...",
+        "download_failed": "Download or verification failed",
+        "pending_ready": "Update {version} is verified and ready to apply",
+        "restart_to_apply": "Restart to apply",
+        "show_file": "Show file",
+        "discard": "Discard",
+        "apply_file": "Apply update file",
+        "file_rejected": "File failed verification",
+        "check_failed": "Update check failed",
+        "apply_failed": "Update apply failed",
+        "manual_install_notice": "Install the verified file manually using the instructions above."
     }
 }

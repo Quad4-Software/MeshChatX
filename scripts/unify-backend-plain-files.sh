@@ -65,9 +65,9 @@ copy_missing() {
                 if required_native_rel "$rel"; then
                     echo "unify-backend: ERROR: required native $rel exists only in $label" >&2
                     echo "  source reports: $ft" >&2
-                    echo "  Both darwin-arm64 and darwin-x64 must ship libcodec2 next to pycodec2." >&2
-                    echo "  Run scripts/ci/macos-normalize-pycodec2-dylib.sh on each venv and" >&2
-                    echo "  meshchatx.src.backend.bake_frozen_pycodec2 after each cx_Freeze slice." >&2
+                    echo "  Both darwin-arm64 and darwin-x64 must ship lib/libcodec2.dylib" >&2
+                    echo "  for the ctypes Codec2 binding. The per-OS install scripts copy" >&2
+                    echo "  it to site-packages and cx_setup.py bundles it via include_files." >&2
                     exit 1
                 fi
                 if mirror_native_rel "$rel"; then

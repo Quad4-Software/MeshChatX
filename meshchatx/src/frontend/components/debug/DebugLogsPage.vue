@@ -151,7 +151,7 @@
                                 {{ log.message }}
                                 <span
                                     v-if="log.is_anomaly"
-                                    class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-medium bg-sem-danger/15 text-sem-danger uppercase"
+                                    class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-medium bg-sem-surface border border-sem-danger/40 text-sem-danger uppercase"
                                 >
                                     <MaterialDesignIcon icon-name="alert-circle" class="w-2.5 h-2.5 mr-1" />
                                     {{ log.anomaly_type || "anomaly" }}

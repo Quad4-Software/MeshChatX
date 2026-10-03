@@ -2,7 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.9.3] - 2026-09-30
+## [4.10.0] - TBD [unreleased]
+
+### Added
+
+- Interfaces: per-interface runtime attach, detach, and reload using the RNS 1.5.5 interface management API. New POST endpoints /reticulum/interfaces/attach, /detach, and /reload, plus a Restart Interface action on attached interfaces in the Interfaces page.
+- Interfaces: interface edits, enables, disables, deletions, and bitrate changes now apply live against the running Reticulum stack instead of always requiring a full RNS restart. The restart banner only appears when a live apply is refused.
+- Interfaces: discovery settings expose the RNS 1.5.5 autoconnect_unverified_implementations toggle, and discovered interface cards show the announcing implementation name and version.
+- CI: a backend test leg now runs the full suite on Python 3.15 (beta) in advisory mode.
+- Sidebar: configurable filter chips on the conversations and announces lists. The funnel menu exposes every filter, a pencil button opens an editor modal to show, hide, and reorder chips, chips can also be dragged directly in the bar, and the layout persists per browser. New filters include Favourites on conversations and Direct, Nearby, Pinned, and Blocked on announces.
+- Fonts: Inter, JetBrains Mono, IBM Plex Sans, and Space Grotesk are bundled and selectable in appearance settings with live preview.
+- Docs: relative image links in in-app documentation now render, and image and clip assets ship with the docs bundle. A declarative guide capture system (tests/ui/guide) produces annotated WebP screenshots and animated clips for documentation.
+- Deployment: Helm chart, Ansible role and playbook, Proxmox template build, a devcontainer, and a standalone Firecracker microVM start.sh.
+- Tooling: UI metrics tracking (test:ui:metrics) records perf, heap, and Lighthouse results per git revision and fails on regressions against a local baseline.
+- Screenshots: the UI screenshot catalog now captures a desktop/mobile x light/dark matrix as WebP at 2x device scale, and guide screenshots support reusable annotation overlays (boxes, spotlights, blurs, arrows, badges, captions) plus a CDP/ffmpeg recorder for animated clips.
+
+### Changed
+- Sync messages button is pinned to the top nav bar by default with a stacked mail and sync-state icon
+- Updated Python deps: rns 1.5.6, cryptography 50.0.2, wasmtime 49, miniaudio 1.71, numpy 2.5.3 on Python 3.12+, setuptools 84
+- Backend threads are named for attribution in py-spy and top -H
+
+- Python 3.15 readiness: event-loop policy calls replaced by get_running_loop(), and the atheris dev dependency is gated to interpreters that have wheels (up to 3.14 on Linux x86_64).
+- Config: update_config now applies a generic pass over every registered config field, so newly added settings can no longer be silently dropped when no explicit handler exists. get_config_dict serializes registered fields generically behind a denylist instead of a hardcoded key list.
+- UI: hardcoded color buttons migrated to semantic action tokens (primary, success, danger, warning) so they follow theme presets, and sidebar chrome uses the raised-surface token so panels separate from the canvas on flat themes.
+- Search inputs use a compact pill variant in sidebars and on settings, call, docs, and debug pages.
+
+### Fixed
+
+- Config: ui_font_family, ui_custom_font_name, nomad_* and other newer settings now round-trip through GET /config instead of silently reverting, and multi-megabyte custom font data serves on demand via /api/v1/app/custom-font.
+- Icons: LxmfUserIcon badges render their glyph again. Percentage padding was measured against the card width instead of the icon and collapsed the SVG to zero size, leaving empty colored circles on bot and contact rows.
+- Docs: ![alt](src) markdown no longer renders as a stray bang plus a link, unsafe image sources are dropped, and relative image paths resolve under /meshchatx-docs/ in-app.
+- UI: the Banished page screenshot path no longer exposes the skeleton grid; loaded-state markers gate capture.
+
+### Security
+
+- Docs: _safe_href strips ASCII whitespace and control characters before scheme checks so payloads like java\tscript: can no longer reach the page as javascript: links or images, and URLs containing & are no longer double entity-encoded in rendered links.
+
+## [4.9.3] - 2026-09-30 [released]
 
 ### Changed
 
@@ -1155,7 +1191,7 @@ All notable changes to this project will be documented in this file.
 - **LibreTranslate / SSRF**: Client-supplied libretranslate_url (languages query and translate JSON) must target loopback only (http_url_guard.normalize_loopback_http_service_base). Server default LIBRETRANSLATE_URL is unchanged. Outbound LibreTranslate aiohttp calls use allow_redirects=False. Invalid URLs return **HTTP 400** from the translator API routes.
 - **CSP**: Removed 'unsafe-eval' from default script policy. **main SPA** responses use **script-src 'self'** only, while /rnode-flasher/ and /reticulum-docs/ keep 'unsafe-inline' for their inline scripts. **Service worker** registration moved from index.html into main.js so the shell does not rely on an inline script tag. Electron session **fallback CSP** drops 'unsafe-eval' as well.
 - **Electron external URLs**: electron/safeExternalUrl.js normalizeExternalUrlForOpen gates shell.openExternal in electron/main.js (setWindowOpenHandler fallback and context-menu **Open link**) and electron/main-legacy.js, allowing only http:, https:, and mailto:. Javascript:, data:, file:, and other schemes are dropped. tests/electron/safeExternalUrl.test.js adds regression and light fuzz coverage.
-- **Chat link rendering**: meshchatx/src/frontend/js/LinkUtils.js renderStandardLinks validates detected URLs with the URL constructor (with an **&amp; → &** retry for HTML-escaped query strings), omits linkification when parsing fails or the scheme is not http/https, excludes ' and " from the autolink detector tail, HTML-escapes link labels, and HTML-escapes data-nomadnet-url attribute values. tests/frontend/LinkUtils.test.js / MarkdownRenderer.test.js updated for canonical href output.
+- **Chat link rendering**: meshchatx/src/frontend/js/LinkUtils.js renderStandardLinks validates detected URLs with the URL constructor (with an **&amp; -> &** retry for HTML-escaped query strings), omits linkification when parsing fails or the scheme is not http/https, excludes ' and " from the autolink detector tail, HTML-escapes link labels, and HTML-escapes data-nomadnet-url attribute values. tests/frontend/LinkUtils.test.js / MarkdownRenderer.test.js updated for canonical href output.
 - **Tests**: tests/backend/test_http_url_guard.py (loopback URL edge cases and rejections), tests/electron/shellPathGuard.test.js, and tests/electron/safeExternalUrl.test.js cover URL and path rules.
 - **Repository uploads**: tests/backend/test_repository_server_manager.py parametrized rejects for save_upload filenames outside _safe_any_upload_filename (repository_server_manager.py).
 - **Map deep links and map ping classification**: meshchatx/src/frontend/js/mapLinkUtils.js mapLinkKindFromMessage now requires the localized **MeshChatX map ping** prefix at the start of the message (after optional whitespace) with a **word boundary**, so a ping cannot be spoofed by embedding that phrase inside HTML or other text. Backend coverage in tests/backend/test_deep_links_security.py for lxm.ingest_uri **meshchatx://map / meshchat://map** (including XSS-shaped layers / label query values and Hypothesis fuzzing). Frontend coverage in tests/frontend/mapLinkUtils.security.test.js, tests/frontend/deepLinks.protocol.security.test.js, and updates to tests/frontend/mapLinkUtils.test.js.

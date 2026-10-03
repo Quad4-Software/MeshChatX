@@ -6,7 +6,7 @@ import App from "../../meshchatx/src/frontend/components/App.vue";
 import { appPackageVersion } from "./fixtures/repoPackageVersion.js";
 import en from "../../meshchatx/src/frontend/locales/en.json";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
-import { registerCoreContributions } from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
+import { registerCoreContributions } from "../../meshchatx/src/frontend/js/registries/registerCoreContributions";
 
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
     default: {

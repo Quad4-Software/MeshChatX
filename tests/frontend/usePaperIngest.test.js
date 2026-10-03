@@ -3,11 +3,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePaperIngest } from "../../meshchatx/src/frontend/js/messages/usePaperIngest.js";
 
-vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection.js", () => ({
+vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
     default: { send: vi.fn() },
 }));
 
-import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection.js";
+import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
 
 describe("usePaperIngest", () => {
     beforeEach(() => {

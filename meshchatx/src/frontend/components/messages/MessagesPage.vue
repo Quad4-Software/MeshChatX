@@ -311,14 +311,14 @@
 
 <script>
 import { getCurrentInstance } from "vue";
-import { useNetworkStore } from "../../js/stores/networkStore.js";
-import { useConfigStore } from "../../js/stores/configStore.js";
-import { useUnreadStore } from "../../js/stores/unreadStore.js";
+import { useNetworkStore } from "../../js/stores/networkStore";
+import { useConfigStore } from "../../js/stores/configStore";
+import { useUnreadStore } from "../../js/stores/unreadStore";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import Utils from "../../js/Utils";
 import MessagesSidebar from "./MessagesSidebar.vue";
 import ConversationViewer from "./ConversationViewer.vue";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
 
 function snapshotGlobalConfig() {
     return useConfigStore().config && typeof useConfigStore().config === "object" ? { ...useConfigStore().config } : {};
@@ -347,7 +347,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import { isRetryableHttpError } from "../../js/httpRetry.js";
 import { runWhenIdentityHttpReady } from "../../js/identityHttpReady.js";
 import { dropConversationPrefetch, prefetchConversationFirstPage } from "../../js/conversationPrefetch.js";
-import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants";
 import * as announcesApi from "../../js/api/announces.js";
 import * as lxmfApi from "../../js/api/lxmf.js";
 import { CONVERSATION_MESSAGES_PAGE_SIZE } from "./conversationDisplayGroups.js";
@@ -900,8 +900,10 @@ export default {
                     this.conversationsAbortController = new AbortController();
                     myController = this.conversationsAbortController;
                 }
-                const shouldShowInitialLoading =
-                    !append && !this.hasLoadedConversations && this.conversations.length === 0;
+                // Empty list means there is nothing to render while a new
+                // query lands. Keep the loading state up so the empty-state
+                // for a different filter does not flash in between fetches.
+                const shouldShowInitialLoading = !append && this.conversations.length === 0;
                 if (shouldShowInitialLoading) {
                     this.isLoadingConversations = true;
                 }
@@ -1546,6 +1548,11 @@ export default {
         requestConversationsRefresh() {
             if (this.conversationRefreshTimeout) {
                 clearTimeout(this.conversationRefreshTimeout);
+            }
+            // An empty list plus a pending refresh would flash the empty
+            // state for the debounce window, so mark it loading now.
+            if (this.conversations.length === 0) {
+                this.isLoadingConversations = true;
             }
             this.conversationRefreshTimeout = setTimeout(() => {
                 this.getConversations();

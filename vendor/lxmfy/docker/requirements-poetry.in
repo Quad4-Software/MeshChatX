@@ -1,0 +1,2 @@
+# Source for docker/requirements-poetry.txt
+poetry==2.4.1

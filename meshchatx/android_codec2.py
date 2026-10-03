@@ -203,12 +203,13 @@ def probe_pycodec2() -> tuple[bool, str | None]:
         return True, None
     except Exception as exc:
         native_error = str(exc)
-        if _is_chaquopy_android():
-            ok, fallback_error = _install_pycodec2_ctypes_fallback()
-            if ok:
-                return True, None
-            return False, fallback_error or native_error
-        return False, native_error
+        # The ctypes fallback is not Android-only. pycodec2 ships no macOS
+        # wheel, so a broken or missing extension elsewhere should also fall
+        # back to plain libcodec2 instead of disabling Codec2.
+        ok, fallback_error = _install_pycodec2_ctypes_fallback()
+        if ok:
+            return True, None
+        return False, fallback_error or native_error
 
 
 def ensure_lxst_codec2_binding() -> bool:

@@ -8,7 +8,7 @@ import { clearPromptSeenState } from "../../meshchatx/src/frontend/js/postInstal
 import {
     postInstallPromptRegistry,
     registerPostInstallPrompt,
-} from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry.js";
+} from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry";
 
 // Mock axios
 const axiosMock = {

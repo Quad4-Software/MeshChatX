@@ -37,22 +37,27 @@ class Command:
 
     def __init__(
         self,
-        name,
-        description="No description provided",
-        admin_only=False,
+        name: str,
+        description: str = "No description provided",
+        admin_only: bool = False,
         permissions: DefaultPerms | None = None,
-        usage=None,
-        examples=None,
-        category=None,
-        aliases=None,
+        usage: str | None = None,
+        examples: list[str] | None = None,
+        category: str | None = None,
+        aliases: list[str] | None = None,
         threaded: bool = False,
-    ):
+        rate_limit: int | None = None,
+    ) -> None:
         """Initialize a new Command.
 
         Args:
             name (str): The name of the command
             description (str, optional): Description of the command. Defaults to "No description provided"
             admin_only (bool, optional): Whether the command requires admin privileges. Defaults to False
+            rate_limit (int, optional): Max invocations per sender per
+                cooldown window for this command. None disables the
+                per-command limit; the global message rate limit still
+                applies.
 
         """
         self.name = name
@@ -62,6 +67,7 @@ class Command:
             DefaultPerms.ALL if admin_only else DefaultPerms.USE_COMMANDS
         )
         self.threaded = threaded
+        self.rate_limit = rate_limit
         self.callback = None
         self.help = CommandHelp(
             name=name,
@@ -114,6 +120,7 @@ class Command:
             category=self.help.category,
             aliases=self.help.aliases,
             threaded=self.threaded,
+            rate_limit=self.rate_limit,
         )
         new_cmd.callback = self.callback.__get__(obj, objtype)
         return new_cmd

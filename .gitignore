@@ -204,3 +204,12 @@ scripts/private/
 
 # Generated at build time (scripts/bake_build_meta.js)
 meshchatx/src/_build_meta_baked.py
+
+# Agentic test artifacts
+tests/agentic/out/
+tests/agentic/.playwright-mcp/
+tests/agentic/crawl-*.png
+tests/agentic/tests/
+microvm/state/
+# UI metrics baseline is machine-specific (tests/ui/metrics-check.mjs)
+tests/ui/baseline.json

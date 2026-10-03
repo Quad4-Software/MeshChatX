@@ -13,7 +13,7 @@
                 :title="crashTabTitle"
                 name="nomad-page-renderer"
                 sandbox="allow-scripts"
-                allow="local-network-access"
+                :allow="frameAllow"
                 :src="frameSrc"
                 :style="frameStyle"
                 @load="onFrameLoad"
@@ -22,29 +22,29 @@
 
         <div
             v-if="status === 'hung' || status === 'crashed'"
-            class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/80 px-4 text-center text-gray-100"
+            class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/80 px-4 text-center text-sem-fg"
             role="alert"
         >
             <div class="text-lg font-semibold">{{ $t("nomadnet.crash_tab_title") }}</div>
-            <div class="max-w-md text-sm text-gray-300">{{ $t("nomadnet.crash_tab_body") }}</div>
+            <div class="max-w-md text-sm text-sem-fg-secondary">{{ $t("nomadnet.crash_tab_body") }}</div>
             <div class="flex flex-wrap items-center justify-center gap-2">
                 <button
                     type="button"
-                    class="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-500"
+                    class="rounded-lg bg-sem-action-primary px-3 py-1.5 text-sm font-semibold text-sem-action-primary-text hover:bg-sem-info"
                     @click="reloadFrame"
                 >
                     {{ $t("nomadnet.crash_tab_reload") }}
                 </button>
                 <button
                     type="button"
-                    class="rounded-lg bg-zinc-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-zinc-600"
+                    class="rounded-lg bg-sem-surface-muted px-3 py-1.5 text-sm font-semibold text-white hover:bg-zinc-600"
                     @click="$emit('view-source')"
                 >
                     {{ $t("nomadnet.view_source") }}
                 </button>
                 <button
                     type="button"
-                    class="rounded-lg bg-red-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-600"
+                    class="rounded-lg bg-sem-danger px-3 py-1.5 text-sm font-semibold text-white hover:bg-sem-danger"
                     @click="abortRender"
                 >
                     {{ $t("common.cancel") }}
@@ -173,6 +173,10 @@ export default {
     data() {
         return {
             frameSrc: nomadCrashTabRendererUrl(),
+            // local-network-access is a Chromium Private Network Access
+            // token. Firefox logs "unsupported feature" on every parse,
+            // so only emit the allow value on Chromium engines.
+            frameAllow: typeof navigator !== "undefined" && navigator.userAgentData ? "local-network-access" : "",
             status: "loading",
             frameGeneration: 0,
             pendingPingId: 0,

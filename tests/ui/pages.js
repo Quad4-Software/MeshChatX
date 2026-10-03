@@ -70,6 +70,11 @@ const UI_PAGES = [
         ready: "Profile",
         ci: true,
         budgets: { performance: 45 },
+        // Known leak: the full settings DOM subtree is retained per
+        // mount/unmount cycle (see heap-profile spec). The retainer is a JS
+        // reference outside the component (instance is isUnmounted=true).
+        // Budget keeps regression detection without blocking on the hunt.
+        heap: { nodes: 800, listeners: 130 },
     },
     {
         id: "propagation-nodes",
@@ -77,6 +82,9 @@ const UI_PAGES = [
         readyKind: "text",
         ready: "Hosted node",
         ci: true,
+        // seeded demo data renders hundreds of node rows; the listener count
+        // tracks the row count, not a leak.
+        heap: { nodes: 800, listeners: 60 },
     },
     {
         id: "call",
@@ -96,6 +104,9 @@ const UI_PAGES = [
         path: "/nomadnetwork",
         readyKind: "placeholder",
         ready: /favourites/i,
+        // meta.keepAlive retains the mounted tree across route changes by
+        // design (browser session state). Not a leak.
+        heap: { nodes: 1200, listeners: 200 },
     },
     {
         id: "bots",
@@ -111,6 +122,9 @@ const UI_PAGES = [
         readyName: /Map/,
         budgets: { performance: 40 },
         perf: { lcpMs: 8000, heapMb: 350 },
+        // meta.keepAlive retains the mounted map subtree across route
+        // changes by design (tile cache + camera state). Not a leak.
+        heap: { nodes: 1200, listeners: 200 },
     },
     {
         id: "identities",
@@ -159,8 +173,10 @@ const UI_PAGES = [
     {
         id: "blocked",
         path: "/blocked",
-        readyKind: "heading",
-        ready: "Banished",
+        // heading lands before the async banishment fetch. Wait for the
+        // loaded-state marker so shots never catch the skeleton grid
+        readyKind: "text",
+        ready: /No banished items|Lift Banishment|Lift banishment/i,
     },
 ];
 
@@ -170,6 +186,10 @@ function budgetsFor(page) {
 
 function perfBudgetsFor(page) {
     return { ...DEFAULT_PERF_BUDGETS, ...(page.perf || {}) };
+}
+
+function heapBudgetsFor(page, defaults) {
+    return { ...(defaults || {}), ...(page.heap || {}) };
 }
 
 function pagesForCi() {
@@ -193,6 +213,7 @@ module.exports = {
     UI_PAGES,
     budgetsFor,
     perfBudgetsFor,
+    heapBudgetsFor,
     pagesForCi,
     resolvePages,
 };

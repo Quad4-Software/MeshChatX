@@ -153,7 +153,7 @@ export default class LinkUtils {
             }
             // Escaped entities adjacent to the URI (&#39; &quot;) carry no
             // literal terminator char, so the match can swallow them. Strip
-            // any trailing entity run before the &amp; fold. Single-entity
+            // any trailing entity run before the &amp. fold. Single-entity
             // matches applied in a loop keep the pattern linear.
             const entityRe = /&[#a-zA-Z][\w]*;?$/;
             let entityTail;
@@ -164,7 +164,7 @@ export default class LinkUtils {
             if (!core) {
                 return match;
             }
-            // Input text is already HTML-escaped, so &amp; must be folded back
+            // Input text is already HTML-escaped, so &amp. must be folded back
             // before the URI can be parsed and stored.
             const rawCore = core.replace(/&amp;/g, "&");
             if (!parseRelayUri(rawCore)) {

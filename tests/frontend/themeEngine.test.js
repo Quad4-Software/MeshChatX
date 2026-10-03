@@ -25,8 +25,27 @@ describe("themeEngine", () => {
         expect(normalizeThemePreference("system")).toBe("system");
         expect(normalizeThemePreference("weird")).toBe("light");
         expect(normalizeThemePreset("oled")).toBe("oled");
-        expect(normalizeThemePreset("nope")).toBe("default");
+        expect(normalizeThemePreset("nope")).toBe("void");
         expect(THEME_PRESET_IDS).toContain("custom");
+        expect(THEME_PRESET_IDS).toContain("glass");
+        expect(normalizeThemePreset("glass")).toBe("glass");
+    });
+
+    it("glass preset uses translucent surfaces", () => {
+        const glassDark = buildThemeVariableOverrides({ theme_preset: "glass" }, "dark");
+        expect(glassDark["--mc-canvas"]).toBe("#030304");
+        expect(glassDark["--mc-surface"]).toMatch(/rgb\(.+\/\s*0\.\d+\)/);
+        expect(glassDark["--mc-glass-surface"]).toMatch(/rgb\(.+\/\s*0\.\d+\)/);
+        const glassLight = buildThemeVariableOverrides({ theme_preset: "glass" }, "light");
+        expect(glassLight["--mc-canvas"]).toBe("#dfe6f5");
+        expect(glassLight["--mc-surface"]).toMatch(/rgb\(.+\/\s*0\.\d+\)/);
+    });
+
+    it("applyAppearanceTheme exposes the preset on the DOM", () => {
+        applyAppearanceTheme({ theme: "dark", theme_preset: "glass" }, { prefersDark: true });
+        expect(document.documentElement.dataset.themePreset).toBe("glass");
+        applyAppearanceTheme({ theme: "dark", theme_preset: "nord" }, { prefersDark: true });
+        expect(document.documentElement.dataset.themePreset).toBe("nord");
     });
 
     it("resolves effective theme including system preference", () => {
@@ -47,11 +66,13 @@ describe("themeEngine", () => {
         const tokyoLight = buildThemeVariableOverrides({ theme_preset: "tokyo" }, "light");
         expect(tokyoLight["--mc-accent"]).toBe("#295cdb");
         const neoBrutalistDark = buildThemeVariableOverrides({ theme_preset: "neo_brutalist" }, "dark");
-        expect(neoBrutalistDark["--mc-canvas"]).toBe("#18191b");
-        expect(neoBrutalistDark["--mc-accent"]).toBe("#bc86dd");
+        expect(neoBrutalistDark["--mc-canvas"]).toBe("#1b1b1e");
+        expect(neoBrutalistDark["--mc-accent"]).toBe("#a388ee");
+        expect(neoBrutalistDark["--mc-border"]).toBe("#ffffff");
         const neoBrutalistLight = buildThemeVariableOverrides({ theme_preset: "neo_brutalist" }, "light");
-        expect(neoBrutalistLight["--mc-canvas"]).toBe("#f7f7f5");
-        expect(neoBrutalistLight["--mc-accent"]).toBe("#8080c0");
+        expect(neoBrutalistLight["--mc-canvas"]).toBe("#f0ece3");
+        expect(neoBrutalistLight["--mc-accent"]).toBe("#a388ee");
+        expect(neoBrutalistLight["--mc-border"]).toBe("#000000");
         expect(normalizeThemePreset("hister")).toBe("neo_brutalist");
 
         const accent = buildThemeVariableOverrides({ accent_color: "#ff0000" }, "light");
@@ -60,9 +81,9 @@ describe("themeEngine", () => {
     });
 
     it("derives per-theme message bubble colors", () => {
-        const defaultLight = buildThemeVariableOverrides({}, "light");
-        expect(defaultLight["--mc-bubble-outbound"]).toBe("#0284c7");
-        expect(defaultLight["--mc-bubble-failed"]).toBe("#dc2626");
+        const defaultLight = buildThemeVariableOverrides({ theme_preset: "default" }, "light");
+        expect(defaultLight["--mc-bubble-outbound"]).toBe("#0369a1");
+        expect(defaultLight["--mc-bubble-failed"]).toBe("#b91c1c");
         expect(defaultLight["--mc-bubble-waiting"]).toBe("#e6e8eb");
         expect(defaultLight["--mc-bubble-waiting-text"]).toBe("#111827");
 
@@ -75,7 +96,10 @@ describe("themeEngine", () => {
         expect(nordDark["--mc-bubble-waiting"]).not.toBe(defaultLight["--mc-bubble-waiting"]);
         expect(nordDark["--mc-bubble-waiting-text"]).toBe("#eceff4");
 
-        const accent = buildThemeVariableOverrides({ accent_color: "#ff0000" }, "light");
+        const accent = buildThemeVariableOverrides(
+            { accent_color: "#ff0000", theme_preset: "default" },
+            "light"
+        );
         expect(accent["--mc-bubble-outbound"]).toBe("#ff0000");
     });
 
@@ -214,5 +238,21 @@ describe("applyAppearanceTheme DOM integration", () => {
         const el = document.getElementById("meshchat-theme-overrides");
         expect(el?.textContent).toContain(":root");
         expect(el?.textContent).not.toContain(".dark");
+    });
+});
+
+describe("theme preset backend parity", () => {
+    it("frontend THEME_PRESET_IDS matches backend whitelist in meshchat.py", () => {
+        const fs = require("fs");
+        const path = require("path");
+        const backendSrc = fs.readFileSync(
+            path.resolve(__dirname, "../../meshchatx/meshchat.py"),
+            "utf8"
+        );
+        const whitelistMatch = backendSrc.match(/if preset not in \(\s*((?:\s*"[^"]+",?\s*)+)\)/s);
+        expect(whitelistMatch).not.toBeNull();
+        const backendPresets = [...whitelistMatch[1].matchAll(/"([a-z_]+)"/g)].map((m) => m[1]).sort();
+        const frontendPresets = [...THEME_PRESET_IDS].sort();
+        expect(frontendPresets).toEqual(backendPresets);
     });
 });

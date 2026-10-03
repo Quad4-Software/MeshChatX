@@ -1,8 +1,10 @@
 """Combinatorial and FSM testing for framework configuration."""
 
-import pytest
 import itertools
 from unittest.mock import MagicMock
+
+import pytest
+
 from lxmfy import BotConfig, LXMFBot
 
 
@@ -11,14 +13,13 @@ class TestFrameworkPermutations:
 
     def test_pairwise_config_initialization(self, test_config_dir):
         """Test a matrix of configuration settings to ensure no conflicting states."""
-
         # Define dimensions of our configuration space
         options = {
             "cogs_enabled": [True, False],
             "nlp_enabled": [True, False],
             "permissions_enabled": [True, False],
             "signature_verification_enabled": [True, False],
-            "storage_type": ["json", "sqlite"],
+            "storage_type": ["json", "sqlite", "msgpack"],
         }
 
         # Get all permutations (Cartesian product)
@@ -48,11 +49,11 @@ class TestFrameworkPermutations:
                 count += 1
             except Exception as e:
                 pytest.fail(
-                    f"Bot failed to initialize with combination {config_dict}: {e}"
+                    f"Bot failed to initialize with combination {config_dict}: {e}",
                 )
 
         print(
-            f"\n[Combinatorial] Successfully verified {count} configuration permutations."
+            f"\n[Combinatorial] Successfully verified {count} configuration permutations.",
         )
 
     def test_fsm_message_lifecycle_transitions(self, test_config_dir):

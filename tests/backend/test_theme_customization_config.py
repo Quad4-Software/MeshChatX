@@ -44,7 +44,7 @@ async def test_theme_customization_config_round_trip(mock_app):
     )
 
     assert c.theme.get() == "light"
-    assert c.theme_preset.get() == "default"
+    assert c.theme_preset.get() == "void"
     assert c.accent_color.get() is None
     assert c.custom_canvas_color.get() is None
     assert c.custom_surface_color.get() is None

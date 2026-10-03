@@ -33,7 +33,7 @@
                         class="inline-flex items-center rounded-full px-1.5 py-0 text-[10px] font-semibold shrink-0"
                         :class="
                             localNodeIsRunning
-                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                                ? 'bg-sem-surface border border-sem-success/40 text-sem-success'
                                 : 'bg-sem-surface-muted text-sem-fg-muted'
                         "
                     >
@@ -49,7 +49,7 @@
                             config.lxmf_preferred_propagation_node_destination_hash ===
                                 localPropagationNode.destination_hash
                         "
-                        class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0 text-[10px] font-semibold text-blue-700 dark:text-blue-300 shrink-0"
+                        class="inline-flex items-center rounded-full bg-sem-surface border border-sem-info/40 px-1.5 py-0 text-[10px] font-semibold text-sem-info shrink-0"
                     >
                         {{ $t("tools.propagation_nodes.preferred_badge") }}
                     </span>
@@ -67,7 +67,7 @@
                     <button
                         v-if="!localNodeIsRunning"
                         type="button"
-                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-emerald-600 disabled:opacity-40"
+                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-success disabled:opacity-40"
                         :title="$t('tools.propagation_nodes.start_node')"
                         :disabled="!localPropagationNode"
                         @click="startLocalPropagationNode"
@@ -77,7 +77,7 @@
                     <button
                         v-if="localNodeIsRunning"
                         type="button"
-                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-amber-600"
+                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-warning"
                         :title="$t('tools.propagation_nodes.restart_node')"
                         @click="restartLocalPropagationNode"
                     >
@@ -86,7 +86,7 @@
                     <button
                         v-if="localNodeIsRunning"
                         type="button"
-                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-red-600"
+                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-danger"
                         :title="$t('tools.propagation_nodes.stop_node')"
                         @click="stopLocalPropagationNode"
                     >
@@ -100,12 +100,15 @@
                 data-testid="prop-nodes-hosted-expanded"
                 class="px-3 pb-3 space-y-2 border-t border-sem-border"
             >
-                <div
+                <button
                     v-if="config.lxmf_local_propagation_node_address_hash"
-                    class="pt-2 text-[11px] font-mono text-sem-fg-muted break-all"
+                    type="button"
+                    class="block w-full pt-2 text-left text-[11px] font-mono text-sem-fg-muted break-all cursor-pointer hover:text-sem-accent transition-colors"
+                    :title="$t('tools.propagation_nodes.copy_hash')"
+                    @click="copyLocalNodeHash"
                 >
                     {{ formatDestinationHash(config.lxmf_local_propagation_node_address_hash) }}
-                </div>
+                </button>
                 <div class="text-[11px] text-sem-fg-muted flex items-center gap-2">
                     <span>{{ formatPathLabel(nodePathFor(config.lxmf_local_propagation_node_address_hash)) }}</span>
                     <button
@@ -131,7 +134,7 @@
                         />
                         <button
                             type="button"
-                            class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-emerald-600"
+                            class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-success"
                             :title="$t('tools.propagation_nodes.save_name')"
                             @click="saveLocalNodeDisplayName"
                         >
@@ -187,85 +190,126 @@
                 <div v-else class="text-[11px] text-sem-fg-muted">
                     {{ $t("tools.propagation_nodes.stats_when_running") }}
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <label class="text-[11px] text-sem-fg-muted block">
-                        {{ $t("app.incoming_message_size") }}
-                        <select
+                <div class="space-y-3">
+                    <div>
+                        <div class="text-[11px] font-medium text-sem-fg-muted mb-1.5">
+                            {{ $t("app.incoming_message_size") }}
+                        </div>
+                        <SliderSelect
                             v-model="lxmfIncomingDeliveryPreset"
-                            class="input-field mt-1 py-1.5 text-sm"
+                            :options="incomingSizeOptions"
                             @change="onLxmfIncomingDeliveryPresetChange"
-                        >
-                            <option value="1mb">{{ $t("app.incoming_message_size_1mb") }}</option>
-                            <option value="10mb">{{ $t("app.incoming_message_size_10mb") }}</option>
-                            <option value="25mb">{{ $t("app.incoming_message_size_25mb") }}</option>
-                            <option value="50mb">{{ $t("app.incoming_message_size_50mb") }}</option>
-                            <option value="1gb">{{ $t("app.incoming_message_size_1gb") }}</option>
-                            <option value="custom">{{ $t("app.incoming_message_size_custom") }}</option>
-                        </select>
-                        <div
-                            v-if="lxmfIncomingDeliveryPreset === 'custom'"
-                            class="mt-1 flex flex-wrap items-center gap-2"
-                        >
+                        />
+                        <div v-if="lxmfIncomingDeliveryPreset === 'custom'" class="mt-2 flex items-center gap-2">
                             <input
                                 v-model.number="lxmfIncomingDeliveryCustomAmount"
                                 type="number"
                                 min="0.001"
                                 step="any"
-                                class="input-field min-w-0 flex-1 py-1.5 text-sm"
+                                class="input-field min-w-0 w-24 py-1.5 text-sm"
                                 @input="onLxmfIncomingDeliveryCustomChange"
                             />
-                            <select
+                            <SegmentedControl
                                 v-model="lxmfIncomingDeliveryCustomUnit"
-                                class="input-field py-1.5 text-sm w-auto"
+                                :options="[
+                                    { value: 'mb', label: 'app.incoming_message_size_unit_mb' },
+                                    { value: 'gb', label: 'app.incoming_message_size_unit_gb' },
+                                ]"
                                 @change="onLxmfIncomingDeliveryCustomChange"
-                            >
-                                <option value="mb">{{ $t("app.incoming_message_size_unit_mb") }}</option>
-                                <option value="gb">{{ $t("app.incoming_message_size_unit_gb") }}</option>
-                            </select>
+                            />
                         </div>
-                    </label>
-                    <label class="text-[11px] text-sem-fg-muted">
-                        {{ $t("tools.propagation_nodes.transfer_limit_mb") }}
-                        <input
-                            v-model.number="propagationLimitInputMb"
-                            type="number"
-                            min="0.001"
-                            step="0.01"
-                            class="input-field mt-1 py-1.5 text-sm"
-                            @input="onPropagationTransferLimitChange"
-                        />
-                    </label>
-                    <label class="text-[11px] text-sem-fg-muted">
-                        {{ $t("tools.propagation_nodes.sync_limit_mb") }}
-                        <input
-                            v-model.number="propagationSyncLimitInputMb"
-                            type="number"
-                            min="0.001"
-                            step="0.01"
-                            class="input-field mt-1 py-1.5 text-sm"
-                            @input="onPropagationSyncLimitChange"
-                        />
-                    </label>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <div class="text-[11px] font-medium text-sem-fg-muted mb-1.5">
+                                {{ $t("tools.propagation_nodes.transfer_limit_mb") }}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input
+                                    v-model.number="propagationLimitInputMb"
+                                    type="range"
+                                    min="0.001"
+                                    max="10"
+                                    step="0.1"
+                                    class="range-input flex-1 min-w-0 touch-pan-x"
+                                    @input="onPropagationTransferLimitChange"
+                                    @change="onPropagationTransferLimitChange"
+                                />
+                                <input
+                                    v-model.number="propagationLimitInputMb"
+                                    type="number"
+                                    min="0.001"
+                                    max="10"
+                                    step="0.01"
+                                    class="input-field !w-16 !py-1 !text-sm shrink-0"
+                                    @input="onPropagationTransferLimitChange"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-[11px] font-medium text-sem-fg-muted mb-1.5">
+                                {{ $t("tools.propagation_nodes.sync_limit_mb") }}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input
+                                    v-model.number="propagationSyncLimitInputMb"
+                                    type="range"
+                                    min="0.001"
+                                    max="50"
+                                    step="0.1"
+                                    class="range-input flex-1 min-w-0 touch-pan-x"
+                                    @input="onPropagationSyncLimitChange"
+                                    @change="onPropagationSyncLimitChange"
+                                />
+                                <input
+                                    v-model.number="propagationSyncLimitInputMb"
+                                    type="number"
+                                    min="0.001"
+                                    max="50"
+                                    step="0.01"
+                                    class="input-field !w-16 !py-1 !text-sm shrink-0"
+                                    @input="onPropagationSyncLimitChange"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <div class="text-[11px] font-medium text-sem-fg-muted mb-1.5">
+                                {{ $t("tools.propagation_nodes.stamp_cost") }}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input
+                                    v-model.number="config.lxmf_propagation_node_stamp_cost"
+                                    type="range"
+                                    min="13"
+                                    max="254"
+                                    class="range-input flex-1 min-w-0 touch-pan-x"
+                                    @input="onPropagationStampCostChange"
+                                    @change="onPropagationStampCostChange"
+                                />
+                                <input
+                                    v-model.number="config.lxmf_propagation_node_stamp_cost"
+                                    type="number"
+                                    min="13"
+                                    max="254"
+                                    class="input-field !w-16 !py-1 !text-sm shrink-0"
+                                    @input="onPropagationStampCostChange"
+                                />
+                            </div>
+                        </div>
+                        <div class="flex items-end">
+                            <button
+                                type="button"
+                                class="primary-chip text-xs"
+                                :disabled="!localPropagationNode"
+                                @click="useLocalPropagationNode"
+                            >
+                                {{ $t("tools.propagation_nodes.use_our_node") }}
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <label class="block text-[11px] text-sem-fg-muted">
-                    {{ $t("tools.propagation_nodes.stamp_cost") }}
-                    <input
-                        v-model.number="config.lxmf_propagation_node_stamp_cost"
-                        type="number"
-                        min="13"
-                        max="254"
-                        class="input-field mt-1 py-1.5 text-sm"
-                        @input="onPropagationStampCostChange"
-                    />
-                </label>
-                <button
-                    type="button"
-                    class="primary-chip text-xs"
-                    :disabled="!localPropagationNode"
-                    @click="useLocalPropagationNode"
-                >
-                    {{ $t("tools.propagation_nodes.use_our_node") }}
-                </button>
             </div>
         </div>
 
@@ -306,7 +350,7 @@
                     </button>
                     <button
                         type="button"
-                        class="inline-flex size-7 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-red-600"
+                        class="inline-flex size-7 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-danger"
                         :title="$t('tools.propagation_nodes.clear_preferred')"
                         @click="stopUsingPropagationNode"
                     >
@@ -320,10 +364,7 @@
             >
                 {{ formatPathLabel(nodePathFor(config.lxmf_preferred_propagation_node_destination_hash)) }}
             </div>
-            <p
-                v-if="config.lxmf_preferred_propagation_node_auto_select"
-                class="text-[11px] text-amber-700 dark:text-amber-300"
-            >
+            <p v-if="config.lxmf_preferred_propagation_node_auto_select" class="text-[11px] text-sem-warning">
                 {{ $t("tools.propagation_nodes.auto_select_on_notice") }}
             </p>
             <div class="flex gap-1.5">
@@ -369,17 +410,7 @@
                     class="input-field pl-11! py-2 text-sm"
                 />
             </div>
-            <select
-                v-model="sortBy"
-                data-testid="prop-nodes-sort"
-                class="shrink-0 w-44 bg-sem-surface-muted border border-sem-border text-sm rounded-2xl px-2.5 py-2 text-sem-fg"
-            >
-                <option value="preferred">{{ $t("tools.propagation_nodes.sort_preferred") }}</option>
-                <option value="recent">{{ $t("tools.propagation_nodes.sort_recent") }}</option>
-                <option value="oldest">{{ $t("tools.propagation_nodes.sort_oldest") }}</option>
-                <option value="name">{{ $t("tools.propagation_nodes.sort_name") }}</option>
-                <option value="name-desc">{{ $t("tools.propagation_nodes.sort_name_desc") }}</option>
-            </select>
+            <SegmentedControl v-model="sortBy" data-testid="prop-nodes-sort" :options="sortOptions" />
         </div>
 
         <div data-testid="prop-nodes-list" class="flex-1 min-h-0 overflow-y-auto">
@@ -394,7 +425,7 @@
                     :key="propagationNode.destination_hash"
                     class="flex items-center gap-0.5 hover:bg-sem-surface-muted/60"
                     :class="{
-                        'bg-blue-50/70 dark:bg-blue-950/20': isPreferredNode(propagationNode.destination_hash),
+                        'bg-sem-accent/5': isPreferredNode(propagationNode.destination_hash),
                     }"
                 >
                     <button
@@ -402,7 +433,7 @@
                         role="radio"
                         :aria-checked="isPreferredNode(propagationNode.destination_hash) ? 'true' : 'false'"
                         :data-testid="'prop-node-' + propagationNode.destination_hash"
-                        class="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2 text-left"
+                        class="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-sem-surface-muted/50"
                         :title="
                             isPreferredNode(propagationNode.destination_hash)
                                 ? $t('tools.propagation_nodes.preferred_badge')
@@ -410,17 +441,18 @@
                         "
                         @click="selectPreferredNode(propagationNode.destination_hash)"
                     >
-                        <MaterialDesignIcon
-                            :icon-name="
-                                isPreferredNode(propagationNode.destination_hash) ? 'radiobox-marked' : 'radiobox-blank'
-                            "
-                            class="size-5 shrink-0"
-                            :class="
-                                isPreferredNode(propagationNode.destination_hash)
-                                    ? 'text-sem-accent'
-                                    : 'text-sem-fg-muted'
-                            "
-                        />
+                        <div class="flex shrink-0 items-center gap-2">
+                            <div
+                                class="size-2.5 rounded-full shrink-0"
+                                :class="
+                                    isPreferredNode(propagationNode.destination_hash)
+                                        ? 'bg-sem-accent'
+                                        : propagationNode.is_propagation_enabled === false
+                                          ? 'bg-sem-danger/60'
+                                          : 'bg-sem-fg-muted/40'
+                                "
+                            />
+                        </div>
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1.5 min-w-0">
                                 <span class="truncate text-sm font-medium">{{
@@ -429,40 +461,52 @@
                                 }}</span>
                                 <span
                                     v-if="propagationNode.is_propagation_enabled === false"
-                                    class="shrink-0 rounded-full bg-red-100 dark:bg-red-900/30 px-1.5 text-[10px] font-semibold text-red-700 dark:text-red-300"
+                                    class="shrink-0 rounded-full bg-sem-surface border border-sem-danger/40 px-1.5 py-0.5 text-[10px] font-semibold text-sem-danger"
                                 >
                                     {{ $t("tools.propagation_nodes.disabled") }}
                                 </span>
                                 <span
                                     v-if="propagationNode.is_local_node"
-                                    class="shrink-0 rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-1.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300"
+                                    class="shrink-0 rounded-full bg-sem-surface border border-sem-accent/40 px-1.5 py-0.5 text-[10px] font-semibold text-sem-accent"
                                 >
                                     {{ $t("tools.propagation_nodes.our_node") }}
                                 </span>
                             </div>
-                            <div
-                                class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-sem-fg-muted"
-                            >
+                            <div class="mt-0.5 flex items-center gap-1.5 text-[11px] text-sem-fg-muted">
                                 <span class="font-mono truncate" :title="propagationNode.destination_hash">{{
                                     formatDestinationHash(propagationNode.destination_hash)
                                 }}</span>
-                                <span>{{
+                                <span class="shrink-0">·</span>
+                                <span class="shrink-0">{{
                                     $t("tools.propagation_nodes.announced_ago", {
                                         time: formatTimeAgo(propagationNode.updated_at),
                                     })
                                 }}</span>
-                                <span>{{ formatPathLabel(nodePathFor(propagationNode.destination_hash)) }}</span>
+                                <span class="shrink-0">·</span>
+                                <span class="shrink-0 truncate">{{
+                                    formatPathLabel(nodePathFor(propagationNode.destination_hash))
+                                }}</span>
                             </div>
                         </div>
                     </button>
-                    <button
-                        type="button"
-                        class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg mr-2 text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-accent"
-                        :title="$t('tools.propagation_nodes.find_path')"
-                        @click="requestPathForNode(propagationNode.destination_hash)"
-                    >
-                        <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
-                    </button>
+                    <div class="flex shrink-0 items-center gap-1 pr-2">
+                        <button
+                            v-if="isPreferredNode(propagationNode.destination_hash)"
+                            type="button"
+                            class="inline-flex size-8 items-center justify-center rounded-lg text-sem-accent hover:bg-sem-surface-muted"
+                            :title="$t('tools.propagation_nodes.preferred_badge')"
+                        >
+                            <MaterialDesignIcon icon-name="star" class="size-4" />
+                        </button>
+                        <button
+                            type="button"
+                            class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-accent"
+                            :title="$t('tools.propagation_nodes.find_path')"
+                            @click="requestPathForNode(propagationNode.destination_hash)"
+                        >
+                            <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -526,9 +570,11 @@ import { copyTextToClipboard, readTextFromClipboard } from "../../js/clipboardUt
 import { postDestinationPath } from "../../js/reticulumPathfinding.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import SegmentedControl from "../forms/SegmentedControl.vue";
+import SliderSelect from "../forms/SliderSelect.vue";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants";
 import * as lxmfApi from "../../js/api/lxmf.js";
 import {
     incomingDeliveryBytesFromCustom,
@@ -541,6 +587,8 @@ export default {
     components: {
         MaterialDesignIcon,
         ToolsPageHeader,
+        SegmentedControl,
+        SliderSelect,
     },
     data() {
         return {
@@ -577,6 +625,25 @@ export default {
         };
     },
     computed: {
+        incomingSizeOptions() {
+            return [
+                { value: "1mb", label: "app.incoming_message_size_1mb" },
+                { value: "10mb", label: "app.incoming_message_size_10mb" },
+                { value: "25mb", label: "app.incoming_message_size_25mb" },
+                { value: "50mb", label: "app.incoming_message_size_50mb" },
+                { value: "1gb", label: "app.incoming_message_size_1gb" },
+                { value: "custom", label: "app.incoming_message_size_custom" },
+            ];
+        },
+        sortOptions() {
+            return [
+                { value: "preferred", label: "tools.propagation_nodes.sort_preferred" },
+                { value: "recent", label: "tools.propagation_nodes.sort_recent" },
+                { value: "oldest", label: "tools.propagation_nodes.sort_oldest" },
+                { value: "name", label: "tools.propagation_nodes.sort_name" },
+                { value: "name-desc", label: "tools.propagation_nodes.sort_name_desc" },
+            ];
+        },
         localPropagationNode() {
             return this.propagationNodes.find((node) => node.is_local_node) ?? null;
         },
@@ -815,6 +882,18 @@ export default {
         },
         async copyPreferredHash() {
             const hash = this.config.lxmf_preferred_propagation_node_destination_hash;
+            if (!hash) {
+                return;
+            }
+            const ok = await copyTextToClipboard(hash);
+            if (ok) {
+                ToastUtils.success(this.$t("common.copied"));
+            } else {
+                ToastUtils.error(this.$t("common.failed_to_copy"));
+            }
+        },
+        async copyLocalNodeHash() {
+            const hash = this.config.lxmf_local_propagation_node_address_hash;
             if (!hash) {
                 return;
             }

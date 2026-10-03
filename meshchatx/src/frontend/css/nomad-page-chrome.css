@@ -92,7 +92,7 @@ pre.text-wrap > div > :last-child {
 }
 
 /*
- * NomadNet / Micron: no default link underline. Only `_underline`_ in markup
+ * NomadNet / Micron: no default link underline. Only _underline_ in markup
  * (inline text-decoration from the parser) should underline. Kill the browser
  * default <a> underline.
  */

@@ -77,7 +77,7 @@ export function displayGroupIsOutbound(group) {
 }
 
 /**
- * Inserts date dividers and sets `showTimestamp` on each message row (true on the
+ * Inserts date dividers and sets showTimestamp on each message row (true on the
  * chronologically last message of each cluster, i.e. the bubble that should show the time).
  * @param {unknown[]} groupsOldestFirst
  * @param {{ groupingEnabled?: boolean }} [options]

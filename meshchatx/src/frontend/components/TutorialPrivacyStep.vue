@@ -73,12 +73,12 @@
 </template>
 
 <script>
-import { useAuthStore } from "../js/stores/authStore.js";
+import { useAuthStore } from "../js/stores/authStore";
 
 import ElectronUtils from "../js/ElectronUtils.js";
 import AndroidBridge from "../js/rnode/AndroidBridge.js";
 import ToastUtils from "../js/ToastUtils";
-import { apiPath } from "../js/constants.js";
+import { apiPath } from "../js/constants";
 import SettingToggleRow from "./settings/SettingToggleRow.vue";
 
 export default {
@@ -280,19 +280,19 @@ export default {
     @apply space-y-2 w-full max-w-xl mx-auto sm:mx-0;
 }
 .tutorial-privacy__callout {
-    @apply p-3 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/90 dark:bg-amber-950/40 text-left space-y-2;
+    @apply p-3 rounded-2xl border border-sem-warning dark:border-sem-warning bg-sem-warning/15 dark:bg-sem-warning/15 text-left space-y-2;
 }
 .tutorial-privacy__callout-title {
-    @apply text-sm font-semibold text-amber-950 dark:text-amber-100;
+    @apply text-sm font-semibold text-sem-warning dark:text-sem-warning;
 }
 .tutorial-privacy__callout-body {
-    @apply text-xs text-amber-950/90 dark:text-amber-100/90;
+    @apply text-xs text-sem-warning dark:text-amber-100/90;
 }
 .tutorial-privacy__hint {
     @apply text-xs text-center sm:text-left text-sem-fg-muted max-w-xl mx-auto sm:mx-0;
 }
 .tutorial-privacy :deep(.setting-toggle) {
-    @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-sem-border bg-white/70 dark:bg-zinc-900/70 px-3 py-2.5;
+    @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-sem-border bg-white/70 dark:bg-sem-surface px-3 py-2.5;
 }
 .tutorial-privacy :deep(.setting-toggle > label) {
     @apply shrink-0 self-start mt-0.5;

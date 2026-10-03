@@ -1,6 +1,6 @@
 import { LatencyOptimisedTranslator } from "@browsermt/bergamot-translator";
 
-import { apiPath } from "./constants.js";
+import { apiPath } from "./constants";
 import { BergamotBacking } from "./translation/BergamotBacking.js";
 
 let translator = null;
@@ -30,7 +30,9 @@ function apiClient() {
 async function apiGet(path) {
     const client = apiClient();
     if (client?.get) {
-        const res = await client.get(apiUrl(path));
+        // Pass the relative path: the client keys CSRF and auth handling
+        // on the leading /api/ segment, which an absolute URL hides.
+        const res = await client.get(path);
         return res.data;
     }
     const res = await fetch(apiUrl(path));
@@ -43,7 +45,7 @@ async function apiGet(path) {
 async function apiPost(path, body, config = {}) {
     const client = apiClient();
     if (client?.post) {
-        const res = await client.post(apiUrl(path), body, config);
+        const res = await client.post(path, body, config);
         return res.data;
     }
     const res = await fetch(apiUrl(path), { method: "POST", body });
@@ -56,7 +58,7 @@ async function apiPost(path, body, config = {}) {
 async function apiDelete(path) {
     const client = apiClient();
     if (client?.delete) {
-        const res = await client.delete(apiUrl(path));
+        const res = await client.delete(path);
         return res.data;
     }
     const res = await fetch(apiUrl(path), { method: "DELETE" });
@@ -98,6 +100,23 @@ export async function importPack(file) {
     const form = new FormData();
     form.append("file", file);
     const data = await apiPost(apiPath("/translation/packs/import"), form);
+    await refreshPacks();
+    return data;
+}
+
+export async function fetchCatalog() {
+    const data = await apiGet(apiPath("/translation/catalog"));
+    return data.pairs || [];
+}
+
+export async function downloadPack(pair) {
+    const data = await apiPost(apiPath("/translation/packs/fetch"), { pair });
+    await refreshPacks();
+    return data;
+}
+
+export async function downloadAllPacks() {
+    const data = await apiPost(apiPath("/translation/packs/fetch"), { all: true });
     await refreshPacks();
     return data;
 }

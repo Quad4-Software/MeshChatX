@@ -149,7 +149,7 @@ async def test_hotswap_identity_lock_serializes(mock_rns, temp_dir):
         in_flight -= 1
 
     app.teardown_identity = MagicMock(side_effect=lambda *a, **k: None)
-    # teardown_identity is sync in production; emulate an async critical
+    # teardown_identity is sync in production. emulate an async critical
     # section through the broadcast boundary instead.
     app.websocket_broadcast = AsyncMock()
     app.setup_identity = MagicMock(side_effect=fake_setup)

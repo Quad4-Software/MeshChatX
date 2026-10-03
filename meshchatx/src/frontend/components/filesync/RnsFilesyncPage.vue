@@ -16,11 +16,9 @@
                 <div class="fused-panel">
                     <div class="fused-section space-y-5">
                         <div
-                            class="p-4 rounded-lg bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/20"
+                            class="p-4 rounded-lg bg-sem-success/15 dark:bg-sem-success/15 border border-sem-success dark:border-sem-success"
                         >
-                            <div
-                                class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2"
-                            >
+                            <div class="text-xs font-bold uppercase tracking-wider text-sem-success mb-2">
                                 {{ $t("rns_filesync.usage_steps") }}
                             </div>
                             <div
@@ -42,7 +40,7 @@
                                     type="button"
                                     :class="[
                                         activeTab === tab.id
-                                            ? 'border-b-2 border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                                            ? 'border-b-2 border-sem-success text-sem-success'
                                             : 'text-sem-fg-muted',
                                         'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
                                     ]"
@@ -60,13 +58,13 @@
                                         class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
                                         :class="
                                             status.running
-                                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                                ? 'bg-sem-warning/15 text-sem-success'
                                                 : 'bg-sem-surface-muted text-sem-fg-muted'
                                         "
                                     >
                                         <span
                                             class="size-1.5 rounded-full"
-                                            :class="status.running ? 'bg-emerald-500' : 'bg-sem-fg-muted'"
+                                            :class="status.running ? 'bg-sem-success' : 'bg-sem-fg-muted'"
                                         ></span>
                                         {{
                                             status.running
@@ -138,7 +136,7 @@
                                         <input
                                             v-model.number="announceInterval"
                                             type="number"
-                                            min="10"
+                                            min="60"
                                             class="input-field w-full"
                                         />
                                         <p class="mt-1 text-xs text-sem-fg-muted">
@@ -167,7 +165,7 @@
                                     <button
                                         v-else
                                         type="button"
-                                        class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
+                                        class="secondary-chip px-4 py-2 text-sm text-sem-danger border-sem-danger dark:border-sem-danger/50"
                                         :disabled="busy"
                                         @click="stopService"
                                     >
@@ -205,7 +203,7 @@
                                 <p class="text-xs text-sem-fg-muted">{{ $t("rns_filesync.share_id_help") }}</p>
                                 <button
                                     type="button"
-                                    class="w-full text-left font-mono text-xs break-all rounded-lg border border-sem-border bg-sem-surface-muted/50 px-3 py-2 hover:border-emerald-500"
+                                    class="w-full text-left font-mono text-xs break-all rounded-lg border border-sem-border bg-sem-surface-muted/50 px-3 py-2 hover:border-sem-success"
                                     @click="copyHash(status.destination_hash)"
                                 >
                                     {{ status.destination_hash }}
@@ -267,7 +265,7 @@
                                     </div>
                                     <button
                                         type="button"
-                                        class="secondary-chip px-3 py-1.5 text-sm text-red-600 dark:text-red-300"
+                                        class="secondary-chip px-3 py-1.5 text-sm text-sem-danger"
                                         :disabled="busy"
                                         @click="disconnectPeer(peer.peer_id)"
                                     >
@@ -403,9 +401,9 @@ import FilesyncDirectoryBrowserModal from "./FilesyncDirectoryBrowserModal.vue";
 import FilesyncFileManager from "./FilesyncFileManager.vue";
 import ElectronUtils from "../../js/ElectronUtils";
 import Utils from "../../js/Utils";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants";
 
 export default {
     name: "RnsFilesyncPage",

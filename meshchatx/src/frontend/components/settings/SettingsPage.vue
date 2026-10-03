@@ -80,8 +80,9 @@
                     </div>
                 </div>
 
-                <!-- search bar -->
-                <div class="sticky top-0 z-10 py-3 sm:py-4 mb-2 border-b border-sem-border bg-transparent min-w-0">
+                <!-- search bar: sticky, transparent so it blends into the page;
+                     extra bottom gap keeps the divider off the sidebar -->
+                <div class="sticky top-0 z-10 pt-3 pb-4 sm:pt-4 sm:pb-5 mb-4 border-b border-sem-border min-w-0">
                     <div class="relative w-full max-w-6xl xl:max-w-7xl 2xl:max-w-360 mx-auto min-w-0 px-0">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                             <MaterialDesignIcon icon-name="magnify" class="size-5 text-sem-fg-muted" />
@@ -194,7 +195,7 @@
                             </header>
                             <div class="settings-section__body space-y-4">
                                 <div
-                                    class="rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/20 p-4 space-y-3"
+                                    class="rounded-2xl border border-sem-warning dark:border-sem-warning bg-sem-warning/15 dark:bg-sem-warning/15 p-4 space-y-3"
                                 >
                                     <div>
                                         <div class="text-sm font-bold text-sem-fg">
@@ -210,7 +211,7 @@
                                             class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition"
                                             :class="
                                                 messageAgePurgeMode === 'days'
-                                                    ? 'border-amber-500 bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100'
+                                                    ? 'border-sem-warning bg-sem-warning/15 text-sem-warning dark:text-sem-warning'
                                                     : 'border-sem-border text-sem-fg-muted'
                                             "
                                             @click="messageAgePurgeMode = 'days'"
@@ -222,7 +223,7 @@
                                             class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition"
                                             :class="
                                                 messageAgePurgeMode === 'date'
-                                                    ? 'border-amber-500 bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100'
+                                                    ? 'border-sem-warning bg-sem-warning/15 text-sem-warning dark:text-sem-warning'
                                                     : 'border-sem-border text-sem-fg-muted'
                                             "
                                             @click="messageAgePurgeMode = 'date'"
@@ -283,7 +284,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-blue-300 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/40 disabled:opacity-60"
+                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-sem-info dark:border-sem-info bg-sem-info/15 dark:bg-sem-info/15 text-blue-800 text-sem-info hover:bg-sem-info/15 dark:hover:bg-sem-info/15 disabled:opacity-60"
                                             :disabled="messageAgePurgeBusy"
                                             @click="exportOldMessagesArchive"
                                         >
@@ -291,7 +292,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-red-300 dark:border-red-800 bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-sem-danger dark:border-sem-danger bg-sem-action-danger text-sem-action-danger-text hover:bg-sem-danger disabled:opacity-60"
                                             :disabled="messageAgePurgeBusy"
                                             @click="purgeOldMessages"
                                         >
@@ -300,165 +301,28 @@
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 gap-3">
+                                <div
+                                    class="divide-y divide-sem-border/60 rounded-xl border border-sem-border/60 overflow-hidden"
+                                >
                                     <button
+                                        v-for="action in maintenanceActions"
+                                        :key="action.key"
                                         type="button"
-                                        class="btn-maintenance border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/10 hover:bg-sem-danger/10 dark:hover:bg-red-900/20"
-                                        @click="clearMessages"
+                                        class="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-sem-surface-muted/60"
+                                        @click="action.handler"
                                     >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="forum-remove-outline" class="size-4" />
-                                                {{ $t("maintenance.clear_messages") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_messages_desc") }}
-                                            </div>
+                                        <MaterialDesignIcon
+                                            :icon-name="action.icon"
+                                            class="size-5 shrink-0 text-sem-fg-muted"
+                                        />
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-medium text-sem-fg">{{ $t(action.title) }}</div>
+                                            <div class="text-xs text-sem-fg-muted mt-0.5">{{ $t(action.desc) }}</div>
                                         </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-violet-200 dark:border-violet-900/30 text-violet-800 dark:text-violet-200 bg-violet-50 dark:bg-violet-900/10 hover:bg-violet-100 dark:hover:bg-violet-900/20"
-                                        @click="clearDuplicateMessages"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="content-duplicate" class="size-4" />
-                                                {{ $t("maintenance.clear_duplicates") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_duplicates_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/10 hover:bg-orange-100 dark:hover:bg-orange-900/20"
-                                        @click="clearAnnounces"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="broadcast-off" class="size-4" />
-                                                {{ $t("maintenance.clear_announces") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_announces_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-indigo-200 dark:border-indigo-900/30 text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/10 hover:bg-indigo-100 dark:hover:bg-indigo-900/20"
-                                        @click="clearNomadnetFavorites"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="bookmark-remove" class="size-4" />
-                                                {{ $t("maintenance.clear_nomadnet_favs") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_nomadnet_favs_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-emerald-200 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/10 hover:bg-emerald-100 dark:hover:bg-emerald-900/20"
-                                        @click="clearLxmfIcons"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="account-off" class="size-4" />
-                                                {{ $t("maintenance.clear_lxmf_icons") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_lxmf_icons_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-amber-200 dark:border-amber-900/30 text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100 dark:hover:bg-amber-900/20"
-                                        @click="clearStickers"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="emoticon-outline" class="size-4" />
-                                                {{ $t("maintenance.clear_stickers") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_stickers_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-pink-200 dark:border-pink-900/30 text-pink-700 dark:text-pink-300 bg-pink-50 dark:bg-pink-900/10 hover:bg-pink-100 dark:hover:bg-pink-900/20"
-                                        @click="clearGifs"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="file-gif-box" class="size-4" />
-                                                {{ $t("maintenance.clear_gifs") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_gifs_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-blue-200 dark:border-blue-900/30 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20"
-                                        @click="clearArchives"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="delete-sweep" class="size-4" />
-                                                {{ $t("maintenance.clear_archives") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_archives_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/10 hover:bg-orange-100 dark:hover:bg-orange-900/20"
-                                        @click="clearReticulumDocs"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="book-remove" class="size-4" />
-                                                {{ $t("maintenance.clear_reticulum_docs") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_reticulum_docs_desc") }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        class="btn-maintenance border-teal-200 dark:border-teal-900/30 text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/10 hover:bg-teal-100 dark:hover:bg-teal-900/20"
-                                        @click="clearPathTable"
-                                    >
-                                        <div class="flex flex-col items-start text-left">
-                                            <div class="font-bold flex items-center gap-2">
-                                                <MaterialDesignIcon icon-name="map-marker-remove" class="size-4" />
-                                                {{ $t("maintenance.clear_path_table") }}
-                                            </div>
-                                            <div class="text-xs opacity-80">
-                                                {{ $t("maintenance.clear_path_table_desc") }}
-                                            </div>
-                                        </div>
+                                        <MaterialDesignIcon
+                                            icon-name="chevron-right"
+                                            class="size-4 shrink-0 text-sem-fg-muted/60"
+                                        />
                                     </button>
                                 </div>
 
@@ -478,7 +342,7 @@
                                 <div class="grid grid-cols-2 gap-3 mt-4">
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-blue-200 bg-sem-surface-muted/50 hover:border-sem-accent transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-sem-info bg-sem-surface-muted/50 hover:border-sem-accent transition group"
                                         @click="exportMessages"
                                     >
                                         <MaterialDesignIcon
@@ -493,12 +357,12 @@
 
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-emerald-200 bg-sem-surface-muted/50 hover:border-emerald-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-sem-success bg-sem-surface-muted/50 hover:border-sem-success transition group"
                                         @click="triggerImport"
                                     >
                                         <MaterialDesignIcon
                                             icon-name="import"
-                                            class="size-6 text-emerald-500 group-hover:scale-110 transition"
+                                            class="size-6 text-sem-success group-hover:scale-110 transition"
                                         />
                                         <div class="text-sm font-bold">{{ $t("maintenance.import_messages") }}</div>
                                         <div class="text-xs opacity-70 text-center px-1">
@@ -522,19 +386,19 @@
                                     >
                                         <MaterialDesignIcon
                                             icon-name="folder-download-outline"
-                                            class="size-6 text-purple-500 group-hover:scale-110 transition"
+                                            class="size-6 text-sem-info group-hover:scale-110 transition"
                                         />
                                         <div class="text-sm font-bold">Export Folders</div>
                                     </button>
 
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-indigo-200 bg-sem-surface-muted/50 hover:border-indigo-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-sem-info bg-sem-surface-muted/50 hover:border-sem-info transition group"
                                         @click="triggerFolderImport"
                                     >
                                         <MaterialDesignIcon
                                             icon-name="folder-upload-outline"
-                                            class="size-6 text-indigo-500 group-hover:scale-110 transition"
+                                            class="size-6 text-sem-info group-hover:scale-110 transition"
                                         />
                                         <div class="text-sm font-bold">Import Folders</div>
                                     </button>
@@ -550,12 +414,12 @@
                                 <div class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-sem-border">
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 bg-sem-surface-muted/50 hover:border-teal-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-sem-success bg-sem-surface-muted/50 hover:border-sem-success transition group"
                                         @click="exportNomadnetFavouritesLayout"
                                     >
                                         <MaterialDesignIcon
                                             icon-name="file-export"
-                                            class="size-6 text-teal-500 group-hover:scale-110 transition"
+                                            class="size-6 text-sem-success group-hover:scale-110 transition"
                                         />
                                         <div class="text-sm font-bold">
                                             {{ $t("maintenance.export_nomadnet_favourites") }}
@@ -564,12 +428,12 @@
 
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-cyan-200 bg-sem-surface-muted/50 hover:border-cyan-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-sem-info bg-sem-surface-muted/50 hover:border-sem-info transition group"
                                         @click="triggerNomadnetFavouritesImport"
                                     >
                                         <MaterialDesignIcon
                                             icon-name="import"
-                                            class="size-6 text-cyan-500 group-hover:scale-110 transition"
+                                            class="size-6 text-sem-info group-hover:scale-110 transition"
                                         />
                                         <div class="text-sm font-bold">
                                             {{ $t("maintenance.import_nomadnet_favourites") }}
@@ -619,8 +483,8 @@
                                         class="flex flex-col p-3 rounded-xl border bg-sem-surface"
                                         :class="
                                             check.passed
-                                                ? 'border-emerald-200/60 dark:border-emerald-900/30'
-                                                : 'border-red-200/60 dark:border-red-900/30'
+                                                ? 'border-sem-success dark:border-sem-success'
+                                                : 'border-sem-danger dark:border-sem-danger'
                                         "
                                     >
                                         <div class="flex items-center justify-between gap-2">
@@ -629,7 +493,7 @@
                                                     :icon-name="
                                                         check.passed ? 'check-circle-outline' : 'alert-circle-outline'
                                                     "
-                                                    :class="check.passed ? 'text-emerald-500' : 'text-red-500'"
+                                                    :class="check.passed ? 'text-sem-success' : 'text-sem-danger'"
                                                     class="size-4 shrink-0"
                                                 />
                                                 <span class="truncate">{{ check.label }}</span>
@@ -638,7 +502,7 @@
                                                 <button
                                                     v-if="!check.passed && check.reason"
                                                     type="button"
-                                                    class="inline-flex items-center justify-center rounded-lg p-1 text-sem-danger hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/40"
+                                                    class="inline-flex items-center justify-center rounded-lg p-1 text-sem-danger hover:bg-sem-danger/15 dark:text-sem-danger dark:hover:bg-red-950/40"
                                                     :aria-expanded="isSelfTestReasonExpanded(check.key)"
                                                     :aria-label="
                                                         isSelfTestReasonExpanded(check.key)
@@ -665,8 +529,8 @@
                                                     class="px-2 py-0.5 text-xs font-bold rounded-md"
                                                     :class="
                                                         check.passed
-                                                            ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
-                                                            : 'bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300'
+                                                            ? 'bg-sem-success/15 dark:bg-sem-success/15 text-sem-success'
+                                                            : 'bg-sem-danger/15 dark:bg-sem-danger/15 text-sem-danger'
                                                     "
                                                 >
                                                     {{ check.passed ? $t("selftest.passed") : $t("selftest.failed") }}
@@ -675,7 +539,7 @@
                                         </div>
                                         <div
                                             v-if="!check.passed && check.reason && isSelfTestReasonExpanded(check.key)"
-                                            class="text-xs text-sem-danger dark:text-red-400 mt-2 pl-6 whitespace-pre-wrap wrap-break-word"
+                                            class="text-xs text-sem-danger dark:text-sem-danger mt-2 pl-6 whitespace-pre-wrap wrap-break-word"
                                         >
                                             <span class="font-semibold">{{ $t("selftest.reason_label") }}:</span>
                                             {{ check.reason }}
@@ -684,7 +548,7 @@
 
                                     <div
                                         v-if="allSelfTestChecksPassed"
-                                        class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-2 pl-2"
+                                        class="text-xs text-sem-success font-semibold flex items-center gap-2 pl-2"
                                     >
                                         <MaterialDesignIcon icon-name="check" class="size-4" />
                                         {{ $t("selftest.checks_completed") }}
@@ -692,6 +556,8 @@
                                 </div>
                             </div>
                         </section>
+
+                        <UpdatesSettingsSection :visible="showSection('updates')" />
 
                         <PluginsSettingsSection :visible="showSection('plugins')" />
 
@@ -816,7 +682,7 @@
                                         <span class="setting-toggle__description">
                                             {{ $t("settings.nomad_micron_wasm_desc_before_link") }}
                                             <a
-                                                class="text-sem-accent hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
+                                                class="text-sem-accent hover:text-sem-info dark:hover:text-sem-info underline underline-offset-2"
                                                 href="https://github.com/Quad4-Software/micron-parser-go"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
@@ -827,7 +693,7 @@
                                 </label>
                                 <div
                                     v-if="micronWasmBundledInBuild && config.nomad_micron_wasm_enabled"
-                                    class="space-y-2 rounded-lg border border-sem-border bg-sem-surface-muted/80 p-3 dark:bg-zinc-900/50"
+                                    class="space-y-2 rounded-lg border border-sem-border bg-sem-surface-muted/80 p-3 dark:bg-sem-surface"
                                 >
                                     <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("settings.nomad_micron_default_engine_title") }}
@@ -1108,6 +974,10 @@
                             @ui-glass-enabled-change="onUiGlassEnabledChange"
                             @messages-multi-pane-enabled-change="onMessagesMultiPaneEnabledChange"
                             @nomad-tabs-enabled-change="onNomadTabsEnabledChange"
+                            @nomad-private-tabs-enabled-change="onNomadPrivateTabsEnabledChange"
+                            @nomad-history-enabled-change="onNomadHistoryEnabledChange"
+                            @ui-font-family-change="onUiFontFamilyChange"
+                            @ui-custom-font-change="onUiCustomFontChange"
                             @rrc-enabled-change="onRrcEnabledChange"
                             @rrc-unread-badges-enabled-change="onRrcUnreadBadgesEnabledChange"
                             @reset-appearance-defaults="resetAppearanceDefaults"
@@ -1736,7 +1606,7 @@
                                 </label>
                                 <p
                                     v-if="reticulumInstance.is_connected_to_shared_instance"
-                                    class="text-xs text-amber-700 dark:text-amber-300"
+                                    class="text-xs text-sem-warning"
                                 >
                                     {{ $t("app.transport_shared_instance_notice") }}
                                 </p>
@@ -1877,12 +1747,12 @@
                                     </p>
                                     <p
                                         v-if="reticulumInstance.is_connected_to_shared_instance"
-                                        class="text-xs text-amber-700 dark:text-amber-300"
+                                        class="text-xs text-sem-warning"
                                     >
                                         {{ $t("app.connected_to_shared_instance") }}
                                     </p>
                                     <div
-                                        class="relative rounded-lg border border-sem-border/70 bg-white/60 dark:bg-zinc-900/60"
+                                        class="relative rounded-lg border border-sem-border/70 bg-white/60 dark:bg-sem-surface"
                                     >
                                         <pre
                                             class="text-xs font-mono whitespace-pre-wrap break-all text-sem-fg p-2 pr-12"
@@ -2017,10 +1887,10 @@
                                 </div>
                                 <div
                                     v-if="showWindowsScreenSecurity"
-                                    class="p-4 rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/30 space-y-3"
+                                    class="p-4 rounded-2xl border border-sem-warning dark:border-sem-warning bg-sem-warning/15 dark:bg-sem-warning/15 space-y-3"
                                 >
                                     <div
-                                        class="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-200"
+                                        class="text-xs font-semibold uppercase tracking-wider text-sem-warning dark:text-sem-warning"
                                     >
                                         {{ $t("app.screen_security_drm_eyebrow") }}
                                     </div>
@@ -2259,7 +2129,7 @@
                                                 <button
                                                     v-if="config.oidc_client_secret_set && !config.oidc_env_managed"
                                                     type="button"
-                                                    class="px-2 py-1 text-xs rounded border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                    class="px-2 py-1 text-xs rounded border border-sem-danger dark:border-sem-danger text-sem-danger hover:bg-sem-danger/15 dark:hover:bg-sem-danger/15"
                                                     @click="clearOidcSecret"
                                                 >
                                                     {{ $t("app.oidc_client_secret_clear") }}
@@ -2402,12 +2272,12 @@
                                 </div>
                                 <div
                                     v-if="serverSecurity.is_loopback_bind === false"
-                                    class="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 space-y-3"
+                                    class="rounded-md border border-amber-500/40 bg-sem-warning/15 p-4 space-y-3"
                                 >
-                                    <div class="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                                    <div class="text-sm font-semibold text-sem-warning dark:text-sem-warning">
                                         {{ $t("app.web_exposure_warning_title") }}
                                     </div>
-                                    <p class="text-sm text-amber-950/90 dark:text-amber-100/90">
+                                    <p class="text-sm text-sem-warning dark:text-amber-100/90">
                                         {{ $t("app.web_exposure_warning_body") }}
                                     </p>
                                     <ul class="space-y-2 text-sm">
@@ -2418,7 +2288,9 @@
                                                 "
                                                 class="size-4 mt-0.5 shrink-0"
                                                 :class="
-                                                    serverSecurity.auth_enabled ? 'text-green-600' : 'text-amber-600'
+                                                    serverSecurity.auth_enabled
+                                                        ? 'text-sem-success'
+                                                        : 'text-sem-warning'
                                                 "
                                             />
                                             <span>{{
@@ -2696,7 +2568,7 @@
                                         {{ $t("app.inbound_stamp_description") }}
                                     </div>
                                 </div>
-                                <hr class="border-sem-border dark:border-gray-700" />
+                                <hr class="border-sem-border dark:border-sem-border" />
                                 <div>
                                     <div class="text-sm font-medium text-sem-fg mb-1">
                                         {{ $t("app.flood_protection") }}
@@ -3057,7 +2929,7 @@
                                 <div class="grid grid-cols-1 gap-3">
                                     <button
                                         type="button"
-                                        class="btn-maintenance border-violet-200 dark:border-violet-900/30 text-violet-800 dark:text-violet-200 bg-violet-50 dark:bg-violet-900/10 hover:bg-violet-100 dark:hover:bg-violet-900/20 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-violet-50 dark:disabled:hover:bg-violet-900/10"
+                                        class="btn-maintenance border-sem-info dark:border-sem-info text-sem-info text-sem-info bg-sem-info/15 dark:bg-sem-info/15 hover:bg-sem-info/15 dark:hover:bg-sem-info/15 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-sem-info/15 dark:disabled:hover:bg-sem-info/15"
                                         :disabled="reloadingRns"
                                         @click="reloadRns"
                                     >
@@ -3089,9 +2961,7 @@
                                     @click="shortcutsExpanded = !shortcutsExpanded"
                                 >
                                     <div class="flex items-center gap-3 w-full min-w-0">
-                                        <div
-                                            class="p-2 bg-blue-100 dark:bg-blue-900/30 text-sem-accent rounded-xl shrink-0"
-                                        >
+                                        <div class="p-2 bg-sem-info/15 text-sem-accent rounded-xl shrink-0">
                                             <MaterialDesignIcon icon-name="keyboard-outline" class="size-6" />
                                         </div>
                                         <div class="min-w-0 flex-1">
@@ -3105,16 +2975,18 @@
                                     </div>
                                 </button>
                                 <div v-show="shortcutsExpanded" class="settings-section__body">
-                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                                    <div
+                                        class="divide-y divide-sem-border/60 rounded-xl border border-sem-border/60 overflow-hidden"
+                                    >
                                         <div
                                             v-for="shortcut in KeyboardShortcuts.getDefaultShortcuts()"
                                             :key="shortcut.action"
-                                            class="bg-sem-surface-muted/50 dark:bg-sem-surface-raised/30 rounded-2xl p-4 sm:p-5 border border-sem-border"
+                                            class="flex items-center gap-3 px-4 py-3"
                                         >
-                                            <div class="flex items-center justify-between mb-3">
-                                                <span class="text-sm font-bold text-sem-fg uppercase tracking-wide">
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-sm font-medium text-sem-fg">
                                                     {{ shortcut.description }}
-                                                </span>
+                                                </div>
                                             </div>
                                             <ShortcutRecorder
                                                 :model-value="getShortcutKeys(shortcut.action)"
@@ -3138,13 +3010,13 @@
 <script>
 import { getCurrentInstance } from "vue";
 import { mapStores } from "pinia";
-import { useAuthStore } from "../../js/stores/authStore.js";
-import { useConfigStore } from "../../js/stores/configStore.js";
+import { useAuthStore } from "../../js/stores/authStore";
+import { useConfigStore } from "../../js/stores/configStore";
 import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
 import { readTextFromClipboard } from "../../js/clipboardUtils.js";
 import { importMessagesFromFile } from "../../js/messageImport";
 import DownloadUtils from "../../js/DownloadUtils";
@@ -3169,6 +3041,7 @@ import VisualiserSettingsSection from "./sections/VisualiserSettingsSection.vue"
 import BlockedSettingsSection from "./sections/BlockedSettingsSection.vue";
 import AndroidSettingsSection from "./sections/AndroidSettingsSection.vue";
 import ArchiverSettingsSection from "./sections/ArchiverSettingsSection.vue";
+import UpdatesSettingsSection from "./sections/UpdatesSettingsSection.vue";
 import SettingsNav from "./SettingsNav.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import ElectronUtils from "../../js/ElectronUtils";
@@ -3215,10 +3088,10 @@ import {
     settingsSectionSearchExtras,
     settingsTabHasVisibleSections,
 } from "../../js/settings/settingsTabs.js";
-import { getAllSettingsSectionKeywords } from "../../js/registries/settingsSectionRegistry.js";
+import { getAllSettingsSectionKeywords } from "../../js/registries/settingsSectionRegistry";
 import { isMicronWasmBundled } from "../../js/MicronWasmLoader.js";
 import { isAndroidLocationSupported } from "../../js/androidLocation.js";
-import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants";
 import { getMicronWasmRuntimeOverride } from "../../js/MicronWasmRuntimeOverride.js";
 import { getEffectiveMicronWasmReleaseLabel, MICRON_WASM_OVERRIDE_CHANGED_EVENT } from "../../js/micronWasmVersion.js";
 import MicronWasmUpdateModal from "./MicronWasmUpdateModal.vue";
@@ -3255,6 +3128,7 @@ export default {
         BlockedSettingsSection,
         AndroidSettingsSection,
         ArchiverSettingsSection,
+        UpdatesSettingsSection,
         MicronWasmUpdateModal,
         NotificationSoundSettings,
     },
@@ -3334,6 +3208,8 @@ export default {
                 messages_sidebar_position: "left",
                 messages_multi_pane_enabled: true,
                 nomad_tabs_enabled: true,
+                nomad_private_tabs_enabled: true,
+                nomad_history_enabled: true,
                 rrc_enabled: true,
                 rrc_unread_badges_enabled: true,
                 message_icon_size: 28,
@@ -3471,6 +3347,80 @@ export default {
         },
         oidcRedirectUri() {
             return window.location.origin + apiPath("/auth/oidc/callback");
+        },
+        maintenanceActions() {
+            return [
+                {
+                    key: "messages",
+                    icon: "forum-remove-outline",
+                    title: "maintenance.clear_messages",
+                    desc: "maintenance.clear_messages_desc",
+                    handler: this.clearMessages,
+                },
+                {
+                    key: "duplicates",
+                    icon: "content-duplicate",
+                    title: "maintenance.clear_duplicates",
+                    desc: "maintenance.clear_duplicates_desc",
+                    handler: this.clearDuplicateMessages,
+                },
+                {
+                    key: "announces",
+                    icon: "broadcast-off",
+                    title: "maintenance.clear_announces",
+                    desc: "maintenance.clear_announces_desc",
+                    handler: this.clearAnnounces,
+                },
+                {
+                    key: "nomadnet_favs",
+                    icon: "bookmark-remove",
+                    title: "maintenance.clear_nomadnet_favs",
+                    desc: "maintenance.clear_nomadnet_favs_desc",
+                    handler: this.clearNomadnetFavorites,
+                },
+                {
+                    key: "lxmf_icons",
+                    icon: "account-off",
+                    title: "maintenance.clear_lxmf_icons",
+                    desc: "maintenance.clear_lxmf_icons_desc",
+                    handler: this.clearLxmfIcons,
+                },
+                {
+                    key: "stickers",
+                    icon: "emoticon-outline",
+                    title: "maintenance.clear_stickers",
+                    desc: "maintenance.clear_stickers_desc",
+                    handler: this.clearStickers,
+                },
+                {
+                    key: "gifs",
+                    icon: "file-gif-box",
+                    title: "maintenance.clear_gifs",
+                    desc: "maintenance.clear_gifs_desc",
+                    handler: this.clearGifs,
+                },
+                {
+                    key: "archives",
+                    icon: "delete-sweep",
+                    title: "maintenance.clear_archives",
+                    desc: "maintenance.clear_archives_desc",
+                    handler: this.clearArchives,
+                },
+                {
+                    key: "reticulum_docs",
+                    icon: "book-remove",
+                    title: "maintenance.clear_reticulum_docs",
+                    desc: "maintenance.clear_reticulum_docs_desc",
+                    handler: this.clearReticulumDocs,
+                },
+                {
+                    key: "path_table",
+                    icon: "map-marker-remove",
+                    title: "maintenance.clear_path_table",
+                    desc: "maintenance.clear_path_table_desc",
+                    handler: this.clearPathTable,
+                },
+            ];
         },
         settingsSearchActive() {
             return normalizeSearchString(this.searchQuery).length > 0;
@@ -4561,6 +4511,43 @@ export default {
                 },
                 "nomad_tabs_enabled"
             );
+        },
+        async onNomadPrivateTabsEnabledChange() {
+            await this.updateConfig(
+                {
+                    nomad_private_tabs_enabled: this.config.nomad_private_tabs_enabled,
+                },
+                "nomad_private_tabs_enabled"
+            );
+        },
+        async onNomadHistoryEnabledChange() {
+            await this.updateConfig(
+                {
+                    nomad_history_enabled: this.config.nomad_history_enabled,
+                },
+                "nomad_history_enabled"
+            );
+        },
+        async onUiFontFamilyChange() {
+            await this.updateConfig(
+                {
+                    ui_font_family: this.config.ui_font_family,
+                },
+                "ui_font_family"
+            );
+        },
+        async onUiCustomFontChange(payload) {
+            if (!payload || typeof payload !== "object") return;
+            const patch = {};
+            if (typeof payload.ui_font_family === "string") patch.ui_font_family = payload.ui_font_family;
+            if (typeof payload.ui_custom_font_name === "string")
+                patch.ui_custom_font_name = payload.ui_custom_font_name;
+            if (typeof payload.ui_custom_font_data === "string")
+                patch.ui_custom_font_data = payload.ui_custom_font_data;
+            if (Object.keys(patch).length) {
+                this.config = { ...this.config, ...patch };
+                await this.updateConfig(patch, "ui_font_family");
+            }
         },
         async onRrcEnabledChange() {
             await this.updateConfig(
@@ -5917,7 +5904,7 @@ export default {
     @apply text-xs text-sem-fg-muted wrap-break-word;
 }
 :deep(.info-callout) {
-    @apply rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/60 dark:bg-blue-900/20 px-3 py-3 text-blue-900 dark:text-blue-100;
+    @apply rounded-2xl border border-sem-info dark:border-sem-info bg-sem-info/15 dark:bg-sem-info/15 px-3 py-3 text-blue-900 dark:text-blue-100;
 }
 :deep(.monospace-field) {
     font-family: "Roboto Mono", monospace;

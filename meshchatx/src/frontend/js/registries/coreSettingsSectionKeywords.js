@@ -282,6 +282,7 @@ export const CORE_SETTINGS_SECTION_KEYWORDS = {
         "app.theme_preset_tokyo",
         "app.theme_preset_atom_one",
         "app.theme_preset_neo_brutalist",
+        "app.theme_preset_glass",
         "app.theme_preset_custom",
         "app.accent_color",
         "app.custom_canvas_color",

@@ -15,7 +15,7 @@
                 </h3>
                 <button
                     type="button"
-                    class="text-sem-fg-muted hover:text-sem-fg-muted dark:hover:text-zinc-300 transition-colors"
+                    class="text-sem-fg-muted hover:text-sem-fg-muted dark:hover:text-sem-fg-secondary transition-colors"
                     @click="$emit('close')"
                 >
                     <MaterialDesignIcon icon-name="close" class="size-6" />

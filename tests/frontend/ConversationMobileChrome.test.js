@@ -2,8 +2,8 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationPeerHeader from "../../meshchatx/src/frontend/components/messages/ConversationPeerHeader.vue";
 import ConversationDropDownMenu from "../../meshchatx/src/frontend/components/messages/ConversationDropDownMenu.vue";
-import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
-import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore.js";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore";
+import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore";
 
 const peer = {
     destination_hash: "a".repeat(32),

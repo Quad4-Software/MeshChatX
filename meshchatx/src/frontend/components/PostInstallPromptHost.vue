@@ -16,7 +16,7 @@
 
 <script>
 import AppUpdatePrompt from "./AppUpdatePrompt.vue";
-import { listPostInstallPromptsByPriority } from "../js/registries/postInstallPromptRegistry.js";
+import { listPostInstallPromptsByPriority } from "../js/registries/postInstallPromptRegistry";
 import { markPromptSeen, shouldShowPrompt } from "../js/postInstallPromptState.js";
 
 export default {
@@ -72,7 +72,7 @@ export default {
             return true;
         },
         /**
-         * @returns {Promise<import('../js/registries/postInstallPromptRegistry.js').PostInstallPromptEntry | null>}
+         * @returns {Promise<import('../js/registries/postInstallPromptRegistry').PostInstallPromptEntry | null>}
          */
         async findNextPending() {
             for (const entry of listPostInstallPromptsByPriority()) {

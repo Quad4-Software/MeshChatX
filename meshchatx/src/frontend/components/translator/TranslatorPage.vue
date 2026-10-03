@@ -14,7 +14,7 @@
             <div class="w-full max-w-4xl mx-auto">
                 <div class="fused-panel">
                     <div class="fused-section space-y-4">
-                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                        <div class="text-sm font-semibold text-sem-fg">
                             {{ $t("translator.pack_library") }}
                         </div>
                         <p class="text-sm text-sem-fg-muted">
@@ -62,6 +62,72 @@
                         </div>
                         <div v-else class="text-sm text-sem-warning">
                             {{ $t("translator.no_packs") }}
+                        </div>
+
+                        <div class="border-t border-sem-border pt-3">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button
+                                    type="button"
+                                    class="secondary-chip text-xs px-3.5 py-2"
+                                    :disabled="isLoadingCatalog"
+                                    @click="toggleCatalog"
+                                >
+                                    {{ showCatalog ? $t("translator.hide_catalog") : $t("translator.show_catalog") }}
+                                </button>
+                                <button
+                                    v-if="showCatalog && catalogPairs.length"
+                                    type="button"
+                                    class="secondary-chip text-xs px-3.5 py-2"
+                                    :disabled="isDownloadingAll"
+                                    @click="downloadAll"
+                                >
+                                    {{
+                                        isDownloadingAll ? $t("translator.downloading") : $t("translator.download_all")
+                                    }}
+                                </button>
+                            </div>
+                            <div v-if="catalogError" class="mt-2 text-xs text-sem-danger">
+                                {{ catalogError }}
+                            </div>
+                            <div
+                                v-if="showCatalog && catalogPairs.length"
+                                class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
+                            >
+                                <div
+                                    v-for="entry in catalogPairs"
+                                    :key="entry.pair"
+                                    class="flex items-center justify-between p-2 rounded-lg bg-sem-surface/60 border border-sem-border"
+                                >
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-medium text-sem-fg truncate">
+                                            {{ catalogLabel(entry) }}
+                                        </div>
+                                        <div class="text-[10px] text-sem-fg-muted">
+                                            {{ entry.architecture }} ·
+                                            {{ $t("translator.size_kb", { size: Math.ceil(entry.size / 1024) }) }}
+                                        </div>
+                                    </div>
+                                    <button
+                                        v-if="!installedPairSet.has(entry.pair)"
+                                        type="button"
+                                        class="text-xs text-sem-info hover:underline shrink-0 ml-2"
+                                        :disabled="isDownloading(entry.pair) || isDownloadingAll"
+                                        @click="downloadPack(entry.pair)"
+                                    >
+                                        {{
+                                            isDownloading(entry.pair)
+                                                ? $t("translator.downloading")
+                                                : $t("translator.download")
+                                        }}
+                                    </button>
+                                    <span v-else class="text-xs text-sem-success shrink-0 ml-2">{{
+                                        $t("translator.installed")
+                                    }}</span>
+                                </div>
+                            </div>
+                            <div v-if="fetchError" class="mt-2 text-xs text-sem-danger">
+                                {{ fetchError }}
+                            </div>
                         </div>
                     </div>
 
@@ -175,6 +241,13 @@ export default {
             outputText: "",
             isTranslating: false,
             isImporting: false,
+            showCatalog: false,
+            catalogPairs: [],
+            catalogError: null,
+            isLoadingCatalog: false,
+            downloadingPairs: {},
+            isDownloadingAll: false,
+            fetchError: null,
             error: null,
         };
     },
@@ -188,6 +261,9 @@ export default {
                 from: p.from || p.pair.slice(0, 2),
                 to: p.to || p.pair.slice(2, 4),
             }));
+        },
+        installedPairSet() {
+            return new Set(this.packs.map((p) => p.pair));
         },
         languageOptions() {
             const userLocale = (navigator.language || "en").slice(0, 2);
@@ -261,7 +337,72 @@ export default {
             }
             const from = pack.from || pack.pair.slice(0, 2);
             const to = pack.to || pack.pair.slice(2, 4);
-            return `${displayNames.of(from) || from} → ${displayNames.of(to) || to}`;
+            return `${displayNames.of(from) || from} -> ${displayNames.of(to) || to}`;
+        },
+        catalogLabel(entry) {
+            return this.packLabel(entry);
+        },
+        async toggleCatalog() {
+            if (this.showCatalog) {
+                this.showCatalog = false;
+                return;
+            }
+            this.showCatalog = true;
+            if (this.catalogPairs.length || this.isLoadingCatalog) {
+                return;
+            }
+            this.isLoadingCatalog = true;
+            this.catalogError = null;
+            try {
+                this.catalogPairs = await TranslationService.fetchCatalog();
+            } catch (e) {
+                console.error("Failed to load pack catalog:", e);
+                this.catalogError = this.$t("translator.catalog_failed");
+            } finally {
+                this.isLoadingCatalog = false;
+            }
+        },
+        isDownloading(pair) {
+            return Boolean(this.downloadingPairs[pair]);
+        },
+        async downloadPack(pair) {
+            if (this.downloadingPairs[pair]) {
+                return;
+            }
+            this.downloadingPairs = { ...this.downloadingPairs, [pair]: true };
+            this.fetchError = null;
+            try {
+                await TranslationService.downloadPack(pair);
+                await this.loadPacks();
+            } catch (e) {
+                console.error(`Failed to download pack ${pair}:`, e);
+                this.fetchError = this.$t("translator.download_failed", { pair: pair.toUpperCase() });
+            } finally {
+                const next = { ...this.downloadingPairs };
+                delete next[pair];
+                this.downloadingPairs = next;
+            }
+        },
+        async downloadAll() {
+            if (this.isDownloadingAll) {
+                return;
+            }
+            this.isDownloadingAll = true;
+            this.fetchError = null;
+            try {
+                const result = await TranslationService.downloadAllPacks();
+                if (result?.failed?.length) {
+                    this.fetchError = this.$t("translator.download_failed_some", {
+                        count: result.failed.length,
+                    });
+                }
+                await this.loadPacks();
+            } catch (e) {
+                console.error("Failed to download packs:", e);
+                this.fetchError = this.$t("translator.download_failed_all");
+            } finally {
+                this.isDownloadingAll = false;
+            }
         },
         selectPackFile() {
             this.$refs["pack-file-input"].click();

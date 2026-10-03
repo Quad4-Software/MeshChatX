@@ -2,7 +2,7 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi } from "vitest";
 import ToolsPage from "@/components/tools/ToolsPage.vue";
 import { createRouter, createWebHistory } from "vue-router";
-import { registerCoreContributions } from "@/js/registries/registerCoreContributions.js";
+import { registerCoreContributions } from "@/js/registries/registerCoreContributions";
 
 describe("ToolsPage.vue", () => {
     registerCoreContributions();

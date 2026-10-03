@@ -89,7 +89,7 @@
                 :class="{ 'lg:max-w-md lg:border-r lg:border-sem-border xl:max-w-lg': isWideSplit && viewingArchive }"
             >
                 <div v-if="loadError" class="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
-                    <MaterialDesignIcon icon-name="alert-circle-outline" class="size-10 text-red-400" />
+                    <MaterialDesignIcon icon-name="alert-circle-outline" class="size-10 text-sem-danger" />
                     <p class="text-sm">{{ $t("archives.search_failed") }}</p>
                     <button type="button" class="text-xs font-medium text-sem-accent" @click="getArchives">
                         {{ $t("archives.retry") }}
@@ -121,7 +121,7 @@
                     <div
                         v-if="isLoading && archives.length === 0"
                         class="grid grid-cols-1 gap-3 p-3 sm:p-4"
-                        :class="{ 'sm:grid-cols-2': !viewingArchive }"
+                        :class="{ 'sm:grid-cols-2 xl:grid-cols-3': !viewingArchive }"
                         aria-hidden="true"
                     >
                         <Skeleton v-for="n in 6" :key="'archive-skel-' + n" variant="card" root-class="h-44" />
@@ -129,7 +129,7 @@
                     <div
                         v-else
                         class="grid grid-cols-1 gap-3 p-3 sm:p-4"
-                        :class="{ 'sm:grid-cols-2': !viewingArchive }"
+                        :class="{ 'sm:grid-cols-2 xl:grid-cols-3': !viewingArchive }"
                     >
                         <ArchiveCard
                             v-for="archive in archives"
@@ -234,7 +234,7 @@
                     </button>
                     <button
                         type="button"
-                        class="rounded-lg p-2 text-red-500 hover:bg-sem-surface/60"
+                        class="rounded-lg p-2 text-sem-danger hover:bg-sem-surface/60"
                         :title="$t('archives.delete_snapshot')"
                         @click="deleteArchive(viewingArchive)"
                     >
@@ -270,7 +270,7 @@
 </template>
 
 <script>
-import { useConfigStore } from "../../js/stores/configStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
 
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
@@ -292,7 +292,7 @@ import {
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 import * as nomadnetApi from "../../js/api/nomadnet.js";
 
 const SPLIT_MIN_WIDTH = 1024;
@@ -477,7 +477,7 @@ export default {
         },
         pathViewerClasses(pagePath) {
             if (!pagePath) {
-                return ["wrap-break-word", "whitespace-pre-wrap", "text-gray-100"];
+                return ["wrap-break-word", "whitespace-pre-wrap", "text-sem-fg"];
             }
             const pl = (pagePath || "").split("`")[0].toLowerCase();
             const isRich = pl.endsWith(".mu") || pl.endsWith(".md") || pl.endsWith(".html");
@@ -492,7 +492,7 @@ export default {
             if (isHtml) {
                 classes.push("nomad-page-html-host");
             } else {
-                classes.push("text-gray-100");
+                classes.push("text-sem-fg");
             }
             if (isMd) {
                 classes.push("nomad-markdown-host");

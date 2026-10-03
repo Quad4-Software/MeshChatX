@@ -4,12 +4,12 @@
     <div class="space-y-3">
         <div
             v-if="!listenEnabled"
-            class="rounded-xl border border-sem-border bg-gray-50/50 dark:bg-zinc-900/40 p-3 space-y-2"
+            class="rounded-xl border border-sem-border bg-sem-surface-muted/80 dark:bg-sem-surface p-3 space-y-2"
         >
             <p class="text-[11px] text-sem-fg-muted leading-snug">{{ $t("map.data_listen_off") }}</p>
             <button
                 type="button"
-                class="w-full py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-blue-500 hover:bg-blue-600 text-white"
+                class="w-full py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-sem-info hover:bg-sem-action-primary text-sem-action-primary-text"
                 @click="$emit('enable-listen')"
             >
                 {{ $t("map.data_listen_enable") }}
@@ -23,7 +23,7 @@
                 :placeholder="$t('map.data_search')"
                 @input="reload"
             />
-            <p v-if="error" class="text-[11px] text-amber-600 dark:text-amber-400">{{ error }}</p>
+            <p v-if="error" class="text-[11px] text-sem-warning">{{ error }}</p>
             <div v-if="!announces.length && !loading" class="text-[11px] text-sem-fg-muted">
                 {{ $t("map.data_empty") }}
             </div>
@@ -37,8 +37,8 @@
                         <div class="text-[12px] font-semibold text-sem-fg truncate">
                             {{ item.map_name || $t("map.data_heard_hash") }}
                         </div>
-                        <div class="text-[10px] font-mono text-gray-500 truncate">{{ item.destination_hash }}</div>
-                        <div class="text-[10px] text-gray-500">
+                        <div class="text-[10px] font-mono text-sem-fg-muted truncate">{{ item.destination_hash }}</div>
+                        <div class="text-[10px] text-sem-fg-muted">
                             {{ $t("map.data_maps_count", { count: item.map_count || 0 }) }}
                         </div>
                     </div>
@@ -66,13 +66,13 @@
                     >
                         <div class="min-w-0">
                             <div class="text-[11px] truncate">{{ entry.name }}</div>
-                            <div class="text-[9px] text-gray-500">
+                            <div class="text-[9px] text-sem-fg-muted">
                                 {{ entry.format }} · {{ formatSize(entry.size) }}
                             </div>
                         </div>
                         <button
                             type="button"
-                            class="text-[10px] font-semibold bg-blue-500 text-white rounded px-2 py-1 disabled:opacity-40"
+                            class="text-[10px] font-semibold bg-sem-action-primary text-sem-action-primary-text rounded px-2 py-1 disabled:opacity-40"
                             :disabled="busyHash === item.destination_hash + entry.id"
                             @click="addOverlay(item.destination_hash, entry.id)"
                         >
@@ -88,8 +88,8 @@
 <script>
 import ToastUtils from "../../../js/ToastUtils";
 import GlobalEmitter from "../../../js/GlobalEmitter";
-import { onWsEvent, offWsEvent } from "../../../js/registries/wsEventRegistry.js";
-import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../../js/constants.js";
+import { onWsEvent, offWsEvent } from "../../../js/registries/wsEventRegistry";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../../js/constants";
 import * as mapApi from "../../../js/api/map.js";
 
 function errorMessage(t, code) {

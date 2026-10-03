@@ -2,15 +2,15 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import CommandPalette from "../../meshchatx/src/frontend/components/CommandPalette.vue";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
-import { commandRegistry } from "../../meshchatx/src/frontend/js/registries/commandRegistry.js";
-import { navRegistry } from "../../meshchatx/src/frontend/js/registries/navRegistry.js";
-import { toolsRegistry } from "../../meshchatx/src/frontend/js/registries/toolsRegistry.js";
-import { settingsSectionRegistry } from "../../meshchatx/src/frontend/js/registries/settingsSectionRegistry.js";
+import { commandRegistry } from "../../meshchatx/src/frontend/js/registries/commandRegistry";
+import { navRegistry } from "../../meshchatx/src/frontend/js/registries/navRegistry";
+import { toolsRegistry } from "../../meshchatx/src/frontend/js/registries/toolsRegistry";
+import { settingsSectionRegistry } from "../../meshchatx/src/frontend/js/registries/settingsSectionRegistry";
 import {
     registerCoreContributions,
     resetCoreContributionsForTests,
-} from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
-import { postInstallPromptRegistry } from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry.js";
+} from "../../meshchatx/src/frontend/js/registries/registerCoreContributions";
+import { postInstallPromptRegistry } from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry";
 
 describe("CommandPalette.vue", () => {
     let axiosMock;

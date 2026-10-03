@@ -62,7 +62,7 @@
 
             <template v-else>
                 <header
-                    class="z-100 flex shrink-0 bg-sem-canvas border-sem-border border-b min-h-12 sm:min-h-14 shadow-xs transition-colors pt-[env(safe-area-inset-top,0px)]"
+                    class="z-100 flex shrink-0 bg-sem-surface border-sem-border border-b min-h-12 sm:min-h-14 shadow-xs transition-colors pt-[env(safe-area-inset-top,0px)]"
                 >
                     <div
                         class="flex w-full min-h-12 sm:min-h-14 items-center gap-0 overflow-x-auto no-scrollbar pl-2 pr-2 sm:ps-0 sm:pe-3"
@@ -119,59 +119,67 @@
                             >
                                 <MaterialDesignIcon icon-name="magnify" class="w-5 h-5" />
                             </button>
-                            <button
-                                v-for="item in topNavItems"
-                                :key="item.id"
-                                type="button"
-                                class="relative inline-flex rounded-full p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 items-center justify-center text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
-                                :class="{ 'text-sem-accent': $route.name === item.route?.name }"
-                                :title="$t(item.labelKey)"
-                                :aria-label="$t(item.labelKey)"
-                                :data-testid="`header-nav-${item.id}`"
-                                @click="$router.push(item.route)"
-                            >
-                                <MaterialDesignIcon :icon-name="item.icon" class="w-5 h-5" />
-                                <span
-                                    v-if="navBadgeCount(item) > 0"
-                                    class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-sem-action-danger px-1 text-[10px] font-bold leading-none text-sem-action-danger-text"
-                                >
-                                    {{ navBadgeText(item) }}
-                                </span>
-                            </button>
-                            <button
-                                type="button"
-                                class="sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
-                                :title="isSyncingPropagationNode ? $t('app.syncing') : $t('app.sync_messages')"
-                                @click="syncPropagationNode"
-                            >
-                                <MaterialDesignIcon
-                                    icon-name="refresh"
-                                    class="w-5 h-5"
-                                    :class="{ 'animate-spin': isSyncingPropagationNode }"
+                            <template v-for="item in topNavItems" :key="item.id">
+                                <LanguageSelector
+                                    v-if="item.action === 'languageSelector'"
+                                    :data-testid="`header-nav-${item.id}`"
+                                    @language-change="onLanguageChange"
                                 />
-                            </button>
+                                <button
+                                    v-else
+                                    type="button"
+                                    class="relative inline-flex rounded-full p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 items-center justify-center text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                                    :class="{ 'text-sem-accent': $route.name === item.route?.name }"
+                                    :title="
+                                        item.action === 'syncMessages'
+                                            ? isSyncingPropagationNode
+                                                ? $t('app.syncing')
+                                                : $t(item.labelKey)
+                                            : $t(item.labelKey)
+                                    "
+                                    :aria-label="
+                                        item.action === 'syncMessages'
+                                            ? isSyncingPropagationNode
+                                                ? $t('app.syncing')
+                                                : $t(item.labelKey)
+                                            : $t(item.labelKey)
+                                    "
+                                    :data-testid="`header-nav-${item.id}`"
+                                    @click="onNavItemClick(item)"
+                                >
+                                    <span v-if="item.action === 'syncMessages'" class="relative inline-flex size-5">
+                                        <MaterialDesignIcon icon-name="email-outline" class="size-5" />
+                                        <MaterialDesignIcon
+                                            :icon-name="propagationSyncOverlayIcon"
+                                            class="absolute -top-1 -right-1.5 size-3 rounded-full bg-sem-canvas"
+                                            :class="{
+                                                'animate-spin-reverse text-sem-info': isSyncingPropagationNode,
+                                                'text-sem-success':
+                                                    !isSyncingPropagationNode && propagationSyncResult === 'success',
+                                                'text-sem-danger':
+                                                    !isSyncingPropagationNode && propagationSyncResult === 'error',
+                                                'text-sem-fg-muted':
+                                                    !isSyncingPropagationNode && propagationSyncResult == null,
+                                            }"
+                                        />
+                                    </span>
+                                    <MaterialDesignIcon v-else :icon-name="item.icon" class="w-5 h-5" />
+                                    <span
+                                        v-if="navBadgeCount(item) > 0"
+                                        class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-sem-action-danger px-1 text-[10px] font-bold leading-none text-sem-action-danger-text"
+                                    >
+                                        {{ navBadgeText(item) }}
+                                    </span>
+                                </button>
+                            </template>
                             <button
                                 v-if="inboundDeliveryCount > 0"
                                 type="button"
-                                class="sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                                class="sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-sem-warning hover:bg-sem-warning/15 dark:hover:bg-sem-warning/15 transition-colors"
                                 :title="$t('app.cancel_inbound_deliveries')"
                                 @click="cancelInboundDeliveries"
                             >
                                 <MaterialDesignIcon icon-name="close-circle-outline" class="w-5 h-5" />
-                            </button>
-                            <button type="button" class="hidden sm:flex rounded-full" @click="syncPropagationNode">
-                                <span
-                                    class="flex items-center text-sem-fg bg-sem-surface-raised border border-sem-border hover:border-sem-accent px-2.5 py-1.5 rounded-full shadow-xs transition"
-                                >
-                                    <MaterialDesignIcon
-                                        icon-name="refresh"
-                                        class="size-5"
-                                        :class="{ 'animate-spin': isSyncingPropagationNode }"
-                                    />
-                                    <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">{{
-                                        isSyncingPropagationNode ? $t("app.syncing") : $t("app.sync_messages")
-                                    }}</span>
-                                </span>
                             </button>
                             <button
                                 v-if="inboundDeliveryCount > 0"
@@ -180,7 +188,7 @@
                                 @click="cancelInboundDeliveries"
                             >
                                 <span
-                                    class="flex items-center text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-500/60 px-2.5 py-1.5 rounded-full shadow-xs transition"
+                                    class="flex items-center text-sem-warning dark:text-sem-warning bg-sem-warning/15 border border-sem-warning dark:border-sem-warning hover:border-sem-warning dark:hover:border-amber-500/60 px-2.5 py-1.5 rounded-full shadow-xs transition"
                                 >
                                     <MaterialDesignIcon icon-name="close-circle-outline" class="size-5" />
                                     <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">{{
@@ -340,7 +348,7 @@
                                 <div v-if="appInfo?.version" class="shrink-0 border-t border-sem-border bg-sem-canvas">
                                     <RouterLink
                                         :to="{ name: 'about' }"
-                                        class="flex items-center gap-2 py-2 text-[10px] font-mono text-gray-500 transition-colors hover:text-gray-700 text-sem-fg-muted dark:hover:text-zinc-300"
+                                        class="flex items-center gap-2 py-2 text-[10px] font-mono text-sem-fg-muted transition-colors hover:text-sem-fg text-sem-fg-muted dark:hover:text-sem-fg-secondary"
                                         :class="isSidebarCollapsed ? 'justify-center px-0' : 'justify-start px-3'"
                                         data-testid="sidebar-app-version"
                                         :title="sidebarVersionTitle"
@@ -448,7 +456,7 @@
                             v-if="lxmfQrDataUrl"
                             :src="lxmfQrDataUrl"
                             alt="LXMF QR"
-                            class="w-48 h-48 bg-white rounded-xl border border-sem-border"
+                            class="w-48 h-48 bg-sem-surface rounded-xl border border-sem-border"
                         />
                     </div>
                     <div
@@ -477,13 +485,14 @@
 
 <script>
 import { mapStores } from "pinia";
-import { useAuthStore } from "../js/stores/authStore.js";
-import { useNetworkStore } from "../js/stores/networkStore.js";
-import { useConfigStore } from "../js/stores/configStore.js";
+import { useAuthStore } from "../js/stores/authStore";
+import { useNetworkStore } from "../js/stores/networkStore";
+import { useConfigStore } from "../js/stores/configStore";
 import { useInterfaceChangesStore } from "../js/stores/interfaceChangesStore.js";
-import { useUnreadStore } from "../js/stores/unreadStore.js";
-import { useIdentityStore } from "../js/stores/identityStore.js";
+import { useUnreadStore } from "../js/stores/unreadStore";
+import { useIdentityStore } from "../js/stores/identityStore";
 import { getCurrentInstance, watch } from "vue";
+import { prewarmEmojiPicker } from "../js/emojiPickerPrewarm.js";
 import SidebarLink from "./SidebarLink.vue";
 import DialogUtils from "../js/DialogUtils";
 import LiveTransport from "../js/liveTransport.js";
@@ -494,7 +503,7 @@ import { countRelayMentions } from "../js/relayMentionCount.js";
 import { isRetryableHttpError } from "../js/httpRetry.js";
 import Utils from "../js/Utils";
 import GlobalEmitter from "../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../js/constants.js";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../js/constants";
 import * as notificationsApi from "../js/api/notifications.js";
 import NotificationUtils from "../js/NotificationUtils";
 import NotificationSoundUtils from "../js/NotificationSoundUtils";
@@ -555,9 +564,9 @@ import { isMeshChatXAndroid } from "../js/webAudioMicPermission.js";
 import { postRequestPath } from "../js/reticulumPathfinding.js";
 import { fetchCsrfToken } from "../js/csrfToken.js";
 import ToneGenerator from "../js/ToneGenerator";
-import { listNavItems } from "../js/registries/navRegistry.js";
-import { orderedTopNavItems, topNavLayoutState } from "../js/appTopNavLayout.js";
-import { onWsEvent, offWsEvent } from "../js/registries/wsEventRegistry.js";
+import { listNavItems } from "../js/registries/navRegistry";
+import { orderedTopNavItems, topNavLayoutState } from "../js/appTopNavLayout";
+import { onWsEvent, offWsEvent } from "../js/registries/wsEventRegistry";
 import { shouldShowMultiSessionToast } from "../js/activeSessions.js";
 import { isDatabaseRecoveryError, recoveryLocationForNetworkError } from "../js/networkRecovery.js";
 import { handleLxmIngestUriResult } from "../js/ingestUriResultNavigation.js";
@@ -591,6 +600,7 @@ import {
     subscribeSystemTheme,
     systemPrefersDark,
 } from "../theme/themeEngine.js";
+import { applyFontConfig } from "../js/fontLoader.js";
 
 const IDENTITY_SAVE_DEBOUNCE_MS = 500;
 
@@ -671,6 +681,8 @@ export default {
 
             activeCall: null,
             propagationNodeStatus: null,
+            // null | "success" | "error" - transient result badge on the sync icon
+            propagationSyncResult: null,
             isCallEnded: false,
             wasDeclined: false,
             lastCall: null,
@@ -784,11 +796,14 @@ export default {
             return useConfigStore().config?.rrc_enabled !== false;
         },
         rawVisibleNavItems() {
+            return listNavItems().filter((item) => !item.action && this.isNavItemVisible(item));
+        },
+        rawTopNavItems() {
             return listNavItems().filter((item) => this.isNavItemVisible(item));
         },
         topNavItems() {
             void topNavLayoutState.itemIds;
-            return orderedTopNavItems(this.rawVisibleNavItems, topNavLayoutState.itemIds);
+            return orderedTopNavItems(this.rawTopNavItems, topNavLayoutState.itemIds);
         },
         activeNavLayout() {
             if (this.isSidebarNavEditing && this.sidebarNavLayoutDraft) {
@@ -827,6 +842,18 @@ export default {
             }
             void this.lastAnnouncedTick;
             return this.formatSecondsAgo(this.config.last_announced_at);
+        },
+        propagationSyncOverlayIcon() {
+            if (this.isSyncingPropagationNode) {
+                return "sync";
+            }
+            if (this.propagationSyncResult === "success") {
+                return "check-circle";
+            }
+            if (this.propagationSyncResult === "error") {
+                return "alert-circle";
+            }
+            return "sync";
         },
         isSyncingPropagationNode() {
             // Only treat sync as "running" in the chrome when the user started it.
@@ -1006,6 +1033,7 @@ export default {
     },
     mounted() {
         try {
+            prewarmEmojiPicker();
             const savedSidebarCollapsed = loadFeatureSidebarCollapsed("app");
             if (savedSidebarCollapsed !== null) {
                 this.isSidebarCollapsed = savedSidebarCollapsed;
@@ -1089,6 +1117,15 @@ export default {
             const count = this.navBadgeCount(item);
             const cap = item?.badge?.cap ?? 99;
             return count > cap ? `${cap}+` : String(count);
+        },
+        onNavItemClick(item) {
+            if (item.action === "syncMessages") {
+                this.syncPropagationNode();
+            } else if (item.action === "toggleTheme") {
+                this.toggleTheme();
+            } else if (item.route) {
+                this.$router.push(item.route);
+            }
         },
         enterSidebarNavEdit() {
             if (this.isSidebarCollapsed || this.isSidebarNavEditing) {
@@ -1744,6 +1781,7 @@ export default {
             applyAppearanceTheme(config, {
                 prefersDark: this.systemPrefersDark,
             });
+            applyFontConfig(config);
         },
         applyShellAppearance() {
             if (typeof document === "undefined") {
@@ -2029,6 +2067,13 @@ export default {
                 }
                 this.appInfo = info;
 
+                // Gate features that need a newer backend - hide/disable UI
+                // for capabilities absent from older backends.
+                if (info) {
+                    useConfigStore().backendCapabilities = info.capabilities || {};
+                    useConfigStore().backendApiVersion = info.api_version ?? 1;
+                }
+
                 showDatabaseHealthIssuesToastIfNeeded(this.appInfo.database_health_issues, ToastUtils);
 
                 // check URL params for modal triggers
@@ -2306,6 +2351,24 @@ export default {
             // emit global event handled by MessagesPage
             GlobalEmitter.emit(EMITTER_EVENTS.COMPOSE_NEW_MESSAGE);
         },
+        emitPropagationSyncState() {
+            GlobalEmitter.emit(EMITTER_EVENTS.PROPAGATION_SYNC_STATE, {
+                syncing: this.isSyncingPropagationNode,
+                result: this.propagationSyncResult,
+            });
+        },
+        markPropagationSyncResult(result) {
+            this.propagationSyncResult = result;
+            if (this.propagationSyncResultTimer != null) {
+                clearTimeout(this.propagationSyncResultTimer);
+            }
+            this.propagationSyncResultTimer = setTimeout(() => {
+                this.propagationSyncResult = null;
+                this.propagationSyncResultTimer = null;
+                this.emitPropagationSyncState();
+            }, 8000);
+            this.emitPropagationSyncState();
+        },
         async syncPropagationNode() {
             const propagationSyncToastKey = "propagation-sync-status";
             // ask to stop syncing if already syncing
@@ -2334,6 +2397,7 @@ export default {
                 await window.api.post(apiPath("/lxmf/propagation-node/sync"));
             } catch (e) {
                 this.userInitiatedPropagationSync = false;
+                this.markPropagationSyncResult("error");
                 const errorMessage =
                     e.response?.data?.message ?? e.response?.data?.error ?? this.$t("app.sync_error_generic");
                 if (e.response?.data?.code === "propagation_node_not_configured") {
@@ -2367,6 +2431,7 @@ export default {
                             }
                             await this.stopSyncingPropagationNode();
                             this.userInitiatedPropagationSync = false;
+                            this.markPropagationSyncResult("error");
                             ToastUtils.error(
                                 this.$t("app.sync_error", {
                                     status: this.propagationSyncStatusLabel("path_timeout"),
@@ -2389,10 +2454,12 @@ export default {
                     const deliveryConfirmations = this.propagationNodeStatus?.delivery_confirmations ?? 0;
                     const messagesHidden = this.propagationNodeStatus?.messages_hidden ?? 0;
                     if (status === "complete" || status === "idle") {
+                        this.markPropagationSyncResult("success");
                         const base = this.$t("app.sync_complete", { count: messagesReceived });
                         const details = `${messagesStored} stored, ${deliveryConfirmations} confirmations, ${messagesHidden} hidden`;
                         ToastUtils.success(`${base} (${details})`);
                     } else {
+                        this.markPropagationSyncResult("error");
                         ToastUtils.error(
                             this.$t("app.sync_error", {
                                 status: this.propagationSyncStatusLabel(status),
@@ -2406,6 +2473,7 @@ export default {
 
             if (this.isSyncingPropagationNode) {
                 ToastUtils.loading(this.propagationSyncLiveToastMessage(), 0, propagationSyncToastKey);
+                this.emitPropagationSyncState();
                 this._propagationSyncPollTimer = setInterval(poll, 500);
             } else {
                 this.userInitiatedPropagationSync = false;

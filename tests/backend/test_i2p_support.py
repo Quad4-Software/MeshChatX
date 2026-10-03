@@ -474,3 +474,55 @@ peers = aaa.b32.i2p
     assert calls["n"] == 2
     cfg = ConfigObj(str(config_path))
     assert i2p_support.is_interface_enabled(cfg["interfaces"]["I2P"]) is False
+
+
+def test_i2p_peer_inherits_configured_mode():
+    """I2PInterfacePeer created in __init__ gets the configured mode, not MODE_FULL."""
+    from RNS.Interfaces.I2PInterface import I2PInterfacePeer
+
+    assert i2p_support.patch_i2p_interface()
+
+    peers = []
+    original_init = I2PInterfacePeer.__init__
+
+    cfg = ConfigObj(
+        [
+            "name = I2P",
+            "storagepath = /tmp/i2p_test",
+            "mode = boundary",
+            "peers = aaa.b32.i2p",
+        ]
+    )
+    config_section = cfg
+
+    def capture_init(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        peers.append(self)
+
+    with patch.object(I2PInterfacePeer, "__init__", capture_init):
+        with patch.object(RNS.Transport, "add_interface"):
+            with patch("RNS.Interfaces.I2PInterface.I2PController") as mock_ctrl:
+                mock_ctrl.return_value.ready = True
+                mock_ctrl.return_value.get_free_port.return_value = 9999
+                # The constructor will block on i2p.ready - patch start to no-op
+                with patch.object(mock_ctrl.return_value, "start"):
+                    from RNS.Interfaces.I2PInterface import I2PInterface
+
+                    reticulum = MagicMock()
+                    reticulum._default_ic_max_held_announces.return_value = None
+                    reticulum._default_ic_burst_hold.return_value = None
+                    reticulum._default_ic_burst_freq.return_value = None
+                    reticulum._default_ic_burst_freq_new.return_value = None
+                    reticulum._default_ic_new_time.return_value = None
+                    reticulum._default_ic_burst_penalty.return_value = None
+                    reticulum._default_ic_held_release_interval.return_value = None
+                    reticulum.should_use_ingress_control.return_value = False
+                    with patch.object(
+                        RNS.Reticulum, "get_instance", return_value=reticulum
+                    ):
+                        iface = I2PInterface(reticulum, config_section)
+                    from RNS.Interfaces.Interface import Interface
+
+                    assert iface.mode == Interface.MODE_BOUNDARY
+                    for p in peers:
+                        assert p.mode == Interface.MODE_BOUNDARY

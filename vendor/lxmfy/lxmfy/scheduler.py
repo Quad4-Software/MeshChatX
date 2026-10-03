@@ -5,11 +5,13 @@ for LXMFy bots.
 """
 
 import logging
-import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from threading import Event, Thread
+from typing import Any
+
+from ._sync import run_sync
 
 logger = logging.getLogger(__name__)
 
@@ -94,16 +96,19 @@ class ScheduledTask:
 
         parts = pattern.split(",")
         for part in parts:
-            if "-" in part:
-                start, end = map(int, part.split("-"))
-                if min_val <= start <= value <= end <= max_val:
+            try:
+                if "-" in part:
+                    start, end = map(int, part.split("-"))
+                    if min_val <= start <= value <= end <= max_val:
+                        return True
+                elif "/" in part:
+                    step = int(part.split("/")[1])
+                    if step > 0 and value % step == 0:
+                        return True
+                elif int(part) == value:
                     return True
-            elif "/" in part:
-                step = int(part.split("/")[1])
-                if value % step == 0:
-                    return True
-            elif int(part) == value:
-                return True
+            except ValueError:
+                continue
 
         return False
 
@@ -111,7 +116,7 @@ class ScheduledTask:
 class TaskScheduler:
     """Manages scheduled tasks and background processes."""
 
-    def __init__(self, bot):
+    def __init__(self, bot: Any):
         """Initialize the TaskScheduler.
 
         Args:
@@ -177,18 +182,16 @@ class TaskScheduler:
     def _scheduler_loop(self):
         """Main scheduler loop.  Checks and runs tasks based on their cron expressions."""
         while not self.stop_event.is_set():
-            current_time = datetime.now()
+            current_time = datetime.now()  # noqa: DTZ005 - cron matches local wall time
 
-            for task in self.tasks.values():
-                if task.should_run(current_time):
-                    try:
-                        task.callback()
+            for task in list(self.tasks.values()):
+                try:
+                    if task.should_run(current_time):
+                        run_sync(task.callback)
                         task.last_run = current_time
-                    except Exception as e:
-                        self.logger.error(
-                            "Error running task %s: %s",
-                            task.name,
-                            str(e),
-                        )
+                except Exception:
+                    self.logger.exception("Error running task %s", task.name)
 
-            time.sleep(60 - datetime.now().second)
+            self.stop_event.wait(
+                max(0, 60 - datetime.now().second)  # noqa: DTZ005
+            )

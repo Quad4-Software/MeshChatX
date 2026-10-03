@@ -66,16 +66,26 @@ def main() -> None:
     if workflow:
         internal["workflow"] = workflow
 
+    resolved = []
+    source = _source_uri()
+    if source and sha:
+        resolved.append(
+            {
+                "uri": source,
+                "digest": {"gitCommit": sha},
+            }
+        )
+
     predicate = {
         "buildDefinition": {
             "buildType": _build_type(),
             "externalParameters": {
-                "source": _source_uri(),
+                "source": source,
                 "ref": ref,
                 "revision": sha,
             },
             "internalParameters": internal,
-            "resolvedDependencies": [],
+            "resolvedDependencies": resolved,
         },
         "runDetails": {
             "builder": {"id": _builder_id()},

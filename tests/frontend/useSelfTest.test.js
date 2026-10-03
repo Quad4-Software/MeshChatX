@@ -35,7 +35,7 @@ describe("useSelfTest", () => {
         for (const c of ["stack_up"]) ok[c] = { status: "ok" };
         window.api.get = vi.fn(async () => ({ data: { stack_up: { status: "ok" } } }));
         await st.runSelfTest();
-        // unknown keys are not in the check list; listed keys missing -> failed
+        // unknown keys are not in the check list. listed keys missing -> failed
         expect(st.selfTestChecks.value.length).toBeGreaterThan(0);
         st.selfTestResults.value = Object.fromEntries(st.selfTestChecks.value.map((c) => [c.key, { status: "ok" }]));
         expect(st.allSelfTestChecksPassed.value).toBe(true);

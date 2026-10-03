@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="space-y-3 rounded-xl border border-sem-border bg-gray-50/50 dark:bg-zinc-900/40 p-3">
+    <div class="space-y-3 rounded-xl border border-sem-border bg-sem-surface-muted/80 dark:bg-sem-surface p-3">
         <div class="flex items-center justify-between gap-2">
             <span class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest">{{
                 $t("map.remote_overlays_title")
@@ -65,7 +65,7 @@
             </label>
             <button
                 type="button"
-                class="py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-40"
+                class="py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-sem-info hover:bg-sem-action-primary text-sem-action-primary-text disabled:opacity-40"
                 :disabled="disabled || importing || !url.trim()"
                 @click="importSources"
             >
@@ -89,11 +89,11 @@
                             {{ overlay.kind }} · {{ overlay.status }}
                             <span v-if="overlay.format"> · {{ overlay.format }}</span>
                         </div>
-                        <div v-if="overlay.last_error" class="text-[9px] text-red-500 truncate">
+                        <div v-if="overlay.last_error" class="text-[9px] text-sem-danger truncate">
                             {{ overlay.last_error }}
                         </div>
                     </div>
-                    <label class="flex items-center gap-1 text-[9px] text-gray-500 shrink-0">
+                    <label class="flex items-center gap-1 text-[9px] text-sem-fg-muted shrink-0">
                         <input
                             type="checkbox"
                             :checked="Boolean(overlay.visible)"
@@ -145,7 +145,7 @@
                     </button>
                     <button
                         type="button"
-                        class="px-1.5 py-1 text-[9px] font-bold uppercase rounded bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400"
+                        class="px-1.5 py-1 text-[9px] font-bold uppercase rounded bg-sem-danger/15 text-red-600 dark:bg-sem-danger/15 dark:text-sem-danger"
                         :disabled="disabled"
                         @click="remove(overlay)"
                     >
@@ -159,7 +159,7 @@
 </template>
 
 <script>
-import { apiPath } from "../../../js/constants.js";
+import { apiPath } from "../../../js/constants";
 
 export default {
     name: "MapRemoteOverlayPanel",

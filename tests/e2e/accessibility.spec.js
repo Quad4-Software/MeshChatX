@@ -59,7 +59,7 @@ const ROUTES = [
 const FAIL_IMPACTS = new Set(["serious", "critical"]);
 
 // Known a11y debt, keyed as route|rule. New violations outside this
-// baseline fail the run; paying down entries is welcome. Regenerate
+// baseline fail the run. paying down entries is welcome. Regenerate
 // after fixing a batch by recording the live violation keys.
 const BASELINE = new Set(JSON.parse(readFileSync(join(__dirname, "a11y-baseline.json"), "utf8")));
 

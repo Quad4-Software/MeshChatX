@@ -814,7 +814,7 @@ class TestCrashRecovery(unittest.TestCase):
         self.recovery._update_learned_weights()
 
         weights = json.loads(captured["diagnostic_weights"])
-        # 40/42 confident hits would be ~0.95 unbounded; the guardrail caps
+        # 40/42 confident hits would be ~0.95 unbounded. the guardrail caps
         # learned drift at 4x the default prior (0.05 -> 0.20) and floors a
         # cause with no hits at 0.25x its default (0.10 -> 0.025).
         self.assertEqual(weights["DB_CORRUPTION"], 0.2)

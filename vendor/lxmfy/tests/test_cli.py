@@ -33,6 +33,12 @@ from lxmfy.colors import (
 class TestColors:
     """Test Colors class."""
 
+    def setup_method(self):
+        Colors.reset()
+
+    def teardown_method(self):
+        Colors.reset()
+
     def test_colors_defined(self):
         """Test that all color constants are defined."""
         assert Colors.HEADER == "\033[95m"
@@ -44,6 +50,34 @@ class TestColors:
         assert Colors.ENDC == "\033[0m"
         assert Colors.BOLD == "\033[1m"
         assert Colors.UNDERLINE == "\033[4m"
+
+    def test_no_color_env_disables(self, monkeypatch):
+        """NO_COLOR disables ANSI output."""
+        Colors.reset()
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.delenv("FORCE_COLOR", raising=False)
+        monkeypatch.delenv("CLICOLOR_FORCE", raising=False)
+        assert Colors.is_colors_supported() is False
+        assert Colors.colorize("x", Colors.RED) == "x"
+
+    def test_force_color_env_enables(self, monkeypatch):
+        """FORCE_COLOR enables ANSI even when detection would disable."""
+        Colors.reset()
+        monkeypatch.delenv("NO_COLOR", raising=False)
+        monkeypatch.setenv("FORCE_COLOR", "1")
+        assert Colors.is_colors_supported() is True
+
+    def test_set_enabled_override(self):
+        """set_enabled forces color state."""
+        Colors.set_enabled(False)
+        assert Colors.is_colors_supported() is False
+        Colors.set_enabled(True)
+        assert Colors.is_colors_supported() is True
+
+    def test_strip_colors(self):
+        """strip_colors removes ANSI sequences."""
+        colored = f"{Colors.RED}hi{Colors.ENDC}"
+        assert Colors.strip_colors(colored) == "hi"
 
 
 class TestPrintFunctions:
@@ -114,7 +148,7 @@ class TestInputFunctions:
     @patch("lxmfy.cli.print_error")
     def test_get_user_choice_invalid_then_valid(self, mock_print_error, mock_input):
         """Test get_user_choice with invalid then valid input."""
-        mock_input.side_effect = ["4", "2"]
+        mock_input.side_effect = ["5", "2"]
         result = get_user_choice()
         assert result == "2"
         mock_print_error.assert_called_once()
@@ -230,7 +264,7 @@ class TestFileCreation:
         with open(output_path) as f:
             content = f.read()
             assert "from lxmfy import LXMFBot" in content
-            assert 'name="TestBot"' in content
+            assert 'LXMFBot("TestBot"' in content
 
     def test_create_bot_file_no_cogs(self, tmp_path):
         """Test create_bot_file with no_cogs=True."""
@@ -406,8 +440,9 @@ class TestMainFunction:
     def test_main_signatures_test(self, mock_print):
         """Test main function signatures test command."""
         main()
-        # Should print signature test messages
-        assert mock_print.call_count > 5
+        printed = " ".join(str(c.args[0]) for c in mock_print.call_args_list if c.args)
+        assert "Signature verification successful" in printed
+        assert "Signature verification failed" not in printed
 
     @patch("sys.argv", ["lxmfy", "signatures", "enable"])
     @patch("builtins.print")

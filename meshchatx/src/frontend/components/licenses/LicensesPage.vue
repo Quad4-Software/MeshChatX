@@ -42,7 +42,7 @@
             >
                 <div
                     v-if="loadError"
-                    class="rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-4 py-3 text-sm text-red-800 dark:text-red-200"
+                    class="rounded-lg border border-sem-danger dark:border-sem-danger bg-sem-danger/15 dark:bg-sem-danger/15 px-4 py-3 text-sm text-sem-danger text-sem-danger"
                 >
                     {{ loadError }}
                 </div>
@@ -55,7 +55,7 @@
                 <template v-else>
                     <div class="license-grid grid grid-cols-1 gap-4 xl:grid-cols-2 xl:gap-6 xl:items-start">
                         <details
-                            class="license-details rounded-lg border border-sem-border bg-gray-50/50 dark:bg-zinc-900/40 open:bg-white dark:open:bg-zinc-950 overflow-hidden"
+                            class="license-details rounded-lg border border-sem-border bg-sem-surface-muted/80 dark:bg-sem-surface open:bg-sem-surface dark:open:bg-sem-surface overflow-hidden"
                             open
                         >
                             <summary
@@ -70,12 +70,12 @@
                                 />
                             </summary>
                             <div
-                                class="license-details-body border-t border-gray-100/80 dark:border-zinc-800/50 max-h-[min(65vh,32rem)] xl:max-h-[min(calc(100dvh-14rem),44rem)] overflow-x-auto overflow-y-auto overscroll-contain px-1 sm:px-2 pb-3 sm:pb-4"
+                                class="license-details-body border-t border-sem-border dark:border-sem-border max-h-[min(65vh,32rem)] xl:max-h-[min(calc(100dvh-14rem),44rem)] overflow-x-auto overflow-y-auto overscroll-contain px-1 sm:px-2 pb-3 sm:pb-4"
                             >
                                 <table class="min-w-full text-left border-collapse text-xs sm:text-sm">
                                     <thead>
                                         <tr
-                                            class="sticky top-0 z-1 border-b border-sem-border bg-gray-50/95 dark:bg-zinc-900/95 backdrop-blur-xs text-sem-fg-muted"
+                                            class="sticky top-0 z-1 border-b border-sem-border bg-sem-surface-muted/80 dark:bg-sem-surface backdrop-blur-xs text-sem-fg-muted"
                                         >
                                             <th class="py-2 px-2 sm:px-3 font-medium">
                                                 {{ $t("licenses.col_package") }}
@@ -95,7 +95,7 @@
                                         <tr
                                             v-for="row in filteredBackend"
                                             :key="'b-' + row.name + row.version"
-                                            class="border-b border-sem-border/80 hover:bg-gray-50/80 dark:hover:bg-zinc-900/60"
+                                            class="border-b border-sem-border/80 hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface"
                                         >
                                             <td
                                                 class="py-2 px-2 sm:px-3 font-mono text-[11px] sm:text-xs text-sem-fg align-top"
@@ -129,7 +129,7 @@
                         </details>
 
                         <details
-                            class="license-details rounded-lg border border-sem-border bg-gray-50/50 dark:bg-zinc-900/40 open:bg-white dark:open:bg-zinc-950 overflow-hidden"
+                            class="license-details rounded-lg border border-sem-border bg-sem-surface-muted/80 dark:bg-sem-surface open:bg-sem-surface dark:open:bg-sem-surface overflow-hidden"
                             open
                         >
                             <summary
@@ -144,12 +144,12 @@
                                 />
                             </summary>
                             <div
-                                class="license-details-body border-t border-gray-100/80 dark:border-zinc-800/50 max-h-[min(65vh,32rem)] xl:max-h-[min(calc(100dvh-14rem),44rem)] overflow-x-auto overflow-y-auto overscroll-contain px-1 sm:px-2 pb-3 sm:pb-4"
+                                class="license-details-body border-t border-sem-border dark:border-sem-border max-h-[min(65vh,32rem)] xl:max-h-[min(calc(100dvh-14rem),44rem)] overflow-x-auto overflow-y-auto overscroll-contain px-1 sm:px-2 pb-3 sm:pb-4"
                             >
                                 <table class="min-w-full text-left border-collapse text-xs sm:text-sm">
                                     <thead>
                                         <tr
-                                            class="sticky top-0 z-1 border-b border-sem-border bg-gray-50/95 dark:bg-zinc-900/95 backdrop-blur-xs text-sem-fg-muted"
+                                            class="sticky top-0 z-1 border-b border-sem-border bg-sem-surface-muted/80 dark:bg-sem-surface backdrop-blur-xs text-sem-fg-muted"
                                         >
                                             <th class="py-2 px-2 sm:px-3 font-medium">
                                                 {{ $t("licenses.col_package") }}
@@ -169,7 +169,7 @@
                                         <tr
                                             v-for="row in filteredFrontend"
                                             :key="'f-' + row.name + row.version"
-                                            class="border-b border-sem-border/80 hover:bg-gray-50/80 dark:hover:bg-zinc-900/60"
+                                            class="border-b border-sem-border/80 hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface"
                                         >
                                             <td
                                                 class="py-2 px-2 sm:px-3 font-mono text-[11px] sm:text-xs text-sem-fg align-top"
@@ -211,7 +211,7 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
-import { apiPath } from "../../js/constants.js";
+import { apiPath } from "../../js/constants";
 
 export default {
     name: "LicensesPage",

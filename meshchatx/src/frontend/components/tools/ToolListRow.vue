@@ -10,13 +10,13 @@
             <div class="tool-card__title">{{ tool.title }}</div>
             <span
                 v-if="tool.alpha"
-                class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-sm border border-violet-200 dark:border-violet-800"
+                class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-sem-info/15 dark:bg-sem-info/15 text-sem-info dark:text-sem-info rounded-sm border border-sem-info dark:border-sem-info"
             >
                 {{ $t("tools.alpha_badge") }}
             </span>
             <span
                 v-if="tool.beta"
-                class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-sm border border-amber-200 dark:border-amber-800"
+                class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-sem-warning/15 text-sem-warning rounded-sm border border-sem-warning dark:border-sem-warning"
             >
                 {{ $t("tools.beta_badge") }}
             </span>
@@ -34,7 +34,7 @@
             <a
                 :href="tool.extraAction.href"
                 :target="tool.extraAction.target"
-                class="p-2 hover:bg-sem-surface-muted rounded-lg transition-colors text-gray-400 hover:text-blue-500"
+                class="p-2 hover:bg-sem-surface-muted rounded-lg transition-colors text-sem-fg-muted hover:text-sem-info"
                 @click.stop
             >
                 <MaterialDesignIcon :icon-name="tool.extraAction.icon" class="size-5" />
@@ -74,6 +74,6 @@ export default {
     @apply text-sm text-sem-fg-muted mt-0.5 line-clamp-2 sm:line-clamp-none;
 }
 .tool-card__chevron {
-    @apply w-5 h-5 text-gray-400 shrink-0;
+    @apply w-5 h-5 text-sem-fg-muted shrink-0;
 }
 </style>

@@ -479,6 +479,18 @@ trustedIpcHandle("relaunch-auto-recover", () => {
     relaunchApp(["--auto-recover"]);
 });
 
+// Apply a verified, backend-staged update payload, then restart. The
+// pending marker is read from the backend storage dir, never from the
+// renderer, so a hostile page cannot steer the swap target or payload.
+trustedIpcHandle("update-apply", () => {
+    const { applyPendingUpdate } = require("./updateApply.js");
+    const result = applyPendingUpdate(getDefaultStorageDir());
+    if (result.applied) {
+        relaunchApp();
+    }
+    return result;
+});
+
 trustedIpcHandle("shutdown", () => {
     isQuiting = true;
     quit();

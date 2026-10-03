@@ -391,7 +391,7 @@ class WebAudioBridge:
         stale = []
         for ws in list(self.clients):
             # Backpressure: if a send is still in flight for this client, keep
-            # only the newest frame. Audio tolerates drops; a slow socket must
+            # only the newest frame. Audio tolerates drops. a slow socket must
             # not serialize the 60fps feed or pile up tasks.
             st = self._pcm_state.setdefault(id(ws), {})
             if st.get("inflight"):

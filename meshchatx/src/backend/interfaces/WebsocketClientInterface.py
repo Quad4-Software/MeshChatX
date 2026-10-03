@@ -43,7 +43,7 @@ class WebsocketClientInterface(Interface):
         # connect to websocket server if an existing connection was not provided
         self.websocket = websocket
         if self.websocket is None:
-            thread = threading.Thread(target=self.connect)
+            thread = threading.Thread(target=self.connect, name="mcx-ws-client")
             thread.daemon = True
             thread.start()
 

@@ -52,13 +52,11 @@
                         <div
                             v-for="i in 4"
                             :key="'skel-' + i"
-                            class="flex items-center gap-3 border-b border-gray-100 px-1 py-3 dark:border-zinc-800"
+                            class="flex items-center gap-3 border-b border-sem-border px-1 py-3 dark:border-sem-border"
                         >
-                            <div
-                                class="size-10 sm:size-12 rounded-full bg-gray-200 dark:bg-zinc-700 animate-pulse shrink-0"
-                            />
+                            <div class="size-10 sm:size-12 rounded-full bg-sem-surface-muted animate-pulse shrink-0" />
                             <div class="flex-1 min-w-0 space-y-2">
-                                <div class="h-4 w-32 bg-gray-200 dark:bg-zinc-700 rounded-sm animate-pulse" />
+                                <div class="h-4 w-32 bg-sem-surface-muted rounded-sm animate-pulse" />
                                 <div class="h-3 w-48 bg-sem-surface-muted rounded-sm animate-pulse" />
                             </div>
                         </div>
@@ -85,7 +83,7 @@
                                         {{ currentIdentity.display_name }}
                                     </h2>
                                     <span
-                                        class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-semibold uppercase tracking-wide"
+                                        class="px-2 py-0.5 rounded-full bg-sem-info/15 text-sem-info text-[10px] font-semibold uppercase tracking-wide"
                                     >
                                         {{ $t("identities.current") }}
                                     </span>
@@ -174,7 +172,7 @@
                                 identity.icon_foreground_colour,
                                 expandedAddressHashes[identity.hash],
                             ]"
-                            class="identity-row group py-3 px-1 transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-900/70"
+                            class="identity-row group py-3 px-1 transition-colors hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface"
                         >
                             <div class="flex items-center gap-3">
                                 <div class="size-10 sm:size-12 shrink-0">
@@ -205,7 +203,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="p-2 rounded-xl text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition"
+                                        class="p-2 rounded-xl text-sem-fg-muted hover:text-sem-danger hover:bg-sem-danger/15 dark:hover:bg-sem-danger/15 dark:hover:text-sem-danger transition"
                                         :title="$t('identities.delete')"
                                         @click="deleteIdentity(identity)"
                                     >
@@ -296,10 +294,15 @@
 
         <div
             v-if="showCreateModal"
+            v-escape-close="closeCreateModal"
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="showCreateModal = false"
         >
-            <div class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+            <div
+                role="dialog"
+                aria-modal="true"
+                class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden"
+            >
                 <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
                     <h2 class="text-lg font-bold text-sem-fg">
                         {{ $t("identities.new_identity") }}
@@ -311,7 +314,7 @@
                 <div class="p-5 space-y-4">
                     <p class="text-sm text-sem-fg-muted">{{ $t("identities.generate_fresh") }}</p>
                     <div>
-                        <label class="block text-xs uppercase tracking-wider font-semibold text-gray-500 mb-1">
+                        <label class="block text-xs uppercase tracking-wider font-semibold text-sem-fg-muted mb-1">
                             {{ $t("identities.display_name") }}
                         </label>
                         <input
@@ -342,10 +345,15 @@
 
         <div
             v-if="showImportModal"
+            v-escape-close="closeImportModal"
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="showImportModal = false"
         >
-            <div class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+            <div
+                role="dialog"
+                aria-modal="true"
+                class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden"
+            >
                 <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
                     <h2 class="text-lg font-bold text-sem-fg">
                         {{ $t("identities.import") }}
@@ -374,7 +382,7 @@
                         {{ $t("identities.upload_key_file") }}
                     </button>
                     <div class="border-t border-sem-border pt-4 space-y-3">
-                        <label class="block text-xs uppercase tracking-wider font-semibold text-gray-500">
+                        <label class="block text-xs uppercase tracking-wider font-semibold text-sem-fg-muted">
                             {{ $t("identities.paste_base32") }}
                         </label>
                         <textarea
@@ -384,10 +392,10 @@
                             :placeholder="$t('identities.paste_base32_placeholder')"
                             :disabled="identityRestoreInProgress"
                         />
-                        <div v-if="identityRestoreError" role="alert" class="text-sm text-red-600 dark:text-red-400">
+                        <div v-if="identityRestoreError" role="alert" class="text-sm text-sem-danger">
                             {{ identityRestoreError }}
                         </div>
-                        <div v-if="identityRestoreMessage" class="text-sm text-green-600 dark:text-green-400">
+                        <div v-if="identityRestoreMessage" class="text-sm text-sem-success">
                             {{ identityRestoreMessage }}
                         </div>
                         <button
@@ -426,7 +434,7 @@ import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants";
 import * as identitiesApi from "../../js/api/identities.js";
 import * as identityApi from "../../js/api/identity.js";
 
@@ -470,6 +478,12 @@ export default {
         GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHING_ABORT, this.onIdentitySwitchAborted);
     },
     methods: {
+        closeCreateModal() {
+            this.showCreateModal = false;
+        },
+        closeImportModal() {
+            this.showImportModal = false;
+        },
         onIdentitySwitchAborted() {
             this.isCreating = false;
         },
@@ -727,9 +741,9 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .identities-section {
-    @apply w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6;
+    @apply w-full border-b border-sem-border dark:border-sem-border py-4 sm:py-6;
 }
 .identities-section--hero {
-    @apply border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6;
+    @apply border-b border-sem-border dark:border-sem-border py-4 sm:py-6;
 }
 </style>

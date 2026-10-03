@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 dark:bg-sem-surface">
         <div class="overflow-y-auto">
             <div class="max-w-4xl mx-auto p-4 space-y-6">
                 <!-- Header with Preview -->
@@ -21,8 +21,8 @@
                                     class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     :class="
                                         hasChanges && !isSaving
-                                            ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:border-blue-500 dark:hover:bg-blue-600'
-                                            : 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-zinc-800 text-sem-fg-muted dark:border-zinc-700'
+                                            ? 'bg-sem-action-primary text-sem-action-primary-text border-sem-info hover:bg-sem-info dark:bg-sem-info dark:border-sem-accent dark:hover:bg-sem-info'
+                                            : 'bg-sem-surface-muted text-sem-fg border-sem-border dark:bg-sem-surface text-sem-fg-muted dark:border-sem-border'
                                     "
                                     @click="saveChanges"
                                 >
@@ -37,7 +37,7 @@
                                 <button
                                     type="button"
                                     :disabled="!hasChanges || isSaving"
-                                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sem-fg-muted hover:bg-gray-50 hover:bg-sem-surface-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-sem-border bg-sem-surface text-sem-fg-muted hover:bg-sem-surface-muted hover:bg-sem-surface-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     @click="resetChanges"
                                 >
                                     <MaterialDesignIcon icon-name="refresh" class="size-4" />
@@ -49,7 +49,7 @@
                     <div class="p-6">
                         <div class="flex flex-col items-center justify-center space-y-4">
                             <div class="text-sm font-medium text-sem-fg-muted">Preview</div>
-                            <div class="p-8 bg-gray-50 dark:bg-zinc-800 rounded-2xl">
+                            <div class="p-8 bg-sem-surface-muted rounded-2xl">
                                 <LxmfUserIcon
                                     :key="iconName + iconForegroundColour + iconBackgroundColour"
                                     :icon-name="iconName"
@@ -82,7 +82,7 @@
                                         <input
                                             v-model="iconBackgroundColour"
                                             type="text"
-                                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sem-fg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            class="w-full px-3 py-2 text-sm border border-sem-border rounded-lg bg-sem-surface text-sem-fg focus:ring-2 focus:ring-sem-accent focus:border-sem-accent"
                                             placeholder="#e5e7eb"
                                         />
                                     </div>
@@ -98,7 +98,7 @@
                                         <input
                                             v-model="iconForegroundColour"
                                             type="text"
-                                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sem-fg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            class="w-full px-3 py-2 text-sm border border-sem-border rounded-lg bg-sem-surface text-sem-fg focus:ring-2 focus:ring-sem-accent focus:border-sem-accent"
                                             placeholder="#6b7280"
                                         />
                                     </div>
@@ -121,10 +121,10 @@
                             <div
                                 v-for="mdiIconName of searchedIconNames"
                                 :key="mdiIconName"
-                                class="flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all hover:bg-sem-surface-muted hover:border-blue-500 dark:hover:border-blue-500"
+                                class="flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all hover:bg-sem-surface-muted hover:border-sem-accent dark:hover:border-sem-accent"
                                 :class="
                                     iconName === mdiIconName
-                                        ? 'border-blue-500 bg-sem-surface-muted'
+                                        ? 'border-sem-accent bg-sem-surface-muted'
                                         : 'border-sem-border'
                                 "
                                 @click="onIconClick(mdiIconName)"
@@ -175,7 +175,7 @@
                         </p>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-red-300 dark:border-red-800 bg-white dark:bg-zinc-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-sem-danger dark:border-sem-danger bg-sem-surface text-sem-danger hover:bg-sem-danger/15 dark:hover:bg-sem-danger/15 transition-colors"
                             @click="removeProfileIcon"
                         >
                             <MaterialDesignIcon icon-name="delete-outline" class="size-4" />
@@ -189,7 +189,7 @@
 </template>
 
 <script>
-import { useConfigStore } from "../../js/stores/configStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
 
 import * as mdi from "@mdi/js";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
@@ -198,7 +198,7 @@ import ColourPickerDropdown from "../ColourPickerDropdown.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../../js/constants";
 
 export default {
     name: "ProfileIconPage",

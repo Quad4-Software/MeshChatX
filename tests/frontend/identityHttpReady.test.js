@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { isIdentityHttpReady, runWhenIdentityHttpReady } from "@/js/identityHttpReady.js";
-import { useNetworkStore } from "@/js/stores/networkStore.js";
+import { useNetworkStore } from "@/js/stores/networkStore";
 
 describe("identityHttpReady", () => {
     const snapshot = {

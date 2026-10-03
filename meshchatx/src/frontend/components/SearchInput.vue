@@ -4,7 +4,7 @@
     <div class="relative group">
         <MaterialDesignIcon
             :icon-name="icon"
-            class="absolute left-3 top-1/2 -translate-y-1/2 shrink-0 text-gray-400 group-focus-within:text-sem-accent transition-colors pointer-events-none z-10"
+            class="absolute left-3 top-1/2 -translate-y-1/2 shrink-0 text-sem-fg-muted group-focus-within:text-sem-accent transition-colors pointer-events-none z-10"
             :class="compact ? 'size-4' : 'size-5'"
         />
         <input
@@ -19,7 +19,7 @@
         <div v-if="loading" class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
             <MaterialDesignIcon
                 icon-name="loading"
-                :class="[compact ? 'size-3.5' : 'size-4', 'text-gray-400 animate-spin']"
+                :class="[compact ? 'size-3.5' : 'size-4', 'text-sem-fg-muted animate-spin']"
             />
         </div>
         <button

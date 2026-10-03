@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ include "meshchatx.fullname" . }}
+    labels:
+        {{- include "meshchatx.labels" . | nindent 8 }}
+spec:
+    replicas: {{ .Values.replicaCount }}
+    selector:
+        matchLabels:
+            {{- include "meshchatx.selectorLabels" . | nindent 12 }}
+    template:
+        metadata:
+            annotations:
+                {{- toYaml .Values.podAnnotations | nindent 16 }}
+            labels:
+                {{- include "meshchatx.labels" . | nindent 16 }}
+                {{- with .Values.podLabels }}
+                {{- toYaml . | nindent 16 }}
+                {{- end }}
+        spec:
+            {{- with .Values.imagePullSecrets }}
+            imagePullSecrets:
+                {{- toYaml . | nindent 16 }}
+            {{- end }}
+            serviceAccountName: {{ include "meshchatx.serviceAccountName" . }}
+            securityContext:
+                {{- toYaml .Values.podSecurityContext | nindent 16 }}
+            containers:
+                - name: {{ .Chart.Name }}
+                  securityContext:
+                      {{- toYaml .Values.securityContext | nindent 22 }}
+                  image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  ports:
+                      - name: https
+                        containerPort: 8000
+                        protocol: TCP
+                  env:
+                      {{- range $k, $v := .Values.env }}
+                      - name: {{ $k }}
+                        value: {{ $v | quote }}
+                      {{- end }}
+                  livenessProbe:
+                      exec:
+                          command:
+                              - python
+                              - -c
+                              - "import ssl,urllib.request;urllib.request.urlopen('https://127.0.0.1:8000/api/v1/status',context=ssl._create_unverified_context())"
+                      initialDelaySeconds: 90
+                      periodSeconds: 30
+                      timeoutSeconds: 5
+                      failureThreshold: 3
+                  readinessProbe:
+                      exec:
+                          command:
+                              - python
+                              - -c
+                              - "import ssl,urllib.request;urllib.request.urlopen('https://127.0.0.1:8000/api/v1/status',context=ssl._create_unverified_context())"
+                      initialDelaySeconds: 30
+                      periodSeconds: 15
+                      timeoutSeconds: 5
+                      failureThreshold: 3
+                  resources:
+                      {{- toYaml .Values.resources | nindent 22 }}
+                  volumeMounts:
+                      - name: config
+                        mountPath: /config
+                      - name: tmp
+                        mountPath: /tmp
+                      - name: home
+                        mountPath: /home/meshchat
+            volumes:
+                - name: config
+                  persistentVolumeClaim:
+                      claimName: {{ include "meshchatx.pvcName" . }}
+                - name: tmp
+                  emptyDir:
+                      medium: Memory
+                      sizeLimit: {{ .Values.tmpfs.tmpSize }}
+                - name: home
+                  emptyDir:
+                      medium: Memory
+                      sizeLimit: {{ .Values.tmpfs.homeSize }}
+            {{- with .Values.nodeSelector }}
+            nodeSelector:
+                {{- toYaml . | nindent 16 }}
+            {{- end }}
+            {{- with .Values.affinity }}
+            affinity:
+                {{- toYaml . | nindent 16 }}
+            {{- end }}
+            {{- with .Values.tolerations }}
+            tolerations:
+                {{- toYaml . | nindent 16 }}
+            {{- end }}

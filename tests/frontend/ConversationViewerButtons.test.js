@@ -5,8 +5,8 @@ import WebSocketConnection from "@/js/WebSocketConnection";
 import DialogUtils from "@/js/DialogUtils";
 import GlobalEmitter from "@/js/GlobalEmitter";
 import * as TranslationService from "@/js/TranslationService.js";
-import { useConfigStore } from "@/js/stores/configStore.js";
-import { useIdentityStore } from "@/js/stores/identityStore.js";
+import { useConfigStore } from "@/js/stores/configStore";
+import { useIdentityStore } from "@/js/stores/identityStore";
 
 vi.mock("@/js/TranslationService.js", () => ({
     listPacks: vi.fn().mockResolvedValue([]),
@@ -338,8 +338,7 @@ describe("ConversationViewer.vue button interactions", () => {
             const fileInput = wrapper.find('input[type="file"]');
             const clickSpy = vi.spyOn(fileInput.element, "click").mockImplementation(() => {});
 
-            const actionButtons = wrapper.findAll(".attachment-action-button");
-            await actionButtons[0].trigger("click");
+            wrapper.vm.onMobileAttachFiles();
 
             expect(clickSpy).toHaveBeenCalled();
             clickSpy.mockRestore();

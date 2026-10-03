@@ -9,6 +9,7 @@ import path from "path";
 import crypto from "crypto";
 import { spawnSync } from "child_process";
 import { fileURLToPath } from "url";
+import { assertWasmExecCompat } from "./wasm-exec-compat.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -22,10 +23,32 @@ function computeSri(buf) {
     return `sha384-${crypto.createHash("sha384").update(buf).digest("base64")}`;
 }
 
+function findTinyGo() {
+    const fromEnv = process.env.TINYGO;
+    if (fromEnv && fs.existsSync(fromEnv)) {
+        return fromEnv;
+    }
+    const check = spawnSync("tinygo", ["version"], { encoding: "utf8" });
+    if (check.status === 0) {
+        return "tinygo";
+    }
+    return null;
+}
+
 function findWasmExec() {
     const fromEnv = process.env.VISUALISER_GO_WASM_EXEC;
     if (fromEnv && fs.existsSync(fromEnv)) {
         return fromEnv;
+    }
+    const tinygo = findTinyGo();
+    if (tinygo) {
+        const tgEnv = spawnSync(tinygo, ["env", "TINYGOROOT"], { encoding: "utf8" });
+        if (tgEnv.status === 0) {
+            const cand = path.join(tgEnv.stdout.trim(), "targets", "wasm_exec.js");
+            if (fs.existsSync(cand)) {
+                return cand;
+            }
+        }
     }
     const goEnv = spawnSync("go", ["env", "GOROOT"], { encoding: "utf8" });
     if (goEnv.status !== 0) {
@@ -87,14 +110,24 @@ function main() {
 
     fs.mkdirSync(OUT_DIR, { recursive: true });
     const wasmOut = path.join(OUT_DIR, WASM_NAME);
-    const build = spawnSync("go", ["build", "-trimpath", "-ldflags=-s -w", "-o", wasmOut, "./cmd/wasm"], {
-        cwd: GO_MOD_DIR,
-        env: { ...process.env, GOOS: "js", GOARCH: "wasm" },
-        encoding: "utf8",
-    });
+    const tinygo = findTinyGo();
+    const build = tinygo
+        ? spawnSync(tinygo, ["build", "-target", "wasm", "-opt=z", "-no-debug", "-o", wasmOut, "./cmd/wasm"], {
+              cwd: GO_MOD_DIR,
+              env: process.env,
+              encoding: "utf8",
+          })
+        : spawnSync("go", ["build", "-trimpath", "-ldflags=-s -w", "-o", wasmOut, "./cmd/wasm"], {
+              cwd: GO_MOD_DIR,
+              env: { ...process.env, GOOS: "js", GOARCH: "wasm" },
+              encoding: "utf8",
+          });
     if (build.status !== 0) {
-        console.error(build.stderr || build.stdout || "go build failed");
+        console.error(build.stderr || build.stdout || "wasm build failed");
         process.exit(1);
+    }
+    if (tinygo) {
+        console.log("build-visualiser-wasm: built with TinyGo");
     }
 
     const execSrc = findWasmExec();
@@ -106,6 +139,7 @@ function main() {
     fs.rmSync(execOut, { force: true });
     fs.copyFileSync(execSrc, execOut);
     fs.chmodSync(execOut, 0o644);
+    assertWasmExecCompat(wasmOut, execOut, "build-visualiser-wasm");
 
     const wasmBuf = fs.readFileSync(wasmOut);
     const execBuf = fs.readFileSync(execOut);

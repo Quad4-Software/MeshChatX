@@ -240,7 +240,7 @@ def _apply_via_seccompy() -> bool | None:
             try:
                 filt.errno(name, errno.EPERM)
             except ValueError:
-                # Unknown on this arch or kernel; libseccomp's resolve path
+                # Unknown on this arch or kernel. libseccomp's resolve path
                 # skips the same names silently.
                 continue
             denied += 1

@@ -1,19 +1,25 @@
 # Alpine MeshChatX image.
 # Stages: frontend, python builder (deps + app overlay), runtime.
-# VARIANT=standard|extra (extra adds i2pd and yggdrasil).
+# VARIANT=standard|extra (extra adds i2pd with SAM and an I2P HTTP site tunnel, plus yggdrasil).
 # LXST musl filterlib bake runs in scripts/docker/prepare-venv.sh.
 
 ARG NODE_IMAGE=node:24-alpine
-ARG NODE_HASH=sha256:0340fa682d72068edf603c305bfbc10e23219fb0e40df58d9ea4d6f33a9798bf
-ARG PYTHON_IMAGE=python:3.14.4-alpine3.23
-ARG PYTHON_HASH=sha256:dd4d2bd5b53d9b25a51da13addf2be586beebd5387e289e798e4083d94ca837a
+ARG NODE_HASH=sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1
+ARG PYTHON_IMAGE=python:3.14.8-alpine3.24
+ARG PYTHON_HASH=sha256:8acac70227ce3b34da9453120c375cc5b66cd0b062d4dc6bc74286f81a3819e1
 ARG VARIANT=standard
 ARG OCI_DESCRIPTION="MeshChatX is an all-in-one Reticulum client."
 ARG OCI_LICENSES="MIT AND 0BSD"
 
 FROM --platform=linux/amd64 ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
-RUN apk add --no-cache git python3 go
+ARG TINYGO_VERSION=0.42.0
+RUN apk add --no-cache git python3 go gcompat \
+    && wget -qO /tmp/tinygo.tar.gz "https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo${TINYGO_VERSION}.linux-amd64.tar.gz" \
+    && tar -C /usr/local -xzf /tmp/tinygo.tar.gz \
+    && rm /tmp/tinygo.tar.gz \
+    && /usr/local/tinygo/bin/tinygo version
+ENV PATH="/usr/local/tinygo/bin:${PATH}"
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml vite.config.mjs ./
 COPY patches ./patches
 COPY scripts/fetch-micron-wasm.mjs scripts/fetch-micron-wasm.mjs
@@ -22,6 +28,7 @@ COPY scripts/micron-parser-go-version.mjs scripts/micron-parser-go-version.mjs
 COPY scripts/vite-dx.mjs scripts/vite-dx.mjs
 COPY scripts/build-visualiser-wasm.mjs scripts/build-visualiser-wasm.mjs
 COPY scripts/build-geo-wasm.mjs scripts/build-geo-wasm.mjs
+COPY scripts/wasm-exec-compat.mjs scripts/wasm-exec-compat.mjs
 COPY scripts/fetch-starter-mbtiles.mjs scripts/fetch-starter-mbtiles.mjs
 COPY scripts/copy-bergamot-wasm.mjs scripts/copy-bergamot-wasm.mjs
 COPY scripts/build-electron-shell-css.mjs scripts/build-electron-shell-css.mjs
@@ -40,7 +47,9 @@ COPY geo-wasm ./geo-wasm
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
 ENV GOCACHE=/tmp/go-cache
 ENV GOTMPDIR=/tmp/go-tmp
+ENV GOTOOLCHAIN=auto
 ENV STARTER_MBTILES_SKIP=1
+ENV MESHCHATX_SKIP_ELECTRON_CSS=1
 RUN sh scripts/docker/build-frontend.sh
 
 FROM ${PYTHON_IMAGE}@${PYTHON_HASH} AS builder
@@ -77,7 +86,10 @@ RUN sh /tmp/runtime-setup.sh "${VARIANT}" && rm /tmp/runtime-setup.sh
 COPY --from=builder --chown=meshchat:meshchat /opt/venv-deps /opt/venv
 COPY --from=builder --chown=meshchat:meshchat /opt/app-overlay/ /opt/venv/
 COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+COPY scripts/docker/start-i2pd.sh /start-i2pd.sh
+COPY docker/i2pd.conf /etc/i2pd/i2pd.conf
+COPY docker/tunnels.conf /etc/i2pd/tunnels.conf
+RUN chmod +x /docker-entrypoint.sh /start-i2pd.sh
 
 ARG OCI_REVISION=""
 ARG OCI_VERSION=""

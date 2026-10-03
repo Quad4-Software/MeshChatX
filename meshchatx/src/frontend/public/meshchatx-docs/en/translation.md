@@ -14,14 +14,20 @@ language packs are bundled with MeshChatX releases.
   messages and the standalone Translator tool all use the same engine and pack
   set.
 
-## Where to get packs
+## Getting packs
 
-MeshChatX does not download packs and has no pack catalog. You must obtain pack
-archives from an external source, for example:
+The Translator page can fetch packs directly. Open **Download packs** to list
+the available language pairs, then download a single pair or use
+**Download all**. Downloads are verified against their published checksums
+before install.
 
-- A community pack repository using Git LFS.
-- A dedicated website or CDN.
-- A friend or organisation that shares packs over the mesh.
+Pack downloads are outbound HTTPS requests, so they are blocked while privacy
+mode is enabled. Translations themselves remain local and keep working with
+privacy mode on.
+
+You can also import pack archives you obtained elsewhere. A friend or
+organisation can share ready pack archives over the mesh, or a dedicated
+website or CDN can host them.
 
 Packs are ordinary zip or tar archives containing a `model`, `lex` and `vocab`
 file for a four-letter language pair such as `enes` (English to Spanish).
@@ -59,7 +65,9 @@ Relay chat messages and the standalone translator work the same way.
 
 Because packs are local, translation works in privacy mode. No outbound network
 requests are made for translation. The Bergamot worker and pack files are served
-from the same origin. The default remote model registry is never contacted.
+from the same origin. The remote model registry is only contacted when you
+choose to download packs, and that download path is blocked while privacy mode
+is enabled.
 
 ## Platform notes
 

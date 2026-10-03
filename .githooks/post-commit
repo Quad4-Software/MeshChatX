@@ -1,0 +1,34 @@
+#!/bin/sh
+# post-commit: attach a machine-readable AI provenance note to HEAD on
+# refs/notes/ai-provenance when ai.* git config is present.
+#
+# Read with: git log --show-notes=ai-provenance
+# Push with: git push origin refs/notes/ai-provenance
+#
+# Skip: SKIP_AI_HOOK=1 git commit ...
+set -eu
+
+if [ "${SKIP_AI_HOOK:-0}" = "1" ]; then
+	exit 0
+fi
+
+harness="$(git config ai.harness || true)"
+model="$(git config ai.model || true)"
+method="$(git config ai.method || true)"
+
+if [ -z "$harness" ] && [ -z "$model" ] && [ -z "$method" ]; then
+	exit 0
+fi
+
+# Minimal JSON escaping for quotes and backslashes in config values.
+json_escape() {
+	printf %s "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+}
+
+note="$(printf '{"harness":"%s","model":"%s","method":"%s","ts":"%s"}' \
+	"$(json_escape "$harness")" \
+	"$(json_escape "$model")" \
+	"$(json_escape "$method")" \
+	"$(date -u +%Y-%m-%dT%H:%M:%SZ)")"
+
+git notes --ref=ai-provenance add -f HEAD -m "$note" >/dev/null 2>&1 || true

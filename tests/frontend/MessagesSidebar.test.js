@@ -1,8 +1,8 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import MessagesSidebar from "../../meshchatx/src/frontend/components/messages/MessagesSidebar.vue";
-import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore.js";
-import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore.js";
+import { useConfigStore } from "../../meshchatx/src/frontend/js/stores/configStore";
+import { useIdentityStore } from "../../meshchatx/src/frontend/js/stores/identityStore";
 
 vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
     default: {

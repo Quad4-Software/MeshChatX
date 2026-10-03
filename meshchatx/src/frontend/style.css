@@ -50,7 +50,7 @@
 }
 
 /*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  The default border color has changed to currentcolor in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still
   looks the same as it did with Tailwind CSS v3.
 
@@ -176,8 +176,173 @@ html[data-ui-glass="0"] .glass-card {
     -webkit-backdrop-filter: none !important;
 }
 
+/* Glass preset: frosted surfaces over a gradient canvas. The blur needs a
+   busy backdrop to read, so the canvas gets a soft multi-stop gradient; the
+   ui-glass kill switch still wins over everything. */
+html[data-theme-preset="glass"] body,
+html[data-theme-preset="glass"] #app,
+html[data-theme-preset="glass"] .page-canvas,
+html[data-theme-preset="glass"] .bg-sem-canvas,
+html[data-theme-preset="glass"] .page-header-bar {
+    background-image:
+        radial-gradient(1200px 800px at 15% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
+        radial-gradient(1000px 700px at 85% 10%, rgba(56, 189, 248, 0.14), transparent 55%),
+        radial-gradient(900px 900px at 50% 110%, rgba(167, 139, 250, 0.16), transparent 60%);
+    background-attachment: fixed;
+}
+html.dark[data-theme-preset="glass"] body,
+html.dark[data-theme-preset="glass"] #app,
+html.dark[data-theme-preset="glass"] .page-canvas,
+html.dark[data-theme-preset="glass"] .bg-sem-canvas,
+html.dark[data-theme-preset="glass"] .page-header-bar {
+    background-image:
+        radial-gradient(60vmax 40vmax at 8% 0%, rgb(255 255 255 / 0.07), transparent 65%),
+        radial-gradient(50vmax 35vmax at 92% 4%, rgb(148 163 184 / 0.05), transparent 60%),
+        radial-gradient(55vmax 45vmax at 50% 108%, rgb(255 255 255 / 0.05), transparent 65%),
+        radial-gradient(45vmax 35vmax at 62% 42%, rgb(100 116 139 / 0.04), transparent 62%);
+    background-attachment: fixed;
+}
+
+html[data-theme-preset="glass"] .page-surface,
+html[data-theme-preset="glass"] .fused-panel,
+html[data-theme-preset="glass"] .glass-card,
+html[data-theme-preset="glass"] .dropdown-panel,
+html[data-theme-preset="glass"] .context-menu-panel,
+html[data-theme-preset="glass"] .modal-panel,
+html[data-theme-preset="glass"] .input-field,
+html[data-theme-preset="glass"] .search-input,
+html[data-theme-preset="glass"] .glass-label,
+html[data-theme-preset="glass"] .address-card,
+html[data-theme-preset="glass"] .bg-sem-surface,
+html[data-theme-preset="glass"] .bg-sem-surface-muted,
+html[data-theme-preset="glass"] .bg-sem-surface-raised {
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
+}
+
+/* Softer, more pillowed corners read as glass panes instead of flat cards. */
+html[data-theme-preset="glass"] .fused-panel,
+html[data-theme-preset="glass"] .glass-card,
+html[data-theme-preset="glass"] .modal-panel,
+html[data-theme-preset="glass"] .dropdown-panel,
+html[data-theme-preset="glass"] .context-menu-panel,
+html[data-theme-preset="glass"] .address-card {
+    border-radius: 1.25rem;
+}
+html[data-theme-preset="glass"] .input-field,
+html[data-theme-preset="glass"] .search-input {
+    border-radius: 0.9rem;
+}
+
+/* Hairline top highlight sells the glass edge on floating surfaces. */
+html[data-theme-preset="glass"] .glass-card,
+html[data-theme-preset="glass"] .fused-panel,
+html[data-theme-preset="glass"] .dropdown-panel,
+html[data-theme-preset="glass"] .context-menu-panel,
+html[data-theme-preset="glass"] .modal-panel {
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.35),
+        0 8px 32px rgb(15 23 42 / 0.12);
+}
+html.dark[data-theme-preset="glass"] .glass-card,
+html.dark[data-theme-preset="glass"] .fused-panel,
+html.dark[data-theme-preset="glass"] .dropdown-panel,
+html.dark[data-theme-preset="glass"] .context-menu-panel,
+html.dark[data-theme-preset="glass"] .modal-panel {
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.08),
+        0 8px 32px rgb(0 0 0 / 0.45);
+}
+
+html[data-theme-preset="glass"][data-ui-glass="0"] .page-surface,
+html[data-theme-preset="glass"][data-ui-glass="0"] .fused-panel,
+html[data-theme-preset="glass"][data-ui-glass="0"] .dropdown-panel,
+html[data-theme-preset="glass"][data-ui-glass="0"] .context-menu-panel,
+html[data-theme-preset="glass"][data-ui-glass="0"] .modal-panel,
+html[data-theme-preset="glass"][data-ui-glass="0"] .input-field,
+html[data-theme-preset="glass"][data-ui-glass="0"] .search-input,
+html[data-theme-preset="glass"][data-ui-glass="0"] .glass-label,
+html[data-theme-preset="glass"][data-ui-glass="0"] .address-card,
+html[data-theme-preset="glass"][data-ui-glass="0"] .bg-sem-surface,
+html[data-theme-preset="glass"][data-ui-glass="0"] .bg-sem-surface-muted,
+html[data-theme-preset="glass"][data-ui-glass="0"] .bg-sem-surface-raised {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+html[data-theme-preset="glass"][data-ui-glass="0"] body,
+html[data-theme-preset="glass"][data-ui-glass="0"] #app {
+    background-image: none;
+}
+
+/* Neo-brutalist: square corners, hard borders, offset block shadows. */
+html[data-theme-preset="neo_brutalist"] .fused-panel,
+html[data-theme-preset="neo_brutalist"] .glass-card,
+html[data-theme-preset="neo_brutalist"] .modal-panel,
+html[data-theme-preset="neo_brutalist"] .dropdown-panel,
+html[data-theme-preset="neo_brutalist"] .context-menu-panel,
+html[data-theme-preset="neo_brutalist"] .address-card,
+html[data-theme-preset="neo_brutalist"] .input-field,
+html[data-theme-preset="neo_brutalist"] .search-input,
+html[data-theme-preset="neo_brutalist"] .secondary-chip,
+html[data-theme-preset="neo_brutalist"] .danger-chip,
+html[data-theme-preset="neo_brutalist"] .page-surface,
+html[data-theme-preset="neo_brutalist"] .bg-sem-surface,
+html[data-theme-preset="neo_brutalist"] .bg-sem-surface-muted,
+html[data-theme-preset="neo_brutalist"] .bg-sem-surface-raised {
+    border-radius: 0 !important;
+}
+html[data-theme-preset="neo_brutalist"] .fused-panel,
+html[data-theme-preset="neo_brutalist"] .glass-card,
+html[data-theme-preset="neo_brutalist"] .modal-panel,
+html[data-theme-preset="neo_brutalist"] .dropdown-panel,
+html[data-theme-preset="neo_brutalist"] .context-menu-panel,
+html[data-theme-preset="neo_brutalist"] .address-card,
+html[data-theme-preset="neo_brutalist"] .input-field,
+html[data-theme-preset="neo_brutalist"] .search-input {
+    border-width: 2px;
+    box-shadow: 5px 5px 0 0 var(--mc-border-strong);
+}
+html[data-theme-preset="neo_brutalist"] .glass-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+html[data-theme-preset="neo_brutalist"] .primary-chip,
+html[data-theme-preset="neo_brutalist"] .secondary-chip,
+html[data-theme-preset="neo_brutalist"] .ghost-chip,
+html[data-theme-preset="neo_brutalist"] .danger-chip,
+html[data-theme-preset="neo_brutalist"] .attachment-action-button,
+html[data-theme-preset="neo_brutalist"] .context-item,
+html[data-theme-preset="neo_brutalist"] .sidebar-nav-link,
+html[data-theme-preset="neo_brutalist"] .composer-pill,
+html[data-theme-preset="neo_brutalist"] button {
+    border-radius: 0;
+}
+html[data-theme-preset="neo_brutalist"] .primary-chip:not(:disabled),
+html[data-theme-preset="neo_brutalist"] .secondary-chip:not(:disabled) {
+    border: 2px solid var(--mc-border-strong);
+    box-shadow: 3px 3px 0 0 var(--mc-border-strong);
+}
+html[data-theme-preset="neo_brutalist"] .composer-pill {
+    border-width: 2px;
+    box-shadow: 4px 4px 0 0 var(--mc-border-strong);
+}
+html.dark[data-theme-preset="neo_brutalist"] .fused-panel,
+html.dark[data-theme-preset="neo_brutalist"] .glass-card,
+html.dark[data-theme-preset="neo_brutalist"] .modal-panel,
+html.dark[data-theme-preset="neo_brutalist"] .dropdown-panel,
+html.dark[data-theme-preset="neo_brutalist"] .context-menu-panel,
+html.dark[data-theme-preset="neo_brutalist"] .address-card {
+    box-shadow: 5px 5px 0 0 rgb(255 255 255 / 0.9);
+}
+
 .input-field {
     @apply bg-sem-surface-muted border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full p-2.5 text-sem-fg transition;
+}
+
+/* The forms plugin renders the select chevron in a 2.5rem right pad.
+   The uniform p-2.5 above collapses it, so restore room for the arrow. */
+select.input-field {
+    @apply pr-9;
 }
 
 .search-input {
@@ -186,7 +351,57 @@ html[data-ui-glass="0"] .glass-card {
 }
 
 .search-input-compact {
-    @apply py-1.5 pl-9 pr-8 text-xs rounded-lg;
+    @apply py-1.5 pl-9 pr-8 text-xs rounded-full;
+}
+
+/* Semantic range slider - accent thumb, muted track */
+/* Height is the hit area, not the visual track height. */
+.range-input {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 16px;
+    background: transparent;
+    outline: none;
+    cursor: pointer;
+}
+.range-input::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--mc-surface-muted);
+}
+.range-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--mc-accent);
+    border: 2px solid var(--mc-canvas);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+    cursor: grab;
+    transition: transform 0.1s ease;
+    /* Center thumb on track */
+    margin-top: -5px;
+}
+.range-input::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+}
+.range-input::-webkit-slider-thumb:active {
+    cursor: grabbing;
+}
+.range-input::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--mc-accent);
+    border: 2px solid var(--mc-canvas);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+    cursor: grab;
+}
+.range-input::-moz-range-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--mc-surface-muted);
 }
 
 input[type="color"].color-fill-input {
@@ -213,9 +428,12 @@ input[type="color"].color-fill-input::-moz-color-swatch {
     border-radius: inherit;
 }
 
-/* Native option popups ignore most select utilities. Theme every option. */
+/* Native option popups ignore most select utilities and cannot use
+   backdrop-filter - a translucent --mc-surface would render over the OS
+   chrome (often white). --mc-surface-solid is always opaque. */
+select.input-field,
 select option {
-    background-color: var(--mc-surface);
+    background-color: var(--mc-surface-solid, var(--mc-surface));
     color: var(--mc-text);
 }
 
@@ -428,6 +646,34 @@ select option {
 .context-menu-panel {
     @apply fixed min-w-48 rounded-xl border shadow-xl bg-sem-surface z-300;
     border-color: var(--mc-border);
+}
+
+/* Browsers default buttons to cursor: default. Anything interactive in
+   this app should show the pointer cursor; disabled stays not-allowed. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+select,
+summary,
+label[for],
+[role="radio"],
+[role="tab"],
+[role="option"],
+[role="menuitem"],
+[role="switch"],
+[role="link"],
+a[href] {
+    cursor: pointer;
+}
+
+/* Toggle knob: default white works on colored tracks, but glass dark uses a
+   white primary so the knob would vanish. Drive it from the action-primary
+   text var so it always contrasts with the checked track. */
+.toggle-track::after {
+    border-color: var(--mc-border);
+}
+.peer:checked + .toggle-track::after {
+    background-color: var(--mc-action-primary-text, #ffffff);
+    border-color: transparent;
 }
 
 .context-item {

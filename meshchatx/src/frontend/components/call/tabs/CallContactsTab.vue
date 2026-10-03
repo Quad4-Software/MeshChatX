@@ -54,7 +54,7 @@
                                     <div class="flex items-center gap-2">
                                         <span
                                             v-if="contact.preferred_ringtone_id"
-                                            class="text-[9px] px-1.5 py-0.5 rounded-sm bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/50 flex items-center gap-1"
+                                            class="text-[9px] px-1.5 py-0.5 rounded-sm bg-sem-warning/15 text-sem-warning border border-sem-warning dark:border-sem-warning flex items-center gap-1"
                                             :title="$t('call.custom_ringtone_set')"
                                         >
                                             <MaterialDesignIcon icon-name="music" class="size-2.5" />
@@ -67,7 +67,7 @@
                                         <div class="flex items-center gap-1">
                                             <button
                                                 type="button"
-                                                class="p-1.5 text-gray-400 hover:text-blue-500 transition-colors"
+                                                class="p-1.5 text-sem-fg-muted hover:text-sem-info transition-colors"
                                                 :aria-label="$t('common.edit')"
                                                 :title="$t('common.edit')"
                                                 @click="$emit('edit', contact)"
@@ -76,7 +76,7 @@
                                             </button>
                                             <button
                                                 type="button"
-                                                class="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                                                class="p-1.5 text-sem-fg-muted hover:text-sem-danger transition-colors"
                                                 :aria-label="$t('common.delete')"
                                                 :title="$t('common.delete')"
                                                 @click="$emit('delete', contact.id)"
@@ -89,7 +89,7 @@
                                 <div class="flex items-center justify-between mt-1">
                                     <div class="flex flex-col min-w-0">
                                         <span
-                                            class="text-[10px] text-sem-fg-muted font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
+                                            class="text-[10px] text-sem-fg-muted font-mono truncate cursor-pointer hover:text-sem-info transition-colors"
                                             :title="contact.remote_identity_hash"
                                             @click.stop="$emit('copy-hash', contact.remote_identity_hash)"
                                         >
@@ -98,7 +98,7 @@
                                         </span>
                                         <span
                                             v-if="contact.lxmf_address"
-                                            class="text-[9px] text-sem-fg-muted font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
+                                            class="text-[9px] text-sem-fg-muted font-mono truncate cursor-pointer hover:text-sem-info transition-colors"
                                             :title="contact.lxmf_address"
                                             @click.stop="$emit('copy-hash', contact.lxmf_address)"
                                         >
@@ -106,7 +106,7 @@
                                         </span>
                                         <span
                                             v-if="contact.lxst_address"
-                                            class="text-[9px] text-sem-fg-muted font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
+                                            class="text-[9px] text-sem-fg-muted font-mono truncate cursor-pointer hover:text-sem-info transition-colors"
                                             :title="contact.lxst_address"
                                             @click.stop="$emit('copy-hash', contact.lxst_address)"
                                         >
@@ -115,7 +115,7 @@
                                     </div>
                                     <button
                                         type="button"
-                                        class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors shrink-0"
+                                        class="text-[10px] bg-sem-info/15 text-sem-info dark:bg-sem-info/15 dark:text-sem-info px-3 py-1 rounded-full font-bold uppercase tracking-wider hover:bg-sem-info/15 dark:hover:bg-sem-info/15 transition-colors shrink-0"
                                         @click="
                                             $emit(
                                                 'call',

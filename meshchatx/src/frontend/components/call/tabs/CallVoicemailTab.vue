@@ -57,7 +57,7 @@
                         @click="$emit('update-config', { voicemail_enabled: !config.voicemail_enabled })"
                     >
                         <span
-                            class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out"
+                            class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-sem-action-primary-text shadow-sm ring-0 transition duration-200 ease-in-out"
                             :class="config.voicemail_enabled ? 'translate-x-5' : 'translate-x-0'"
                         ></span>
                     </button>
@@ -205,14 +205,14 @@
 
                         <div v-if="voicemailStatus.has_greeting" class="flex items-center gap-2">
                             <button
-                                class="text-xs bg-sem-danger/10 text-sem-danger px-4 py-2 rounded-lg font-bold hover:bg-sem-danger/20 transition-colors flex items-center gap-2"
+                                class="text-xs bg-sem-surface border border-sem-danger/40 text-sem-danger px-4 py-2 rounded-lg font-bold hover:bg-sem-danger/10 transition-colors flex items-center gap-2"
                                 @click="$emit('delete-greeting')"
                             >
                                 <MaterialDesignIcon icon-name="delete" class="size-4" />
                                 Remove Greeting
                             </button>
                             <button
-                                class="text-xs bg-sem-info/10 text-sem-accent px-4 py-2 rounded-lg font-bold hover:bg-sem-info/20 transition-colors flex items-center gap-2"
+                                class="text-xs bg-sem-surface border border-sem-accent/40 text-sem-accent px-4 py-2 rounded-lg font-bold hover:bg-sem-info/10 transition-colors flex items-center gap-2"
                                 @click="$emit('play-greeting')"
                             >
                                 <MaterialDesignIcon :icon-name="isPlayingGreeting ? 'stop' : 'play'" class="size-4" />

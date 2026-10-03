@@ -19,7 +19,7 @@
                 </h2>
                 <span
                     v-if="version"
-                    class="ml-3 inline-flex h-5 items-center rounded-xs bg-blue-600 px-2 text-[10px] font-black uppercase tracking-tighter text-white"
+                    class="ml-3 inline-flex h-5 items-center rounded-xs bg-sem-action-primary px-2 text-[10px] font-black uppercase tracking-tighter text-sem-action-primary-text"
                 >
                     v{{ version }}
                 </span>
@@ -31,8 +31,8 @@
         </div>
 
         <div v-else-if="error" class="flex flex-col items-center justify-center space-y-4 py-10 text-center">
-            <MaterialDesignIcon icon-name="alert-circle-outline" class="size-16 text-red-500" />
-            <div class="text-lg font-bold text-red-500">{{ error }}</div>
+            <MaterialDesignIcon icon-name="alert-circle-outline" class="size-16 text-sem-danger" />
+            <div class="text-lg font-bold text-sem-danger">{{ error }}</div>
             <button type="button" class="primary-chip px-6!" @click="fetchChangelog">Retry</button>
         </div>
 
@@ -48,7 +48,7 @@
                         <input
                             v-model="dontShowAgain"
                             type="checkbox"
-                            class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
+                            class="rounded-sm border-sem-border text-sem-info focus:ring-sem-accent"
                         />
                         {{ $t("app.do_not_show_again", "Do not show again for this version") }}
                     </label>
@@ -56,7 +56,7 @@
                         <input
                             v-model="dontShowEver"
                             type="checkbox"
-                            class="rounded-sm border-gray-300 text-red-600 focus:ring-red-500"
+                            class="rounded-sm border-sem-border text-sem-danger focus:ring-sem-danger"
                         />
                         {{ $t("app.do_not_show_ever", "Do not show ever again") }}
                     </label>
@@ -80,11 +80,11 @@
                         </h1>
                         <div class="flex items-center gap-2">
                             <span
-                                class="inline-flex h-5 items-center rounded-xs bg-blue-600 px-2 text-[10px] font-black text-white"
+                                class="inline-flex h-5 items-center rounded-xs bg-sem-action-primary px-2 text-[10px] font-black text-sem-action-primary-text"
                             >
                                 v{{ version }}
                             </span>
-                            <span class="text-sm font-medium text-gray-500">Full release history</span>
+                            <span class="text-sm font-medium text-sem-fg-muted">Full release history</span>
                         </div>
                     </div>
                 </div>
@@ -94,8 +94,8 @@
                 </div>
 
                 <div v-else-if="error" class="flex flex-col items-center justify-center space-y-4 py-20 text-center">
-                    <MaterialDesignIcon icon-name="alert-circle-outline" class="size-16 text-red-500" />
-                    <div class="text-lg font-bold text-red-500">{{ error }}</div>
+                    <MaterialDesignIcon icon-name="alert-circle-outline" class="size-16 text-sem-danger" />
+                    <div class="text-lg font-bold text-sem-danger">{{ error }}</div>
                     <button type="button" class="primary-chip px-6!" @click="fetchChangelog">Retry</button>
                 </div>
 
@@ -113,7 +113,7 @@ import AppModal from "./AppModal.vue";
 import LoadingState from "./LoadingState.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import GlobalEmitter from "../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../js/constants.js";
+import { apiPath, EMITTER_EVENTS } from "../js/constants";
 import logoUrl from "../assets/images/logo.png";
 
 export default {
@@ -273,7 +273,7 @@ export default {
 
 .changelog-content h2::before {
     content: "VERSION";
-    @apply text-[10px] font-black bg-blue-500 text-white px-1.5 py-0.5 rounded-xs tracking-tighter;
+    @apply text-[10px] font-black bg-sem-action-primary text-sem-action-primary-text px-1.5 py-0.5 rounded-xs tracking-tighter;
 }
 
 .changelog-content h3 {
@@ -282,7 +282,7 @@ export default {
 
 .changelog-content h3::before {
     content: "•";
-    @apply text-blue-500 font-black;
+    @apply text-sem-info font-black;
 }
 
 .changelog-content p {
@@ -294,7 +294,7 @@ export default {
 }
 
 .changelog-content li {
-    @apply text-sem-fg-muted transition-colors hover:text-gray-900 dark:hover:text-white;
+    @apply text-sem-fg-muted transition-colors hover:text-sem-fg dark:hover:text-white;
 }
 
 .changelog-content strong {
@@ -302,7 +302,7 @@ export default {
 }
 
 .changelog-content code {
-    @apply bg-sem-surface-muted px-1.5 py-0.5 rounded-xs text-blue-700 dark:text-blue-300 font-mono text-[0.85em] border border-blue-100 dark:border-blue-800/30;
+    @apply bg-sem-surface-muted px-1.5 py-0.5 rounded-xs text-sem-info font-mono text-[0.85em] border border-sem-info dark:border-sem-info;
 }
 
 .changelog-content hr {
@@ -314,10 +314,10 @@ export default {
 }
 
 .changelog-content h2 {
-    @apply py-2 px-4 bg-gray-50 dark:bg-zinc-800/50 rounded-md border border-sem-border;
+    @apply py-2 px-4 bg-sem-surface-muted/50 rounded-md border border-sem-border;
 }
 
 .changelog-content .version-tag {
-    @apply bg-blue-600 text-white px-2 py-0.5 rounded-xs font-black text-sm tracking-tighter;
+    @apply bg-sem-action-primary text-sem-action-primary-text px-2 py-0.5 rounded-xs font-black text-sm tracking-tighter;
 }
 </style>

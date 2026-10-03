@@ -4,6 +4,7 @@ const {
     E2E_SCROLL_ALT_PEER_HASH,
     buildE2eLxmfRow,
     e2ePost,
+    e2ePatch,
     prepareE2eSession,
     seedE2eLongConversationThread,
     seedE2eAltShortConversationThread,
@@ -21,9 +22,46 @@ function padHash(prefix, index, width = 32) {
  * @param {import('@playwright/test').APIRequestContext} request
  * @param {{ contactCount?: number, favouriteCount?: number, messageCount?: number }} [opts]
  */
+/**
+ * Mark the testing/beta channel prompt as seen so the modal never overlays a
+ * page under audit (it fires once per fresh identity and wrecks CLS).
+ */
+async function suppressChannelPrompt(request) {
+    try {
+        const infoRes = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/app/info`);
+        if (!infoRes.ok()) return;
+        const infoBody = await infoRes.json();
+        const ai = infoBody?.app_info || {};
+        const channel = String(ai.build_channel || "").toLowerCase();
+        const version = String(ai.display_version || ai.version || "unknown").trim() || "unknown";
+        const short =
+            String(ai.git_commit_short || "").trim() ||
+            (ai.git_commit ? String(ai.git_commit).slice(0, 7) : "") ||
+            "unknown";
+        const key = `${channel}:${version}:${short}`;
+        await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/app/channel-prompt/seen`, { key });
+    } catch {
+        // best effort only
+    }
+}
+
+/**
+ * Switch the persisted UI theme (light/dark) on the E2E backend so the next
+ * page load renders under that mode.
+ * @param {import('@playwright/test').APIRequestContext} request
+ * @param {"light"|"dark"} theme
+ */
+async function setUiTheme(request, theme) {
+    const res = await e2ePatch(request, `${E2E_BACKEND_ORIGIN}/api/v1/config`, { theme });
+    if (!res.ok()) {
+        throw new Error(`theme switch failed: ${res.status()}`);
+    }
+}
+
 async function seedUiSimulatedData(request, opts = {}) {
     await waitForBackendReady(request);
     await prepareE2eSession(request);
+    await suppressChannelPrompt(request);
 
     const contactCount = opts.contactCount ?? 40;
     const favouriteCount = opts.favouriteCount ?? 25;
@@ -107,6 +145,9 @@ async function seedUiDemoData(request) {
     await prepareE2eSession(request);
     const localHash = await getE2eLocalLxmfHash(request);
 
+    // Suppress the testing/beta channel modal so it does not cover every page.
+    await suppressChannelPrompt(request);
+
     const contacts = DEMO_PEERS.map((peer) => ({
         name: peer.name,
         remote_identity_hash: peer.hash,
@@ -183,5 +224,6 @@ module.exports = {
     DEMO_PEERS,
     seedUiSimulatedData,
     seedUiDemoData,
+    setUiTheme,
     padHash,
 };

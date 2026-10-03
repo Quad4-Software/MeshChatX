@@ -60,7 +60,7 @@
                                 <div>{{ $t("tools.micron_editor.publish_no_servers") }}</div>
                                 <button
                                     type="button"
-                                    class="w-full text-left rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-500"
+                                    class="w-full text-left rounded-lg bg-sem-success px-3 py-2 text-sm font-semibold text-white hover:bg-sem-success"
                                     :disabled="publishBusy"
                                     @click="createMeshServerAndPublish"
                                 >
@@ -114,7 +114,7 @@
                             <div v-if="lastPublished?.destinationHash" class="border-t border-sem-border mt-1 pt-1">
                                 <button
                                     type="button"
-                                    class="w-full text-left px-3 py-2 text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-sem-surface-muted transition-colors flex items-center gap-2"
+                                    class="w-full text-left px-3 py-2 text-xs font-medium text-sem-success dark:text-sem-success hover:bg-sem-surface-muted transition-colors flex items-center gap-2"
                                     @click="openPublishedInNomadNet"
                                 >
                                     <MaterialDesignIcon icon-name="web" class="w-3.5 h-3.5" />
@@ -132,7 +132,10 @@
                     v-if="wasmBundled"
                     type="button"
                     class="secondary-chip py-1! px-2! gap-1 text-[11px]!"
-                    :class="{ 'text-teal-600! dark:text-teal-300! border-teal-300! dark:border-teal-700!': useWasm }"
+                    :class="{
+                        'text-sem-success! dark:text-sem-success! border-sem-success! dark:border-sem-success!':
+                            useWasm,
+                    }"
                     :disabled="wasmLoading"
                     :title="$t(useWasm ? 'tools.micron_editor.wasm_active' : 'tools.micron_editor.wasm_inactive')"
                     @click="toggleWasmEngine"
@@ -166,9 +169,9 @@
                 class="group flex items-center h-8 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
                 :class="[
                     activeTabIndex === index
-                        ? 'bg-sem-surface text-teal-600 dark:text-teal-400 shadow-xs'
+                        ? 'bg-sem-surface text-sem-success dark:text-sem-success shadow-xs'
                         : 'text-sem-fg-muted hover:bg-sem-surface/50 hover:text-sem-fg',
-                    dragOverTabIndex === index && dragTabIndex !== index ? 'ring-2 ring-teal-500' : '',
+                    dragOverTabIndex === index && dragTabIndex !== index ? 'ring-2 ring-sem-success' : '',
                 ]"
                 @click="activeTabIndex = index"
                 @dragstart="onTabDragStart(index)"
@@ -200,7 +203,7 @@
                 </button>
             </div>
             <button
-                class="flex items-center justify-center size-8 text-sem-fg-muted hover:text-teal-500 transition-colors"
+                class="flex items-center justify-center size-8 text-sem-fg-muted hover:text-sem-success transition-colors"
                 @click="addTab"
             >
                 <MaterialDesignIcon icon-name="plus" class="size-4" />
@@ -230,21 +233,21 @@
                 ></textarea>
                 <div
                     v-if="imageDragOver"
-                    class="pointer-events-none absolute inset-0 ring-2 ring-inset ring-teal-500 bg-teal-500/10"
+                    class="pointer-events-none absolute inset-0 ring-2 ring-inset ring-sem-success bg-sem-warning/15"
                 ></div>
             </div>
 
             <!-- Preview Pane (Always dark to match NomadNet browser vibe) -->
             <div
                 :class="[
-                    'flex-1 overflow-hidden flex flex-col bg-zinc-950',
+                    'flex-1 overflow-hidden flex flex-col bg-sem-surface',
                     isMobileView && showEditor ? 'hidden' : '',
                 ]"
             >
                 <!-- eslint-disable vue/no-v-html -- sanitized via convertMicronToHtml -->
                 <div
                     ref="previewRef"
-                    class="flex-1 overflow-auto text-zinc-100 p-4 font-mono text-sm whitespace-pre-wrap wrap-break-word nodeContainer"
+                    class="flex-1 overflow-auto text-sem-fg p-4 font-mono text-sm whitespace-pre-wrap wrap-break-word nodeContainer"
                     @click="onPreviewClick"
                     v-html="renderedContent"
                 ></div>
@@ -278,7 +281,7 @@ import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import PublishSiteModal from "./PublishSiteModal.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { EMITTER_EVENTS } from "../../js/constants.js";
+import { EMITTER_EVENTS } from "../../js/constants";
 import * as pageNodesApi from "../../js/api/pageNodes.js";
 import { useMicronPublish } from "../../js/micron/useMicronPublish.js";
 

@@ -21,7 +21,7 @@
             <div class="flex items-center cursor-pointer min-w-0 group" @click="$emit('edit-display-name')">
                 <div
                     v-if="selectedPeer.custom_display_name != null"
-                    class="mr-1.5 text-sem-fg-muted group-hover:text-sem-fg dark:group-hover:text-zinc-200 transition-colors"
+                    class="mr-1.5 text-sem-fg-muted group-hover:text-sem-fg dark:group-hover:text-sem-fg transition-colors"
                     :title="$t('messages.custom_display_name')"
                 >
                     <MaterialDesignIcon icon-name="tag-outline" class="size-4" />
@@ -51,7 +51,7 @@
                     "
                     class="hidden sm:flex items-center gap-2 min-w-0"
                 >
-                    <span class="text-gray-300 dark:text-zinc-700 shrink-0">•</span>
+                    <span class="text-sem-fg-muted shrink-0">•</span>
 
                     <div class="flex items-center gap-2 truncate">
                         <span
@@ -70,7 +70,7 @@
                         </span>
 
                         <span v-if="selectedPeerSignalMetrics?.snr != null" class="flex items-center gap-2 shrink-0">
-                            <span class="text-gray-300 dark:text-zinc-700 opacity-50">•</span>
+                            <span class="text-sem-fg-muted opacity-50">•</span>
                             <span
                                 class="cursor-pointer hover:text-sem-fg hover:text-sem-fg"
                                 title="Signal quality"
@@ -83,15 +83,13 @@
                             v-if="selectedPeerLxmfStampInfo?.stamp_cost || lxmfHasOutboundTicket"
                             class="flex items-center gap-1 shrink-0"
                         >
-                            <span class="text-gray-300 dark:text-zinc-700 opacity-50">•</span>
+                            <span class="text-sem-fg-muted opacity-50">•</span>
                             <MaterialDesignIcon
                                 v-if="lxmfHasOutboundTicket"
                                 icon-name="ticket-confirmation"
                                 class="size-3.5 shrink-0"
                                 :class="
-                                    lxmfStampTicketValid
-                                        ? 'text-emerald-600 dark:text-emerald-400'
-                                        : 'text-amber-600 dark:text-amber-500'
+                                    lxmfStampTicketValid ? 'text-sem-success' : 'text-amber-600 dark:text-sem-warning'
                                 "
                                 :title="
                                     lxmfStampTicketValid
@@ -295,10 +293,10 @@ export default {
                 return `${base} text-sem-accent`;
             }
             if (!this.selectedPeerPath) {
-                return `${base} text-amber-700 dark:text-amber-400`;
+                return `${base} text-sem-warning`;
             }
             if (this.peerPathSnapshot?.path_stale || this.peerPathSnapshot?.path_unresponsive) {
-                return `${base} text-amber-700 dark:text-amber-400`;
+                return `${base} text-sem-warning`;
             }
             return base;
         },

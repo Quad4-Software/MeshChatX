@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-09-29T00:03:18.682813Z
+Generated at: 2026-10-01T14:22:23.260126Z
 Frontend source: pnpm
 
 Python dependencies
@@ -67,10 +67,10 @@ idna 3.19
 landlockpy 0.2.0
   License: 0BSD
   Author: Quad4
-lxmf 1.1.1
+lxmf 1.2.0
   License: Reticulum License
   Author: Mark Qvist
-lxmfy 2.0.1
+lxmfy 2.1.1
   License: BSD-0-Clause
   Author: Quad4 <team@quad4.io>
 lxst 0.5.3
@@ -85,6 +85,9 @@ multidict 6.7.1
 numpy 2.4.6
   License: BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0
   Author: Travis E. Oliphant et al.
+packaging 26.3
+  License: Apache-2.0 OR BSD-2-Clause
+  Author: Donald Stufft <donald@stufft.io>
 propcache 0.5.2
   License: Apache-2.0
   Author: Andrew Svetlov
@@ -106,7 +109,7 @@ pyOpenSSL 26.4.0
 pyserial 3.5
   License: BSD
   Author: Chris Liechti
-reticulum-meshchatx 4.9.3
+reticulum-meshchatx 4.10.0
   License: 0BSD AND MIT
   Author: Quad4
 rns 1.5.5
@@ -807,7 +810,7 @@ Node dependencies
   Author: Evan You
 @vue/devtools-api 6.6.4
   License: MIT
-  Author: Guillaume Chau
+  Author: webfansplz
 @vue/devtools-core 8.2.1
   License: MIT
   Author: webfansplz

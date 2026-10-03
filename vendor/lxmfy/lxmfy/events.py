@@ -9,8 +9,10 @@ This module provides a comprehensive event handling system including:
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
+
+from ._sync import run_sync
 
 logger = logging.getLogger(__name__)
 
@@ -143,17 +145,16 @@ class EventManager:
             if event.name in self.handlers:
                 for _priority, handler in self.handlers[event.name]:
                     try:
-                        handler(event)
+                        run_sync(handler, event)
                         if event.cancelled:
                             break
-                    except Exception as e:
-                        self.logger.error(
-                            "Error in event handler %s: %s",
+                    except Exception:
+                        self.logger.exception(
+                            "Error in event handler %s",
                             handler.__name__,
-                            str(e),
                         )
-        except Exception as e:
-            self.logger.error("Error dispatching event: %s", str(e))
+        except Exception:
+            self.logger.exception("Error dispatching event")
 
     def _log_event(self, event: Event):
         """Logs an event to storage.
@@ -168,9 +169,9 @@ class EventManager:
                 {
                     "name": event.name,
                     "data": event.data,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
             self.storage.set("events:log", events[-1000:])
-        except Exception as e:
-            self.logger.error("Error logging event: %s", str(e))
+        except Exception:
+            self.logger.exception("Error logging event")

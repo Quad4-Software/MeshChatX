@@ -26,7 +26,7 @@ vi.mock("@/components/map/MapPage.vue", () => ({
 import TileCache from "@/js/TileCache";
 import MapBrowser from "@/components/map/MapBrowser.vue";
 import { mapViewStateKey } from "@/js/mapStateKeys.js";
-import { useConfigStore } from "@/js/stores/configStore.js";
+import { useConfigStore } from "@/js/stores/configStore";
 
 const MaterialDesignIconStub = {
     name: "MaterialDesignIcon",

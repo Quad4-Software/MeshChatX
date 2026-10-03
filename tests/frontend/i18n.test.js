@@ -78,7 +78,7 @@ describe("i18n Localization Tests", () => {
         walkDir(frontendDir);
 
         const foundKeys = new Set();
-        // Regex to find $t('key') or $t("key") or $t(`key`) or $t('key', ...)
+        // Regex to find $t('key') or $t("key") or $t(key) or $t('key', ...)
         // Also supports {{ $t('key') }}
         const tRegex = /\$t\s*\(\s*['"`]([^'"`]+)['"`]/g;
 

@@ -4,8 +4,8 @@
 import { computed, getCurrentInstance, onMounted, onUnmounted, ref } from "vue";
 
 import DialogUtils from "../DialogUtils.js";
-import GlobalEmitter from "../GlobalEmitter.js";
-import { EMITTER_EVENTS } from "../constants.js";
+import GlobalEmitter from "../GlobalEmitter";
+import { EMITTER_EVENTS } from "../constants";
 import {
     NOMAD_FAVOURITES_LAYOUT_KEY,
     clearLocalNomadFavouritesLayout,

@@ -4,7 +4,7 @@ import MicronParser from "@/js/MicronParser.js";
 
 import NomadNetworkPage from "@/components/nomadnetwork/NomadNetworkPage.vue";
 import ToastUtils from "@/js/ToastUtils";
-import { dispatchWsEvent } from "@/js/registries/wsEventRegistry.js";
+import { dispatchWsEvent } from "@/js/registries/wsEventRegistry";
 
 vi.mock("@/js/ToastUtils", () => ({
     default: {

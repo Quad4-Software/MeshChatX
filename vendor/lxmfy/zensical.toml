@@ -1,0 +1,130 @@
+[project]
+site_name = "LXMFy"
+site_url = "https://lxmfy.quad4.io"
+site_description = "Python framework for LXMF bots on the Reticulum Network"
+repo_url = "https://github.com/Quad4-Software/LXMFy"
+edit_uri = "edit/master/docs/"
+docs_dir = "docs"
+extra_css = [
+  "stylesheets/void.css",
+]
+extra_javascript = [
+  "javascripts/pwa.js",
+]
+nav = [
+  { "Home" = "index.md" },
+  { "Quick Start" = "quick-start.md" },
+  { "Creating Bots" = "creating-bots.md" },
+  { "API Reference" = "api-reference.md" },
+  { "Languages" = [
+    { "Deutsch" = [
+      "de/index.md",
+      "de/quick-start.md",
+      "de/creating-bots.md",
+      "de/api-reference.md",
+    ] },
+    { "Español" = [
+      "es/index.md",
+      "es/quick-start.md",
+      "es/creating-bots.md",
+      "es/api-reference.md",
+    ] },
+    { "Français" = [
+      "fr/index.md",
+      "fr/quick-start.md",
+      "fr/creating-bots.md",
+      "fr/api-reference.md",
+    ] },
+    { "Português" = [
+      "pt/index.md",
+      "pt/quick-start.md",
+      "pt/creating-bots.md",
+      "pt/api-reference.md",
+    ] },
+    { "Українська" = [
+      "uk/index.md",
+      "uk/quick-start.md",
+      "uk/creating-bots.md",
+      "uk/api-reference.md",
+    ] },
+    { "Русский" = [
+      "ru/index.md",
+      "ru/quick-start.md",
+      "ru/creating-bots.md",
+      "ru/api-reference.md",
+    ] },
+    { "简体中文" = [
+      "zh/index.md",
+      "zh/quick-start.md",
+      "zh/creating-bots.md",
+      "zh/api-reference.md",
+    ] },
+  ] },
+]
+
+[project.theme]
+custom_dir = "overrides"
+features = [
+  "navigation.sections",
+  "navigation.footer",
+  "navigation.top",
+  "toc.integrate",
+  "content.action.edit",
+  "search.highlight",
+]
+font.text = "Space Grotesk"
+font.code = "Space Mono"
+logo = "assets/logo.svg"
+favicon = "assets/favicon.svg"
+
+# Dark "void" first so the no-JS default matches quad4.io
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "void"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "paper"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[project.extra]
+[project.extra.version]
+provider = "mike"
+alias = true
+[[project.extra.alternate]]
+name = "English"
+link = "https://lxmfy.quad4.io/latest/"
+lang = "en"
+[[project.extra.alternate]]
+name = "Deutsch"
+link = "https://lxmfy.quad4.io/latest/de/"
+lang = "de"
+[[project.extra.alternate]]
+name = "Español"
+link = "https://lxmfy.quad4.io/latest/es/"
+lang = "es"
+[[project.extra.alternate]]
+name = "Français"
+link = "https://lxmfy.quad4.io/latest/fr/"
+lang = "fr"
+[[project.extra.alternate]]
+name = "Português"
+link = "https://lxmfy.quad4.io/latest/pt/"
+lang = "pt"
+[[project.extra.alternate]]
+name = "Русский"
+link = "https://lxmfy.quad4.io/latest/ru/"
+lang = "ru"
+[[project.extra.alternate]]
+name = "Українська"
+link = "https://lxmfy.quad4.io/latest/uk/"
+lang = "uk"
+[[project.extra.alternate]]
+name = "简体中文"
+link = "https://lxmfy.quad4.io/latest/zh/"
+lang = "zh"
+
+[project.plugins.mkdocstrings]

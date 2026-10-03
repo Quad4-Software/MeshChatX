@@ -200,3 +200,144 @@ def test_auto_propagation_config(db):
     assert config.lxmf_preferred_propagation_node_auto_select.get() is False
     config.lxmf_preferred_propagation_node_auto_select.set(True)
     assert config.lxmf_preferred_propagation_node_auto_select.get() is True
+
+
+def test_all_registered_config_keys_are_handled_in_update_config():
+    """Every registered config key must reach storage via update_config.
+
+    StringConfig/BoolConfig/IntConfig/FloatConfig keys reach storage either
+    through an explicit `in data` handler or the generic catch-all. Keys in
+    GENERIC_CONFIG_DENY bypass the generic pass, so a denylisted key with no
+    explicit handler and no dedicated route is silently dropped: flag those.
+    """
+    import re
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parents[2]
+    cm_src = (repo / "meshchatx/src/backend/config_manager.py").read_text()
+    app_src = (repo / "meshchatx/meshchat.py").read_text()
+
+    registered = set(
+        re.findall(
+            r'(?:StringConfig|BoolConfig|IntConfig|FloatConfig)\(\s*self\s*,\s*["\']([^"\']+)["\']',
+            cm_src,
+            re.S,
+        )
+    )
+    # Keys set through dedicated routes/system paths, never via update_config.
+    EXEMPT = {
+        "lxmf_address_hash",
+        "lxst_address_hash",
+        "last_announced_at",
+        "map_offline_path",
+        "ringtone_filename",
+        # Written by the auth subsystem during login/setup, never client-settable.
+        "auth_enabled",
+        "auth_password_hash",
+        "auth_session_secret",
+        "auth_session_epoch",
+        # CSP hardening knobs set by server admins, not the app PATCH.
+        "csp_extra_frame_src",
+        "csp_extra_img_src",
+        "csp_extra_script_src",
+        "csp_extra_style_src",
+    }
+    # Denylist parsed from meshchat.py so the test follows the source of truth.
+    deny_start = app_src.index("GENERIC_CONFIG_DENY = frozenset(")
+    deny_end = app_src.index("\n)", deny_start)
+    denylisted = set(re.findall(r'"([a-z_]+)"', app_src[deny_start:deny_end]))
+
+    # Extract all keys checked with `in data` inside update_config.
+    uc_start = app_src.index("async def update_config(self, data):")
+    uc_tail = app_src[uc_start:]
+    m = re.search(r"\n    (?:async )?def \w+\(", uc_tail[10:])
+    uc_end = uc_start + 10 + m.start() if m else len(app_src)
+    uc_body = app_src[uc_start:uc_end]
+    handled = set(re.findall(r'["\']([a-z_]+)["\']\s+in\s+data', uc_body))
+
+    # Non-denylisted keys are covered by the generic pass even without an
+    # explicit handler. Denylisted keys need an explicit handler or an EXEMPT
+    # entry - otherwise they can never be persisted at all.
+    uncovered = registered - handled - EXEMPT
+    dead = uncovered & denylisted
+    assert not dead, (
+        f"Config keys denylisted from the generic update_config pass with no "
+        f"explicit handler and no dedicated route - can never persist: {sorted(dead)}"
+    )
+
+    # The denylist must not contain typos - every entry must be a real
+    # registered config key.
+    unknown_deny = denylisted - registered
+    assert not unknown_deny, (
+        f"GENERIC_CONFIG_DENY entries that are not registered config keys: "
+        f"{sorted(unknown_deny)}"
+    )
+
+    # SERIALIZE_CONFIG_DENY entries likewise must be real registered keys.
+    ser_start = app_src.index("SERIALIZE_CONFIG_DENY = frozenset(")
+    ser_end = app_src.index("\n)", ser_start)
+    ser_denylisted = set(re.findall(r'"([a-z_]+)"', app_src[ser_start:ser_end]))
+    unknown_ser = ser_denylisted - registered
+    assert not unknown_ser, (
+        f"SERIALIZE_CONFIG_DENY entries that are not registered config keys: "
+        f"{sorted(unknown_ser)}"
+    )
+
+
+def test_generic_config_pass_sets_and_denies(db):
+    """_apply_generic_config_fields stores unhandled registered keys.
+
+    Applies type coercion and refuses denylisted keys.
+    """
+    from meshchatx.meshchat import (
+        GENERIC_CONFIG_DENY,
+        _apply_generic_config_fields,
+        _TrackedConfigData,
+    )
+
+    config = ConfigManager(db)
+
+    data = _TrackedConfigData(
+        {
+            "ui_glass_enabled": False,
+            "ui_transparency": "42",
+            "ui_font_family": "inter",
+            "auth_password_hash": "should-never-stick",
+            "nonexistent_key": "ignored",
+        }
+    )
+    _apply_generic_config_fields(config, data)
+
+    assert config.ui_glass_enabled.get() is False
+    assert config.ui_transparency.get() == 42
+    assert config.ui_font_family.get() == "inter"
+    # Denylisted key refused even though it was never probed by a handler.
+    assert config.auth_password_hash.get() != "should-never-stick"
+    assert "auth_password_hash" in GENERIC_CONFIG_DENY
+    # Unknown payload keys are ignored.
+    assert not hasattr(config, "nonexistent_key")
+
+
+def test_font_family_whitelist_matches_frontend_bundled_fonts():
+    """The ui_font_family whitelist must cover every bundled font.
+
+    update_config must accept every key in BUNDLED_FONTS plus 'system' and
+    'custom', or font selection silently resets.
+    """
+    import re
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parents[2]
+    app_src = (repo / "meshchatx/meshchat.py").read_text()
+
+    start = app_src.index('if "ui_font_family" in data:')
+    end = app_src.index("self.config.ui_font_family.set", start)
+    backend_fonts = set(re.findall(r'"([a-z\-]+)"', app_src[start:end]))
+
+    fe_src = (repo / "meshchatx/src/frontend/js/fontLoader.js").read_text()
+    bundled = set(re.findall(r"^\s+\"?([a-z\-]+)\"?:\s*'", fe_src, re.M))
+
+    expected = bundled | {"system", "custom"}
+    assert backend_fonts == expected, (
+        f"backend whitelist {sorted(backend_fonts)} != frontend fonts {sorted(expected)}"
+    )

@@ -329,7 +329,7 @@ export default class MicronParser extends BaseMicronParser {
     }
 
     /**
-     * Scrub network CSS inside &lt;style&gt; blocks without nested regex backtracking.
+     * Scrub network CSS inside &lt;style&gt. blocks without nested regex backtracking.
      */
     static scrubNetworkCssInStyleTags(html) {
         if (typeof html !== "string" || !html) {

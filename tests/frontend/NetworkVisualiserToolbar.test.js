@@ -82,12 +82,12 @@ describe("NetworkVisualiserToolbar", () => {
 
     it("styles trigger from active engine mode", () => {
         const webgl = mountToolbar({ engineMode: "webgl", preferredRenderer: "webgl", fps: 60 });
-        expect(webgl.find("#visualiser-engine-select").classes().join(" ")).toContain("text-sky-600");
+        expect(webgl.find("#visualiser-engine-select").classes().join(" ")).toContain("text-sem-info");
         expect(webgl.find("#visualiser-engine-select").text()).toContain("visualiser.renderer_option_webgl_short");
         webgl.unmount();
 
         const fallback = mountToolbar({ engineMode: "fallback", preferredRenderer: "vis", fps: 0 });
-        expect(fallback.find("#visualiser-engine-select").classes().join(" ")).toContain("text-amber-600");
+        expect(fallback.find("#visualiser-engine-select").classes().join(" ")).toContain("text-sem-warning");
         expect(fallback.find("#visualiser-engine-select").text()).toContain("visualiser.renderer_option_vis_short");
         expect(fallback.text()).toContain("--");
     });
@@ -125,7 +125,6 @@ describe("NetworkVisualiserToolbar", () => {
         const webgl = mountToolbar({ engineMode: "webgl", viewMode: "flat" });
         expect(webgl.find("#visualiser-view-flat").exists()).toBe(true);
         expect(webgl.find("#visualiser-view-planet").exists()).toBe(true);
-        expect(webgl.find("#visualiser-view-cluster").exists()).toBe(true);
         expect(webgl.find("#visualiser-view-flat").attributes("aria-pressed")).toBe("true");
         expect(webgl.find("#visualiser-view-planet").attributes("aria-pressed")).toBe("false");
     });
@@ -134,12 +133,5 @@ describe("NetworkVisualiserToolbar", () => {
         const w = mountToolbar({ engineMode: "webgl", viewMode: "flat" });
         await w.find("#visualiser-view-planet").trigger("click");
         expect(w.emitted("update:viewMode")?.[0]).toEqual(["planet"]);
-    });
-
-    it("emits cluster view mode from the WebGL toolbar", async () => {
-        const w = mountToolbar({ engineMode: "webgl", viewMode: "cluster" });
-        expect(w.find("#visualiser-view-cluster").attributes("aria-pressed")).toBe("true");
-        await w.find("#visualiser-view-cluster").trigger("click");
-        expect(w.emitted("update:viewMode")?.[0]).toEqual(["cluster"]);
     });
 });

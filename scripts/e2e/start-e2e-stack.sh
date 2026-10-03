@@ -74,7 +74,10 @@ if [[ "$E2E_LIVE_MESH" == "1" ]]; then
     cat > "$TMPDIR/rns/config" <<CFG
 [reticulum]
   enable_transport = False
-  share_instance = No
+  share_instance = Yes
+  instance_name = e2e-app
+  shared_instance_port = 47428
+  instance_control_port = 47429
   panic_on_interface_error = No
 
 [interfaces]

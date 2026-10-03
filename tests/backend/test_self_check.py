@@ -198,8 +198,27 @@ def test_check_cbor_roundtrip_ok():
 
 
 def test_check_lxst_telephony_ok():
-    pytest.importorskip("LXST")
+    lxst = pytest.importorskip("LXST")
     result = self_check.check_lxst_telephony()
+    if result["status"] == "failed" and "filterlib native artifact" in (
+        result.get("reason") or ""
+    ):
+        # LXST ships prebuilt filterlib .so per CPython ABI. On a pre-release
+        # interpreter no matching artifact exists. skip only when other ABIs
+        # are present, so a genuinely unbuilt artifact still fails.
+        import sysconfig
+        from pathlib import Path
+
+        root = Path(lxst.__path__[0])
+        others = [
+            p
+            for p in root.glob("filterlib*")
+            if p.name != f"filterlib{sysconfig.get_config_var('EXT_SUFFIX')}"
+        ]
+        if others:
+            pytest.skip(
+                f"no filterlib artifact for this interpreter ABI: {result['reason']}"
+            )
     assert result["status"] == "ok", result.get("reason")
 
 

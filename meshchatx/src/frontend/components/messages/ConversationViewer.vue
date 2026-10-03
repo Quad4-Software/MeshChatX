@@ -103,7 +103,7 @@
                     </button>
                     <button
                         type="button"
-                        class="min-h-[36px] sm:min-h-0 px-2.5 py-1 text-xs text-sem-warning hover:text-sem-warning dark:hover:text-amber-200 transition-colors"
+                        class="min-h-[36px] sm:min-h-0 px-2.5 py-1 text-xs text-sem-warning hover:text-sem-warning dark:hover:text-sem-warning transition-colors"
                         @click="strangerBannerDismissed = true"
                     >
                         {{ $t("messages.dismiss") }}
@@ -266,9 +266,9 @@
                 </div>
             </Transition>
 
-            <!-- send message -->
+            <!-- send message: floating composer, transparent backdrop -->
             <div
-                class="w-full border-t border-sem-border bg-sem-surface px-3 sm:px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+                class="w-full px-3 sm:px-4 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
                 :style="composerChromeStyle"
             >
                 <div class="w-full">
@@ -463,20 +463,18 @@
                             </div>
                         </div>
 
-                        <!-- text input + send -->
-                        <div class="flex items-center gap-2 min-w-0">
+                        <!-- text input + send: single pill containing paperclip,
+                             textarea, emoji, mic. Round send sits outside. -->
+                        <div class="flex items-end gap-2 min-w-0">
                             <div
                                 v-click-outside="{ handler: onStickerPickerClickOutside, capture: true }"
-                                class="relative flex-1 min-w-0"
+                                class="composer-pill relative flex-1 min-w-0 flex items-end gap-0.5 rounded-2xl border border-sem-border bg-sem-surface-muted/60 pl-1.5 pr-1 transition-all focus-within:ring-2 focus-within:ring-sem-focus focus-within:border-sem-focus-border shadow-xs"
                             >
-                                <!-- mobile: attachments button inside the input, left side -->
-                                <div
-                                    v-click-outside="closeMobileAttachmentMenu"
-                                    class="absolute left-1 top-1/2 -translate-y-1/2 z-10 sm:hidden"
-                                >
+                                <!-- attachments button inside the pill, left side -->
+                                <div v-click-outside="closeMobileAttachmentMenu" class="relative shrink-0 self-center">
                                     <button
                                         type="button"
-                                        class="inline-flex items-center justify-center rounded-lg size-8 text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg transition-colors"
+                                        class="inline-flex items-center justify-center rounded-xl size-8 text-sem-fg-muted hover:bg-sem-surface-raised hover:text-sem-fg transition-colors"
                                         :title="$t('messages.attachments')"
                                         @click.stop="toggleMobileAttachmentMenu"
                                     >
@@ -485,7 +483,7 @@
                                 </div>
                                 <div
                                     v-if="showMobileAttachmentMenu"
-                                    class="absolute left-0 bottom-full mb-2 z-50 min-w-[200px] rounded-xl border border-sem-border bg-sem-surface shadow-lg sm:hidden"
+                                    class="absolute left-0 bottom-full mb-2 z-50 min-w-[200px] rounded-xl border border-sem-border bg-sem-surface shadow-lg"
                                 >
                                     <div
                                         class="absolute -bottom-[5px] left-4 w-2.5 h-2.5 rotate-45 bg-sem-surface border-b border-r border-sem-border"
@@ -563,7 +561,7 @@
                                     ref="message-input"
                                     v-model="newMessageText"
                                     :readonly="isTranslatingMessage"
-                                    class="bg-sem-surface border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full min-w-0 pl-11 sm:pl-4 pr-16 py-2.5 resize-none shadow-xs transition-all placeholder:text-sem-fg-muted min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
+                                    class="composer-textarea bg-transparent border-0 text-sem-fg text-sm block flex-1 min-w-0 px-2 py-2.5 resize-none transition-all placeholder:text-sem-fg-muted min-h-[40px] max-h-[200px] overflow-y-auto leading-snug focus:outline-none focus:ring-0"
                                     rows="1"
                                     spellcheck="true"
                                     :placeholder="composeInputPlaceholder"
@@ -571,7 +569,7 @@
                                     @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
                                     @paste="onMessagePaste"
                                 ></textarea>
-                                <div class="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0">
+                                <div class="shrink-0 self-center flex items-center gap-0">
                                     <AddAudioButton
                                         :is-recording-audio-attachment="isRecordingAudioAttachment"
                                         @start-recording="startRecordingAudioAttachment($event)"
@@ -824,7 +822,7 @@
                                     :can-open-send-menu="Boolean(selectedPeer)"
                                     :can-generate-paper="canGeneratePaperMessage"
                                     :delivery-method="newMessageDeliveryMethod"
-                                    :compact="compactSendLayout"
+                                    :compact="true"
                                     :sending-tooltip="sendMessagePathfindingTooltip"
                                     @send="onComposerSendClick"
                                     @delivery-method-changed="newMessageDeliveryMethod = $event"
@@ -911,57 +909,10 @@
                             </p>
                         </div>
 
-                        <!-- action button (desktop; mobile uses the paperclip menu next to the input) -->
-                        <div class="hidden sm:flex flex-wrap gap-2 items-center mt-2">
-                            <button type="button" class="attachment-action-button" @click="addFilesToMessage">
-                                <MaterialDesignIcon icon-name="paperclip-plus" class="w-4 h-4" />
-                                <span class="hidden sm:inline">{{ $t("messages.add_files") }}</span>
-                            </button>
+                        <!-- hidden AddImageButton keeps the addImage(quality) API the
+                             paperclip menu calls; its own button is not shown. -->
+                        <div class="hidden">
                             <AddImageButton ref="add-image-button" @add-image="onImageSelected" />
-                            <div v-click-outside="closeLocationActionMenu" class="relative">
-                                <button
-                                    type="button"
-                                    class="attachment-action-button"
-                                    :title="$t('messages.location')"
-                                    @click.stop="toggleLocationActionMenu"
-                                >
-                                    <MaterialDesignIcon icon-name="map-marker" class="w-4 h-4" />
-                                    <span class="hidden sm:inline">{{ $t("messages.location") }}</span>
-                                </button>
-                                <div
-                                    v-if="showLocationActionMenu"
-                                    class="absolute left-0 bottom-full mb-2 z-50 min-w-[220px] overflow-hidden rounded-xl border border-sem-border bg-sem-surface shadow-lg dark:bg-sem-surface"
-                                >
-                                    <button
-                                        type="button"
-                                        class="w-full text-left px-3 py-2 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
-                                        @click="selectSendLocation"
-                                    >
-                                        {{ $t("messages.share_location") }}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="w-full text-left px-3 py-2 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
-                                        @click="selectRequestLocation"
-                                    >
-                                        {{ $t("messages.request_location") }}
-                                    </button>
-                                </div>
-                            </div>
-                            <button
-                                v-if="hasTranslator && newMessageText"
-                                type="button"
-                                class="attachment-action-button"
-                                :class="{
-                                    'ring-1 ring-sem-info/60':
-                                        translateTargetBarOpen && translateTargetModalContext?.type === 'compose',
-                                }"
-                                :title="$t('translator.translate')"
-                                @click="toggleComposeTranslateTargetBar"
-                            >
-                                <MaterialDesignIcon icon-name="translate" class="w-4 h-4" />
-                                <span class="hidden sm:inline">{{ $t("translator.translate") }}</span>
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -1082,10 +1033,7 @@
                     {{ $t("messages.cancel_send") }}
                 </ContextMenuItem>
                 <ContextMenuItem
-                    v-if="
-                        messageContextMenu.chatItem?.is_outbound &&
-                        ['failed', 'cancelled'].includes(messageContextMenu.chatItem?.lxmf_message?.state)
-                    "
+                    v-if="isOutboundResendable(messageContextMenu.chatItem)"
                     item-class="text-sem-warning"
                     @click="
                         retrySendingMessage(messageContextMenu.chatItem);
@@ -1105,7 +1053,7 @@
                 </ContextMenuItem>
                 <ContextMenuDivider />
                 <ContextMenuItem
-                    item-class="text-sem-danger dark:text-red-400"
+                    item-class="text-sem-danger dark:text-sem-danger"
                     @click="
                         deleteChatItem(messageContextMenu.chatItem);
                         messageContextMenu.show = false;
@@ -1150,12 +1098,19 @@
                     class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-sem-accent/60 hover:bg-sem-surface-muted transition-colors"
                     @click="syncPropagationNode"
                 >
-                    <MaterialDesignIcon
-                        icon-name="sync"
-                        class="size-5 text-sem-accent"
-                        :class="{ 'animate-spin': isSyncingPropagationNode }"
-                        :style="isSyncingPropagationNode ? { animationDirection: 'reverse' } : {}"
-                    />
+                    <span class="relative inline-flex size-5 text-sem-accent">
+                        <MaterialDesignIcon icon-name="email-outline" class="size-5" />
+                        <MaterialDesignIcon
+                            :icon-name="propagationSyncOverlayIcon"
+                            class="absolute -top-1 -right-1.5 size-3 rounded-full bg-sem-surface"
+                            :class="{
+                                'animate-spin-reverse text-sem-info': isSyncingPropagationNode,
+                                'text-sem-success': !isSyncingPropagationNode && propagationSyncResult === 'success',
+                                'text-sem-danger': !isSyncingPropagationNode && propagationSyncResult === 'error',
+                                'text-sem-fg-muted': !isSyncingPropagationNode && propagationSyncResult == null,
+                            }"
+                        />
+                    </span>
                     <span class="text-xs font-medium text-sem-fg">{{
                         isSyncingPropagationNode ? $t("app.syncing") : $t("app.sync_now")
                     }}</span>
@@ -1475,7 +1430,7 @@
                                         class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset"
                                         :class="
                                             rawMessageData.state === 'delivered'
-                                                ? 'bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/30 dark:text-green-400'
+                                                ? 'bg-sem-success/15 text-sem-success ring-green-600/20 dark:bg-sem-success/15 dark:text-sem-success'
                                                 : 'bg-sem-info/5 text-sem-info ring-sem-info/10 dark:bg-sem-info/15'
                                         "
                                     >
@@ -1623,7 +1578,7 @@
                             >
                             <div
                                 v-if="!isRawMessageBodyOversized"
-                                class="text-xs font-mono bg-sem-surface p-3 rounded-sm border border-sem-border whitespace-pre-wrap break-all text-gray-800 text-sem-fg-muted"
+                                class="text-xs font-mono bg-sem-surface p-3 rounded-sm border border-sem-border whitespace-pre-wrap break-all text-sem-fg text-sem-fg-muted"
                             >
                                 {{ rawMessageData.content }}
                             </div>
@@ -1693,9 +1648,9 @@
 <script>
 import { getCurrentInstance } from "vue";
 import { mapStores } from "pinia";
-import { useConfigStore } from "../../js/stores/configStore.js";
-import { useUnreadStore } from "../../js/stores/unreadStore.js";
-import { useIdentityStore } from "../../js/stores/identityStore.js";
+import { useConfigStore } from "../../js/stores/configStore";
+import { useUnreadStore } from "../../js/stores/unreadStore";
+import { useIdentityStore } from "../../js/stores/identityStore";
 import Utils from "../../js/Utils";
 import { copyTextToClipboard, copyImageBlobToClipboard, readTextFromClipboard } from "../../js/clipboardUtils.js";
 import { preferNativeTextSelectionMenu } from "../../js/contextMenuUtils.js";
@@ -1751,7 +1706,7 @@ import {
     warmPathIfNeeded,
 } from "../../js/reticulumPathfinding.js";
 import WebSocketConnection from "../../js/WebSocketConnection";
-import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
 import AddAudioButton from "./composer/AddAudioButton.vue";
 import { fromNow } from "../../libs/datetime.js";
 
@@ -1809,7 +1764,7 @@ import InViewAnimatedImg from "./InViewAnimatedImg.vue";
 import TelemetryHistoryModal from "./telemetry/TelemetryHistoryModal.vue";
 import { uuidv4 } from "../../libs/uuid.js";
 import * as TranslationService from "../../js/TranslationService.js";
-import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants.js";
+import { apiPath, EMITTER_EVENTS, STORAGE_KEYS, WS_EVENTS } from "../../js/constants";
 import * as gifsApi from "../../js/api/gifs.js";
 import * as lxmfMessagesApi from "../../js/api/lxmfMessages.js";
 import * as stickersApi from "../../js/api/stickers.js";
@@ -1973,6 +1928,8 @@ export default {
             bubbleTranslateBarIgnoreOutsideUntil: 0,
             messageBubbleTranslation: {},
             propagationNodeStatus: null,
+            propagationSyncResult: null,
+            propagationSyncState: null,
             propagationStatusInterval: null,
 
             showTelemetryInChat: false,
@@ -2208,9 +2165,20 @@ export default {
                 paddingBottom: "max(0.625rem, env(safe-area-inset-bottom, 0px))",
             };
         },
+        propagationSyncOverlayIcon() {
+            if (this.isSyncingPropagationNode) {
+                return "sync";
+            }
+            if (this.propagationSyncResult === "success") {
+                return "check-circle";
+            }
+            if (this.propagationSyncResult === "error") {
+                return "alert-circle";
+            }
+            return "sync";
+        },
         isSyncingPropagationNode() {
-            // Mirror App chrome: only spin for user-started sync, not auto-sync.
-            return false;
+            return this.propagationSyncState === "syncing";
         },
         blockedDestinations() {
             return useIdentityStore().blockedDestinations;
@@ -2444,7 +2412,7 @@ export default {
                 const toName = displayNames.of(l.to || pair.slice(2, 4)) || l.to;
                 return {
                     value: pair,
-                    label: `${fromName} → ${toName}`,
+                    label: `${fromName} -> ${toName}`,
                     from: l.from || pair.slice(0, 2),
                     to: l.to || pair.slice(2, 4),
                 };
@@ -2558,6 +2526,8 @@ export default {
 
         GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
 
+        GlobalEmitter.on(EMITTER_EVENTS.PROPAGATION_SYNC_STATE, this.onPropagationSyncState);
+
         this.reloadIngestedPaperMessageHashes();
 
         // check translator
@@ -2621,6 +2591,7 @@ export default {
         GlobalEmitter.off(EMITTER_EVENTS.CONTACT_UPDATED, this.onContactUpdatedForBanner);
         GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
+        GlobalEmitter.off(EMITTER_EVENTS.PROPAGATION_SYNC_STATE, this.onPropagationSyncState);
         if (this.propagationStatusInterval) {
             clearInterval(this.propagationStatusInterval);
         }
@@ -2839,6 +2810,10 @@ export default {
             } catch {
                 // do nothing on error
             }
+        },
+        onPropagationSyncState(payload) {
+            this.propagationSyncState = payload?.syncing ? "syncing" : null;
+            this.propagationSyncResult = payload?.result ?? null;
         },
         async syncPropagationNode() {
             GlobalEmitter.emit(EMITTER_EVENTS.SYNC_PROPAGATION_NODE);
@@ -5344,6 +5319,25 @@ export default {
             }
             return this.isOutboundPendingForUi(chatItem);
         },
+        isOutboundResendable(chatItem) {
+            const m = chatItem?.lxmf_message;
+            if (!chatItem?.is_outbound || !m) {
+                return false;
+            }
+            const state = m.state;
+            if (["delivered", "rejected"].includes(state)) {
+                return false;
+            }
+            if (["failed", "cancelled"].includes(state)) {
+                return true;
+            }
+            // Undelivered rows that stopped moving: live objects get retried
+            // by LXMF, but a dead row (lost receipt, restarted backend, or a
+            // demoted state) sits in a progress state forever with no
+            // recourse. Show retry once the message is old enough to be stale.
+            const ts = typeof m.timestamp === "number" ? m.timestamp * 1000 : Date.parse(m.created_at ?? "");
+            return ts > 0 && Date.now() - ts > 5 * 60 * 1000;
+        },
         isOutboundSendEscalated(chatItem) {
             const m = chatItem?.lxmf_message;
             if (!chatItem?.is_outbound || !m) {
@@ -7613,7 +7607,7 @@ export default {
     @apply flex-1;
 }
 .attachment-card__title {
-    @apply text-sm font-semibold text-gray-800;
+    @apply text-sm font-semibold text-sem-fg;
 }
 .attachment-card__meta {
     @apply text-xs text-sem-fg-muted;
@@ -7630,18 +7624,6 @@ export default {
 }
 .attachment-chip__remove {
     @apply inline-flex items-center justify-center text-sem-fg-muted hover:text-sem-danger;
-}
-.attachment-action-button {
-    @apply inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-sem-fg-muted hover:bg-sem-surface-muted transition-colors;
-}
-.attachment-action-button:hover {
-    @apply text-sem-fg;
-}
-.dark .attachment-action-button {
-    @apply text-zinc-300;
-}
-.dark .attachment-action-button:hover {
-    @apply text-white;
 }
 
 .compose-emoji-picker {

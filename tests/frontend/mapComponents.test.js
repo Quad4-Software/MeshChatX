@@ -267,7 +267,7 @@ describe("MapExportProgressPanel", () => {
         expect(wrapper.text()).toContain("map.download_ready");
         const link = wrapper.find('a[href="/api/v1/map/export/x/download"]');
         expect(link.exists()).toBe(true);
-        await wrapper.find("button.text-gray-400").trigger("click");
+        await wrapper.find("button.text-sem-fg-muted").trigger("click");
         expect(wrapper.emitted("dismiss")).toHaveLength(1);
     });
 
@@ -278,7 +278,7 @@ describe("MapExportProgressPanel", () => {
             },
             global: { mocks: { $t: t } },
         });
-        await wrapper.find("button.text-red-500").trigger("click");
+        await wrapper.find("button.text-sem-danger").trigger("click");
         expect(wrapper.emitted("cancel")).toHaveLength(1);
     });
 });
@@ -327,7 +327,7 @@ describe("MapMarkerPanel", () => {
         });
         expect(wrapper.text()).toContain("NodeA");
         expect(wrapper.text()).toContain("1.200000");
-        await wrapper.find("button.text-gray-500").trigger("click");
+        await wrapper.find("button.text-sem-fg-muted").trigger("click");
         expect(wrapper.emitted("close")).toHaveLength(1);
     });
 

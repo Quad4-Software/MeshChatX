@@ -832,6 +832,50 @@ jobs:
             - name: Install git-cliff for release notes
               run: sh scripts/ci/setup-git-cliff.sh
 
+            - name: Generate signed update manifest
+              id: update_manifest
+              env:
+                  MESHCHATX_UPDATE_IDENTITY_B64: ${{ secrets.MESHCHATX_UPDATE_IDENTITY_B64 }}
+              run: |
+                  set -euo pipefail
+                  if [[ -z "${MESHCHATX_UPDATE_IDENTITY_B64:-}" ]]; then
+                    echo "::notice::MESHCHATX_UPDATE_IDENTITY_B64 not set; skipping signed update manifest."
+                    exit 0
+                  fi
+                  printf '%s' "$MESHCHATX_UPDATE_IDENTITY_B64" | base64 -d > /tmp/update-release.rid
+                  chmod 600 /tmp/update-release.rid
+                  trap 'rm -f /tmp/update-release.rid' EXIT
+                  version="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' meshchatx/src/version.py | head -1)"
+                  if [[ "${GITHUB_REF_NAME}" == nightly-* || "${GITHUB_REF_NAME}" == testing-* ]]; then
+                    track=testing
+                  elif [[ "${GITHUB_REF_NAME}" == beta-* || "${GITHUB_REF_NAME}" == preview-* ]]; then
+                    track=beta
+                  else
+                    track=release
+                  fi
+                  uv run --no-project --with 'rns==1.5.5' python scripts/build/update_manifest.py sign \
+                    --assets upload --version "$version" --tag "$GITHUB_REF_NAME" --track "$track" \
+                    --identity /tmp/update-release.rid \
+                    -o upload/update.json --rsm upload/update.rsm
+                  # Fail the job if the signed manifest does not verify.
+                  uv run --no-project --with 'rns==1.5.5' python scripts/build/update_manifest.py verify upload/update.rsm
+
+            - name: Build CDN webseed torrent
+              run: |
+                  set -euo pipefail
+                  if [[ "${GITHUB_REF_NAME}" == nightly-* || "${GITHUB_REF_NAME}" == testing-* ]]; then
+                    track=testing
+                  elif [[ "${GITHUB_REF_NAME}" == beta-* || "${GITHUB_REF_NAME}" == preview-* ]]; then
+                    track=beta
+                  else
+                    track=release
+                  fi
+                  python3 scripts/ci/make-release-torrent.py \
+                    --dir upload \
+                    --tag "$GITHUB_REF_NAME" \
+                    --track "$track" \
+                    --out "upload/MeshChatX-${GITHUB_REF_NAME}.torrent"
+
             - name: Upload release assets (draft then publish for testing/beta)
               id: upload_gh_release
               env:
@@ -860,6 +904,23 @@ jobs:
                   export BUNNY_STORAGE_OBJECT_PREFIX="${track}/${GITHUB_REF_NAME}"
                   echo "Bunny Storage prefix: ${BUNNY_STORAGE_OBJECT_PREFIX}"
                   python3 scripts/ci/github-upload-bunny-storage-release-assets.py upload
+
+                  # Publish the signed update manifest as the track's latest
+                  # pointer only after the artifact tree is fully uploaded, so
+                  # clients never see a manifest for missing files. A bare
+                  # track prefix is not a track/version pair, so the uploader
+                  # prunes nothing here.
+                  if [[ -f upload/update.rsm && -f upload/update.json ]]; then
+                    latest_dir="$(mktemp -d)"
+                    cp upload/update.json "${latest_dir}/latest.json"
+                    cp upload/update.rsm "${latest_dir}/latest.rsm"
+                    export BUNNY_STORAGE_OBJECT_PREFIX="${track}"
+                    echo "Bunny Storage prefix: ${BUNNY_STORAGE_OBJECT_PREFIX} (latest pointers)"
+                    python3 scripts/ci/github-upload-bunny-storage-release-assets.py "${latest_dir}"
+                    rm -rf "${latest_dir}"
+                  else
+                    echo "::notice::No signed update manifest; skipping latest pointer publish."
+                  fi
 
     release-artifact-gate:
         name: Verify required tagged release artifacts

@@ -22,7 +22,7 @@ class BotConfig:
         cogs_dir (str): The directory to load cogs from. Defaults to "cogs".
         cogs_enabled (bool): Whether to enable cogs. Defaults to True.
         permissions_enabled (bool): Whether to enable the permission system. Defaults to False.
-        storage_type (str): The type of storage to use ("json" or "sqlite"). Defaults to "json".
+        storage_type (str): The type of storage to use ("json", "sqlite", "msgpack", or "memory"). Defaults to "json".
         storage_path (str): The path to the storage file or directory. Defaults to "data".
         first_message_enabled (bool): Whether to enable first message handling. Defaults to True.
         event_logging_enabled (bool): Whether to enable event logging. Defaults to True.
@@ -33,7 +33,12 @@ class BotConfig:
         require_message_signatures (bool): Whether to reject unsigned messages when signature verification is enabled. Defaults to False.
         require_stamps (bool): Whether to reject messages with invalid stamps. Defaults to False.
         request_unknown_identities (bool): Whether to request unknown identities from the network when a message is received from an unknown source. Defaults to False.
-        stamp_cost (int): The cost of stamps for messages. If set, required for incoming and applied to outgoing. None disables stamps. Defaults to None.
+        stamp_cost (int): Stamp cost required for messages to this bot.
+            Outbound cost still comes from the peer announce unless send()
+            overrides it. None disables inbound stamps. Defaults to None.
+        include_tickets (bool): Include reply tickets on outbound messages so
+            peers that require stamps can answer without stamp generation.
+            Defaults to True.
         direct_delivery_retries (int): Number of times to retry direct delivery before falling back to propagation. Defaults to 3.
         propagation_fallback_enabled (bool): Whether to use propagation nodes as fallback after direct delivery fails. Defaults to True.
         propagation_node (str): The destination hash of the outbound propagation node. If None and autopeer_propagation is True, automatically discovers nodes. Defaults to None.
@@ -44,6 +49,12 @@ class BotConfig:
         config_path (str): The path to the bot configuration directory. If None, defaults to "config" in the current working directory. Defaults to None.
         reticulum_config_dir (str): The Reticulum config directory used for RNS shared instance/auth state. If None, uses LXMFY_RETICULUM_CONFIG_DIR when set, otherwise discovers the user/system Reticulum config (/etc/reticulum, ~/.config/reticulum, ~/.reticulum), and only then falls back to config_path. Isolated bot configs force share_instance=No to avoid RPC digest rejection with NomadNet/Columba.
         test_mode (bool): Whether to run in test mode (skips RNS initialization). Defaults to False.
+        log_level (str or int or None): Logging level for lxmfy's own logger ("DEBUG", "INFO", "WARNING", ...). None leaves logging untouched. Defaults to "INFO".
+        loglevel (int): RNS log level (0-7) passed to RNS.Reticulum. None uses the Reticulum config file setting. Defaults to None.
+        pending_sends_enabled (bool): Hold outbound messages when the destination identity is not yet known, retrying on announces and periodic sweeps. Defaults to True.
+        pending_sends_max (int): Maximum deferred messages kept for unknown destinations. Oldest are dropped beyond this. Defaults to 200.
+        pending_sends_ttl (int): Seconds a deferred message is kept before being dropped. Defaults to 604800 (7 days).
+        pending_sends_retry (int): Minimum seconds between deferred-send sweeps in run(). Defaults to 300.
         announce_display_name_file (str): Optional filename under config_path whose UTF-8 contents override the bot display name for LXMF delivery announces. If unset, ``bot_display_name.txt`` is read when present. Otherwise ``name`` is used.
 
     """
@@ -73,6 +84,7 @@ class BotConfig:
     require_stamps: bool = False
     request_unknown_identities: bool = False
     stamp_cost: int | None = None
+    include_tickets: bool = True
     direct_delivery_retries: int = 3
     propagation_fallback_enabled: bool = True
     propagation_node: str | None = None
@@ -84,9 +96,15 @@ class BotConfig:
     reticulum_config_dir: str | None = None
     announce_display_name_file: str | None = None
     test_mode: bool = False
+    log_level: str | int | None = "INFO"
+    loglevel: int | None = None
     identity_pinning_enabled: bool = False
     message_persistence_enabled: bool = True
     message_queue_size: int = 50
+    pending_sends_enabled: bool = True
+    pending_sends_max: int = 200
+    pending_sends_ttl: int = 604800
+    pending_sends_retry: int = 300
     dynamic_cogs_enabled: bool = True
     external_cogs_enabled: bool = True
     external_cogs_sandbox_enabled: bool = True

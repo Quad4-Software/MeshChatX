@@ -1,4 +1,4 @@
-import { apiPath } from "../constants.js";
+import { apiPath } from "../constants";
 
 /**
  * Reticulum transport mode enable/disable (separate from config PATCH).

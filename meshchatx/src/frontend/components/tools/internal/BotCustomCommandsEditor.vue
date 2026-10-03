@@ -37,7 +37,7 @@
                 />
                 <button
                     type="button"
-                    class="p-2 rounded-lg text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 shrink-0"
+                    class="p-2 rounded-lg text-sem-fg-muted hover:text-red-600 dark:hover:text-sem-danger hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface/80 shrink-0"
                     :title="$t('bots.custom_command_remove')"
                     @click="removeCommand(index)"
                 >
@@ -46,7 +46,7 @@
             </div>
             <button
                 type="button"
-                class="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-40"
+                class="inline-flex items-center gap-1.5 text-xs font-medium text-sem-info hover:underline disabled:opacity-40"
                 :disabled="draft.commands.length >= 64"
                 @click="addCommand"
             >
@@ -152,6 +152,6 @@ export default {
 <style scoped>
 @reference "../../../style.css";
 .glass-label {
-    @apply block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1;
+    @apply block text-sm font-semibold text-sem-fg mb-1;
 }
 </style>
