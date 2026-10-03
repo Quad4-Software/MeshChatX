@@ -896,6 +896,73 @@ describe("RelayChatPage.vue", () => {
         });
     });
 
+    it("composer is a multiline textarea that grows with scrollHeight", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await wrapper.vm.$nextTick();
+
+        const ta = wrapper.find(".composer-pill textarea");
+        expect(ta.exists()).toBe(true);
+
+        const el = ta.element;
+        Object.defineProperty(el, "scrollHeight", { value: 96, configurable: true });
+        wrapper.vm.adjustComposerHeight();
+        expect(el.style.height).toBe("96px");
+
+        Object.defineProperty(el, "scrollHeight", { value: 500, configurable: true });
+        wrapper.vm.adjustComposerHeight();
+        expect(el.style.height).toBe("160px");
+    });
+
+    it("composer watcher grows the textarea as text changes", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await wrapper.vm.$nextTick();
+
+        const el = wrapper.find(".composer-pill textarea").element;
+        Object.defineProperty(el, "scrollHeight", { value: 80, configurable: true });
+
+        await wrapper.setData({ composer: "line one\nline two" });
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(el.style.height).toBe("80px");
+    });
+
+    it("plain Enter sends the message and keeps composer single-line ready", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await wrapper.vm.$nextTick();
+
+        const ta = wrapper.find(".composer-pill textarea");
+        await ta.setValue("hi there");
+        await ta.trigger("keydown", { key: "Enter" });
+        await vi.waitFor(() =>
+            expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms/lobby/messages`, {
+                text: "hi there",
+            })
+        );
+    });
+
+    it("Shift+Enter inserts a newline instead of sending", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await wrapper.vm.$nextTick();
+
+        const ta = wrapper.find(".composer-pill textarea");
+        await ta.setValue("first");
+        axiosMock.post.mockClear();
+        await ta.trigger("keydown", { key: "Enter", shiftKey: true });
+        await wrapper.vm.$nextTick();
+
+        expect(axiosMock.post).not.toHaveBeenCalled();
+        expect(wrapper.vm.composer).toBe("first");
+    });
+
     it("appends incoming websocket messages for the active room", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));

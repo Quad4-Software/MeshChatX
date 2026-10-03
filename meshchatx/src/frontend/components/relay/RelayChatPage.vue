@@ -660,15 +660,16 @@
                                 <div
                                     class="composer-pill relative flex-1 min-w-0 rounded-2xl border border-sem-border bg-sem-surface-muted/60 px-3 transition-all focus-within:ring-2 focus-within:ring-sem-focus focus-within:border-sem-focus-border shadow-xs"
                                 >
-                                    <input
+                                    <textarea
                                         ref="composerInput"
                                         v-model="composer"
-                                        type="text"
+                                        rows="1"
                                         :maxlength="selectedHub.max_msg_body_bytes || 350"
                                         :placeholder="$t('relay_chat.message_placeholder')"
-                                        class="block w-full bg-transparent border-0 px-0 py-2.5 text-sm text-sem-fg placeholder:text-sem-fg-muted focus:outline-none focus:ring-0"
+                                        class="composer-textarea block w-full bg-transparent border-0 px-0 py-2.5 text-sm text-sem-fg placeholder:text-sem-fg-muted focus:outline-none focus:ring-0 resize-none overflow-y-auto leading-snug min-h-[40px] max-h-[160px]"
                                         @keydown="onComposerKeydown"
-                                    />
+                                        @keydown.enter.exact.prevent="sendMessage"
+                                    ></textarea>
                                 </div>
                                 <button
                                     type="submit"
@@ -2215,6 +2216,9 @@ export default {
         },
         view() {
             this.persistRelayLayout();
+        },
+        composer() {
+            nextTick(() => this.adjustComposerHeight());
         },
     },
     mounted() {
@@ -3973,6 +3977,14 @@ export default {
         },
         composerByteLength(text) {
             return new TextEncoder().encode(text || "").length;
+        },
+        adjustComposerHeight() {
+            const el = this.$refs.composerInput;
+            if (!el) {
+                return;
+            }
+            el.style.height = "auto";
+            el.style.height = Math.min(el.scrollHeight, 160) + "px";
         },
         onComposerKeydown(event) {
             // Escape clears a pending reply quote before anything else.
