@@ -82,7 +82,7 @@
                             </button>
                             <div
                                 v-if="showVersions"
-                                class="absolute left-0 mt-2 w-48 bg-sem-surface4934 border border-sem-border rounded-xl shadow-xl z-50 overflow-hidden"
+                                class="absolute left-0 mt-2 w-48 bg-sem-surface border border-sem-border rounded-xl shadow-xl z-50 overflow-hidden"
                             >
                                 <div
                                     class="p-2 border-b border-sem-border dark:border-sem-border bg-sem-surface-muted/80 dark:bg-sem-surface/80"

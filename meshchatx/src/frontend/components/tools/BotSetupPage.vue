@@ -112,7 +112,7 @@
                         <div class="flex justify-end gap-2 pb-4">
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-sem-border bg-sem-surface6098 text-sem-fg-muted hover:bg-gray-50 dark:hover:bg-sem-surface-muted transition-colors"
+                                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-sem-border bg-sem-surface text-sem-fg-muted hover:bg-gray-50 dark:hover:bg-sem-surface-muted transition-colors"
                                 :disabled="isStarting"
                                 @click="goBack"
                             >

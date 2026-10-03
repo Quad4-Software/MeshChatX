@@ -37,7 +37,7 @@
                                 <button
                                     type="button"
                                     :disabled="!hasChanges || isSaving"
-                                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-sem-border bg-sem-surface2707 text-sem-fg-muted hover:bg-sem-surface-muted hover:bg-sem-surface-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-sem-border bg-sem-surface text-sem-fg-muted hover:bg-sem-surface-muted hover:bg-sem-surface-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     @click="resetChanges"
                                 >
                                     <MaterialDesignIcon icon-name="refresh" class="size-4" />
@@ -82,7 +82,7 @@
                                         <input
                                             v-model="iconBackgroundColour"
                                             type="text"
-                                            class="w-full px-3 py-2 text-sm border border-sem-border rounded-lg bg-sem-surface5539 text-sem-fg focus:ring-2 focus:ring-sem-accent focus:border-sem-accent"
+                                            class="w-full px-3 py-2 text-sm border border-sem-border rounded-lg bg-sem-surface text-sem-fg focus:ring-2 focus:ring-sem-accent focus:border-sem-accent"
                                             placeholder="#e5e7eb"
                                         />
                                     </div>
@@ -98,7 +98,7 @@
                                         <input
                                             v-model="iconForegroundColour"
                                             type="text"
-                                            class="w-full px-3 py-2 text-sm border border-sem-border rounded-lg bg-sem-surface6669 text-sem-fg focus:ring-2 focus:ring-sem-accent focus:border-sem-accent"
+                                            class="w-full px-3 py-2 text-sm border border-sem-border rounded-lg bg-sem-surface text-sem-fg focus:ring-2 focus:ring-sem-accent focus:border-sem-accent"
                                             placeholder="#6b7280"
                                         />
                                     </div>
@@ -175,7 +175,7 @@
                         </p>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-sem-danger dark:border-sem-danger bg-sem-surface11197 text-sem-danger hover:bg-sem-danger/15 dark:hover:bg-sem-danger/15 transition-colors"
+                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-sem-danger dark:border-sem-danger bg-sem-surface text-sem-danger hover:bg-sem-danger/15 dark:hover:bg-sem-danger/15 transition-colors"
                             @click="removeProfileIcon"
                         >
                             <MaterialDesignIcon icon-name="delete-outline" class="size-4" />

@@ -99,27 +99,27 @@
                     <input
                         v-model="newPackTitle"
                         type="text"
-                        class="rounded-lg border border-sem-border dark:border-sem-border px-2 py-1.5 bg-sem-surface4785"
+                        class="rounded-lg border border-sem-border dark:border-sem-border px-2 py-1.5 bg-sem-surface"
                         :placeholder="$t('sticker_packs.field_title')"
                         maxlength="80"
                     />
                     <input
                         v-model="newPackShortName"
                         type="text"
-                        class="rounded-lg border border-sem-border dark:border-sem-border px-2 py-1.5 bg-sem-surface5157"
+                        class="rounded-lg border border-sem-border dark:border-sem-border px-2 py-1.5 bg-sem-surface"
                         :placeholder="$t('sticker_packs.field_short_name')"
                         maxlength="32"
                     />
                     <textarea
                         v-model="newPackDescription"
-                        class="rounded-lg border border-sem-border dark:border-sem-border px-2 py-1.5 bg-sem-surface5503"
+                        class="rounded-lg border border-sem-border dark:border-sem-border px-2 py-1.5 bg-sem-surface"
                         :placeholder="$t('sticker_packs.field_description')"
                         rows="2"
                         maxlength="280"
                     />
                     <select
                         v-model="newPackType"
-                        class="rounded-lg border border-sem-border dark:border-sem-border px-2 py-1.5 bg-sem-surface5875 text-sem-fg"
+                        class="rounded-lg border border-sem-border dark:border-sem-border px-2 py-1.5 bg-sem-surface text-sem-fg"
                     >
                         <option value="static">{{ $t("sticker_packs.type_static") }}</option>
                         <option value="animated">{{ $t("sticker_packs.type_animated") }}</option>

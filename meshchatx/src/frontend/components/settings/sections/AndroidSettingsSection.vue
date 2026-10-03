@@ -48,7 +48,7 @@
                     inputmode="url"
                     autocomplete="off"
                     spellcheck="false"
-                    class="w-full rounded-sm border border-sem-border bg-sem-surface2456 px-3 py-2 text-sm"
+                    class="w-full rounded-sm border border-sem-border bg-sem-surface px-3 py-2 text-sm"
                     :placeholder="$t('settings.android_remote_backend_placeholder')"
                     @input="$emit('update:remoteBackendUrl', $event.target.value)"
                 />

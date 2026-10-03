@@ -112,13 +112,11 @@
                     class="p-3 bg-sem-surface-muted/80 dark:bg-sem-surface border-t border-sem-border flex justify-center gap-6 text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest"
                 >
                     <div class="flex items-center gap-1.5">
-                        <kbd class="px-1.5 py-0.5 bg-sem-surface6776 border border-sem-border rounded-sm shadow-xs"
-                            >↑↓</kbd
-                        >
+                        <kbd class="px-1.5 py-0.5 bg-sem-surface border border-sem-border rounded-sm shadow-xs">↑↓</kbd>
                         <span>{{ $t("command_palette.footer_navigate") }}</span>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <kbd class="px-1.5 py-0.5 bg-sem-surface7158 border border-sem-border rounded-sm shadow-xs"
+                        <kbd class="px-1.5 py-0.5 bg-sem-surface border border-sem-border rounded-sm shadow-xs"
                             >Enter</kbd
                         >
                         <span>{{ $t("command_palette.footer_select") }}</span>

@@ -20,7 +20,7 @@
                         <input
                             :value="draft.bg_color"
                             type="text"
-                            class="w-24 px-2 py-1.5 text-xs border border-sem-border rounded-lg bg-sem-surface1155 text-sem-fg font-mono"
+                            class="w-24 px-2 py-1.5 text-xs border border-sem-border rounded-lg bg-sem-surface text-sem-fg font-mono"
                             placeholder="#e5e7eb"
                             @input="setBg($event.target.value)"
                         />
@@ -33,7 +33,7 @@
                         <input
                             :value="draft.fg_color"
                             type="text"
-                            class="w-24 px-2 py-1.5 text-xs border border-sem-border rounded-lg bg-sem-surface1972 text-sem-fg font-mono"
+                            class="w-24 px-2 py-1.5 text-xs border border-sem-border rounded-lg bg-sem-surface text-sem-fg font-mono"
                             placeholder="#6b7280"
                             @input="setFg($event.target.value)"
                         />
