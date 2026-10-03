@@ -149,7 +149,10 @@ async function crawlRoute(page, route, report) {
     try {
         await page.goto(`${BASE}/#${route}`, { waitUntil: "domcontentloaded", timeout: 20000 });
         await page.waitForTimeout(SETTLE_MS);
-        const text = await page.locator("body").innerText().catch(() => "");
+        const text = await page
+            .locator("body")
+            .innerText()
+            .catch(() => "");
         const empty = text.trim().length === 0;
         report.push({
             route,
@@ -292,9 +295,7 @@ async function main() {
             )
         );
     } else {
-        console.log(
-            `\n${report.length} checks, ${fails.length} failed, ${((Date.now() - t0) / 1000).toFixed(1)}s`
-        );
+        console.log(`\n${report.length} checks, ${fails.length} failed, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
         if (fails.length) {
             console.log("\nFailures:");
             for (const f of fails) {

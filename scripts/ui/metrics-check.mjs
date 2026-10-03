@@ -135,11 +135,7 @@ function gitRev() {
 
 function collectAll() {
     const rows = {};
-    for (const [kind, data] of [
-        ["perf", collectPerf()],
-        ["heap", collectHeap()],
-        ["lighthouse", collectLighthouse()],
-    ]) {
+    for (const data of [collectPerf(), collectHeap(), collectLighthouse()]) {
         for (const [page, metrics] of Object.entries(data)) {
             rows[page] = { ...(rows[page] || {}), ...metrics };
         }
@@ -229,7 +225,10 @@ function main() {
             const cur = current[p][key];
             const base = baseline.pages?.[p]?.[key];
             if (cur === undefined) return null;
-            const delta = typeof base === "number" ? ` (${cur > base ? "+" : ""}${Math.round((cur - base) * 100) / 100})` : " (new)";
+            const delta =
+                typeof base === "number"
+                    ? ` (${cur > base ? "+" : ""}${Math.round((cur - base) * 100) / 100})`
+                    : " (new)";
             return `${p}: ${cur}${delta}`;
         });
         if (row.filter(Boolean).length) {

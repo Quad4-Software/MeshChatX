@@ -110,9 +110,7 @@ patchFile("packaging/arch/.SRCINFO", (c) =>
     c.replace(/^(\tpkgver = )\d+\.\d+\.\d+(\.r\d+\.g[0-9a-f]+)$/m, `$1${version}$2`)
 );
 
-patchFile("helm/meshchatx/Chart.yaml", (c) =>
-    c.replace(/^appVersion: "[^"]+"/m, `appVersion: "${version}"`)
-);
+patchFile("helm/meshchatx/Chart.yaml", (c) => c.replace(/^appVersion: "[^"]+"/m, `appVersion: "${version}"`));
 
 console.log(`Synced version ${version} from package.json`);
 
