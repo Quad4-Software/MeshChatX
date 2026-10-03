@@ -44,7 +44,7 @@ def _decompress_zstd(payload: bytes) -> bytes:
     except ImportError:
         pass
     try:
-        import zstandard
+        import zstandard  # type: ignore[import-not-found]
 
         return zstandard.ZstdDecompressor().decompress(
             payload, max_output_size=_MAX_PACK_BYTES
