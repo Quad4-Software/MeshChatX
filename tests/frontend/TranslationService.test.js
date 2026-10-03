@@ -119,7 +119,7 @@ describe("TranslationService", () => {
 
         const result = await TranslationService.fetchCatalog();
 
-        expect(get).toHaveBeenCalledWith(expect.stringContaining("/api/v1/translation/catalog"));
+        expect(get).toHaveBeenCalledWith("/api/v1/translation/catalog");
         expect(result).toEqual(pairs);
     });
 
@@ -130,7 +130,9 @@ describe("TranslationService", () => {
         await TranslationService.downloadPack("enes");
 
         const [url, body] = post.mock.calls[0];
-        expect(url).toContain("/api/v1/translation/packs/fetch");
+        // The client keys CSRF and auth handling on the leading /api/
+        // segment, so service calls must pass the relative path.
+        expect(url).toBe("/api/v1/translation/packs/fetch");
         expect(body).toEqual({ pair: "enes" });
     });
 
@@ -152,7 +154,9 @@ describe("TranslationService", () => {
         await TranslationService.downloadAllPacks();
 
         const [url, body] = post.mock.calls[0];
-        expect(url).toContain("/api/v1/translation/packs/fetch");
+        // The client keys CSRF and auth handling on the leading /api/
+        // segment, so service calls must pass the relative path.
+        expect(url).toBe("/api/v1/translation/packs/fetch");
         expect(body).toEqual({ all: true });
     });
 

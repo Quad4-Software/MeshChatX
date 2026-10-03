@@ -30,7 +30,9 @@ function apiClient() {
 async function apiGet(path) {
     const client = apiClient();
     if (client?.get) {
-        const res = await client.get(apiUrl(path));
+        // Pass the relative path: the client keys CSRF and auth handling
+        // on the leading /api/ segment, which an absolute URL hides.
+        const res = await client.get(path);
         return res.data;
     }
     const res = await fetch(apiUrl(path));
@@ -43,7 +45,7 @@ async function apiGet(path) {
 async function apiPost(path, body, config = {}) {
     const client = apiClient();
     if (client?.post) {
-        const res = await client.post(apiUrl(path), body, config);
+        const res = await client.post(path, body, config);
         return res.data;
     }
     const res = await fetch(apiUrl(path), { method: "POST", body });
@@ -56,7 +58,7 @@ async function apiPost(path, body, config = {}) {
 async function apiDelete(path) {
     const client = apiClient();
     if (client?.delete) {
-        const res = await client.delete(apiUrl(path));
+        const res = await client.delete(path);
         return res.data;
     }
     const res = await fetch(apiUrl(path), { method: "DELETE" });
