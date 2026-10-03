@@ -101,6 +101,14 @@ def test_bake_fails_when_pycodec2_package_missing(tmp_path: Path) -> None:
         bake_frozen_pycodec2(tmp_path)
 
 
+def test_bake_accepts_ctypes_layout_without_extension(tmp_path: Path) -> None:
+    lib = tmp_path / "lib"
+    lib.mkdir(parents=True)
+    (lib / "libcodec2.dylib").write_bytes(b"lib")
+    bake_frozen_pycodec2(tmp_path)
+    assert (lib / "libcodec2.dylib").exists()
+
+
 def test_bake_fails_when_extension_missing(tmp_path: Path) -> None:
     pkg = tmp_path / "lib" / "pycodec2"
     pkg.mkdir(parents=True)
@@ -211,6 +219,33 @@ def test_verify_frozen_codec2_script_rejects_missing_extension(tmp_path: Path) -
     )
     assert result.returncode != 0
     assert "no pycodec2 extension" in result.stderr
+
+
+def test_verify_frozen_codec2_script_accepts_ctypes_layout(tmp_path: Path) -> None:
+    (tmp_path / "lib").mkdir(parents=True)
+    (tmp_path / "lib" / "libcodec2.dylib").write_bytes(b"lib")
+    result = subprocess.run(  # nosec: BAN-B607
+        ["bash", str(_VERIFY), str(tmp_path)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert "ctypes binding" in result.stdout
+
+
+def test_verify_frozen_codec2_script_rejects_ctypes_without_dylib(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "lib").mkdir(parents=True)
+    result = subprocess.run(  # nosec: BAN-B607
+        ["bash", str(_VERIFY), str(tmp_path)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "no bundled libcodec2" in result.stderr
 
 
 def test_verify_frozen_codec2_script_requires_dylib_on_darwin(tmp_path: Path) -> None:

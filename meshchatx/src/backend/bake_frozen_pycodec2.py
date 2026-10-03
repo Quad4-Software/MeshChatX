@@ -173,6 +173,11 @@ def bake_frozen_pycodec2(build_dir: Path) -> None:
     lib_dir = build_dir / "lib"
     pkg = lib_dir / "pycodec2"
     if not pkg.is_dir():
+        # No extension means the ctypes binding is used; the slice then ships
+        # plain libcodec2 under lib/ and there is nothing to rewrite.
+        if _iter_codec2_libs(lib_dir, recursive=False):
+            print("bake_frozen_pycodec2: no extension, libcodec2 already bundled")
+            return
         raise SystemExit(f"bake_frozen_pycodec2: missing {pkg}")
 
     ext_so = _extension_module(pkg)
