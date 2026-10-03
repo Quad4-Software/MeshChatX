@@ -153,7 +153,7 @@
                                             :icon-name="propagationSyncOverlayIcon"
                                             class="absolute -top-1 -right-1.5 size-3 rounded-full bg-sem-canvas"
                                             :class="{
-                                                'animate-spin': isSyncingPropagationNode,
+                                                'animate-spin-reverse text-sem-info': isSyncingPropagationNode,
                                                 'text-sem-success':
                                                     !isSyncingPropagationNode && propagationSyncResult === 'success',
                                                 'text-sem-danger':
