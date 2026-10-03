@@ -1,6 +1,6 @@
 {
     "name": "reticulum-meshchatx",
-    "version": "4.9.4",
+    "version": "4.10.0",
     "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
     "homepage": "https://github.com/Quad4-Software/MeshChatX",
     "desktopName": "com.meshchatx.app.desktop",
@@ -47,6 +47,7 @@
         "test:ui:perf": "playwright test --config playwright.ui.config.js tests/ui/perf.spec.js",
         "test:ui:heap": "playwright test --config playwright.ui.config.js tests/ui/heap-profile.spec.js",
         "test:ui:screenshots": "playwright test --config playwright.screenshots.config.js",
+        "test:ui:guides": "playwright test --config playwright.guides.config.js",
         "test:ui:lighthouse": "playwright test --config playwright.lighthouse.config.js",
         "test:ui:lighthouse:ci": "MESHCHAT_UI_CI=1 playwright test --config playwright.lighthouse.config.js",
         "test:ui:all": "playwright test --config playwright.ui.config.js",
