@@ -86,6 +86,8 @@ Thumbs.db
 
 # Docker files
 docker/
+!docker/i2pd.conf
+!docker/tunnels.conf
 .dockerignore
 meshchat-config/
 

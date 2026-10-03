@@ -1,6 +1,6 @@
 package:
     name: miniaudio
-    version: "1.70"
+    version: "1.71"
 
 build:
     number: 1
