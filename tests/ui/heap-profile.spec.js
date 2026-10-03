@@ -121,6 +121,12 @@ test.describe("heap profile across pages", () => {
     test("per-page listener and heap deltas", async ({ page, baseURL }) => {
         test.setTimeout(600000);
         await page.addInitScript(INSTRUMENT);
+        // Live websocket traffic (announce syncs, message events) adds and
+        // removes listeners mid-measurement, which reads as fake growth.
+        // Hold the socket open but silent so deltas stay deterministic.
+        await page.routeWebSocket(/\/ws(\?.*)?$/, (ws) => {
+            ws.onmessage = () => {};
+        });
         const cdp = await page.context().newCDPSession(page);
         await cdp.send("HeapProfiler.enable");
         if (process.env.MESHCHAT_HEAP_CPU_THROTTLE) {
