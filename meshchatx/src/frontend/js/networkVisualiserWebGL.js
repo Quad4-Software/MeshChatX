@@ -299,7 +299,7 @@ export function prepareVisualiserIconPixels(data, mode = "opaque") {
 
 /**
  * Downscale large bitmaps in steps before the final atlas blit.
- * A single 512→116 drawImage looks soft/jagged on HiDPI discs.
+ * A single 512->116 drawImage looks soft/jagged on HiDPI discs.
  * @param {CanvasRenderingContext2D} ctx
  * @param {CanvasImageSource} source
  * @param {number} sw

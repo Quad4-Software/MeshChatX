@@ -111,7 +111,7 @@
                                         $t("rnprobe.probe_number", { number: result.probe_number })
                                     }}</span>
                                     <span class="text-sem-fg-muted">({{ result.size }} {{ $t("rnprobe.bytes") }})</span>
-                                    <span class="text-sem-fg-muted">→</span>
+                                    <span class="text-sem-fg-muted">-&gt;</span>
                                     <span class="text-sem-success">{{ result.destination }}</span>
                                 </div>
                                 <div v-if="result.via || result.interface" class="text-sem-fg-muted ml-4">

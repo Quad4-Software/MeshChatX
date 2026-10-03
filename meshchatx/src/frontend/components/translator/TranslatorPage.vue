@@ -337,7 +337,7 @@ export default {
             }
             const from = pack.from || pack.pair.slice(0, 2);
             const to = pack.to || pack.pair.slice(2, 4);
-            return `${displayNames.of(from) || from} → ${displayNames.of(to) || to}`;
+            return `${displayNames.of(from) || from} -> ${displayNames.of(to) || to}`;
         },
         catalogLabel(entry) {
             return this.packLabel(entry);

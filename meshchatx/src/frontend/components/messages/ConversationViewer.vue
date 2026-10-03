@@ -2412,7 +2412,7 @@ export default {
                 const toName = displayNames.of(l.to || pair.slice(2, 4)) || l.to;
                 return {
                     value: pair,
-                    label: `${fromName} → ${toName}`,
+                    label: `${fromName} -> ${toName}`,
                     from: l.from || pair.slice(0, 2),
                     to: l.to || pair.slice(2, 4),
                 };
