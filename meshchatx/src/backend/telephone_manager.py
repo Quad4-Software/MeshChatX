@@ -308,9 +308,11 @@ class TelephoneManager:
         try:
             from meshchatx import android_codec2
 
-            if android_codec2._is_chaquopy_android():
-                if not android_codec2.ensure_lxst_codec2_binding():
-                    return False
+            # Not Android-only: pycodec2 has no macOS wheel, and a broken
+            # extension anywhere should fall back to the ctypes binding rather
+            # than silently disabling Codec2.
+            if not android_codec2.ensure_lxst_codec2_binding():
+                return False
         except Exception:
             pass
         try:

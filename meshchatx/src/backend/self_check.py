@@ -985,6 +985,13 @@ def check_lxst_telephony() -> dict[str, str]:
                 "LXST filterlib native did not load (USE_NATIVE_FILTERS is False)",
             )
 
+        try:
+            from meshchatx import android_codec2
+
+            android_codec2.ensure_lxst_codec2_binding()
+        except Exception:
+            pass
+
         from LXST.Codecs import Codec2
 
         if Codec2 is None:

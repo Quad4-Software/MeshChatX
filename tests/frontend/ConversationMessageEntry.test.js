@@ -43,6 +43,8 @@ function makeCv(overrides = {}) {
         showOutboundTransferProgress: () => false,
         canCancelOutboundSend: (item) =>
             item?.is_outbound && ["sending", "outbound", "generating"].includes(item?.lxmf_message?.state),
+        isOutboundResendable: (item) =>
+            item?.is_outbound && ["failed", "cancelled"].includes(item?.lxmf_message?.state),
         onChatItemClick: vi.fn((item) => {
             item.is_actions_expanded = !item.is_actions_expanded;
         }),

@@ -405,3 +405,120 @@ def test_upsert_nonempty_content_still_replaces(real_db):
     row = real_db.messages.get_lxmf_message_by_hash(msg_hash)
     assert row["content"] == "new-body"
     assert row["title"] == "new-title"
+
+
+def test_upsert_inbound_collision_keeps_outbound_state(real_db):
+    # An inbound copy of a same-hash outbound message arrives as a fresh
+    # object in the generating state. It must not regress a delivered row or
+    # reset its delivery tracking fields.
+    db = real_db
+    db.messages.upsert_lxmf_message(
+        {
+            "hash": "a" * 32,
+            "source_hash": "b" * 32,
+            "destination_hash": "b" * 32,
+            "peer_hash": "b" * 32,
+            "state": "delivered",
+            "progress": 1.0,
+            "is_incoming": 0,
+            "method": "opportunistic",
+            "delivery_attempts": 2,
+            "next_delivery_attempt_at": "2026-01-01T00:00:00",
+            "title": "t",
+            "content": "c",
+            "fields": None,
+            "timestamp": time.time(),
+            "rssi": None,
+            "snr": None,
+            "quality": None,
+            "is_spam": 0,
+            "reply_to_hash": None,
+            "attachments_stripped": 0,
+        },
+    )
+    db.messages.upsert_lxmf_message(
+        {
+            "hash": "a" * 32,
+            "source_hash": "e" * 32,
+            "destination_hash": "f" * 32,
+            "peer_hash": "e" * 32,
+            "state": "generating",
+            "progress": 0.0,
+            "is_incoming": 1,
+            "method": "direct",
+            "delivery_attempts": 0,
+            "next_delivery_attempt_at": None,
+            "title": "t",
+            "content": "c",
+            "fields": None,
+            "timestamp": time.time(),
+            "rssi": None,
+            "snr": None,
+            "quality": None,
+            "is_spam": 0,
+            "reply_to_hash": None,
+            "attachments_stripped": 0,
+        },
+    )
+    row = db.messages.get_lxmf_message_by_hash("a" * 32)
+    assert row["is_incoming"] == 0
+    assert row["state"] == "delivered"
+    assert row["progress"] == 1.0
+    assert row["method"] == "opportunistic"
+    assert row["delivery_attempts"] == 2
+
+
+def test_upsert_keeps_terminal_state_against_progress_state(real_db):
+    # A stale outbound upsert carrying an in-flight state must not demote a
+    # row that already reached a terminal state.
+    db = real_db
+    db.messages.upsert_lxmf_message(
+        {
+            "hash": "a" * 32,
+            "source_hash": "b" * 32,
+            "destination_hash": "b" * 32,
+            "peer_hash": "b" * 32,
+            "state": "delivered",
+            "progress": 1.0,
+            "is_incoming": 0,
+            "method": "direct",
+            "delivery_attempts": 1,
+            "next_delivery_attempt_at": None,
+            "title": "t",
+            "content": "c",
+            "fields": None,
+            "timestamp": time.time(),
+            "rssi": None,
+            "snr": None,
+            "quality": None,
+            "is_spam": 0,
+            "reply_to_hash": None,
+            "attachments_stripped": 0,
+        },
+    )
+    db.messages.upsert_lxmf_message(
+        {
+            "hash": "a" * 32,
+            "source_hash": "b" * 32,
+            "destination_hash": "b" * 32,
+            "peer_hash": "b" * 32,
+            "state": "sent",
+            "progress": 0.5,
+            "is_incoming": 0,
+            "method": "direct",
+            "delivery_attempts": 1,
+            "next_delivery_attempt_at": None,
+            "title": "t",
+            "content": "c",
+            "fields": None,
+            "timestamp": time.time(),
+            "rssi": None,
+            "snr": None,
+            "quality": None,
+            "is_spam": 0,
+            "reply_to_hash": None,
+            "attachments_stripped": 0,
+        },
+    )
+    row = db.messages.get_lxmf_message_by_hash("a" * 32)
+    assert row["state"] == "delivered"

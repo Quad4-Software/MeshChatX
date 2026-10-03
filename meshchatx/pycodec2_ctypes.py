@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: 0BSD
 
-"""ctypes-backed pycodec2-compatible Codec2 for Android when the extension is broken.
+"""ctypes-backed pycodec2-compatible Codec2 for when the extension is broken.
 
-Chaquopy vendor wheels have shipped an empty pycodec2.so (no PyInit). libcodec2.so
-is valid and preloaded. This module exposes the subset of the pycodec2 API that
-LXST.Codecs.Codec2 and MeshChatX probes need.
+Chaquopy vendor wheels have shipped an empty pycodec2.so (no PyInit), and
+upstream pycodec2 ships no macOS wheels so CI builds it from sdist against a
+Cython setup.py that does not declare its own build requirement. libcodec2
+itself is valid in both cases. This module exposes the subset of the pycodec2
+API that LXST.Codecs.Codec2 and MeshChatX probes need.
 """
 
 from __future__ import annotations
@@ -61,13 +63,25 @@ def _candidate_lib_paths() -> list[str]:
     native_dir = env_str("MESHCHAT_NATIVE_LIB_DIR") or ""
     if native_dir:
         add(str(Path(native_dir) / "libcodec2.so"))
+        add(str(Path(native_dir) / "libcodec2.dylib"))
     for entry in list(__import__("sys").path):
         if not entry:
             continue
         root = Path(entry)
         add(str(root / "pycodec2" / "libcodec2.so"))
+        add(str(root / "pycodec2" / "libcodec2.dylib"))
         add(str(root / "chaquopy" / "lib" / "libcodec2.so"))
         add(str(root / "libcodec2.so"))
+        add(str(root / "libcodec2.dylib"))
+    # Desktop library locations. The macOS port-deps script already copies
+    # libcodec2.dylib into the pycodec2 package dir; MacPorts and Homebrew are
+    # covered for dev environments and frozen bundles.
+    add("/opt/local/lib/libcodec2.dylib")
+    add("/opt/homebrew/lib/libcodec2.dylib")
+    add("/usr/local/lib/libcodec2.dylib")
+    add("/usr/lib/libcodec2.so")
+    add("/usr/local/lib/libcodec2.so")
+    add("libcodec2.dylib")
     add("libcodec2.so")
     return paths
 
@@ -103,9 +117,10 @@ def load_libcodec2(*, force: bool = False) -> ctypes.CDLL:
     if _lib is not None and not force:
         return _lib
     last_error: str | None = None
+    bare_names = {"libcodec2.so", "libcodec2.dylib"}
     for candidate in _candidate_lib_paths():
         try:
-            if candidate != "libcodec2.so" and not Path(candidate).is_file():
+            if candidate not in bare_names and not Path(candidate).is_file():
                 continue
             lib = _cdll_load(candidate)
             _bind(lib)

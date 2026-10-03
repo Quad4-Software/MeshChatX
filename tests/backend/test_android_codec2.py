@@ -94,6 +94,11 @@ def test_probe_pycodec2_reports_failure_when_import_breaks():
     with (
         patch.object(android_codec2, "_is_chaquopy_android", return_value=False),
         patch.dict("sys.modules", {"pycodec2": None}),
+        patch.object(
+            android_codec2,
+            "_install_pycodec2_ctypes_fallback",
+            return_value=(False, "no libcodec2"),
+        ) as install,
     ):
         import builtins
 
@@ -108,6 +113,37 @@ def test_probe_pycodec2_reports_failure_when_import_breaks():
             ok, err = android_codec2.probe_pycodec2()
         assert ok is False
         assert err
+        install.assert_called_once()
+
+
+def test_probe_pycodec2_falls_back_to_ctypes_on_desktop():
+    android_codec2.reset_codec2_preload_state_for_tests()
+    android_codec2._codec2_preload_attempted = True
+    android_codec2._codec2_preload_ok = True
+    android_codec2._codec2_preload_error = None
+    with (
+        patch.object(android_codec2, "_is_chaquopy_android", return_value=False),
+        patch.dict("sys.modules", {"pycodec2": None}),
+        patch.object(
+            android_codec2,
+            "_install_pycodec2_ctypes_fallback",
+            return_value=(True, None),
+        ) as install,
+    ):
+        import builtins
+
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "pycodec2":
+                raise ImportError("no pycodec2")
+            return real_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=fake_import):
+            ok, err = android_codec2.probe_pycodec2()
+        assert ok is True
+        assert err is None
+        install.assert_called_once()
 
 
 def test_ensure_lxst_codec2_binding_reloads_when_codec2_none():

@@ -1352,6 +1352,66 @@ describe("ConversationViewer.vue", () => {
         expect(axiosMock.post).toHaveBeenCalledWith(expect.stringContaining("/lxmf-messages/retry-hash/resend"));
     });
 
+    it("offers resend for a stale undelivered outbound message", async () => {
+        const wrapper = mountConversationViewer();
+        const stale = {
+            type: "lxmf_message",
+            is_outbound: true,
+            lxmf_message: {
+                hash: "stale-hash",
+                state: "sent",
+                content: "stuck",
+                destination_hash: "test-hash",
+                source_hash: "my-hash",
+                fields: {},
+                reply_to_hash: null,
+                timestamp: Date.now() / 1000 - 10 * 60,
+            },
+        };
+
+        expect(wrapper.vm.isOutboundResendable(stale)).toBe(true);
+
+        axiosMock.post.mockResolvedValue({
+            data: { lxmf_message: { hash: "new-hash", state: "outbound" } },
+        });
+        await wrapper.vm.retrySendingMessage(stale);
+        expect(axiosMock.post).toHaveBeenCalledWith(expect.stringContaining("/lxmf-messages/stale-hash/resend"));
+    });
+
+    it("does not offer resend for delivered, rejected, or fresh sends", async () => {
+        const wrapper = mountConversationViewer();
+        const base = {
+            type: "lxmf_message",
+            is_outbound: true,
+            lxmf_message: {
+                hash: "h",
+                content: "c",
+                destination_hash: "test-hash",
+                source_hash: "my-hash",
+                fields: {},
+                timestamp: Date.now() / 1000 - 10 * 60,
+            },
+        };
+
+        for (const state of ["delivered", "rejected"]) {
+            base.lxmf_message.state = state;
+            expect(wrapper.vm.isOutboundResendable(base)).toBe(false);
+        }
+
+        base.lxmf_message.state = "sent";
+        base.lxmf_message.timestamp = Date.now() / 1000;
+        expect(wrapper.vm.isOutboundResendable(base)).toBe(false);
+
+        for (const state of ["failed", "cancelled"]) {
+            base.lxmf_message.state = state;
+            expect(wrapper.vm.isOutboundResendable(base)).toBe(true);
+        }
+
+        base.is_outbound = false;
+        base.lxmf_message.state = "failed";
+        expect(wrapper.vm.isOutboundResendable(base)).toBe(false);
+    });
+
     it("marks received messages as not outbound", async () => {
         const wrapper = mountConversationViewer();
 

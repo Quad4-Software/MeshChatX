@@ -851,8 +851,22 @@ def register_lxmf_routes(routes, app):
             return http_not_found("Message not found")
         if db_lxmf_message["is_incoming"]:
             return http_bad_request("Cannot resend an incoming message")
-        if db_lxmf_message["state"] not in ("failed", "cancelled"):
-            return http_error(409, "Only failed or cancelled messages can be resent")
+        if db_lxmf_message["state"] in ("delivered", "rejected"):
+            return http_error(409, "Only undelivered messages can be resent")
+
+        # Stop a live in-flight copy first so the resend cannot race it. Dead
+        # rows in progress states (lost object after a crash or a receipt that
+        # never arrived) fall through to the same rebuild path. The resend
+        # creates a new message, so a copy still parked on a propagation node
+        # can deliver twice. That is the same tradeoff the restart sweep makes.
+        if app.message_router is not None:
+            try:
+                app.message_router.cancel_outbound(bytes.fromhex(message_hash))
+            except Exception as e:
+                RNS.log(
+                    f"Failed to cancel outbound {message_hash} before resend: {e}",
+                    RNS.LOG_ERROR,
+                )
 
         from meshchatx.src.backend.lxmf_utils import parse_stored_lxmf_fields
 

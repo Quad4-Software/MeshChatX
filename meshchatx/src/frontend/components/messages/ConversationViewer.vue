@@ -1033,10 +1033,7 @@
                     {{ $t("messages.cancel_send") }}
                 </ContextMenuItem>
                 <ContextMenuItem
-                    v-if="
-                        messageContextMenu.chatItem?.is_outbound &&
-                        ['failed', 'cancelled'].includes(messageContextMenu.chatItem?.lxmf_message?.state)
-                    "
+                    v-if="isOutboundResendable(messageContextMenu.chatItem)"
                     item-class="text-sem-warning"
                     @click="
                         retrySendingMessage(messageContextMenu.chatItem);
@@ -5321,6 +5318,25 @@ export default {
                 return true;
             }
             return this.isOutboundPendingForUi(chatItem);
+        },
+        isOutboundResendable(chatItem) {
+            const m = chatItem?.lxmf_message;
+            if (!chatItem?.is_outbound || !m) {
+                return false;
+            }
+            const state = m.state;
+            if (["delivered", "rejected"].includes(state)) {
+                return false;
+            }
+            if (["failed", "cancelled"].includes(state)) {
+                return true;
+            }
+            // Undelivered rows that stopped moving: live objects get retried
+            // by LXMF, but a dead row (lost receipt, restarted backend, or a
+            // demoted state) sits in a progress state forever with no
+            // recourse. Show retry once the message is old enough to be stale.
+            const ts = typeof m.timestamp === "number" ? m.timestamp * 1000 : Date.parse(m.created_at ?? "");
+            return ts > 0 && Date.now() - ts > 5 * 60 * 1000;
         },
         isOutboundSendEscalated(chatItem) {
             const m = chatItem?.lxmf_message;

@@ -293,7 +293,7 @@
                         }}
                     </span>
                     <button
-                        v-if="['failed', 'cancelled'].includes(entry.items[0].lxmf_message.state)"
+                        v-if="cv.isOutboundResendable(entry.items[0])"
                         type="button"
                         class="ml-0.5 p-0.5 rounded-sm hover:bg-sem-surface/20 transition-colors"
                         :title="$t('messages.retry')"
@@ -1258,7 +1258,7 @@
                                 }}
                             </span>
                             <button
-                                v-if="['failed', 'cancelled'].includes(chatItem.lxmf_message.state)"
+                                v-if="cv.isOutboundResendable(chatItem)"
                                 type="button"
                                 class="ml-0.5 p-0.5 rounded-sm hover:bg-sem-surface/20 transition-colors"
                                 :title="$t('messages.retry')"
