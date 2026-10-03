@@ -29,7 +29,7 @@ MeshChatX can be installed in several ways. All release artifacts that ship the 
 | Android APK                | Yes               | Phones, tablets, Meta Quest sideload     |
 | From source                | Built locally     | Development and custom builds            |
 
-Release images are published to Docker Hub (quad4io/meshchatx) and GHCR (ghcr.io/quad4-software/meshchatx). Tag suffixes: none for the standard Alpine image, -hardened for Chainguard/Wolfi, -extra for Alpine plus i2pd and yggdrasil (VARIANT=extra on the same Dockerfile).
+Release images are published to Docker Hub (quad4io/meshchatx) and GHCR (ghcr.io/quad4-software/meshchatx). Tag suffixes: none for the standard Alpine image, -hardened for Chainguard/Wolfi, -extra for Alpine plus i2pd and yggdrasil (VARIANT=extra on the same Dockerfile). The extra image starts i2pd with SAM on 127.0.0.1:7656 for Reticulum I2PInterface and publishes the web UI over I2P (HTTP tunnel to port 8000, keys in /config/i2pd/meshchatx-site.dat). Set MESHCHAT_NO_HTTPS=1 so the tunnel can reach the UI. Set I2P_DISABLE=1 to skip i2pd, or I2P_SITE=0 for SAM only. The .b32.i2p address is in /config/i2pd/i2pd.log and on the i2pd console at 127.0.0.1:7070.
 
 ## Docker
 

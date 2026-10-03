@@ -1,6 +1,6 @@
 # Alpine MeshChatX image.
 # Stages: frontend, python builder (deps + app overlay), runtime.
-# VARIANT=standard|extra (extra adds i2pd and yggdrasil).
+# VARIANT=standard|extra (extra adds i2pd with SAM and an I2P HTTP site tunnel, plus yggdrasil).
 # LXST musl filterlib bake runs in scripts/docker/prepare-venv.sh.
 
 ARG NODE_IMAGE=node:24-alpine
@@ -85,7 +85,10 @@ RUN sh /tmp/runtime-setup.sh "${VARIANT}" && rm /tmp/runtime-setup.sh
 COPY --from=builder --chown=meshchat:meshchat /opt/venv-deps /opt/venv
 COPY --from=builder --chown=meshchat:meshchat /opt/app-overlay/ /opt/venv/
 COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+COPY scripts/docker/start-i2pd.sh /start-i2pd.sh
+COPY docker/i2pd.conf /etc/i2pd/i2pd.conf
+COPY docker/tunnels.conf /etc/i2pd/tunnels.conf
+RUN chmod +x /docker-entrypoint.sh /start-i2pd.sh
 
 ARG OCI_REVISION=""
 ARG OCI_VERSION=""

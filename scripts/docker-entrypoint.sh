@@ -10,6 +10,12 @@ fi
 
 if [ "$(id -u)" -eq 0 ]; then
     chown -R meshchat:meshchat /config
+    if [ -x /start-i2pd.sh ]; then
+        su-exec meshchat /start-i2pd.sh
+    fi
     exec su-exec meshchat "$@"
+fi
+if [ -x /start-i2pd.sh ]; then
+    /start-i2pd.sh
 fi
 exec "$@"
