@@ -865,7 +865,11 @@ export default {
                     this.meshchatxDocsLang = this.defaultDocsLanguage || "en";
                 }
                 if (this.meshchatxDocs.length > 0 && !this.selectedDocPath) {
-                    const start = this.firstDocPath;
+                    const requested = this.$route?.query?.doc;
+                    const start =
+                        requested && this.meshchatxDocs.some((d) => d.path === requested)
+                            ? requested
+                            : this.firstDocPath;
                     if (start) {
                         this.selectDoc(start);
                     }

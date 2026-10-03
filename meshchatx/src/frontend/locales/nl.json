@@ -4750,6 +4750,7 @@
         "importing": "Importing...",
         "remove": "Remove",
         "no_packs": "No packs installed. Import a pack archive to translate offline.",
+        "get_packs_hint": "See the docs for where to get packs.",
         "pair_code": "Pair {pair}",
         "size_kb": "{size} KB",
         "source_language": "Brontaal",

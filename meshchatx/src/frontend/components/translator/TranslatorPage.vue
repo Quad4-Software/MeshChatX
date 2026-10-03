@@ -62,6 +62,13 @@
                         </div>
                         <div v-else class="text-sm text-sem-warning">
                             {{ $t("translator.no_packs") }}
+                            <button
+                                type="button"
+                                class="block mt-1 text-sem-info underline underline-offset-2 hover:text-sem-fg"
+                                @click="$router.push('/documentation?doc=en/translation.md')"
+                            >
+                                {{ $t("translator.get_packs_hint") }}
+                            </button>
                         </div>
                     </div>
 

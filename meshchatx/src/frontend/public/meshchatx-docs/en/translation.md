@@ -17,11 +17,26 @@ language packs are bundled with MeshChatX releases.
 ## Where to get packs
 
 MeshChatX does not download packs and has no pack catalog. You must obtain pack
-archives from an external source, for example:
+archives from an external source.
 
-- A community pack repository using Git LFS.
-- A dedicated website or CDN.
-- A friend or organisation that shares packs over the mesh.
+The upstream source is the Mozilla Firefox translations model repository at
+`github.com/mozilla/firefox-translations-models` (Git LFS). It holds Bergamot
+models under `models/base`, `models/base-memory` and `models/tiny`, one
+directory per language pair such as `deen` or `enes`.
+
+Steps to make a pack from it:
+
+1. Download the files for one pair directory. Each directory contains
+   `lex.*.<pair>.s2t.bin.gz`, `model.<pair>.intgemm.alphas.bin.gz` and
+   `vocab.<pair>.spm.gz`.
+2. Decompress the `.gz` files so each file starts with `model`, `lex` or
+   `vocab`.
+3. Place the files inside a directory named after the four letter pair code,
+   for example `enes/`.
+4. Zip that directory and import the zip in the Translator page.
+
+A friend or organisation can also share ready pack archives over the mesh,
+or a dedicated website or CDN can host them.
 
 Packs are ordinary zip or tar archives containing a `model`, `lex` and `vocab`
 file for a four-letter language pair such as `enes` (English to Spanish).
