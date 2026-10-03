@@ -2,7 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.10.1] - TBD [unreleased]
+## [4.10.1] - 2026-10-03 [unreleased]
+
+### Fixed
+
+- Messages: the mobile attachment popup lived outside the paperclip button's click-outside boundary, so taps inside the menu counted as outside clicks. Touch devices closed the menu before the tap could fire any item, and on desktop the add image accordion collapsed the menu instead of expanding. The popup now renders inside the bound element.
+
+### Added
+
+- Relay chat: the composer is now a multiline field that grows with content up to 160px. Enter sends, Shift+Enter inserts a newline, and Escape, ArrowUp message recall, and Tab nick completion behave as before.
 
 ## [4.10.0] - 2026-10-03 [released]
 
