@@ -18,6 +18,8 @@ CNT-001 docker/Dockerfile.build
 CNT-001 docker/Dockerfile.dev
 AUR-002 packaging/arch/PKGBUILD
 MAL-030 scripts/rpi/install_meshchatx.sh
+MAL-030 proxmox/build-lxc.sh
+MAL-030 proxmox/build-vm-template.sh
 MAL-061 tests/backend/test_http_helpers.py
 
 # Argus ruleset drift (the pinned action installs the latest argus binary at
@@ -40,6 +42,7 @@ JS-003 scripts/build-geo-wasm.mjs
 JS-003 scripts/build-visualiser-wasm.mjs
 JS-003 scripts/fetch-starter-mbtiles.mjs
 JS-003 scripts/mutation/run.mjs
+JS-003 scripts/ui/metrics-check.mjs
 JS-003 tests/e2e/mobile-crawl.spec.js
 JS-003 tests/frontend/bakeBuildMeta.test.js
 
