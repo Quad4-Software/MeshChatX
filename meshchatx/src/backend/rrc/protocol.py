@@ -204,7 +204,7 @@ def normalize_room(room):
         r.encode("utf-8", errors="strict")
     except UnicodeEncodeError:
         # Lone surrogates and other non-UTF-8 text cannot be encoded into
-        # a CBOR envelope; reject them here instead of mid-send.
+        # a CBOR envelope. reject them here instead of mid-send.
         msg = "room name contains invalid unicode"
         raise ValueError(msg) from None
     return r

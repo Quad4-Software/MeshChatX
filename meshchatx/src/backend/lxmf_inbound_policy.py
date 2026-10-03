@@ -88,7 +88,7 @@ def evaluate_inbound_delivery_resource_policy(
         )
 
     # A failed contact lookup leaves stranger status unknown. Stranger
-    # rules reject on a positive verdict only; an unknown verdict falls
+    # rules reject on a positive verdict only. an unknown verdict falls
     # through so a transient error cannot bounce contact attachments.
     is_contact = None
     try:

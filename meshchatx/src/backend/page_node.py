@@ -70,7 +70,7 @@ MEDIA_CONVERT_TIMEOUT_SECONDS = 10
 # lattice so a peer cannot exhaust disk with one cache file per pair.
 MEDIA_QUALITY_LATTICE = (25, 50, 75, 90)
 MEDIA_DIMENSION_LATTICE = (256, 512, 1024, 1920)
-# Hard cap on cache files; oldest entries are evicted beyond it.
+# Hard cap on cache files. oldest entries are evicted beyond it.
 MEDIA_CACHE_MAX_FILES = 512
 # tempfile.tempdir / os.environ are process-global, so every media convert
 # across every PageNode instance must serialize on one shared lock.

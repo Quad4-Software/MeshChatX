@@ -75,7 +75,7 @@ class CrashRecovery:
         self.app = None
         self.enabled = True
         self._learned_priors = None
-        # Re-entrancy is per-thread; a shared bool would either miss the
+        # Re-entrancy is per-thread. a shared bool would either miss the
         # guard under a non-atomic check-set or suppress a second thread's
         # report entirely. The report lock serializes output instead.
         self._local = threading.local()
@@ -113,18 +113,18 @@ class CrashRecovery:
         sys.unraisablehook = self._handle_unraisable
 
         # Native crashes (segfaults inside RNS crypto, codec libs, sqlite)
-        # never reach Python hooks; faulthandler at least dumps the frames.
+        # never reach Python hooks. faulthandler at least dumps the frames.
         with contextlib.suppress(Exception):
             faulthandler.enable()
         # Manual all-thread stack dump for diagnosing silent wedges:
         #   kill -USR1 <pid>   (or: podman exec <ctr> kill -USR1 1)
-        # Only meaningful in the main thread; suppress on non-POSIX.
+        # Only meaningful in the main thread. suppress on non-POSIX.
         if hasattr(signal, "SIGUSR1"):
             with contextlib.suppress(Exception):
                 faulthandler.register(signal.SIGUSR1, all_threads=True, chain=False)
 
         # asyncio task exceptions ("never retrieved") and loop errors are
-        # not covered by sys.excepthook; route them through this handler.
+        # not covered by sys.excepthook. route them through this handler.
         self.install_asyncio_handlers()
 
     def disable(self):
@@ -1134,7 +1134,7 @@ class CrashRecovery:
 
         # Normalize raw heuristic scores into a share over candidate causes.
         # The per-cause score is a hand-tuned confidence weight, not a
-        # calibrated probability; dividing by the total keeps the printed
+        # calibrated probability. dividing by the total keeps the printed
         # percentages honest (they sum to ~100) and preserves ranking.
         total_score = sum(d["probability"] for d in potential_causes.values()) or 1.0
 

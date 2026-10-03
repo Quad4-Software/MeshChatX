@@ -211,7 +211,7 @@ class _DeadlinedRpcConnection:
 
     def recv_bytes(self, maxlength=None):
         # Absolute deadline across the whole frame. poll() only promises
-        # at least one byte; a frame that stalls mid-body would otherwise
+        # at least one byte. a frame that stalls mid-body would otherwise
         # park the thread forever inside recv_bytes. Reads mirror the
         # multiprocessing.connection wire format: a 4-byte signed length,
         # -1 meaning an 8-byte unsigned length, then the body.

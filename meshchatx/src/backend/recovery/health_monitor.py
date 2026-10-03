@@ -30,7 +30,7 @@ class HealthMonitor:
     CHECK_INTERVAL = 300  # 5 minutes
     # Main-loop liveness probe. If the asyncio loop stops scheduling
     # callbacks for this long, HTTP/TLS accepts pile up in the kernel
-    # backlog while the process looks alive — the silent wedge signature.
+    # backlog while the process looks alive - the silent wedge signature.
     LOOP_PROBE_INTERVAL_S = 5.0
     LOOP_STALL_S = 30.0
     ENTROPY_WINDOW = 6  # readings kept (~30 min at default interval)
@@ -82,7 +82,7 @@ class HealthMonitor:
         self._running = False
         self._stop_event.set()
         if self._io_pressure_active:
-            # The gate lives in a module global on the persist worker; a
+            # The gate lives in a module global on the persist worker. a
             # stopped monitor must not leave writes held.
             self._recover_io_pressure(None)
         thread = self._thread
@@ -118,7 +118,7 @@ class HealthMonitor:
         """Ping the main asyncio loop; dump all stacks if it stops answering.
 
         A wedged event loop still accepts TCP in the kernel backlog but never
-        services connections — curl connects, gets nothing. The stall dump
+        services connections - curl connects, gets nothing. The stall dump
         goes to stderr so `podman logs` captures every thread's stack.
         """
         while self._running:

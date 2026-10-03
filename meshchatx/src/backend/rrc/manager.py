@@ -584,7 +584,7 @@ class RRCHub:
         self._set_status(RRCHub.STATUS_FAILED, "WELCOME timeout")
         with self._lock:
             link = self.link
-            # The teardown callback may arrive later; mark it expected so
+            # The teardown callback may arrive later. mark it expected so
             # _on_closed does not double-count this failure in the backoff.
             self._expected_closed_link = link
         if link is not None:
@@ -1134,7 +1134,7 @@ class RRCHub:
         if delivery in ("sent", "failed"):
             m.delivery = delivery
         elif delivery == "sending":
-            # History only survives across sessions; anything still pending at
+            # History only survives across sessions. anything still pending at
             # load can never be confirmed by this connection.
             m.delivery = "failed"
         return m
@@ -1732,7 +1732,7 @@ class RRCHub:
                     self.unread_counts.pop(r, None)
                     leave_rooms.append(r)
             elif self.manager.is_forced_leave_error(text):
-                # A bare forced-leave error names no room; keep the persisted
+                # A bare forced-leave error names no room. keep the persisted
                 # history so one packet cannot wipe the whole archive.
                 leave_rooms = list(self.rooms)
                 self._pending_joins.clear()

@@ -407,7 +407,7 @@ class HTTPTunnelInterface(Interface):
 
         self._recv_queue = Queue()
         # A client that stops polling would otherwise let outbound traffic
-        # accumulate without bound; drop the oldest packet on overflow.
+        # accumulate without bound. drop the oldest packet on overflow.
         self._send_queue = Queue(maxsize=256)
         self._stop_event = threading.Event()
         self._frame_remainder = b""

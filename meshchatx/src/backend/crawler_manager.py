@@ -258,7 +258,7 @@ class CrawlerManager:
     """Policy and queue helpers for identity-scoped Nomad crawling."""
 
     def __init__(self, database, config):
-        # Own page-node destination hashes; crawling our own nodes is wasted
+        # Own page-node destination hashes. crawling our own nodes is wasted
         # traffic and can self-propagate tasks.
         self.own_destination_hashes: set[str] = set()
         self.database = database
@@ -493,7 +493,7 @@ class CrawlerManager:
             if existing and existing.get("status") == "completed":
                 return False
 
-        # Re-queueing a live task must keep its retry budget; only completed
+        # Re-queueing a live task must keep its retry budget. only completed
         # or absent rows start at zero.
         existing = self.database.misc.get_crawl_task(dest, path)
         retry_count = 0
