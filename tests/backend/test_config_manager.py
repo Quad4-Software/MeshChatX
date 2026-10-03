@@ -332,7 +332,7 @@ def test_font_family_whitelist_matches_frontend_bundled_fonts():
     backend_fonts = set(re.findall(r'"([a-z\-]+)"', app_src[start:end]))
 
     fe_src = (repo / "meshchatx/src/frontend/js/fontLoader.js").read_text()
-    bundled = set(re.findall(r'^\s+"([a-z\-]+)":', fe_src, re.M))
+    bundled = set(re.findall(r"^\s+\"?([a-z\-]+)\"?:\s*'", fe_src, re.M))
 
     expected = bundled | {"system", "custom"}
     assert backend_fonts == expected, (

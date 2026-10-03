@@ -18,6 +18,9 @@ All notable changes to this project will be documented in this file.
 - Screenshots: the UI screenshot catalog now captures a desktop/mobile x light/dark matrix as WebP at 2x device scale, and guide screenshots support reusable annotation overlays (boxes, spotlights, blurs, arrows, badges, captions) plus a CDP/ffmpeg recorder for animated clips.
 
 ### Changed
+- Sync messages button is pinned to the top nav bar by default with a stacked mail and sync-state icon
+- Updated Python deps: rns 1.5.6, cryptography 50.0.2, wasmtime 49, miniaudio 1.71, numpy 2.5.3 on Python 3.12+, setuptools 84
+- Backend threads are named for attribution in py-spy and top -H
 
 - Python 3.15 readiness: event-loop policy calls replaced by get_running_loop(), and the atheris dev dependency is gated to interpreters that have wheels (up to 3.14 on Linux x86_64).
 - Config: update_config now applies a generic pass over every registered config field, so newly added settings can no longer be silently dropped when no explicit handler exists. get_config_dict serializes registered fields generically behind a denylist instead of a hardcoded key list.
