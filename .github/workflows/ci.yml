@@ -755,6 +755,7 @@ jobs:
                       test-results/lighthouse/
                       test-results/perf/
                       test-results/heap/
+                      test-results/metrics/
                   if-no-files-found: ignore
                   retention-days: 14
 

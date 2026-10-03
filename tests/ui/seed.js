@@ -4,6 +4,7 @@ const {
     E2E_SCROLL_ALT_PEER_HASH,
     buildE2eLxmfRow,
     e2ePost,
+    e2ePatch,
     prepareE2eSession,
     seedE2eLongConversationThread,
     seedE2eAltShortConversationThread,
@@ -41,6 +42,19 @@ async function suppressChannelPrompt(request) {
         await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/app/channel-prompt/seen`, { key });
     } catch {
         // best effort only
+    }
+}
+
+/**
+ * Switch the persisted UI theme (light/dark) on the E2E backend so the next
+ * page load renders under that mode.
+ * @param {import('@playwright/test').APIRequestContext} request
+ * @param {"light"|"dark"} theme
+ */
+async function setUiTheme(request, theme) {
+    const res = await e2ePatch(request, `${E2E_BACKEND_ORIGIN}/api/v1/config`, { theme });
+    if (!res.ok()) {
+        throw new Error(`theme switch failed: ${res.status()}`);
     }
 }
 
@@ -210,5 +224,6 @@ module.exports = {
     DEMO_PEERS,
     seedUiSimulatedData,
     seedUiDemoData,
+    setUiTheme,
     padHash,
 };

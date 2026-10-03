@@ -101,6 +101,9 @@ const UI_PAGES = [
         path: "/nomadnetwork",
         readyKind: "placeholder",
         ready: /favourites/i,
+        // meta.keepAlive retains the mounted tree across route changes by
+        // design (browser session state). Not a leak.
+        heap: { nodes: 1200, listeners: 200 },
     },
     {
         id: "bots",
@@ -116,6 +119,9 @@ const UI_PAGES = [
         readyName: /Map/,
         budgets: { performance: 40 },
         perf: { lcpMs: 8000, heapMb: 350 },
+        // meta.keepAlive retains the mounted map subtree across route
+        // changes by design (tile cache + camera state). Not a leak.
+        heap: { nodes: 1200, listeners: 200 },
     },
     {
         id: "identities",

@@ -4,7 +4,7 @@
     <div :class="sidebarRootClass">
         <div
             v-if="effectiveCollapsed"
-            :class="['flex flex-col h-full min-h-0 bg-sem-canvas border-sem-border', edgeBorderClass]"
+            :class="['flex flex-col h-full min-h-0 bg-sem-surface border-sem-border', edgeBorderClass]"
         >
             <div class="hidden sm:flex h-10 shrink-0 items-center justify-center border-b border-sem-border px-2">
                 <button
@@ -73,7 +73,7 @@
         </div>
         <template v-else>
             <!-- tabs (h-10 matches sidebar collapse row height) -->
-            <div :class="['bg-sem-canvas border-b border-sem-border', edgeBorderClass]">
+            <div :class="['bg-sem-surface border-b border-sem-border', edgeBorderClass]">
                 <div class="-mb-px flex h-10 min-w-0 items-stretch" :class="{ 'flex-row-reverse': isRightSidebar }">
                     <div class="flex min-w-0 flex-1">
                         <div
