@@ -70,6 +70,7 @@ export const EMITTER_EVENTS = Object.freeze({
     SHOW_CHANGELOG: "show-changelog",
     SHOW_TUTORIAL: "show-tutorial",
     SYNC_PROPAGATION_NODE: "sync-propagation-node",
+    PROPAGATION_SYNC_STATE: "propagation-sync-state",
     TELEPHONE_HISTORY_UPDATED: "telephone-history-updated",
     TOAST: "toast",
     TOAST_DISMISS: "toast-dismiss",

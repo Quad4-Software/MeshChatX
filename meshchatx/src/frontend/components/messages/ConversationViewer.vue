@@ -1101,12 +1101,19 @@
                     class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-sem-accent/60 hover:bg-sem-surface-muted transition-colors"
                     @click="syncPropagationNode"
                 >
-                    <MaterialDesignIcon
-                        icon-name="sync"
-                        class="size-5 text-sem-accent"
-                        :class="{ 'animate-spin': isSyncingPropagationNode }"
-                        :style="isSyncingPropagationNode ? { animationDirection: 'reverse' } : {}"
-                    />
+                    <span class="relative inline-flex size-5 text-sem-accent">
+                        <MaterialDesignIcon icon-name="email-outline" class="size-5" />
+                        <MaterialDesignIcon
+                            :icon-name="propagationSyncOverlayIcon"
+                            class="absolute -top-1 -right-1.5 size-3 rounded-full bg-sem-surface"
+                            :class="{
+                                'animate-spin': isSyncingPropagationNode,
+                                'text-sem-success': !isSyncingPropagationNode && propagationSyncResult === 'success',
+                                'text-sem-danger': !isSyncingPropagationNode && propagationSyncResult === 'error',
+                                'text-sem-fg-muted': !isSyncingPropagationNode && propagationSyncResult == null,
+                            }"
+                        />
+                    </span>
                     <span class="text-xs font-medium text-sem-fg">{{
                         isSyncingPropagationNode ? $t("app.syncing") : $t("app.sync_now")
                     }}</span>
@@ -1924,6 +1931,8 @@ export default {
             bubbleTranslateBarIgnoreOutsideUntil: 0,
             messageBubbleTranslation: {},
             propagationNodeStatus: null,
+            propagationSyncResult: null,
+            propagationSyncState: null,
             propagationStatusInterval: null,
 
             showTelemetryInChat: false,
@@ -2159,9 +2168,20 @@ export default {
                 paddingBottom: "max(0.625rem, env(safe-area-inset-bottom, 0px))",
             };
         },
+        propagationSyncOverlayIcon() {
+            if (this.isSyncingPropagationNode) {
+                return "sync";
+            }
+            if (this.propagationSyncResult === "success") {
+                return "check-circle";
+            }
+            if (this.propagationSyncResult === "error") {
+                return "alert-circle";
+            }
+            return "sync";
+        },
         isSyncingPropagationNode() {
-            // Mirror App chrome: only spin for user-started sync, not auto-sync.
-            return false;
+            return this.propagationSyncState === "syncing";
         },
         blockedDestinations() {
             return useIdentityStore().blockedDestinations;
@@ -2509,6 +2529,8 @@ export default {
 
         GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
 
+        GlobalEmitter.on(EMITTER_EVENTS.PROPAGATION_SYNC_STATE, this.onPropagationSyncState);
+
         this.reloadIngestedPaperMessageHashes();
 
         // check translator
@@ -2572,6 +2594,7 @@ export default {
         GlobalEmitter.off(EMITTER_EVENTS.CONTACT_UPDATED, this.onContactUpdatedForBanner);
         GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
+        GlobalEmitter.off(EMITTER_EVENTS.PROPAGATION_SYNC_STATE, this.onPropagationSyncState);
         if (this.propagationStatusInterval) {
             clearInterval(this.propagationStatusInterval);
         }
@@ -2790,6 +2813,10 @@ export default {
             } catch {
                 // do nothing on error
             }
+        },
+        onPropagationSyncState(payload) {
+            this.propagationSyncState = payload?.syncing ? "syncing" : null;
+            this.propagationSyncResult = payload?.result ?? null;
         },
         async syncPropagationNode() {
             GlobalEmitter.emit(EMITTER_EVENTS.SYNC_PROPAGATION_NODE);

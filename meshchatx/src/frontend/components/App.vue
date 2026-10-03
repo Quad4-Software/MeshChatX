@@ -147,13 +147,23 @@
                                     :data-testid="`header-nav-${item.id}`"
                                     @click="onNavItemClick(item)"
                                 >
-                                    <MaterialDesignIcon
-                                        :icon-name="item.icon"
-                                        class="w-5 h-5"
-                                        :class="{
-                                            'animate-spin': item.action === 'syncMessages' && isSyncingPropagationNode,
-                                        }"
-                                    />
+                                    <span v-if="item.action === 'syncMessages'" class="relative inline-flex size-5">
+                                        <MaterialDesignIcon icon-name="email-outline" class="size-5" />
+                                        <MaterialDesignIcon
+                                            :icon-name="propagationSyncOverlayIcon"
+                                            class="absolute -top-1 -right-1.5 size-3 rounded-full bg-sem-canvas"
+                                            :class="{
+                                                'animate-spin': isSyncingPropagationNode,
+                                                'text-sem-success':
+                                                    !isSyncingPropagationNode && propagationSyncResult === 'success',
+                                                'text-sem-danger':
+                                                    !isSyncingPropagationNode && propagationSyncResult === 'error',
+                                                'text-sem-fg-muted':
+                                                    !isSyncingPropagationNode && propagationSyncResult == null,
+                                            }"
+                                        />
+                                    </span>
+                                    <MaterialDesignIcon v-else :icon-name="item.icon" class="w-5 h-5" />
                                     <span
                                         v-if="navBadgeCount(item) > 0"
                                         class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-sem-action-danger px-1 text-[10px] font-bold leading-none text-sem-action-danger-text"
@@ -671,6 +681,8 @@ export default {
 
             activeCall: null,
             propagationNodeStatus: null,
+            // null | "success" | "error" - transient result badge on the sync icon
+            propagationSyncResult: null,
             isCallEnded: false,
             wasDeclined: false,
             lastCall: null,
@@ -830,6 +842,18 @@ export default {
             }
             void this.lastAnnouncedTick;
             return this.formatSecondsAgo(this.config.last_announced_at);
+        },
+        propagationSyncOverlayIcon() {
+            if (this.isSyncingPropagationNode) {
+                return "sync";
+            }
+            if (this.propagationSyncResult === "success") {
+                return "check-circle";
+            }
+            if (this.propagationSyncResult === "error") {
+                return "alert-circle";
+            }
+            return "sync";
         },
         isSyncingPropagationNode() {
             // Only treat sync as "running" in the chrome when the user started it.
@@ -2327,6 +2351,24 @@ export default {
             // emit global event handled by MessagesPage
             GlobalEmitter.emit(EMITTER_EVENTS.COMPOSE_NEW_MESSAGE);
         },
+        emitPropagationSyncState() {
+            GlobalEmitter.emit(EMITTER_EVENTS.PROPAGATION_SYNC_STATE, {
+                syncing: this.isSyncingPropagationNode,
+                result: this.propagationSyncResult,
+            });
+        },
+        markPropagationSyncResult(result) {
+            this.propagationSyncResult = result;
+            if (this.propagationSyncResultTimer != null) {
+                clearTimeout(this.propagationSyncResultTimer);
+            }
+            this.propagationSyncResultTimer = setTimeout(() => {
+                this.propagationSyncResult = null;
+                this.propagationSyncResultTimer = null;
+                this.emitPropagationSyncState();
+            }, 8000);
+            this.emitPropagationSyncState();
+        },
         async syncPropagationNode() {
             const propagationSyncToastKey = "propagation-sync-status";
             // ask to stop syncing if already syncing
@@ -2355,6 +2397,7 @@ export default {
                 await window.api.post(apiPath("/lxmf/propagation-node/sync"));
             } catch (e) {
                 this.userInitiatedPropagationSync = false;
+                this.markPropagationSyncResult("error");
                 const errorMessage =
                     e.response?.data?.message ?? e.response?.data?.error ?? this.$t("app.sync_error_generic");
                 if (e.response?.data?.code === "propagation_node_not_configured") {
@@ -2388,6 +2431,7 @@ export default {
                             }
                             await this.stopSyncingPropagationNode();
                             this.userInitiatedPropagationSync = false;
+                            this.markPropagationSyncResult("error");
                             ToastUtils.error(
                                 this.$t("app.sync_error", {
                                     status: this.propagationSyncStatusLabel("path_timeout"),
@@ -2410,10 +2454,12 @@ export default {
                     const deliveryConfirmations = this.propagationNodeStatus?.delivery_confirmations ?? 0;
                     const messagesHidden = this.propagationNodeStatus?.messages_hidden ?? 0;
                     if (status === "complete" || status === "idle") {
+                        this.markPropagationSyncResult("success");
                         const base = this.$t("app.sync_complete", { count: messagesReceived });
                         const details = `${messagesStored} stored, ${deliveryConfirmations} confirmations, ${messagesHidden} hidden`;
                         ToastUtils.success(`${base} (${details})`);
                     } else {
+                        this.markPropagationSyncResult("error");
                         ToastUtils.error(
                             this.$t("app.sync_error", {
                                 status: this.propagationSyncStatusLabel(status),
@@ -2427,6 +2473,7 @@ export default {
 
             if (this.isSyncingPropagationNode) {
                 ToastUtils.loading(this.propagationSyncLiveToastMessage(), 0, propagationSyncToastKey);
+                this.emitPropagationSyncState();
                 this._propagationSyncPollTimer = setInterval(poll, 500);
             } else {
                 this.userInitiatedPropagationSync = false;
