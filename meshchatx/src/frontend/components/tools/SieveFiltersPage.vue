@@ -19,7 +19,7 @@
                                 </h2>
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-sem-info text-white hover:bg-sem-info transition-colors"
                                     @click="addRule"
                                 >
                                     <MaterialDesignIcon icon-name="plus" class="size-4" />
@@ -38,23 +38,21 @@
                                 <div
                                     v-for="(rule, index) in filters"
                                     :key="rule.id"
-                                    class="rounded-lg border border-sem-border p-3 space-y-3 bg-gray-50/80 dark:bg-zinc-900/40"
+                                    class="rounded-lg border border-sem-border p-3 space-y-3 bg-sem-surface-muted/80 dark:bg-sem-surface"
                                 >
                                     <div class="flex flex-wrap items-center justify-between gap-2">
-                                        <label
-                                            class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200"
-                                        >
+                                        <label class="inline-flex items-center gap-2 text-sm text-sem-fg">
                                             <input
                                                 v-model="rule.enabled"
                                                 type="checkbox"
-                                                class="rounded-sm border-gray-300"
+                                                class="rounded-sm border-sem-border"
                                             />
                                             {{ $t("tools.sieve_filters.enabled") }}
                                         </label>
                                         <div class="flex items-center gap-1">
                                             <button
                                                 type="button"
-                                                class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-800"
+                                                class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-gray-200 dark:hover:bg-sem-surface"
                                                 :title="$t('tools.sieve_filters.move_up')"
                                                 :disabled="index === 0"
                                                 @click="moveRule(index, -1)"
@@ -63,7 +61,7 @@
                                             </button>
                                             <button
                                                 type="button"
-                                                class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-800"
+                                                class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-gray-200 dark:hover:bg-sem-surface"
                                                 :title="$t('tools.sieve_filters.move_down')"
                                                 :disabled="index === filters.length - 1"
                                                 @click="moveRule(index, 1)"
@@ -72,7 +70,7 @@
                                             </button>
                                             <button
                                                 type="button"
-                                                class="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                                                class="p-1.5 rounded-lg text-sem-danger hover:bg-sem-danger/15 dark:hover:bg-red-950/40"
                                                 :title="$t('tools.sieve_filters.remove_rule')"
                                                 @click="removeRule(index)"
                                             >
@@ -117,20 +115,20 @@
                                         <div class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest">
                                             {{ $t("tools.sieve_filters.match_targets_label") }}
                                         </div>
-                                        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                                        <label class="flex items-center gap-2 text-sm text-sem-fg">
                                             <input
                                                 v-model="rule.match_peer_fields"
                                                 type="checkbox"
-                                                class="rounded-sm border-gray-300"
+                                                class="rounded-sm border-sem-border"
                                                 @change="onMatchTargetsChange(rule)"
                                             />
                                             {{ $t("tools.sieve_filters.match_peer_fields") }}
                                         </label>
-                                        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                                        <label class="flex items-center gap-2 text-sm text-sem-fg">
                                             <input
                                                 v-model="rule.match_message"
                                                 type="checkbox"
-                                                class="rounded-sm border-gray-300"
+                                                class="rounded-sm border-sem-border"
                                                 @change="onMatchTargetsChange(rule)"
                                             />
                                             {{ $t("tools.sieve_filters.match_message") }}
@@ -202,7 +200,7 @@
                             <div class="flex flex-wrap gap-2 pt-2">
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90"
+                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-sem-surface text-white dark:bg-zinc-100 dark:text-sem-fg hover:opacity-90"
                                     :disabled="isSaving"
                                     @click="save"
                                 >
@@ -216,7 +214,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-zinc-600 text-gray-800 dark:text-gray-200 hover:bg-sem-surface-muted"
+                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-sem-border dark:border-sem-border text-sem-fg hover:bg-sem-surface-muted"
                                     :disabled="isSaving"
                                     @click="reload"
                                 >

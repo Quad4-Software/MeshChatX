@@ -45,7 +45,7 @@
                     :style="{ background: configStore.config.banished_color + '33' }"
                 >
                     <span
-                        class="banished-text opacity-100! text-white! shadow-lg! bg-red-600! px-4! py-2! rounded-xl! border-2! tracking-widest!"
+                        class="banished-text opacity-100! text-white! shadow-lg! bg-sem-danger! px-4! py-2! rounded-xl! border-2! tracking-widest!"
                         :style="{
                             'background-color': configStore.config.banished_color,
                             'border-color': configStore.config.banished_color,
@@ -59,7 +59,7 @@
                     class="flex min-w-0 items-center gap-1 border-b px-2 py-0.5 sm:px-3"
                     :class="
                         isPrivate
-                            ? 'border-purple-500/50 bg-[#1a0b33] text-purple-100'
+                            ? 'border-purple-500/50 bg-[#1a0b33] text-sem-info'
                             : 'border-sem-border bg-sem-surface'
                     "
                 >
@@ -75,7 +75,7 @@
                     <div v-if="!isPrivate" class="my-auto shrink-0">
                         <IconButton
                             v-if="isFavourite(selectedNode.destination_hash)"
-                            class="nomad-icon-btn text-yellow-500 dark:text-yellow-300"
+                            class="nomad-icon-btn text-sem-warning"
                             :title="$t('nomadnet.remove_favourite')"
                             @click="removeFavourite(selectedNode)"
                         >
@@ -112,7 +112,7 @@
                         <ClickPopover v-if="nomadBrowserRendererChip && !isLoadingNodePage">
                             <template #activator>
                                 <span
-                                    class="shrink-0 hidden sm:inline-flex sm:items-center max-w-[7.5rem] md:max-w-[9rem] truncate rounded px-1 py-0.5 text-[11px] font-medium leading-tight text-sem-fg-muted cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400"
+                                    class="shrink-0 hidden sm:inline-flex sm:items-center max-w-[7.5rem] md:max-w-[9rem] truncate rounded px-1 py-0.5 text-[11px] font-medium leading-tight text-sem-fg-muted cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-sem-accent dark:focus-visible:ring-sem-info"
                                     tabindex="0"
                                     role="button"
                                     >{{ nomadBrowserRendererChip.label }}</span
@@ -168,7 +168,7 @@
                                             class="flex-1 rounded px-2 py-1 text-[10px] font-bold transition-colors"
                                             :class="
                                                 (configStore.config.nomad_micron_default_engine || 'js') === 'js'
-                                                    ? 'bg-sem-action-primary text-sem-action-primary-text dark:bg-blue-500'
+                                                    ? 'bg-sem-action-primary text-sem-action-primary-text dark:bg-sem-info'
                                                     : 'bg-[var(--mc-surface-hover)] text-[var(--mc-text-secondary)] hover:bg-[var(--mc-border-strong)]'
                                             "
                                             :disabled="!configStore.config.nomad_micron_wasm_enabled"
@@ -184,7 +184,7 @@
                                             class="flex-1 rounded px-2 py-1 text-[10px] font-bold transition-colors"
                                             :class="
                                                 (configStore.config.nomad_micron_default_engine || 'js') === 'wasm'
-                                                    ? 'bg-sem-action-primary text-sem-action-primary-text dark:bg-blue-500'
+                                                    ? 'bg-sem-action-primary text-sem-action-primary-text dark:bg-sem-info'
                                                     : 'bg-[var(--mc-surface-hover)] text-[var(--mc-text-secondary)] hover:bg-[var(--mc-border-strong)]'
                                             "
                                             :disabled="!configStore.config.nomad_micron_wasm_enabled"
@@ -436,7 +436,7 @@
                     <IconButton
                         class="nomad-icon-btn hidden lg:inline-flex shrink-0"
                         :title="$t('app.toggle_source')"
-                        :class="{ 'bg-green-500/10 text-green-600 dark:text-green-400': isShowingNodePageSource }"
+                        :class="{ 'bg-sem-warning/15 text-sem-success': isShowingNodePageSource }"
                         @click="toggleNodePageSource"
                     >
                         <MaterialDesignIcon icon-name="code-tags" class="size-5" />
@@ -522,7 +522,7 @@
                         <button
                             v-if="nodePageContent"
                             :title="$t('nomadnet.archive_current_version')"
-                            class="text-blue-500 hover:text-sem-accent dark:hover:text-blue-300"
+                            class="text-sem-info hover:text-sem-accent dark:hover:text-sem-info"
                             @click.stop="manualArchive"
                         >
                             <MaterialDesignIcon icon-name="plus" class="size-5" />
@@ -539,7 +539,7 @@
                             class="p-2 hover:bg-sem-surface-muted cursor-pointer border-b last:border-b-0 border-sem-border"
                             @click="loadArchivedPage(archive.id)"
                         >
-                            <div class="text-sm font-medium dark:text-gray-200">
+                            <div class="text-sm font-medium text-sem-fg">
                                 {{ formatDate(archive.created_at) }}
                             </div>
                             <div class="text-xs text-sem-fg-muted truncate">{{ archive.hash.substring(0, 16) }}...</div>
@@ -552,7 +552,7 @@
                     :class="[
                         'flex-1 min-h-0 min-w-0 flex flex-col overflow-y-auto overflow-x-hidden nodeContainer relative contain-[layout_paint]',
                         nomadRenderedShellFullBleed
-                            ? 'p-0 bg-transparent min-h-full text-gray-900 dark:text-gray-100'
+                            ? 'p-0 bg-transparent min-h-full text-sem-fg'
                             : 'p-3 bg-black text-white',
                         nomadShellDark ? 'nomad-shell-dark' : '',
                     ]"
@@ -610,7 +610,7 @@
                     <div
                         v-if="isShowingArchivedVersion"
                         :class="[
-                            'mb-4 flex min-w-0 items-center justify-between gap-2 rounded-sm border border-yellow-700/50 bg-yellow-900/40 p-2 text-yellow-200',
+                            'mb-4 flex min-w-0 items-center justify-between gap-2 rounded-sm border border-sem-warning bg-sem-warning/15 p-2 text-sem-warning',
                             nomadRenderedShellFullBleed ? 'mx-3 mt-3' : '',
                         ]"
                     >
@@ -624,7 +624,7 @@
                             }}</span>
                         </div>
                         <button
-                            class="shrink-0 text-xs bg-yellow-700/50 hover:bg-yellow-700 px-2 py-1 rounded-sm transition"
+                            class="shrink-0 text-xs bg-yellow-700/50 hover:bg-sem-warning px-2 py-1 rounded-sm transition"
                             @click="reloadNodePage"
                         >
                             {{ $t("nomadnet.load_live") }}
@@ -658,7 +658,7 @@
                         <div class="my-auto min-w-0 flex-1 truncate">{{ pageBusyBannerLine }}</div>
                         <button
                             type="button"
-                            class="my-auto text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
+                            class="my-auto text-white bg-sem-danger hover:bg-sem-danger dark:bg-sem-danger dark:hover:bg-sem-danger rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
                             @click="cancelPageBusy"
                         >
                             {{ $t("common.cancel") }}
@@ -678,7 +678,7 @@
                         <button
                             v-if="pageRenderAborted && canRetryCrashTabRender"
                             type="button"
-                            class="my-auto text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
+                            class="my-auto text-white bg-sem-info hover:bg-sem-info dark:bg-sem-info dark:hover:bg-sem-info rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
                             @click="retryCrashTabRender"
                         >
                             {{ $t("nomadnet.crash_tab_reload") }}
@@ -686,7 +686,7 @@
                         <button
                             v-else-if="selectedNode?.destination_hash && nodePagePath"
                             type="button"
-                            class="my-auto text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
+                            class="my-auto text-white bg-sem-info hover:bg-sem-info dark:bg-sem-info dark:hover:bg-sem-info rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
                             @click="reloadNodePage"
                         >
                             {{ $t("common.refresh") }}
@@ -697,14 +697,16 @@
                         class="flex flex-col items-center justify-center h-full text-center space-y-4"
                         role="alert"
                     >
-                        <div class="text-red-400 font-semibold text-lg">{{ $t("nomadnet.failed_to_load_page") }}</div>
+                        <div class="text-sem-danger font-semibold text-lg">
+                            {{ $t("nomadnet.failed_to_load_page") }}
+                        </div>
                         <div class="text-sem-fg-muted text-sm max-w-md break-words">{{ nodePageContent }}</div>
 
                         <div v-if="!isPrivate && hasArchivesForCurrentPage" class="space-y-2">
                             <div class="text-sm text-sem-fg-muted">{{ $t("nomadnet.archived_version_available") }}</div>
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-2 rounded-lg bg-sem-action-primary px-4 py-2 text-sm font-semibold text-sem-action-primary-text shadow-sm hover:bg-blue-500"
+                                class="inline-flex items-center gap-2 rounded-lg bg-sem-action-primary px-4 py-2 text-sm font-semibold text-sem-action-primary-text shadow-sm hover:bg-sem-info"
                                 @click="toggleArchiveDropdown"
                             >
                                 <MaterialDesignIcon icon-name="archive" class="size-5" />
@@ -714,7 +716,7 @@
                         <button
                             v-else-if="selectedNode?.destination_hash"
                             type="button"
-                            class="my-auto text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer"
+                            class="my-auto text-white bg-sem-info hover:bg-sem-info dark:bg-sem-info dark:hover:bg-sem-info rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer"
                             @click="reloadNodePage"
                         >
                             {{ $t("common.refresh") }}
@@ -728,7 +730,7 @@
                         <button
                             v-if="selectedNode?.destination_hash"
                             type="button"
-                            class="my-auto text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
+                            class="my-auto text-white bg-sem-info hover:bg-sem-info dark:bg-sem-info dark:hover:bg-sem-info rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
                             @click="reloadNodePage"
                         >
                             {{ $t("common.refresh") }}
@@ -775,7 +777,7 @@
                     <Teleport to="body">
                         <div
                             v-if="multilineHintVisible"
-                            class="multiline-hint pointer-events-none fixed z-200 bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-[max(0.75rem,env(safe-area-inset-right))] px-2 py-1 rounded text-xs bg-amber-300 text-zinc-900 shadow"
+                            class="multiline-hint pointer-events-none fixed z-200 bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-[max(0.75rem,env(safe-area-inset-right))] px-2 py-1 rounded text-xs bg-amber-300 text-sem-fg shadow"
                         >
                             {{ $t("nomadnet.multiline_hint") }}
                         </div>
@@ -783,7 +785,7 @@
                 </div>
 
                 <!-- file download bottom bar -->
-                <div v-if="isDownloadingNodeFile" class="flex w-full border-sem-border border-t p-2 dark:text-gray-100">
+                <div v-if="isDownloadingNodeFile" class="flex w-full border-sem-border border-t p-2 text-sem-fg">
                     <div class="my-auto mr-2">
                         <svg
                             class="animate-spin h-5 w-5"
@@ -814,7 +816,7 @@
                     </div>
                     <button
                         type="button"
-                        class="my-auto text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer"
+                        class="my-auto text-white bg-sem-danger hover:bg-sem-danger dark:bg-sem-danger dark:hover:bg-sem-danger rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer"
                         @click="cancelFileDownload"
                     >
                         {{ $t("common.cancel") }}
@@ -823,12 +825,12 @@
             </div>
 
             <!-- no node selected -->
-            <div v-else class="flex flex-col mx-auto my-auto text-center leading-5 dark:text-gray-100">
+            <div v-else class="flex flex-col mx-auto my-auto text-center leading-5 text-sem-fg">
                 <div class="mx-auto mb-1">
                     <MaterialDesignIcon
                         :icon-name="isPrivate ? 'incognito' : 'earth'"
                         class="w-6 h-6"
-                        :class="isPrivate ? 'text-purple-300' : 'dark:text-gray-300'"
+                        :class="isPrivate ? 'text-purple-300' : 'dark:text-sem-fg-secondary'"
                     />
                 </div>
                 <div class="font-semibold">{{ $t("nomadnet.no_active_node") }}</div>
@@ -1523,7 +1525,7 @@ export default {
         },
         nomadPageContentClasses() {
             if (!this.nodePagePath || this.isShowingNodePageSource) {
-                return ["h-full", "wrap-break-word", "whitespace-pre-wrap", "text-gray-100"];
+                return ["h-full", "wrap-break-word", "whitespace-pre-wrap", "text-sem-fg"];
             }
             const [p] = this.nodePagePath.split("`");
             const pl = (p || "").toLowerCase();
@@ -1542,9 +1544,9 @@ export default {
             if (isHtml) {
                 classes.push("nomad-page-html-host");
             } else if (pl.endsWith(".mu")) {
-                classes.push("text-gray-100");
+                classes.push("text-sem-fg");
             } else {
-                classes.push("text-gray-900", "dark:text-gray-100");
+                classes.push("text-sem-fg", "text-sem-fg");
             }
             if (isMd) {
                 classes.push("nomad-markdown-host");

@@ -360,7 +360,7 @@ export default {
         },
         canRestart() {
             // RNS 1.5.5 live reload only applies while the interface is
-            // attached; a missing stats entry means it is detached or down.
+            // attached. a missing stats entry means it is detached or down.
             return this.isReticulumRunning && this.isInterfaceEnabled(this.iface) && this.iface._stats != null;
         },
         isBackboneIfacTunnel() {

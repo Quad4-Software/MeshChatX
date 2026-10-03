@@ -11,7 +11,7 @@ import pytest
 import RNS
 
 # mock_app replaces RNS.Identity with a keyless stub for the fixture's
-# lifetime; capture the real class now so signing fixtures keep working.
+# lifetime. capture the real class now so signing fixtures keep working.
 _REAL_IDENTITY = RNS.Identity
 
 from meshchatx.src.backend.update_manager import (
@@ -152,7 +152,7 @@ def test_matching_artifacts_filters(tmp_path):
     assert all(a["platform"] in ("linux", "python") for a in arts)
     plat = host_platform()
     if plat != "linux":
-        return  # filtering still ran; arch specifics differ on other hosts
+        return  # filtering still ran. arch specifics differ on other hosts
     assert any(a["kind"] == "appimage" and a["arch"] == "x86_64" for a in arts)
 
 

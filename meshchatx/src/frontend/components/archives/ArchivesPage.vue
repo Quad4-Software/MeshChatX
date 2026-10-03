@@ -89,7 +89,7 @@
                 :class="{ 'lg:max-w-md lg:border-r lg:border-sem-border xl:max-w-lg': isWideSplit && viewingArchive }"
             >
                 <div v-if="loadError" class="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
-                    <MaterialDesignIcon icon-name="alert-circle-outline" class="size-10 text-red-400" />
+                    <MaterialDesignIcon icon-name="alert-circle-outline" class="size-10 text-sem-danger" />
                     <p class="text-sm">{{ $t("archives.search_failed") }}</p>
                     <button type="button" class="text-xs font-medium text-sem-accent" @click="getArchives">
                         {{ $t("archives.retry") }}
@@ -234,7 +234,7 @@
                     </button>
                     <button
                         type="button"
-                        class="rounded-lg p-2 text-red-500 hover:bg-sem-surface/60"
+                        class="rounded-lg p-2 text-sem-danger hover:bg-sem-surface/60"
                         :title="$t('archives.delete_snapshot')"
                         @click="deleteArchive(viewingArchive)"
                     >
@@ -477,7 +477,7 @@ export default {
         },
         pathViewerClasses(pagePath) {
             if (!pagePath) {
-                return ["wrap-break-word", "whitespace-pre-wrap", "text-gray-100"];
+                return ["wrap-break-word", "whitespace-pre-wrap", "text-sem-fg"];
             }
             const pl = (pagePath || "").split("`")[0].toLowerCase();
             const isRich = pl.endsWith(".mu") || pl.endsWith(".md") || pl.endsWith(".html");
@@ -492,7 +492,7 @@ export default {
             if (isHtml) {
                 classes.push("nomad-page-html-host");
             } else {
-                classes.push("text-gray-100");
+                classes.push("text-sem-fg");
             }
             if (isMd) {
                 classes.push("nomad-markdown-host");

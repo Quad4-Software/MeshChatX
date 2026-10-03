@@ -50,7 +50,7 @@
 }
 
 /*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  The default border color has changed to currentcolor in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still
   looks the same as it did with Tailwind CSS v3.
 
@@ -354,7 +354,7 @@ select.input-field {
     @apply py-1.5 pl-9 pr-8 text-xs rounded-full;
 }
 
-/* Semantic range slider — accent thumb, muted track */
+/* Semantic range slider - accent thumb, muted track */
 /* Height is the hit area, not the visual track height. */
 .range-input {
     -webkit-appearance: none;
@@ -429,7 +429,7 @@ input[type="color"].color-fill-input::-moz-color-swatch {
 }
 
 /* Native option popups ignore most select utilities and cannot use
-   backdrop-filter — a translucent --mc-surface would render over the OS
+   backdrop-filter - a translucent --mc-surface would render over the OS
    chrome (often white). --mc-surface-solid is always opaque. */
 select.input-field,
 select option {

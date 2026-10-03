@@ -64,7 +64,7 @@
                             <button
                                 v-else
                                 type="button"
-                                class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
+                                class="secondary-chip px-4 py-2 text-sm text-sem-danger border-sem-danger dark:border-sem-danger/50"
                                 @click="stopProbe"
                             >
                                 <MaterialDesignIcon icon-name="stop" class="w-4 h-4" />
@@ -76,10 +76,7 @@
                             </button>
                         </div>
 
-                        <div
-                            v-if="summary"
-                            class="p-3 rounded-lg bg-sem-surface-muted text-blue-700 dark:text-blue-300"
-                        >
+                        <div v-if="summary" class="p-3 rounded-lg bg-sem-surface-muted text-sem-info">
                             <div class="font-semibold">{{ $t("rnprobe.summary") }}:</div>
                             <div class="text-sm mt-1">
                                 {{ $t("rnprobe.sent") }}: {{ summary.sent }}, {{ $t("rnprobe.delivered") }}:
@@ -103,24 +100,24 @@
                         </div>
 
                         <div
-                            class="flex-1 overflow-y-auto rounded-2xl bg-black/80 text-emerald-300 font-mono text-xs p-3 space-y-2 shadow-inner border border-zinc-900"
+                            class="flex-1 overflow-y-auto rounded-2xl bg-black/80 text-sem-success font-mono text-xs p-3 space-y-2 shadow-inner border border-sem-border"
                         >
                             <div v-if="results.length === 0" class="text-emerald-500/80">
                                 {{ $t("rnprobe.no_probes_yet") }}
                             </div>
                             <div v-for="(result, index) in results" :key="index" class="space-y-1">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-emerald-400">{{
+                                    <span class="text-sem-success">{{
                                         $t("rnprobe.probe_number", { number: result.probe_number })
                                     }}</span>
-                                    <span class="text-gray-400">({{ result.size }} {{ $t("rnprobe.bytes") }})</span>
-                                    <span class="text-gray-400">→</span>
-                                    <span class="text-emerald-300">{{ result.destination }}</span>
+                                    <span class="text-sem-fg-muted">({{ result.size }} {{ $t("rnprobe.bytes") }})</span>
+                                    <span class="text-sem-fg-muted">→</span>
+                                    <span class="text-sem-success">{{ result.destination }}</span>
                                 </div>
-                                <div v-if="result.via || result.interface" class="text-gray-500 ml-4">
+                                <div v-if="result.via || result.interface" class="text-sem-fg-muted ml-4">
                                     {{ result.via }}{{ result.interface }}
                                 </div>
-                                <div v-if="result.status === 'delivered'" class="text-green-400 ml-4 space-y-1">
+                                <div v-if="result.status === 'delivered'" class="text-sem-success ml-4 space-y-1">
                                     <div>{{ $t("rnprobe.summary") }}: {{ $t("rnprobe.delivered") }}</div>
                                     <div>{{ $t("rnprobe.hops") }}: {{ result.hops }}</div>
                                     <div>{{ $t("rnprobe.rtt") }}: {{ result.rtt_string }}</div>
@@ -136,10 +133,10 @@
                                         >
                                     </div>
                                 </div>
-                                <div v-else-if="result.status === 'timeout'" class="text-yellow-400 ml-4">
+                                <div v-else-if="result.status === 'timeout'" class="text-sem-warning ml-4">
                                     {{ $t("rnprobe.summary") }}: {{ $t("rnprobe.timeout") }}
                                 </div>
-                                <div v-else class="text-red-400 ml-4">
+                                <div v-else class="text-sem-danger ml-4">
                                     {{ $t("rnprobe.summary") }}: {{ $t("rnprobe.failed") }}
                                 </div>
                             </div>

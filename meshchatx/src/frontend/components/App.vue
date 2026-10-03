@@ -165,7 +165,7 @@
                             <button
                                 v-if="inboundDeliveryCount > 0"
                                 type="button"
-                                class="sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                                class="sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-sem-warning hover:bg-sem-warning/15 dark:hover:bg-sem-warning/15 transition-colors"
                                 :title="$t('app.cancel_inbound_deliveries')"
                                 @click="cancelInboundDeliveries"
                             >
@@ -178,7 +178,7 @@
                                 @click="cancelInboundDeliveries"
                             >
                                 <span
-                                    class="flex items-center text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-500/60 px-2.5 py-1.5 rounded-full shadow-xs transition"
+                                    class="flex items-center text-sem-warning dark:text-sem-warning bg-sem-warning/15 border border-sem-warning dark:border-sem-warning hover:border-sem-warning dark:hover:border-amber-500/60 px-2.5 py-1.5 rounded-full shadow-xs transition"
                                 >
                                     <MaterialDesignIcon icon-name="close-circle-outline" class="size-5" />
                                     <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">{{
@@ -338,7 +338,7 @@
                                 <div v-if="appInfo?.version" class="shrink-0 border-t border-sem-border bg-sem-canvas">
                                     <RouterLink
                                         :to="{ name: 'about' }"
-                                        class="flex items-center gap-2 py-2 text-[10px] font-mono text-gray-500 transition-colors hover:text-gray-700 text-sem-fg-muted dark:hover:text-zinc-300"
+                                        class="flex items-center gap-2 py-2 text-[10px] font-mono text-sem-fg-muted transition-colors hover:text-sem-fg text-sem-fg-muted dark:hover:text-sem-fg-secondary"
                                         :class="isSidebarCollapsed ? 'justify-center px-0' : 'justify-start px-3'"
                                         data-testid="sidebar-app-version"
                                         :title="sidebarVersionTitle"
@@ -446,7 +446,7 @@
                             v-if="lxmfQrDataUrl"
                             :src="lxmfQrDataUrl"
                             alt="LXMF QR"
-                            class="w-48 h-48 bg-white rounded-xl border border-sem-border"
+                            class="w-48 h-48 bg-sem-surface rounded-xl border border-sem-border"
                         />
                     </div>
                     <div
@@ -2043,7 +2043,7 @@ export default {
                 }
                 this.appInfo = info;
 
-                // Gate features that need a newer backend — hide/disable UI
+                // Gate features that need a newer backend - hide/disable UI
                 // for capabilities absent from older backends.
                 if (info) {
                     useConfigStore().backendCapabilities = info.capabilities || {};

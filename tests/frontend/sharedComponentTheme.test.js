@@ -11,7 +11,7 @@ import IconButton from "@/components/IconButton.vue";
 const COMPONENTS_DIR = join(__dirname, "../../meshchatx/src/frontend/components");
 
 // Components that intentionally carry no colours of their own (slot wrappers,
-// positioners, icon renderers) — they are exempt from the "must use sem-
+// positioners, icon renderers) - they are exempt from the "must use sem-
 // tokens" check but still may not hardcode palette colours.
 const STYLE_FREE = new Set([
     "DropDownMenu.vue",

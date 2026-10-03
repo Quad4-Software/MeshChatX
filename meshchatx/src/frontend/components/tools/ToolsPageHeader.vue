@@ -41,52 +41,52 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 const ACCENT = {
     blue: {
-        wrap: "bg-blue-100 dark:bg-blue-900/30",
+        wrap: "bg-sem-info/15",
         icon: "text-sem-accent",
     },
     indigo: {
-        wrap: "bg-indigo-100 dark:bg-indigo-900/30",
-        icon: "text-indigo-600 dark:text-indigo-400",
+        wrap: "bg-sem-info/15 dark:bg-sem-info/15",
+        icon: "text-sem-info dark:text-sem-info",
     },
     teal: {
-        wrap: "bg-teal-100 dark:bg-teal-900/30",
-        icon: "text-teal-600 dark:text-teal-400",
+        wrap: "bg-sem-success/15 dark:bg-sem-success/15",
+        icon: "text-sem-success dark:text-sem-success",
     },
     purple: {
         wrap: "bg-purple-100 dark:bg-purple-900/30",
-        icon: "text-purple-600 dark:text-purple-400",
+        icon: "text-purple-600 text-sem-info",
     },
     green: {
-        wrap: "bg-green-100 dark:bg-green-900/30",
-        icon: "text-green-600 dark:text-green-400",
+        wrap: "bg-sem-success/15",
+        icon: "text-sem-success",
     },
     orange: {
-        wrap: "bg-orange-100 dark:bg-orange-900/30",
-        icon: "text-orange-600 dark:text-orange-400",
+        wrap: "bg-sem-warning/15",
+        icon: "text-sem-warning",
     },
     cyan: {
-        wrap: "bg-cyan-100 dark:bg-cyan-900/30",
-        icon: "text-cyan-600 dark:text-cyan-400",
+        wrap: "bg-sem-info/15 dark:bg-sem-info/15",
+        icon: "text-sem-info dark:text-sem-info",
     },
     rose: {
         wrap: "bg-rose-100 dark:bg-rose-900/30",
-        icon: "text-rose-600 dark:text-rose-400",
+        icon: "text-rose-600 text-sem-info",
     },
     violet: {
-        wrap: "bg-violet-100 dark:bg-violet-900/30",
-        icon: "text-violet-600 dark:text-violet-400",
+        wrap: "bg-sem-info/15 dark:bg-sem-info/15",
+        icon: "text-sem-info dark:text-sem-info",
     },
     amber: {
-        wrap: "bg-amber-100 dark:bg-amber-900/30",
-        icon: "text-amber-600 dark:text-amber-400",
+        wrap: "bg-sem-warning/15",
+        icon: "text-sem-warning",
     },
     sky: {
-        wrap: "bg-sky-100 dark:bg-sky-900/30",
-        icon: "text-sky-600 dark:text-sky-400",
+        wrap: "bg-sem-info/15",
+        icon: "text-sem-info",
     },
     zinc: {
-        wrap: "bg-zinc-100 dark:bg-zinc-800",
-        icon: "text-zinc-600 text-sem-fg-muted",
+        wrap: "bg-sem-surface-muted",
+        icon: "text-sem-fg-secondary text-sem-fg-muted",
     },
 };
 

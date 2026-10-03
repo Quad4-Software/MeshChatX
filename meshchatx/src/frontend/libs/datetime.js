@@ -232,7 +232,7 @@ export function relativeLabel(absSec, isFuture) {
 }
 
 /**
- * Relative time string from `input` toward `now` (default Date.now()).
+ * Relative time string from input toward now (default Date.now()).
  *
  * @param {unknown} input
  * @param {unknown} [nowInput]

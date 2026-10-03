@@ -278,7 +278,7 @@
                     <span
                         v-if="cv.isOpportunisticDeferredDelivery(entry.items[0].lxmf_message)"
                         class="text-[9px] font-bold uppercase tracking-wider"
-                        :class="cv.isThemeOutboundBubble(entry.items[0]) ? 'text-sem-warning' : 'text-amber-200'"
+                        :class="cv.isThemeOutboundBubble(entry.items[0]) ? 'text-sem-warning' : 'text-sem-warning'"
                     >
                         {{ $t("messages.opportunistic_deferred_label") }}
                     </span>
@@ -632,9 +632,9 @@
                         :class="
                             chatItem.is_outbound
                                 ? cv.isThemeOutboundBubble(chatItem)
-                                    ? 'text-orange-800 dark:text-orange-300'
-                                    : 'text-orange-200'
-                                : 'text-orange-700 dark:text-orange-300'
+                                    ? 'text-sem-warning dark:text-sem-warning'
+                                    : 'text-sem-warning'
+                                : 'text-sem-warning'
                         "
                     >
                         <MaterialDesignIcon icon-name="alert-decagram" class="size-4" />
@@ -991,9 +991,9 @@
 
                         <div
                             v-if="parsedItems.relayLink"
-                            class="flex flex-col gap-2 p-3 rounded-xl bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/50"
+                            class="flex flex-col gap-2 p-3 rounded-xl bg-sem-info/15 dark:bg-sem-info/15 border border-sem-info dark:border-sem-info"
                         >
-                            <div class="flex items-center gap-2 text-violet-800 dark:text-violet-300">
+                            <div class="flex items-center gap-2 text-violet-800 dark:text-sem-info">
                                 <MaterialDesignIcon icon-name="forum-outline" class="size-5" />
                                 <span class="text-sm font-bold">{{
                                     parsedItems.relayLink.parsed.room
@@ -1018,14 +1018,14 @@
                             </div>
                             <button
                                 type="button"
-                                class="w-full py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                                class="w-full py-2 bg-sem-info hover:bg-sem-info text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
                                 @click="cv.openRelayShareFromParsed(parsedItems.relayLink.parsed)"
                             >
                                 {{ $t("messages.relay_link_join") }}
                             </button>
                             <button
                                 type="button"
-                                class="w-full py-2 bg-sem-surface border border-violet-200 dark:border-violet-800 text-violet-800 dark:text-violet-200 rounded-lg text-xs font-bold"
+                                class="w-full py-2 bg-sem-surface border border-sem-info dark:border-sem-info text-sem-info text-sem-info rounded-lg text-xs font-bold"
                                 @click="cv.copyRelayShareUri(parsedItems.relayLink.uri)"
                             >
                                 {{ $t("messages.relay_link_copy_uri") }}
@@ -1243,7 +1243,7 @@
                             <span
                                 v-if="cv.isOpportunisticDeferredDelivery(chatItem.lxmf_message)"
                                 class="text-[9px] font-bold uppercase tracking-wider"
-                                :class="cv.isThemeOutboundBubble(chatItem) ? 'text-sem-warning' : 'text-amber-200'"
+                                :class="cv.isThemeOutboundBubble(chatItem) ? 'text-sem-warning' : 'text-sem-warning'"
                             >
                                 {{ $t("messages.opportunistic_deferred_label") }}
                             </span>

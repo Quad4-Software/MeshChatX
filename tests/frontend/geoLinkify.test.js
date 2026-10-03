@@ -7,7 +7,7 @@ describe("geoLinkify", () => {
         const p = decodeMaidenhead("FN20pr");
         expect(p).not.toBeNull();
         // Field F = lon 100..120 -> -80..-60; N = lat 130..140 -> 40..50
-        // square 20 -> lon -76..-74, lat 40..41; subsquare p,r.
+        // square 20 -> lon -76..-74, lat 40..41. subsquare p,r.
         expect(p.lon).toBeGreaterThan(-76);
         expect(p.lon).toBeLessThan(-74);
         expect(p.lat).toBeGreaterThan(40);

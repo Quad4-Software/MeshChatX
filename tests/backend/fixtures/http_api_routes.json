@@ -30,6 +30,10 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/app/custom-font"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/app/info"
         },
         {

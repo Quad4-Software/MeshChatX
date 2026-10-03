@@ -15,7 +15,7 @@
             @change="!disabled && $emit('update:modelValue', $event.target.checked)"
         />
         <div
-            class="toggle-track relative h-6 w-11 shrink-0 bg-sem-surface-muted peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-sem-focus/40 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sem-action-primary"
+            class="toggle-track relative h-6 w-11 shrink-0 bg-sem-surface-muted peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-sem-focus/40 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-sem-surface after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sem-action-primary"
         ></div>
         <span v-if="label" class="min-w-0 text-sm font-medium leading-snug text-sem-fg">{{ label }}</span>
     </label>

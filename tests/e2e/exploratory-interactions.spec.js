@@ -108,7 +108,7 @@ async function newCrawlPage(browser, page, errors) {
 }
 
 test.describe("Exploratory interaction crawl", () => {
-    // The button sweep is the longest leg; give it its own declared 25min.
+    // The button sweep is the longest leg. give it its own declared 25min.
     // This must meet or exceed the per-test timeout below.
     test.setTimeout(1500000);
     test.describe.configure({ mode: "serial" });
@@ -241,7 +241,7 @@ test.describe("Exploratory interaction crawl", () => {
         if (await trigger.isVisible().catch(() => false)) {
             await trigger.click();
             await page.waitForTimeout(400);
-            // Type a query and arrow through results; do not press Enter.
+            // Type a query and arrow through results. do not press Enter.
             await page.keyboard.type("contacts");
             await page.waitForTimeout(300);
             await page.keyboard.press("ArrowDown");

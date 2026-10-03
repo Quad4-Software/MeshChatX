@@ -20,7 +20,7 @@
 
                 <template v-else>
                     <div class="rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-5">
-                        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                        <h3 class="text-sm font-semibold text-sem-fg mb-3">
                             {{ $t("bots.choose_template") }}
                         </h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -31,7 +31,7 @@
                                 class="relative flex items-start gap-3 rounded-lg border-2 p-3 text-left transition-all hover:bg-sem-surface-muted"
                                 :class="
                                     selectedTemplateId === template.id
-                                        ? 'border-blue-500 bg-sem-surface-muted'
+                                        ? 'border-sem-accent bg-sem-surface-muted'
                                         : 'border-sem-border'
                                 "
                                 @click="selectTemplate(template)"
@@ -47,14 +47,14 @@
                                     <div class="font-semibold text-sem-fg text-sm">
                                         {{ template.name }}
                                     </div>
-                                    <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                                    <div class="text-xs text-sem-fg-muted mt-0.5">
                                         {{ template.description }}
                                     </div>
                                 </div>
                                 <MaterialDesignIcon
                                     v-if="selectedTemplateId === template.id"
                                     icon-name="check-circle"
-                                    class="size-5 text-blue-500 absolute top-2 right-2"
+                                    class="size-5 text-sem-info absolute top-2 right-2"
                                 />
                             </button>
                         </div>
@@ -76,7 +76,7 @@
                             v-if="selectedTemplateId === 'custom'"
                             class="rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-5"
                         >
-                            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                            <h3 class="text-sm font-semibold text-sem-fg mb-3">
                                 {{ $t("bots.custom_section") }}
                             </h3>
                             <BotCustomCommandsEditor v-model="customDraft" />
@@ -86,21 +86,21 @@
                             v-if="selectedTemplateId === 'rrc'"
                             class="rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-5"
                         >
-                            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                            <h3 class="text-sm font-semibold text-sem-fg mb-3">
                                 {{ $t("bots.rrc_section") }}
                             </h3>
                             <BotRrcFields v-model="rrcDraft" />
                         </div>
 
                         <div class="rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-5">
-                            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                            <h3 class="text-sm font-semibold text-sem-fg mb-3">
                                 {{ $t("bots.appearance") }}
                             </h3>
                             <LxmfIconEditor v-model="iconDraft" />
                         </div>
 
                         <div class="rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-5">
-                            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                            <h3 class="text-sm font-semibold text-sem-fg mb-1">
                                 {{ $t("bots.advanced_lxmf_settings") }}
                             </h3>
                             <p class="text-xs text-sem-fg-muted mb-3">
@@ -112,7 +112,7 @@
                         <div class="flex justify-end gap-2 pb-4">
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sem-fg-muted hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
+                                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-sem-border bg-sem-surface6098 text-sem-fg-muted hover:bg-gray-50 dark:hover:bg-sem-surface-muted transition-colors"
                                 :disabled="isStarting"
                                 @click="goBack"
                             >
@@ -120,7 +120,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-sem-action-primary text-sem-action-primary-text border-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:border-blue-500 dark:hover:bg-blue-600"
+                                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-sem-action-primary text-sem-action-primary-text border-sem-info hover:bg-sem-info dark:bg-sem-info dark:border-sem-accent dark:hover:bg-sem-info"
                                 :disabled="isStarting || !canCreate"
                                 @click="createBot"
                             >
@@ -281,6 +281,6 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .glass-label {
-    @apply block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1;
+    @apply block text-sm font-semibold text-sem-fg mb-1;
 }
 </style>

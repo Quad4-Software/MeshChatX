@@ -19,7 +19,7 @@
                     :class="[
                         tab.private
                             ? tab.id === activeTabId
-                                ? 'border-purple-500/60 border-b-transparent bg-[#2b1065] font-medium text-purple-100'
+                                ? 'border-purple-500/60 border-b-transparent bg-[#2b1065] font-medium text-sem-info'
                                 : 'text-purple-300/90 hover:bg-purple-900/40'
                             : tab.id === activeTabId
                               ? 'border-sem-border border-b-transparent bg-sem-canvas font-medium text-sem-fg'
@@ -37,7 +37,7 @@
                     <span class="min-w-0 flex-1 truncate text-left leading-none">{{ tabTitle(tab) }}</span>
                     <span
                         class="shrink-0 rounded p-0.5 text-sem-fg-muted opacity-0 transition-opacity hover:bg-sem-surface hover:text-sem-fg group-hover:opacity-100 group-focus-within:opacity-100"
-                        :class="tab.private ? 'hover:bg-purple-800/60 hover:text-purple-100' : ''"
+                        :class="tab.private ? 'hover:bg-purple-800/60 hover:text-sem-info' : ''"
                         :title="$t('common.cancel')"
                         draggable="false"
                         @click.stop="closeTab(tab.id)"
@@ -74,7 +74,7 @@
                     </button>
                 </div>
             </div>
-            <!-- history dropdown — fixed positioning so the scrollable strip doesn't clip it -->
+            <!-- history dropdown - fixed positioning so the scrollable strip doesn't clip it -->
             <Teleport to="body">
                 <div
                     v-if="showHistoryMenu"

@@ -13,13 +13,13 @@
                 </div>
                 <div>
                     <h3 class="font-bold text-sem-fg">{{ cluster.count }} interfaces here</h3>
-                    <div class="text-[10px] font-mono text-gray-500 uppercase tracking-tighter">
+                    <div class="text-[10px] font-mono text-sem-fg-muted uppercase tracking-tighter">
                         Tap an item to focus
                     </div>
                 </div>
             </div>
             <button
-                class="text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300 p-1"
+                class="text-sem-fg-muted hover:text-sem-fg dark:hover:text-sem-fg-secondary p-1"
                 title="Close"
                 @click="$emit('close')"
             >
@@ -35,13 +35,13 @@
             >
                 <div
                     v-if="item.kind === 'discovered'"
-                    class="size-7 rounded-full flex items-center justify-center border-2 border-emerald-500 bg-emerald-50 text-emerald-600 shrink-0"
+                    class="size-7 rounded-full flex items-center justify-center border-2 border-sem-success bg-sem-success/15 text-sem-success shrink-0"
                 >
                     <MaterialDesignIcon :icon-name="getDiscoveredIconName(item.iconKey)" class="size-[14px]" />
                 </div>
                 <div
                     v-else-if="item.kind === 'telemetry'"
-                    class="size-7 rounded-full flex items-center justify-center border-2 border-blue-500 bg-blue-50 text-blue-600 shrink-0"
+                    class="size-7 rounded-full flex items-center justify-center border-2 border-sem-accent bg-sem-info/15 text-sem-info shrink-0"
                 >
                     <MaterialDesignIcon
                         :icon-name="item.peer?.lxmf_user_icon?.icon_name || 'account'"
@@ -50,17 +50,17 @@
                 </div>
                 <div
                     v-else
-                    class="size-7 rounded-full flex items-center justify-center border-2 border-gray-400 bg-sem-surface-muted text-sem-fg-muted shrink-0"
+                    class="size-7 rounded-full flex items-center justify-center border-2 border-sem-border bg-sem-surface-muted text-sem-fg-muted shrink-0"
                 >
                     <MaterialDesignIcon icon-name="help" class="size-3.5" />
                 </div>
                 <div class="min-w-0 flex-1">
                     <div class="text-sm font-medium truncate">{{ item.label }}</div>
-                    <div v-if="item.identifier" class="text-[10px] font-mono text-gray-500 truncate">
+                    <div v-if="item.identifier" class="text-[10px] font-mono text-sem-fg-muted truncate">
                         {{ item.identifier }}
                     </div>
                 </div>
-                <MaterialDesignIcon icon-name="chevron-right" class="size-4 text-gray-400 shrink-0" />
+                <MaterialDesignIcon icon-name="chevron-right" class="size-4 text-sem-fg-muted shrink-0" />
             </button>
         </div>
     </div>

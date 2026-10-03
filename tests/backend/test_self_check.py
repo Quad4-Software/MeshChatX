@@ -204,7 +204,7 @@ def test_check_lxst_telephony_ok():
         result.get("reason") or ""
     ):
         # LXST ships prebuilt filterlib .so per CPython ABI. On a pre-release
-        # interpreter no matching artifact exists; skip only when other ABIs
+        # interpreter no matching artifact exists. skip only when other ABIs
         # are present, so a genuinely unbuilt artifact still fails.
         import sysconfig
         from pathlib import Path

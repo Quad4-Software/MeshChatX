@@ -42,7 +42,7 @@ export default {
             if (this.fitParent) {
                 return "absolute inset-0 bg-zinc-200/30 dark:bg-white/10";
             }
-            return "min-h-32 w-full rounded-2xl bg-gray-100/90 dark:bg-zinc-800/60";
+            return "min-h-32 w-full rounded-2xl bg-sem-surface-muted/80 dark:bg-sem-surface/80";
         },
     },
     mounted() {

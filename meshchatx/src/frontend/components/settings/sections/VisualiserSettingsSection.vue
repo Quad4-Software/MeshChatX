@@ -11,10 +11,10 @@
         </header>
         <div class="settings-section__body space-y-4">
             <div class="space-y-2">
-                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div class="text-sm font-medium text-sem-fg">
                     {{ $t("visualiser.renderer_title") }}
                 </div>
-                <p class="text-xs text-gray-600 dark:text-gray-400">
+                <p class="text-xs text-sem-fg-muted">
                     {{ $t("visualiser.renderer_desc") }}
                 </p>
                 <SegmentedControl
@@ -25,10 +25,10 @@
                 />
             </div>
             <div class="space-y-2">
-                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div class="text-sm font-medium text-sem-fg">
                     {{ $t("visualiser.view_mode") }}
                 </div>
-                <p class="text-xs text-gray-600 dark:text-gray-400">
+                <p class="text-xs text-sem-fg-muted">
                     {{ $t("visualiser.view_mode_desc") }}
                 </p>
                 <SegmentedControl

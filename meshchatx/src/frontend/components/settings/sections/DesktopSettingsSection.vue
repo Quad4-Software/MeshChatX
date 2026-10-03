@@ -16,7 +16,7 @@
                     <span class="setting-toggle__title">{{ $t("app.desktop_open_calls_in_separate_window") }}</span>
                     <span class="setting-toggle__description">
                         {{ $t("app.desktop_open_calls_in_separate_window_description") }}
-                        <span class="text-blue-500 font-bold block mt-1">(Phased out for now)</span>
+                        <span class="text-sem-info font-bold block mt-1">(Phased out for now)</span>
                     </span>
                 </span>
             </label>

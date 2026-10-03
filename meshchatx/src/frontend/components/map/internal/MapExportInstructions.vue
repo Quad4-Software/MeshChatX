@@ -13,7 +13,7 @@
                     v-for="p in presets"
                     :key="p.id"
                     type="button"
-                    class="px-2 py-1 text-[10px] font-bold uppercase tracking-tight rounded-lg bg-white/95 dark:bg-zinc-900/95 border border-sem-border text-sem-fg shadow-xs hover:bg-sem-surface-muted"
+                    class="px-2 py-1 text-[10px] font-bold uppercase tracking-tight rounded-lg bg-sem-surface dark:bg-sem-surface border border-sem-border text-sem-fg shadow-xs hover:bg-sem-surface-muted"
                     @click="$emit('select-preset', p)"
                 >
                     {{ $t(`map.export_region_${p.id}`) }}

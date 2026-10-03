@@ -4,7 +4,7 @@
     <div class="flex flex-col min-h-0 flex-1 min-w-0" :class="fullscreen ? 'h-dvh max-h-dvh' : ''">
         <div
             class="shrink-0 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-sem-border"
-            :class="fullscreen ? 'px-2 py-2 bg-zinc-900 safe-top' : 'px-2 sm:px-3 md:px-4 py-2 sm:py-2.5'"
+            :class="fullscreen ? 'px-2 py-2 bg-sem-surface safe-top' : 'px-2 sm:px-3 md:px-4 py-2 sm:py-2.5'"
         >
             <div class="min-w-0 flex-1 flex items-center gap-1.5">
                 <button
@@ -42,7 +42,7 @@
                 </button>
                 <button
                     type="button"
-                    class="secondary-chip text-xs p-1.5 sm:px-2 sm:py-1.5 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/40"
+                    class="secondary-chip text-xs p-1.5 sm:px-2 sm:py-1.5 text-sem-danger border-sem-danger dark:border-sem-danger/50"
                     :disabled="!session"
                     :title="tKey('stop')"
                     :aria-label="tKey('stop')"
@@ -64,7 +64,7 @@
                 </button>
                 <button
                     type="button"
-                    class="secondary-chip text-xs p-1.5 sm:px-2 sm:py-1.5 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/40"
+                    class="secondary-chip text-xs p-1.5 sm:px-2 sm:py-1.5 text-sem-danger border-sem-danger dark:border-sem-danger/50"
                     :disabled="!session"
                     :title="tKey('remove')"
                     :aria-label="tKey('remove')"
@@ -87,10 +87,10 @@
 
         <div
             v-if="session && session.mode === 'listen'"
-            class="shrink-0 flex items-center gap-2 px-2 sm:px-3 md:px-4 py-1.5 border-b border-sem-border bg-indigo-50 dark:bg-indigo-950/40"
+            class="shrink-0 flex items-center gap-2 px-2 sm:px-3 md:px-4 py-1.5 border-b border-sem-border bg-sem-info/15 dark:bg-sem-info/15"
         >
             <span
-                class="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 shrink-0"
+                class="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-sem-info dark:text-sem-info shrink-0"
             >
                 {{ tKey("listening_on") }}
             </span>
@@ -112,7 +112,7 @@
 
         <div
             ref="outputBox"
-            class="flex-1 min-h-0 bg-zinc-950 dark:bg-black text-zinc-100 font-mono whitespace-pre-wrap wrap-break-word overflow-auto custom-scrollbar"
+            class="flex-1 min-h-0 bg-sem-surface dark:bg-black text-sem-fg font-mono whitespace-pre-wrap wrap-break-word overflow-auto custom-scrollbar"
             :class="fullscreen ? 'text-[11px] leading-relaxed px-2 py-2' : 'text-xs px-2 sm:px-3 md:px-4 py-2 sm:py-3'"
         >
             {{ output }}

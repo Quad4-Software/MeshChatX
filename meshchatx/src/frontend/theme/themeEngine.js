@@ -693,7 +693,7 @@ export const THEME_PRESETS = {
         },
     },
     void: {
-        // Pure monochrome — near-black canvas, white accent, muted gray text.
+        // Pure monochrome - near-black canvas, white accent, muted gray text.
         // Mirrors quad4.io branding.
         light: {
             "--mc-canvas": "#fafafa",

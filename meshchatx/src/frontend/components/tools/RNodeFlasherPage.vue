@@ -287,7 +287,7 @@ export default {
         },
         async onCapabilitiesAction(action) {
             if (action === "load-polyfill") {
-                // The web-serial polyfill is not shipped; the flasher needs
+                // The web-serial polyfill is not shipped. the flasher needs
                 // native WebSerial or the Android bridge.
                 ToastUtils.error(this.$t("tools.rnode_flasher.support.actions.polyfill_loading"));
                 return;

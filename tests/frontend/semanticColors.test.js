@@ -3,7 +3,7 @@
 // Regression guard: flags hardcoded Tailwind palette colors (bg-blue-500,
 // text-gray-700, etc.) in Vue components. Semantic tokens (sem-*) or CSS
 // vars should be used so themes stay consistent. A baseline file captures
-// current counts — the test fails if a file's count grows or a new file
+// current counts - the test fails if a file's count grows or a new file
 // adds hardcoded colors.
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "fs";

@@ -8,7 +8,7 @@
         :description="$t('updates.settings_description')"
         body-class="space-y-4"
     >
-        <div class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+        <div class="text-sm text-sem-fg-muted space-y-1">
             <div>
                 {{ $t("updates.current_version") }}: {{ status.current_version || "?" }}
                 <span v-if="status.channel">({{ status.channel }})</span>
@@ -19,34 +19,34 @@
         </div>
 
         <div v-if="checkResult" class="text-sm space-y-2">
-            <div v-if="checkResult.error" class="text-red-500">
+            <div v-if="checkResult.error" class="text-sem-danger">
                 {{ checkResult.error }}
             </div>
             <div v-else-if="checkResult.update_available">
-                <span class="font-medium text-green-600 dark:text-green-400">
+                <span class="font-medium text-sem-success">
                     {{ $t("updates.available", { version: checkResult.manifest?.version }) }}
                 </span>
             </div>
-            <div v-else class="text-gray-600 dark:text-gray-400">
+            <div v-else class="text-sem-fg-muted">
                 {{ $t("updates.up_to_date") }}
             </div>
         </div>
 
         <div
             v-if="pending"
-            class="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm space-y-2"
+            class="rounded-xl border border-sem-warning dark:border-sem-warning bg-sem-warning/15 p-3 text-sm space-y-2"
         >
             <div class="font-medium">
                 {{ $t("updates.pending_ready", { version: pending.version }) }}
             </div>
-            <div class="text-xs text-gray-600 dark:text-gray-400 break-all">
+            <div class="text-xs text-sem-fg-muted break-all">
                 {{ pending.file }}
             </div>
             <div class="flex flex-wrap gap-2">
                 <button
                     v-if="pending.apply && pending.apply.mode === 'relaunch'"
                     type="button"
-                    class="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 disabled:opacity-50"
+                    class="px-3 py-1.5 rounded-lg bg-sem-warning text-white text-sm font-medium hover:bg-sem-warning disabled:opacity-50"
                     :disabled="busy"
                     @click="applyPending"
                 >
@@ -54,7 +54,7 @@
                 </button>
                 <button
                     type="button"
-                    class="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 text-sm hover:border-gray-400 disabled:opacity-50"
+                    class="px-3 py-1.5 rounded-lg border border-sem-border text-sm hover:border-sem-border disabled:opacity-50"
                     :disabled="busy"
                     @click="showPendingInFolder"
                 >
@@ -62,17 +62,14 @@
                 </button>
                 <button
                     type="button"
-                    class="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 text-sm hover:border-gray-400 disabled:opacity-50"
+                    class="px-3 py-1.5 rounded-lg border border-sem-border text-sm hover:border-sem-border disabled:opacity-50"
                     :disabled="busy"
                     @click="discard"
                 >
                     {{ $t("updates.discard") }}
                 </button>
             </div>
-            <div
-                v-if="pending.apply && pending.apply.mode === 'manual'"
-                class="text-xs text-gray-600 dark:text-gray-400"
-            >
+            <div v-if="pending.apply && pending.apply.mode === 'manual'" class="text-xs text-sem-fg-muted">
                 {{ pending.apply.instructions }}
             </div>
         </div>
@@ -80,7 +77,7 @@
         <div class="flex flex-wrap gap-2">
             <button
                 type="button"
-                class="px-3 py-1.5 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
+                class="px-3 py-1.5 rounded-lg bg-sem-success text-white text-sm font-medium hover:bg-sem-success disabled:opacity-50"
                 :disabled="busy || status.enabled === false"
                 @click="check"
             >
@@ -89,14 +86,14 @@
             <button
                 v-if="checkResult && checkResult.update_available && downloadable.length"
                 type="button"
-                class="px-3 py-1.5 rounded-lg bg-sem-action-success text-sem-action-success-text text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                class="px-3 py-1.5 rounded-lg bg-sem-action-success text-sem-action-success-text text-sm font-medium hover:bg-sem-success disabled:opacity-50"
                 :disabled="busy"
                 @click="download"
             >
                 {{ busyDownload ? $t("updates.downloading") : $t("updates.download_apply") }}
             </button>
             <label
-                class="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 text-sm cursor-pointer hover:border-gray-400"
+                class="px-3 py-1.5 rounded-lg border border-sem-border text-sm cursor-pointer hover:border-sem-border"
                 :class="{ 'opacity-50 pointer-events-none': busy || status.enabled === false }"
             >
                 {{ $t("updates.apply_file") }}
@@ -104,8 +101,8 @@
             </label>
         </div>
 
-        <div v-if="notice" class="text-sm text-gray-600 dark:text-gray-400">{{ notice }}</div>
-        <div v-if="errorText" class="text-sm text-red-500">{{ errorText }}</div>
+        <div v-if="notice" class="text-sm text-sem-fg-muted">{{ notice }}</div>
+        <div v-if="errorText" class="text-sm text-sem-danger">{{ errorText }}</div>
     </SettingsSectionBlock>
 </template>
 

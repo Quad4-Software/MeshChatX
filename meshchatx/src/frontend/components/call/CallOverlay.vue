@@ -4,14 +4,14 @@
     <div
         v-if="activeCall || initiationStatus || isEnded || wasDeclined"
         class="fixed z-90 w-[min(20rem,calc(100%-1.5rem))] max-sm:left-1/2 max-sm:-translate-x-1/2 max-sm:right-auto sm:right-4 bottom-[max(1rem,env(safe-area-inset-bottom,0px))] max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] bg-sem-surface rounded-2xl shadow-2xl border border-sem-border overflow-hidden transition-all duration-300"
-        :class="{ 'ring-2 ring-red-500 ring-opacity-50': isEnded || wasDeclined }"
+        :class="{ 'ring-2 ring-sem-danger ring-opacity-50': isEnded || wasDeclined }"
     >
         <!-- Header -->
-        <div class="p-3 flex items-center bg-gray-50 dark:bg-zinc-800/50 border-b border-sem-border">
+        <div class="p-3 flex items-center bg-sem-surface-muted/50 border-b border-sem-border">
             <div class="flex-1 flex items-center space-x-2">
                 <div
                     class="size-2 rounded-full"
-                    :class="isEnded || wasDeclined ? 'bg-red-500' : 'bg-green-500 animate-pulse'"
+                    :class="isEnded || wasDeclined ? 'bg-sem-danger' : 'bg-sem-success animate-pulse'"
                 ></div>
                 <button
                     type="button"
@@ -20,7 +20,7 @@
                     @click="goToPhonePage"
                 >
                     <span
-                        class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider group-hover:text-gray-700 dark:group-hover:text-zinc-200"
+                        class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider group-hover:text-sem-fg dark:group-hover:text-sem-fg"
                     >
                         {{
                             wasDeclined
@@ -47,23 +47,23 @@
                     </span>
                     <MaterialDesignIcon
                         icon-name="open-in-new"
-                        class="size-3 text-sem-fg-muted group-hover:text-gray-600 dark:group-hover:text-zinc-300"
+                        class="size-3 text-sem-fg-muted group-hover:text-sem-fg-secondary dark:group-hover:text-sem-fg-secondary"
                     />
                 </button>
                 <div v-if="activeCall && activeCall.is_recording && !isEnded" class="flex items-center gap-1 ml-2">
-                    <div class="size-1.5 bg-red-500 rounded-full animate-pulse"></div>
-                    <span class="text-[8px] font-bold text-red-500 uppercase tracking-tighter">REC</span>
+                    <div class="size-1.5 bg-sem-danger rounded-full animate-pulse"></div>
+                    <span class="text-[8px] font-bold text-sem-danger uppercase tracking-tighter">REC</span>
                 </div>
             </div>
             <button
                 v-if="!isEnded"
                 type="button"
-                class="p-1 hover:bg-gray-200 hover:bg-sem-surface-muted rounded-lg transition-colors"
+                class="p-1 hover:bg-sem-surface-muted hover:bg-sem-surface-muted rounded-lg transition-colors"
                 @click="isMinimized = !isMinimized"
             >
                 <MaterialDesignIcon
                     :icon-name="isMinimized ? 'chevron-up' : 'chevron-down'"
-                    class="size-4 text-gray-500"
+                    class="size-4 text-sem-fg-muted"
                 />
             </button>
         </div>
@@ -73,9 +73,7 @@
             <div class="flex flex-col items-center mb-4">
                 <div
                     class="p-2 rounded-full mb-3"
-                    :class="
-                        isEnded || wasDeclined ? 'bg-red-100 dark:bg-red-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
-                    "
+                    :class="isEnded || wasDeclined ? 'bg-sem-danger/15' : 'bg-sem-info/15'"
                 >
                     <LxmfUserIcon
                         :custom-image="activeCall ? activeCall.custom_image : null"
@@ -120,11 +118,11 @@
                     class="text-sm font-medium"
                     :class="[
                         isEnded || wasDeclined
-                            ? 'text-red-600 dark:text-red-400 animate-pulse'
+                            ? 'text-sem-danger animate-pulse'
                             : activeCall.is_voicemail
-                              ? 'text-red-600 dark:text-red-400 animate-pulse'
+                              ? 'text-sem-danger animate-pulse'
                               : activeCall && activeCall.status === 6
-                                ? 'text-green-600 dark:text-green-400'
+                                ? 'text-sem-success'
                                 : 'text-sem-fg-muted',
                     ]"
                 >
@@ -163,7 +161,7 @@
             <!-- Stats (only when connected and not minimized) -->
             <div
                 v-if="activeCall && activeCall.status === 6 && !isEnded"
-                class="mb-4 p-2 bg-gray-50 dark:bg-zinc-800/50 rounded-lg text-[10px] text-sem-fg-muted grid grid-cols-2 gap-1"
+                class="mb-4 p-2 bg-sem-surface-muted/50 rounded-lg text-[10px] text-sem-fg-muted grid grid-cols-2 gap-1"
             >
                 <div class="flex items-center space-x-1">
                     <MaterialDesignIcon icon-name="arrow-up" class="size-3" />
@@ -188,7 +186,7 @@
                     v-if="activeCall && activeCall.status === 6"
                     type="button"
                     :title="localHalfDuplex ? $t('call.switch_to_full_duplex') : $t('call.switch_to_half_duplex')"
-                    class="p-2.5 rounded-full transition-all duration-200 bg-sem-surface-muted text-sem-fg-muted hover:bg-gray-200 hover:bg-sem-surface-muted"
+                    class="p-2.5 rounded-full transition-all duration-200 bg-sem-surface-muted text-sem-fg-muted hover:bg-sem-surface-muted hover:bg-sem-surface-muted"
                     @click="toggleDuplexMode"
                 >
                     <MaterialDesignIcon
@@ -205,7 +203,7 @@
                     :class="
                         isMicMuted
                             ? 'bg-sem-action-danger text-sem-action-danger-text shadow-lg shadow-sem-action-danger/30'
-                            : 'bg-sem-surface-muted text-sem-fg-muted hover:bg-gray-200 hover:bg-sem-surface-muted'
+                            : 'bg-sem-surface-muted text-sem-fg-muted hover:bg-sem-surface-muted hover:bg-sem-surface-muted'
                     "
                     @click="toggleMicrophone"
                 >
@@ -220,7 +218,7 @@
                     :class="
                         isSpeakerMuted
                             ? 'bg-sem-action-danger text-sem-action-danger-text shadow-lg shadow-sem-action-danger/30'
-                            : 'bg-sem-surface-muted text-sem-fg-muted hover:bg-gray-200 hover:bg-sem-surface-muted'
+                            : 'bg-sem-surface-muted text-sem-fg-muted hover:bg-sem-surface-muted hover:bg-sem-surface-muted'
                     "
                     @click="toggleSpeaker"
                 >
@@ -268,7 +266,7 @@
                 v-if="activeCall && activeCall.status === 6 && localHalfDuplex && !isEnded"
                 type="button"
                 class="mt-3 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white select-none touch-none"
-                :class="localPttActive ? 'bg-amber-500' : 'bg-blue-600'"
+                :class="localPttActive ? 'bg-sem-warning' : 'bg-sem-info'"
                 @pointerdown.prevent="setPttActive(true)"
                 @pointerup.prevent="setPttActive(false)"
                 @pointerleave="setPttActive(false)"
@@ -324,15 +322,15 @@
                     <MaterialDesignIcon
                         :icon-name="isMicMuted ? 'microphone-off' : 'microphone'"
                         class="size-4"
-                        :class="isMicMuted ? 'text-red-500' : 'text-gray-400'"
+                        :class="isMicMuted ? 'text-sem-danger' : 'text-sem-fg-muted'"
                     />
                 </button>
                 <button
                     type="button"
-                    class="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-sm transition-colors"
+                    class="p-1.5 hover:bg-sem-danger/15 dark:hover:bg-sem-danger/15 rounded-sm transition-colors"
                     @click="hangupCall"
                 >
-                    <MaterialDesignIcon icon-name="phone-hangup" class="size-4 text-red-500 rotate-135" />
+                    <MaterialDesignIcon icon-name="phone-hangup" class="size-4 text-sem-danger rotate-135" />
                 </button>
             </div>
         </div>

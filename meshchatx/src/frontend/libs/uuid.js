@@ -74,7 +74,7 @@ export function randomUuidV4(options = {}) {
 }
 
 /**
- * Alias matching the previous `uuid` package import style.
+ * Alias matching the previous uuid package import style.
  *
  * @param {{ crypto?: UuidCrypto | null }} [options]
  * @returns {string}

@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 
 /**
- * Mirrors meshchat `get_config_dict` keys used by SettingsPage so PATCH merges stay realistic.
+ * Mirrors meshchat get_config_dict keys used by SettingsPage so PATCH merges stay realistic.
  *
  * @param {Record<string, unknown>} [overrides]
  * @returns {Record<string, unknown>}

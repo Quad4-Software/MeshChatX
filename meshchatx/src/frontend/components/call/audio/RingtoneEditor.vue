@@ -9,16 +9,18 @@
                 <p class="text-xs text-sem-fg-muted">{{ ringtone.display_name }}</p>
             </div>
             <button class="p-2 hover:bg-sem-surface-muted rounded-full transition-colors" @click="$emit('close')">
-                <MaterialDesignIcon icon-name="close" class="size-6 text-gray-500" />
+                <MaterialDesignIcon icon-name="close" class="size-6 text-sem-fg-muted" />
             </button>
         </div>
 
         <!-- Waveform Container -->
         <div
-            class="relative bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-4 border border-sem-border min-h-[200px] flex flex-col justify-center"
+            class="relative bg-sem-surface-muted/50 rounded-2xl p-4 border border-sem-border min-h-[200px] flex flex-col justify-center"
         >
             <div v-if="loading" class="flex flex-col items-center justify-center space-y-3">
-                <div class="size-8 border-4 border-sem-action-info/20 border-t-blue-500 rounded-full animate-spin"></div>
+                <div
+                    class="size-8 border-4 border-sem-action-info/20 border-t-blue-500 rounded-full animate-spin"
+                ></div>
                 <p class="text-sm text-sem-fg-muted font-medium">Loading audio...</p>
             </div>
 
@@ -27,27 +29,27 @@
 
                 <!-- Playback Progress -->
                 <div
-                    class="absolute top-0 bottom-0 w-0.5 bg-blue-500 z-10 pointer-events-none"
+                    class="absolute top-0 bottom-0 w-0.5 bg-sem-info z-10 pointer-events-none"
                     :style="{ left: progressPercent + '%' }"
                 ></div>
 
                 <!-- Selection Overlays -->
                 <div
-                    class="absolute top-0 bottom-0 bg-blue-500/10 border-x-2 border-sem-action-info z-20"
+                    class="absolute top-0 bottom-0 bg-sem-warning/15 border-x-2 border-sem-action-info z-20"
                     :style="{ left: startPercent + '%', width: endPercent - startPercent + '%' }"
                 >
                     <!-- Handles -->
                     <div
-                        class="absolute top-1/2 -left-3 -translate-y-1/2 size-6 bg-white dark:bg-zinc-700 border-2 border-sem-action-info rounded-full shadow-lg cursor-ew-resize flex items-center justify-center group"
+                        class="absolute top-1/2 -left-3 -translate-y-1/2 size-6 bg-sem-surface dark:bg-sem-surface-muted border-2 border-sem-action-info rounded-full shadow-lg cursor-ew-resize flex items-center justify-center group"
                         @mousedown.stop.prevent="startDragging('start')"
                     >
-                        <div class="w-0.5 h-3 bg-blue-500 group-hover:h-4 transition-all"></div>
+                        <div class="w-0.5 h-3 bg-sem-info group-hover:h-4 transition-all"></div>
                     </div>
                     <div
-                        class="absolute top-1/2 -right-3 -translate-y-1/2 size-6 bg-white dark:bg-zinc-700 border-2 border-sem-action-info rounded-full shadow-lg cursor-ew-resize flex items-center justify-center group"
+                        class="absolute top-1/2 -right-3 -translate-y-1/2 size-6 bg-sem-surface dark:bg-sem-surface-muted border-2 border-sem-action-info rounded-full shadow-lg cursor-ew-resize flex items-center justify-center group"
                         @mousedown.stop.prevent="startDragging('end')"
                     >
-                        <div class="w-0.5 h-3 bg-blue-500 group-hover:h-4 transition-all"></div>
+                        <div class="w-0.5 h-3 bg-sem-info group-hover:h-4 transition-all"></div>
                     </div>
                 </div>
             </div>
@@ -58,7 +60,7 @@
             <div class="space-y-4">
                 <div class="flex items-center justify-between">
                     <span class="text-sm font-bold text-sem-fg-muted">Time Range</span>
-                    <span class="text-[10px] font-mono text-gray-500"
+                    <span class="text-[10px] font-mono text-sem-fg-muted"
                         >{{ formatTime(startTime) }} - {{ formatTime(endTime) }} ({{
                             formatTime(endTime - startTime)
                         }})</span
@@ -66,25 +68,25 @@
                 </div>
                 <div class="flex gap-4">
                     <div class="flex-1">
-                        <label class="block text-[10px] uppercase font-bold text-gray-400 mb-1">Start</label>
+                        <label class="block text-[10px] uppercase font-bold text-sem-fg-muted mb-1">Start</label>
                         <input
                             v-model.number="startTime"
                             type="number"
                             step="0.01"
                             min="0"
                             :max="endTime"
-                            class="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg text-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 text-sem-fg"
+                            class="w-full bg-sem-surface-muted border-none rounded-lg text-sm px-3 py-2 focus:ring-2 focus:ring-sem-accent text-sem-fg"
                         />
                     </div>
                     <div class="flex-1">
-                        <label class="block text-[10px] uppercase font-bold text-gray-400 mb-1">End</label>
+                        <label class="block text-[10px] uppercase font-bold text-sem-fg-muted mb-1">End</label>
                         <input
                             v-model.number="endTime"
                             type="number"
                             step="0.01"
                             :min="startTime"
                             :max="totalDuration"
-                            class="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg text-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 text-sem-fg"
+                            class="w-full bg-sem-surface-muted border-none rounded-lg text-sm px-3 py-2 focus:ring-2 focus:ring-sem-accent text-sem-fg"
                         />
                     </div>
                 </div>
@@ -113,20 +115,20 @@
                     id="saveAsNew"
                     v-model="saveAsNew"
                     type="checkbox"
-                    class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
+                    class="rounded-sm border-sem-border text-sem-info focus:ring-sem-accent"
                 />
                 <label for="saveAsNew" class="text-sm text-sem-fg-muted cursor-pointer">Save as new ringtone</label>
             </div>
             <div class="flex items-center gap-3">
                 <button
-                    class="px-4 py-2 text-sm font-bold text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300 transition-colors"
+                    class="px-4 py-2 text-sm font-bold text-sem-fg-muted hover:text-sem-fg dark:hover:text-sem-fg-secondary transition-colors"
                     @click="$emit('close')"
                 >
                     Cancel
                 </button>
                 <button
                     :disabled="saving || loading"
-                    class="px-6 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-sm font-bold shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    class="px-6 py-2 bg-sem-surface dark:bg-sem-surface text-white dark:text-sem-fg rounded-xl text-sm font-bold shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     @click="save"
                 >
                     <MaterialDesignIcon v-if="saving" icon-name="loading" class="size-4 animate-spin" />

@@ -73,13 +73,10 @@
                 <button
                     v-if="entry.type === 'dir'"
                     type="button"
-                    class="min-w-0 flex items-center gap-2 text-left text-sm text-sem-fg hover:text-emerald-600 dark:hover:text-emerald-400"
+                    class="min-w-0 flex items-center gap-2 text-left text-sm text-sem-fg hover:text-sem-success dark:hover:text-sem-success"
                     @click="enterDir(entry.path)"
                 >
-                    <MaterialDesignIcon
-                        icon-name="folder"
-                        class="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400"
-                    />
+                    <MaterialDesignIcon icon-name="folder" class="w-5 h-5 shrink-0 text-sem-success" />
                     <span class="break-all">{{ entry.name }}</span>
                 </button>
                 <div v-else class="min-w-0 flex items-center gap-2 text-sm text-sem-fg">
@@ -103,7 +100,7 @@
                     </button>
                     <button
                         type="button"
-                        class="secondary-chip px-3 py-1.5 text-sm text-red-600 dark:text-red-300"
+                        class="secondary-chip px-3 py-1.5 text-sm text-sem-danger"
                         :disabled="busy"
                         @click="deleteEntry(entry)"
                     >

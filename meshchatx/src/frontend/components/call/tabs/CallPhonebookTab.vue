@@ -11,8 +11,8 @@
         </div>
 
         <div v-if="discoveryAnnounces.length === 0" class="my-auto text-center">
-            <div class="bg-gray-200 dark:bg-zinc-800 p-6 rounded-full inline-block mb-4">
-                <MaterialDesignIcon icon-name="satellite-uplink" class="size-12 text-gray-400" />
+            <div class="bg-sem-surface-muted p-6 rounded-full inline-block mb-4">
+                <MaterialDesignIcon icon-name="satellite-uplink" class="size-12 text-sem-fg-muted" />
             </div>
             <h3 class="text-lg font-medium text-sem-fg">No Telephony Peers</h3>
             <p class="text-sem-fg-muted">Waiting for announces on the mesh.</p>
@@ -45,7 +45,7 @@
                                         <a
                                             v-if="announce.lxmf_destination_hash"
                                             :href="`/#/messages/${announce.lxmf_destination_hash}`"
-                                            class="ml-2 p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                                            class="ml-2 p-1 text-sem-fg-muted hover:text-sem-info transition-colors"
                                             title="Message via LXMF"
                                             @click.stop
                                         >
@@ -59,7 +59,7 @@
                                 <div class="flex items-center justify-between mt-1">
                                     <div class="flex items-center space-x-2 min-w-0">
                                         <span
-                                            class="text-[10px] text-sem-fg-muted font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
+                                            class="text-[10px] text-sem-fg-muted font-mono truncate cursor-pointer hover:text-sem-info transition-colors"
                                             :title="announce.destination_hash"
                                             @click.stop="$emit('copy-hash', announce.destination_hash)"
                                         >
@@ -67,14 +67,14 @@
                                         </span>
                                         <span
                                             v-if="announce.hops != null"
-                                            class="text-[10px] text-gray-400 dark:text-zinc-600"
+                                            class="text-[10px] text-gray-400 dark:text-sem-fg-secondary"
                                         >
                                             • {{ announce.hops }} hops
                                         </span>
                                     </div>
                                     <button
                                         type="button"
-                                        class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors shrink-0"
+                                        class="text-[10px] bg-sem-info/15 text-sem-info dark:bg-sem-info/15 dark:text-sem-info px-3 py-1 rounded-full font-bold uppercase tracking-wider hover:bg-sem-info/15 dark:hover:bg-sem-info/15 transition-colors shrink-0"
                                         @click="$emit('call', announce.destination_hash)"
                                     >
                                         Call
@@ -87,7 +87,7 @@
                 <div v-if="hasMoreDiscovery" class="p-3 border-t border-sem-border text-center">
                     <button
                         type="button"
-                        class="text-xs text-blue-500 hover:text-blue-600 font-bold uppercase tracking-widest"
+                        class="text-xs text-sem-info hover:text-sem-info font-bold uppercase tracking-widest"
                         @click="$emit('load-more')"
                     >
                         {{ $t("call.load_more") }}

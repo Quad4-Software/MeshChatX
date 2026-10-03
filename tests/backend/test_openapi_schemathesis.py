@@ -76,7 +76,7 @@ def test_openapi_fuzz_loopback(backend):
             "--checks",
             # Gate on the serious checks only: 5xx crashes and responses
             # that break the declared contract. negative_data_rejection
-            # flags endpoints that leniently accept malformed bodies; the
+            # flags endpoints that leniently accept malformed bodies. the
             # app tolerates those by design so they stay off until each
             # is triaged (they produce findings, not crashes).
             "not_a_server_error,status_code_conformance,response_schema_conformance",
@@ -91,7 +91,7 @@ def test_openapi_fuzz_loopback(backend):
         timeout=TIMEOUT + 120,
     )
     tail = (proc.stdout + proc.stderr)[-4000:]
-    # A 5xx-detecting check counts as a finding; other statuses are
+    # A 5xx-detecting check counts as a finding. other statuses are
     # information Schemathesis reports in its summary.
     assert proc.returncode == 0 or "SUMMARY" not in tail, tail
     assert proc.returncode == 0, f"schemathesis failed:\n{tail}"

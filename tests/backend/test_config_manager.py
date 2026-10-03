@@ -204,7 +204,7 @@ def test_auto_propagation_config(db):
 
 def test_all_registered_config_keys_are_handled_in_update_config():
     """Every StringConfig/BoolConfig/IntConfig/FloatConfig key registered in
-    config_manager.py must reach storage via update_config — either through an
+    config_manager.py must reach storage via update_config - either through an
     explicit `in data` handler or the generic catch-all. Keys in
     GENERIC_CONFIG_DENY bypass the generic pass, so a denylisted key with no
     explicit handler and no dedicated route is silently dropped: flag those."""
@@ -257,15 +257,15 @@ def test_all_registered_config_keys_are_handled_in_update_config():
 
     # Non-denylisted keys are covered by the generic pass even without an
     # explicit handler. Denylisted keys need an explicit handler or an EXEMPT
-    # entry — otherwise they can never be persisted at all.
+    # entry - otherwise they can never be persisted at all.
     uncovered = registered - handled - EXEMPT
     dead = uncovered & denylisted
     assert not dead, (
         f"Config keys denylisted from the generic update_config pass with no "
-        f"explicit handler and no dedicated route — can never persist: {sorted(dead)}"
+        f"explicit handler and no dedicated route - can never persist: {sorted(dead)}"
     )
 
-    # The denylist must not contain typos — every entry must be a real
+    # The denylist must not contain typos - every entry must be a real
     # registered config key.
     unknown_deny = denylisted - registered
     assert not unknown_deny, (

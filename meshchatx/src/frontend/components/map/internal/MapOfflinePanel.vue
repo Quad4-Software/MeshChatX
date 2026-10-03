@@ -6,7 +6,9 @@
             <button
                 type="button"
                 class="flex-1 px-2 py-1.5 text-[11px] font-medium rounded-md"
-                :class="!offlineEnabled ? 'bg-white dark:bg-zinc-700 text-blue-600' : 'text-gray-500'"
+                :class="
+                    !offlineEnabled ? 'bg-sem-surface dark:bg-sem-surface-muted text-sem-info' : 'text-sem-fg-muted'
+                "
                 @click="$emit('toggle-offline', false)"
             >
                 {{ $t("map.online_mode") }}
@@ -14,7 +16,7 @@
             <button
                 type="button"
                 class="flex-1 px-2 py-1.5 text-[11px] font-medium rounded-md"
-                :class="offlineEnabled ? 'bg-white dark:bg-zinc-700 text-blue-600' : 'text-gray-500'"
+                :class="offlineEnabled ? 'bg-sem-surface dark:bg-sem-surface-muted text-sem-info' : 'text-sem-fg-muted'"
                 @click="$emit('toggle-offline', true)"
             >
                 {{ $t("map.offline_mode") }}
@@ -33,7 +35,7 @@
         </button>
         <div
             v-if="offlineEnabled && !hasOfflineMap"
-            class="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 space-y-2"
+            class="rounded-lg border border-amber-500/40 bg-sem-warning/15 p-2 space-y-2"
         >
             <div class="text-[11px] text-sem-fg leading-snug">{{ $t("map.offline_empty_hint") }}</div>
             <button
@@ -77,18 +79,18 @@
         >
             <div class="min-w-0">
                 <div class="text-[11px] font-semibold truncate">{{ file.name }}</div>
-                <div class="text-[9px] text-gray-500">{{ ((file.size || 0) / 1024 / 1024).toFixed(1) }} MB</div>
+                <div class="text-[9px] text-sem-fg-muted">{{ ((file.size || 0) / 1024 / 1024).toFixed(1) }} MB</div>
             </div>
             <div class="flex items-center gap-1">
                 <button
                     v-if="!file.is_active"
                     type="button"
-                    class="p-1 text-blue-500"
+                    class="p-1 text-sem-info"
                     @click="$emit('set-active', file.name)"
                 >
                     {{ $t("map.set_active") }}
                 </button>
-                <button type="button" class="p-1 text-red-500" @click="$emit('delete-file', file.name)">
+                <button type="button" class="p-1 text-sem-danger" @click="$emit('delete-file', file.name)">
                     {{ $t("map.delete") }}
                 </button>
             </div>

@@ -9,7 +9,7 @@
         <div ref="dropdown-button" @click.stop="toggleMenu">
             <slot>
                 <div
-                    class="size-8 border border-gray-300 dark:border-zinc-700 rounded-sm shadow-sm cursor-pointer"
+                    class="size-8 border border-sem-border rounded-sm shadow-sm cursor-pointer"
                     :style="{ 'background-color': colour }"
                 ></div>
             </slot>

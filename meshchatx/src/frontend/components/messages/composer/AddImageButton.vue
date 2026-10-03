@@ -23,7 +23,7 @@
                 <div
                     v-if="isShowingMenu"
                     v-click-outside="hideMenu"
-                    class="absolute bottom-0 -ml-11 sm:right-0 sm:ml-0 z-10 mb-10 rounded-xl bg-sem-surface shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-hidden"
+                    class="absolute bottom-0 -ml-11 sm:right-0 sm:ml-0 z-10 mb-10 rounded-xl bg-sem-surface shadow-lg ring-1 ring-sem-border focus:outline-hidden"
                 >
                     <div class="py-1">
                         <button

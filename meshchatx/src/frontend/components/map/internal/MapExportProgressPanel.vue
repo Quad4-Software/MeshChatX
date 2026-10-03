@@ -10,14 +10,14 @@
             }}</span>
             <button
                 v-if="status.status === 'completed' || status.status === 'failed'"
-                class="text-gray-400"
+                class="text-sem-fg-muted"
                 @click="$emit('dismiss')"
             >
                 <MaterialDesignIcon icon-name="close" class="size-4" />
             </button>
             <button
                 v-else
-                class="text-xs font-bold text-red-500 hover:text-red-600 uppercase tracking-tighter"
+                class="text-xs font-bold text-sem-danger hover:text-sem-danger uppercase tracking-tighter"
                 @click="$emit('cancel')"
             >
                 {{ $t("common.cancel") }}
@@ -27,11 +27,11 @@
         <div v-if="status.status !== 'completed' && status.status !== 'failed'">
             <div class="w-full h-2 bg-sem-surface-muted rounded-full overflow-hidden">
                 <div
-                    class="h-full bg-blue-500 transition-all duration-300"
+                    class="h-full bg-sem-info transition-all duration-300"
                     :style="{ width: status.progress + '%' }"
                 ></div>
             </div>
-            <div class="flex justify-between text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-wider">
+            <div class="flex justify-between text-[10px] text-sem-fg-muted mt-1 uppercase font-bold tracking-wider">
                 <span>{{ status.current }} / {{ status.total }} tiles</span>
                 <span>{{ status.progress }}%</span>
             </div>
@@ -40,13 +40,13 @@
         <div v-if="status.status === 'completed'" class="flex flex-col gap-2">
             <a
                 :href="`/api/v1/map/export/${exportId}/download`"
-                class="flex items-center justify-center space-x-2 w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-bold transition-colors shadow-md text-xs"
+                class="flex items-center justify-center space-x-2 w-full py-2 bg-sem-success hover:bg-sem-success text-white rounded-lg font-bold transition-colors shadow-md text-xs"
             >
                 <MaterialDesignIcon icon-name="download" class="size-4" />
                 <span>{{ $t("map.download_now") }}</span>
             </a>
             <button
-                class="flex items-center justify-center space-x-2 w-full py-2 bg-blue-500 hover:bg-sem-action-primary text-sem-action-primary-text rounded-lg font-bold transition-colors shadow-md text-xs"
+                class="flex items-center justify-center space-x-2 w-full py-2 bg-sem-info hover:bg-sem-action-primary text-sem-action-primary-text rounded-lg font-bold transition-colors shadow-md text-xs"
                 @click="$emit('show-offline-maps')"
             >
                 <MaterialDesignIcon icon-name="map-check" class="size-4" />
@@ -54,7 +54,10 @@
             </button>
         </div>
 
-        <div v-if="status.status === 'failed'" class="text-xs text-red-500 bg-red-50 dark:bg-red-950/20 p-2 rounded-lg">
+        <div
+            v-if="status.status === 'failed'"
+            class="text-xs text-sem-danger bg-sem-danger/15 dark:bg-sem-danger/15 p-2 rounded-lg"
+        >
             {{ status.error }}
         </div>
     </div>

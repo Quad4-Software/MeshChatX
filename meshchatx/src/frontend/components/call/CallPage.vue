@@ -1232,7 +1232,7 @@
                                     </div>
 
                                     <!-- Preferred Ringtone for Non-Contacts -->
-                                    <div class="p-4 rounded-xl bg-sem-info/10 border border-sem-info/20">
+                                    <div class="p-4 rounded-xl bg-sem-surface-muted border border-sem-border">
                                         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                             <div>
                                                 <div class="text-sm font-semibold text-sem-fg">
@@ -1489,7 +1489,7 @@
                                                     <!-- TX Play -->
                                                     <button
                                                         type="button"
-                                                        class="px-2 py-1 rounded-md bg-sem-success/10 hover:bg-sem-success/20 text-green-600 dark:text-green-400 text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1"
+                                                        class="px-2 py-1 rounded-md bg-sem-success/10 hover:bg-sem-success/20 text-sem-success text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1"
                                                         @click="playRecording(recording, 'tx')"
                                                     >
                                                         <MaterialDesignIcon

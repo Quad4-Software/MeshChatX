@@ -163,7 +163,7 @@ def test_prune_keeps_newest_four_by_last_changed(bunny: ModuleType) -> None:
         )
 
     deleted_names = {url.rsplit("/", 1)[-1] for url in deleted}
-    # Newest four by LastChanged: v4.9.1 v4.9.2 v4.9.3 v4.9.4; keep_version
+    # Newest four by LastChanged: v4.9.1 v4.9.2 v4.9.3 v4.9.4. keep_version
     # testing-today (not in listing). Oldest two are deleted.
     assert deleted_names == {"v4.9.9", "v4.9.10"}
     assert not any("stray.txt" in d for d in deleted)

@@ -16,7 +16,7 @@
                 <div class="fused-panel">
                     <div class="fused-section space-y-5">
                         <div
-                            class="p-4 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20"
+                            class="p-4 rounded-lg bg-sem-info/15 dark:bg-sem-info/15 border border-sem-info dark:border-sem-info"
                         >
                             <div class="text-xs font-bold uppercase tracking-wider text-sem-accent mb-2">
                                 {{ $t("rncp.usage_steps") }}
@@ -50,8 +50,8 @@
                                     type="button"
                                     :class="[
                                         activeTab === 'send'
-                                            ? 'border-b-2 border-blue-500 text-sem-accent'
-                                            : 'text-gray-600 dark:text-gray-400',
+                                            ? 'border-b-2 border-sem-accent text-sem-accent'
+                                            : 'text-sem-fg-muted',
                                         'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
                                     ]"
                                     @click="activeTab = 'send'"
@@ -62,8 +62,8 @@
                                     type="button"
                                     :class="[
                                         activeTab === 'fetch'
-                                            ? 'border-b-2 border-blue-500 text-sem-accent'
-                                            : 'text-gray-600 dark:text-gray-400',
+                                            ? 'border-b-2 border-sem-accent text-sem-accent'
+                                            : 'text-sem-fg-muted',
                                         'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
                                     ]"
                                     @click="activeTab = 'fetch'"
@@ -74,8 +74,8 @@
                                     type="button"
                                     :class="[
                                         activeTab === 'listen'
-                                            ? 'border-b-2 border-blue-500 text-sem-accent'
-                                            : 'text-gray-600 dark:text-gray-400',
+                                            ? 'border-b-2 border-sem-accent text-sem-accent'
+                                            : 'text-sem-fg-muted',
                                         'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
                                     ]"
                                     @click="activeTab = 'listen'"
@@ -131,9 +131,7 @@
                                 <div class="flex items-end">
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <input v-model="sendNoCompress" type="checkbox" class="rounded-sm" />
-                                        <span class="text-sm text-gray-700 dark:text-gray-300">{{
-                                            $t("rncp.disable_compression")
-                                        }}</span>
+                                        <span class="text-sm text-sem-fg">{{ $t("rncp.disable_compression") }}</span>
                                     </label>
                                 </div>
                             </div>
@@ -150,7 +148,7 @@
                                 <button
                                     v-else
                                     type="button"
-                                    class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
+                                    class="secondary-chip px-4 py-2 text-sm text-sem-danger border-sem-danger dark:border-sem-danger/50"
                                     @click="cancelSend"
                                 >
                                     <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
@@ -159,14 +157,12 @@
                             </div>
                             <div v-if="sendProgress > 0" class="space-y-2">
                                 <div class="flex justify-between text-sm">
-                                    <span class="text-gray-700 dark:text-gray-300">{{ $t("rncp.progress") }}</span>
-                                    <span class="text-gray-700 dark:text-gray-300"
-                                        >{{ Math.round(sendProgress * 100) }}%</span
-                                    >
+                                    <span class="text-sem-fg">{{ $t("rncp.progress") }}</span>
+                                    <span class="text-sem-fg">{{ Math.round(sendProgress * 100) }}%</span>
                                 </div>
-                                <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+                                <div class="w-full bg-sem-surface-muted rounded-full h-2">
                                     <div
-                                        class="bg-blue-600 h-2 rounded-full transition-all"
+                                        class="bg-sem-info h-2 rounded-full transition-all"
                                         :style="{ width: sendProgress * 100 + '%' }"
                                     ></div>
                                 </div>
@@ -176,8 +172,8 @@
                                 class="p-3 rounded-lg space-y-2"
                                 :class="
                                     sendResult.success
-                                        ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-                                        : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                                        ? 'bg-sem-success/15 text-sem-success'
+                                        : 'bg-sem-danger/15 text-sem-danger'
                                 "
                             >
                                 <div>{{ sendResult.message }}</div>
@@ -249,9 +245,7 @@
                             <div class="flex items-center gap-2">
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input v-model="fetchAllowOverwrite" type="checkbox" class="rounded-sm" />
-                                    <span class="text-sm text-gray-700 dark:text-gray-300">{{
-                                        $t("rncp.allow_overwrite")
-                                    }}</span>
+                                    <span class="text-sm text-sem-fg">{{ $t("rncp.allow_overwrite") }}</span>
                                 </label>
                             </div>
                             <div class="flex gap-2">
@@ -267,7 +261,7 @@
                                 <button
                                     v-else
                                     type="button"
-                                    class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
+                                    class="secondary-chip px-4 py-2 text-sm text-sem-danger border-sem-danger dark:border-sem-danger/50"
                                     @click="cancelFetch"
                                 >
                                     <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
@@ -276,14 +270,12 @@
                             </div>
                             <div v-if="fetchProgress > 0" class="space-y-2">
                                 <div class="flex justify-between text-sm">
-                                    <span class="text-gray-700 dark:text-gray-300">{{ $t("rncp.progress") }}</span>
-                                    <span class="text-gray-700 dark:text-gray-300"
-                                        >{{ Math.round(fetchProgress * 100) }}%</span
-                                    >
+                                    <span class="text-sem-fg">{{ $t("rncp.progress") }}</span>
+                                    <span class="text-sem-fg">{{ Math.round(fetchProgress * 100) }}%</span>
                                 </div>
-                                <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+                                <div class="w-full bg-sem-surface-muted rounded-full h-2">
                                     <div
-                                        class="bg-blue-600 h-2 rounded-full transition-all"
+                                        class="bg-sem-info h-2 rounded-full transition-all"
                                         :style="{ width: fetchProgress * 100 + '%' }"
                                     ></div>
                                 </div>
@@ -293,8 +285,8 @@
                                 class="p-3 rounded-lg space-y-2"
                                 :class="
                                     fetchResult.success
-                                        ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-                                        : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                                        ? 'bg-sem-success/15 text-sem-success'
+                                        : 'bg-sem-danger/15 text-sem-danger'
                                 "
                             >
                                 <div>{{ fetchResult.message }}</div>
@@ -339,15 +331,11 @@
                                 <div class="flex items-end gap-4">
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <input v-model="listenFetchAllowed" type="checkbox" class="rounded-sm" />
-                                        <span class="text-sm text-gray-700 dark:text-gray-300">{{
-                                            $t("rncp.allow_fetch")
-                                        }}</span>
+                                        <span class="text-sm text-sem-fg">{{ $t("rncp.allow_fetch") }}</span>
                                     </label>
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <input v-model="listenAllowOverwrite" type="checkbox" class="rounded-sm" />
-                                        <span class="text-sm text-gray-700 dark:text-gray-300">{{
-                                            $t("rncp.allow_overwrite")
-                                        }}</span>
+                                        <span class="text-sm text-sem-fg">{{ $t("rncp.allow_overwrite") }}</span>
                                     </label>
                                 </div>
                             </div>
@@ -356,7 +344,7 @@
                             </p>
                             <div
                                 v-if="receiveDirectory"
-                                class="p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/80 border border-sem-border space-y-2"
+                                class="p-3 rounded-lg bg-sem-surface-muted dark:bg-sem-surface/80 border border-sem-border space-y-2"
                             >
                                 <div class="text-xs font-semibold text-sem-fg-muted">
                                     {{ $t("rncp.receive_folder") }}
@@ -378,8 +366,8 @@
                                 class="p-3 rounded-lg border space-y-2"
                                 :class="
                                     lastReceiveEvent.status === 'completed'
-                                        ? 'bg-green-50/80 dark:bg-green-900/15 border-green-200 dark:border-green-800'
-                                        : 'bg-amber-50/80 dark:bg-amber-900/15 border-amber-200 dark:border-amber-800'
+                                        ? 'bg-sem-success/15 dark:bg-sem-success/15 border-sem-success dark:border-sem-success'
+                                        : 'bg-sem-warning/15 dark:bg-sem-warning/15 border-sem-warning dark:border-sem-warning'
                                 "
                             >
                                 <div class="text-sm font-semibold text-sem-fg">
@@ -392,7 +380,7 @@
                                 <div v-if="lastReceiveEvent.saved_path" class="font-mono text-xs break-all">
                                     {{ lastReceiveEvent.saved_path }}
                                 </div>
-                                <div v-if="lastReceiveEvent.error" class="text-xs text-red-600 dark:text-red-400">
+                                <div v-if="lastReceiveEvent.error" class="text-xs text-sem-danger">
                                     {{ lastReceiveEvent.error }}
                                 </div>
                                 <button
@@ -417,17 +405,14 @@
                                 <button
                                     v-else
                                     type="button"
-                                    class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
+                                    class="secondary-chip px-4 py-2 text-sm text-sem-danger border-sem-danger dark:border-sem-danger/50"
                                     @click="stopListen"
                                 >
                                     <MaterialDesignIcon icon-name="stop" class="w-4 h-4" />
                                     {{ $t("rncp.stop_listening") }}
                                 </button>
                             </div>
-                            <div
-                                v-if="listenDestinationHash"
-                                class="p-3 rounded-lg bg-sem-surface-muted text-blue-700 dark:text-blue-300"
-                            >
+                            <div v-if="listenDestinationHash" class="p-3 rounded-lg bg-sem-surface-muted text-sem-info">
                                 <div class="font-semibold mb-1">{{ $t("rncp.listening_on") }}</div>
                                 <div class="font-mono text-sm">{{ listenDestinationHash }}</div>
                             </div>
@@ -436,8 +421,8 @@
                                 class="p-3 rounded-lg"
                                 :class="
                                     listenResult.success
-                                        ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-                                        : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                                        ? 'bg-sem-success/15 text-sem-success'
+                                        : 'bg-sem-danger/15 text-sem-danger'
                                 "
                             >
                                 {{ listenResult.message }}

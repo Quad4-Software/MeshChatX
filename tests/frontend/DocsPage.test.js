@@ -201,7 +201,7 @@ describe("DocsPage.vue", () => {
         await nextTick();
         await nextTick();
 
-        const progressBar = wrapper.find(".bg-blue-500");
+        const progressBar = wrapper.find(".bg-sem-info");
         expect(progressBar.exists()).toBe(true);
         expect(progressBar.attributes("style")).toContain("width: 45%");
         expect(wrapper.text()).toContain("docs.status_extracting");

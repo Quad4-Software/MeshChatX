@@ -77,7 +77,7 @@ export function scrollContainerToBottom(container) {
 
 /**
  * Clears stale scroll position when reusing the same scroll element for another thread.
- * `scrollMessagesToBottom` / `scrollContainerToBottom` run after content is mounted.
+ * scrollMessagesToBottom / scrollContainerToBottom run after content is mounted.
  * @param {Element | null | undefined} container
  */
 export function resetMessagesScrollSurface(container) {
@@ -88,8 +88,8 @@ export function resetMessagesScrollSurface(container) {
 }
 
 /**
- * When the scroll area has no inner content yet, `isScrollColumnReverse` is false and
- * `isNearBottom` is misleading (empty scroller looks "at bottom"). Do not use it to settle.
+ * When the scroll area has no inner content yet, isScrollColumnReverse is false and
+ * isNearBottom is misleading (empty scroller looks "at bottom"). Do not use it to settle.
  * @param {Element | null | undefined} container
  * @returns {boolean}
  */
@@ -115,7 +115,7 @@ export function shouldLoadPreviousMessages(container) {
         if (max - st > LOAD_PREVIOUS_SCROLL_EDGE_PX) {
             return false;
         }
-        // Short threads: `max - st` is small even at the visual bottom (newest), because `max` itself
+        // Short threads: `max - st` is small even at the visual bottom (newest), because max itself
         // is small. Require leaving the bottom band so we do not auto-load in a loop while pinned there.
         return st > SCROLL_BOTTOM_EPS_PX;
     }

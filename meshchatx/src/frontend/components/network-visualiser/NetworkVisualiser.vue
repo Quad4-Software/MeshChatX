@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="flex-1 h-full min-w-0 relative dark:bg-zinc-950 overflow-hidden">
+    <div class="flex-1 h-full min-w-0 relative dark:bg-sem-surface overflow-hidden">
         <!-- vis-network fallback canvas host -->
         <div id="network" class="w-full h-full" :class="{ hidden: rendererMode === 'webgl' }"></div>
         <!-- WebGL + WASM scene (preferred when available) -->
@@ -13,7 +13,7 @@
         ></canvas>
         <div
             v-if="rendererMode === 'webgl' && hoverTooltip"
-            class="pointer-events-none absolute z-20 max-w-xs rounded-xl border border-zinc-600/50 bg-zinc-950/90 px-3 py-2 text-xs font-medium text-zinc-100 shadow-lg whitespace-pre-line"
+            class="pointer-events-none absolute z-20 max-w-xs rounded-xl border border-zinc-600/50 bg-sem-surface px-3 py-2 text-xs font-medium text-sem-fg shadow-lg whitespace-pre-line"
             :style="{ left: `${hoverTooltip.x + 12}px`, top: `${hoverTooltip.y + 12}px` }"
         >
             {{ hoverTooltip.text }}
@@ -184,7 +184,7 @@ function pickAdaptiveChunkSize() {
 const VIZ_SYNC_PATH_THRESHOLD = 180;
 
 /*
- * Straight edges ({ enabled: false } object, never the boolean `false`). Boolean
+ * Straight edges ({ enabled: false } object, never the boolean false). Boolean
  * smooth breaks vis-network 9.x on later setOptions(). "continuous" curves
  * recompute every drag frame and are too heavy once the graph is large.
  */

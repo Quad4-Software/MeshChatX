@@ -5,13 +5,13 @@
         class="absolute top-[calc(0.5rem+2.75rem+0.5rem+2.75rem)] left-1/2 -translate-x-1/2 z-19 w-[min(100vw-2rem,24rem)] pointer-events-auto sm:top-[10.25rem] xl:top-[calc(0.5rem+2.75rem+0.5rem+2.75rem)]"
     >
         <div
-            class="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border border-sem-border rounded-xl shadow-lg px-3 py-2 text-xs text-sem-fg"
+            class="bg-sem-surface dark:bg-sem-surface backdrop-blur-sm border border-sem-border rounded-xl shadow-lg px-3 py-2 text-xs text-sem-fg"
         >
             <p class="font-medium text-center" :class="showFromHere ? 'mb-2' : ''">{{ instructionText }}</p>
             <button
                 v-if="showFromHere"
                 type="button"
-                class="w-full py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold transition-colors"
+                class="w-full py-1.5 rounded-lg bg-sem-success hover:bg-sem-success text-white text-[11px] font-semibold transition-colors"
                 @click="$emit('use-my-location')"
             >
                 {{ $t("map.bearing_from_here") }}

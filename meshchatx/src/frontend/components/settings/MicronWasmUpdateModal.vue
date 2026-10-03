@@ -17,7 +17,7 @@
         <div class="space-y-4 px-4 py-4 text-sem-fg sm:px-5">
             <div
                 v-if="currentInfo"
-                class="rounded-lg border border-gray-200 p-3 text-sm space-y-1 dark:border-zinc-700"
+                class="rounded-lg border border-sem-border p-3 text-sm space-y-1 dark:border-sem-border"
             >
                 <div class="font-medium">{{ $t("settings.micron_wasm_update_active_label") }}</div>
                 <div>
@@ -45,7 +45,7 @@
 
             <div class="space-y-2">
                 <div class="text-sm font-medium">{{ $t("settings.micron_wasm_update_upload_heading") }}</div>
-                <p class="text-xs text-amber-800 dark:text-amber-200/90">
+                <p class="text-xs text-sem-warning dark:text-amber-200/90">
                     {{ $t("settings.micron_wasm_update_upload_warning") }}
                 </p>
 
@@ -68,7 +68,7 @@
                         class="mx-auto mb-2 size-8 text-sem-fg-muted"
                         aria-hidden="true"
                     />
-                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                    <p class="text-sm font-medium text-sem-fg">
                         {{ $t("settings.micron_wasm_update_drop_hint") }}
                     </p>
                     <p class="mt-1 text-xs text-sem-fg-muted">
@@ -99,7 +99,7 @@
 
             <div
                 v-if="formError"
-                class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300"
+                class="rounded-lg border border-sem-danger bg-sem-danger/15 px-3 py-2 text-sm text-sem-danger dark:border-sem-danger dark:bg-sem-danger/15 dark:text-sem-danger"
             >
                 {{ formError }}
             </div>
@@ -176,12 +176,12 @@ export default {
         },
         dropzoneClass() {
             if (this.busy) {
-                return "border-gray-300 bg-sem-surface-muted/30 opacity-80 dark:border-zinc-700";
+                return "border-sem-border bg-sem-surface-muted/30 opacity-80 dark:border-sem-border";
             }
             if (this.dragActive) {
-                return "border-blue-500 bg-blue-50/60 dark:border-blue-400 dark:bg-blue-950/20";
+                return "border-sem-accent bg-sem-info/15 dark:border-sem-info dark:bg-sem-info/15";
             }
-            return "border-gray-300 bg-sem-surface-muted/40 hover:border-blue-400/70 dark:border-zinc-700 cursor-pointer";
+            return "border-sem-border bg-sem-surface-muted/40 hover:border-blue-400/70 dark:border-sem-border cursor-pointer";
         },
     },
     watch: {

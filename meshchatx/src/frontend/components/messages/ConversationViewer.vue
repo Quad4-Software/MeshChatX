@@ -103,7 +103,7 @@
                     </button>
                     <button
                         type="button"
-                        class="min-h-[36px] sm:min-h-0 px-2.5 py-1 text-xs text-sem-warning hover:text-sem-warning dark:hover:text-amber-200 transition-colors"
+                        class="min-h-[36px] sm:min-h-0 px-2.5 py-1 text-xs text-sem-warning hover:text-sem-warning dark:hover:text-sem-warning transition-colors"
                         @click="strangerBannerDismissed = true"
                     >
                         {{ $t("messages.dismiss") }}
@@ -1056,7 +1056,7 @@
                 </ContextMenuItem>
                 <ContextMenuDivider />
                 <ContextMenuItem
-                    item-class="text-sem-danger dark:text-red-400"
+                    item-class="text-sem-danger dark:text-sem-danger"
                     @click="
                         deleteChatItem(messageContextMenu.chatItem);
                         messageContextMenu.show = false;
@@ -1426,7 +1426,7 @@
                                         class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset"
                                         :class="
                                             rawMessageData.state === 'delivered'
-                                                ? 'bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/30 dark:text-green-400'
+                                                ? 'bg-sem-success/15 text-sem-success ring-green-600/20 dark:bg-sem-success/15 dark:text-sem-success'
                                                 : 'bg-sem-info/5 text-sem-info ring-sem-info/10 dark:bg-sem-info/15'
                                         "
                                     >
@@ -1574,7 +1574,7 @@
                             >
                             <div
                                 v-if="!isRawMessageBodyOversized"
-                                class="text-xs font-mono bg-sem-surface p-3 rounded-sm border border-sem-border whitespace-pre-wrap break-all text-gray-800 text-sem-fg-muted"
+                                class="text-xs font-mono bg-sem-surface p-3 rounded-sm border border-sem-border whitespace-pre-wrap break-all text-sem-fg text-sem-fg-muted"
                             >
                                 {{ rawMessageData.content }}
                             </div>
@@ -7564,7 +7564,7 @@ export default {
     @apply flex-1;
 }
 .attachment-card__title {
-    @apply text-sm font-semibold text-gray-800;
+    @apply text-sm font-semibold text-sem-fg;
 }
 .attachment-card__meta {
     @apply text-xs text-sem-fg-muted;

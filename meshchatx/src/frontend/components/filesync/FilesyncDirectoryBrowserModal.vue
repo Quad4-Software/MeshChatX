@@ -56,10 +56,7 @@
                             class="flex w-full items-center gap-2 rounded-lg border border-sem-border px-3 py-2 text-left text-sm transition-colors hover:bg-sem-surface-muted"
                             @click="enterDirectory(entry.path)"
                         >
-                            <MaterialDesignIcon
-                                icon-name="folder"
-                                class="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400"
-                            />
+                            <MaterialDesignIcon icon-name="folder" class="w-5 h-5 shrink-0 text-sem-success" />
                             <span class="min-w-0 truncate">{{ entry.name }}</span>
                         </button>
                     </li>

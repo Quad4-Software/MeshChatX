@@ -53,10 +53,10 @@ export default {
             return "border-t border-black/8 dark:border-white/10 bg-black/[0.04] dark:bg-white/[0.05] px-3 py-1.5";
         },
         trackClass() {
-            return this.variant === "image" ? "bg-white/20" : "bg-sem-surface-muted/90 dark:bg-zinc-700/90";
+            return this.variant === "image" ? "bg-white/20" : "bg-sem-surface-muted/90 bg-sem-surface";
         },
         barClass() {
-            return this.variant === "image" ? "bg-white" : "bg-sem-accent";
+            return this.variant === "image" ? "bg-sem-surface" : "bg-sem-accent";
         },
         percentClass() {
             return this.variant === "image" ? "text-white/95" : "text-sem-fg-muted";

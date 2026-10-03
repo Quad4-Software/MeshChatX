@@ -33,7 +33,7 @@
                         class="inline-flex items-center rounded-full px-1.5 py-0 text-[10px] font-semibold shrink-0"
                         :class="
                             localNodeIsRunning
-                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                                ? 'bg-sem-success/15 text-sem-success dark:bg-sem-success/15 dark:text-sem-success'
                                 : 'bg-sem-surface-muted text-sem-fg-muted'
                         "
                     >
@@ -49,7 +49,7 @@
                             config.lxmf_preferred_propagation_node_destination_hash ===
                                 localPropagationNode.destination_hash
                         "
-                        class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0 text-[10px] font-semibold text-blue-700 dark:text-blue-300 shrink-0"
+                        class="inline-flex items-center rounded-full bg-sem-info/15 px-1.5 py-0 text-[10px] font-semibold text-sem-info shrink-0"
                     >
                         {{ $t("tools.propagation_nodes.preferred_badge") }}
                     </span>
@@ -67,7 +67,7 @@
                     <button
                         v-if="!localNodeIsRunning"
                         type="button"
-                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-emerald-600 disabled:opacity-40"
+                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-success disabled:opacity-40"
                         :title="$t('tools.propagation_nodes.start_node')"
                         :disabled="!localPropagationNode"
                         @click="startLocalPropagationNode"
@@ -77,7 +77,7 @@
                     <button
                         v-if="localNodeIsRunning"
                         type="button"
-                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-amber-600"
+                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-warning"
                         :title="$t('tools.propagation_nodes.restart_node')"
                         @click="restartLocalPropagationNode"
                     >
@@ -86,7 +86,7 @@
                     <button
                         v-if="localNodeIsRunning"
                         type="button"
-                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-red-600"
+                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-danger"
                         :title="$t('tools.propagation_nodes.stop_node')"
                         @click="stopLocalPropagationNode"
                     >
@@ -134,7 +134,7 @@
                         />
                         <button
                             type="button"
-                            class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-emerald-600"
+                            class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-success"
                             :title="$t('tools.propagation_nodes.save_name')"
                             @click="saveLocalNodeDisplayName"
                         >
@@ -350,7 +350,7 @@
                     </button>
                     <button
                         type="button"
-                        class="inline-flex size-7 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-red-600"
+                        class="inline-flex size-7 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-danger"
                         :title="$t('tools.propagation_nodes.clear_preferred')"
                         @click="stopUsingPropagationNode"
                     >
@@ -364,10 +364,7 @@
             >
                 {{ formatPathLabel(nodePathFor(config.lxmf_preferred_propagation_node_destination_hash)) }}
             </div>
-            <p
-                v-if="config.lxmf_preferred_propagation_node_auto_select"
-                class="text-[11px] text-amber-700 dark:text-amber-300"
-            >
+            <p v-if="config.lxmf_preferred_propagation_node_auto_select" class="text-[11px] text-sem-warning">
                 {{ $t("tools.propagation_nodes.auto_select_on_notice") }}
             </p>
             <div class="flex gap-1.5">

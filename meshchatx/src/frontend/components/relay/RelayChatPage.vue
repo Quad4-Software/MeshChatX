@@ -125,7 +125,7 @@
                             />
                             <span
                                 v-if="showUnreadBadges && hubTotalUnread(hub) > 0"
-                                class="absolute -top-0.5 -right-0.5 min-w-[14px] rounded-full bg-red-500 px-0.5 text-[9px] font-bold leading-tight text-white"
+                                class="absolute -top-0.5 -right-0.5 min-w-[14px] rounded-full bg-sem-danger px-0.5 text-[9px] font-bold leading-tight text-white"
                             >
                                 {{ formatUnreadBadge(hubTotalUnread(hub)) }}
                             </span>
@@ -200,9 +200,7 @@
                                             />
                                             <span
                                                 class="text-sem-fg-muted shrink-0"
-                                                :title="
-                                                    $t('relay_chat.members_tooltip', { count: hub.member_count })
-                                                "
+                                                :title="$t('relay_chat.members_tooltip', { count: hub.member_count })"
                                                 >{{ Math.min(hub.member_count, 999)
                                                 }}{{ hub.member_count > 999 ? "+" : "" }}</span
                                             >
@@ -238,7 +236,7 @@
                                 </div>
                                 <span
                                     v-if="showUnreadBadges && hubTotalUnread(hub) > 0"
-                                    class="shrink-0 min-w-[1.25rem] rounded-full bg-red-500 px-1.5 py-0.5 text-center text-xs font-bold text-white"
+                                    class="shrink-0 min-w-[1.25rem] rounded-full bg-sem-danger px-1.5 py-0.5 text-center text-xs font-bold text-white"
                                 >
                                     {{ formatUnreadBadge(hubTotalUnread(hub)) }}
                                 </span>
@@ -330,7 +328,7 @@
                                         </span>
                                         <span
                                             v-if="showUnreadBadges && roomUnreadCount(hub, roomName) > 0"
-                                            class="shrink-0 min-w-[1.125rem] rounded-full bg-red-500 px-1 text-center text-[10px] font-bold leading-4 text-white"
+                                            class="shrink-0 min-w-[1.125rem] rounded-full bg-sem-danger px-1 text-center text-[10px] font-bold leading-4 text-white"
                                         >
                                             {{ formatUnreadBadge(roomUnreadCount(hub, roomName)) }}
                                         </span>
@@ -4501,7 +4499,7 @@ export default {
                     this.expandedHubs[added.hub_hash] = true;
                 }
                 // Stay on the discovery view so several hubs can be added in
-                // a row; the row button flips to Open once the hub is added.
+                // a row. the row button flips to Open once the hub is added.
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
             }
@@ -4723,7 +4721,7 @@ export default {
                 // One toast per message: re-pushes of the same seq must not
                 // stack notifications on top of the in-line hint.
                 // Key on the envelope id so a retried message that fails
-                // again still warns; seq stays constant across retries.
+                // again still warns. seq stays constant across retries.
                 const key = `df-${json.hub_hash}-${json.room}-${json.message.mid || json.message.seq}`;
                 if (!this.deliveryFailToasted.has(key)) {
                     this.deliveryFailToasted.add(key);

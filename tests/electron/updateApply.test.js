@@ -116,7 +116,7 @@ describe("electron/updateApply", () => {
         const dir = makeTmp();
         const payload = Buffer.from("img");
         const s = stage(dir, "new.AppImage", payload);
-        // marker.file is basename-only; smuggle an absolute marker.path which
+        // marker.file is basename-only. smuggle an absolute marker.path which
         // the apply logic must ignore entirely.
         fs.writeFileSync(
             path.join(dir, "updates", "pending.json"),

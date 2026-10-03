@@ -9,11 +9,11 @@
             aria-live="polite"
         >
             <div
-                class="w-full max-w-sm overflow-hidden rounded-2xl border border-gray-200/90 bg-white/95 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/95"
+                class="w-full max-w-sm overflow-hidden rounded-2xl border border-sem-border bg-sem-surface shadow-xl border-sem-border/90 dark:bg-sem-surface"
             >
                 <div class="px-6 pt-7 pb-1 text-center">
                     <div
-                        class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 ring-1 ring-gray-200/80 dark:bg-zinc-950 dark:ring-zinc-700"
+                        class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-sem-surface-muted ring-1 ring-gray-200/80 dark:bg-sem-surface dark:ring-zinc-700"
                     >
                         <img :src="logoUrl" alt="" class="h-9 w-9 object-contain p-1" />
                     </div>
@@ -28,9 +28,9 @@
                     </p>
                 </div>
                 <div class="px-6 pb-7 pt-2">
-                    <div class="h-1 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-800">
+                    <div class="h-1 w-full overflow-hidden rounded-full bg-sem-surface-muted">
                         <div
-                            class="identity-switch-indeterminate h-full w-1/3 rounded-full bg-blue-600 dark:bg-blue-500"
+                            class="identity-switch-indeterminate h-full w-1/3 rounded-full bg-sem-info dark:bg-sem-info"
                         />
                     </div>
                 </div>

@@ -34,7 +34,7 @@
                 <template v-if="isEditing">
                     <button
                         type="button"
-                        class="p-0.5 text-gray-400 hover:text-gray-700 hover:text-sem-fg"
+                        class="p-0.5 text-sem-fg-muted hover:text-sem-fg hover:text-sem-fg"
                         :title="$t('app.nav_move_up')"
                         :aria-label="$t('app.nav_move_up')"
                         @click.stop="$emit('nav-reorder', { kind: 'group-offset', groupId: group.id, delta: -1 })"
@@ -43,7 +43,7 @@
                     </button>
                     <button
                         type="button"
-                        class="p-0.5 text-gray-400 hover:text-gray-700 hover:text-sem-fg"
+                        class="p-0.5 text-sem-fg-muted hover:text-sem-fg hover:text-sem-fg"
                         :title="$t('app.nav_move_down')"
                         :aria-label="$t('app.nav_move_down')"
                         @click.stop="$emit('nav-reorder', { kind: 'group-offset', groupId: group.id, delta: 1 })"
@@ -98,7 +98,7 @@
                                 <MaterialDesignIcon :icon-name="item.icon" class="w-6 h-6 text-sem-fg-secondary" />
                                 <span
                                     v-if="isCollapsed && getNavBadgeCount(item) > 0 && item.badge?.pill"
-                                    class="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
+                                    class="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-sem-danger px-1 text-[10px] font-bold leading-none text-white"
                                 >
                                     {{ formatNavBadgeCount(item) }}
                                 </span>
@@ -111,7 +111,7 @@
                             </span>
                             <span
                                 v-else-if="!isCollapsed && getNavBadgeCount(item) > 0 && item.badge?.pill"
-                                class="ml-auto mr-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
+                                class="ml-auto mr-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-sem-danger px-1 text-[10px] font-bold leading-none text-white"
                             >
                                 {{ formatNavBadgeCount(item) }}
                             </span>
@@ -120,7 +120,7 @@
                     <div v-if="isEditing && !isCollapsed" class="flex shrink-0 flex-col pr-1">
                         <button
                             type="button"
-                            class="p-0.5 text-gray-400 hover:text-gray-700 hover:text-sem-fg"
+                            class="p-0.5 text-sem-fg-muted hover:text-sem-fg hover:text-sem-fg"
                             :title="$t('app.nav_move_up')"
                             :aria-label="$t('app.nav_move_up')"
                             @click.stop="$emit('nav-reorder', { kind: 'item-offset', itemId: item.id, delta: -1 })"
@@ -129,7 +129,7 @@
                         </button>
                         <button
                             type="button"
-                            class="p-0.5 text-gray-400 hover:text-gray-700 hover:text-sem-fg"
+                            class="p-0.5 text-sem-fg-muted hover:text-sem-fg hover:text-sem-fg"
                             :title="$t('app.nav_move_down')"
                             :aria-label="$t('app.nav_move_down')"
                             @click.stop="$emit('nav-reorder', { kind: 'item-offset', itemId: item.id, delta: 1 })"
@@ -148,7 +148,7 @@
         >
             <button
                 type="button"
-                class="flex w-full items-center gap-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 text-sem-fg dark:hover:bg-zinc-800 transition-colors"
+                class="flex w-full items-center gap-3 py-2.5 text-sm font-semibold text-sem-fg hover:bg-sem-surface-muted text-sem-fg dark:hover:bg-sem-surface transition-colors"
                 :class="isCollapsed ? 'justify-center px-0' : 'px-4'"
                 data-testid="sidebar-more-toggle"
                 @pointerdown="onNavHoldPointerDown"
@@ -166,7 +166,7 @@
                 <MaterialDesignIcon
                     v-if="!isCollapsed"
                     :icon-name="isShowingMoreNav ? 'chevron-up' : 'chevron-down'"
-                    class="size-5 shrink-0 text-gray-400"
+                    class="size-5 shrink-0 text-sem-fg-muted"
                 />
             </button>
             <ul v-if="isShowingMoreNav && !isCollapsed" class="py-1 pr-2 space-y-1">
@@ -214,7 +214,7 @@
                     <div v-if="isEditing" class="flex shrink-0 flex-col pr-1">
                         <button
                             type="button"
-                            class="p-0.5 text-gray-400 hover:text-gray-700 hover:text-sem-fg"
+                            class="p-0.5 text-sem-fg-muted hover:text-sem-fg hover:text-sem-fg"
                             :title="$t('app.nav_move_up')"
                             :aria-label="$t('app.nav_move_up')"
                             @click.stop="$emit('nav-reorder', { kind: 'item-offset', itemId: item.id, delta: -1 })"
@@ -223,7 +223,7 @@
                         </button>
                         <button
                             type="button"
-                            class="p-0.5 text-gray-400 hover:text-gray-700 hover:text-sem-fg"
+                            class="p-0.5 text-sem-fg-muted hover:text-sem-fg hover:text-sem-fg"
                             :title="$t('app.nav_move_down')"
                             :aria-label="$t('app.nav_move_down')"
                             @click.stop="$emit('nav-reorder', { kind: 'item-offset', itemId: item.id, delta: 1 })"

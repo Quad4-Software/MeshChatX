@@ -195,7 +195,7 @@
                             </header>
                             <div class="settings-section__body space-y-4">
                                 <div
-                                    class="rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/20 p-4 space-y-3"
+                                    class="rounded-2xl border border-sem-warning dark:border-sem-warning bg-sem-warning/15 dark:bg-sem-warning/15 p-4 space-y-3"
                                 >
                                     <div>
                                         <div class="text-sm font-bold text-sem-fg">
@@ -211,7 +211,7 @@
                                             class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition"
                                             :class="
                                                 messageAgePurgeMode === 'days'
-                                                    ? 'border-amber-500 bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100'
+                                                    ? 'border-sem-warning bg-sem-warning/15 text-sem-warning dark:text-sem-warning'
                                                     : 'border-sem-border text-sem-fg-muted'
                                             "
                                             @click="messageAgePurgeMode = 'days'"
@@ -223,7 +223,7 @@
                                             class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition"
                                             :class="
                                                 messageAgePurgeMode === 'date'
-                                                    ? 'border-amber-500 bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100'
+                                                    ? 'border-sem-warning bg-sem-warning/15 text-sem-warning dark:text-sem-warning'
                                                     : 'border-sem-border text-sem-fg-muted'
                                             "
                                             @click="messageAgePurgeMode = 'date'"
@@ -284,7 +284,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-blue-300 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/40 disabled:opacity-60"
+                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-sem-info dark:border-sem-info bg-sem-info/15 dark:bg-sem-info/15 text-blue-800 text-sem-info hover:bg-sem-info/15 dark:hover:bg-sem-info/15 disabled:opacity-60"
                                             :disabled="messageAgePurgeBusy"
                                             @click="exportOldMessagesArchive"
                                         >
@@ -292,7 +292,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-red-300 dark:border-red-800 bg-sem-action-danger text-sem-action-danger-text hover:bg-red-700 disabled:opacity-60"
+                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-sem-danger dark:border-sem-danger bg-sem-action-danger text-sem-action-danger-text hover:bg-sem-danger disabled:opacity-60"
                                             :disabled="messageAgePurgeBusy"
                                             @click="purgeOldMessages"
                                         >
@@ -342,7 +342,7 @@
                                 <div class="grid grid-cols-2 gap-3 mt-4">
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-blue-200 bg-sem-surface-muted/50 hover:border-sem-accent transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-sem-info bg-sem-surface-muted/50 hover:border-sem-accent transition group"
                                         @click="exportMessages"
                                     >
                                         <MaterialDesignIcon
@@ -357,12 +357,12 @@
 
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-emerald-200 bg-sem-surface-muted/50 hover:border-emerald-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-sem-success bg-sem-surface-muted/50 hover:border-sem-success transition group"
                                         @click="triggerImport"
                                     >
                                         <MaterialDesignIcon
                                             icon-name="import"
-                                            class="size-6 text-emerald-500 group-hover:scale-110 transition"
+                                            class="size-6 text-sem-success group-hover:scale-110 transition"
                                         />
                                         <div class="text-sm font-bold">{{ $t("maintenance.import_messages") }}</div>
                                         <div class="text-xs opacity-70 text-center px-1">
@@ -386,19 +386,19 @@
                                     >
                                         <MaterialDesignIcon
                                             icon-name="folder-download-outline"
-                                            class="size-6 text-purple-500 group-hover:scale-110 transition"
+                                            class="size-6 text-sem-info group-hover:scale-110 transition"
                                         />
                                         <div class="text-sm font-bold">Export Folders</div>
                                     </button>
 
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-indigo-200 bg-sem-surface-muted/50 hover:border-indigo-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-sem-info bg-sem-surface-muted/50 hover:border-sem-info transition group"
                                         @click="triggerFolderImport"
                                     >
                                         <MaterialDesignIcon
                                             icon-name="folder-upload-outline"
-                                            class="size-6 text-indigo-500 group-hover:scale-110 transition"
+                                            class="size-6 text-sem-info group-hover:scale-110 transition"
                                         />
                                         <div class="text-sm font-bold">Import Folders</div>
                                     </button>
@@ -414,12 +414,12 @@
                                 <div class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-sem-border">
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 bg-sem-surface-muted/50 hover:border-teal-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-sem-success bg-sem-surface-muted/50 hover:border-sem-success transition group"
                                         @click="exportNomadnetFavouritesLayout"
                                     >
                                         <MaterialDesignIcon
                                             icon-name="file-export"
-                                            class="size-6 text-teal-500 group-hover:scale-110 transition"
+                                            class="size-6 text-sem-success group-hover:scale-110 transition"
                                         />
                                         <div class="text-sm font-bold">
                                             {{ $t("maintenance.export_nomadnet_favourites") }}
@@ -428,12 +428,12 @@
 
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-cyan-200 bg-sem-surface-muted/50 hover:border-cyan-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-sem-info bg-sem-surface-muted/50 hover:border-sem-info transition group"
                                         @click="triggerNomadnetFavouritesImport"
                                     >
                                         <MaterialDesignIcon
                                             icon-name="import"
-                                            class="size-6 text-cyan-500 group-hover:scale-110 transition"
+                                            class="size-6 text-sem-info group-hover:scale-110 transition"
                                         />
                                         <div class="text-sm font-bold">
                                             {{ $t("maintenance.import_nomadnet_favourites") }}
@@ -483,8 +483,8 @@
                                         class="flex flex-col p-3 rounded-xl border bg-sem-surface"
                                         :class="
                                             check.passed
-                                                ? 'border-emerald-200/60 dark:border-emerald-900/30'
-                                                : 'border-red-200/60 dark:border-red-900/30'
+                                                ? 'border-sem-success dark:border-sem-success'
+                                                : 'border-sem-danger dark:border-sem-danger'
                                         "
                                     >
                                         <div class="flex items-center justify-between gap-2">
@@ -493,7 +493,7 @@
                                                     :icon-name="
                                                         check.passed ? 'check-circle-outline' : 'alert-circle-outline'
                                                     "
-                                                    :class="check.passed ? 'text-emerald-500' : 'text-red-500'"
+                                                    :class="check.passed ? 'text-sem-success' : 'text-sem-danger'"
                                                     class="size-4 shrink-0"
                                                 />
                                                 <span class="truncate">{{ check.label }}</span>
@@ -502,7 +502,7 @@
                                                 <button
                                                     v-if="!check.passed && check.reason"
                                                     type="button"
-                                                    class="inline-flex items-center justify-center rounded-lg p-1 text-sem-danger hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/40"
+                                                    class="inline-flex items-center justify-center rounded-lg p-1 text-sem-danger hover:bg-sem-danger/15 dark:text-sem-danger dark:hover:bg-red-950/40"
                                                     :aria-expanded="isSelfTestReasonExpanded(check.key)"
                                                     :aria-label="
                                                         isSelfTestReasonExpanded(check.key)
@@ -529,8 +529,8 @@
                                                     class="px-2 py-0.5 text-xs font-bold rounded-md"
                                                     :class="
                                                         check.passed
-                                                            ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
-                                                            : 'bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300'
+                                                            ? 'bg-sem-success/15 dark:bg-sem-success/15 text-sem-success'
+                                                            : 'bg-sem-danger/15 dark:bg-sem-danger/15 text-sem-danger'
                                                     "
                                                 >
                                                     {{ check.passed ? $t("selftest.passed") : $t("selftest.failed") }}
@@ -539,7 +539,7 @@
                                         </div>
                                         <div
                                             v-if="!check.passed && check.reason && isSelfTestReasonExpanded(check.key)"
-                                            class="text-xs text-sem-danger dark:text-red-400 mt-2 pl-6 whitespace-pre-wrap wrap-break-word"
+                                            class="text-xs text-sem-danger dark:text-sem-danger mt-2 pl-6 whitespace-pre-wrap wrap-break-word"
                                         >
                                             <span class="font-semibold">{{ $t("selftest.reason_label") }}:</span>
                                             {{ check.reason }}
@@ -548,7 +548,7 @@
 
                                     <div
                                         v-if="allSelfTestChecksPassed"
-                                        class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-2 pl-2"
+                                        class="text-xs text-sem-success font-semibold flex items-center gap-2 pl-2"
                                     >
                                         <MaterialDesignIcon icon-name="check" class="size-4" />
                                         {{ $t("selftest.checks_completed") }}
@@ -682,7 +682,7 @@
                                         <span class="setting-toggle__description">
                                             {{ $t("settings.nomad_micron_wasm_desc_before_link") }}
                                             <a
-                                                class="text-sem-accent hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
+                                                class="text-sem-accent hover:text-sem-info dark:hover:text-sem-info underline underline-offset-2"
                                                 href="https://github.com/Quad4-Software/micron-parser-go"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
@@ -693,7 +693,7 @@
                                 </label>
                                 <div
                                     v-if="micronWasmBundledInBuild && config.nomad_micron_wasm_enabled"
-                                    class="space-y-2 rounded-lg border border-sem-border bg-sem-surface-muted/80 p-3 dark:bg-zinc-900/50"
+                                    class="space-y-2 rounded-lg border border-sem-border bg-sem-surface-muted/80 p-3 dark:bg-sem-surface"
                                 >
                                     <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("settings.nomad_micron_default_engine_title") }}
@@ -1606,7 +1606,7 @@
                                 </label>
                                 <p
                                     v-if="reticulumInstance.is_connected_to_shared_instance"
-                                    class="text-xs text-amber-700 dark:text-amber-300"
+                                    class="text-xs text-sem-warning"
                                 >
                                     {{ $t("app.transport_shared_instance_notice") }}
                                 </p>
@@ -1747,12 +1747,12 @@
                                     </p>
                                     <p
                                         v-if="reticulumInstance.is_connected_to_shared_instance"
-                                        class="text-xs text-amber-700 dark:text-amber-300"
+                                        class="text-xs text-sem-warning"
                                     >
                                         {{ $t("app.connected_to_shared_instance") }}
                                     </p>
                                     <div
-                                        class="relative rounded-lg border border-sem-border/70 bg-white/60 dark:bg-zinc-900/60"
+                                        class="relative rounded-lg border border-sem-border/70 bg-white/60 dark:bg-sem-surface"
                                     >
                                         <pre
                                             class="text-xs font-mono whitespace-pre-wrap break-all text-sem-fg p-2 pr-12"
@@ -1887,10 +1887,10 @@
                                 </div>
                                 <div
                                     v-if="showWindowsScreenSecurity"
-                                    class="p-4 rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/30 space-y-3"
+                                    class="p-4 rounded-2xl border border-sem-warning dark:border-sem-warning bg-sem-warning/15 dark:bg-sem-warning/15 space-y-3"
                                 >
                                     <div
-                                        class="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-200"
+                                        class="text-xs font-semibold uppercase tracking-wider text-sem-warning dark:text-sem-warning"
                                     >
                                         {{ $t("app.screen_security_drm_eyebrow") }}
                                     </div>
@@ -2129,7 +2129,7 @@
                                                 <button
                                                     v-if="config.oidc_client_secret_set && !config.oidc_env_managed"
                                                     type="button"
-                                                    class="px-2 py-1 text-xs rounded border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                    class="px-2 py-1 text-xs rounded border border-sem-danger dark:border-sem-danger text-sem-danger hover:bg-sem-danger/15 dark:hover:bg-sem-danger/15"
                                                     @click="clearOidcSecret"
                                                 >
                                                     {{ $t("app.oidc_client_secret_clear") }}
@@ -2272,12 +2272,12 @@
                                 </div>
                                 <div
                                     v-if="serverSecurity.is_loopback_bind === false"
-                                    class="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 space-y-3"
+                                    class="rounded-md border border-amber-500/40 bg-sem-warning/15 p-4 space-y-3"
                                 >
-                                    <div class="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                                    <div class="text-sm font-semibold text-sem-warning dark:text-sem-warning">
                                         {{ $t("app.web_exposure_warning_title") }}
                                     </div>
-                                    <p class="text-sm text-amber-950/90 dark:text-amber-100/90">
+                                    <p class="text-sm text-sem-warning dark:text-amber-100/90">
                                         {{ $t("app.web_exposure_warning_body") }}
                                     </p>
                                     <ul class="space-y-2 text-sm">
@@ -2288,7 +2288,9 @@
                                                 "
                                                 class="size-4 mt-0.5 shrink-0"
                                                 :class="
-                                                    serverSecurity.auth_enabled ? 'text-green-600' : 'text-amber-600'
+                                                    serverSecurity.auth_enabled
+                                                        ? 'text-sem-success'
+                                                        : 'text-sem-warning'
                                                 "
                                             />
                                             <span>{{
@@ -2566,7 +2568,7 @@
                                         {{ $t("app.inbound_stamp_description") }}
                                     </div>
                                 </div>
-                                <hr class="border-sem-border dark:border-gray-700" />
+                                <hr class="border-sem-border dark:border-sem-border" />
                                 <div>
                                     <div class="text-sm font-medium text-sem-fg mb-1">
                                         {{ $t("app.flood_protection") }}
@@ -2927,7 +2929,7 @@
                                 <div class="grid grid-cols-1 gap-3">
                                     <button
                                         type="button"
-                                        class="btn-maintenance border-violet-200 dark:border-violet-900/30 text-violet-800 dark:text-violet-200 bg-violet-50 dark:bg-violet-900/10 hover:bg-violet-100 dark:hover:bg-violet-900/20 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-violet-50 dark:disabled:hover:bg-violet-900/10"
+                                        class="btn-maintenance border-sem-info dark:border-sem-info text-sem-info text-sem-info bg-sem-info/15 dark:bg-sem-info/15 hover:bg-sem-info/15 dark:hover:bg-sem-info/15 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-sem-info/15 dark:disabled:hover:bg-sem-info/15"
                                         :disabled="reloadingRns"
                                         @click="reloadRns"
                                     >
@@ -2959,9 +2961,7 @@
                                     @click="shortcutsExpanded = !shortcutsExpanded"
                                 >
                                     <div class="flex items-center gap-3 w-full min-w-0">
-                                        <div
-                                            class="p-2 bg-blue-100 dark:bg-blue-900/30 text-sem-accent rounded-xl shrink-0"
-                                        >
+                                        <div class="p-2 bg-sem-info/15 text-sem-accent rounded-xl shrink-0">
                                             <MaterialDesignIcon icon-name="keyboard-outline" class="size-6" />
                                         </div>
                                         <div class="min-w-0 flex-1">
@@ -5904,7 +5904,7 @@ export default {
     @apply text-xs text-sem-fg-muted wrap-break-word;
 }
 :deep(.info-callout) {
-    @apply rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/60 dark:bg-blue-900/20 px-3 py-3 text-blue-900 dark:text-blue-100;
+    @apply rounded-2xl border border-sem-info dark:border-sem-info bg-sem-info/15 dark:bg-sem-info/15 px-3 py-3 text-blue-900 dark:text-blue-100;
 }
 :deep(.monospace-field) {
     font-family: "Roboto Mono", monospace;

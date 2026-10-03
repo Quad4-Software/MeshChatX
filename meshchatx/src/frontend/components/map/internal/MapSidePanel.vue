@@ -10,8 +10,8 @@
                 class="flex-1 px-2 py-2 text-[11px] font-semibold transition-colors"
                 :class="
                     activeTab === tab.id
-                        ? 'text-sem-accent border-b-2 border-blue-500'
-                        : 'text-sem-fg-muted hover:text-gray-800 hover:text-sem-fg'
+                        ? 'text-sem-accent border-b-2 border-sem-accent'
+                        : 'text-sem-fg-muted hover:text-sem-fg hover:text-sem-fg'
                 "
                 @click="activeTab = tab.id"
             >

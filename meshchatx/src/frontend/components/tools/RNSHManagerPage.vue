@@ -24,7 +24,7 @@
                 class="inline-flex items-center gap-1 px-2.5 sm:px-4 border-r border-sem-border text-xs sm:text-sm transition-colors shrink-0"
                 :class="
                     activeTab === tab.id
-                        ? 'bg-sem-surface text-gray-900 dark:text-gray-100 font-medium'
+                        ? 'bg-sem-surface text-sem-fg font-medium'
                         : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                 "
                 @click="activeTab = tab.id"
@@ -59,7 +59,7 @@
                             class="w-full text-left rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 transition-colors"
                             :class="
                                 session.id === selectedSessionId
-                                    ? 'bg-indigo-100 dark:bg-indigo-900/35 text-indigo-950 dark:text-indigo-100'
+                                    ? 'bg-sem-info/15 dark:bg-sem-info/15 text-indigo-950 dark:text-sem-info'
                                     : 'text-sem-fg hover:bg-sem-surface-muted/70'
                             "
                             @click="selectSession(session.id)"
@@ -157,11 +157,11 @@
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-3 sm:gap-4">
-                    <label class="flex items-center gap-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                    <label class="flex items-center gap-2 text-xs sm:text-sm text-sem-fg">
                         <input v-model="connectForm.mirror" type="checkbox" class="rounded-sm" />
                         {{ $t("rnsh.mirror_exit_code") }}
                     </label>
-                    <label class="flex items-center gap-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                    <label class="flex items-center gap-2 text-xs sm:text-sm text-sem-fg">
                         <input v-model="connectForm.no_id" type="checkbox" class="rounded-sm" />
                         {{ $t("rnsh.no_id") }}
                     </label>
@@ -223,7 +223,7 @@
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-3 sm:gap-4">
-                    <label class="flex items-center gap-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                    <label class="flex items-center gap-2 text-xs sm:text-sm text-sem-fg">
                         <input v-model="listenForm.no_auth" type="checkbox" class="rounded-sm" />
                         {{ $t("rnsh.no_auth") }}
                     </label>
@@ -242,7 +242,7 @@
         <Teleport to="body">
             <div
                 v-if="sessionFullscreen"
-                class="fixed inset-0 z-[220] flex flex-col bg-zinc-950"
+                class="fixed inset-0 z-[220] flex flex-col bg-sem-surface"
                 role="dialog"
                 aria-modal="true"
                 :aria-label="$t('rnsh.session_output')"
@@ -449,9 +449,9 @@ export default {
             }
         },
         statusClass(session) {
-            if (!session) return "text-gray-500";
-            if (session.status === "running") return "text-emerald-600 dark:text-emerald-400";
-            if (session.status === "failed") return "text-red-600 dark:text-red-400";
+            if (!session) return "text-sem-fg-muted";
+            if (session.status === "running") return "text-sem-success";
+            if (session.status === "failed") return "text-sem-danger";
             return "text-sem-fg-muted";
         },
         statusLabel(session) {

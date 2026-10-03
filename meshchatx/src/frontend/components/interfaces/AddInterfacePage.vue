@@ -74,7 +74,7 @@
                                                         id: 'BackboneInterface',
                                                         name: 'Backbone',
                                                         icon: 'transit-connection-variant',
-                                                        color: 'text-sky-500',
+                                                        color: 'text-sem-info',
                                                     },
                                                     {
                                                         id: 'TCPServerInterface',
@@ -86,7 +86,7 @@
                                                         id: 'UDPInterface',
                                                         name: 'UDP',
                                                         icon: 'broadcast',
-                                                        color: 'text-cyan-500',
+                                                        color: 'text-sem-info',
                                                     },
                                                     {
                                                         id: 'RNodeInterface',
@@ -98,7 +98,7 @@
                                                         id: 'I2PInterface',
                                                         name: 'I2P Tunnel',
                                                         icon: 'tunnel',
-                                                        color: 'text-purple-500',
+                                                        color: 'text-sem-info',
                                                     },
                                                     {
                                                         id: 'SerialInterface',
@@ -110,19 +110,19 @@
                                                         id: 'KISSInterface',
                                                         name: 'KISS (TNC)',
                                                         icon: 'radio-tower',
-                                                        color: 'text-orange-500',
+                                                        color: 'text-sem-warning',
                                                     },
                                                     {
                                                         id: 'AutoInterface',
                                                         name: 'Auto (Local)',
                                                         icon: 'auto-fix',
-                                                        color: 'text-pink-500',
+                                                        color: 'text-sem-info',
                                                     },
                                                     {
                                                         id: 'HTTPInterface',
                                                         name: 'HTTP Tunnel',
                                                         icon: 'web',
-                                                        color: 'text-teal-500',
+                                                        color: 'text-sem-success',
                                                     },
                                                     {
                                                         id: 'AwareInterface',
@@ -138,8 +138,8 @@
                                                 :title="type.id === 'AwareInterface' ? awareTileHint || '' : ''"
                                                 :class="[
                                                     newInterfaceType === type.id
-                                                        ? 'bg-sem-info/50/10 border-blue-500 ring-1 ring-blue-500/50'
-                                                        : 'bg-sem-surface-muted/50 dark:bg-zinc-800/30 border-sem-border hover:border-sem-border dark:hover:border-zinc-600',
+                                                        ? 'bg-sem-info/50/10 border-sem-accent ring-1 ring-sem-info/50'
+                                                        : 'bg-sem-surface-muted/50 bg-sem-surface border-sem-border hover:border-sem-border dark:hover:border-sem-border',
                                                     type.id === 'AwareInterface' && !awareInterfaceSupported
                                                         ? 'opacity-40 cursor-not-allowed saturate-50'
                                                         : '',
@@ -157,7 +157,7 @@
                                                     class="text-[10px] font-bold uppercase tracking-tight"
                                                     :class="[
                                                         newInterfaceType === type.id
-                                                            ? 'text-sem-info dark:text-blue-400'
+                                                            ? 'text-sem-info dark:text-sem-info'
                                                             : 'text-sem-fg-muted',
                                                     ]"
                                                 >
@@ -209,9 +209,9 @@
                                     >
                                         <MaterialDesignIcon
                                             icon-name="arrow-left-bold"
-                                            class="size-10 text-gray-200 dark:text-zinc-800 animate-bounce-left"
+                                            class="size-10 text-gray-200 dark:text-sem-fg animate-bounce-left"
                                         />
-                                        <p class="text-sm text-sem-fg-muted dark:text-zinc-600 mt-2">
+                                        <p class="text-sm text-sem-fg-muted dark:text-sem-fg-secondary mt-2">
                                             Select an interface type to configure connection settings.
                                         </p>
                                     </div>
@@ -430,7 +430,7 @@
                                                             v-for="iface in hostKernelInterfaces"
                                                             :key="'bb-' + iface.name"
                                                             type="button"
-                                                            class="px-2.5 py-1.5 text-left text-xs rounded-lg border border-sem-border bg-white/90 dark:bg-zinc-900/90 hover:border-sem-accent dark:hover:border-blue-500 transition-colors max-w-full"
+                                                            class="px-2.5 py-1.5 text-left text-xs rounded-lg border border-sem-border bg-sem-surface dark:bg-sem-surface hover:border-sem-accent dark:hover:border-sem-accent transition-colors max-w-full"
                                                             @click="newInterfaceBackboneListenDevice = iface.name"
                                                         >
                                                             <span class="font-mono font-medium text-sem-fg">{{
@@ -579,7 +579,7 @@
                                                         v-for="iface in hostKernelInterfaces"
                                                         :key="'srv-' + iface.name"
                                                         type="button"
-                                                        class="px-2.5 py-1.5 text-left text-xs rounded-lg border border-sem-border bg-white/90 dark:bg-zinc-900/90 hover:border-sem-accent dark:hover:border-blue-500 transition-colors max-w-full"
+                                                        class="px-2.5 py-1.5 text-left text-xs rounded-lg border border-sem-border bg-sem-surface dark:bg-sem-surface hover:border-sem-accent dark:hover:border-sem-accent transition-colors max-w-full"
                                                         @click="newInterfaceNetworkDevice = iface.name"
                                                     >
                                                         <span class="font-mono font-medium text-sem-fg">{{
@@ -654,7 +654,7 @@
                                         <!-- Iodine DNS tunnel (UDP over iodine) -->
                                         <div v-if="newInterfaceType === 'IodineUDPInterface'" class="space-y-4">
                                             <div
-                                                class="bg-amber-50/80 dark:bg-amber-900/20 p-3 rounded-2xl border border-amber-200 dark:border-amber-800/40 text-xs text-amber-900 dark:text-amber-200 space-y-1"
+                                                class="bg-sem-warning/15 dark:bg-sem-warning/15 p-3 rounded-2xl border border-sem-warning dark:border-sem-warning text-xs text-sem-warning dark:text-sem-warning space-y-1"
                                             >
                                                 <div class="font-semibold">
                                                     {{ $t("interfaces.iodine_requirements_title") }}
@@ -667,8 +667,8 @@
                                                     class="flex-1 py-2 rounded-2xl border text-xs font-bold uppercase tracking-tight transition"
                                                     :class="
                                                         newInterfaceIodineRole === 'client'
-                                                            ? 'bg-teal-500/10 border-teal-500 text-teal-700 dark:text-teal-300'
-                                                            : 'bg-sem-surface-muted/50 dark:bg-zinc-800/30 border-sem-border text-sem-fg-muted'
+                                                            ? 'bg-sem-warning/15 border-sem-success text-sem-success dark:text-sem-success'
+                                                            : 'bg-sem-surface-muted/50 bg-sem-surface border-sem-border text-sem-fg-muted'
                                                     "
                                                     @click="newInterfaceIodineRole = 'client'"
                                                 >
@@ -679,8 +679,8 @@
                                                     class="flex-1 py-2 rounded-2xl border text-xs font-bold uppercase tracking-tight transition"
                                                     :class="
                                                         newInterfaceIodineRole === 'server'
-                                                            ? 'bg-teal-500/10 border-teal-500 text-teal-700 dark:text-teal-300'
-                                                            : 'bg-sem-surface-muted/50 dark:bg-zinc-800/30 border-sem-border text-sem-fg-muted'
+                                                            ? 'bg-sem-warning/15 border-sem-success text-sem-success dark:text-sem-success'
+                                                            : 'bg-sem-surface-muted/50 bg-sem-surface border-sem-border text-sem-fg-muted'
                                                     "
                                                     @click="newInterfaceIodineRole = 'server'"
                                                 >
@@ -706,7 +706,7 @@
                                         <!-- I2P Interface -->
                                         <div v-if="newInterfaceType === 'I2PInterface'" class="space-y-4">
                                             <div
-                                                class="bg-amber-50/80 dark:bg-amber-900/20 p-3 rounded-2xl border border-amber-200 dark:border-amber-800/40 text-xs text-amber-900 dark:text-amber-200 space-y-1"
+                                                class="bg-sem-warning/15 dark:bg-sem-warning/15 p-3 rounded-2xl border border-sem-warning dark:border-sem-warning text-xs text-sem-warning dark:text-sem-warning space-y-1"
                                             >
                                                 <div class="font-semibold">
                                                     {{ $t("interfaces.i2p_requirements_title") }}
@@ -714,19 +714,19 @@
                                                 <p>{{ $t("interfaces.i2p_requirements_body") }}</p>
                                             </div>
                                             <div
-                                                class="bg-sem-info/5/50 dark:bg-blue-900/10 p-3 rounded-2xl border border-blue-100 dark:border-blue-900/20 text-xs text-blue-800"
+                                                class="bg-sem-info/5/50 dark:bg-sem-info/15 p-3 rounded-2xl border border-sem-info dark:border-sem-info text-xs text-blue-800"
                                             >
                                                 {{ $t("interfaces.i2p_sam_required") }}
                                             </div>
                                             <div
                                                 v-if="!transportEnabled"
-                                                class="bg-red-50/80 dark:bg-red-900/20 p-3 rounded-2xl border border-red-200 dark:border-red-800/40 text-xs text-red-800 dark:text-red-200"
+                                                class="bg-sem-danger/15 dark:bg-sem-danger/15 p-3 rounded-2xl border border-sem-danger dark:border-sem-danger text-xs text-sem-danger text-sem-danger"
                                             >
                                                 {{ $t("interfaces.i2p_transport_required") }}
                                             </div>
                                             <div
                                                 v-else-if="hasExistingI2PInterface && !isEditingInterface"
-                                                class="bg-red-50/80 dark:bg-red-900/20 p-3 rounded-2xl border border-red-200 dark:border-red-800/40 text-xs text-red-800 dark:text-red-200"
+                                                class="bg-sem-danger/15 dark:bg-sem-danger/15 p-3 rounded-2xl border border-sem-danger dark:border-sem-danger text-xs text-sem-danger text-sem-danger"
                                             >
                                                 {{ $t("interfaces.i2p_already_exists") }}
                                             </div>
@@ -741,7 +741,7 @@
                                             </p>
                                             <div
                                                 v-if="newInterfaceConnectable"
-                                                class="bg-amber-50/80 dark:bg-amber-900/20 p-3 rounded-2xl border border-amber-200 dark:border-amber-800/40 text-xs text-amber-900 dark:text-amber-200"
+                                                class="bg-sem-warning/15 dark:bg-sem-warning/15 p-3 rounded-2xl border border-sem-warning dark:border-sem-warning text-xs text-sem-warning dark:text-sem-warning"
                                             >
                                                 {{ $t("interfaces.i2p_connectable_warning") }}
                                             </div>
@@ -763,7 +763,7 @@
                                                         />
                                                         <button
                                                             type="button"
-                                                            class="text-sem-danger hover:text-red-400 p-1"
+                                                            class="text-sem-danger hover:text-sem-danger p-1"
                                                             @click="removeI2PPeer(index)"
                                                         >
                                                             <MaterialDesignIcon
@@ -1250,7 +1250,7 @@
                                         <!-- AutoInterface -->
                                         <div v-if="newInterfaceType === 'AutoInterface'" class="space-y-4">
                                             <div
-                                                class="bg-pink-50/50 dark:bg-pink-900/10 p-3 rounded-2xl border border-pink-100 dark:border-pink-900/20 text-xs text-pink-800 dark:text-pink-300"
+                                                class="bg-pink-50/50 dark:bg-pink-900/10 p-3 rounded-2xl border border-pink-100 dark:border-pink-900/20 text-xs text-pink-800 text-sem-info"
                                             >
                                                 ⓘ Auto Interface auto-discovers peers on connected networks via IPv6
                                                 multicast.
@@ -1353,8 +1353,8 @@
                                                                     'newInterfaceDevices',
                                                                     iface.name
                                                                 )
-                                                                    ? 'border-blue-400 bg-sem-info/5/90 text-blue-900 dark:border-blue-500 dark:bg-blue-950/40 dark:text-blue-200'
-                                                                    : 'border-sem-border bg-white/80 text-sem-fg hover:border-blue-300  dark:bg-zinc-900/80 text-sem-fg dark:hover:border-blue-500'
+                                                                    ? 'border-sem-info bg-sem-info/5/90 text-blue-900 dark:border-sem-accent dark:bg-sem-info/15 text-sem-info'
+                                                                    : 'border-sem-border bg-sem-surface text-sem-fg hover:border-sem-info  dark:bg-sem-surface text-sem-fg dark:hover:border-sem-accent'
                                                             "
                                                             @click="
                                                                 toggleAutoInterfaceCommaToken(
@@ -1406,8 +1406,8 @@
                                                                     'newInterfaceIgnoredDevices',
                                                                     iface.name
                                                                 )
-                                                                    ? 'border-amber-400 bg-amber-50/90 text-amber-950 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100'
-                                                                    : 'border-sem-border bg-white/80 text-sem-fg hover:border-amber-300  dark:bg-zinc-900/80 text-sem-fg dark:hover:border-amber-600'
+                                                                    ? 'border-sem-warning bg-sem-warning/15 text-sem-warning dark:border-sem-warning dark:bg-sem-warning/15 dark:text-sem-warning'
+                                                                    : 'border-sem-border bg-sem-surface text-sem-fg hover:border-sem-warning  dark:bg-sem-surface text-sem-fg dark:hover:border-sem-warning'
                                                             "
                                                             @click="
                                                                 toggleAutoInterfaceCommaToken(
@@ -1436,7 +1436,7 @@
                                         <!-- Pipe Interface -->
                                         <div v-if="newInterfaceType === 'PipeInterface'" class="space-y-4">
                                             <div
-                                                class="bg-sem-surface-muted/50 dark:bg-zinc-800/30 p-3 rounded-2xl border border-sem-border text-xs text-sem-fg-muted"
+                                                class="bg-sem-surface-muted/50 bg-sem-surface p-3 rounded-2xl border border-sem-border text-xs text-sem-fg-muted"
                                             >
                                                 ⓘ Interface with external programs via stdin/stdout.
                                             </div>
@@ -1471,8 +1471,8 @@
                                                     class="flex-1 py-2 rounded-2xl border text-xs font-bold uppercase tracking-tight transition"
                                                     :class="
                                                         newInterfaceHttpTunnelMode === 'client'
-                                                            ? 'bg-teal-500/10 border-teal-500 text-teal-700 dark:text-teal-300'
-                                                            : 'bg-sem-surface-muted/50 dark:bg-zinc-800/30 border-sem-border text-sem-fg-muted'
+                                                            ? 'bg-sem-warning/15 border-sem-success text-sem-success dark:text-sem-success'
+                                                            : 'bg-sem-surface-muted/50 bg-sem-surface border-sem-border text-sem-fg-muted'
                                                     "
                                                     @click="newInterfaceHttpTunnelMode = 'client'"
                                                 >
@@ -1483,8 +1483,8 @@
                                                     class="flex-1 py-2 rounded-2xl border text-xs font-bold uppercase tracking-tight transition"
                                                     :class="
                                                         newInterfaceHttpTunnelMode === 'server'
-                                                            ? 'bg-teal-500/10 border-teal-500 text-teal-700 dark:text-teal-300'
-                                                            : 'bg-sem-surface-muted/50 dark:bg-zinc-800/30 border-sem-border text-sem-fg-muted'
+                                                            ? 'bg-sem-warning/15 border-sem-success text-sem-success dark:text-sem-success'
+                                                            : 'bg-sem-surface-muted/50 bg-sem-surface border-sem-border text-sem-fg-muted'
                                                     "
                                                     @click="newInterfaceHttpTunnelMode = 'server'"
                                                 >
@@ -1669,10 +1669,10 @@
                                             </p>
                                             <div
                                                 v-if="awareNeedsPermission"
-                                                class="rounded-xl border border-amber-200/80 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20 p-3 space-y-2"
+                                                class="rounded-xl border border-sem-warning dark:border-sem-warning bg-sem-warning/15 dark:bg-sem-warning/15 p-3 space-y-2"
                                             >
                                                 <p
-                                                    class="text-xs text-amber-900 dark:text-amber-200/90 leading-relaxed"
+                                                    class="text-xs text-sem-warning dark:text-amber-200/90 leading-relaxed"
                                                 >
                                                     {{ $t("interfaces.aware_permission_banner") }}
                                                 </p>
@@ -1696,7 +1696,7 @@
                                                         :class="
                                                             newInterfaceAwareMode === 'subscribe'
                                                                 ? 'bg-lime-500/10 border-lime-500 text-lime-700 dark:text-lime-300'
-                                                                : 'bg-sem-surface-muted/50 dark:bg-zinc-800/30 border-sem-border text-sem-fg-muted'
+                                                                : 'bg-sem-surface-muted/50 bg-sem-surface border-sem-border text-sem-fg-muted'
                                                         "
                                                         @click="newInterfaceAwareMode = 'subscribe'"
                                                     >
@@ -1708,7 +1708,7 @@
                                                         :class="
                                                             newInterfaceAwareMode === 'publish'
                                                                 ? 'bg-lime-500/10 border-lime-500 text-lime-700 dark:text-lime-300'
-                                                                : 'bg-sem-surface-muted/50 dark:bg-zinc-800/30 border-sem-border text-sem-fg-muted'
+                                                                : 'bg-sem-surface-muted/50 bg-sem-surface border-sem-border text-sem-fg-muted'
                                                         "
                                                         @click="newInterfaceAwareMode = 'publish'"
                                                     >
@@ -1743,10 +1743,10 @@
                                                 {{ $t("interfaces.custom_external_intro") }}
                                             </p>
                                             <div
-                                                class="rounded-xl border border-amber-200/80 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20 p-3 space-y-2"
+                                                class="rounded-xl border border-sem-warning dark:border-sem-warning bg-sem-warning/15 dark:bg-sem-warning/15 p-3 space-y-2"
                                             >
                                                 <p
-                                                    class="text-xs text-amber-900 dark:text-amber-200/90 leading-relaxed"
+                                                    class="text-xs text-sem-warning dark:text-amber-200/90 leading-relaxed"
                                                 >
                                                     {{ $t("interfaces.custom_external_install_intro") }}
                                                 </p>
@@ -2143,7 +2143,10 @@
                             >
                                 <div class="min-w-0">
                                     <h2 class="font-bold text-sem-fg flex items-center gap-2 text-sm">
-                                        <MaterialDesignIcon icon-name="lightning-bolt" class="size-5 text-yellow-500" />
+                                        <MaterialDesignIcon
+                                            icon-name="lightning-bolt"
+                                            class="size-5 text-sem-warning"
+                                        />
                                         {{ $t("interfaces.community_quick_start") }}
                                     </h2>
                                     <p class="text-xs text-sem-fg-muted mt-0.5">
@@ -2249,7 +2252,7 @@
 
                         <div class="grid grid-cols-1 gap-4">
                             <div
-                                class="glass-card flex items-center gap-4 bg-sem-info/5/30 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30"
+                                class="glass-card flex items-center gap-4 bg-sem-info/5/30 dark:bg-sem-info/15 border-sem-info dark:border-sem-info"
                             >
                                 <div
                                     class="size-10 rounded-2xl bg-sem-info/50/10 flex items-center justify-center text-sem-accent shrink-0"
@@ -2287,11 +2290,11 @@
                             </div>
 
                             <div
-                                class="glass-card flex flex-col gap-2 p-4! bg-emerald-50/20 dark:bg-emerald-900/5 border-emerald-100 dark:border-emerald-900/20"
+                                class="glass-card flex flex-col gap-2 p-4! bg-sem-success/15 dark:bg-sem-success/15 border-sem-success dark:border-sem-success"
                             >
                                 <div class="flex items-center justify-between gap-2">
                                     <h3
-                                        class="text-xs font-bold text-emerald-600 dark:text-sem-success uppercase tracking-widest flex items-center gap-2"
+                                        class="text-xs font-bold text-sem-success dark:text-sem-success uppercase tracking-widest flex items-center gap-2"
                                     >
                                         <MaterialDesignIcon icon-name="import" class="size-4" />
                                         {{ $t("interfaces.quick_import") }}
@@ -2303,7 +2306,7 @@
                                 <textarea
                                     v-model="rawConfigInput"
                                     :placeholder="$t('interfaces.quick_import_placeholder')"
-                                    class="w-full h-20 bg-white/50 dark:bg-sem-surface/50 border border-emerald-100/50 dark:border-emerald-900/30 rounded-xl p-2 text-[10px] font-mono focus:ring-1 focus:ring-emerald-500 outline-hidden transition"
+                                    class="w-full h-20 bg-white/50 dark:bg-sem-surface/50 border border-emerald-100/50 dark:border-sem-success rounded-xl p-2 text-[10px] font-mono focus:ring-1 focus:ring-sem-success outline-hidden transition"
                                     @input="handleRawConfigInput"
                                 ></textarea>
 
@@ -2312,7 +2315,7 @@
                                         v-for="cfg in detectedConfigs"
                                         :key="cfg.name"
                                         type="button"
-                                        class="bg-sem-success/10 hover:bg-emerald-500/20 border border-sem-success/20 rounded-lg px-2 py-1 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 transition"
+                                        class="bg-sem-success/10 hover:bg-sem-warning/15 border border-sem-success/20 rounded-lg px-2 py-1 text-[9px] font-bold text-sem-success transition"
                                         @click="quickAddInterfaceFromConfig(cfg)"
                                     >
                                         {{ $t("interfaces.quick_import_apply", { name: cfg.name }) }}
@@ -3991,10 +3994,10 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .glass-card {
-    @apply bg-white/95 dark:bg-zinc-900/85 backdrop-blur-sm border border-sem-border rounded-3xl shadow-xl p-6;
+    @apply bg-sem-surface dark:bg-sem-surface backdrop-blur-sm border border-sem-border rounded-3xl shadow-xl p-6;
 }
 .input-field {
-    @apply bg-sem-surface-muted/90 dark:bg-zinc-900/80 border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-sem-focus dark:focus:border-blue-500 block w-full p-2.5 text-sem-fg dark:text-gray-100 transition;
+    @apply bg-sem-surface-muted/90 dark:bg-sem-surface border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-sem-info focus:border-sem-info dark:focus:ring-sem-focus dark:focus:border-sem-accent block w-full p-2.5 text-sem-fg text-sem-fg transition;
 }
 .glass-label {
     @apply mb-1.5 block text-xs uppercase font-bold text-sem-fg-muted tracking-wider;

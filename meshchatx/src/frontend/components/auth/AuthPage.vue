@@ -93,9 +93,9 @@
 
                     <div
                         v-if="error"
-                        class="mt-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                        class="mt-6 p-3 bg-sem-danger/15 border border-sem-danger dark:border-sem-danger rounded-lg"
                     >
-                        <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
+                        <p class="text-sm text-sem-danger text-sem-danger">{{ error }}</p>
                     </div>
                 </div>
             </div>

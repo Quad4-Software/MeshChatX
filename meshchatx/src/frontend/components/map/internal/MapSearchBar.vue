@@ -21,7 +21,7 @@
                 <MaterialDesignIcon icon-name="close" class="size-[18px]" />
             </button>
             <button
-                class="p-2 mr-1 text-blue-500 hover:text-blue-600 disabled:text-gray-300 transition-colors"
+                class="p-2 mr-1 text-sem-info hover:text-sem-info disabled:text-sem-fg-secondary transition-colors"
                 :disabled="!modelValue || searching"
                 @click="$emit('search')"
             >
@@ -38,14 +38,14 @@
                 aria-hidden="true"
             ></div>
             <div class="bg-sem-surface rounded-xl shadow-2xl border border-sem-border overflow-y-auto max-h-64">
-                <div v-if="error" class="p-4 text-sm text-red-500 flex items-center gap-2">
+                <div v-if="error" class="p-4 text-sm text-sem-danger flex items-center gap-2">
                     <MaterialDesignIcon icon-name="alert-circle" class="size-4" />
                     {{ error }}
                 </div>
                 <button
                     v-for="(result, index) in results"
                     :key="index"
-                    class="w-full px-4 py-3 text-left hover:bg-sem-surface-muted/50 border-b border-gray-100/50 dark:border-zinc-800/50 last:border-b-0 transition-all"
+                    class="w-full px-4 py-3 text-left hover:bg-sem-surface-muted/50 border-b border-sem-border dark:border-sem-border last:border-b-0 transition-all"
                     @click="$emit('select', result)"
                 >
                     <div class="font-bold text-sem-fg text-sm">{{ result.display_name }}</div>

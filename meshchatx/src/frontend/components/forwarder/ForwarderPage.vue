@@ -24,7 +24,7 @@
                                     v-model="newRule.name"
                                     type="text"
                                     :placeholder="$t('forwarder.name_placeholder')"
-                                    class="w-full px-4 py-2 rounded-xl border border-sem-border bg-sem-surface text-sem-fg focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
+                                    class="w-full px-4 py-2 rounded-xl border border-sem-border bg-sem-surface text-sem-fg focus:ring-2 focus:ring-sem-accent transition-all outline-hidden"
                                 />
                             </div>
                             <div class="space-y-1">
@@ -35,7 +35,7 @@
                                     v-model="newRule.forward_to_hash"
                                     type="text"
                                     :placeholder="$t('forwarder.destination_placeholder')"
-                                    class="w-full px-4 py-2 rounded-xl border border-sem-border bg-sem-surface text-sem-fg focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
+                                    class="w-full px-4 py-2 rounded-xl border border-sem-border bg-sem-surface text-sem-fg focus:ring-2 focus:ring-sem-accent transition-all outline-hidden"
                                 />
                             </div>
                             <div class="space-y-1">
@@ -46,7 +46,7 @@
                                     v-model="newRule.source_filter_hash"
                                     type="text"
                                     :placeholder="$t('forwarder.source_filter_placeholder')"
-                                    class="w-full px-4 py-2 rounded-xl border border-sem-border bg-sem-surface text-sem-fg focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
+                                    class="w-full px-4 py-2 rounded-xl border border-sem-border bg-sem-surface text-sem-fg focus:ring-2 focus:ring-sem-accent transition-all outline-hidden"
                                 />
                             </div>
                         </div>
@@ -79,8 +79,8 @@
                                         class="px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider"
                                         :class="
                                             rule.is_active
-                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                : 'bg-gray-100 text-gray-700 dark:bg-zinc-800 text-sem-fg-muted'
+                                                ? 'bg-sem-success/15 text-sem-success dark:bg-sem-success/15 dark:text-sem-success'
+                                                : 'bg-sem-surface-muted text-sem-fg dark:bg-sem-surface text-sem-fg-muted'
                                         "
                                     >
                                         {{ rule.is_active ? $t("forwarder.active") : $t("forwarder.disabled") }}
@@ -94,7 +94,7 @@
                                     <div class="flex items-center gap-2">
                                         <MaterialDesignIcon
                                             icon-name="arrow-right"
-                                            class="w-4 h-4 text-blue-500 shrink-0"
+                                            class="w-4 h-4 text-sem-info shrink-0"
                                         />
                                         <span class="text-sm font-medium text-sem-fg truncate">
                                             {{ $t("forwarder.forwarding_to", { hash: rule.forward_to_hash }) }}
@@ -103,7 +103,7 @@
                                     <div v-if="rule.source_filter_hash" class="flex items-center gap-2">
                                         <MaterialDesignIcon
                                             icon-name="filter-variant"
-                                            class="w-4 h-4 text-purple-500 shrink-0"
+                                            class="w-4 h-4 text-sem-info shrink-0"
                                         />
                                         <span class="text-sm text-sem-fg-muted truncate">
                                             {{
@@ -122,11 +122,11 @@
                                     <MaterialDesignIcon
                                         :icon-name="rule.is_active ? 'toggle-switch' : 'toggle-switch-off'"
                                         class="w-6 h-6"
-                                        :class="rule.is_active ? 'text-blue-500' : 'text-gray-400'"
+                                        :class="rule.is_active ? 'text-sem-info' : 'text-sem-fg-muted'"
                                     />
                                 </button>
                                 <button
-                                    class="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 rounded-lg transition-colors"
+                                    class="p-2 hover:bg-sem-danger/15 dark:hover:bg-sem-danger/15 text-sem-danger rounded-lg transition-colors"
                                     :title="$t('common.delete')"
                                     @click="deleteRule(rule.id)"
                                 >

@@ -4,10 +4,10 @@
  * Apply the configured UI font family. Called on boot and when the config changes.
  *
  * ui_font_family options:
- *   "system"   — browser default (Tailwind stack)
- *   "noto-sans" — bundled @fontsource/noto-sans
- *   "roboto-mono-nerd" — bundled RobotoMonoNerdFont
- *   "custom"   — user-uploaded font stored as base64 in ui_custom_font_data
+ *   "system"   - browser default (Tailwind stack)
+ *   "noto-sans" - bundled @fontsource/noto-sans
+ *   "roboto-mono-nerd" - bundled RobotoMonoNerdFont
+ *   "custom"   - user-uploaded font stored as base64 in ui_custom_font_data
  *
  * Custom font data is a base64-encoded woff2/ttf blob injected via @font-face.
  */
@@ -17,7 +17,7 @@ const FONT_FACE_ID = "meshchat-custom-font-face";
 
 const BUNDLED_FONTS = {
     "noto-sans": '"Noto Sans", ui-sans-serif, system-ui, sans-serif',
-    "inter": '"Inter", ui-sans-serif, system-ui, sans-serif',
+    inter: '"Inter", ui-sans-serif, system-ui, sans-serif',
     "jetbrains-mono": '"JetBrains Mono", ui-monospace, monospace',
     "ibm-plex-sans": '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
     "space-grotesk": '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',

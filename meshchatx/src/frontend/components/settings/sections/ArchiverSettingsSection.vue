@@ -58,7 +58,7 @@
             </div>
             <button
                 type="button"
-                class="w-full flex items-center justify-center gap-2 rounded-xl border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/20 px-4 py-2 text-sm font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 transition"
+                class="w-full flex items-center justify-center gap-2 rounded-xl border border-sem-danger dark:border-sem-danger bg-sem-danger/15 px-4 py-2 text-sm font-semibold text-sem-danger hover:bg-sem-danger/15 dark:hover:bg-sem-danger/15 transition"
                 @click="$emit('flush')"
             >
                 <MaterialDesignIcon icon-name="delete-sweep" class="w-4 h-4" />

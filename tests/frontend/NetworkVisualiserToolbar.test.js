@@ -82,12 +82,12 @@ describe("NetworkVisualiserToolbar", () => {
 
     it("styles trigger from active engine mode", () => {
         const webgl = mountToolbar({ engineMode: "webgl", preferredRenderer: "webgl", fps: 60 });
-        expect(webgl.find("#visualiser-engine-select").classes().join(" ")).toContain("text-sky-600");
+        expect(webgl.find("#visualiser-engine-select").classes().join(" ")).toContain("text-sem-info");
         expect(webgl.find("#visualiser-engine-select").text()).toContain("visualiser.renderer_option_webgl_short");
         webgl.unmount();
 
         const fallback = mountToolbar({ engineMode: "fallback", preferredRenderer: "vis", fps: 0 });
-        expect(fallback.find("#visualiser-engine-select").classes().join(" ")).toContain("text-amber-600");
+        expect(fallback.find("#visualiser-engine-select").classes().join(" ")).toContain("text-sem-warning");
         expect(fallback.find("#visualiser-engine-select").text()).toContain("visualiser.renderer_option_vis_short");
         expect(fallback.text()).toContain("--");
     });

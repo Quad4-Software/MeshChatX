@@ -1,13 +1,13 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col h-64 bg-gray-50 dark:bg-zinc-950 rounded-lg overflow-hidden border border-sem-border">
+    <div class="flex flex-col h-64 bg-gray-50 dark:bg-sem-surface rounded-lg overflow-hidden border border-sem-border">
         <!-- message list -->
         <div ref="messageList" class="flex-1 overflow-y-auto p-2 space-y-2 scrollbar-thin">
             <div v-if="loading" class="flex justify-center py-4">
-                <MaterialDesignIcon icon-name="loading" class="size-5 animate-spin text-gray-400" />
+                <MaterialDesignIcon icon-name="loading" class="size-5 animate-spin text-sem-fg-muted" />
             </div>
-            <div v-else-if="messages.length === 0" class="text-center py-4 text-xs text-gray-400">
+            <div v-else-if="messages.length === 0" class="text-center py-4 text-xs text-sem-fg-muted">
                 {{ $t("messages.no_messages_yet") }}
             </div>
             <div
@@ -18,7 +18,11 @@
             >
                 <div
                     class="px-2 py-1 rounded-lg text-xs wrap-break-word shadow-xs"
-                    :class="msg.is_outbound ? 'bg-sem-action-primary text-sem-action-primary-text' : 'bg-sem-surface text-sem-fg'"
+                    :class="
+                        msg.is_outbound
+                            ? 'bg-sem-action-primary text-sem-action-primary-text'
+                            : 'bg-sem-surface text-sem-fg'
+                    "
                 >
                     <!-- Telemetry Header if no content -->
                     <div
@@ -70,7 +74,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="text-[8px] text-gray-400 mt-0.5">
+                <div class="text-[8px] text-sem-fg-muted mt-0.5">
                     {{ formatTime(msg.timestamp) }}
                 </div>
             </div>
@@ -82,7 +86,7 @@
                 <input
                     v-model="newMessage"
                     type="text"
-                    class="flex-1 bg-gray-50 dark:bg-zinc-800 border border-sem-border rounded-md px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus:ring-blue-500 text-sem-fg"
+                    class="flex-1 bg-sem-surface-muted border border-sem-border rounded-md px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus:ring-sem-accent text-sem-fg"
                     :placeholder="$t('messages.send_placeholder')"
                     @keydown.enter="sendMessage"
                 />
@@ -91,7 +95,7 @@
                     :disabled="!newMessage.trim() || sending"
                     :aria-label="$t('messages.send')"
                     :title="$t('messages.send')"
-                    class="p-1.5 bg-blue-500 hover:bg-sem-action-primary disabled:bg-gray-300 dark:disabled:bg-zinc-700 text-sem-action-primary-text rounded-md transition-colors"
+                    class="p-1.5 bg-sem-info hover:bg-sem-action-primary disabled:bg-gray-300 dark:disabled:bg-sem-surface-muted text-sem-action-primary-text rounded-md transition-colors"
                     @click="sendMessage"
                 >
                     <MaterialDesignIcon

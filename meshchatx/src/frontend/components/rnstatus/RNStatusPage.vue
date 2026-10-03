@@ -12,7 +12,7 @@
             <template #actions>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-600 text-white text-sm font-medium hover:bg-orange-700 disabled:opacity-50 disabled:pointer-events-none"
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-sem-warning text-white text-sm font-medium hover:bg-sem-warning disabled:opacity-50 disabled:pointer-events-none"
                     :disabled="isLoading || reloadingRns"
                     @click="refreshStatus"
                 >
@@ -49,9 +49,7 @@
                             <span>{{ $t("rnstatus.show_all_interfaces") }}</span>
                         </label>
                         <div class="flex min-w-0 flex-wrap items-center gap-2">
-                            <label class="shrink-0 text-sm text-gray-700 dark:text-gray-300">{{
-                                $t("rnstatus.sort_by")
-                            }}</label>
+                            <label class="shrink-0 text-sm text-sem-fg">{{ $t("rnstatus.sort_by") }}</label>
                             <select v-model="sorting" class="input-field min-w-40 text-sm" :disabled="reloadingRns">
                                 <option value="">{{ $t("rnstatus.none") }}</option>
                                 <option value="bitrate">{{ $t("rnstatus.bitrate") }}</option>
@@ -103,12 +101,12 @@
                     </div>
                     <ManagementIdentityPicker v-model="identityPath" :disabled="reloadingRns" default-name="mgmt" />
                     <div v-if="activeRemoteHash" class="flex flex-wrap items-center gap-2 text-xs">
-                        <span class="font-mono text-amber-700 dark:text-amber-300">{{
+                        <span class="font-mono text-sem-warning">{{
                             $t("rnstatus.remote_active", { hash: activeRemoteHash })
                         }}</span>
                         <button
                             type="button"
-                            class="inline-flex items-center px-2 py-1 rounded-lg border border-gray-300 dark:border-zinc-600 bg-sem-surface text-xs font-medium text-sem-fg hover:bg-sem-surface-muted"
+                            class="inline-flex items-center px-2 py-1 rounded-lg border border-sem-border dark:border-sem-border bg-sem-surface text-xs font-medium text-sem-fg hover:bg-sem-surface-muted"
                             @click="clearRemote"
                         >
                             {{ $t("rnstatus.use_local") }}
@@ -230,7 +228,7 @@
                                 {{ queue.label }}
                             </div>
                             <div class="mt-1 text-sm font-semibold text-sem-fg">
-                                {{ queue.pressure || "—" }}
+                                {{ queue.pressure || "-" }}
                             </div>
                             <div class="text-xs text-sem-fg-muted">
                                 <span v-if="queue.packets">
@@ -281,13 +279,13 @@
 
                 <div
                     v-if="i2pInterfaces.length > 0"
-                    class="rounded-xl border border-violet-200 dark:border-violet-900/60 bg-violet-50 dark:bg-violet-950/30 p-4 space-y-3"
+                    class="rounded-xl border border-sem-info dark:border-sem-info bg-sem-info/15 dark:bg-sem-info/15 p-4 space-y-3"
                 >
-                    <h2 class="text-sm font-semibold text-violet-950 dark:text-violet-100">
+                    <h2 class="text-sm font-semibold text-violet-950 dark:text-sem-info">
                         {{ $t("rnstatus.i2p_address") }}
                     </h2>
                     <div v-for="iface in i2pInterfaces" :key="'i2p-' + iface.name" class="space-y-2">
-                        <div class="text-xs text-violet-800 dark:text-violet-200">{{ iface.name }}</div>
+                        <div class="text-xs text-sem-info text-sem-info">{{ iface.name }}</div>
                         <div v-if="iface.i2p_b32" class="address-card">
                             <div class="address-card__label">{{ $t("rnstatus.i2p_address") }}</div>
                             <div class="address-card__value monospace-field">{{ iface.i2p_b32 }}</div>
@@ -296,10 +294,10 @@
                                 {{ $t("common.copy") }}
                             </button>
                         </div>
-                        <p v-else-if="iface.i2p_connectable" class="text-sm text-violet-900 dark:text-violet-100">
+                        <p v-else-if="iface.i2p_connectable" class="text-sm text-violet-900 dark:text-sem-info">
                             {{ $t("rnstatus.i2p_waiting") }}
                         </p>
-                        <p v-else class="text-sm text-violet-900 dark:text-violet-100">
+                        <p v-else class="text-sm text-violet-900 dark:text-sem-info">
                             {{ $t("rnstatus.i2p_not_published") }}
                         </p>
                         <div class="flex flex-wrap gap-2 text-xs">
@@ -307,8 +305,8 @@
                                 class="rounded-full px-2 py-0.5 font-medium"
                                 :class="
                                     iface.i2p_connectable
-                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-100'
-                                        : 'bg-gray-200 text-gray-700 dark:bg-zinc-800 text-sem-fg'
+                                        ? 'bg-sem-success/15 text-sem-success dark:bg-sem-success/15 dark:text-green-100'
+                                        : 'bg-sem-surface-muted text-sem-fg dark:bg-sem-surface text-sem-fg'
                                 "
                             >
                                 {{
@@ -319,7 +317,7 @@
                             </span>
                             <span
                                 v-if="iface.i2p_tunnel_state"
-                                class="rounded-full bg-white/70 dark:bg-zinc-900/70 px-2 py-0.5 font-medium text-violet-900 dark:text-violet-100"
+                                class="rounded-full bg-white/70 dark:bg-sem-surface px-2 py-0.5 font-medium text-violet-900 dark:text-sem-info"
                             >
                                 {{ iface.i2p_tunnel_state }}
                             </span>
@@ -347,7 +345,7 @@
 
                 <div
                     v-if="interfaces.length === 0 && !isLoading && !reloadingRns"
-                    class="rounded-xl border border-dashed border-gray-300 dark:border-zinc-700 py-12 text-center text-sm text-sem-fg-muted"
+                    class="rounded-xl border border-dashed border-sem-border py-12 text-center text-sm text-sem-fg-muted"
                 >
                     {{ $t("rnstatus.no_interfaces_found") }}
                 </div>
@@ -366,7 +364,7 @@
                                     </h3>
                                     <span
                                         v-if="iface.discovered"
-                                        class="inline-flex shrink-0 items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:bg-amber-900/45 dark:text-amber-100"
+                                        class="inline-flex shrink-0 items-center rounded-md bg-sem-warning/15 px-2 py-0.5 text-xs font-semibold text-sem-warning dark:bg-sem-warning/15 dark:text-sem-warning"
                                     >
                                         {{ $t("rnstatus.discovered") }}
                                     </span>
@@ -378,8 +376,8 @@
                             <span
                                 :class="[
                                     iface.status && String(iface.status).startsWith('Up')
-                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/45 dark:text-green-100'
-                                        : 'bg-red-100 text-red-800 dark:bg-red-900/45 dark:text-red-100',
+                                        ? 'bg-sem-success/15 text-sem-success dark:bg-sem-success/15 dark:text-green-100'
+                                        : 'bg-sem-danger/15 text-sem-danger dark:bg-sem-danger/15 dark:text-red-100',
                                     'shrink-0 rounded-full px-3 py-1 text-xs font-semibold',
                                 ]"
                             >

@@ -75,7 +75,7 @@ describe("ForwarderPage.vue", () => {
             },
         });
 
-        const addButton = wrapper.find("button[class*='bg-blue-600']");
+        const addButton = wrapper.find("button[class*='bg-sem-action-primary'], button[class*='bg-sem-info']");
         await addButton.trigger("click");
 
         expect(WebSocketConnection.send).toHaveBeenCalledWith(
@@ -129,7 +129,7 @@ describe("ForwarderPage.vue", () => {
                 is_active: true,
             },
         });
-        await wrapper.find("button[class*='bg-blue-600']").trigger("click");
+        await wrapper.find("button[class*='bg-sem-action-primary'], button[class*='bg-sem-info']").trigger("click");
         expect(ToastUtils.warning).toHaveBeenCalled();
         const addCalls = WebSocketConnection.send.mock.calls.filter((call) =>
             String(call[0]).includes("lxmf.forwarding.rule.add")

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="p-3 rounded-xl border border-sem-border bg-sem-surface-muted/50 dark:bg-zinc-900/30">
+    <div class="p-3 rounded-xl border border-sem-border bg-sem-surface-muted/50 dark:bg-sem-surface">
         <div class="flex justify-between items-start mb-2">
             <span
                 class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-sem-surface-muted dark:bg-sem-surface-raised text-sem-fg-muted"
@@ -42,7 +42,7 @@
 
         <div
             v-if="item.lxmf_message.fields?.commands?.some((c) => c['0x01'])"
-            class="flex items-center gap-2 text-[10px] text-emerald-600 dark:text-emerald-400 mt-1"
+            class="flex items-center gap-2 text-[10px] text-sem-success mt-1"
         >
             <MaterialDesignIcon icon-name="crosshairs-question" class="size-3" />
             <span>{{ $t("messages.telemetry_location_request") }}</span>

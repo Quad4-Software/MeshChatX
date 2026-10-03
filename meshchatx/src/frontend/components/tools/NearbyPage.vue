@@ -28,8 +28,8 @@
                             class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
                             :class="
                                 cap.ok
-                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                                    : 'bg-zinc-100 text-sem-fg-muted dark:bg-zinc-800'
+                                    ? 'bg-sem-success/15 text-sem-success dark:bg-sem-success/15 dark:text-sem-success'
+                                    : 'bg-sem-surface-muted text-sem-fg-muted dark:bg-sem-surface'
                             "
                         >
                             <MaterialDesignIcon :icon-name="cap.ok ? 'check' : 'minus'" class="w-3 h-3" />
@@ -37,7 +37,7 @@
                         </span>
                         <span
                             v-if="satelliteEnabled"
-                            class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
+                            class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-sem-info/15 text-sem-info dark:bg-sem-info/15 dark:text-sem-info"
                         >
                             <MaterialDesignIcon icon-name="satellite-variant" class="w-3 h-3" />
                             {{ $t("tools.nearby.satellite_active") }}
@@ -48,10 +48,10 @@
                 <!-- unsupported (desktop) notice -->
                 <div
                     v-if="!loading && capabilities && capabilities.supported === false"
-                    class="rounded-xl border border-amber-500/30 bg-amber-50 dark:bg-amber-900/10 p-4 text-sm text-sem-fg"
+                    class="rounded-xl border border-amber-500/30 bg-sem-warning/15 p-4 text-sm text-sem-fg"
                 >
                     <div class="flex items-start gap-3">
-                        <MaterialDesignIcon icon-name="information-outline" class="w-5 h-5 text-amber-500 shrink-0" />
+                        <MaterialDesignIcon icon-name="information-outline" class="w-5 h-5 text-sem-warning shrink-0" />
                         <p>{{ $t("tools.nearby.android_only") }}</p>
                     </div>
                 </div>
@@ -59,10 +59,10 @@
                 <!-- permission banner -->
                 <div
                     v-if="capabilities && capabilities.supported && !nearbyWifiGranted"
-                    class="rounded-xl border border-amber-500/30 bg-amber-50 dark:bg-amber-900/10 p-4"
+                    class="rounded-xl border border-amber-500/30 bg-sem-warning/15 p-4"
                 >
                     <div class="flex flex-wrap items-center gap-3">
-                        <MaterialDesignIcon icon-name="shield-alert-outline" class="w-5 h-5 text-amber-500" />
+                        <MaterialDesignIcon icon-name="shield-alert-outline" class="w-5 h-5 text-sem-warning" />
                         <p class="flex-1 text-sm text-sem-fg min-w-0">{{ $t("tools.nearby.permission_hint") }}</p>
                         <button
                             type="button"
@@ -78,10 +78,10 @@
                 <!-- host card -->
                 <div class="rounded-xl border border-sem-border bg-sem-surface p-4 sm:p-5 space-y-4">
                     <div class="flex items-center gap-3">
-                        <div class="p-2 rounded-lg bg-teal-100 dark:bg-teal-900/30">
+                        <div class="p-2 rounded-lg bg-sem-success/15 dark:bg-sem-success/15">
                             <MaterialDesignIcon
                                 icon-name="access-point"
-                                class="w-5 h-5 text-teal-600 dark:text-teal-400"
+                                class="w-5 h-5 text-sem-success dark:text-sem-success"
                             />
                         </div>
                         <div>
@@ -108,7 +108,7 @@
                                 <img
                                     :src="wifiQrDataUrl"
                                     :alt="$t('tools.nearby.qr_alt')"
-                                    class="w-44 h-44 rounded-lg border border-sem-border bg-white p-2"
+                                    class="w-44 h-44 rounded-lg border border-sem-border bg-sem-surface p-2"
                                 />
                             </div>
                             <div class="space-y-2 min-w-0 flex-1">
@@ -153,7 +153,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="secondary-chip py-1! px-3! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+                                class="secondary-chip py-1! px-3! text-sem-danger! hover:bg-sem-danger/15! dark:hover:bg-sem-danger/15!"
                                 @click="stopHotspot"
                             >
                                 <MaterialDesignIcon icon-name="access-point-remove" class="w-3.5 h-3.5" />
@@ -166,8 +166,8 @@
                 <!-- join card -->
                 <div class="rounded-xl border border-sem-border bg-sem-surface p-4 sm:p-5 space-y-4">
                     <div class="flex items-center gap-3">
-                        <div class="p-2 rounded-lg bg-sky-100 dark:bg-sky-900/30">
-                            <MaterialDesignIcon icon-name="wifi-plus" class="w-5 h-5 text-sky-600 dark:text-sky-400" />
+                        <div class="p-2 rounded-lg bg-sem-info/15">
+                            <MaterialDesignIcon icon-name="wifi-plus" class="w-5 h-5 text-sem-info" />
                         </div>
                         <div>
                             <h2 class="text-base font-bold text-sem-fg">{{ $t("tools.nearby.join_title") }}</h2>
@@ -177,13 +177,13 @@
 
                     <div
                         v-if="joinConnected"
-                        class="rounded-lg border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-900/10 p-3 flex flex-wrap items-center gap-3"
+                        class="rounded-lg border border-sem-success bg-sem-success/15 p-3 flex flex-wrap items-center gap-3"
                     >
-                        <MaterialDesignIcon icon-name="wifi-check" class="w-5 h-5 text-emerald-500" />
+                        <MaterialDesignIcon icon-name="wifi-check" class="w-5 h-5 text-sem-success" />
                         <p class="flex-1 text-sm text-sem-fg min-w-0">{{ $t("tools.nearby.join_connected") }}</p>
                         <button
                             type="button"
-                            class="secondary-chip py-1! px-3! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+                            class="secondary-chip py-1! px-3! text-sem-danger! hover:bg-sem-danger/15! dark:hover:bg-sem-danger/15!"
                             @click="leaveNetwork"
                         >
                             {{ $t("tools.nearby.leave") }}
@@ -242,10 +242,10 @@
                 <!-- wifi direct card -->
                 <div class="rounded-xl border border-sem-border bg-sem-surface p-4 sm:p-5 space-y-4">
                     <div class="flex items-center gap-3">
-                        <div class="p-2 rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                        <div class="p-2 rounded-lg bg-sem-info/15 dark:bg-sem-info/15">
                             <MaterialDesignIcon
                                 icon-name="wifi-tethering"
-                                class="w-5 h-5 text-violet-600 dark:text-violet-400"
+                                class="w-5 h-5 text-sem-info dark:text-sem-info"
                             />
                         </div>
                         <div>
@@ -272,7 +272,7 @@
                                 <img
                                     :src="p2pQrDataUrl"
                                     :alt="$t('tools.nearby.qr_alt')"
-                                    class="w-44 h-44 rounded-lg border border-sem-border bg-white p-2"
+                                    class="w-44 h-44 rounded-lg border border-sem-border bg-sem-surface p-2"
                                 />
                             </div>
                             <div class="space-y-2 min-w-0 flex-1">
@@ -305,7 +305,7 @@
                         </div>
                         <button
                             type="button"
-                            class="secondary-chip py-1! px-3! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+                            class="secondary-chip py-1! px-3! text-sem-danger! hover:bg-sem-danger/15! dark:hover:bg-sem-danger/15!"
                             @click="stopP2p"
                         >
                             <MaterialDesignIcon icon-name="wifi-off" class="w-3.5 h-3.5" />
@@ -317,11 +317,8 @@
                 <!-- wifi aware card -->
                 <div class="rounded-xl border border-sem-border bg-sem-surface p-4 sm:p-5 space-y-4">
                     <div class="flex items-center gap-3">
-                        <div class="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                            <MaterialDesignIcon
-                                icon-name="radar"
-                                class="w-5 h-5 text-emerald-600 dark:text-emerald-400"
-                            />
+                        <div class="p-2 rounded-lg bg-sem-success/15">
+                            <MaterialDesignIcon icon-name="radar" class="w-5 h-5 text-sem-success" />
                         </div>
                         <div>
                             <h2 class="text-base font-bold text-sem-fg">{{ $t("tools.nearby.aware_title") }}</h2>
@@ -355,7 +352,7 @@
                     <div v-else class="space-y-3">
                         <div class="flex flex-wrap items-center gap-2 text-sm text-sem-fg">
                             <span
-                                class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300"
+                                class="inline-flex items-center gap-1.5 rounded-full bg-sem-success/15 px-2.5 py-0.5 text-xs font-medium text-sem-success"
                             >
                                 <MaterialDesignIcon icon-name="radar" class="w-3 h-3" />
                                 {{ awareStatus.role }}
@@ -371,7 +368,7 @@
                         </div>
                         <button
                             type="button"
-                            class="secondary-chip py-1! px-3! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+                            class="secondary-chip py-1! px-3! text-sem-danger! hover:bg-sem-danger/15! dark:hover:bg-sem-danger/15!"
                             @click="stopAware"
                         >
                             <MaterialDesignIcon icon-name="stop" class="w-3.5 h-3.5" />
@@ -383,11 +380,8 @@
                 <!-- nfc card -->
                 <div class="rounded-xl border border-sem-border bg-sem-surface p-4 sm:p-5 space-y-4">
                     <div class="flex items-center gap-3">
-                        <div class="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                            <MaterialDesignIcon
-                                icon-name="nfc-variant"
-                                class="w-5 h-5 text-orange-600 dark:text-orange-400"
-                            />
+                        <div class="p-2 rounded-lg bg-sem-warning/15">
+                            <MaterialDesignIcon icon-name="nfc-variant" class="w-5 h-5 text-sem-warning" />
                         </div>
                         <div>
                             <h2 class="text-base font-bold text-sem-fg">{{ $t("tools.nearby.nfc_title") }}</h2>
@@ -410,7 +404,7 @@
                             <button
                                 v-else
                                 type="button"
-                                class="secondary-chip py-1! px-3! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+                                class="secondary-chip py-1! px-3! text-sem-danger! hover:bg-sem-danger/15! dark:hover:bg-sem-danger/15!"
                                 @click="stopNfcShare"
                             >
                                 <MaterialDesignIcon icon-name="nfc-variant-off" class="w-3.5 h-3.5" />
@@ -429,7 +423,7 @@
                             <button
                                 v-else
                                 type="button"
-                                class="secondary-chip py-1! px-3! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+                                class="secondary-chip py-1! px-3! text-sem-danger! hover:bg-sem-danger/15! dark:hover:bg-sem-danger/15!"
                                 @click="stopNfcRead"
                             >
                                 {{ $t("tools.nearby.nfc_read_stop") }}
@@ -438,7 +432,7 @@
                         <p v-if="!nfcSharePayload" class="text-xs text-sem-fg-muted">
                             {{ $t("tools.nearby.nfc_no_credentials") }}
                         </p>
-                        <p v-else-if="nfcSharing" class="text-xs text-amber-600 dark:text-amber-400">
+                        <p v-else-if="nfcSharing" class="text-xs text-sem-warning">
                             {{ $t("tools.nearby.nfc_sharing_note") }}
                         </p>
                         <p v-if="nfcReading" class="text-xs text-sem-fg-muted">

@@ -69,7 +69,7 @@
                     >
                         <template #item="{ item: contact }">
                             <div
-                                class="group flex cursor-default items-center gap-3 px-1 py-3 transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-900/70"
+                                class="group flex cursor-default items-center gap-3 px-1 py-3 transition-colors hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface"
                                 @contextmenu.prevent="openContextMenu($event, contact)"
                             >
                                 <div class="shrink-0">
@@ -96,7 +96,7 @@
                                         >
                                             <MaterialDesignIcon
                                                 icon-name="message-text-outline"
-                                                class="size-4 text-blue-500 dark:text-blue-400 shrink-0"
+                                                class="size-4 text-sem-info shrink-0"
                                             />
                                             <button
                                                 type="button"
@@ -166,7 +166,7 @@
                         <div
                             v-for="contact in mergedContacts"
                             :key="contact.id"
-                            class="group flex cursor-default items-center gap-3 px-1 py-3 transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-900/70"
+                            class="group flex cursor-default items-center gap-3 px-1 py-3 transition-colors hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface"
                             @contextmenu.prevent="openContextMenu($event, contact)"
                         >
                             <div class="shrink-0">
@@ -193,7 +193,7 @@
                                     >
                                         <MaterialDesignIcon
                                             icon-name="message-text-outline"
-                                            class="size-4 text-blue-500 dark:text-blue-400 shrink-0"
+                                            class="size-4 text-sem-info shrink-0"
                                         />
                                         <button
                                             type="button"
@@ -308,7 +308,7 @@
                 {{ $t("contacts.copy_contact_uri") }}
             </ContextMenuItem>
             <ContextMenuDivider />
-            <ContextMenuItem item-class="text-red-600 dark:text-red-400" @click="removeContact(contextMenu.contact)">
+            <ContextMenuItem item-class="text-sem-danger" @click="removeContact(contextMenu.contact)">
                 <MaterialDesignIcon icon-name="delete-outline" class="size-4" />
                 {{ $t("contacts.remove_contact") }}
             </ContextMenuItem>
@@ -334,7 +334,7 @@
                 </div>
                 <div class="p-5 space-y-4">
                     <div>
-                        <label class="block text-xs uppercase tracking-wider font-semibold text-gray-500 mb-1">
+                        <label class="block text-xs uppercase tracking-wider font-semibold text-sem-fg-muted mb-1">
                             {{ $t("contacts.contact_name_optional") }}
                         </label>
                         <input
@@ -345,7 +345,7 @@
                         />
                     </div>
                     <div>
-                        <label class="block text-xs uppercase tracking-wider font-semibold text-gray-500 mb-1">
+                        <label class="block text-xs uppercase tracking-wider font-semibold text-sem-fg-muted mb-1">
                             {{ $t("contacts.hash_or_uri") }}
                         </label>
                         <div class="relative">
@@ -472,7 +472,7 @@
                         <MaterialDesignIcon icon-name="file-upload" class="size-4" />
                         {{ $t("contacts.import_contacts") }}
                     </button>
-                    <p v-if="importError" class="text-sm text-red-600 dark:text-red-400">{{ importError }}</p>
+                    <p v-if="importError" class="text-sm text-sem-danger">{{ importError }}</p>
                 </div>
             </div>
         </div>
@@ -507,7 +507,7 @@
                             v-if="myQrDataUrl"
                             :src="myQrDataUrl"
                             alt="Identity QR"
-                            class="w-52 h-52 rounded-xl border border-sem-border bg-white"
+                            class="w-52 h-52 rounded-xl border border-sem-border bg-sem-surface"
                         />
                     </div>
                     <div class="text-xs font-mono break-all text-center text-sem-fg-muted">

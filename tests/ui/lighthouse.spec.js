@@ -46,7 +46,7 @@ test.describe("Lighthouse page scores (simulated data)", () => {
             });
 
             const url = page.url();
-            // Lighthouse navigates the shared CDP target itself; a concurrent
+            // Lighthouse navigates the shared CDP target itself. a concurrent
             // evaluate or teardown can race it into "Inspected target
             // navigated or closed". Retry only that transient protocol error.
             let runnerResult;

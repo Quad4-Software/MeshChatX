@@ -301,7 +301,7 @@ def _make_node(node_dir, mock_rns):
 def test_page_rescan_survives_pages_dir_replaced_by_file(tmp_path, mock_rns):
     node = _make_node(str(tmp_path), mock_rns)
     node.setup()
-    # Replace the pages dir with a plain file mid-run; rescan must not crash.
+    # Replace the pages dir with a plain file mid-run. rescan must not crash.
     os.rmdir(node.pages_dir)
     with open(node.pages_dir, "w") as f:
         f.write("not a directory")
@@ -499,7 +499,7 @@ def test_rrc_server_handler_fault_is_contained():
         server._on_packet(link, proto.encode(env))
     finally:
         server._handle_join = saved
-    # Session survives; hub keeps accepting packets.
+    # Session survives. hub keeps accepting packets.
     assert link in server._sessions
 
 

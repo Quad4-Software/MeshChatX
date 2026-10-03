@@ -6,7 +6,7 @@
             <div class="space-y-0 w-full min-w-0 max-w-6xl xl:max-w-7xl 2xl:max-w-360 mx-auto flex-1">
                 <div
                     v-if="showRestartReminder"
-                    class="bg-amber-600 text-white border border-amber-500/30 p-4 sm:rounded-xl flex flex-wrap gap-3 items-center mb-3 sm:mb-4"
+                    class="bg-sem-warning text-white border border-amber-500/30 p-4 sm:rounded-xl flex flex-wrap gap-3 items-center mb-3 sm:mb-4"
                 >
                     <div class="flex items-center gap-3">
                         <MaterialDesignIcon icon-name="alert" class="w-6 h-6" />
@@ -18,7 +18,7 @@
                     <button
                         v-if="isElectron"
                         type="button"
-                        class="ml-auto inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-bold text-amber-600 hover:bg-white/90 transition shadow-xs"
+                        class="ml-auto inline-flex items-center gap-2 rounded-full bg-sem-surface px-4 py-1.5 text-sm font-bold text-sem-warning hover:bg-sem-surface transition shadow-xs"
                         @click="relaunch"
                     >
                         <MaterialDesignIcon icon-name="restart" class="w-4 h-4" />
@@ -60,7 +60,7 @@
                                 class="secondary-chip text-sm transition-shadow"
                                 :class="
                                     showRestartReminder
-                                        ? 'ring-2 ring-amber-400 shadow-lg shadow-amber-500/40 animate-pulse motion-reduce:animate-none'
+                                        ? 'ring-2 ring-sem-warning shadow-lg shadow-amber-500/40 animate-pulse motion-reduce:animate-none'
                                         : ''
                                 "
                                 :disabled="reloadingRns"
@@ -77,7 +77,7 @@
                         <div>
                             <select
                                 v-model="typeFilter"
-                                class="w-full px-4 py-2.5 bg-sem-surface border border-sem-border rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 text-sem-fg"
+                                class="w-full px-4 py-2.5 bg-sem-surface border border-sem-border rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-sem-info/50 text-sem-fg"
                             >
                                 <option value="all">{{ $t("interfaces.all_types") }}</option>
                                 <option v-for="type in sortedInterfaceTypes" :key="type" :value="type">
@@ -111,7 +111,7 @@
                                         Interfaces
                                         <span
                                             v-if="filteredInterfaces.length > 0"
-                                            class="ml-2 text-sm font-medium text-gray-400"
+                                            class="ml-2 text-sm font-medium text-sem-fg-muted"
                                             >({{ filteredInterfaces.length }})</span
                                         >
                                     </div>
@@ -163,7 +163,7 @@
                             </div>
                             <div
                                 v-else
-                                class="text-center py-10 px-4 text-gray-500 dark:text-gray-300 border border-dashed border-sem-border rounded-xl"
+                                class="text-center py-10 px-4 text-gray-500 dark:text-sem-fg-secondary border border-dashed border-sem-border rounded-xl"
                             >
                                 <MaterialDesignIcon icon-name="lan-disconnect" class="w-10 h-10 mx-auto mb-3" />
                                 <div class="text-lg font-semibold">{{ $t("interfaces.no_interfaces_found") }}</div>
@@ -181,7 +181,7 @@
                                         Recently Heard Announces
                                         <span
                                             v-if="sortedDiscoveredInterfaces.length > 0"
-                                            class="ml-2 text-sm font-medium text-gray-400"
+                                            class="ml-2 text-sm font-medium text-sem-fg-muted"
                                             >({{ sortedDiscoveredInterfaces.length }})</span
                                         >
                                     </div>
@@ -212,7 +212,7 @@
                                     <button
                                         v-if="interfacesWithLocation.length > 0"
                                         type="button"
-                                        class="secondary-chip text-xs bg-blue-500/10 hover:bg-blue-500/20 text-sem-accent border-blue-500/30"
+                                        class="secondary-chip text-xs bg-sem-warning/15 hover:bg-sem-warning/15 text-sem-accent border-blue-500/30"
                                         @click="mapAllDiscovered"
                                     >
                                         <MaterialDesignIcon icon-name="map-marker-multiple" class="w-4 h-4" />
@@ -231,7 +231,7 @@
 
                             <div
                                 v-if="sortedDiscoveredInterfaces.length === 0"
-                                class="text-sm text-gray-500 dark:text-gray-300"
+                                class="text-sm text-gray-500 dark:text-sem-fg-secondary"
                             >
                                 {{ discoveredEmptyMessage }}
                             </div>
@@ -254,7 +254,7 @@
                                         <!-- Disconnected Overlay -->
                                         <div
                                             v-if="!isDiscoveredConnected(iface)"
-                                            class="absolute inset-0 z-10 flex items-center justify-center bg-white/25 dark:bg-zinc-900/25 md:backdrop-blur-[0.5px] rounded-3xl pointer-events-none"
+                                            class="absolute inset-0 z-10 flex items-center justify-center bg-white/25 dark:bg-sem-surface md:backdrop-blur-[0.5px] rounded-3xl pointer-events-none"
                                         >
                                             <div
                                                 class="bg-sem-action-danger/90 text-sem-action-danger-text px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
@@ -298,34 +298,34 @@
                                                     </span>
                                                     <span
                                                         v-if="isDiscoveredConnected(iface)"
-                                                        class="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-emerald-900/40 dark:text-emerald-200 shrink-0"
+                                                        class="inline-flex items-center rounded-full bg-sem-success/15 text-sem-success px-2 py-0.5 text-[10px] font-semibold dark:bg-sem-success/15 text-sem-success shrink-0"
                                                     >
                                                         Connected
                                                     </span>
                                                     <span
                                                         v-if="iface.is_blacklisted"
-                                                        class="inline-flex items-center rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-red-900/40 dark:text-red-200 shrink-0"
+                                                        class="inline-flex items-center rounded-full bg-sem-danger/15 text-sem-danger px-2 py-0.5 text-[10px] font-semibold dark:bg-sem-danger/15 text-sem-danger shrink-0"
                                                     >
                                                         Blocked
                                                     </span>
                                                     <span
                                                         v-else-if="iface.is_allowed === false"
-                                                        class="inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-amber-900/40 dark:text-amber-200 shrink-0"
+                                                        class="inline-flex items-center rounded-full bg-sem-warning/15 text-sem-warning px-2 py-0.5 text-[10px] font-semibold dark:bg-sem-warning/15 dark:text-sem-warning shrink-0"
                                                     >
                                                         Not allowed
                                                     </span>
                                                 </div>
 
                                                 <div class="flex flex-wrap gap-1.5 text-[10px] sm:text-xs">
-                                                    <span class="stat-chip bg-gray-50 dark:bg-zinc-800/50"
+                                                    <span class="stat-chip bg-sem-surface-muted/50"
                                                         >Hops: {{ iface.hops }}</span
                                                     >
-                                                    <span class="stat-chip capitalize bg-gray-50 dark:bg-zinc-800/50">{{
+                                                    <span class="stat-chip capitalize bg-sem-surface-muted/50">{{
                                                         iface.status
                                                     }}</span>
                                                     <span
                                                         v-if="iface.impl_name"
-                                                        class="stat-chip bg-gray-50 dark:bg-zinc-800/50"
+                                                        class="stat-chip bg-sem-surface-muted/50"
                                                         :title="$t('interfaces.discovered_impl_hint')"
                                                     >
                                                         {{ iface.impl_name
@@ -333,16 +333,16 @@
                                                     </span>
                                                     <span
                                                         v-if="iface.last_heard"
-                                                        class="stat-chip bg-gray-50 dark:bg-zinc-800/50"
+                                                        class="stat-chip bg-sem-surface-muted/50"
                                                     >
                                                         Heard: {{ formatLastHeard(iface.last_heard) }}
                                                     </span>
                                                     <template v-if="discoveredBytes(iface)">
-                                                        <span class="stat-chip bg-gray-50 dark:bg-zinc-800/50">
+                                                        <span class="stat-chip bg-sem-surface-muted/50">
                                                             {{ $t("interface.tx") }}
                                                             {{ discoveredBytes(iface).tx }}
                                                         </span>
-                                                        <span class="stat-chip bg-gray-50 dark:bg-zinc-800/50">
+                                                        <span class="stat-chip bg-sem-surface-muted/50">
                                                             {{ $t("interface.rx") }}
                                                             {{ discoveredBytes(iface).rx }}
                                                         </span>
@@ -352,7 +352,7 @@
                                                 <div class="grid gap-1.5 text-[10px] sm:text-[11px] pt-1 min-w-0">
                                                     <div
                                                         v-if="iface.reachable_on"
-                                                        class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                        class="flex items-center gap-2 text-sem-fg-muted hover:text-sem-info cursor-pointer transition-colors min-w-0"
                                                         @click="
                                                             copyToClipboard(
                                                                 `${iface.reachable_on}:${iface.port}`,
@@ -371,7 +371,7 @@
 
                                                     <div
                                                         v-if="iface.transport_id"
-                                                        class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                        class="flex items-center gap-2 text-sem-fg-muted hover:text-sem-info cursor-pointer transition-colors min-w-0"
                                                         @click="copyToClipboard(iface.transport_id, 'Transport ID')"
                                                     >
                                                         <MaterialDesignIcon
@@ -385,7 +385,7 @@
 
                                                     <div
                                                         v-if="iface.network_id"
-                                                        class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                        class="flex items-center gap-2 text-sem-fg-muted hover:text-sem-info cursor-pointer transition-colors min-w-0"
                                                         @click="copyToClipboard(iface.network_id, 'Network ID')"
                                                     >
                                                         <MaterialDesignIcon
@@ -399,7 +399,7 @@
 
                                                     <div
                                                         v-if="discoveredNetworkName(iface)"
-                                                        class="flex items-center gap-2 text-amber-700 dark:text-amber-300 hover:text-amber-500 cursor-pointer transition-colors min-w-0"
+                                                        class="flex items-center gap-2 text-sem-warning hover:text-sem-warning cursor-pointer transition-colors min-w-0"
                                                         :title="$t('interfaces.discovered_copy_network_name')"
                                                         data-testid="discovered-network-name"
                                                         @click="
@@ -421,7 +421,7 @@
 
                                                     <div
                                                         v-if="discoveredPassphrase(iface)"
-                                                        class="flex items-center gap-2 text-amber-700 dark:text-amber-300 hover:text-amber-500 cursor-pointer transition-colors min-w-0"
+                                                        class="flex items-center gap-2 text-sem-warning hover:text-sem-warning cursor-pointer transition-colors min-w-0"
                                                         :title="$t('interfaces.discovered_copy_passphrase')"
                                                         data-testid="discovered-passphrase"
                                                         @click="
@@ -443,7 +443,7 @@
 
                                                     <div
                                                         v-if="iface.latitude != null && iface.longitude != null"
-                                                        class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                        class="flex items-center gap-2 text-sem-fg-muted hover:text-sem-info cursor-pointer transition-colors min-w-0"
                                                         @click="
                                                             copyToClipboard(
                                                                 `${iface.latitude}, ${iface.longitude}`,
@@ -481,7 +481,7 @@
                                                 >
                                                     <button
                                                         type="button"
-                                                        class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                                                        class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-sem-info/15 dark:hover:bg-sem-info/15 text-sem-info"
                                                         data-testid="use-discovered-interface"
                                                         @click="useDiscoveredInterface(iface)"
                                                     >
@@ -490,7 +490,7 @@
                                                     <button
                                                         v-if="iface.config_entry"
                                                         type="button"
-                                                        class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-sem-surface-muted text-gray-700 dark:text-gray-200"
+                                                        class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-sem-surface-muted text-sem-fg"
                                                         data-testid="copy-discovered-config"
                                                         @click="copyDiscoveredConfigEntry(iface)"
                                                     >
@@ -498,7 +498,7 @@
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300"
+                                                        class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-sem-success/15 dark:hover:bg-sem-success/15 text-sem-success"
                                                         :disabled="savingDiscoveryAction"
                                                         @click="addDiscoveredInterfaceToList(iface, 'allow')"
                                                     >
@@ -506,7 +506,7 @@
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-700 dark:text-red-300"
+                                                        class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-sem-danger/15 dark:hover:bg-sem-danger/15 text-sem-danger"
                                                         :disabled="savingDiscoveryAction"
                                                         @click="addDiscoveredInterfaceToList(iface, 'block')"
                                                     >
@@ -547,7 +547,7 @@
                                 </RouterLink>
                             </div>
                             <div class="grid gap-4 min-w-0 lg:grid-cols-2">
-                                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300 min-w-0">
+                                <div class="space-y-2 text-sm text-sem-fg min-w-0">
                                     <div class="font-semibold text-sem-fg">Publish (Server)</div>
                                     <div>
                                         Enable discovery while adding or editing an interface to broadcast reachable
@@ -576,9 +576,7 @@
                                     </div>
                                     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 min-w-0">
                                         <div>
-                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                                Allowed Sources
-                                            </div>
+                                            <div class="text-xs font-semibold text-sem-fg">Allowed Sources</div>
                                             <input
                                                 v-model="discoveryConfig.interface_discovery_sources"
                                                 type="text"
@@ -587,9 +585,7 @@
                                             />
                                         </div>
                                         <div>
-                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                                Discovery Whitelist
-                                            </div>
+                                            <div class="text-xs font-semibold text-sem-fg">Discovery Whitelist</div>
                                             <input
                                                 v-model="discoveryConfig.interface_discovery_whitelist"
                                                 type="text"
@@ -598,9 +594,7 @@
                                             />
                                         </div>
                                         <div>
-                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                                Discovery Blacklist
-                                            </div>
+                                            <div class="text-xs font-semibold text-sem-fg">Discovery Blacklist</div>
                                             <input
                                                 v-model="discoveryConfig.interface_discovery_blacklist"
                                                 type="text"
@@ -609,9 +603,7 @@
                                             />
                                         </div>
                                         <div>
-                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                                Required Stamp Value
-                                            </div>
+                                            <div class="text-xs font-semibold text-sem-fg">Required Stamp Value</div>
                                             <input
                                                 v-model.number="discoveryConfig.required_discovery_value"
                                                 type="number"
@@ -620,9 +612,7 @@
                                             />
                                         </div>
                                         <div>
-                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                                Auto-connect Slots
-                                            </div>
+                                            <div class="text-xs font-semibold text-sem-fg">Auto-connect Slots</div>
                                             <input
                                                 v-model.number="discoveryConfig.autoconnect_discovered_interfaces"
                                                 type="number"
@@ -632,7 +622,7 @@
                                             <div class="text-xs text-sem-fg-muted">0 disables auto-connect.</div>
                                         </div>
                                         <div>
-                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                            <div class="text-xs font-semibold text-sem-fg">
                                                 {{ $t("interfaces.default_gravity_label") }}
                                             </div>
                                             <input
@@ -645,7 +635,7 @@
                                             </div>
                                         </div>
                                         <div>
-                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                            <div class="text-xs font-semibold text-sem-fg">
                                                 {{ $t("interfaces.autoconnect_interface_mode_label") }}
                                             </div>
                                             <select
@@ -679,7 +669,7 @@
                                             </div>
                                         </div>
                                         <div>
-                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                            <div class="text-xs font-semibold text-sem-fg">
                                                 {{ $t("interfaces.autoconnect_interface_gravity_label") }}
                                             </div>
                                             <input
@@ -746,9 +736,7 @@
                                             </div>
                                         </div>
                                         <div>
-                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                                Network Identity Path
-                                            </div>
+                                            <div class="text-xs font-semibold text-sem-fg">Network Identity Path</div>
                                             <input
                                                 v-model="discoveryConfig.network_identity"
                                                 type="text"
@@ -781,7 +769,7 @@
 
         <RouterLink
             :to="{ name: 'interfaces.add' }"
-            class="sm:hidden fixed bottom-5 right-4 z-60 flex h-14 w-14 items-center justify-center rounded-full bg-sem-action-primary text-sem-action-primary-text shadow-lg ring-1 ring-blue-400/30 transition active:scale-95"
+            class="sm:hidden fixed bottom-5 right-4 z-60 flex h-14 w-14 items-center justify-center rounded-full bg-sem-action-primary text-sem-action-primary-text shadow-lg ring-1 ring-sem-info transition active:scale-95"
             :title="$t('interfaces.add_interface')"
         >
             <MaterialDesignIcon icon-name="plus" class="w-7 h-7" />
@@ -1794,13 +1782,13 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .interfaces-section {
-    @apply w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6;
+    @apply w-full border-b border-sem-border dark:border-sem-border py-4 sm:py-6;
 }
 .interfaces-section--hero {
-    @apply border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6;
+    @apply border-b border-sem-border dark:border-sem-border py-4 sm:py-6;
 }
 .interfaces-subpanel {
-    @apply mt-4 pt-4 border-t border-gray-200/50 dark:border-zinc-800/50 first:mt-0 first:pt-0 first:border-0;
+    @apply mt-4 pt-4 border-t border-sem-border dark:border-sem-border first:mt-0 first:pt-0 first:border-0;
 }
 .fill-up::before {
     content: "";

@@ -525,7 +525,7 @@ describe("NomadCrashTab.vue", () => {
             wrapper = mountCrashTab();
             expect(wrapper.vm.frameReady).toBe(false);
             await Promise.resolve();
-            // Boot retries fire at 8s and 16s; exhaustion surfaces 'hung' ~24s.
+            // Boot retries fire at 8s and 16s. exhaustion surfaces 'hung' ~24s.
             vi.advanceTimersByTime(25000);
             expect(wrapper.vm.status).toBe("hung");
             expect(wrapper.emitted("hung")?.length).toBe(1);
@@ -818,7 +818,7 @@ describe("NomadCrashTab.vue", () => {
             expect(wrapper.vm.frameBootRetries).toBe(2);
             expect(wrapper.vm.frameSrc).not.toBe(secondSrc);
 
-            // Retries are capped; no further reloads once exhausted.
+            // Retries are capped. no further reloads once exhausted.
             const lastSrc = wrapper.vm.frameSrc;
             await vi.advanceTimersByTimeAsync(17000);
             expect(wrapper.vm.frameBootRetries).toBe(2);

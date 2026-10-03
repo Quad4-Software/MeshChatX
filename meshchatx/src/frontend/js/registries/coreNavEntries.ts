@@ -23,19 +23,19 @@ interface NavBase {
     group?: NavGroup;
 }
 
-/** Route navigation entry — navigates to a named route. */
+/** Route navigation entry - navigates to a named route. */
 export interface RouteNavEntry extends NavBase {
     route: { name: string };
     action?: undefined;
 }
 
-/** Action navigation entry — fires an app-level action, no route. */
+/** Action navigation entry - fires an app-level action, no route. */
 export interface ActionNavEntry extends NavBase {
     action: string;
     route?: undefined;
 }
 
-/** Discriminated union — action entries have no route, route entries have no action. */
+/** Discriminated union - action entries have no route, route entries have no action. */
 export type NavEntry = RouteNavEntry | ActionNavEntry;
 
 export const CORE_NAV_ENTRIES: NavEntry[] = [
@@ -155,7 +155,7 @@ export const CORE_NAV_ENTRIES: NavEntry[] = [
         navTier: "more",
         group: "app",
     },
-    // Action entries — not routes, rendered as utility buttons in the top nav.
+    // Action entries - not routes, rendered as utility buttons in the top nav.
     {
         id: "sync-messages",
         action: "syncMessages",

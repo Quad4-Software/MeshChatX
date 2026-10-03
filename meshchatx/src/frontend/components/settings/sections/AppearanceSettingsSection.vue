@@ -251,7 +251,7 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span class="text-xs text-gray-400">0</span>
+                    <span class="text-xs text-sem-fg-muted">0</span>
                     <input
                         :value="config.ui_transparency"
                         type="range"
@@ -261,7 +261,7 @@
                         class="range-input flex-1"
                         @input="onUiTransparencyInput"
                     />
-                    <span class="text-xs text-gray-400">100</span>
+                    <span class="text-xs text-sem-fg-muted">100</span>
                 </div>
                 <div class="text-xs text-sem-fg-muted">
                     {{ $t("app.ui_transparency_description") }}
@@ -306,12 +306,7 @@
                         class="cursor-pointer rounded-lg border border-sem-border px-3 py-2 text-xs font-medium text-sem-fg-muted hover:border-sem-accent hover:text-sem-accent transition-colors"
                         :title="$t('app.ui_font_upload_tooltip')"
                     >
-                        <input
-                            type="file"
-                            accept=".woff2,.ttf,.otf"
-                            class="hidden"
-                            @change="onFontFileUpload"
-                        />
+                        <input type="file" accept=".woff2,.ttf,.otf" class="hidden" @change="onFontFileUpload" />
                         {{ $t("app.ui_font_upload") }}
                     </label>
                 </div>
@@ -421,7 +416,7 @@
                     <input
                         id="detailed-outbound-send-status"
                         type="checkbox"
-                        class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
+                        class="mt-1 rounded-sm border-sem-border dark:border-sem-border"
                         :checked="detailedOutboundSendStatus"
                         @change="$emit('detailed-outbound-send-status-change', $event)"
                     />
@@ -439,7 +434,7 @@
                     <input
                         id="outbound-transfer-progress-enabled"
                         type="checkbox"
-                        class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
+                        class="mt-1 rounded-sm border-sem-border dark:border-sem-border"
                         :checked="outboundTransferProgressEnabled"
                         @change="$emit('outbound-transfer-progress-enabled-change', $event)"
                     />
@@ -457,7 +452,7 @@
                     <input
                         id="message-timestamp-grouping"
                         type="checkbox"
-                        class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
+                        class="mt-1 rounded-sm border-sem-border dark:border-sem-border"
                         :checked="messageTimestampGroupingEnabled"
                         @change="$emit('message-timestamp-grouping-change', $event)"
                     />
@@ -550,7 +545,7 @@
                         <button
                             v-if="config.message_inbound_bubble_color"
                             type="button"
-                            class="text-[10px] text-red-500 font-bold uppercase hover:underline"
+                            class="text-[10px] text-sem-danger font-bold uppercase hover:underline"
                             @click="onInboundBubbleReset"
                         >
                             {{ $t("settings.inbound_bubble_reset") }}
@@ -566,7 +561,7 @@
                         />
                         <div
                             v-if="!config.message_inbound_bubble_color"
-                            class="flex-1 flex items-center px-3 text-xs text-gray-400 bg-sem-surface-muted rounded-xl border border-dashed border-sem-border italic"
+                            class="flex-1 flex items-center px-3 text-xs text-sem-fg-muted bg-sem-surface-muted rounded-xl border border-dashed border-sem-border italic"
                         >
                             {{ $t("settings.inbound_bubble_default_hint") }}
                             <button
@@ -692,7 +687,7 @@ export default {
             }
             const stacks = {
                 "noto-sans": '"Noto Sans", ui-sans-serif, system-ui, sans-serif',
-                "inter": '"Inter", ui-sans-serif, system-ui, sans-serif',
+                inter: '"Inter", ui-sans-serif, system-ui, sans-serif',
                 "jetbrains-mono": '"JetBrains Mono", ui-monospace, monospace',
                 "ibm-plex-sans": '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
                 "space-grotesk": '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
@@ -829,9 +824,7 @@ export default {
             const name = file.name.replace(/\.(woff2|ttf|otf)$/i, "").replace(/["\\]/g, "") || "Custom Font";
             const reader = new FileReader();
             reader.onload = () => {
-                const base64 = btoa(
-                    new Uint8Array(reader.result).reduce((s, b) => s + String.fromCharCode(b), "")
-                );
+                const base64 = btoa(new Uint8Array(reader.result).reduce((s, b) => s + String.fromCharCode(b), ""));
                 this.$emit("ui-custom-font-change", {
                     ui_font_family: "custom",
                     ui_custom_font_name: name,

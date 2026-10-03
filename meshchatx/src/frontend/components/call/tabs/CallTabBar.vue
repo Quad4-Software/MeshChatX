@@ -24,7 +24,7 @@
             Voicemail
             <span
                 v-if="unreadVoicemailsCount > 0"
-                class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse"
+                class="bg-sem-danger text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse"
                 >{{ unreadVoicemailsCount }}</span
             >
         </button>
@@ -62,8 +62,8 @@ export default {
     methods: {
         tabClass(tab) {
             return this.activeTab === tab
-                ? "border-blue-500 text-sem-accent"
-                : "border-transparent text-gray-500 hover:text-sem-fg-muted hover:text-sem-fg hover:border-gray-300";
+                ? "border-sem-accent text-sem-accent"
+                : "border-transparent text-sem-fg-muted hover:text-sem-fg-muted hover:text-sem-fg hover:border-sem-border";
         },
     },
 };

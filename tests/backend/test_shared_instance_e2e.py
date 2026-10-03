@@ -31,7 +31,7 @@ pytestmark = pytest.mark.skipif(
     reason="Set MESHCHAT_LIVE_RETICULUM=1 for live shared-instance tests",
 )
 
-DEADLINE_SLACK_S = 30  # recv deadline is 10s; allow generous margin
+DEADLINE_SLACK_S = 30  # recv deadline is 10s. allow generous margin
 
 
 def _rnsd_config(tmp: str, shared_port: int, listener_port: int) -> str:

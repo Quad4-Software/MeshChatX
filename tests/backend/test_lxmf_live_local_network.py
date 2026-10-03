@@ -956,7 +956,7 @@ def test_live_local_tcp_attachment_survives_broken_blocklist(tmp_path):
     lookups throw at advertise time; verified inside a real policy install
     on a real LXMRouter over a real TCP link.
     """
-    # ~300 KiB forces a resource transfer; packet-sized payloads never reach
+    # ~300 KiB forces a resource transfer. packet-sized payloads never reach
     # delivery_resource_advertised where the broken lookup would reject.
     secret = b"LOOKUP_ERR_SURVIVES_" + bytes(range(256)) * 1200
     result = _run_local_delivery(

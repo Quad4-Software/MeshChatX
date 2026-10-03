@@ -51,7 +51,7 @@
 
                 <div class="grid grid-cols-2 gap-2">
                     <div
-                        class="relative min-w-0 rounded-xl px-3 py-2 border border-gray-100 dark:border-zinc-700/50 bg-gray-50/60 dark:bg-zinc-800/40"
+                        class="relative min-w-0 rounded-xl px-3 py-2 border border-sem-border border-sem-border/50 bg-sem-surface-muted/80 bg-sem-surface"
                         :title="engineSelectTitle"
                     >
                         <div class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider mb-0.5">
@@ -60,7 +60,7 @@
                         <button
                             id="visualiser-engine-select"
                             type="button"
-                            class="flex w-full min-w-0 items-center gap-1 bg-transparent text-left text-xs font-bold focus:outline-hidden focus-visible:ring-1 focus-visible:ring-blue-500/50 rounded"
+                            class="flex w-full min-w-0 items-center gap-1 bg-transparent text-left text-xs font-bold focus:outline-hidden focus-visible:ring-1 focus-visible:ring-sem-info/50 rounded"
                             :class="engineSelectClass"
                             :aria-label="$t('visualiser.engine')"
                             :aria-expanded="engineMenuOpen ? 'true' : 'false'"
@@ -92,7 +92,7 @@
                                     class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-xs font-semibold transition-colors hover:bg-sem-surface-muted"
                                     :class="
                                         preferredRenderer === opt.value
-                                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
+                                            ? 'bg-sem-info/15 text-sem-info dark:bg-sem-info/15 dark:text-sem-info'
                                             : 'text-sem-fg'
                                     "
                                     :aria-selected="preferredRenderer === opt.value ? 'true' : 'false'"
@@ -109,7 +109,7 @@
                         </Teleport>
                     </div>
                     <div
-                        class="min-w-0 rounded-xl px-3 py-2 border border-gray-100 dark:border-zinc-700/50 bg-gray-50/60 dark:bg-zinc-800/40"
+                        class="min-w-0 rounded-xl px-3 py-2 border border-sem-border border-sem-border/50 bg-sem-surface-muted/80 bg-sem-surface"
                     >
                         <div class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider mb-0.5">
                             {{ $t("visualiser.fps") }}
@@ -145,7 +145,7 @@
                 <div v-if="engineMode === 'webgl'" class="flex items-center justify-between gap-2">
                     <span class="text-sm font-semibold text-sem-fg-muted">{{ $t("visualiser.view_mode") }}</span>
                     <div
-                        class="inline-flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 dark:border-zinc-700 dark:bg-zinc-800"
+                        class="inline-flex shrink-0 rounded-lg border border-sem-border bg-sem-surface-muted p-0.5 border-sem-border dark:bg-sem-surface"
                         role="group"
                         :aria-label="$t('visualiser.view_mode')"
                     >
@@ -155,7 +155,7 @@
                             class="rounded-md px-2.5 py-1 text-[11px] font-bold"
                             :class="
                                 viewMode === 'flat'
-                                    ? 'bg-white text-blue-600 shadow-xs dark:bg-zinc-700 dark:text-blue-300'
+                                    ? 'bg-sem-surface text-sem-info shadow-xs bg-sem-surface dark:text-sem-info'
                                     : 'text-sem-fg-muted'
                             "
                             :aria-pressed="viewMode === 'flat' ? 'true' : 'false'"
@@ -169,7 +169,7 @@
                             class="rounded-md px-2.5 py-1 text-[11px] font-bold"
                             :class="
                                 viewMode === 'planet'
-                                    ? 'bg-white text-blue-600 shadow-xs dark:bg-zinc-700 dark:text-blue-300'
+                                    ? 'bg-sem-surface text-sem-info shadow-xs bg-sem-surface dark:text-sem-info'
                                     : 'text-sem-fg-muted'
                             "
                             :aria-pressed="viewMode === 'planet' ? 'true' : 'false'"
@@ -192,7 +192,7 @@
                             autocomplete="off"
                             maxlength="4"
                             :aria-label="$t('visualiser.max_hops_filter')"
-                            class="w-13 shrink-0 rounded-lg border border-gray-200 bg-white px-1.5 py-1 text-center text-xs font-bold text-blue-600 tabular-nums shadow-xs focus:border-blue-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500/40 dark:border-zinc-600 dark:bg-zinc-800 dark:text-blue-400 dark:focus:border-blue-500"
+                            class="w-13 shrink-0 rounded-lg border border-sem-border bg-sem-surface px-1.5 py-1 text-center text-xs font-bold text-sem-info tabular-nums shadow-xs focus:border-sem-accent focus:outline-hidden focus:ring-1 focus:ring-sem-info/50 border-sem-border bg-sem-surface dark:text-sem-info dark:focus:border-sem-accent"
                             :value="hopMaxInputShown"
                             :placeholder="$t('visualiser.all')"
                             @focus="onHopMaxInputFocus"
@@ -208,14 +208,14 @@
                         step="1"
                         :value="hopSliderUiPos"
                         :aria-valuetext="hopSliderAriaText"
-                        class="w-full h-2 rounded-lg appearance-none cursor-pointer bg-gray-200 dark:bg-zinc-700 accent-blue-600 dark:accent-blue-500"
+                        class="w-full h-2 rounded-lg appearance-none cursor-pointer bg-sem-surface-muted accent-blue-600 dark:accent-blue-500"
                         @input="onHopSliderInput"
                     />
                 </div>
 
                 <div class="grid grid-cols-2 gap-3 pt-2">
                     <div
-                        class="bg-gray-50/50 dark:bg-zinc-800/50 rounded-xl p-3 border border-gray-100 dark:border-zinc-700/50"
+                        class="bg-sem-surface-muted/80 dark:bg-sem-surface/80 rounded-xl p-3 border border-sem-border border-sem-border/50"
                     >
                         <div class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider mb-1">
                             {{ $t("visualiser.nodes") }}
@@ -223,30 +223,30 @@
                         <div class="text-lg font-bold text-sem-accent">{{ nodeCount }}</div>
                     </div>
                     <div
-                        class="bg-gray-50/50 dark:bg-zinc-800/50 rounded-xl p-3 border border-gray-100 dark:border-zinc-700/50"
+                        class="bg-sem-surface-muted/80 dark:bg-sem-surface/80 rounded-xl p-3 border border-sem-border border-sem-border/50"
                     >
                         <div class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider mb-1">
                             {{ $t("visualiser.links") }}
                         </div>
-                        <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400">{{ edgeCount }}</div>
+                        <div class="text-lg font-bold text-sem-success">{{ edgeCount }}</div>
                     </div>
                 </div>
 
                 <div
-                    class="bg-zinc-950/5 dark:bg-white/5 rounded-xl p-3 border border-gray-100 dark:border-zinc-700/50"
+                    class="bg-sem-surface dark:bg-white/5 rounded-xl p-3 border border-sem-border border-sem-border/50"
                 >
                     <div class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider mb-2">
                         {{ $t("visualiser.interfaces") }}
                     </div>
                     <div class="flex items-center gap-4">
                         <div class="flex items-center gap-1.5">
-                            <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                            <div class="w-2 h-2 rounded-full bg-sem-success"></div>
                             <span class="text-xs font-bold text-sem-fg-muted"
                                 >{{ onlineInterfaceCount }} {{ $t("visualiser.online") }}</span
                             >
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                            <div class="w-2 h-2 rounded-full bg-sem-danger"></div>
                             <span class="text-xs font-bold text-sem-fg-muted"
                                 >{{ offlineInterfaceCount }} {{ $t("visualiser.offline") }}</span
                             >
@@ -373,9 +373,9 @@ export default {
             return this.$t("visualiser.renderer_desc");
         },
         engineSelectClass() {
-            if (this.engineMode === "webgl") return "text-sky-600 dark:text-sky-400";
-            if (this.engineMode === "wasm") return "text-emerald-600 dark:text-emerald-400";
-            if (this.engineMode === "fallback") return "text-amber-600 dark:text-amber-400";
+            if (this.engineMode === "webgl") return "text-sem-info";
+            if (this.engineMode === "wasm") return "text-sem-success";
+            if (this.engineMode === "fallback") return "text-sem-warning";
             return "text-sem-fg";
         },
         fpsDisplay() {

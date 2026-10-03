@@ -101,7 +101,7 @@ def extract_frontend_api_paths(frontend_root: Path) -> set[str]:
             if "${" in s:
                 continue
             out.add(s)
-        # apiPath("...") / apiPath(`...`) from js/constants.js
+        # apiPath("...") / apiPath(...) from js/constants.js
         for m in re.finditer(r"apiPath\(\s*[`\"']([^`\"']+)[`\"']", text):
             s = m.group(1)
             s = "/api/v1" + s

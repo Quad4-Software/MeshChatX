@@ -2,9 +2,9 @@
 
 <template>
     <div v-if="spec" class="space-y-2">
-        <div class="flex items-start justify-between gap-2 border-b border-gray-200/70 pb-2 dark:border-zinc-700/70">
+        <div class="flex items-start justify-between gap-2 border-b border-sem-border pb-2 border-sem-border/70">
             <div class="flex items-center gap-2 min-w-0">
-                <MaterialDesignIcon icon-name="battery-high" class="size-4 shrink-0 text-sky-600 dark:text-sky-400" />
+                <MaterialDesignIcon icon-name="battery-high" class="size-4 shrink-0 text-sem-info" />
                 <span class="text-[11px] font-semibold uppercase tracking-wide text-sem-fg-muted truncate">
                     {{ $t("messages.telemetry_battery_trend") }}
                 </span>
@@ -34,7 +34,7 @@
             >
                 <svg
                     ref="chartSvg"
-                    class="block h-44 w-full text-sky-600 dark:text-sky-400"
+                    class="block h-44 w-full text-sem-info"
                     :viewBox="spec.viewBox"
                     role="img"
                     :aria-label="$t('messages.telemetry_battery_trend')"
@@ -118,7 +118,7 @@
                 </svg>
                 <div
                     v-if="hover"
-                    class="pointer-events-none absolute z-10 rounded-md border border-sky-200/90 bg-white/95 px-2 py-1 text-[10px] font-semibold tabular-nums text-sky-900 shadow-md dark:border-sky-800 dark:bg-zinc-900/95 dark:text-sky-100"
+                    class="pointer-events-none absolute z-10 rounded-md border border-sem-info bg-sem-surface px-2 py-1 text-[10px] font-semibold tabular-nums text-sky-900 shadow-md dark:border-sem-info dark:bg-sem-surface dark:text-sky-100"
                     :style="hoverTipStyle"
                 >
                     <div>{{ hover.pct }}%</div>

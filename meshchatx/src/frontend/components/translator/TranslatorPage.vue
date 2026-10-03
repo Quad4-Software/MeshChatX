@@ -14,7 +14,7 @@
             <div class="w-full max-w-4xl mx-auto">
                 <div class="fused-panel">
                     <div class="fused-section space-y-4">
-                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                        <div class="text-sm font-semibold text-sem-fg">
                             {{ $t("translator.pack_library") }}
                         </div>
                         <p class="text-sm text-sem-fg-muted">

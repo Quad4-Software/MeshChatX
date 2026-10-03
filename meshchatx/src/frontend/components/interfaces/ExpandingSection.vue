@@ -2,7 +2,7 @@
 
 <template>
     <div
-        class="bg-white rounded-sm shadow-sm divide-y divide-gray-300 dark:divide-zinc-700 dark:bg-zinc-900 overflow-hidden"
+        class="bg-sem-surface rounded-sm shadow-sm divide-y divide-gray-300 dark:divide-zinc-700 dark:bg-sem-surface overflow-hidden"
     >
         <div
             class="flex p-2 justify-between cursor-pointer hover:bg-sem-surface-muted"

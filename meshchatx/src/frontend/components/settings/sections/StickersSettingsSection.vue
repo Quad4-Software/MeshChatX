@@ -8,10 +8,10 @@
         :description="$t('stickers.settings_description')"
         body-class="space-y-4"
     >
-        <div class="text-sm text-gray-600 dark:text-gray-400">
+        <div class="text-sm text-sem-fg-muted">
             {{ $t("stickers.count", { count: stickerCount }) }}
         </div>
-        <label class="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer">
+        <label class="flex items-center gap-2 text-sm text-sem-fg cursor-pointer">
             <input
                 :checked="replaceDuplicates"
                 type="checkbox"
@@ -23,18 +23,24 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
                 type="button"
-                class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-amber-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-amber-500 transition group"
+                class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-sem-warning dark:border-sem-border bg-white/50 dark:bg-sem-surface/80 hover:border-sem-warning transition group"
                 @click="$emit('export')"
             >
-                <MaterialDesignIcon icon-name="export" class="size-6 text-amber-500 group-hover:scale-110 transition" />
+                <MaterialDesignIcon
+                    icon-name="export"
+                    class="size-6 text-sem-warning group-hover:scale-110 transition"
+                />
                 <div class="text-sm font-bold">{{ $t("stickers.export") }}</div>
             </button>
             <button
                 type="button"
-                class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-teal-500 transition group"
+                class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-sem-success dark:border-sem-border bg-white/50 dark:bg-sem-surface/80 hover:border-sem-success transition group"
                 @click="triggerImport"
             >
-                <MaterialDesignIcon icon-name="import" class="size-6 text-teal-500 group-hover:scale-110 transition" />
+                <MaterialDesignIcon
+                    icon-name="import"
+                    class="size-6 text-sem-success group-hover:scale-110 transition"
+                />
                 <div class="text-sm font-bold">{{ $t("stickers.import") }}</div>
             </button>
             <input

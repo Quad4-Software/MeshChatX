@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 
 /**
- * Server-provided app config. All keys are optional — the server may send
+ * Server-provided app config. All keys are optional - the server may send
  * any subset, and mergeConfig overlays onto the defaults.
  */
 export interface Config {

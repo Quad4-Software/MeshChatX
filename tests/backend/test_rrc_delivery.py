@@ -132,7 +132,7 @@ def test_failed_message_auto_retries_once_on_rejoin(tmp_path):
     hub._handle_joined(env)
     assert msg.delivery == "sent"  # loopback echo confirmed the retry
 
-    # A second JOINED must not resend; the one-shot flag is set.
+    # A second JOINED must not resend. the one-shot flag is set.
     own_mid = msg.mid
     hub._pending_joins.add("general")
     env = proto.make_envelope(

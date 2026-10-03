@@ -17,7 +17,7 @@ export function prewarmEmojiPicker() {
             const db = new Database({ dataSource: emojiPickerEnDataUrl });
             await db.ready();
         } catch {
-            // Prewarm is best-effort; the picker lazily loads on open anyway.
+            // Prewarm is best-effort. the picker lazily loads on open anyway.
         }
     };
     if (typeof requestIdleCallback === "function") {
