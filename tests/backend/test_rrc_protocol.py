@@ -484,6 +484,89 @@ def test_history_is_persisted_and_reloaded(tmp_path):
     assert any(m.text == "persisted text" for m in messages)
 
 
+def test_inbound_replay_by_envelope_id_is_dropped(tmp_path):
+    """A hub redelivering an already recorded envelope must not duplicate it."""
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.add_room("lobby")
+    env = proto.make_envelope(
+        proto.T_MSG,
+        src=b"\x30" * 16,
+        room="lobby",
+        nick="dave",
+        body="hello mesh",
+    )
+    hub._handle_msg(env)
+    hub._handle_msg(env)
+    assert len(hub.get_messages("lobby")) == 1
+
+
+def test_inbound_replay_keeps_sender_timestamp(tmp_path):
+    """Replayed envelopes carry the original send time, not receipt time."""
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.add_room("lobby")
+    old_ts = proto.now_ms() - 3_600_000
+    env = proto.make_envelope(
+        proto.T_MSG,
+        src=b"\x30" * 16,
+        room="lobby",
+        nick="dave",
+        body="older text",
+        ts=old_ts,
+    )
+    hub._handle_msg(env)
+    [msg] = hub.get_messages("lobby")
+    assert msg.ts == old_ts
+
+
+def test_replay_dedupes_against_loaded_history(tmp_path):
+    """A replay after restart matches the history row by mid or content."""
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.add_room("lobby")
+    env = proto.make_envelope(
+        proto.T_MSG,
+        src=b"\x30" * 16,
+        room="lobby",
+        nick="dave",
+        body="restart dupe",
+    )
+    hub._handle_msg(env)
+
+    reloaded = make_manager(tmp_path)
+    reloaded.load()
+    loaded_hub = reloaded.hubs[0]
+    # Simulate a reconnect replay of the same envelope.
+    loaded_hub._handle_msg(env)
+    assert len(loaded_hub.get_messages("lobby")) == 1
+
+
+def test_distinct_messages_with_same_text_are_kept(tmp_path):
+    """Two real sends of identical text arrive later and are not suppressed."""
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.add_room("lobby")
+    first = proto.make_envelope(
+        proto.T_MSG,
+        src=b"\x30" * 16,
+        room="lobby",
+        nick="dave",
+        body="same words",
+        ts=proto.now_ms() - 1000,
+    )
+    second = proto.make_envelope(
+        proto.T_MSG,
+        src=b"\x30" * 16,
+        room="lobby",
+        nick="dave",
+        body="same words",
+    )
+    hub._handle_msg(first)
+    hub._handle_msg(second)
+    assert len(hub.get_messages("lobby")) == 2
+
+
 def test_status_serialization(tmp_path):
     manager = make_manager(tmp_path)
     hub = manager.add_hub(bytes(range(16)))

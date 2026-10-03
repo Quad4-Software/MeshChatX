@@ -83,6 +83,7 @@ H_TS = "ts"
 H_MENTION = "m"
 H_EVENT = "e"
 H_DELIVERY = "d"
+H_MID = "id"
 
 # Own messages are confirmed when the hub relays the echo back. Links are
 # reliable transport, so a missing echo past this window means the hub
@@ -142,6 +143,11 @@ class RRCHub:
         self._lock = threading.RLock()
         self._resource_expectations = {}
         self._sent_ids = deque(maxlen=256)
+        # Hubs redeliver held envelopes on reconnect. Envelope ids seen this
+        # session let _handle_chat drop replays before they reach the room
+        # buffer; the content key check in _record_message catches replays
+        # whose ids differ or whose originals were loaded from history.
+        self._seen_envelope_ids = deque(maxlen=2048)
 
         self._hello_thread = None
         self._stop_hello = threading.Event()
@@ -1116,6 +1122,9 @@ class RRCHub:
             H_MENTION: bool(getattr(msg, "mention", False)),
             H_EVENT: getattr(msg, "event", None),
             H_DELIVERY: getattr(msg, "delivery", None),
+            H_MID: bytes(msg.mid)
+            if isinstance(getattr(msg, "mid", None), (bytes, bytearray))
+            else None,
         }
 
     def _msg_from_entry(self, room, entry):
@@ -1134,6 +1143,9 @@ class RRCHub:
         m.mention = bool(entry.get(H_MENTION, False))
         event = entry.get(H_EVENT)
         m.event = event if isinstance(event, str) and event else None
+        mid = entry.get(H_MID)
+        if isinstance(mid, (bytes, bytearray)):
+            m.mid = bytes(mid)
         delivery = entry.get(H_DELIVERY)
         if delivery in ("sent", "failed"):
             m.delivery = delivery
@@ -1284,11 +1296,50 @@ class RRCHub:
                     RNS.LOG_ERROR,
                 )
 
+    def _room_has_duplicate(self, buf, msg):
+        """True when buf already holds this envelope.
+
+        Replays keep the sender timestamp, so an identical row at an equal or
+        earlier ts is a redelivery. A row recorded before sender timestamps
+        were honoured still has a later receipt ts and matches the same way.
+        Locally sent rows carry no mid and are recorded through local=True,
+        which skips this check entirely.
+        """
+        mid = (
+            msg.mid
+            if isinstance(getattr(msg, "mid", None), (bytes, bytearray))
+            else None
+        )
+        for m in buf:
+            m_mid = getattr(m, "mid", None)
+            if (
+                mid is not None
+                and isinstance(m_mid, (bytes, bytearray))
+                and bytes(m_mid) == mid
+            ):
+                return True
+            src_same = (m.src == msg.src) or (
+                isinstance(m.src, (bytes, bytearray))
+                and isinstance(msg.src, (bytes, bytearray))
+                and bytes(m.src) == bytes(msg.src)
+            )
+            if (
+                m.kind == msg.kind
+                and m.nick == msg.nick
+                and m.text == msg.text
+                and src_same
+                and msg.ts <= m.ts
+            ):
+                return True
+        return False
+
     def _record_message(self, msg, local=False):
         cap = self._per_room_cap()
         with self._lock:
-            msg.seq = self._next_seq()
             buf = self.messages.setdefault(msg.room or "*", [])
+            if not local and self._room_has_duplicate(buf, msg):
+                return
+            msg.seq = self._next_seq()
             buf.append(msg)
             if cap is not None and len(buf) > cap:
                 del buf[: len(buf) - cap]
@@ -1571,6 +1622,7 @@ class RRCHub:
         src = env.get(proto.K_SRC)
         nick = env.get(proto.K_NICK)
         mid = env.get(proto.K_ID)
+        ts = env.get(proto.K_TS)
         own_hash = self._own_hash()
         is_own = (
             isinstance(src, (bytes, bytearray))
@@ -1583,20 +1635,35 @@ class RRCHub:
                 own_echo = bytes(mid) in self._sent_ids
         if own_echo:
             self._confirm_delivery(bytes(mid))
+            with self._lock:
+                self._seen_envelope_ids.append(bytes(mid))
             return
+        if isinstance(mid, (bytes, bytearray)):
+            with self._lock:
+                if bytes(mid) in self._seen_envelope_ids:
+                    # Redelivery of an already recorded envelope.
+                    return
+                self._seen_envelope_ids.append(bytes(mid))
         if isinstance(src, (bytes, bytearray)) and isinstance(nick, str) and nick:
             with self._lock:
                 self.nicks[bytes(src)] = nick
         if not isinstance(body, str):
             return
+        msg_ts = (
+            ts
+            if isinstance(ts, int) and 0 < ts <= proto.now_ms() + 300_000
+            else proto.now_ms()
+        )
         msg = proto.RRCMessage(
             kind,
             room.strip().lower() if isinstance(room, str) else None,
             bytes(src) if isinstance(src, (bytes, bytearray)) else None,
             nick if isinstance(nick, str) else None,
             body,
-            proto.now_ms(),
+            msg_ts,
         )
+        if isinstance(mid, (bytes, bytearray)):
+            msg.mid = bytes(mid)
         if not is_own and proto.text_mentions(body, self.get_effective_nick()):
             msg.mention = True
         self._record_message(msg)
@@ -1691,19 +1758,33 @@ class RRCHub:
             if silent_who:
                 return
 
+        mid = env.get(proto.K_ID)
+        ts = env.get(proto.K_TS)
+        if isinstance(mid, (bytes, bytearray)):
+            with self._lock:
+                if bytes(mid) in self._seen_envelope_ids:
+                    return
+                self._seen_envelope_ids.append(bytes(mid))
         room_n = room.strip().lower() if isinstance(room, str) else None
         if room_n is None and isinstance(body, str) and body.strip() and is_hub_src:
             with self._lock:
                 self.motd = body
             self.manager._notify_change(self)
+        msg_ts = (
+            ts
+            if isinstance(ts, int) and 0 < ts <= proto.now_ms() + 300_000
+            else proto.now_ms()
+        )
         msg = proto.RRCMessage(
             "notice",
             room_n,
             bytes(src) if isinstance(src, (bytes, bytearray)) else None,
             None,
             body,
-            proto.now_ms(),
+            msg_ts,
         )
+        if isinstance(mid, (bytes, bytearray)):
+            msg.mid = bytes(mid)
         self._record_notice(msg)
 
     def _handle_error(self, env):
