@@ -11,19 +11,19 @@
     </div>
     <div
         v-else-if="iconName"
-        class="p-[10%] rounded-full shrink-0 flex items-center justify-center"
+        class="rounded-full shrink-0 flex items-center justify-center"
         :style="[iconStyle, { 'background-color': finalBackgroundColor }]"
         :class="resolvedShellClass"
     >
-        <MaterialDesignIcon :icon-name="iconName" class="size-full" :style="{ color: finalForegroundColor }" />
+        <MaterialDesignIcon :icon-name="iconName" class="w-[70%] h-[70%]" :style="{ color: finalForegroundColor }" />
     </div>
     <div
         v-else
-        class="bg-sem-surface-muted text-sem-fg-muted p-[10%] rounded-full shrink-0 flex items-center justify-center border border-sem-border"
+        class="bg-sem-surface-muted text-sem-fg-muted rounded-full shrink-0 flex items-center justify-center border border-sem-border"
         :class="resolvedShellClass"
         :style="[iconStyle, { 'background-color': fallbackBackgroundColor }]"
     >
-        <MaterialDesignIcon icon-name="account" class="w-full h-full" />
+        <MaterialDesignIcon icon-name="account" class="w-[70%] h-[70%]" />
     </div>
 </template>
 
