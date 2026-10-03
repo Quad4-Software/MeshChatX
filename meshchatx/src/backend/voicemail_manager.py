@@ -296,7 +296,9 @@ class VoicemailManager:
                             RNS.LOG_DEBUG,
                         )
 
-        threading.Thread(target=voicemail_job, daemon=True, name="mcx-voicemail").start()
+        threading.Thread(
+            target=voicemail_job, daemon=True, name="mcx-voicemail"
+        ).start()
 
     def start_voicemail_session(self, caller_identity):
         telephone = self.telephone_manager.telephone

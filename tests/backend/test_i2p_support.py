@@ -517,7 +517,9 @@ def test_i2p_peer_inherits_configured_mode():
                     reticulum._default_ic_burst_penalty.return_value = None
                     reticulum._default_ic_held_release_interval.return_value = None
                     reticulum.should_use_ingress_control.return_value = False
-                    with patch.object(RNS.Reticulum, "get_instance", return_value=reticulum):
+                    with patch.object(
+                        RNS.Reticulum, "get_instance", return_value=reticulum
+                    ):
                         iface = I2PInterface(reticulum, config_section)
                     from RNS.Interfaces.Interface import Interface
 

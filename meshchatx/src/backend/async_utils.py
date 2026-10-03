@@ -123,10 +123,8 @@ class AsyncUtils:
             # No loop available (early teardown, tests), so keep the old
             # behaviour and run the task on a dedicated thread.
             thread = threading.Thread(
-                target=asyncio.run,
-                args=(coroutine,),
-                daemon=True,
-            name="mcx-async")
+                target=asyncio.run, args=(coroutine,), daemon=True, name="mcx-async"
+            )
             thread.start()
             return thread
 

@@ -486,7 +486,8 @@ class RNXSession:
             target=self._waiter_loop,
             args=(started_process,),
             daemon=True,
-        name="mcx-rnx")
+            name="mcx-rnx",
+        )
         waiter.start()
 
         return self.to_dict(include_output_tail=True)

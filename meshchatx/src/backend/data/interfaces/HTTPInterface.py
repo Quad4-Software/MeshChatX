@@ -646,7 +646,9 @@ class HTTPTunnelInterface(Interface):
                     if RNS.Reticulum.panic_on_interface_error:
                         RNS.panic()
 
-        self._server_thread = threading.Thread(target=run_server, daemon=True, name="mcx-http-iface")
+        self._server_thread = threading.Thread(
+            target=run_server, daemon=True, name="mcx-http-iface"
+        )
         self._server_thread.start()
         self._start_receive_loop()
         self.online = True
@@ -688,7 +690,9 @@ class HTTPTunnelInterface(Interface):
             finally:
                 loop.close()
 
-        self._server_thread = threading.Thread(target=run_server, daemon=True, name="mcx-http-iface")
+        self._server_thread = threading.Thread(
+            target=run_server, daemon=True, name="mcx-http-iface"
+        )
         self._server_thread.start()
         self._start_receive_loop()
         self.online = True
@@ -699,7 +703,9 @@ class HTTPTunnelInterface(Interface):
         )
 
     def _start_receive_loop(self):
-        thread = threading.Thread(target=self.receive_loop, daemon=True, name="mcx-http-iface")
+        thread = threading.Thread(
+            target=self.receive_loop, daemon=True, name="mcx-http-iface"
+        )
         thread.start()
 
     def setup_client(self):
@@ -732,7 +738,9 @@ class HTTPTunnelInterface(Interface):
                 timeout=httpx.Timeout(5.0),
             )
 
-        thread = threading.Thread(target=self.client_loop, daemon=True, name="mcx-http-iface")
+        thread = threading.Thread(
+            target=self.client_loop, daemon=True, name="mcx-http-iface"
+        )
         thread.start()
         self.online = True
         RNS.log(
@@ -886,7 +894,9 @@ class HTTPTunnelInterface(Interface):
                         except Exception:
                             pass
 
-                    threading.Thread(target=_shutdown, daemon=True, name="mcx-http-iface").start()
+                    threading.Thread(
+                        target=_shutdown, daemon=True, name="mcx-http-iface"
+                    ).start()
 
                 if hasattr(self, "_server_thread") and self._server_thread:
                     self._server_thread.join(timeout=2)

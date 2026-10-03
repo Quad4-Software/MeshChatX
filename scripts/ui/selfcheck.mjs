@@ -15,7 +15,7 @@
  *   node scripts/ui/selfcheck.mjs --routes /map,/tools # subset
  */
 
-import { chromium } from "playwright";
+import { chromium } from "@playwright/test";
 
 const args = process.argv.slice(2);
 function argValue(flag, fallback) {

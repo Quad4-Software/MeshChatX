@@ -191,7 +191,9 @@ def hash_url(url: str, hasher: PieceHasher, expected: int) -> None:
         raise RuntimeError(f"size mismatch for {url}: got {got} expected {expected}")
 
 
-def magnet_link(infohash: str, name: str, webseeds: list[str], trackers: tuple[str, ...]) -> str:
+def magnet_link(
+    infohash: str, name: str, webseeds: list[str], trackers: tuple[str, ...]
+) -> str:
     parts = [f"magnet:?xt=urn:btih:{infohash}", f"dn={urllib.parse.quote(name)}"]
     parts.extend(f"tr={urllib.parse.quote(tr, safe='')}" for tr in trackers)
     parts.extend(f"ws={urllib.parse.quote(ws, safe='')}" for ws in webseeds)
@@ -235,12 +237,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     src = p.add_mutually_exclusive_group(required=True)
     src.add_argument("--dir", type=Path, help="local directory of release assets")
-    src.add_argument("--from-release", metavar="TAG", help="hash assets from GitHub and CDN")
+    src.add_argument(
+        "--from-release", metavar="TAG", help="hash assets from GitHub and CDN"
+    )
     p.add_argument("--tag", help="release tag, default from --from-release")
     p.add_argument("--track", choices=("release", "beta", "testing"), default="release")
-    p.add_argument("--cdn-only", action="store_true", help="keep files that exist on the CDN")
+    p.add_argument(
+        "--cdn-only", action="store_true", help="keep files that exist on the CDN"
+    )
     p.add_argument("--out", type=Path, help="torrent output path")
-    p.add_argument("--meta", type=Path, help="optional json sidecar with magnet and infohash")
+    p.add_argument(
+        "--meta", type=Path, help="optional json sidecar with magnet and infohash"
+    )
     return p.parse_args(argv)
 
 

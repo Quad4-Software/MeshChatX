@@ -184,11 +184,16 @@ class TestMarkdownRenderer(unittest.TestCase):
         self.assertNotIn("<a", r)
 
     def test_image_img_base_rewrites_relative_src(self):
-        r = MarkdownRenderer.render("![a](assets/x.webp)", img_base="/meshchatx-docs/en/")
+        r = MarkdownRenderer.render(
+            "![a](assets/x.webp)", img_base="/meshchatx-docs/en/"
+        )
         self.assertIn('src="/meshchatx-docs/en/assets/x.webp"', r)
 
     def test_image_img_base_leaves_absolute_and_remote_src(self):
-        r = MarkdownRenderer.render("![a](/abs/x.webp) ![b](https://e.io/x.webp)", img_base="/meshchatx-docs/en/")
+        r = MarkdownRenderer.render(
+            "![a](/abs/x.webp) ![b](https://e.io/x.webp)",
+            img_base="/meshchatx-docs/en/",
+        )
         self.assertIn('src="/abs/x.webp"', r)
         self.assertIn('src="https://e.io/x.webp"', r)
 
@@ -198,7 +203,12 @@ class TestMarkdownRenderer(unittest.TestCase):
         self.assertNotIn("<img", r)
 
     def test_scheme_whitespace_bypass_neutralized(self):
-        for payload in ("java\tscript:alert(1)", "java\nscript:alert(1)", "java\x0bscript:alert(1)", "ja va\rscript:alert(1)"):
+        for payload in (
+            "java\tscript:alert(1)",
+            "java\nscript:alert(1)",
+            "java\x0bscript:alert(1)",
+            "ja va\rscript:alert(1)",
+        ):
             r = MarkdownRenderer.render(f"[x]({payload})")
             self.assertNotIn('href="java', r, payload)
             self.assertIn('href="#"', r)

@@ -77,15 +77,22 @@ def test_local_dir_builds_webseed_torrent(torrent: ModuleType, tmp_path: Path) -
         files=[(a.name, 100), (b.name, 40)],
         pieces=pieces,
     )
-    assert hashlib.sha1(torrent.bencode({
-        "name": "v0.0.0",
-        "piece length": torrent.PIECE_LENGTH,
-        "pieces": pieces,
-        "files": [
-            {"length": 100, "path": [a.name]},
-            {"length": 40, "path": [b.name]},
-        ],
-    })).hexdigest() == infohash
+    assert (
+        hashlib.sha1(
+            torrent.bencode(
+                {
+                    "name": "v0.0.0",
+                    "piece length": torrent.PIECE_LENGTH,
+                    "pieces": pieces,
+                    "files": [
+                        {"length": 100, "path": [a.name]},
+                        {"length": 40, "path": [b.name]},
+                    ],
+                }
+            )
+        ).hexdigest()
+        == infohash
+    )
 
 
 def test_workflow_builds_torrent_before_upload() -> None:

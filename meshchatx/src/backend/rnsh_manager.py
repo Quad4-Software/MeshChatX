@@ -496,14 +496,17 @@ class RNSHSession:
         self.manager._on_session_change(self)
         self.manager.save()
 
-        reader = threading.Thread(target=self._reader_loop, daemon=True, name="mcx-rnsh")
+        reader = threading.Thread(
+            target=self._reader_loop, daemon=True, name="mcx-rnsh"
+        )
         reader.start()
 
         waiter = threading.Thread(
             target=self._waiter_loop,
             args=(started_process,),
             daemon=True,
-        name="mcx-rnsh")
+            name="mcx-rnsh",
+        )
         waiter.start()
 
         return self.to_dict(include_output_tail=True)

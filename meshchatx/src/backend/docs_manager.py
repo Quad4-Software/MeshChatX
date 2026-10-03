@@ -624,7 +624,9 @@ class DocsManager:
                 # docs can ship sibling assets (docs/en/assets/x.webp) and have
                 # them render in-app while staying relative for web readers.
                 doc_dir = posixpath.dirname(path)
-                img_base = f"/meshchatx-docs/{doc_dir}/" if doc_dir else "/meshchatx-docs/"
+                img_base = (
+                    f"/meshchatx-docs/{doc_dir}/" if doc_dir else "/meshchatx-docs/"
+                )
                 return {
                     "content": content,
                     "html": MarkdownRenderer.render(content, img_base=img_base),
