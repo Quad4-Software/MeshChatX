@@ -785,6 +785,7 @@
         "open": "Open",
         "close": "Close",
         "cancel": "Cancel",
+        "done": "Done",
         "select": "Select",
         "save": "Save",
         "block": "Banish",
@@ -2081,6 +2082,18 @@
         "failed": "Failed",
         "rejected": "Rejected",
         "attachments": "Attachments",
+        "filter_favourites": "Favourites",
+        "filter_direct": "Direct",
+        "filter_nearby": "Nearby",
+        "filter_pinned": "Pinned",
+        "filter_blocked": "Blocked",
+        "more_filters": "More filters",
+        "filters_edit": "Edit filters",
+        "filters_edit_title": "Sidebar filters",
+        "filters_edit_hint": "Toggle the filters shown as chips. Drag a row to change chip order.",
+        "filters_add_chip": "Edit filter chips",
+        "filter_shown_in_bar": "Shown as a chip",
+        "filter_hidden_in_bar": "Hidden from chips, still usable from the filter menu",
         "folders": "Folders",
         "all_messages": "All messages",
         "uncategorized": "Uncategorized",
@@ -2433,7 +2446,9 @@
         "conversation_files_other": "{name} sent {count} files",
         "message_not_found_in_cache": "Message not found in cache",
         "scroll_to_bottom": "Scroll to bottom",
-        "copied_to_clipboard": "Copied to clipboard"
+        "copied_to_clipboard": "Copied to clipboard",
+        "filter_move_up": "Move filter up",
+        "filter_move_down": "Move filter down"
     },
     "settings": {
         "tabs": {

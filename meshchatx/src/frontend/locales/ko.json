@@ -836,7 +836,8 @@
         "copy_text": "텍스트 복사",
         "settings": "설정",
         "saved": "저장됨",
-        "copy_failed": "복사 실패"
+        "copy_failed": "복사 실패",
+        "done": "완료"
     },
     "stickers": {
         "settings_title": "스티커",
@@ -2433,7 +2434,21 @@
         "conversation_files_other": "{name}님이 파일 {count}개를 보냈습니다",
         "message_not_found_in_cache": "캐시에서 메시지를 찾을 수 없습니다",
         "scroll_to_bottom": "맨 아래로 스크롤",
-        "copied_to_clipboard": "클립보드에 복사되었습니다"
+        "copied_to_clipboard": "클립보드에 복사되었습니다",
+        "filter_favourites": "즐겨찾기",
+        "filter_direct": "직접 연결",
+        "filter_nearby": "근처",
+        "filter_pinned": "고정됨",
+        "filter_blocked": "차단됨",
+        "more_filters": "추가 필터",
+        "filters_edit": "필터 편집",
+        "filters_edit_title": "사이드바 필터",
+        "filters_edit_hint": "칩으로 표시할 필터를 선택하세요. 행을 드래그해 순서를 바꿀 수 있습니다.",
+        "filters_add_chip": "필터 칩 편집",
+        "filter_shown_in_bar": "칩으로 표시",
+        "filter_hidden_in_bar": "칩 숨김, 필터 메뉴에서 사용 가능",
+        "filter_move_up": "필터 위로 이동",
+        "filter_move_down": "필터 아래로 이동"
     },
     "settings": {
         "tabs": {

@@ -351,7 +351,7 @@ select.input-field {
 }
 
 .search-input-compact {
-    @apply py-1.5 pl-9 pr-8 text-xs rounded-lg;
+    @apply py-1.5 pl-9 pr-8 text-xs rounded-full;
 }
 
 /* Semantic range slider — accent thumb, muted track */

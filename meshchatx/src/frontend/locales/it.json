@@ -836,7 +836,8 @@
         "copy_text": "Copia testo",
         "settings": "Impostazioni",
         "saved": "Salvato",
-        "copy_failed": "Copia non riuscita"
+        "copy_failed": "Copia non riuscita",
+        "done": "Fatto"
     },
     "stickers": {
         "settings_title": "Sticker",
@@ -2433,7 +2434,21 @@
         "conversation_files_other": "{name} ha inviato {count} file",
         "message_not_found_in_cache": "Messaggio non trovato nella cache",
         "scroll_to_bottom": "Scorri in basso",
-        "copied_to_clipboard": "Copiato negli appunti"
+        "copied_to_clipboard": "Copiato negli appunti",
+        "filter_favourites": "Preferiti",
+        "filter_direct": "Diretti",
+        "filter_nearby": "Vicini",
+        "filter_pinned": "Aggiunti",
+        "filter_blocked": "Bloccati",
+        "more_filters": "Altri filtri",
+        "filters_edit": "Modifica filtri",
+        "filters_edit_title": "Filtri della barra laterale",
+        "filters_edit_hint": "Scegli quali filtri mostrare come chip. Trascina una riga per cambiare l'ordine.",
+        "filters_add_chip": "Modifica chip dei filtri",
+        "filter_shown_in_bar": "Mostrato come chip",
+        "filter_hidden_in_bar": "Nessun chip, disponibile dal menu filtri",
+        "filter_move_up": "Sposta filtro su",
+        "filter_move_down": "Sposta filtro giù"
     },
     "settings": {
         "tabs": {

@@ -836,7 +836,8 @@
         "copy_text": "Tekst kopiëren",
         "settings": "Instellingen",
         "saved": "Opgeslagen",
-        "copy_failed": "Kopiëren mislukt"
+        "copy_failed": "Kopiëren mislukt",
+        "done": "Klaar"
     },
     "stickers": {
         "settings_title": "Stickers",
@@ -2433,7 +2434,21 @@
         "conversation_files_other": "{name} heeft {count} bestanden gestuurd",
         "message_not_found_in_cache": "Bericht niet gevonden in cache",
         "scroll_to_bottom": "Scroll naar beneden",
-        "copied_to_clipboard": "Naar klembord gekopieerd"
+        "copied_to_clipboard": "Naar klembord gekopieerd",
+        "filter_favourites": "Favorieten",
+        "filter_direct": "Direct",
+        "filter_nearby": "In de buurt",
+        "filter_pinned": "Vastgezet",
+        "filter_blocked": "Geblokkeerd",
+        "more_filters": "Meer filters",
+        "filters_edit": "Filters bewerken",
+        "filters_edit_title": "Zijbalkfilters",
+        "filters_edit_hint": "Kies welke filters als chips worden getoond. Sleep een rij om de volgorde te wijzigen.",
+        "filters_add_chip": "Filterchips bewerken",
+        "filter_shown_in_bar": "Getoond als chip",
+        "filter_hidden_in_bar": "Geen chip, wel beschikbaar in het filtermenu",
+        "filter_move_up": "Filter omhoog",
+        "filter_move_down": "Filter omlaag"
     },
     "settings": {
         "tabs": {

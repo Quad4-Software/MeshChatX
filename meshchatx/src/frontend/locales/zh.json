@@ -836,7 +836,8 @@
         "copy_text": "复制文本",
         "settings": "设置",
         "saved": "已保存",
-        "copy_failed": "复制失败"
+        "copy_failed": "复制失败",
+        "done": "完成"
     },
     "stickers": {
         "settings_title": "贴纸",
@@ -2433,7 +2434,21 @@
         "conversation_files_other": "{name} 发送了 {count} 个文件",
         "message_not_found_in_cache": "缓存中未找到消息",
         "scroll_to_bottom": "滚动到底部",
-        "copied_to_clipboard": "已复制到剪贴板"
+        "copied_to_clipboard": "已复制到剪贴板",
+        "filter_favourites": "收藏",
+        "filter_direct": "直连",
+        "filter_nearby": "附近",
+        "filter_pinned": "已置顶",
+        "filter_blocked": "已屏蔽",
+        "more_filters": "更多筛选",
+        "filters_edit": "编辑筛选器",
+        "filters_edit_title": "侧边栏筛选器",
+        "filters_edit_hint": "切换要显示为筛选标签的筛选器。拖动行可更改顺序。",
+        "filters_add_chip": "编辑筛选标签",
+        "filter_shown_in_bar": "显示为标签",
+        "filter_hidden_in_bar": "不显示为标签，仍可在筛选菜单中使用",
+        "filter_move_up": "上移筛选器",
+        "filter_move_down": "下移筛选器"
     },
     "settings": {
         "tabs": {

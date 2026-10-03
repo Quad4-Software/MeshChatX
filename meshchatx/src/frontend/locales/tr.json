@@ -836,7 +836,8 @@
         "copy_text": "Metni Kopyala",
         "settings": "Ayarlar",
         "saved": "Kaydedildi",
-        "copy_failed": "Kopyalama başarısız oldu"
+        "copy_failed": "Kopyalama başarısız oldu",
+        "done": "Bitti"
     },
     "stickers": {
         "settings_title": "Çıkartmalar",
@@ -2433,7 +2434,21 @@
         "conversation_files_other": "{name} {count} dosya gönderdi",
         "message_not_found_in_cache": "İleti önbellekte bulunamadı",
         "scroll_to_bottom": "En alta kaydır",
-        "copied_to_clipboard": "Panoya kopyalandı"
+        "copied_to_clipboard": "Panoya kopyalandı",
+        "filter_favourites": "Favoriler",
+        "filter_direct": "Doğrudan",
+        "filter_nearby": "Yakındakiler",
+        "filter_pinned": "Sabitlenmiş",
+        "filter_blocked": "Yasaklılar",
+        "more_filters": "Daha fazla filtre",
+        "filters_edit": "Filtreleri düzenle",
+        "filters_edit_title": "Kenar çubuğu filtreleri",
+        "filters_edit_hint": "Çip olarak gösterilecek filtreleri seçin. Sıralamayı değiştirmek için satırı sürükleyin.",
+        "filters_add_chip": "Filtre çiplerini düzenle",
+        "filter_shown_in_bar": "Çip olarak gösteriliyor",
+        "filter_hidden_in_bar": "Çip yok, filtre menüsünden kullanılabilir",
+        "filter_move_up": "Filtreyi yukarı taşı",
+        "filter_move_down": "Filtreyi aşağı taşı"
     },
     "settings": {
         "tabs": {

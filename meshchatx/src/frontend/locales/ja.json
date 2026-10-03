@@ -836,7 +836,8 @@
         "copy_text": "テキストをコピー",
         "settings": "設定",
         "saved": "保存しました",
-        "copy_failed": "コピーに失敗しました"
+        "copy_failed": "コピーに失敗しました",
+        "done": "完了"
     },
     "stickers": {
         "settings_title": "ステッカー",
@@ -2433,7 +2434,21 @@
         "conversation_files_other": "{name} が {count} 件のファイルを送信しました",
         "message_not_found_in_cache": "メッセージがキャッシュに見つかりません",
         "scroll_to_bottom": "一番下へスクロール",
-        "copied_to_clipboard": "クリップボードにコピーしました"
+        "copied_to_clipboard": "クリップボードにコピーしました",
+        "filter_favourites": "お気に入り",
+        "filter_direct": "ダイレクト",
+        "filter_nearby": "近隣",
+        "filter_pinned": "ピン留め",
+        "filter_blocked": "ブロック中",
+        "more_filters": "その他のフィルター",
+        "filters_edit": "フィルターを編集",
+        "filters_edit_title": "サイドバーのフィルター",
+        "filters_edit_hint": "チップとして表示するフィルターを切り替えます。行をドラッグして順番を変更できます。",
+        "filters_add_chip": "フィルターチップを編集",
+        "filter_shown_in_bar": "チップとして表示",
+        "filter_hidden_in_bar": "チップ非表示。フィルターメニューから使用可",
+        "filter_move_up": "フィルターを上へ",
+        "filter_move_down": "フィルターを下へ"
     },
     "settings": {
         "tabs": {

@@ -277,40 +277,26 @@
                     <SearchInput
                         :model-value="conversationSearchTerm"
                         :placeholder="$t('messages.search_placeholder', { count: conversations.length })"
+                        compact
                         @update:model-value="onConversationSearchInput"
                     />
-                    <div class="flex flex-wrap items-center gap-1">
-                        <button
-                            type="button"
-                            class="p-1 mr-1 text-sem-fg-muted hover:text-sem-accent transition-colors"
-                            :title="$t('nomadnet.sidebar_selection_mode')"
-                            :class="{ 'text-sem-accent ': selectionMode }"
-                            @click="toggleSelectionMode"
-                        >
-                            <MaterialDesignIcon icon-name="checkbox-multiple-marked-outline" class="size-5" />
-                        </button>
-                        <button
-                            type="button"
-                            :class="filterChipClasses(filterUnreadOnly)"
-                            @click="toggleFilter('unread')"
-                        >
-                            {{ $t("messages.unread") }}
-                        </button>
-                        <button
-                            type="button"
-                            :class="filterChipClasses(filterFailedOnly)"
-                            @click="toggleFilter('failed')"
-                        >
-                            {{ $t("messages.failed") }}
-                        </button>
-                        <button
-                            type="button"
-                            :class="filterChipClasses(filterHasAttachmentsOnly)"
-                            @click="toggleFilter('attachments')"
-                        >
-                            {{ $t("messages.attachments") }}
-                        </button>
-                    </div>
+                    <SidebarFilterBar
+                        context="conversations"
+                        :active="activeConversationFilterIds"
+                        @toggle="onSidebarFilterToggle"
+                    >
+                        <template #leading>
+                            <button
+                                type="button"
+                                class="p-1 mr-1 text-sem-fg-muted hover:text-sem-accent transition-colors"
+                                :title="$t('nomadnet.sidebar_selection_mode')"
+                                :class="{ 'text-sem-accent ': selectionMode }"
+                                @click="toggleSelectionMode"
+                            >
+                                <MaterialDesignIcon icon-name="checkbox-multiple-marked-outline" class="size-5" />
+                            </button>
+                        </template>
+                    </SidebarFilterBar>
                     <div
                         v-if="selectionMode"
                         class="flex items-center justify-between px-2 py-1 bg-sem-surface-muted rounded-lg"
@@ -864,13 +850,19 @@
                     edgeBorderClass,
                 ]"
             >
-                <!-- search -->
-                <div class="p-1 border-b border-sem-border">
+                <!-- search + filters -->
+                <div class="p-1 border-b border-sem-border space-y-1.5">
                     <SearchInput
                         :model-value="peersSearchTerm"
                         :placeholder="$t('messages.search_placeholder_announces', { count: totalPeersCount })"
                         :loading="isSearchingAnnounces"
+                        compact
                         @update:model-value="onPeersSearchInput"
+                    />
+                    <SidebarFilterBar
+                        context="announces"
+                        :active="activeAnnounceFilterIds"
+                        @toggle="onAnnounceFilterToggle"
                     />
                 </div>
 
@@ -1111,6 +1103,7 @@ import { useSidebarDrag } from "../../js/messages/useSidebarDrag.js";
 import { sortConversationsPinnedFirst } from "../../js/lxmfConversationListSync";
 import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
 import SidebarVirtualList from "../SidebarVirtualList.vue";
+import SidebarFilterBar from "./SidebarFilterBar.vue";
 
 export default {
     name: "MessagesSidebar",
@@ -1122,6 +1115,7 @@ export default {
         SearchInput,
         LxmfUserIcon,
         SidebarVirtualList,
+        SidebarFilterBar,
         ContextMenuDivider,
         ContextMenuItem,
         ContextMenuPanel,
@@ -1280,6 +1274,8 @@ export default {
             smUp: typeof window !== "undefined" ? window.innerWidth >= 640 : true,
             conversationLongPressTimer: null,
             conversationLongPressFired: false,
+            convoFavOnly: false,
+            annFilterIds: new Set(),
         };
     },
     computed: {
@@ -1320,8 +1316,28 @@ export default {
                 this.conversationSearchTerm !== "" ||
                 this.filterUnreadOnly ||
                 this.filterFailedOnly ||
-                this.filterHasAttachmentsOnly
+                this.filterHasAttachmentsOnly ||
+                this.convoFavOnly
             );
+        },
+        activeConversationFilterIds() {
+            const ids = [];
+            if (this.filterUnreadOnly) {
+                ids.push("unread");
+            }
+            if (this.filterFailedOnly) {
+                ids.push("failed");
+            }
+            if (this.filterHasAttachmentsOnly) {
+                ids.push("attachments");
+            }
+            if (this.convoFavOnly) {
+                ids.push("favourites");
+            }
+            return ids;
+        },
+        activeAnnounceFilterIds() {
+            return [...this.annFilterIds];
         },
         blockedDestinations() {
             return useIdentityStore().blockedDestinations;
@@ -1333,7 +1349,11 @@ export default {
             return Boolean(this.contextMenu.targetHash && this.pinnedSet.has(this.contextMenu.targetHash));
         },
         displayedConversations() {
-            return sortConversationsPinnedFirst(this.conversations, this.pinnedSet);
+            const ordered = sortConversationsPinnedFirst(this.conversations, this.pinnedSet);
+            if (!this.convoFavOnly) {
+                return ordered;
+            }
+            return ordered.filter((c) => this.pinnedSet.has(c.destination_hash));
         },
         peersCount() {
             return Object.keys(this.peers).length;
@@ -1351,10 +1371,13 @@ export default {
         searchedPeers() {
             const search = (this.peersSearchTerm || "").toLowerCase();
             const ordered = this.peersOrderedByLatestAnnounce;
-            if (!search) {
-                return ordered;
-            }
             return ordered.filter((peer) => {
+                if (this.annFilterIds.size > 0 && !this.announcePeerMatches(peer)) {
+                    return false;
+                }
+                if (!search) {
+                    return true;
+                }
                 const matchesDisplayName = peer.display_name.toLowerCase().includes(search);
                 const matchesCustomDisplayName = peer.custom_display_name?.toLowerCase()?.includes(search) === true;
                 const matchesDestinationHash = peer.destination_hash.toLowerCase().includes(search);
@@ -1671,8 +1694,40 @@ export default {
         onConversationSearchInput(value) {
             this.$emit("conversation-search-changed", value);
         },
-        toggleFilter(filterKey) {
-            this.$emit("conversation-filter-changed", filterKey);
+        onSidebarFilterToggle(filterId) {
+            // favourites is a client-side filter: the conversations list is
+            // already loaded and the pinned set lives here, so no refetch.
+            if (filterId === "favourites") {
+                this.convoFavOnly = !this.convoFavOnly;
+                return;
+            }
+            this.$emit("conversation-filter-changed", filterId);
+        },
+        onAnnounceFilterToggle(filterId) {
+            const next = new Set(this.annFilterIds);
+            if (next.has(filterId)) {
+                next.delete(filterId);
+            } else {
+                next.add(filterId);
+            }
+            this.annFilterIds = next;
+        },
+        announcePeerMatches(peer) {
+            for (const id of this.annFilterIds) {
+                if (id === "direct" && !(peer.hops === 0 || peer.hops === 1)) {
+                    return false;
+                }
+                if (id === "nearby" && !(peer.hops != null && peer.hops !== 128 && peer.hops <= 3)) {
+                    return false;
+                }
+                if (id === "pinned" && !this.pinnedSet.has(peer.destination_hash)) {
+                    return false;
+                }
+                if (id === "blocked" && !this.isBlocked(peer.destination_hash)) {
+                    return false;
+                }
+            }
+            return true;
         },
         onConversationsScroll(event) {
             const element = event.target;
@@ -1694,13 +1749,6 @@ export default {
         },
         onPeersSearchInput(value) {
             this.$emit("peers-search-changed", value);
-        },
-        filterChipClasses(isActive) {
-            const base = "px-2 py-0.5 rounded-full text-xs font-medium transition-colors";
-            if (isActive) {
-                return `${base} bg-sem-action-primary text-sem-action-primary-text`;
-            }
-            return `${base} bg-sem-surface-muted text-sem-fg`;
         },
         async copyConversationHash(hash) {
             if (!hash) {

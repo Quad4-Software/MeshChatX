@@ -836,7 +836,8 @@
         "copy_text": "Copier le texte",
         "settings": "Paramètres",
         "saved": "Enregistré",
-        "copy_failed": "Échec de la copie"
+        "copy_failed": "Échec de la copie",
+        "done": "Terminé"
     },
     "stickers": {
         "settings_title": "Autocollants",
@@ -2433,7 +2434,21 @@
         "conversation_files_other": "{name} a envoyé {count} fichiers",
         "message_not_found_in_cache": "Message non trouvé dans cache",
         "scroll_to_bottom": "Défiler vers le bas",
-        "copied_to_clipboard": "Copié dans le presse-papiers"
+        "copied_to_clipboard": "Copié dans le presse-papiers",
+        "filter_favourites": "Favoris",
+        "filter_direct": "Directs",
+        "filter_nearby": "À proximité",
+        "filter_pinned": "Épinglés",
+        "filter_blocked": "Bannis",
+        "more_filters": "Plus de filtres",
+        "filters_edit": "Modifier les filtres",
+        "filters_edit_title": "Filtres de la barre latérale",
+        "filters_edit_hint": "Choisissez les filtres affichés en pastilles. Glissez une ligne pour changer l'ordre.",
+        "filters_add_chip": "Modifier les pastilles de filtres",
+        "filter_shown_in_bar": "Affiché en pastille",
+        "filter_hidden_in_bar": "Pas de pastille, toujours disponible dans le menu filtres",
+        "filter_move_up": "Monter le filtre",
+        "filter_move_down": "Descendre le filtre"
     },
     "settings": {
         "tabs": {

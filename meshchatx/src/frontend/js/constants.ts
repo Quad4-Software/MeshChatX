@@ -95,6 +95,7 @@ export const STORAGE_KEYS = Object.freeze({
     OPEN_AFTER_RELAUNCH: "meshchatx_open_after_relaunch",
     OUTBOUND_TRANSFER_PROGRESS_ENABLED: "meshchatx_outbound_transfer_progress_enabled",
     SETTINGS_MODE: "meshchatx_settings_mode",
+    SIDEBAR_FILTERS: "meshchatx_sidebar_filters",
     TRANSLATE_TARGET_LANG: "meshchatx.translateTargetLang",
     UI_THEME: "meshchatx_ui_theme",
     MICRON_EDITOR_CONTENT: "micron_editor_content",

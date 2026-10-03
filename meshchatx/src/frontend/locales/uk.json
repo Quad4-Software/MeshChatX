@@ -836,7 +836,8 @@
         "copy_text": "Копіювати текст",
         "settings": "Налаштування",
         "saved": "Збережено",
-        "copy_failed": "Не вдалося скопіювати"
+        "copy_failed": "Не вдалося скопіювати",
+        "done": "Готово"
     },
     "stickers": {
         "settings_title": "Стикери",
@@ -2433,7 +2434,21 @@
         "conversation_files_other": "{name} надіслав {count} файлів",
         "message_not_found_in_cache": "Повідомлення не знайдено в кеші",
         "scroll_to_bottom": "Прокрутити вниз",
-        "copied_to_clipboard": "Скопійовано в буфер обміну"
+        "copied_to_clipboard": "Скопійовано в буфер обміну",
+        "filter_favourites": "Обрані",
+        "filter_direct": "Напряму",
+        "filter_nearby": "Поруч",
+        "filter_pinned": "Закріплені",
+        "filter_blocked": "Заблоковані",
+        "more_filters": "Більше фільтрів",
+        "filters_edit": "Змінити фільтри",
+        "filters_edit_title": "Фільтри бічної панелі",
+        "filters_edit_hint": "Виберіть фільтри, які будуть показані чипами. Перетягніть рядок, щоб змінити порядок.",
+        "filters_add_chip": "Змінити чипи фільтрів",
+        "filter_shown_in_bar": "Показано як чип",
+        "filter_hidden_in_bar": "Без чипа, доступний у меню фільтрів",
+        "filter_move_up": "Фільтр вище",
+        "filter_move_down": "Фільтр нижче"
     },
     "settings": {
         "tabs": {
