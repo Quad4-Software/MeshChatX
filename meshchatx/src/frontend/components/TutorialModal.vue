@@ -580,7 +580,7 @@
                         <div class="space-y-4">
                             <div
                                 v-if="hasAnyBootstrapsToShow"
-                                class="w-full max-w-6xl mx-auto flex items-center gap-2 border-0 border-b border-sem-border/90/90 py-1.5"
+                                class="w-full max-w-6xl mx-auto flex items-center gap-2 border-0 border-b border-sem-border/90 py-1.5"
                             >
                                 <MaterialDesignIcon icon-name="magnify" class="size-5 shrink-0 text-sem-fg-muted" />
                                 <input
@@ -1712,7 +1712,7 @@
 
                         <div
                             v-if="hasAnyBootstrapsToShow"
-                            class="flex w-full max-w-6xl mx-auto items-center gap-2 border-0 border-b border-sem-border/90/90 py-1.5"
+                            class="flex w-full max-w-6xl mx-auto items-center gap-2 border-0 border-b border-sem-border/90 py-1.5"
                         >
                             <MaterialDesignIcon icon-name="magnify" class="size-[22px] shrink-0 text-sem-fg-muted" />
                             <input

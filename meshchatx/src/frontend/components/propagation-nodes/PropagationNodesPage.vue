@@ -33,7 +33,7 @@
                         class="inline-flex items-center rounded-full px-1.5 py-0 text-[10px] font-semibold shrink-0"
                         :class="
                             localNodeIsRunning
-                                ? 'bg-sem-success/15 text-sem-success dark:bg-sem-success/15 dark:text-sem-success'
+                                ? 'bg-sem-surface border border-sem-success/40 text-sem-success'
                                 : 'bg-sem-surface-muted text-sem-fg-muted'
                         "
                     >
@@ -49,7 +49,7 @@
                             config.lxmf_preferred_propagation_node_destination_hash ===
                                 localPropagationNode.destination_hash
                         "
-                        class="inline-flex items-center rounded-full bg-sem-info/15 px-1.5 py-0 text-[10px] font-semibold text-sem-info shrink-0"
+                        class="inline-flex items-center rounded-full bg-sem-surface border border-sem-info/40 px-1.5 py-0 text-[10px] font-semibold text-sem-info shrink-0"
                     >
                         {{ $t("tools.propagation_nodes.preferred_badge") }}
                     </span>
@@ -461,13 +461,13 @@
                                 }}</span>
                                 <span
                                     v-if="propagationNode.is_propagation_enabled === false"
-                                    class="shrink-0 rounded-full bg-sem-danger/20 px-1.5 py-0.5 text-[10px] font-semibold text-sem-danger"
+                                    class="shrink-0 rounded-full bg-sem-surface border border-sem-danger/40 px-1.5 py-0.5 text-[10px] font-semibold text-sem-danger"
                                 >
                                     {{ $t("tools.propagation_nodes.disabled") }}
                                 </span>
                                 <span
                                     v-if="propagationNode.is_local_node"
-                                    class="shrink-0 rounded-full bg-sem-accent/20 px-1.5 py-0.5 text-[10px] font-semibold text-sem-accent"
+                                    class="shrink-0 rounded-full bg-sem-surface border border-sem-accent/40 px-1.5 py-0.5 text-[10px] font-semibold text-sem-accent"
                                 >
                                     {{ $t("tools.propagation_nodes.our_node") }}
                                 </span>

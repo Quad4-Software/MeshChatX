@@ -62,6 +62,6 @@ export default {
     @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-sem-surface-muted hover:bg-sem-surface-raised px-3 py-2.5 text-[11px] font-bold text-sem-fg-muted border border-sem-border transition-all active:scale-95;
 }
 .rnf-action-btn--danger {
-    @apply bg-sem-danger/10 text-sem-danger border-sem-danger/30 hover:bg-sem-danger/20;
+    @apply bg-sem-surface text-sem-danger border-sem-danger/30 hover:bg-sem-danger/10;
 }
 </style>

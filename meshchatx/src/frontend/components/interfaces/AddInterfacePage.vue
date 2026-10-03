@@ -138,7 +138,7 @@
                                                 :title="type.id === 'AwareInterface' ? awareTileHint || '' : ''"
                                                 :class="[
                                                     newInterfaceType === type.id
-                                                        ? 'bg-sem-info/50/10 border-sem-accent ring-1 ring-sem-info/50'
+                                                        ? 'bg-sem-info/10 border-sem-accent ring-1 ring-sem-info/50'
                                                         : 'bg-sem-surface-muted/50 bg-sem-surface border-sem-border hover:border-sem-border dark:hover:border-sem-border',
                                                     type.id === 'AwareInterface' && !awareInterfaceSupported
                                                         ? 'opacity-40 cursor-not-allowed saturate-50'
@@ -714,7 +714,7 @@
                                                 <p>{{ $t("interfaces.i2p_requirements_body") }}</p>
                                             </div>
                                             <div
-                                                class="bg-sem-info/5/50 dark:bg-sem-info/15 p-3 rounded-2xl border border-sem-info dark:border-sem-info text-xs text-blue-800"
+                                                class="bg-sem-info/5 dark:bg-sem-info/15 p-3 rounded-2xl border border-sem-info dark:border-sem-info text-xs text-blue-800"
                                             >
                                                 {{ $t("interfaces.i2p_sam_required") }}
                                             </div>
@@ -1353,7 +1353,7 @@
                                                                     'newInterfaceDevices',
                                                                     iface.name
                                                                 )
-                                                                    ? 'border-sem-info bg-sem-info/5/90 text-blue-900 dark:border-sem-accent dark:bg-sem-info/15 text-sem-info'
+                                                                    ? 'border-sem-info bg-sem-info/10 text-blue-900 dark:border-sem-accent dark:bg-sem-info/15 text-sem-info'
                                                                     : 'border-sem-border bg-sem-surface text-sem-fg hover:border-sem-info  dark:bg-sem-surface text-sem-fg dark:hover:border-sem-accent'
                                                             "
                                                             @click="
@@ -1872,7 +1872,7 @@
                                             </div>
                                             <div class="grid grid-cols-3 gap-3">
                                                 <div
-                                                    class="bg-sem-info/50/5 p-3 rounded-2xl border border-blue-500/10 text-center"
+                                                    class="bg-sem-info/5 p-3 rounded-2xl border border-blue-500/10 text-center"
                                                 >
                                                     <div class="text-[10px] uppercase font-bold text-sem-accent mb-1">
                                                         Sensitivity
@@ -1882,7 +1882,7 @@
                                                     </div>
                                                 </div>
                                                 <div
-                                                    class="bg-sem-info/50/5 p-3 rounded-2xl border border-blue-500/10 text-center"
+                                                    class="bg-sem-info/5 p-3 rounded-2xl border border-blue-500/10 text-center"
                                                 >
                                                     <div class="text-[10px] uppercase font-bold text-sem-accent mb-1">
                                                         Data Rate
@@ -1892,7 +1892,7 @@
                                                     </div>
                                                 </div>
                                                 <div
-                                                    class="bg-sem-info/50/5 p-3 rounded-2xl border border-blue-500/10 text-center"
+                                                    class="bg-sem-info/5 p-3 rounded-2xl border border-blue-500/10 text-center"
                                                 >
                                                     <div class="text-[10px] uppercase font-bold text-sem-accent mb-1">
                                                         Link Budget
@@ -2252,10 +2252,10 @@
 
                         <div class="grid grid-cols-1 gap-4">
                             <div
-                                class="glass-card flex items-center gap-4 bg-sem-info/5/30 dark:bg-sem-info/15 border-sem-info dark:border-sem-info"
+                                class="glass-card flex items-center gap-4 bg-sem-info/5 dark:bg-sem-info/15 border-sem-info dark:border-sem-info"
                             >
                                 <div
-                                    class="size-10 rounded-2xl bg-sem-info/50/10 flex items-center justify-center text-sem-accent shrink-0"
+                                    class="size-10 rounded-2xl bg-sem-info/10 flex items-center justify-center text-sem-accent shrink-0"
                                 >
                                     <MaterialDesignIcon icon-name="map-search-outline" class="size-6" />
                                 </div>

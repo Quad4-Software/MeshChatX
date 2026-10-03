@@ -195,7 +195,7 @@
                                         </div>
                                         <div
                                             v-if="(activeCall || lastCall)?.is_contact || !!initiationTargetName"
-                                            class="inline-flex items-center gap-1 px-2 py-0.5 bg-sem-info/10 text-sem-accent text-[10px] font-bold rounded-full uppercase tracking-wider"
+                                            class="inline-flex items-center gap-1 px-2 py-0.5 bg-sem-info/10 text-sem-info text-[10px] font-bold rounded-full uppercase tracking-wider"
                                         >
                                             <MaterialDesignIcon icon-name="check-decagram" class="size-3" />
                                             Contact
@@ -601,7 +601,7 @@
                                                             class="px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors"
                                                             :class="[
                                                                 index === selectedSuggestionIndex
-                                                                    ? 'bg-sem-info/10 text-sem-accent'
+                                                                    ? 'bg-sem-info/10 text-sem-info'
                                                                     : 'hover:bg-sem-surface-muted/50 text-sem-fg-muted',
                                                             ]"
                                                             @mousedown.prevent="selectSuggestion(suggestion)"
@@ -1472,7 +1472,7 @@
                                                     <!-- RX Play -->
                                                     <button
                                                         type="button"
-                                                        class="px-2 py-1 rounded-md bg-sem-info/50/10 hover:bg-sem-info/50/20 text-sem-accent text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1"
+                                                        class="px-2 py-1 rounded-md bg-sem-info/10 hover:bg-sem-info/20 text-sem-info text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1"
                                                         @click="playRecording(recording, 'rx')"
                                                     >
                                                         <MaterialDesignIcon
