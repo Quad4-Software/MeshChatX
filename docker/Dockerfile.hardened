@@ -28,6 +28,7 @@ COPY scripts/micron-parser-go-version.mjs scripts/micron-parser-go-version.mjs
 COPY scripts/vite-dx.mjs scripts/vite-dx.mjs
 COPY scripts/build-visualiser-wasm.mjs scripts/build-visualiser-wasm.mjs
 COPY scripts/build-geo-wasm.mjs scripts/build-geo-wasm.mjs
+COPY scripts/wasm-exec-compat.mjs scripts/wasm-exec-compat.mjs
 COPY scripts/fetch-starter-mbtiles.mjs scripts/fetch-starter-mbtiles.mjs
 COPY scripts/copy-bergamot-wasm.mjs scripts/copy-bergamot-wasm.mjs
 COPY scripts/build-electron-shell-css.mjs scripts/build-electron-shell-css.mjs
