@@ -7,6 +7,7 @@ import GlobalEmitter from "@/js/GlobalEmitter";
 import * as TranslationService from "@/js/TranslationService.js";
 import { useConfigStore } from "@/js/stores/configStore";
 import { useIdentityStore } from "@/js/stores/identityStore";
+import { clickOutsideDirective } from "@/libs/clickOutside.js";
 
 vi.mock("@/js/TranslationService.js", () => ({
     listPacks: vi.fn().mockResolvedValue([]),
@@ -571,6 +572,52 @@ describe("ConversationViewer.vue button interactions", () => {
 
             expect(wrapper.vm.mobileImageQualityOpen).toBe(true);
             expect(wrapper.vm.showMobileAttachmentMenu).toBe(true);
+        });
+
+        it("menu item clicks are not swallowed by the real click-outside directive", async () => {
+            const wrapper = mount(ConversationViewer, {
+                attachTo: document.body,
+                props: {
+                    selectedPeer: { destination_hash: "a".repeat(32), display_name: "Test Peer" },
+                    myLxmfAddressHash: "b".repeat(32),
+                    conversations: [],
+                },
+                global: {
+                    directives: { "click-outside": clickOutsideDirective },
+                    mocks: { $t: (key) => key, $i18n: { locale: "en" } },
+                    stubs: {
+                        MaterialDesignIcon: true,
+                        AddImageButton: true,
+                        AddAudioButton: true,
+                        SendMessageButton: true,
+                        ConversationDropDownMenu: true,
+                        PaperMessageModal: true,
+                        AudioWaveformPlayer: true,
+                        LxmfUserIcon: true,
+                    },
+                },
+            });
+            await wrapper.vm.$nextTick();
+            // the directive registers its documentElement listeners in a deferred setTimeout
+            await new Promise((r) => setTimeout(r, 10));
+
+            await wrapper.setData({ showMobileAttachmentMenu: true });
+            await wrapper.vm.$nextTick();
+
+            const acc = [...document.querySelectorAll("button")].find((b) =>
+                b.textContent.includes("messages.add_image")
+            );
+            expect(acc).toBeTruthy();
+            // a tap is touchstart then click. the touchstart used to count as
+            // an outside click and destroyed the menu before the click landed.
+            acc.dispatchEvent(new Event("touchstart", { bubbles: true }));
+            await wrapper.vm.$nextTick();
+            acc.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+            await wrapper.vm.$nextTick();
+
+            expect(wrapper.vm.mobileImageQualityOpen).toBe(true);
+            expect(wrapper.vm.showMobileAttachmentMenu).toBe(true);
+            wrapper.unmount();
         });
 
         it("adjustTextareaHeight grows the composer textarea up to the 200px cap", () => {

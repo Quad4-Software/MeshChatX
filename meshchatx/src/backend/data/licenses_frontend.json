@@ -486,7 +486,31 @@
     "license": "MIT"
   },
   {
+    "name": "@fontsource/ibm-plex-sans",
+    "version": "5.3.0",
+    "author": "Google Inc.",
+    "license": "OFL-1.1"
+  },
+  {
+    "name": "@fontsource/inter",
+    "version": "5.3.0",
+    "author": "Google Inc.",
+    "license": "OFL-1.1"
+  },
+  {
+    "name": "@fontsource/jetbrains-mono",
+    "version": "5.3.0",
+    "author": "Google Inc.",
+    "license": "OFL-1.1"
+  },
+  {
     "name": "@fontsource/noto-sans",
+    "version": "5.3.0",
+    "author": "Google Inc.",
+    "license": "OFL-1.1"
+  },
+  {
+    "name": "@fontsource/space-grotesk",
     "version": "5.3.0",
     "author": "Google Inc.",
     "license": "OFL-1.1"
@@ -1441,7 +1465,7 @@
   },
   {
     "name": "agent-base",
-    "version": "7.1.0",
+    "version": "7.1.4",
     "author": "Nathan Rajlich",
     "license": "MIT"
   },
@@ -1639,7 +1663,7 @@
   },
   {
     "name": "buffer-from",
-    "version": "1.0.0",
+    "version": "1.1.2",
     "author": "-",
     "license": "MIT"
   },
@@ -1867,7 +1891,7 @@
   },
   {
     "name": "core-util-is",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "author": "Isaac Z. Schlueter",
     "license": "MIT"
   },
@@ -2113,7 +2137,7 @@
   },
   {
     "name": "electron",
-    "version": "44.0.0",
+    "version": "44.5.1",
     "author": "Electron Community",
     "license": "MIT"
   },
@@ -2197,7 +2221,7 @@
   },
   {
     "name": "env-paths",
-    "version": "2.2.0",
+    "version": "2.2.1",
     "author": "Sindre Sorhus",
     "license": "MIT"
   },
@@ -2251,7 +2275,7 @@
   },
   {
     "name": "es-object-atoms",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "author": "Jordan Harband",
     "license": "MIT"
   },
@@ -2431,7 +2455,7 @@
   },
   {
     "name": "fdir",
-    "version": "6.4.3",
+    "version": "6.5.0",
     "author": "thecodrr",
     "license": "MIT"
   },
@@ -2737,7 +2761,7 @@
   },
   {
     "name": "http-proxy-agent",
-    "version": "7.0.0",
+    "version": "7.0.2",
     "author": "Nathan Rajlich",
     "license": "MIT"
   },
@@ -2749,7 +2773,7 @@
   },
   {
     "name": "https-proxy-agent",
-    "version": "7.0.1",
+    "version": "7.0.6",
     "author": "Nathan Rajlich",
     "license": "MIT"
   },
@@ -2803,15 +2827,9 @@
   },
   {
     "name": "inherits",
-    "version": "2.0.1",
+    "version": "2.0.4",
     "author": "-",
     "license": "ISC"
-  },
-  {
-    "name": "inherits",
-    "version": "2.0.0",
-    "author": "Isaac Z. Schlueter",
-    "license": "WTFPL2"
   },
   {
     "name": "ini",
@@ -3049,7 +3067,7 @@
   },
   {
     "name": "isarray",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "author": "Julian Gruber",
     "license": "MIT"
   },
@@ -3091,7 +3109,7 @@
   },
   {
     "name": "jiti",
-    "version": "2.4.2",
+    "version": "2.6.1",
     "author": "-",
     "license": "MIT"
   },
@@ -3511,7 +3529,7 @@
   },
   {
     "name": "minizlib",
-    "version": "3.0.1",
+    "version": "3.1.0",
     "author": "Isaac Z. Schlueter",
     "license": "MIT"
   },
@@ -3997,7 +4015,7 @@
   },
   {
     "name": "process-nextick-args",
-    "version": "1.0.0",
+    "version": "2.0.1",
     "author": "-",
     "license": "MIT"
   },
@@ -4087,7 +4105,7 @@
   },
   {
     "name": "readable-stream",
-    "version": "2.0.2",
+    "version": "2.3.8",
     "author": "-",
     "license": "MIT"
   },
@@ -4411,7 +4429,7 @@
   },
   {
     "name": "source-map",
-    "version": "0.6.0",
+    "version": "0.6.1",
     "author": "Nick Fitzgerald",
     "license": "BSD-3-Clause"
   },
@@ -4423,7 +4441,7 @@
   },
   {
     "name": "source-map-support",
-    "version": "0.5.19",
+    "version": "0.5.21",
     "author": "-",
     "license": "MIT"
   },
@@ -4495,7 +4513,7 @@
   },
   {
     "name": "string_decoder",
-    "version": "0.10.24",
+    "version": "1.1.1",
     "author": "-",
     "license": "MIT"
   },
@@ -4621,7 +4639,7 @@
   },
   {
     "name": "tinyglobby",
-    "version": "0.2.12",
+    "version": "0.2.15",
     "author": "Superchupu",
     "license": "MIT"
   },
@@ -4915,7 +4933,7 @@
   },
   {
     "name": "vue",
-    "version": "3.5.42",
+    "version": "3.5.43",
     "author": "Evan You",
     "license": "MIT"
   },

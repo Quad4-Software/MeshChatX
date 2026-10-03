@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-10-01T14:22:23.260126Z
+Generated at: 2026-10-03T23:16:11.889831Z
 Frontend source: pnpm
 
 Python dependencies
@@ -43,10 +43,10 @@ certifi 2026.7.22
 cffi 2.1.1
   License: MIT-0
   Author: Armin Rigo, Maciej Fijalkowski
-cryptography 50.0.1
+cryptography 50.0.2
   License: Apache-2.0 OR BSD-3-Clause
   Author: The Python Cryptographic Authority and individual contributors <cryptography-dev@python.org>
-dbus-fast 5.0.22
+dbus-fast 5.2.0
   License: MIT
   Author: Bluetooth Devices Authors
 frozenlist 1.8.0
@@ -61,7 +61,7 @@ httpcore 1.0.9
 httpx 0.28.1
   License: BSD-3-Clause
   Author: Tom Christie <tom@tomchristie.com>
-idna 3.19
+idna 3.20
   License: BSD-3-Clause
   Author: Kim Davies <kim+pypi@gumleaf.org>
 landlockpy 0.2.0
@@ -73,22 +73,22 @@ lxmf 1.2.0
 lxmfy 2.1.1
   License: BSD-0-Clause
   Author: Quad4 <team@quad4.io>
-lxst 0.5.3
+lxst 0.5.4
   License: Other/Proprietary License
   Author: Mark Qvist
 miniaudio 1.71
   License: MIT
   Author: Irmen de Jong <irmen@razorvine.net>
-multidict 6.7.1
+multidict 6.9.1
   License: Apache License 2.0
   Author: Andrew Svetlov
-numpy 2.4.6
+numpy 2.5.3
   License: BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0
   Author: Travis E. Oliphant et al.
 packaging 26.3
   License: Apache-2.0 OR BSD-2-Clause
   Author: Donald Stufft <donald@stufft.io>
-propcache 0.5.2
+propcache 0.5.4
   License: Apache-2.0
   Author: Andrew Svetlov
 psutil 7.2.2
@@ -112,7 +112,7 @@ pyserial 3.5
 reticulum-meshchatx 4.10.1
   License: 0BSD AND MIT
   Author: Quad4
-rns 1.5.5
+rns 1.5.6
   License: Reticulum License
   Author: Mark Qvist
 rns-filesync 1.0.0
@@ -127,13 +127,13 @@ service-identity 26.1.0
 typing_extensions 4.16.0
   License: PSF-2.0
   Author: "Guido van Rossum, Jukka Lehtosalo, Łukasz Langa, Michael Lee" <levkivskyi@gmail.com>
-wasmtime 48.0.0
+wasmtime 49.0.0
   License: Apache-2.0 WITH LLVM-exception
   Author: The Wasmtime Project Developers <hello@bytecodealliance.org>
 websockets 17.1
   License: BSD-3-Clause
   Author: Aymeric Augustin <aymeric.augustin@m4x.org>
-yarl 1.24.5
+yarl 1.25.1
   License: Apache-2.0
   Author: Andrew Svetlov
 
@@ -382,7 +382,19 @@ Node dependencies
 @exodus/bytes 1.15.1
   License: MIT
   Author: Exodus Movement, Inc.
+@fontsource/ibm-plex-sans 5.3.0
+  License: OFL-1.1
+  Author: Google Inc.
+@fontsource/inter 5.3.0
+  License: OFL-1.1
+  Author: Google Inc.
+@fontsource/jetbrains-mono 5.3.0
+  License: OFL-1.1
+  Author: Google Inc.
 @fontsource/noto-sans 5.3.0
+  License: OFL-1.1
+  Author: Google Inc.
+@fontsource/space-grotesk 5.3.0
   License: OFL-1.1
   Author: Google Inc.
 @formatjs/ecma402-abstract 2.3.6
@@ -859,7 +871,7 @@ acorn-import-attributes 1.9.5
 acorn-jsx 5.3.2
   License: MIT
   Author: -
-agent-base 7.1.0
+agent-base 7.1.4
   License: MIT
   Author: Nathan Rajlich
 ajv 6.14.0
@@ -958,7 +970,7 @@ braces 3.0.3
 browserslist 4.28.8
   License: MIT
   Author: Andrey Sitnik
-buffer-from 1.0.0
+buffer-from 1.1.2
   License: MIT
   Author: -
 builder-util 26.15.3
@@ -1072,7 +1084,7 @@ conventional-commits-parser 7.0.0
 convert-source-map 2.0.0
   License: MIT
   Author: Thorsten Lorenz
-core-util-is 1.0.0
+core-util-is 1.0.3
   License: MIT
   Author: Isaac Z. Schlueter
 cosmiconfig 9.0.1
@@ -1195,7 +1207,7 @@ editorconfig 3.0.2
 ejs 6.0.1
   License: Apache-2.0
   Author: Matthew Eernisse
-electron 44.0.0
+electron 44.5.1
   License: MIT
   Author: Electron Community
 electron-builder 26.15.3
@@ -1237,7 +1249,7 @@ enquirer 2.4.1
 entities 7.0.1
   License: BSD-2-Clause
   Author: Felix Boehm
-env-paths 2.2.0
+env-paths 2.2.1
   License: MIT
   Author: Sindre Sorhus
 err-code 2.0.3
@@ -1264,7 +1276,7 @@ es-errors 1.3.0
 es-module-lexer 2.0.0
   License: MIT
   Author: Guy Bedford
-es-object-atoms 1.1.1
+es-object-atoms 1.1.2
   License: MIT
   Author: Jordan Harband
 es-set-tostringtag 2.1.0
@@ -1354,7 +1366,7 @@ fast-uri 4.1.4
 fd-package-json 2.0.0
   License: MIT
   Author: James Garbutt
-fdir 6.4.3
+fdir 6.5.0
   License: MIT
   Author: thecodrr
 fflate 0.8.3
@@ -1507,13 +1519,13 @@ http-cache-semantics 4.1.1
 http-link-header 1.1.4
   License: MIT
   Author: Jonas Hermsmeier
-http-proxy-agent 7.0.0
+http-proxy-agent 7.0.2
   License: MIT
   Author: Nathan Rajlich
 http2-wrapper 2.2.1
   License: MIT
   Author: Szymon Marczak
-https-proxy-agent 7.0.1
+https-proxy-agent 7.0.6
   License: MIT
   Author: Nathan Rajlich
 iconv-lite 0.6.2
@@ -1540,12 +1552,9 @@ imurmurhash 0.1.4
 inflight 1.0.6
   License: ISC
   Author: Isaac Z. Schlueter
-inherits 2.0.1
+inherits 2.0.4
   License: ISC
   Author: -
-inherits 2.0.0
-  License: WTFPL2
-  Author: Isaac Z. Schlueter
 ini 1.3.6
   License: ISC
   Author: GitHub Inc.
@@ -1663,7 +1672,7 @@ is-weakset 2.0.1
 is-wsl 2.2.0
   License: MIT
   Author: Sindre Sorhus
-isarray 0.0.1
+isarray 1.0.0
   License: MIT
   Author: Julian Gruber
 isbinaryfile 4.0.8
@@ -1684,7 +1693,7 @@ istanbul-reports 3.2.0
 jackspeak 3.4.3
   License: BlueOak-1.0.0
   Author: Isaac Z. Schlueter
-jiti 2.4.2
+jiti 2.6.1
   License: MIT
   Author: -
 jpeg-js 0.4.4
@@ -1894,7 +1903,7 @@ minipass-pipeline 1.2.4
 minipass-sized 1.0.3
   License: ISC
   Author: Isaac Z. Schlueter
-minizlib 3.0.1
+minizlib 3.1.0
   License: MIT
   Author: Isaac Z. Schlueter
 mitt 3.0.1
@@ -2137,7 +2146,7 @@ prettier-linter-helpers 1.0.1
 proc-log 5.0.0
   License: ISC
   Author: GitHub Inc.
-process-nextick-args 1.0.0
+process-nextick-args 2.0.1
   License: MIT
   Author: -
 progress 2.0.3
@@ -2182,7 +2191,7 @@ rbush 4.0.0
 read-binary-file-arch 1.0.6
   License: MIT
   Author: Samuel Maddock
-readable-stream 2.0.2
+readable-stream 2.3.8
   License: MIT
   Author: -
 reference-spec-reader 0.2.0
@@ -2344,13 +2353,13 @@ socks 2.8.0
 socks-proxy-agent 8.0.3
   License: MIT
   Author: Nathan Rajlich
-source-map 0.6.0
+source-map 0.6.1
   License: BSD-3-Clause
   Author: Nick Fitzgerald
 source-map-js 1.0.2
   License: BSD-3-Clause
   Author: Valentin 7rulnik Semirulnik
-source-map-support 0.5.19
+source-map-support 0.5.21
   License: MIT
   Author: -
 speedline-core 1.4.3
@@ -2386,7 +2395,7 @@ string.prototype.trimend 1.0.9
 string.prototype.trimstart 1.0.8
   License: MIT
   Author: Jordan Harband
-string_decoder 0.10.24
+string_decoder 1.1.1
   License: MIT
   Author: -
 strip-ansi 6.0.1
@@ -2449,7 +2458,7 @@ tinybench 2.9.0
 tinyexec 1.0.2
   License: MIT
   Author: James Garbutt
-tinyglobby 0.2.12
+tinyglobby 0.2.15
   License: MIT
   Author: Superchupu
 tinyqueue 3.0.0
@@ -2596,7 +2605,7 @@ vitest 4.1.11
 vscode-uri 3.2.0
   License: MIT
   Author: Microsoft
-vue 3.5.42
+vue 3.5.43
   License: MIT
   Author: Evan You
 vue-component-type-helpers 3.3.11
