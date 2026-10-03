@@ -45,6 +45,12 @@ test.describe("Lighthouse page scores (simulated data)", () => {
                 await Promise.all(regs.map((r) => r.unregister()));
             });
 
+            // Let post-mount work settle (router redirects, ws handshakes)
+            // before the audit takes over the target. A mid-audit navigation
+            // kills the perf gatherer with "Inspected target navigated or
+            // closed".
+            await page.waitForTimeout(1500);
+
             const url = page.url();
             // Lighthouse navigates the shared CDP target itself. a concurrent
             // evaluate or teardown can race it into "Inspected target

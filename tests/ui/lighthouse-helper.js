@@ -48,9 +48,10 @@ async function runLighthouseAudit(url, opts = {}) {
     const formFactor = opts.formFactor || "desktop";
 
     // Gatherer flake (for example Network.getResponseBody on a
-    // service-worker-served document) can null an entire category score.
-    // Retry once so a transient protocol error does not fail the budget.
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // service-worker-served document, or the target navigating mid-gather)
+    // can null an entire category score. Retry a couple of times so a
+    // transient protocol error does not fail the budget.
+    for (let attempt = 0; attempt < 3; attempt++) {
         const runnerResult = await lighthouse(
             url,
             {
@@ -68,7 +69,7 @@ async function runLighthouseAudit(url, opts = {}) {
         const missing = ["performance", "accessibility", "best-practices"].some(
             (key) => cats[key] == null || cats[key].score == null
         );
-        if (!missing || attempt === 1) {
+        if (!missing || attempt === 2) {
             return runnerResult;
         }
     }
