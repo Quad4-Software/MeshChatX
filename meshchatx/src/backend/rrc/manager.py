@@ -145,7 +145,7 @@ class RRCHub:
         self._sent_ids = deque(maxlen=256)
         # Hubs redeliver held envelopes on reconnect. Envelope ids seen this
         # session let _handle_chat drop replays before they reach the room
-        # buffer; the content key check in _record_message catches replays
+        # buffer. The content key check in _record_message catches replays
         # whose ids differ or whose originals were loaded from history.
         self._seen_envelope_ids = deque(maxlen=2048)
 
@@ -1227,11 +1227,16 @@ class RRCHub:
                 )
             msgs = []
             filter_msgs = self._filter_history()
+            # Files written before redelivery dedup exist may already hold
+            # duplicate rows. Collapse them on load. The next compaction
+            # then writes back a clean file.
             for e in window:
                 m = self._msg_from_entry(room, e)
                 if m is None:
                     continue
                 if filter_msgs and m.kind in ("system", "notice"):
+                    continue
+                if self._room_has_duplicate(msgs, m):
                     continue
                 m.seq = self._next_seq()
                 msgs.append(m)
@@ -1299,9 +1304,12 @@ class RRCHub:
     def _room_has_duplicate(self, buf, msg):
         """True when buf already holds this envelope.
 
-        Replays keep the sender timestamp, so an identical row at an equal or
-        earlier ts is a redelivery. A row recorded before sender timestamps
-        were honoured still has a later receipt ts and matches the same way.
+        Matches on the envelope id when both sides have one, otherwise on
+        identical kind, source, nick, and text. Timestamps are ignored:
+        transports that re-stamp on retry would defeat a ts-aware check, and
+        a verbatim repeat from the same peer is indistinguishable from a
+        replay either way. The check only covers the bounded room buffer, so
+        the suppression window closes once the original scrolls out.
         Locally sent rows carry no mid and are recorded through local=True,
         which skips this check entirely.
         """
@@ -1328,7 +1336,6 @@ class RRCHub:
                 and m.nick == msg.nick
                 and m.text == msg.text
                 and src_same
-                and msg.ts <= m.ts
             ):
                 return True
         return False
