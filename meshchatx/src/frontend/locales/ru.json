@@ -4750,7 +4750,7 @@
         "importing": "Importing...",
         "remove": "Remove",
         "no_packs": "No packs installed. Import a pack archive to translate offline.",
-        "get_packs_hint": "See the docs for where to get packs.",
+        "get_packs_hint": "Get packs from mozilla.github.io/translations/firefox-models (see docs).",
         "pair_code": "Pair {pair}",
         "size_kb": "{size} KB",
         "source_language": "Исходный язык",

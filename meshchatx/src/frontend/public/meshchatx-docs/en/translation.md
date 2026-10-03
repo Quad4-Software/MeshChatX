@@ -19,18 +19,17 @@ language packs are bundled with MeshChatX releases.
 MeshChatX does not download packs and has no pack catalog. You must obtain pack
 archives from an external source.
 
-The upstream source is the Mozilla Firefox translations model repository at
-`github.com/mozilla/firefox-translations-models` (Git LFS). It holds Bergamot
-models under `models/base`, `models/base-memory` and `models/tiny`, one
-directory per language pair such as `deen` or `enes`.
+The upstream source is the Mozilla Firefox Translations Models page at
+`mozilla.github.io/translations/firefox-models/`. It indexes the Bergamot
+models Mozilla ships to Firefox, grouped by language pair such as `enes` or
+`deen`.
 
 Steps to make a pack from it:
 
-1. Download the files for one pair directory. Each directory contains
-   `lex.*.<pair>.s2t.bin.gz`, `model.<pair>.intgemm.alphas.bin.gz` and
-   `vocab.<pair>.spm.gz`.
-2. Decompress the `.gz` files so each file starts with `model`, `lex` or
-   `vocab`.
+1. Open the models page, enable released or nightly models, and find a pair.
+2. Download the files whose names start with `model`, `lex` and `vocab`,
+   for example `model.enes.intgemm.alphas.bin`, `lex.50.50.enes.s2t.bin` and
+   `vocab.enes.spm`.
 3. Place the files inside a directory named after the four letter pair code,
    for example `enes/`.
 4. Zip that directory and import the zip in the Translator page.
