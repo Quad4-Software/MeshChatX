@@ -89,8 +89,16 @@ async def test_catalog_route_returns_pairs(catalog_http_client, monkeypatch):
     import meshchatx.src.backend.http.routes.translation as tr
 
     async def fake_catalog(timeout):
-        return {"enes": {"pair": "enes", "from": "en", "to": "es",
-                         "architecture": "base", "size": 100, "files": []}}
+        return {
+            "enes": {
+                "pair": "enes",
+                "from": "en",
+                "to": "es",
+                "architecture": "base",
+                "size": 100,
+                "files": [],
+            }
+        }
 
     monkeypatch.setattr(tr, "fetch_catalog", fake_catalog)
     async with TestClient(TestServer(aio_app)) as client:
@@ -105,14 +113,21 @@ async def test_fetch_route_installs_pair(catalog_http_client, tmp_path, monkeypa
     aio_app, mgr = catalog_http_client
     import meshchatx.src.backend.http.routes.translation as tr
 
-    entry = {"pair": "enes", "from": "en", "to": "es",
-             "architecture": "base", "size": 100, "files": []}
+    entry = {
+        "pair": "enes",
+        "from": "en",
+        "to": "es",
+        "architecture": "base",
+        "size": 100,
+        "files": [],
+    }
 
     async def fake_catalog(timeout):
         return {"enes": entry}
 
     async def fake_download(pair_entry, dest_dir, timeout):
         import os
+
         pair_dir = os.path.join(dest_dir, "enes")
         os.makedirs(pair_dir, exist_ok=True)
         for name in ("model.enes.bin", "lex.enes.bin", "vocab.enes.spm"):
