@@ -15,7 +15,7 @@
             class="sidebar-nav-link group focus-visible:outline-sem-focus"
             @click="handleNavigate($event, navigate)"
         >
-            <span class="my-auto shrink-0">
+            <span class="my-auto shrink-0 -translate-y-px">
                 <slot name="icon"></slot>
             </span>
             <span v-if="!isCollapsed" class="my-auto flex w-full truncate transition-all duration-300">

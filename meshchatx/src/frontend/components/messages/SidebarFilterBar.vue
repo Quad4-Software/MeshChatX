@@ -24,7 +24,7 @@
             @drop.prevent="onChipDrop(def.id)"
             @dragend="onChipDragEnd"
         >
-            <MaterialDesignIcon :icon-name="def.icon" class="size-3.5" />
+            <MaterialDesignIcon :icon-name="def.icon" class="size-3.5 -translate-y-px" />
             <span>{{ def.label || $t(def.labelKey) }}</span>
         </button>
         <button
