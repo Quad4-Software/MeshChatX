@@ -541,5 +541,62 @@ describe("ConversationViewer.vue button interactions", () => {
             );
             openSpy.mockRestore();
         });
+
+        it("attachment popup stays inside the paperclip click-outside wrapper", async () => {
+            const wrapper = mountViewer();
+            await wrapper.vm.$nextTick();
+
+            const clip = wrapper
+                .findAll("button")
+                .find((b) => b.attributes("title") === "messages.attachments");
+            expect(clip).toBeTruthy();
+
+            await wrapper.setData({ showMobileAttachmentMenu: true });
+            await wrapper.vm.$nextTick();
+
+            const holder = clip.element.parentElement;
+            const menu = [...holder.children].find(
+                (el) => el !== clip.element && el.classList.contains("absolute")
+            );
+            expect(menu).toBeTruthy();
+            // menu items outside this wrapper are swallowed as outside clicks
+            expect(holder.contains(menu)).toBe(true);
+
+            const acc = [...menu.querySelectorAll("button")].find((b) =>
+                b.textContent.includes("messages.add_image")
+            );
+            expect(acc).toBeTruthy();
+            acc.click();
+            await wrapper.vm.$nextTick();
+
+            expect(wrapper.vm.mobileImageQualityOpen).toBe(true);
+            expect(wrapper.vm.showMobileAttachmentMenu).toBe(true);
+        });
+
+        it("adjustTextareaHeight grows the composer textarea up to the 200px cap", () => {
+            const wrapper = mountViewer();
+            const ta = wrapper.find("#message-input").element;
+            expect(ta).toBeTruthy();
+
+            Object.defineProperty(ta, "scrollHeight", { value: 96, configurable: true });
+            wrapper.vm.adjustTextareaHeight();
+            expect(ta.style.height).toBe("96px");
+
+            Object.defineProperty(ta, "scrollHeight", { value: 500, configurable: true });
+            wrapper.vm.adjustTextareaHeight();
+            expect(ta.style.height).toBe("200px");
+        });
+
+        it("typing a long message grows the composer via the newMessageText watcher", async () => {
+            const wrapper = mountViewer();
+            const ta = wrapper.find("#message-input").element;
+            Object.defineProperty(ta, "scrollHeight", { value: 96, configurable: true });
+
+            await wrapper.setData({ newMessageText: "line one\nline two\nline three" });
+            await wrapper.vm.$nextTick();
+            await wrapper.vm.$nextTick();
+
+            expect(ta.style.height).toBe("96px");
+        });
     });
 });
