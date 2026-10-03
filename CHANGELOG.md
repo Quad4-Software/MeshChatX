@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.10.1] - TBD [unreleased]
+
 ## [4.10.0] - 2026-10-03 [released]
 
 ### Added
