@@ -480,80 +480,80 @@
                                     >
                                         <MaterialDesignIcon icon-name="paperclip" class="w-5 h-5" />
                                     </button>
-                                </div>
-                                <div
-                                    v-if="showMobileAttachmentMenu"
-                                    class="absolute left-0 bottom-full mb-2 z-50 min-w-[200px] rounded-xl border border-sem-border bg-sem-surface shadow-lg"
-                                >
                                     <div
-                                        class="absolute -bottom-[5px] left-4 w-2.5 h-2.5 rotate-45 bg-sem-surface border-b border-r border-sem-border"
-                                        aria-hidden="true"
-                                    ></div>
-                                    <div class="overflow-hidden rounded-xl">
-                                        <button
-                                            type="button"
-                                            class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
-                                            @click="mobileImageQualityOpen = !mobileImageQualityOpen"
-                                        >
-                                            <MaterialDesignIcon icon-name="image-plus" class="size-4" />
-                                            <span class="flex-1 text-left">{{ $t("messages.add_image") }}</span>
-                                            <MaterialDesignIcon
-                                                :icon-name="mobileImageQualityOpen ? 'chevron-up' : 'chevron-down'"
-                                                class="size-4 text-sem-fg-muted"
-                                            />
-                                        </button>
-                                        <div v-if="mobileImageQualityOpen" class="border-t border-sem-border/50">
+                                        v-if="showMobileAttachmentMenu"
+                                        class="absolute left-0 bottom-full mb-2 z-50 min-w-[200px] rounded-xl border border-sem-border bg-sem-surface shadow-lg"
+                                    >
+                                        <div
+                                            class="absolute -bottom-[5px] left-4 w-2.5 h-2.5 rotate-45 bg-sem-surface border-b border-r border-sem-border"
+                                            aria-hidden="true"
+                                        ></div>
+                                        <div class="overflow-hidden rounded-xl">
                                             <button
-                                                v-for="quality in ['low', 'medium', 'high', 'original']"
-                                                :key="quality"
                                                 type="button"
-                                                class="w-full text-left pl-9 pr-3 py-2 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
-                                                @click="onMobileAttachImageQuality(quality)"
+                                                class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
+                                                @click="mobileImageQualityOpen = !mobileImageQualityOpen"
                                             >
-                                                {{ $t(`messages.image_quality_${quality}`) }}
+                                                <MaterialDesignIcon icon-name="image-plus" class="size-4" />
+                                                <span class="flex-1 text-left">{{ $t("messages.add_image") }}</span>
+                                                <MaterialDesignIcon
+                                                    :icon-name="mobileImageQualityOpen ? 'chevron-up' : 'chevron-down'"
+                                                    class="size-4 text-sem-fg-muted"
+                                                />
+                                            </button>
+                                            <div v-if="mobileImageQualityOpen" class="border-t border-sem-border/50">
+                                                <button
+                                                    v-for="quality in ['low', 'medium', 'high', 'original']"
+                                                    :key="quality"
+                                                    type="button"
+                                                    class="w-full text-left pl-9 pr-3 py-2 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
+                                                    @click="onMobileAttachImageQuality(quality)"
+                                                >
+                                                    {{ $t(`messages.image_quality_${quality}`) }}
+                                                </button>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
+                                                @click="onMobileAttachVideo"
+                                            >
+                                                <MaterialDesignIcon icon-name="video-plus" class="size-4" />
+                                                {{ $t("messages.add_video") }}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
+                                                @click="onMobileShareLocation"
+                                            >
+                                                <MaterialDesignIcon icon-name="map-marker" class="size-4" />
+                                                {{ $t("messages.share_location") }}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
+                                                @click="onMobileRequestLocation"
+                                            >
+                                                <MaterialDesignIcon icon-name="map-marker-question" class="size-4" />
+                                                {{ $t("messages.request_location") }}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
+                                                @click="onMobileAttachFiles"
+                                            >
+                                                <MaterialDesignIcon icon-name="file-plus" class="size-4" />
+                                                {{ $t("messages.add_files") }}
+                                            </button>
+                                            <button
+                                                v-if="hasTranslator && newMessageText"
+                                                type="button"
+                                                class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
+                                                @click="onMobileTranslate"
+                                            >
+                                                <MaterialDesignIcon icon-name="translate" class="size-4" />
+                                                {{ $t("translator.translate") }}
                                             </button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
-                                            @click="onMobileAttachVideo"
-                                        >
-                                            <MaterialDesignIcon icon-name="video-plus" class="size-4" />
-                                            {{ $t("messages.add_video") }}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
-                                            @click="onMobileShareLocation"
-                                        >
-                                            <MaterialDesignIcon icon-name="map-marker" class="size-4" />
-                                            {{ $t("messages.share_location") }}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
-                                            @click="onMobileRequestLocation"
-                                        >
-                                            <MaterialDesignIcon icon-name="map-marker-question" class="size-4" />
-                                            {{ $t("messages.request_location") }}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
-                                            @click="onMobileAttachFiles"
-                                        >
-                                            <MaterialDesignIcon icon-name="file-plus" class="size-4" />
-                                            {{ $t("messages.add_files") }}
-                                        </button>
-                                        <button
-                                            v-if="hasTranslator && newMessageText"
-                                            type="button"
-                                            class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
-                                            @click="onMobileTranslate"
-                                        >
-                                            <MaterialDesignIcon icon-name="translate" class="size-4" />
-                                            {{ $t("translator.translate") }}
-                                        </button>
                                     </div>
                                 </div>
                                 <textarea
