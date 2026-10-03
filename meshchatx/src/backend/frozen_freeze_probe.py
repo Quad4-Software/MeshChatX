@@ -52,7 +52,7 @@ def main() -> None:
         raise SystemExit("frozen-freeze-probe: LXST filterlib native artifact missing")
 
     if sys.platform == "darwin":
-        # The macOS slices ship libcodec2 for the ctypes binding; the pycodec2
+        # The macOS slices ship libcodec2 for the ctypes binding. The pycodec2
         # extension is not part of the freeze.
         from meshchatx import pycodec2_ctypes
 

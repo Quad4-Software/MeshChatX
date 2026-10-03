@@ -3748,7 +3748,7 @@ export default {
                         delete this.removedRoomKeys[this.roomTrackKey(hub.hub_hash, room)];
                     }
                 }
-                // A hub deleted elsewhere leaves a stale selection behind;
+                // A hub deleted elsewhere leaves a stale selection behind,
                 // every message/read call for it would 404 until cleared.
                 if (this.selectedHubHash && !this.hubs.some((h) => h.hub_hash === this.selectedHubHash)) {
                     this._setSelectedHub(null);
@@ -3947,7 +3947,7 @@ export default {
                 const response = await window.api.get(
                     apiPath(`/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/messages`)
                 );
-                // The user may have switched rooms while this was in flight;
+                // The user may have switched rooms while this was in flight,
                 // only the still-selected room may write the sidebar roster.
                 if (this.selectedHubHash !== hubHash || this.selectedRoom !== room) {
                     return;
@@ -4758,7 +4758,7 @@ export default {
                 (json.message.kind === "msg" || json.message.kind === "action") &&
                 !json.message.delivery
             ) {
-                // delivery re-pushes carry a delivery field for own messages;
+                // delivery re-pushes carry a delivery field for own messages,
                 // they are state updates on an existing entry, never toasts.
                 const ignored = this.isIgnoredMsg(json.message);
                 const bump = !ignored && this.shouldBumpRoomMention(json.message);

@@ -542,8 +542,12 @@ def test_replay_dedupes_against_loaded_history(tmp_path):
     assert len(loaded_hub.get_messages("lobby")) == 1
 
 
-def test_distinct_messages_with_same_text_are_kept(tmp_path):
-    """Two real sends of identical text arrive later and are not suppressed."""
+def test_same_text_resend_is_suppressed_within_buffer(tmp_path):
+    """A verbatim repeat from the same peer is indistinguishable from a replay.
+
+    Old clients re-send with a fresh envelope id and timestamp, so content
+    dedup drops repeats while the original is still in the room buffer.
+    """
     manager = make_manager(tmp_path)
     hub = manager.add_hub(bytes(range(16)))
     hub.add_room("lobby")
@@ -564,7 +568,7 @@ def test_distinct_messages_with_same_text_are_kept(tmp_path):
     )
     hub._handle_msg(first)
     hub._handle_msg(second)
-    assert len(hub.get_messages("lobby")) == 2
+    assert len(hub.get_messages("lobby")) == 1
 
 
 def test_status_serialization(tmp_path):

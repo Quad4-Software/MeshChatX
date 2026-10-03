@@ -319,7 +319,7 @@ class RRCMessage:
         # can filter presence noise without parsing the display text.
         self.event = None
         # Envelope id the hub assigned to this message. Locally sent messages
-        # keep it so the relayed echo can be matched back; inbound messages
+        # keep it so the relayed echo can be matched back, inbound messages
         # keep it so hub redeliveries can be deduplicated.
         self.mid = None
         # Own-message delivery state: "sending" until the hub relays the echo,
