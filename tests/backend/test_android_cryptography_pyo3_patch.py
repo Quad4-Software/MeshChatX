@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Chaquopy cryptography-50 pyo3 patch must apply to the 50.0.0 sdist Cargo.toml."""
+"""Chaquopy cryptography-50 pyo3 patch must apply to the 50.0.2 sdist Cargo.toml."""
 
 from __future__ import annotations
 
@@ -21,8 +21,8 @@ PATCH = (
 )
 META = ROOT / "android" / "chaquopy-recipes" / "cryptography-50" / "meta.yaml"
 
-# cryptography-50.0.0 sdist Cargo.toml (PyPI tarball).
-CARGO_TOML_50_0_0 = """\
+# cryptography-50.0.2 sdist Cargo.toml (PyPI tarball).
+CARGO_TOML_50_0_2 = """\
 [workspace]
 resolver = "2"
 members = [
@@ -37,7 +37,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.50.0"
+version = "0.50.2"
 authors = ["The cryptography developers <cryptography-dev@python.org>"]
 edition = "2021"
 publish = false
@@ -65,12 +65,12 @@ overflow-checks = true
 
 
 @pytest.mark.skipif(shutil.which("patch") is None, reason="patch is required")
-def test_pyo3_no_interpreter_patch_applies_to_cryptography_50_0_0(
+def test_pyo3_no_interpreter_patch_applies_to_cryptography_50_0_2(
     tmp_path: Path,
 ) -> None:
-    assert META.read_text(encoding="utf-8").count('version: "50.0.0"') == 1
+    assert META.read_text(encoding="utf-8").count('version: "50.0.2"') == 1
     cargo = tmp_path / "Cargo.toml"
-    cargo.write_text(CARGO_TOML_50_0_0, encoding="utf-8")
+    cargo.write_text(CARGO_TOML_50_0_2, encoding="utf-8")
     result = subprocess.run(  # nosec: BAN-B607
         ["patch", "-p1", "-i", str(PATCH)],
         cwd=tmp_path,
