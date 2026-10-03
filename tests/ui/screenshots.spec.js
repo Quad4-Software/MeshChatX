@@ -28,15 +28,22 @@ test.describe("screenshots", () => {
     test.describe.configure({ mode: "serial" });
     test.beforeAll(async ({ request }) => {
         await seedUiDemoData(request);
-        // Remove the legacy flat layout (screenshots/*.png, screenshots/mobile/*)
-        // so stale captures never linger next to the factor/theme matrix.
+        // Remove the legacy flat layout (screenshots/*.png, screenshots/mobile/*.png)
+        // so stale captures never linger next to the factor/theme matrix. The
+        // mobile directory itself is a valid factor dir in the new layout, so
+        // only flat image files get removed, not the theme subtrees.
         for (const f of fs.readdirSync(OUT_DIR)) {
             const p = path.join(OUT_DIR, f);
             const stat = fs.statSync(p);
             if (stat.isFile() && /\.(png|jpe?g)$/i.test(f)) {
                 fs.unlinkSync(p);
             } else if (stat.isDirectory() && f === "mobile") {
-                fs.rmSync(p, { recursive: true, force: true });
+                for (const m of fs.readdirSync(p)) {
+                    const mp = path.join(p, m);
+                    if (fs.statSync(mp).isFile() && /\.(png|jpe?g)$/i.test(m)) {
+                        fs.unlinkSync(mp);
+                    }
+                }
             }
         }
         for (const factor of formFactors) {
@@ -71,7 +78,9 @@ test.describe("screenshots", () => {
                         await page.waitForTimeout(entry.settleMs);
                     }
                     const file = path.join(OUT_DIR, factor, theme, `${entry.id}.webp`);
-                    await page.screenshot({ path: file, fullPage: false, type: "webp", quality: 82 });
+                    // Per-shot cap: a wedged canvas/rAF loop can stall CDP
+                    // captureScreenshot, so fail this test instead of the run.
+                    await page.screenshot({ path: file, fullPage: false, type: "webp", quality: 95, timeout: 45000 });
                 });
             }
         }

@@ -23,11 +23,13 @@ module.exports = defineConfig({
         baseURL,
         screenshot: "off",
         trace: "off",
+        // HiDPI capture so downscaled webp stays crisp for text-heavy UI.
+        deviceScaleFactor: 2,
     },
     projects: [
         {
             name: "chromium",
-            use: { ...devices["Desktop Chrome"] },
+            use: { ...devices["Desktop Chrome"], deviceScaleFactor: 2 },
         },
     ],
     webServer: {

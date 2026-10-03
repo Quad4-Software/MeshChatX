@@ -170,8 +170,10 @@ const UI_PAGES = [
     {
         id: "blocked",
         path: "/blocked",
-        readyKind: "heading",
-        ready: "Banished",
+        // heading lands before the async banishment fetch. Wait for the
+        // loaded-state marker so shots never catch the skeleton grid
+        readyKind: "text",
+        ready: /No banished items|Lift Banishment|Lift banishment/i,
     },
 ];
 
