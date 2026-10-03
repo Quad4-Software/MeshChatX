@@ -13,7 +13,7 @@
                 :title="crashTabTitle"
                 name="nomad-page-renderer"
                 sandbox="allow-scripts"
-                allow="local-network-access"
+                :allow="frameAllow"
                 :src="frameSrc"
                 :style="frameStyle"
                 @load="onFrameLoad"
@@ -173,6 +173,10 @@ export default {
     data() {
         return {
             frameSrc: nomadCrashTabRendererUrl(),
+            // local-network-access is a Chromium Private Network Access
+            // token. Firefox logs "unsupported feature" on every parse,
+            // so only emit the allow value on Chromium engines.
+            frameAllow: typeof navigator !== "undefined" && navigator.userAgentData ? "local-network-access" : "",
             status: "loading",
             frameGeneration: 0,
             pendingPingId: 0,
