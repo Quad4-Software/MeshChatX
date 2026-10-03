@@ -95,10 +95,9 @@ _lock_version() {
     ' uv.lock
 }
 
-_NUMPY_VERSION="$(_lock_version numpy)"
 _PYCODEC2_VERSION="$(_lock_version pycodec2)"
-if [[ -z "$_NUMPY_VERSION" || -z "$_PYCODEC2_VERSION" ]]; then
-    echo "github-install-macos-x64-python-deps: failed to read numpy/pycodec2 versions from uv.lock" >&2
+if [[ -z "$_PYCODEC2_VERSION" ]]; then
+    echo "github-install-macos-x64-python-deps: failed to read pycodec2 version from uv.lock" >&2
     exit 1
 fi
 
@@ -109,6 +108,14 @@ uv sync --frozen --group dev \
     --python "$PY_X64" \
     --python-platform x86_64-apple-darwin \
     --no-install-package pycodec2
+
+# numpy is marker-split per interpreter version, so the lock holds more than
+# one release. The sync above already picked the right wheel; pin that one.
+_NUMPY_VERSION="$("$_PY" -c 'import importlib.metadata; print(importlib.metadata.version("numpy"))')"
+if [[ -z "$_NUMPY_VERSION" ]]; then
+    echo "github-install-macos-x64-python-deps: failed to read installed numpy version" >&2
+    exit 1
+fi
 
 uv pip install --python "$_PY" \
     --python-platform x86_64-apple-darwin \

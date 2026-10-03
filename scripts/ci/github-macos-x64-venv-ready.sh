@@ -33,6 +33,46 @@ _lock_version() {
     ' uv.lock
 }
 
+_lock_resolved_version() {
+    # $1 package, $2 interpreter version (MAJOR.MINOR). uv export emits one
+    # requirements line per locked release with its environment marker, so a
+    # marker-split pin resolves to the release this interpreter would get.
+    uv export --frozen --no-dev --format requirements-txt 2>/dev/null | awk -v pkg="$1" -v py="$2" '
+        function cmpver(a, b,   A, B, i) {
+            split(a, A, "."); split(b, B, ".")
+            for (i = 1; i <= 3; i++) {
+                if ((A[i] + 0) != (B[i] + 0)) return (A[i] + 0) > (B[i] + 0) ? 1 : -1
+            }
+            return 0
+        }
+        index($0, pkg "==") == 1 {
+            ver = $0
+            sub("^[^=]*==", "", ver)
+            sub(/[ \t].*$/, "", ver)
+            marker = ""
+            if (index($0, ";") > 0) {
+                marker = $0
+                sub(/^[^;]*;[ ]*/, "", marker)
+                sub(/[ ]*\\[ ]*$/, "", marker)
+            }
+            if (marker == "") { print ver; exit }
+            if (marker ~ /^python_full_version[ ]*[<>=!]/) {
+                split(marker, q, "'\''")
+                lim = q[2]
+                c = cmpver(py, lim)
+                ok = 0
+                if (marker ~ /^python_full_version[ ]*>=/) ok = (c >= 0)
+                else if (marker ~ /^python_full_version[ ]*<=/) ok = (c <= 0)
+                else if (marker ~ /^python_full_version[ ]*==/) ok = (c == 0)
+                else if (marker ~ /^python_full_version[ ]*!=/) ok = (c != 0)
+                else if (marker ~ /^python_full_version[ ]*</) ok = (c < 0)
+                else if (marker ~ /^python_full_version[ ]*>/) ok = (c > 0)
+                if (ok) { print ver; exit }
+            }
+        }
+    '
+}
+
 _mark() {
     local ready="$1"
     if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
@@ -51,10 +91,11 @@ if [[ ! -x "$_PY" ]]; then
     exit 0
 fi
 
-_NUMPY_VERSION="$(_lock_version numpy)"
+_PY_MM="$(arch -x86_64 "$_PY" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
+_NUMPY_VERSION="$(_lock_resolved_version numpy "$_PY_MM")"
 _PYCODEC2_VERSION="$(_lock_version pycodec2)"
 if [[ -z "$_NUMPY_VERSION" || -z "$_PYCODEC2_VERSION" ]]; then
-    echo "github-macos-x64-venv-ready: could not read numpy/pycodec2 from uv.lock" >&2
+    echo "github-macos-x64-venv-ready: could not resolve numpy/pycodec2 from uv.lock" >&2
     _mark false
     exit 0
 fi
