@@ -14,6 +14,7 @@ import path from "path";
 import crypto from "crypto";
 import { MICRON_PARSER_GO_RELEASE_TAG } from "./micron-parser-go-version.mjs";
 import { micronWasmVendorPaths, micronWasmRepoRoot } from "./micron-wasm-resolve-bundled.mjs";
+import { assertWasmExecCompat } from "./wasm-exec-compat.mjs";
 
 const WASM_FILENAME = "micron-parser-go.wasm";
 const SHASUMS256_FILENAME = "SHASUMS256.txt";
@@ -203,6 +204,8 @@ async function main() {
         } else {
             console.log("fetch-micron-wasm: wasm_exec.js downloaded.");
         }
+
+        assertWasmExecCompat(wasm, wasmExec, "fetch-micron-wasm");
 
         const downloads = [];
         if (wasmDownloaded) downloads.push(WASM_FILENAME);

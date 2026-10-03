@@ -8,6 +8,7 @@ import path from "path";
 import crypto from "crypto";
 import { spawnSync } from "child_process";
 import { fileURLToPath } from "url";
+import { assertWasmExecCompat } from "./wasm-exec-compat.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -136,6 +137,7 @@ function main() {
     fs.rmSync(execOut, { force: true });
     fs.copyFileSync(execSrc, execOut);
     fs.chmodSync(execOut, 0o644);
+    assertWasmExecCompat(wasmOut, execOut, "build-geo-wasm");
 
     const wasmBuf = fs.readFileSync(wasmOut);
     const execBuf = fs.readFileSync(execOut);
