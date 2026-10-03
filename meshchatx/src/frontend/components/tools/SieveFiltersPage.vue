@@ -19,7 +19,7 @@
                                 </h2>
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-sem-info text-white hover:bg-sem-info transition-colors"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-sem-action-primary text-sem-action-primary-text hover:bg-sem-action-primary-hover transition-colors"
                                     @click="addRule"
                                 >
                                     <MaterialDesignIcon icon-name="plus" class="size-4" />
