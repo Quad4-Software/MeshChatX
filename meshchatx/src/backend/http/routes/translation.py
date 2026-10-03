@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import os
+import shutil
 
+import aiohttp
 import RNS
 from aiohttp import web
 
@@ -21,6 +23,12 @@ from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
     PayloadTooLargeError,
     write_field_to_path,
+)
+from meshchatx.src.backend.privacy_mode import ensure_outbound_http_allowed
+from meshchatx.src.backend.translation_catalog import (
+    download_pair_files,
+    fetch_catalog,
+    staging_dir,
 )
 from meshchatx.src.path_utils import safe_path_under_dir
 
@@ -82,6 +90,72 @@ def register_translation_routes(routes, app) -> None:
         except Exception as e:
             RNS.log(f"Error removing translation pack: {e}", RNS.LOG_ERROR)
             return http_error_from_exception(e, fallback_status=500)
+
+    @routes.get(API_V1_PREFIX + "/translation/catalog")
+    async def list_translation_catalog(request):
+        if not app.translation_pack_manager:
+            return http_unavailable("Translation pack manager not available")
+        try:
+            ensure_outbound_http_allowed(
+                app.config, feature="translation pack downloads"
+            )
+            pairs = await fetch_catalog(aiohttp.ClientTimeout(total=60, sock_read=30))
+            return web.json_response(
+                {"pairs": sorted(pairs.values(), key=lambda p: p["pair"])}
+            )
+        except Exception as e:
+            RNS.log(f"Error fetching translation catalog: {e}", RNS.LOG_ERROR)
+            return http_error_from_exception(e, fallback_status=502)
+
+    @routes.post(API_V1_PREFIX + "/translation/packs/fetch")
+    async def fetch_translation_pack(request):
+        if not app.translation_pack_manager:
+            return http_unavailable("Translation pack manager not available")
+        try:
+            ensure_outbound_http_allowed(
+                app.config, feature="translation pack downloads"
+            )
+            data = await request.json()
+            want_all = bool(data.get("all"))
+            pair = str(data.get("pair") or "").lower()
+            if not want_all and not pair:
+                return http_bad_request("pair required")
+
+            pairs = await fetch_catalog(aiohttp.ClientTimeout(total=60, sock_read=30))
+            targets = sorted(pairs) if want_all else ([pair] if pair in pairs else None)
+            if targets is None:
+                return http_not_found("Pair not in catalog")
+
+            installed = []
+            failed = []
+            for target in targets:
+                tmp_dir = staging_dir(app.translation_pack_manager.incoming_dir)
+                try:
+                    await download_pair_files(
+                        pairs[target],
+                        tmp_dir,
+                        aiohttp.ClientTimeout(total=None, sock_read=120),
+                    )
+                    app.translation_pack_manager.install_files_dir(
+                        os.path.join(tmp_dir, target), target
+                    )
+                    installed.append(target)
+                except Exception as e:
+                    RNS.log(
+                        f"Error fetching translation pack {target}: {e}",
+                        RNS.LOG_ERROR,
+                    )
+                    failed.append({"pair": target, "error": str(e)})
+                finally:
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
+
+            status = 200 if installed and not failed else (207 if installed else 502)
+            return web.json_response(
+                {"installed": installed, "failed": failed}, status=status
+            )
+        except Exception as e:
+            RNS.log(f"Error fetching translation packs: {e}", RNS.LOG_ERROR)
+            return http_error_from_exception(e, fallback_status=502)
 
     @routes.get("/translation-packs/{path:.*}")
     async def serve_translation_pack_file(request):

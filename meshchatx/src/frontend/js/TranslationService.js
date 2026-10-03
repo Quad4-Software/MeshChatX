@@ -102,6 +102,23 @@ export async function importPack(file) {
     return data;
 }
 
+export async function fetchCatalog() {
+    const data = await apiGet(apiPath("/translation/catalog"));
+    return data.pairs || [];
+}
+
+export async function downloadPack(pair) {
+    const data = await apiPost(apiPath("/translation/packs/fetch"), { pair });
+    await refreshPacks();
+    return data;
+}
+
+export async function downloadAllPacks() {
+    const data = await apiPost(apiPath("/translation/packs/fetch"), { all: true });
+    await refreshPacks();
+    return data;
+}
+
 export async function removePack(pair) {
     const data = await apiDelete(apiPath(`/translation/packs/${encodeURIComponent(pair)}`));
     await refreshPacks();

@@ -14,28 +14,20 @@ language packs are bundled with MeshChatX releases.
   messages and the standalone Translator tool all use the same engine and pack
   set.
 
-## Where to get packs
+## Getting packs
 
-MeshChatX does not download packs and has no pack catalog. You must obtain pack
-archives from an external source.
+The Translator page can fetch packs directly. Open **Download packs** to list
+the available language pairs, then download a single pair or use
+**Download all**. Downloads are verified against their published checksums
+before install.
 
-The upstream source is the Mozilla Firefox Translations Models page at
-`mozilla.github.io/translations/firefox-models/`. It indexes the Bergamot
-models Mozilla ships to Firefox, grouped by language pair such as `enes` or
-`deen`.
+Pack downloads are outbound HTTPS requests, so they are blocked while privacy
+mode is enabled. Translations themselves remain local and keep working with
+privacy mode on.
 
-Steps to make a pack from it:
-
-1. Open the models page, enable released or nightly models, and find a pair.
-2. Download the files whose names start with `model`, `lex` and `vocab`,
-   for example `model.enes.intgemm.alphas.bin`, `lex.50.50.enes.s2t.bin` and
-   `vocab.enes.spm`.
-3. Place the files inside a directory named after the four letter pair code,
-   for example `enes/`.
-4. Zip that directory and import the zip in the Translator page.
-
-A friend or organisation can also share ready pack archives over the mesh,
-or a dedicated website or CDN can host them.
+You can also import pack archives you obtained elsewhere. A friend or
+organisation can share ready pack archives over the mesh, or a dedicated
+website or CDN can host them.
 
 Packs are ordinary zip or tar archives containing a `model`, `lex` and `vocab`
 file for a four-letter language pair such as `enes` (English to Spanish).
@@ -73,7 +65,9 @@ Relay chat messages and the standalone translator work the same way.
 
 Because packs are local, translation works in privacy mode. No outbound network
 requests are made for translation. The Bergamot worker and pack files are served
-from the same origin. The default remote model registry is never contacted.
+from the same origin. The remote model registry is only contacted when you
+choose to download packs, and that download path is blocked while privacy mode
+is enabled.
 
 ## Platform notes
 

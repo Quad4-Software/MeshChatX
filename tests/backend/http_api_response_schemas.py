@@ -896,6 +896,29 @@ DESTINATION_PATH_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+TRANSLATION_CATALOG_SCHEMA: dict = {
+    "type": "object",
+    "required": ["pairs"],
+    "properties": {
+        "pairs": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["pair", "from", "to", "architecture", "size", "files"],
+                "properties": {
+                    "pair": {"type": "string"},
+                    "from": {"type": "string"},
+                    "to": {"type": "string"},
+                    "architecture": {"type": "string"},
+                    "size": {"type": "integer"},
+                    "files": {"type": "array"},
+                },
+            },
+        }
+    },
+    "additionalProperties": True,
+}
+
 CUSTOM_FONT_SCHEMA: dict = {
     "type": "object",
     "required": ["name", "data"],

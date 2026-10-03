@@ -137,6 +137,7 @@ from tests.backend.http_api_response_schemas import (
     TELEPHONE_HISTORY_SCHEMA,
     TELEPHONE_RECORDINGS_SCHEMA,
     TELEPHONE_STATUS_SCHEMA,
+    TRANSLATION_CATALOG_SCHEMA,
     TRANSLATION_PACKS_SCHEMA,
     UPDATE_PENDING_SCHEMA,
     UPDATE_STATUS_SCHEMA,
@@ -656,6 +657,11 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract("GET", "/api/v1/spam-keywords", SPAM_KEYWORDS_SCHEMA),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/translation/catalog",
+        TRANSLATION_CATALOG_SCHEMA,
+    ),
     HttpJsonContract(
         "GET",
         "/api/v1/translation/packs",
