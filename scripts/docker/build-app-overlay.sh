@@ -19,6 +19,11 @@ for pkg in meshchatx lxmfy rns_filesync; do
 	cp -a "${SP}/${pkg}" "${OUT}/lib/python${PYVER}/site-packages/"
 done
 
+# CHANGELOG.md is served from the installed package dir via get_file_path.
+if [ -f CHANGELOG.md ]; then
+	cp -a CHANGELOG.md "${OUT}/lib/python${PYVER}/site-packages/meshchatx/CHANGELOG.md"
+fi
+
 cp -a "${SP}"/reticulum_meshchatx*.dist-info "${OUT}/lib/python${PYVER}/site-packages/"
 
 for cmd in meshchat meshchatx meshchatx-repository-http lxmfy rns-filesync; do
