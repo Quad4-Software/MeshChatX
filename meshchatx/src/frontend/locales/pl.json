@@ -2448,7 +2448,13 @@
         "filter_shown_in_bar": "Widoczny jako chip",
         "filter_hidden_in_bar": "Bez chipa, nadal dostępny w menu filtrów",
         "filter_move_up": "Przesuń filtr w górę",
-        "filter_move_down": "Przesuń filtr w dół"
+        "filter_move_down": "Przesuń filtr w dół",
+        "filters_custom_title": "Filtry własne",
+        "filters_custom_hint": "Terminy oddzielone przecinkami dopasowane do nazw i haszów",
+        "filters_custom_name": "Nazwa filtra",
+        "filters_custom_query": "np. rodzina, mama, a1b2c3",
+        "filters_custom_add": "Dodaj filtr",
+        "filters_custom_remove": "Usuń filtr własny"
     },
     "settings": {
         "tabs": {

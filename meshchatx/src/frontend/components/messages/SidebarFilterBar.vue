@@ -16,7 +16,7 @@
                 draggingId === def.id ? 'opacity-50' : '',
             ]"
             draggable="true"
-            :title="$t(def.labelKey)"
+            :title="def.label || $t(def.labelKey)"
             @click="$emit('toggle', def.id)"
             @dragstart="onChipDragStart($event, def.id)"
             @dragover.prevent="onChipDragOver(def.id)"
@@ -25,7 +25,7 @@
             @dragend="onChipDragEnd"
         >
             <MaterialDesignIcon :icon-name="def.icon" class="size-3.5" />
-            <span>{{ $t(def.labelKey) }}</span>
+            <span>{{ def.label || $t(def.labelKey) }}</span>
         </button>
         <button
             type="button"
@@ -78,7 +78,7 @@
                         @click="$emit('toggle', def.id)"
                     >
                         <MaterialDesignIcon :icon-name="def.icon" class="size-4" />
-                        <span class="flex-1 truncate text-left">{{ $t(def.labelKey) }}</span>
+                        <span class="flex-1 truncate text-left">{{ def.label || $t(def.labelKey) }}</span>
                         <MaterialDesignIcon
                             v-if="activeSet.has(def.id)"
                             icon-name="check"
@@ -116,8 +116,8 @@ import SidebarFilterEditModal from "./modals/SidebarFilterEditModal.vue";
 import {
     loadSidebarFilterLayout,
     moveSidebarFilter,
+    resolveSidebarFilterDefs,
     saveSidebarFilterLayout,
-    sidebarFilterDefs,
 } from "../../js/messages/sidebarFilters.js";
 
 export default {
@@ -136,7 +136,7 @@ export default {
             default: () => [],
         },
     },
-    emits: ["toggle", "layout-changed"],
+    emits: ["toggle", "layout-changed", "defs-changed"],
     data() {
         return {
             layout: loadSidebarFilterLayout(),
@@ -148,7 +148,7 @@ export default {
     },
     computed: {
         defs() {
-            return sidebarFilterDefs(this.context);
+            return resolveSidebarFilterDefs(this.context, this.layout);
         },
         defMap() {
             return new Map(this.defs.map((d) => [d.id, d]));
@@ -194,12 +194,17 @@ export default {
             }
             this.menu.show = false;
         },
-        onLayoutSave(order) {
-            const next = { ...this.layout, [this.context]: order };
+        onLayoutSave(order, customDefs) {
+            const next = {
+                ...this.layout,
+                [this.context]: order,
+                custom: { ...(this.layout.custom || {}), [this.context]: customDefs || [] },
+            };
             saveSidebarFilterLayout(next);
             this.layout = next;
             this.editModal.show = false;
             this.$emit("layout-changed", order);
+            this.$emit("defs-changed", this.defs);
         },
         onChipDragStart(event, id) {
             this.draggingId = id;

@@ -2448,7 +2448,13 @@
         "filter_shown_in_bar": "Getoond als chip",
         "filter_hidden_in_bar": "Geen chip, wel beschikbaar in het filtermenu",
         "filter_move_up": "Filter omhoog",
-        "filter_move_down": "Filter omlaag"
+        "filter_move_down": "Filter omlaag",
+        "filters_custom_title": "Eigen filters",
+        "filters_custom_hint": "Kommagescheiden termen gematcht met namen en hashes",
+        "filters_custom_name": "Filternaam",
+        "filters_custom_query": "bijv. familie, mama, a1b2c3",
+        "filters_custom_add": "Filter toevoegen",
+        "filters_custom_remove": "Eigen filter verwijderen"
     },
     "settings": {
         "tabs": {

@@ -2448,7 +2448,13 @@
         "filter_shown_in_bar": "Показано як чип",
         "filter_hidden_in_bar": "Без чипа, доступний у меню фільтрів",
         "filter_move_up": "Фільтр вище",
-        "filter_move_down": "Фільтр нижче"
+        "filter_move_down": "Фільтр нижче",
+        "filters_custom_title": "Власні фільтри",
+        "filters_custom_hint": "Терміни через кому, що збігаються з іменами та хешами",
+        "filters_custom_name": "Назва фільтра",
+        "filters_custom_query": "напр. сім'я, мама, a1b2c3",
+        "filters_custom_add": "Додати фільтр",
+        "filters_custom_remove": "Видалити власний фільтр"
     },
     "settings": {
         "tabs": {

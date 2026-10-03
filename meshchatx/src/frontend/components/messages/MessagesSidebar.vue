@@ -52,7 +52,7 @@
                     class="shrink-0 p-0.5 rounded-xl transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-sem-focus"
                     :class="
                         selectedDestinationHash === c.destination_hash
-                            ? 'ring-2 ring-indigo-500 ring-offset-1 ring-offset-sem-surface'
+                            ? 'ring-2 ring-sem-info/50 ring-offset-1 ring-offset-sem-surface'
                             : 'hover:bg-sem-surface/10'
                     "
                     :title="c.custom_display_name ?? c.display_name"
@@ -139,7 +139,7 @@
                         <div class="flex gap-1" @click.stop>
                             <button
                                 type="button"
-                                class="p-1 text-sem-fg-muted hover:text-indigo-500 hover:bg-sem-surface-muted/50 rounded-lg transition-colors"
+                                class="p-1 text-sem-fg-muted hover:text-sem-info hover:bg-sem-surface-muted/50 rounded-lg transition-colors"
                                 :title="$t('messages.create_folder')"
                                 @click="createFolder"
                             >
@@ -284,6 +284,7 @@
                         context="conversations"
                         :active="activeConversationFilterIds"
                         @toggle="onSidebarFilterToggle"
+                        @defs-changed="onSidebarDefsChanged"
                     >
                         <template #leading>
                             <button
@@ -322,7 +323,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="text-xs font-medium text-red-600 dark:text-red-400 hover:underline"
+                                class="text-xs font-medium text-sem-danger hover:underline"
                                 @click="bulkDelete"
                             >
                                 {{ $t("common.delete") }}
@@ -525,7 +526,7 @@
                                                 <div class="bg-sem-accent rounded-full p-1"></div>
                                             </div>
                                             <div v-else-if="conversation.failed_messages_count" class="my-auto ml-1">
-                                                <div class="bg-red-500 dark:bg-red-400 rounded-full p-1"></div>
+                                                <div class="bg-sem-danger dark:bg-sem-danger rounded-full p-1"></div>
                                             </div>
                                         </div>
                                         <button
@@ -671,7 +672,7 @@
                                             <div class="bg-sem-accent rounded-full p-1"></div>
                                         </div>
                                         <div v-else-if="conversation.failed_messages_count" class="my-auto ml-1">
-                                            <div class="bg-red-500 dark:bg-red-400 rounded-full p-1"></div>
+                                            <div class="bg-sem-danger dark:bg-sem-danger rounded-full p-1"></div>
                                         </div>
                                     </div>
                                     <button
@@ -729,7 +730,7 @@
                             </ContextMenuItem>
                             <ContextMenuItem
                                 v-if="contextMenu.targetHash && isBlocked(contextMenu.targetHash)"
-                                item-class="text-emerald-600 dark:text-emerald-400"
+                                item-class="text-sem-success"
                                 @click="liftBanishmentFromConversationMenu"
                             >
                                 <MaterialDesignIcon icon-name="check-circle" class="size-4" />
@@ -775,7 +776,7 @@
                                 </ContextMenuItem>
                             </div>
                             <ContextMenuDivider />
-                            <ContextMenuItem item-class="text-red-600 dark:text-red-400" @click="bulkDelete">
+                            <ContextMenuItem item-class="text-sem-danger" @click="bulkDelete">
                                 <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
                                 {{ $t("common.delete") }}
                             </ContextMenuItem>
@@ -863,6 +864,7 @@
                         context="announces"
                         :active="activeAnnounceFilterIds"
                         @toggle="onAnnounceFilterToggle"
+                        @defs-changed="onSidebarDefsChanged"
                     />
                 </div>
 
@@ -1104,6 +1106,7 @@ import { sortConversationsPinnedFirst } from "../../js/lxmfConversationListSync"
 import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
 import SidebarVirtualList from "../SidebarVirtualList.vue";
 import SidebarFilterBar from "./SidebarFilterBar.vue";
+import { isCustomFilterId, loadSidebarFilterLayout, matchesCustomQuery } from "../../js/messages/sidebarFilters.js";
 
 export default {
     name: "MessagesSidebar",
@@ -1275,7 +1278,11 @@ export default {
             conversationLongPressTimer: null,
             conversationLongPressFired: false,
             convoFavOnly: false,
+            convoCustomIds: new Set(),
             annFilterIds: new Set(),
+            // id -> query map for custom filters, refreshed from the bar
+            convoCustomQueries: {},
+            annCustomQueries: {},
         };
     },
     computed: {
@@ -1334,6 +1341,7 @@ export default {
             if (this.convoFavOnly) {
                 ids.push("favourites");
             }
+            ids.push(...this.convoCustomIds);
             return ids;
         },
         activeAnnounceFilterIds() {
@@ -1350,10 +1358,15 @@ export default {
         },
         displayedConversations() {
             const ordered = sortConversationsPinnedFirst(this.conversations, this.pinnedSet);
-            if (!this.convoFavOnly) {
-                return ordered;
+            let filtered = ordered;
+            if (this.convoFavOnly) {
+                filtered = filtered.filter((c) => this.pinnedSet.has(c.destination_hash));
             }
-            return ordered.filter((c) => this.pinnedSet.has(c.destination_hash));
+            for (const id of this.convoCustomIds) {
+                const query = this.convoCustomQueries[id];
+                filtered = filtered.filter((c) => matchesCustomQuery(c, query));
+            }
+            return filtered;
         },
         peersCount() {
             return Object.keys(this.peers).length;
@@ -1416,6 +1429,7 @@ export default {
     },
     mounted() {
         GlobalEmitter.on(EMITTER_EVENTS.CONTACT_UPDATED, this.onContactUpdated);
+        this.refreshCustomQueries();
         const tickMs = 60 * 1000;
         this._timeAgoInterval = setInterval(() => {
             this.timeAgoTick = Date.now();
@@ -1701,7 +1715,27 @@ export default {
                 this.convoFavOnly = !this.convoFavOnly;
                 return;
             }
+            if (isCustomFilterId(filterId)) {
+                const next = new Set(this.convoCustomIds);
+                if (next.has(filterId)) {
+                    next.delete(filterId);
+                } else {
+                    next.add(filterId);
+                }
+                this.convoCustomIds = next;
+                return;
+            }
             this.$emit("conversation-filter-changed", filterId);
+        },
+        refreshCustomQueries() {
+            const layout = loadSidebarFilterLayout();
+            this.convoCustomQueries = Object.fromEntries(
+                (layout.custom?.conversations || []).map((d) => [d.id, d.query])
+            );
+            this.annCustomQueries = Object.fromEntries((layout.custom?.announces || []).map((d) => [d.id, d.query]));
+        },
+        onSidebarDefsChanged() {
+            this.refreshCustomQueries();
         },
         onAnnounceFilterToggle(filterId) {
             const next = new Set(this.annFilterIds);
@@ -1714,6 +1748,9 @@ export default {
         },
         announcePeerMatches(peer) {
             for (const id of this.annFilterIds) {
+                if (isCustomFilterId(id) && !matchesCustomQuery(peer, this.annCustomQueries[id])) {
+                    return false;
+                }
                 if (id === "direct" && !(peer.hops === 0 || peer.hops === 1)) {
                     return false;
                 }

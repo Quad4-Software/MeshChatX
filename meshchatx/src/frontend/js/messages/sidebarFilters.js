@@ -32,6 +32,60 @@ const DEFAULT_LAYOUT = {
     announces: ["direct", "pinned"],
 };
 
+/**
+ * Custom filters are user-defined text matchers stored inside the layout
+ * object under custom[context]. The def shape matches the catalog defs
+ * except label is a raw string and query holds comma-separated terms
+ * matched case-insensitively against display name, custom name, and
+ * destination hash of a conversation or announce peer.
+ */
+export const CUSTOM_FILTER_PREFIX = "custom_";
+
+let customSeq = 0;
+
+export function isCustomFilterId(id) {
+    return typeof id === "string" && id.startsWith(CUSTOM_FILTER_PREFIX);
+}
+
+export function makeCustomFilter(label, query) {
+    customSeq += 1;
+    return {
+        id: `${CUSTOM_FILTER_PREFIX}${Date.now().toString(36)}${customSeq}`,
+        label: String(label || "").trim() || "Filter",
+        query: String(query || "").trim(),
+        icon: "tag-outline",
+    };
+}
+
+export function customFilterTerms(query) {
+    return String(query || "")
+        .toLowerCase()
+        .split(/[,;\s]+/)
+        .filter(Boolean);
+}
+
+export function matchesCustomQuery(item, query) {
+    const terms = customFilterTerms(query);
+    if (terms.length === 0 || !item) {
+        return true;
+    }
+    const hay = [item.display_name, item.custom_display_name, item.destination_hash]
+        .filter(Boolean)
+        .join("\n")
+        .toLowerCase();
+    return terms.some((t) => hay.includes(t));
+}
+
+function sanitizeCustomDefs(raw) {
+    const out = [];
+    for (const def of Array.isArray(raw) ? raw : []) {
+        if (def && isCustomFilterId(def.id) && typeof def.label === "string" && typeof def.query === "string") {
+            out.push({ id: def.id, label: def.label, query: def.query, icon: def.icon || "tag-outline" });
+        }
+    }
+    return out;
+}
+
 function storageGet(key) {
     try {
         return typeof localStorage !== "undefined" ? localStorage.getItem(key) : null;
@@ -50,12 +104,15 @@ function storageSet(key, value) {
     }
 }
 
-function sanitizeLayout(raw, context) {
-    const defIds = SIDEBAR_FILTER_DEFS[context].map((d) => d.id);
+function sanitizeLayout(raw, context, customDefs) {
+    const defIds = new Set(SIDEBAR_FILTER_DEFS[context].map((d) => d.id));
+    for (const def of customDefs) {
+        defIds.add(def.id);
+    }
     const seen = new Set();
     const out = [];
     for (const id of Array.isArray(raw) ? raw : []) {
-        if (typeof id === "string" && defIds.includes(id) && !seen.has(id)) {
+        if (typeof id === "string" && defIds.has(id) && !seen.has(id)) {
             seen.add(id);
             out.push(id);
         }
@@ -64,18 +121,20 @@ function sanitizeLayout(raw, context) {
 }
 
 export function loadSidebarFilterLayout() {
-    const defaults = { ...DEFAULT_LAYOUT };
+    const defaults = { ...DEFAULT_LAYOUT, custom: {} };
     const raw = storageGet(STORAGE_KEYS.SIDEBAR_FILTERS);
     if (!raw) {
         return defaults;
     }
     try {
         const parsed = JSON.parse(raw);
-        const layout = {};
+        const layout = { custom: {} };
         for (const context of Object.keys(SIDEBAR_FILTER_DEFS)) {
+            const customDefs = sanitizeCustomDefs(parsed?.custom?.[context]);
+            layout.custom[context] = customDefs;
             layout[context] =
                 parsed && Object.prototype.hasOwnProperty.call(parsed, context)
-                    ? sanitizeLayout(parsed[context], context)
+                    ? sanitizeLayout(parsed[context], context, customDefs)
                     : DEFAULT_LAYOUT[context].slice();
         }
         return layout;
@@ -90,6 +149,11 @@ export function saveSidebarFilterLayout(layout) {
 
 export function sidebarFilterDefs(context) {
     return SIDEBAR_FILTER_DEFS[context] || [];
+}
+
+/** Catalog defs plus custom defs recorded in a layout object. */
+export function resolveSidebarFilterDefs(context, layout) {
+    return [...sidebarFilterDefs(context), ...(layout?.custom?.[context] || [])];
 }
 
 export function sidebarFilterDefaults(context) {

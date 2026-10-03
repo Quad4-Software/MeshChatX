@@ -3,8 +3,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
     DEFAULT_LAYOUT_REF,
+    isCustomFilterId,
     loadSidebarFilterLayout,
+    makeCustomFilter,
+    matchesCustomQuery,
     moveSidebarFilter,
+    resolveSidebarFilterDefs,
     saveSidebarFilterLayout,
     sidebarFilterDefs,
 } from "../../meshchatx/src/frontend/js/messages/sidebarFilters.js";
@@ -66,5 +70,48 @@ describe("sidebarFilters", () => {
             const ids = sidebarFilterDefs(context).map((d) => d.id);
             expect(new Set(ids).size).toBe(ids.length);
         }
+    });
+});
+
+describe("custom filters", () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    it("round-trips custom defs and ids through load/save", () => {
+        const def = makeCustomFilter("Family", "mom, dad");
+        expect(isCustomFilterId(def.id)).toBe(true);
+        saveSidebarFilterLayout({
+            conversations: ["unread", def.id],
+            announces: ["direct"],
+            custom: { conversations: [def] },
+        });
+        const loaded = loadSidebarFilterLayout();
+        expect(loaded.conversations).toEqual(["unread", def.id]);
+        expect(loaded.custom.conversations[0]).toMatchObject({ label: "Family", query: "mom, dad" });
+        const resolved = resolveSidebarFilterDefs("conversations", loaded);
+        expect(resolved[resolved.length - 1].label).toBe("Family");
+    });
+
+    it("drops unknown custom ids from layout but keeps the def", () => {
+        const def = makeCustomFilter("Work", "boss");
+        saveSidebarFilterLayout({
+            conversations: ["unread", "custom_gone"],
+            announces: ["direct"],
+            custom: { conversations: [def] },
+        });
+        const loaded = loadSidebarFilterLayout();
+        expect(loaded.conversations).toEqual(["unread"]);
+        expect(loaded.custom.conversations).toHaveLength(1);
+    });
+
+    it("matches comma-separated terms against name and hash", () => {
+        const item = { display_name: "Ada Lovelace", custom_display_name: null, destination_hash: "a1b2c3" };
+        expect(matchesCustomQuery(item, "ada")).toBe(true);
+        expect(matchesCustomQuery(item, "bob, lovelace")).toBe(true);
+        expect(matchesCustomQuery(item, "A1B2")).toBe(true);
+        expect(matchesCustomQuery(item, "nobody")).toBe(false);
+        expect(matchesCustomQuery(item, "")).toBe(true);
+        expect(matchesCustomQuery(item, "   ")).toBe(true);
     });
 });

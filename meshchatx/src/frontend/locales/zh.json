@@ -2448,7 +2448,13 @@
         "filter_shown_in_bar": "显示为标签",
         "filter_hidden_in_bar": "不显示为标签，仍可在筛选菜单中使用",
         "filter_move_up": "上移筛选器",
-        "filter_move_down": "下移筛选器"
+        "filter_move_down": "下移筛选器",
+        "filters_custom_title": "自定义筛选",
+        "filters_custom_hint": "以逗号分隔的词条与名称和哈希匹配",
+        "filters_custom_name": "筛选名称",
+        "filters_custom_query": "例如 family, mom, a1b2c3",
+        "filters_custom_add": "添加筛选",
+        "filters_custom_remove": "删除自定义筛选"
     },
     "settings": {
         "tabs": {

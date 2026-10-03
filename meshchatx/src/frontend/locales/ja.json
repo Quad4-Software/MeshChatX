@@ -2448,7 +2448,13 @@
         "filter_shown_in_bar": "チップとして表示",
         "filter_hidden_in_bar": "チップ非表示。フィルターメニューから使用可",
         "filter_move_up": "フィルターを上へ",
-        "filter_move_down": "フィルターを下へ"
+        "filter_move_down": "フィルターを下へ",
+        "filters_custom_title": "カスタムフィルター",
+        "filters_custom_hint": "カンマ区切りの語句を名前とハッシュに照合",
+        "filters_custom_name": "フィルター名",
+        "filters_custom_query": "例: family, mom, a1b2c3",
+        "filters_custom_add": "フィルターを追加",
+        "filters_custom_remove": "カスタムフィルターを削除"
     },
     "settings": {
         "tabs": {

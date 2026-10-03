@@ -2448,7 +2448,13 @@
         "filter_shown_in_bar": "Çip olarak gösteriliyor",
         "filter_hidden_in_bar": "Çip yok, filtre menüsünden kullanılabilir",
         "filter_move_up": "Filtreyi yukarı taşı",
-        "filter_move_down": "Filtreyi aşağı taşı"
+        "filter_move_down": "Filtreyi aşağı taşı",
+        "filters_custom_title": "Özel filtreler",
+        "filters_custom_hint": "İsimlere ve hash değerlerine karşı virgülle ayrılmış terimler",
+        "filters_custom_name": "Filtre adı",
+        "filters_custom_query": "ör. aile, anne, a1b2c3",
+        "filters_custom_add": "Filtre ekle",
+        "filters_custom_remove": "Özel filtreyi kaldır"
     },
     "settings": {
         "tabs": {

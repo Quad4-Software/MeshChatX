@@ -41,7 +41,16 @@
                         class="size-5 shrink-0 cursor-grab text-sem-fg-muted"
                     />
                     <MaterialDesignIcon :icon-name="defFor(row.id).icon" class="size-4 shrink-0 text-sem-fg-muted" />
-                    <span class="min-w-0 flex-1 truncate text-sm text-sem-fg">{{ $t(defFor(row.id).labelKey) }}</span>
+                    <span class="min-w-0 flex-1 truncate text-sm text-sem-fg">{{ rowLabel(row.id) }}</span>
+                    <button
+                        v-if="isCustomId(row.id)"
+                        type="button"
+                        class="flex size-6 items-center justify-center rounded text-sem-fg-muted transition-colors hover:bg-sem-surface hover:text-sem-action-danger"
+                        :title="$t('messages.filters_custom_remove')"
+                        @click="removeCustom(index)"
+                    >
+                        <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
+                    </button>
                     <button
                         type="button"
                         class="flex size-6 items-center justify-center rounded text-sem-fg-muted transition-colors hover:bg-sem-surface hover:text-sem-fg"
@@ -78,6 +87,42 @@
                         ></span>
                     </button>
                 </div>
+
+                <div class="mt-4 border-t border-sem-border pt-3">
+                    <div class="px-2 text-xs font-semibold uppercase tracking-wide text-sem-fg-muted">
+                        {{ $t("messages.filters_custom_title") }}
+                    </div>
+                    <div class="px-2 pt-1 text-xs text-sem-fg-muted">
+                        {{ $t("messages.filters_custom_hint") }}
+                    </div>
+                    <div class="mt-2 space-y-2 px-2">
+                        <input
+                            v-model="customName"
+                            type="text"
+                            maxlength="40"
+                            :placeholder="$t('messages.filters_custom_name')"
+                            class="input-field w-full px-3 py-1.5 text-sm"
+                        />
+                        <input
+                            v-model="customQuery"
+                            type="text"
+                            maxlength="200"
+                            :placeholder="$t('messages.filters_custom_query')"
+                            class="input-field w-full px-3 py-1.5 text-sm"
+                            @keydown.enter.prevent="addCustom"
+                        />
+                        <button
+                            type="button"
+                            class="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-sem-border px-3 py-1.5 text-sm text-sem-fg-muted transition-colors hover:border-sem-accent hover:text-sem-accent"
+                            :disabled="!canAddCustom"
+                            :class="{ 'opacity-40': !canAddCustom }"
+                            @click="addCustom"
+                        >
+                            <MaterialDesignIcon icon-name="plus" class="size-4" />
+                            {{ $t("messages.filters_custom_add") }}
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="flex items-center justify-end gap-2 border-t border-sem-border px-5 py-3">
                 <button
@@ -101,7 +146,7 @@
 
 <script>
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
-import { sidebarFilterDefs } from "../../../js/messages/sidebarFilters.js";
+import { isCustomFilterId, makeCustomFilter } from "../../../js/messages/sidebarFilters.js";
 
 export default {
     name: "SidebarFilterEditModal",
@@ -121,21 +166,28 @@ export default {
             type: Object,
             required: true,
         },
+        defs: {
+            type: Array,
+            required: true,
+        },
     },
     emits: ["close", "save"],
     data() {
         return {
             working: [],
+            customDefs: [],
+            customName: "",
+            customQuery: "",
             dragIndex: null,
             dropIndex: null,
         };
     },
     computed: {
-        defs() {
-            return sidebarFilterDefs(this.context);
-        },
         defMap() {
-            return new Map(this.defs.map((d) => [d.id, d]));
+            return new Map([...this.defs, ...this.customDefs].map((d) => [d.id, d]));
+        },
+        canAddCustom() {
+            return this.customName.trim().length > 0 && this.customQuery.trim().length > 0;
         },
     },
     watch: {
@@ -147,18 +199,44 @@ export default {
     },
     methods: {
         defFor(id) {
-            return this.defMap.get(id) || { id, labelKey: "", icon: "filter-variant" };
+            return this.defMap.get(id) || { id, labelKey: "", label: "", icon: "filter-variant" };
+        },
+        rowLabel(id) {
+            const def = this.defFor(id);
+            return def.label || (def.labelKey ? this.$t(def.labelKey) : id);
+        },
+        isCustomId(id) {
+            return isCustomFilterId(id);
+        },
+        addCustom() {
+            if (!this.canAddCustom) {
+                return;
+            }
+            const def = makeCustomFilter(this.customName, this.customQuery);
+            this.customDefs = [...this.customDefs, def];
+            this.working.push({ id: def.id, shown: true });
+            this.customName = "";
+            this.customQuery = "";
+        },
+        removeCustom(index) {
+            const [row] = this.working.splice(index, 1);
+            this.customDefs = this.customDefs.filter((d) => d.id !== row.id);
         },
         rebuild() {
             const shownOrder = this.layout[this.context] || [];
             const shownSet = new Set(shownOrder);
-            const rows = shownOrder.filter((id) => this.defMap.has(id)).map((id) => ({ id, shown: true }));
-            for (const def of this.defs) {
+            const customDefs = (this.layout.custom?.[this.context] || []).map((d) => ({ ...d }));
+            const defMap = new Map([...this.defs, ...customDefs].map((d) => [d.id, d]));
+            const rows = shownOrder.filter((id) => defMap.has(id)).map((id) => ({ id, shown: true }));
+            for (const def of [...this.defs, ...customDefs]) {
                 if (!shownSet.has(def.id)) {
                     rows.push({ id: def.id, shown: false });
                 }
             }
             this.working = rows;
+            this.customDefs = customDefs;
+            this.customName = "";
+            this.customQuery = "";
             this.dragIndex = null;
             this.dropIndex = null;
         },
@@ -206,7 +284,8 @@ export default {
         onDone() {
             this.$emit(
                 "save",
-                this.working.filter((r) => r.shown).map((r) => r.id)
+                this.working.filter((r) => r.shown).map((r) => r.id),
+                this.customDefs
             );
         },
     },

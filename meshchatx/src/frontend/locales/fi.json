@@ -2448,7 +2448,13 @@
         "filter_shown_in_bar": "Näkyy chippinä",
         "filter_hidden_in_bar": "Ei chipinä, käytettävissä suodatinvalikossa",
         "filter_move_up": "Siirrä suodatin ylös",
-        "filter_move_down": "Siirrä suodatin alas"
+        "filter_move_down": "Siirrä suodatin alas",
+        "filters_custom_title": "Omat suodattimet",
+        "filters_custom_hint": "Pilkulla erotetut termit, osumat nimiin ja tiivisteisiin",
+        "filters_custom_name": "Suodattimen nimi",
+        "filters_custom_query": "esim. perhe, äiti, a1b2c3",
+        "filters_custom_add": "Lisää suodatin",
+        "filters_custom_remove": "Poista oma suodatin"
     },
     "settings": {
         "tabs": {

@@ -2448,7 +2448,13 @@
         "scroll_to_bottom": "Scroll to bottom",
         "copied_to_clipboard": "Copied to clipboard",
         "filter_move_up": "Move filter up",
-        "filter_move_down": "Move filter down"
+        "filter_move_down": "Move filter down",
+        "filters_custom_title": "Custom filters",
+        "filters_custom_hint": "Comma-separated terms matched against names and hashes",
+        "filters_custom_name": "Filter name",
+        "filters_custom_query": "e.g. family, mom, a1b2c3",
+        "filters_custom_add": "Add filter",
+        "filters_custom_remove": "Remove custom filter"
     },
     "settings": {
         "tabs": {

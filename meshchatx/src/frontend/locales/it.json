@@ -2448,7 +2448,13 @@
         "filter_shown_in_bar": "Mostrato come chip",
         "filter_hidden_in_bar": "Nessun chip, disponibile dal menu filtri",
         "filter_move_up": "Sposta filtro su",
-        "filter_move_down": "Sposta filtro giù"
+        "filter_move_down": "Sposta filtro giù",
+        "filters_custom_title": "Filtri personalizzati",
+        "filters_custom_hint": "Termini separati da virgola confrontati con nomi e hash",
+        "filters_custom_name": "Nome del filtro",
+        "filters_custom_query": "es. famiglia, mamma, a1b2c3",
+        "filters_custom_add": "Aggiungi filtro",
+        "filters_custom_remove": "Rimuovi filtro personalizzato"
     },
     "settings": {
         "tabs": {

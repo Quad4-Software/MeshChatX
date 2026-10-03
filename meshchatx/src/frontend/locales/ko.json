@@ -2448,7 +2448,13 @@
         "filter_shown_in_bar": "칩으로 표시",
         "filter_hidden_in_bar": "칩 숨김, 필터 메뉴에서 사용 가능",
         "filter_move_up": "필터 위로 이동",
-        "filter_move_down": "필터 아래로 이동"
+        "filter_move_down": "필터 아래로 이동",
+        "filters_custom_title": "사용자 지정 필터",
+        "filters_custom_hint": "이름과 해시에 대해 쉼표로 구분된 용어 일치",
+        "filters_custom_name": "필터 이름",
+        "filters_custom_query": "예: family, mom, a1b2c3",
+        "filters_custom_add": "필터 추가",
+        "filters_custom_remove": "사용자 지정 필터 삭제"
     },
     "settings": {
         "tabs": {

@@ -2448,7 +2448,13 @@
         "filter_shown_in_bar": "Affiché en pastille",
         "filter_hidden_in_bar": "Pas de pastille, toujours disponible dans le menu filtres",
         "filter_move_up": "Monter le filtre",
-        "filter_move_down": "Descendre le filtre"
+        "filter_move_down": "Descendre le filtre",
+        "filters_custom_title": "Filtres personnalisés",
+        "filters_custom_hint": "Termes séparés par des virgules comparés aux noms et hachages",
+        "filters_custom_name": "Nom du filtre",
+        "filters_custom_query": "ex. famille, maman, a1b2c3",
+        "filters_custom_add": "Ajouter un filtre",
+        "filters_custom_remove": "Supprimer le filtre personnalisé"
     },
     "settings": {
         "tabs": {
