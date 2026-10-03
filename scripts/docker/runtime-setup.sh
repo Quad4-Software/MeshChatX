@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: 0BSD
-# Alpine final-stage packages, pip bootstrap, and meshchat user.
+# Alpine final-stage packages, pip removal, and meshchat user.
 # Usage: runtime-setup.sh [standard|extra]
 set -eu
 
@@ -8,6 +8,11 @@ VARIANT="${1:-${VARIANT:-standard}}"
 
 apk upgrade --no-cache
 apk add --no-cache opusfile libffi espeak-ng su-exec libseccomp
+
+# The runtime image runs /opt/venv only. Removing pip and ensurepip drops
+# unused vulnerable vendored packages that scanners flag in the base image.
+rm -rf /usr/local/lib/python*/ensurepip /usr/local/lib/python*/site-packages/pip* \
+	/usr/local/bin/pip*
 
 case "${VARIANT}" in
 standard) ;;
