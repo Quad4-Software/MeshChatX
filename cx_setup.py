@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: 0BSD
 
+import importlib.util
 import os
 import sys
+import sysconfig
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -56,6 +58,18 @@ bin_dir = ROOT / "bin"
 if bin_dir.exists() and bin_dir.is_dir():
     include_files.append(("bin", "bin"))
 
+# macOS slices skip the pycodec2 extension and ship libcodec2 at the
+# site-packages root for meshchatx/pycodec2_ctypes.py to dlopen. When the
+# extension is installed (Linux, Windows) the package is traced normally;
+# when only the dylib exists it is bundled into lib/ instead.
+pycodec2_installed = importlib.util.find_spec("pycodec2") is not None
+if not pycodec2_installed:
+    for _codec2_name in ("libcodec2.dylib", "libcodec2.so"):
+        _codec2_lib = Path(sysconfig.get_paths()["purelib"]) / _codec2_name
+        if _codec2_lib.is_file():
+            include_files.append((str(_codec2_lib), f"lib/{_codec2_name}"))
+            break
+
 packages = [
     "RNS",
     "RNS.Interfaces",
@@ -64,7 +78,7 @@ packages = [
     "RNS.vendor",
     "LXMF",
     "LXST",
-    "pycodec2",
+] + (["pycodec2"] if pycodec2_installed else []) + [
     "lxmfy",
     "rns_filesync",
     "websockets",

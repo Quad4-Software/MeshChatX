@@ -24,8 +24,21 @@ fi
 
 PKG="${BUILD_EXE}/lib/pycodec2"
 if [[ ! -d "${PKG}" ]]; then
-    echo "frozen codec2 verify: missing ${PKG}" >&2
-    exit 1
+    # Slices without the pycodec2 extension use the ctypes binding instead.
+    # Require a bundled libcodec2 so the binding has something to dlopen.
+    shopt -s nullglob
+    ctypes_libs=(
+        "${BUILD_EXE}/lib"/libcodec2*.dylib
+        "${BUILD_EXE}/lib"/libcodec2.so*
+        "${BUILD_EXE}/lib"/libcodec2.dll
+    )
+    shopt -u nullglob
+    if [[ ${#ctypes_libs[@]} -eq 0 ]]; then
+        echo "frozen codec2 verify: missing ${PKG} and no bundled libcodec2 under ${BUILD_EXE}/lib" >&2
+        exit 1
+    fi
+    echo "frozen codec2 verify: OK (ctypes binding + ${ctypes_libs[0]})"
+    exit 0
 fi
 
 shopt -s nullglob

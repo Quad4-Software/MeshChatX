@@ -21,18 +21,6 @@ fi
 export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${ROOT}/.venv-x64}"
 _PY="${UV_PROJECT_ENVIRONMENT}/bin/python"
 
-_lock_version() {
-    awk -v pkg="$1" '
-        $0 == "name = \"" pkg "\"" { found=1; next }
-        found && /^version = / {
-            sub(/^version = "/, "", $0)
-            sub(/"$/, "", $0)
-            print $0
-            exit
-        }
-    ' uv.lock
-}
-
 _lock_resolved_version() {
     # $1 package, $2 interpreter version (MAJOR.MINOR). uv export emits one
     # requirements line per locked release with its environment marker, so a
@@ -93,9 +81,8 @@ fi
 
 _PY_MM="$(arch -x86_64 "$_PY" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
 _NUMPY_VERSION="$(_lock_resolved_version numpy "$_PY_MM")"
-_PYCODEC2_VERSION="$(_lock_version pycodec2)"
-if [[ -z "$_NUMPY_VERSION" || -z "$_PYCODEC2_VERSION" ]]; then
-    echo "github-macos-x64-venv-ready: could not resolve numpy/pycodec2 from uv.lock" >&2
+if [[ -z "$_NUMPY_VERSION" ]]; then
+    echo "github-macos-x64-venv-ready: could not resolve numpy from uv.lock" >&2
     _mark false
     exit 0
 fi
@@ -103,18 +90,17 @@ fi
 if ! arch -x86_64 "$_PY" -c "
 import importlib.metadata
 import numpy
-import pycodec2
 from numpy._core._multiarray_umath import _ARRAY_API
+from meshchatx import pycodec2_ctypes
 
 want_numpy = '${_NUMPY_VERSION}'
-want_pycodec2 = '${_PYCODEC2_VERSION}'
 got_numpy = numpy.__version__
-got_pycodec2 = importlib.metadata.version('pycodec2')
 if got_numpy != want_numpy:
     raise SystemExit(f'numpy {got_numpy} != {want_numpy}')
-if got_pycodec2 != want_pycodec2:
-    raise SystemExit(f'pycodec2 {got_pycodec2} != {want_pycodec2}')
-print('x64 venv ready', got_numpy, got_pycodec2)
+codec = pycodec2_ctypes.Codec2(1600)
+if codec.samples_per_frame() <= 0:
+    raise SystemExit('codec2 ctypes binding returned no samples')
+print('x64 venv ready', got_numpy, 'codec2-ctypes ok')
 "; then
     echo "github-macos-x64-venv-ready: cached env incomplete or wrong versions; discarding" >&2
     rm -rf "${UV_PROJECT_ENVIRONMENT}"

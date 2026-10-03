@@ -57,6 +57,11 @@ if [[ -x /usr/local/bin/brew ]]; then
 fi
 
 _codec2="$(arch -x86_64 /usr/local/bin/brew --prefix codec2 2>/dev/null || true)"
+if [[ -z "$_codec2" ]]; then
+    echo "github-install-macos-x64-python-deps: installing codec2 for x64 ctypes binding" >&2
+    arch -x86_64 /usr/local/bin/brew install codec2
+    _codec2="$(arch -x86_64 /usr/local/bin/brew --prefix codec2 2>/dev/null || true)"
+fi
 if [[ -n "$_codec2" && -d "${_codec2}/include" ]]; then
     export LDFLAGS="${LDFLAGS:-} -L${_codec2}/lib -arch x86_64"
     export CPPFLAGS="${CPPFLAGS:-} -I${_codec2}/include -arch x86_64"
@@ -83,27 +88,11 @@ export CFLAGS="${CFLAGS:--arch x86_64}"
 
 _PY="${UV_PROJECT_ENVIRONMENT}/bin/python"
 
-_lock_version() {
-    awk -v pkg="$1" '
-        $0 == "name = \"" pkg "\"" { found=1; next }
-        found && /^version = / {
-            sub(/^version = "/, "", $0)
-            sub(/"$/, "", $0)
-            print $0
-            exit
-        }
-    ' uv.lock
-}
-
-_PYCODEC2_VERSION="$(_lock_version pycodec2)"
-if [[ -z "$_PYCODEC2_VERSION" ]]; then
-    echo "github-install-macos-x64-python-deps: failed to read pycodec2 version from uv.lock" >&2
-    exit 1
-fi
-
 # Host is arm64. Without --python-platform uv still resolves macOS wheels for aarch64.
-# pycodec2 has no cp314 macOS x86_64 wheel, so uv would build it from sdist and pull
-# numpy into an isolated cross build (meson: "Can not run test applications").
+# pycodec2 has no cp314 macOS x86_64 wheel, and its sdist needs an undeclared
+# Cython build. The ctypes binding in meshchatx/pycodec2_ctypes.py covers
+# the Codec2 API LXST uses, so this slice skips the extension and ships the
+# Homebrew libcodec2 for the binding to dlopen.
 uv sync --frozen --group dev \
     --python "$PY_X64" \
     --python-platform x86_64-apple-darwin \
@@ -121,102 +110,29 @@ uv pip install --python "$_PY" \
     --python-platform x86_64-apple-darwin \
     "numpy==${_NUMPY_VERSION}"
 
-# pycodec2's sdist imports Cython directly in setup.py but does not declare it
-# under build-system.requires, so a build needs it preinstalled in the venv.
-# "wheel" registers the bdist_wheel setuptools command used below.
-uv pip install --python "$_PY" \
-    --python-platform x86_64-apple-darwin \
-    "Cython>=3.1.4" wheel
-
-# Host uv is arm64, so "uv pip install --no-build-isolation" would spawn "$_PY"
-# (a universal2 binary) with uv's own (arm64) architecture preference. Cython's
-# native extension is installed as x86_64-only, so the arm64-loaded interpreter
-# fails to dlopen it ("incompatible architecture"). Building the wheel ourselves
-# lets us force x86_64 on the one interpreter invocation that runs native code
-# (via arch -x86_64), then hand uv a finished wheel to install, which is a
-# plain file copy where uv's own architecture no longer matters.
-_lock_sdist_url() {
-    awk -v pkg="$1" '
-        $0 == "name = \"" pkg "\"" { found=1; next }
-        found && /^sdist = / { print; exit }
-    ' uv.lock | sed -n 's/.*url = "\([^"]*\)".*/\1/p'
-}
-
-_PYCODEC2_SDIST_URL="$(_lock_sdist_url pycodec2)"
-if [[ -z "$_PYCODEC2_SDIST_URL" ]]; then
-    echo "github-install-macos-x64-python-deps: failed to read pycodec2 sdist url from uv.lock" >&2
-    exit 1
-fi
-
-_pycodec2_build_dir="$(mktemp -d)"
-trap 'rm -rf "$_pycodec2_build_dir"' EXIT
-
-curl -fsSL "$_PYCODEC2_SDIST_URL" -o "${_pycodec2_build_dir}/pycodec2.tar.gz"
-tar xzf "${_pycodec2_build_dir}/pycodec2.tar.gz" -C "$_pycodec2_build_dir"
-_pycodec2_src_dir="$(find "$_pycodec2_build_dir" -maxdepth 1 -type d -name 'pycodec2-*')"
-if [[ -z "$_pycodec2_src_dir" ]]; then
-    echo "github-install-macos-x64-python-deps: pycodec2 sdist did not extract as expected" >&2
-    exit 1
-fi
-
-(cd "$_pycodec2_src_dir" && arch -x86_64 "$_PY" setup.py bdist_wheel -d "${_pycodec2_build_dir}/dist")
-
-_pycodec2_wheel="$(find "${_pycodec2_build_dir}/dist" -maxdepth 1 -name 'pycodec2-*.whl')"
-if [[ -z "$_pycodec2_wheel" ]]; then
-    echo "github-install-macos-x64-python-deps: pycodec2 wheel build produced no output" >&2
-    exit 1
-fi
-
-uv pip install --python "$_PY" \
-    --python-platform x86_64-apple-darwin \
-    "$_pycodec2_wheel"
-
-# Cython/wheel are build-time-only tools for the pycodec2 sdist compile above.
-# The finished wheel's .so no longer needs them at runtime. uv.lock does not
-# pin either, so leaving them installed would make this venv's site-packages
-# diverge from .venv's (arm64, which never builds pycodec2 from source and
-# never needs them) -- cx_Freeze's module finder bundles whatever is actually
-# importable, so an extra build tool sitting in site-packages here can end up
-# in lib/library.zip on one slice only, which unify-backend then rejects as a
-# genuine module-set mismatch between the two macOS trees.
-uv pip uninstall --python "$_PY" Cython wheel
-
-# pycodec2's setup.py links with -lcodec2, so the extension records Homebrew's
-# absolute install name for libcodec2 (e.g. /usr/local/opt/codec2/lib/libcodec2.1.2.dylib).
-# That only resolves on this CI runner. Bundle the dylib next to the extension and
-# rewrite the load command to @loader_path/libcodec2.dylib so it is self-contained,
-# and matches the relative layout scripts/unify-backend-plain-files.sh expects when
-# reconciling this slice against the arm64 wheel's .dylibs/ bundle.
+# Ship the Homebrew libcodec2 at the site-packages root so the ctypes
+# binding finds it without the pycodec2 extension. cx_Freeze picks it up
+# from there via the include_files entry in cx_setup.py.
 if [[ -n "${_codec2:-}" ]]; then
-    _pycodec2_dir="$(arch -x86_64 "$_PY" -c '
-import importlib.metadata
-from pathlib import Path
-dist = importlib.metadata.distribution("pycodec2")
-for rel in dist.files or ():
-    if rel.parts and rel.parts[0] == "pycodec2":
-        located = Path(dist.locate_file(rel))
-        if located.parent.name == "pycodec2":
-            print(located.parent.resolve())
-            break
-')"
+    _site_packages="$(arch -x86_64 "$_PY" -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')"
     for _lib in "${_codec2}/lib/libcodec2.dylib" "${_codec2}/lib/libcodec2.so"; do
         if [[ -f "$_lib" ]]; then
-            cp -f "$_lib" "${_pycodec2_dir}/libcodec2.dylib"
+            cp -f "$_lib" "${_site_packages}/libcodec2.dylib"
             break
         fi
     done
 fi
-arch -x86_64 bash "$(dirname "$0")/macos-normalize-pycodec2-dylib.sh" "$_PY"
 
 arch -x86_64 "$_PY" scripts/patch_lxst_pyogg_ogg_ctypes.py
 arch -x86_64 "$_PY" scripts/patch_lxst_codec2_optional.py
 
 arch -x86_64 "$_PY" -c "
-import importlib.metadata
 import numpy
-import pycodec2
 from numpy._core._multiarray_umath import _ARRAY_API
-print('x64 venv numpy', numpy.__version__, 'pycodec2', importlib.metadata.version('pycodec2'), 'ok')
+from meshchatx import pycodec2_ctypes
+codec = pycodec2_ctypes.Codec2(1600)
+assert codec.samples_per_frame() > 0
+print('x64 venv numpy', numpy.__version__, 'codec2-ctypes ok')
 "
 
 if [[ -n "${GITHUB_ENV:-}" ]]; then
