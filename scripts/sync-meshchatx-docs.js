@@ -11,7 +11,22 @@ const root = path.resolve(__dirname, "..");
 const srcDir = path.join(root, "docs");
 const destDir = path.join(root, "meshchatx", "src", "frontend", "public", "meshchatx-docs");
 
-const COPY_EXTENSIONS = new Set([".md", ".txt", ".json"]);
+const COPY_EXTENSIONS = new Set([
+    ".md",
+    ".txt",
+    ".json",
+    // Binary assets (guide shots, clips) so the baked public copy matches
+    // what the backend docs sync serves under /meshchatx-docs/.
+    ".webp",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".svg",
+    ".webm",
+    ".mp4",
+    ".ico",
+]);
 const SKIP_TOP_LEVEL_DIRS = new Set();
 
 function walkSync(dir, callback, relBase = "") {
@@ -43,7 +58,7 @@ fs.mkdirSync(destDir, { recursive: true });
 const sourceRelPaths = new Set();
 
 walkSync(srcDir, (filePath) => {
-    const ext = path.extname(filePath);
+    const ext = path.extname(filePath).toLowerCase();
     const base = path.basename(filePath);
     if (base !== "manifest.json" && !COPY_EXTENSIONS.has(ext)) {
         return;
@@ -68,7 +83,7 @@ function walkDest(dir, relBase = "") {
             walkDest(full, rel);
             continue;
         }
-        const ext = path.extname(entry.name);
+        const ext = path.extname(entry.name).toLowerCase();
         const base = entry.name;
         if (base !== "manifest.json" && !COPY_EXTENSIONS.has(ext)) {
             continue;

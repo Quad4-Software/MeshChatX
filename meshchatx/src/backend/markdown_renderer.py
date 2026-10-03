@@ -12,7 +12,10 @@ def _safe_href(url):
     if not url or not isinstance(url, str):
         return "#"
     trimmed = url.strip()
-    u = trimmed.lower()
+    # Browsers strip ASCII whitespace and control chars inside URL schemes
+    # (java\tscript: becomes javascript:), so the checks below run on the
+    # normalized form rather than the raw string.
+    u = re.sub(r"[\x00-\x20\x7f]+", "", trimmed).lower()
     if any(u.startswith(p) for p in _UNSAFE_PROTOCOLS):
         return "#"
     if u.startswith("//"):
@@ -47,7 +50,13 @@ class MarkdownRenderer:
         return slug_base
 
     @staticmethod
-    def render(text):
+    def render(text, img_base=None):
+        """Render markdown to HTML.
+
+        img_base optionally prefixes relative image srcs (no scheme, no
+        leading slash) so docs can reference sibling assets like
+        assets/guide.webp and have them resolve under the mounted docs tree.
+        """
         if not text:
             return ""
 
@@ -184,9 +193,39 @@ class MarkdownRenderer:
             flags=re.MULTILINE,
         )
 
+        # Images must be processed before links: the link pattern would
+        # otherwise consume the [alt](src) inside ![alt](src) and leave a
+        # stray "!" behind. (src sanitized, relative srcs get img_base)
+        def img_repl(match):
+            alt, src = match.group(1), match.group(2)
+            safe_src = _safe_href(src)
+            if safe_src == "#":
+                # Unsafe src: drop the URL entirely rather than echoing it
+                # back as literal text.
+                return html.escape(f"![{alt}](#)")
+            if (
+                img_base
+                and ":" not in safe_src.split("/")[0]
+                and not safe_src.startswith("/")
+            ):
+                safe_src = img_base + safe_src
+            # alt and safe_src are already entity-escaped (render() escaped
+            # the input), so entity-encoded quotes cannot break the attrs
+            # and inserting raw avoids double-encoding & in query strings.
+            return f'<div class="my-6"><img src="{safe_src}" alt="{alt}" class="max-w-full h-auto rounded-xl shadow-lg border border-gray-100 dark:border-zinc-800"></div>'
+
+        text = re.sub(
+            r"!\[([^\]]*)\]\(([^)]+)\)",
+            img_repl,
+            text,
+        )
+
         # Links (href sanitized to prevent javascript:/data: XSS)
         def link_repl(match):
             label, url = match.group(1), match.group(2)
+            # label/url are already entity-escaped (render() escaped the
+            # input), so insert raw: re-escaping would double-encode & in
+            # query strings and other entities.
             safe_url = _safe_href(url)
             is_external = any(
                 safe_url.lower().startswith(p)
@@ -194,27 +233,13 @@ class MarkdownRenderer:
             )
             target = ' target="_blank" rel="noopener noreferrer"' if is_external else ""
             return (
-                f'<a href="{html.escape(safe_url)}" class="text-blue-600 '
+                f'<a href="{safe_url}" class="text-blue-600 '
                 f'dark:text-blue-400 hover:underline"{target}>{label}</a>'
             )
 
         text = re.sub(
-            r"\[([^\]]+)\]\(([^)]+)\)",
+            r"(?<!!)\[([^\]]+)\]\(([^)]+)\)",
             link_repl,
-            text,
-        )
-
-        # Images (src sanitized)
-        def img_repl(match):
-            alt, src = match.group(1), match.group(2)
-            safe_src = _safe_href(src)
-            if safe_src == "#":
-                return html.escape(match.group(0))
-            return f'<div class="my-6"><img src="{html.escape(safe_src)}" alt="{alt}" class="max-w-full h-auto rounded-xl shadow-lg border border-gray-100 dark:border-zinc-800"></div>'
-
-        text = re.sub(
-            r"!\[([^\]]*)\]\(([^)]+)\)",
-            img_repl,
             text,
         )
 

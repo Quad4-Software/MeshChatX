@@ -223,11 +223,13 @@ from meshchatx.src.backend.web_audio_proxy import LazyWebAudioBridge
 from meshchatx.src.env_config import MeshchatEnv
 from meshchatx.src.env_utils import env_bool, env_int, env_set, env_str
 from meshchatx.src.path_utils import (
+    PathJailError,
     get_file_path,
     is_loopback_bind_host,
     is_path_within_dir,
     resolve_log_dir,
     resolve_meshchat_data_roots,
+    resolve_under_root,
 )
 from meshchatx.src.path_utils import (
     request_client_ip as _request_client_ip,
@@ -6141,18 +6143,29 @@ class ReticulumMeshChat:
 
         app.router.add_get("/reticulum-docs/{filename:.*}", reticulum_docs_handler)
 
-        dm = self.docs_manager
-        if (
-            dm
-            and dm.meshchatx_docs_dir
-            and os.path.exists(dm.meshchatx_docs_dir)
-            and not dm.meshchatx_docs_dir.startswith(public_dir)
-        ):
-            app.router.add_static(
-                "/meshchatx-docs/",
-                dm.meshchatx_docs_dir,
-                name="meshchatx_docs_storage",
-            )
+        # Serve synced MeshChatX docs assets (markdown + images/clips) from
+        # per-identity storage. Resolved lazily: the docs manager only exists
+        # once an identity context starts, so add_static cannot be wired here.
+        async def meshchatx_docs_handler(request):
+            dm = self.docs_manager
+            root = getattr(dm, "meshchatx_docs_dir", None) if dm else None
+            if not root or not os.path.isdir(root):
+                return web.json_response(
+                    {"error": "Documentation unavailable"},
+                    status=503,
+                )
+            filename = request.match_info.get("filename", "")
+            if not filename:
+                return web.json_response({"error": "Not found"}, status=404)
+            try:
+                resolved = resolve_under_root(
+                    root, filename, strict=True, must_be_file=True
+                )
+            except PathJailError:
+                return web.json_response({"error": "Not found"}, status=404)
+            return web.FileResponse(resolved)
+
+        app.router.add_get("/meshchatx-docs/{filename:.*}", meshchatx_docs_handler)
 
         if os.path.exists(public_dir):
             app.router.add_static("/", public_dir, name="static")

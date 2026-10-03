@@ -177,6 +177,54 @@ class TestMarkdownRenderer(unittest.TestCase):
         r = MarkdownRenderer.render("![x](//evil.example/i)")
         self.assertNotIn("//evil.example", r)
 
+    def test_image_renders_as_img(self):
+        r = MarkdownRenderer.render("![a shot](assets/x.webp)")
+        self.assertIn("<img", r)
+        self.assertIn('src="assets/x.webp"', r)
+        self.assertNotIn("<a", r)
+
+    def test_image_img_base_rewrites_relative_src(self):
+        r = MarkdownRenderer.render("![a](assets/x.webp)", img_base="/meshchatx-docs/en/")
+        self.assertIn('src="/meshchatx-docs/en/assets/x.webp"', r)
+
+    def test_image_img_base_leaves_absolute_and_remote_src(self):
+        r = MarkdownRenderer.render("![a](/abs/x.webp) ![b](https://e.io/x.webp)", img_base="/meshchatx-docs/en/")
+        self.assertIn('src="/abs/x.webp"', r)
+        self.assertIn('src="https://e.io/x.webp"', r)
+
+    def test_image_unsafe_src_url_dropped(self):
+        r = MarkdownRenderer.render("![x](javascript:alert(1))")
+        self.assertNotIn("javascript:", r)
+        self.assertNotIn("<img", r)
+
+    def test_scheme_whitespace_bypass_neutralized(self):
+        for payload in ("java\tscript:alert(1)", "java\nscript:alert(1)", "java\x0bscript:alert(1)", "ja va\rscript:alert(1)"):
+            r = MarkdownRenderer.render(f"[x]({payload})")
+            self.assertNotIn('href="java', r, payload)
+            self.assertIn('href="#"', r)
+            r = MarkdownRenderer.render(f"![x]({payload})")
+            self.assertNotIn("<img", r)
+
+    def test_query_ampersand_not_double_encoded(self):
+        r = MarkdownRenderer.render("[x](https://a.io/?a=1&b=2)")
+        self.assertIn('href="https://a.io/?a=1&amp;b=2"', r)
+        r = MarkdownRenderer.render("![x](a.webp?p=1&q=2)")
+        self.assertIn('src="a.webp?p=1&amp;q=2"', r)
+
+    def test_image_alt_attribute_injection_escaped(self):
+        r = MarkdownRenderer.render('![a" onerror="alert(1)](img.webp)')
+        self.assertNotIn('onerror="alert', r)
+        self.assertIn("onerror=&quot;", r)
+        # quotes inside the alt attribute stay entity-encoded
+        alt_val = r.split('alt="')[1].split('"')[0]
+        self.assertNotIn('"', alt_val)
+
+    def test_image_not_consumed_inside_code(self):
+        r = MarkdownRenderer.render("`![x](a.webp)`")
+        self.assertNotIn("<img", r)
+        r = MarkdownRenderer.render("```\n![x](a.webp)\n```")
+        self.assertNotIn("<img", r)
+
     def test_safe_links_preserved(self):
         r = MarkdownRenderer.render("[link](https://example.com/path)")
         self.assertIn('href="https://example.com/path"', r)
