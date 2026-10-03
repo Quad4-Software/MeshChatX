@@ -634,7 +634,7 @@
 
                             <div
                                 v-if="replyTarget && selectedHub && selectedRoom"
-                                class="flex items-center gap-2 border-t border-sem-border bg-sem-surface px-3 py-1.5"
+                                class="mx-3 mt-2 flex items-center gap-2 rounded-xl border border-sem-border bg-sem-surface px-3 py-1.5 shadow-xs"
                             >
                                 <MaterialDesignIcon icon-name="reply" class="size-4 shrink-0 text-sem-accent" />
                                 <div class="min-w-0 flex-1 text-xs">
@@ -654,22 +654,25 @@
                             </div>
                             <form
                                 v-if="selectedHub && selectedRoom"
-                                class="flex items-center gap-2 p-2.5 border-t border-sem-border bg-sem-canvas"
-                                :class="{ 'border-t-0': replyTarget }"
+                                class="flex items-end gap-2 px-3 pb-3 pt-2"
                                 @submit.prevent="sendMessage"
                             >
-                                <input
-                                    ref="composerInput"
-                                    v-model="composer"
-                                    type="text"
-                                    :maxlength="selectedHub.max_msg_body_bytes || 350"
-                                    :placeholder="$t('relay_chat.message_placeholder')"
-                                    class="input-field"
-                                    @keydown="onComposerKeydown"
-                                />
+                                <div
+                                    class="composer-pill relative flex-1 min-w-0 rounded-2xl border border-sem-border bg-sem-surface-muted/60 px-3 transition-all focus-within:ring-2 focus-within:ring-sem-focus focus-within:border-sem-focus-border shadow-xs"
+                                >
+                                    <input
+                                        ref="composerInput"
+                                        v-model="composer"
+                                        type="text"
+                                        :maxlength="selectedHub.max_msg_body_bytes || 350"
+                                        :placeholder="$t('relay_chat.message_placeholder')"
+                                        class="block w-full bg-transparent border-0 px-0 py-2.5 text-sm text-sem-fg placeholder:text-sem-fg-muted focus:outline-none focus:ring-0"
+                                        @keydown="onComposerKeydown"
+                                    />
+                                </div>
                                 <button
                                     type="submit"
-                                    :class="[btnPrimary, 'shrink-0 p-2.5!']"
+                                    :class="[btnPrimary, 'shrink-0 rounded-full p-2.5!']"
                                     :title="$t('relay_chat.send')"
                                     :disabled="!composer.trim() || sending"
                                 >

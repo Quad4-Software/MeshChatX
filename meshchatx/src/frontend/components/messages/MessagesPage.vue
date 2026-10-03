@@ -900,8 +900,10 @@ export default {
                     this.conversationsAbortController = new AbortController();
                     myController = this.conversationsAbortController;
                 }
-                const shouldShowInitialLoading =
-                    !append && !this.hasLoadedConversations && this.conversations.length === 0;
+                // Empty list means there is nothing to render while a new
+                // query lands. Keep the loading state up so the empty-state
+                // for a different filter does not flash in between fetches.
+                const shouldShowInitialLoading = !append && this.conversations.length === 0;
                 if (shouldShowInitialLoading) {
                     this.isLoadingConversations = true;
                 }
@@ -1546,6 +1548,11 @@ export default {
         requestConversationsRefresh() {
             if (this.conversationRefreshTimeout) {
                 clearTimeout(this.conversationRefreshTimeout);
+            }
+            // An empty list plus a pending refresh would flash the empty
+            // state for the debounce window, so mark it loading now.
+            if (this.conversations.length === 0) {
+                this.isLoadingConversations = true;
             }
             this.conversationRefreshTimeout = setTimeout(() => {
                 this.getConversations();

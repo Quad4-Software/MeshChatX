@@ -65,7 +65,8 @@
                 @click.stop
             >
                 <div
-                    class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-l border-t border-sem-border"
+                    class="dropdown-caret pointer-events-none absolute -top-[4px] border-l border-t border-sem-border"
+                    :class="menu.right != null ? 'right-3' : 'left-3'"
                     aria-hidden="true"
                 ></div>
                 <div class="dropdown-panel min-w-[180px] rounded-xl py-1 shadow-xl">
@@ -104,6 +105,7 @@
             :show="editModal.show"
             :context="context"
             :layout="layout"
+            :defs="defs"
             @close="editModal.show = false"
             @save="onLayoutSave"
         />
@@ -142,7 +144,7 @@ export default {
             layout: loadSidebarFilterLayout(),
             draggingId: null,
             dropTargetId: null,
-            menu: { show: false, top: 0, right: 0 },
+            menu: { show: false, top: 0, right: null, left: null },
             editModal: { show: false },
         };
     },
@@ -164,10 +166,13 @@ export default {
             return this.active.filter((id) => !visible.has(id)).length;
         },
         menuStyle() {
-            return {
-                top: `${this.menu.top}px`,
-                right: `${this.menu.right}px`,
-            };
+            const style = { top: `${this.menu.top}px` };
+            if (this.menu.right != null) {
+                style.right = `${this.menu.right}px`;
+            } else {
+                style.left = `${this.menu.left}px`;
+            }
+            return style;
         },
     },
     methods: {
@@ -180,7 +185,17 @@ export default {
             // overflow clip, so the menu always renders above the sidebar.
             const rect = this.$refs.menuButton.getBoundingClientRect();
             this.menu.top = Math.round(rect.bottom + 4);
-            this.menu.right = Math.max(4, Math.round(window.innerWidth - rect.right));
+            const minWidth = 180;
+            if (rect.right >= minWidth + 8) {
+                // Room to open left of the button: keep the right edge
+                // aligned as usual.
+                this.menu.right = Math.max(4, Math.round(window.innerWidth - rect.right));
+                this.menu.left = null;
+            } else {
+                // Collapsed sidebar: left-anchor so the panel stays on screen.
+                this.menu.left = Math.max(4, Math.round(rect.left));
+                this.menu.right = null;
+            }
             this.menu.show = true;
         },
         closeMenu() {
