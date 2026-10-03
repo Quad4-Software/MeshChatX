@@ -82,8 +82,8 @@ describe("themeEngine", () => {
 
     it("derives per-theme message bubble colors", () => {
         const defaultLight = buildThemeVariableOverrides({ theme_preset: "default" }, "light");
-        expect(defaultLight["--mc-bubble-outbound"]).toBe("#0284c7");
-        expect(defaultLight["--mc-bubble-failed"]).toBe("#dc2626");
+        expect(defaultLight["--mc-bubble-outbound"]).toBe("#0369a1");
+        expect(defaultLight["--mc-bubble-failed"]).toBe("#b91c1c");
         expect(defaultLight["--mc-bubble-waiting"]).toBe("#e6e8eb");
         expect(defaultLight["--mc-bubble-waiting-text"]).toBe("#111827");
 

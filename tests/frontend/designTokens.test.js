@@ -18,10 +18,10 @@ describe("design tokens", () => {
         expect(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-surface"]).toBe("#ffffff");
         expect(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-accent"]).toBe("#2563eb");
         expect(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-action-primary"]).toBe("#2563eb");
-        expect(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-error"]).toBe("#dc2626");
-        expect(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-info"]).toBe("#0284c7");
-        expect(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-success"]).toBe("#16a34a");
-        expect(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-warning"]).toBe("#f97316");
+        expect(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-error"]).toBe("#b91c1c");
+        expect(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-info"]).toBe("#0369a1");
+        expect(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-success"]).toBe("#166534");
+        expect(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-warning"]).toBe("#9a3412");
     });
 
     it("preserves legacy dark palette anchors", () => {
