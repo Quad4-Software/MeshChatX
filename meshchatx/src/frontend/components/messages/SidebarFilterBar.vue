@@ -59,15 +59,13 @@
             <div
                 v-if="menu.show"
                 v-click-outside="{ handler: () => (menu.show = false), capture: true }"
-                class="absolute right-0 top-full z-60 mt-1 animate-in fade-in zoom-in duration-100"
+                class="absolute right-0 top-full z-200 mt-1 animate-in fade-in zoom-in duration-100"
             >
                 <div
                     class="dropdown-caret pointer-events-none absolute -top-[4px] right-3 border-l border-t border-sem-border"
                     aria-hidden="true"
                 ></div>
-                <div
-                    class="min-w-[180px] overflow-hidden rounded-xl border border-sem-border bg-sem-surface py-1 shadow-xl"
-                >
+                <div class="dropdown-panel min-w-[180px] rounded-xl py-1 shadow-xl">
                     <button
                         v-for="def in defs"
                         :key="def.id"

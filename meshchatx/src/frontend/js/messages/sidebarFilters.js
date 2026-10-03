@@ -20,7 +20,7 @@ export const SIDEBAR_FILTER_DEFS = {
         { id: "favourites", labelKey: "messages.filter_favourites", icon: "star-outline" },
     ],
     announces: [
-        { id: "direct", labelKey: "messages.filter_direct", icon: "access-point" },
+        { id: "direct", labelKey: "messages.filter_direct", icon: "access-point-network" },
         { id: "nearby", labelKey: "messages.filter_nearby", icon: "map-marker-radius-outline" },
         { id: "pinned", labelKey: "messages.filter_pinned", icon: "pin-outline" },
         { id: "blocked", labelKey: "messages.filter_blocked", icon: "cancel" },
