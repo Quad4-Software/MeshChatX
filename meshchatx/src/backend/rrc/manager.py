@@ -354,7 +354,7 @@ class RRCHub:
             target=self._connect_worker,
             args=(epoch,),
             daemon=True,
-        )
+        name="mcx-rrc")
         t.start()
 
     def note_hub_announce(self):
@@ -390,7 +390,7 @@ class RRCHub:
             self._expected_closed_link = None
             self.link = link
         self._set_status(RRCHub.STATUS_CONNECTING, "Connected locally, sending HELLO")
-        self._hello_thread = threading.Thread(target=self._hello_loop, daemon=True)
+        self._hello_thread = threading.Thread(target=self._hello_loop, daemon=True, name="mcx-rrc")
         self._hello_thread.start()
 
     def _connect_worker(self, epoch=None):
@@ -528,7 +528,7 @@ class RRCHub:
                     )
                     self._maybe_schedule_reconnect_after_failed_connect()
 
-            watchdog = threading.Thread(target=_establish_watchdog, daemon=True)
+            watchdog = threading.Thread(target=_establish_watchdog, daemon=True, name="mcx-rrc")
             watchdog.start()
         except Exception as e:
             self._set_status(RRCHub.STATUS_FAILED, "Connect error: " + str(e))
@@ -559,7 +559,7 @@ class RRCHub:
 
         self._set_status(RRCHub.STATUS_CONNECTING, "Identified, sending HELLO")
 
-        self._hello_thread = threading.Thread(target=self._hello_loop, daemon=True)
+        self._hello_thread = threading.Thread(target=self._hello_loop, daemon=True, name="mcx-rrc")
         self._hello_thread.start()
 
     def _hello_loop(self):

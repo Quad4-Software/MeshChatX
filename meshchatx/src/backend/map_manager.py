@@ -284,7 +284,7 @@ class MapManager:
             target=self._run_export,
             args=(export_id, bbox, min_zoom, max_zoom, name),
             daemon=True,
-        )
+        name="mcx-mapdl")
         with self._export_lock:
             self._export_progress[export_id] = {
                 "status": "starting",

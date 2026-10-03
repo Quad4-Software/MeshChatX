@@ -126,7 +126,7 @@ class AsyncUtils:
                 target=asyncio.run,
                 args=(coroutine,),
                 daemon=True,
-            )
+            name="mcx-async")
             thread.start()
             return thread
 

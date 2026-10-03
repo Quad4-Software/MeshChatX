@@ -176,8 +176,8 @@ class MeshChatBLEConnection:
 
         self.should_run = True
         self.connection_thread = threading.Thread(
-            target=self.connection_job, daemon=True
-        )
+            target=self.connection_job, daemon=True,
+        name="mcx-rnode-conn")
         self.connection_thread.start()
 
     def cleanup(self):

@@ -614,7 +614,7 @@ class TelephoneManager:
         self._update_initiation_status(None, None)
         if not self.telephone:
             return
-        threading.Thread(target=self.hangup, daemon=True).start()
+        threading.Thread(target=self.hangup, daemon=True, name="mcx-hangup").start()
 
     def register_ringing_callback(self, callback):
         self.on_ringing_callback = callback

@@ -273,7 +273,7 @@ def install_shared_instance_rpc_deadline(
             except Exception as exc:
                 result["error"] = exc
 
-        t = threading.Thread(target=_make, daemon=True)
+        t = threading.Thread(target=_make, daemon=True, name="mcx-rns-recovery")
         t.start()
         t.join(timeout_s)
         if "conn" in result:
@@ -554,7 +554,7 @@ def _close_quietly(resource) -> None:
                 resource.shutdown()
             done.set()
 
-        threading.Thread(target=_shutdown, daemon=True).start()
+        threading.Thread(target=_shutdown, daemon=True, name="mcx-rns-recovery").start()
         done.wait(timeout=3)
         with contextlib.suppress(Exception):
             resource.server_close()

@@ -773,7 +773,7 @@ def check_loopback_tcp() -> dict[str, str]:
             finally:
                 conn.close()
 
-        thread = threading.Thread(target=_accept, daemon=True)
+        thread = threading.Thread(target=_accept, daemon=True, name="mcx-self-check")
         thread.start()
         client = socket.create_connection((host, port), timeout=5)
         try:

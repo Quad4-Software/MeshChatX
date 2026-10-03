@@ -254,7 +254,7 @@ def register_identities_routes(routes, app):
                     print(f"Failed to restart: {e}")
                     os._exit(0)
 
-            threading.Thread(target=restart).start()
+            threading.Thread(target=restart, name="mcx-restart").start()
 
             return web.json_response(
                 {

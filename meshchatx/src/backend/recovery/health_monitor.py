@@ -66,7 +66,7 @@ class HealthMonitor:
             return
         self._running = True
         self._stop_event.clear()
-        self._thread = threading.Thread(target=self._run_loop, daemon=True)
+        self._thread = threading.Thread(target=self._run_loop, daemon=True, name="mcx-health")
         self._thread.start()
         self._loop_stall_reported = False
         self._loop_probe_thread = threading.Thread(
