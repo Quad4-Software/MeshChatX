@@ -70,27 +70,31 @@ if not pycodec2_installed:
             include_files.append((str(_codec2_lib), f"lib/{_codec2_name}"))
             break
 
-packages = [
-    "RNS",
-    "RNS.Interfaces",
-    # Vendored u-msgpack is used by RNS Identity ratchet persist and LXMF.
-    # Name it explicitly so cx_Freeze cannot drop it from desktop freezes.
-    "RNS.vendor",
-    "LXMF",
-    "LXST",
-] + (["pycodec2"] if pycodec2_installed else []) + [
-    "lxmfy",
-    "rns_filesync",
-    "websockets",
-    "pycparser",
-    "cffi",
-    "bleak",
-    "landlockpy",
-    "seccompy",
-    # aiohttp pulls stdlib email at runtime. Keep the full tree out of library.zip
-    # so relative imports like email._policybase -> email.header work on Windows.
-    "email",
-]
+packages = (
+    [
+        "RNS",
+        "RNS.Interfaces",
+        # Vendored u-msgpack is used by RNS Identity ratchet persist and LXMF.
+        # Name it explicitly so cx_Freeze cannot drop it from desktop freezes.
+        "RNS.vendor",
+        "LXMF",
+        "LXST",
+    ]
+    + (["pycodec2"] if pycodec2_installed else [])
+    + [
+        "lxmfy",
+        "rns_filesync",
+        "websockets",
+        "pycparser",
+        "cffi",
+        "bleak",
+        "landlockpy",
+        "seccompy",
+        # aiohttp pulls stdlib email at runtime. Keep the full tree out of library.zip
+        # so relative imports like email._policybase -> email.header work on Windows.
+        "email",
+    ]
+)
 
 # Keep FS sandbox helpers even when import tracing is incomplete (Windows
 # launcher is entered via --meshchatx-run-module and must stay in the freeze).

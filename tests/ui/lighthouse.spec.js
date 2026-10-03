@@ -49,7 +49,7 @@ test.describe("Lighthouse page scores (simulated data)", () => {
             // before the audit takes over the target. A mid-audit navigation
             // kills the perf gatherer with "Inspected target navigated or
             // closed".
-            await page.waitForTimeout(1500);
+            await page.waitForTimeout(2500);
 
             const url = page.url();
             // Lighthouse navigates the shared CDP target itself. a concurrent
@@ -62,7 +62,7 @@ test.describe("Lighthouse page scores (simulated data)", () => {
                     break;
                 } catch (err) {
                     const msg = String((err && err.message) || err);
-                    if (attempt >= 3 || !/navigated or closed|Protocol error/.test(msg)) {
+                    if (attempt >= 5 || !/navigated or closed|Protocol error/.test(msg)) {
                         throw err;
                     }
                     // eslint-disable-next-line no-console
