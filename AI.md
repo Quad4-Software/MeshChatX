@@ -4,7 +4,7 @@ Commits written with AI assistance carry provenance metadata at two levels.
 
 ## Commit trailers
 
-Every AI-assisted commit ends with trailers:
+Every AI-assisted commit ends with trailers for example:
 
 ```
 Harness: Nullray
