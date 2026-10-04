@@ -1765,7 +1765,12 @@
         "kernel_iface_loading": "Завантаження…",
         "kernel_iface_picker_help": "Пристрій необов'язковий: одна назва інтерфейсу ядра або залиште порожнім, щоб прив'язати лише за IP-адресою прослуховування. Клацніть рядок, щоб заповнити поле.",
         "auto_iface_ifname_chips_hint": "Інтерфейси цього хоста: клацніть, щоб додати або видалити назви у полі вище.",
-        "copied_share": "Interface config copied — paste in a message to share"
+        "copied_share": "Interface config copied — paste in a message to share",
+        "discovered_export_failed": "Failed to export discovered interfaces",
+        "discovered_import_result": "Imported {imported} discovered interface(s), skipped {skipped}",
+        "discovered_import_failed": "Failed to import discovered interfaces",
+        "previous": "Previous",
+        "next": "Next"
     },
     "map": {
         "title": "Карта",

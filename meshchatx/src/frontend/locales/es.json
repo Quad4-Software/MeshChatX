@@ -1765,7 +1765,12 @@
         "kernel_iface_loading": "Cargando…",
         "kernel_iface_picker_help": "“Dispositivo” es opcional: un nombre de interfaz del kernel, o vacío para enlazar solo con la IP de escucha. Pulse una fila para rellenar.",
         "auto_iface_ifname_chips_hint": "Interfaces de este equipo: pulse para añadir o quitar nombres en el campo de arriba.",
-        "copied_share": "Interface config copied — paste in a message to share"
+        "copied_share": "Interface config copied — paste in a message to share",
+        "discovered_export_failed": "Failed to export discovered interfaces",
+        "discovered_import_result": "Imported {imported} discovered interface(s), skipped {skipped}",
+        "discovered_import_failed": "Failed to import discovered interfaces",
+        "previous": "Previous",
+        "next": "Next"
     },
     "map": {
         "title": "Mapa",

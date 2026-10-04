@@ -1765,7 +1765,12 @@
         "kernel_iface_loading": "Yükleniyor…",
         "kernel_iface_picker_help": "Cihaz isteğe bağlıdır: bir çekirdek arayüz adı veya yalnızca Dinleme IP'siyle bağlanmak için boş bırakın. Alanı doldurmak için bir satıra tıklayın.",
         "auto_iface_ifname_chips_hint": "Bu ana makinenin arayüzleri: yukarıdaki alana ad eklemek veya çıkarmak için tıklayın.",
-        "copied_share": "Interface config copied — paste in a message to share"
+        "copied_share": "Interface config copied — paste in a message to share",
+        "discovered_export_failed": "Failed to export discovered interfaces",
+        "discovered_import_result": "Imported {imported} discovered interface(s), skipped {skipped}",
+        "discovered_import_failed": "Failed to import discovered interfaces",
+        "previous": "Previous",
+        "next": "Next"
     },
     "map": {
         "title": "Harita",

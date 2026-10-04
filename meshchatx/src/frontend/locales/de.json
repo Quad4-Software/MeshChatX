@@ -1765,7 +1765,12 @@
         "kernel_iface_loading": "Laden…",
         "kernel_iface_picker_help": "Optional ein Kernel-Interface-Name, oder leer lassen und nur über Listen-IP binden. Klick füllt das Feld.",
         "auto_iface_ifname_chips_hint": "Schnittstellen dieses Rechners: Klicken zum Hinzufügen oder Entfernen im Feld darüber.",
-        "copied_share": "Interface config copied — paste in a message to share"
+        "copied_share": "Interface config copied — paste in a message to share",
+        "discovered_export_failed": "Failed to export discovered interfaces",
+        "discovered_import_result": "Imported {imported} discovered interface(s), skipped {skipped}",
+        "discovered_import_failed": "Failed to import discovered interfaces",
+        "previous": "Previous",
+        "next": "Next"
     },
     "map": {
         "title": "Karte",
