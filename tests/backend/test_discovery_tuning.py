@@ -271,7 +271,9 @@ async def test_discovered_interfaces_export_and_import(temp_dir):
     import_dir = os.path.join(temp_dir, "imported", "discovery", "interfaces")
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as zf:
-        zf.writestr("cc" * 16, umsgpack.packb(_valid_discovery_info(name="imported-peer")))
+        zf.writestr(
+            "cc" * 16, umsgpack.packb(_valid_discovery_info(name="imported-peer"))
+        )
         zf.writestr("../escape", b"bad")
         zf.writestr("dd" * 16, b"not-msgpack")
         zf.writestr("ee" * 16, umsgpack.packb({"no_last_heard": True}))
@@ -400,7 +402,9 @@ async def test_discovered_interfaces_import_skips_invalid_entries(temp_dir):
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as zf:
-        zf.writestr("aa" * 16, umsgpack.packb(_valid_discovery_info(last_heard="not-a-number")))
+        zf.writestr(
+            "aa" * 16, umsgpack.packb(_valid_discovery_info(last_heard="not-a-number"))
+        )
         zf.writestr("bb" * 16, b"x" * (70 * 1024))
         zf.writestr("dd" * 16, umsgpack.packb(_valid_discovery_info(name="good")))
 

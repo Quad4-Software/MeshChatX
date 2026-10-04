@@ -312,7 +312,9 @@ def register_reticulum_instance_routes(routes, app):
             except (TypeError, ValueError):
                 return http_error(422, f"{threshold_key} must be a number of days")
             if days <= 0 or days > 36500:
-                return http_error(422, f"{threshold_key} must be between 0 and 36500 days")
+                return http_error(
+                    422, f"{threshold_key} must be between 0 and 36500 days"
+                )
             reticulum_config[threshold_key] = days
 
         # default_bootstrap_only is a MeshChatX-only setting, so do NOT write it
@@ -344,10 +346,17 @@ def register_reticulum_instance_routes(routes, app):
                 try:
                     max_return = int(raw_max)
                 except (TypeError, ValueError):
-                    return http_error(422, "discovered_interfaces_max_return must be an integer")
+                    return http_error(
+                        422, "discovered_interfaces_max_return must be an integer"
+                    )
                 if max_return < 1 or max_return > 50_000:
-                    return http_error(422, "discovered_interfaces_max_return must be between 1 and 50000")
-                app.current_context.config.discovered_interfaces_max_return.set(max_return)
+                    return http_error(
+                        422,
+                        "discovered_interfaces_max_return must be between 1 and 50000",
+                    )
+                app.current_context.config.discovered_interfaces_max_return.set(
+                    max_return
+                )
 
         if not app._write_reticulum_config():
             return http_unexpected("Failed to write Reticulum config")
@@ -680,7 +689,9 @@ def register_reticulum_instance_routes(routes, app):
                 path = os.path.join(directory, name)
                 # Only export entries the import path will accept: flat
                 # hexrep filenames written by RNS discovery persistence.
-                if not os.path.isfile(path) or not DISCOVERY_FILENAME_RE.fullmatch(name):
+                if not os.path.isfile(path) or not DISCOVERY_FILENAME_RE.fullmatch(
+                    name
+                ):
                     continue
                 try:
                     zf.write(path, name)
