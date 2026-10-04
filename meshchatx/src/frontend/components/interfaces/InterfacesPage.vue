@@ -266,7 +266,7 @@
                                 class="grid gap-4 min-w-0 grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6"
                             >
                                 <div
-                                    v-for="iface in sortedDiscoveredInterfaces"
+                                    v-for="iface in pagedDiscoveredInterfaces"
                                     :key="iface.discovery_hash || iface.name"
                                     class="interface-card group transition-all duration-300 min-w-0"
                                     :class="{
@@ -550,6 +550,49 @@
                                             </button>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            <div
+                                v-if="sortedDiscoveredInterfaces.length > discoveredPageSize || discoveredPage > 1"
+                                class="flex flex-wrap items-center justify-between gap-3 pt-1"
+                            >
+                                <div class="text-xs text-sem-fg-muted">
+                                    {{ discoveredRangeStart }}-{{ discoveredRangeEnd }} of
+                                    {{ sortedDiscoveredInterfaces.length }}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <select
+                                        v-model.number="discoveredPageSize"
+                                        class="input-field w-auto! py-1! text-xs"
+                                        aria-label="Items per page"
+                                    >
+                                        <option :value="24">24</option>
+                                        <option :value="48">48</option>
+                                        <option :value="96">96</option>
+                                        <option :value="192">192</option>
+                                    </select>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip text-xs py-1! px-3!"
+                                        :disabled="discoveredPage <= 1"
+                                        @click="discoveredPage -= 1"
+                                    >
+                                        <MaterialDesignIcon icon-name="chevron-left" class="w-4 h-4" />
+                                        {{ $t("interfaces.previous") }}
+                                    </button>
+                                    <span class="text-xs text-sem-fg-muted">
+                                        {{ discoveredPage }} / {{ discoveredPageCount }}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip text-xs py-1! px-3!"
+                                        :disabled="discoveredPage >= discoveredPageCount"
+                                        @click="discoveredPage += 1"
+                                    >
+                                        {{ $t("interfaces.next") }}
+                                        <MaterialDesignIcon icon-name="chevron-right" class="w-4 h-4" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -931,6 +974,8 @@ export default {
             exportingDiscoveredInterfaces: false,
             importingDiscoveredInterfaces: false,
             discoveredStatusFilter: "all",
+            discoveredPage: 1,
+            discoveredPageSize: 48,
             discoveryInterval: null,
             activeTab: "overview",
         };
@@ -1003,6 +1048,20 @@ export default {
             }
             return list.sort((a, b) => (b.last_heard || 0) - (a.last_heard || 0));
         },
+        pagedDiscoveredInterfaces() {
+            const start = (this.discoveredPage - 1) * this.discoveredPageSize;
+            return this.sortedDiscoveredInterfaces.slice(start, start + this.discoveredPageSize);
+        },
+        discoveredPageCount() {
+            return Math.max(1, Math.ceil(this.sortedDiscoveredInterfaces.length / this.discoveredPageSize));
+        },
+        discoveredRangeStart() {
+            if (this.sortedDiscoveredInterfaces.length === 0) return 0;
+            return (this.discoveredPage - 1) * this.discoveredPageSize + 1;
+        },
+        discoveredRangeEnd() {
+            return Math.min(this.discoveredPage * this.discoveredPageSize, this.sortedDiscoveredInterfaces.length);
+        },
         interfacesWithLocation() {
             return this.discoveredInterfaces.filter((iface) => iface.latitude != null && iface.longitude != null);
         },
@@ -1053,10 +1112,27 @@ export default {
     },
     watch: {
         discoveredStatusFilter(value) {
+            this.discoveredPage = 1;
             try {
                 localStorage.setItem(STORAGE_KEYS.INTERFACES_DISCOVERED_STATUS_FILTER, value);
             } catch {
                 /* ignore */
+            }
+        },
+        searchTerm() {
+            this.discoveredPage = 1;
+        },
+        typeFilter() {
+            this.discoveredPage = 1;
+        },
+        discoveredPageCount(count) {
+            if (this.discoveredPage > count) {
+                this.discoveredPage = count;
+            }
+        },
+        sortedDiscoveredInterfaces() {
+            if (this.discoveredPage > this.discoveredPageCount) {
+                this.discoveredPage = this.discoveredPageCount;
             }
         },
     },
@@ -1341,10 +1417,13 @@ export default {
                 const active = response.data?.active ?? [];
 
                 const merged = new Map();
+                const existingByKey = new Map();
+                this.discoveredInterfaces.forEach((iface) => {
+                    existingByKey.set(this.discoveryKey(iface), iface);
+                });
                 const addOrUpdate = (iface, isNew = false) => {
                     const key = this.discoveryKey(iface);
-                    const existing =
-                        merged.get(key) || this.discoveredInterfaces.find((i) => this.discoveryKey(i) === key);
+                    const existing = merged.get(key) || existingByKey.get(key);
                     const lastHeard = iface.last_heard ?? existing?.last_heard ?? Math.floor(Date.now() / 1000);
                     merged.set(key, {
                         ...existing,

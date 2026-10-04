@@ -337,13 +337,17 @@ def register_reticulum_instance_routes(routes, app):
             and app.current_context.config
             and "discovered_interfaces_max_return" in data
         ):
-            try:
-                max_return = int(data.get("discovered_interfaces_max_return"))
-            except (TypeError, ValueError):
-                return http_error(422, "discovered_interfaces_max_return must be an integer")
-            if max_return < 1 or max_return > 50_000:
-                return http_error(422, "discovered_interfaces_max_return must be between 1 and 50000")
-            app.current_context.config.discovered_interfaces_max_return.set(max_return)
+            raw_max = data.get("discovered_interfaces_max_return")
+            if raw_max is None or raw_max == "":
+                app.current_context.config.discovered_interfaces_max_return.set(None)
+            else:
+                try:
+                    max_return = int(raw_max)
+                except (TypeError, ValueError):
+                    return http_error(422, "discovered_interfaces_max_return must be an integer")
+                if max_return < 1 or max_return > 50_000:
+                    return http_error(422, "discovered_interfaces_max_return must be between 1 and 50000")
+                app.current_context.config.discovered_interfaces_max_return.set(max_return)
 
         if not app._write_reticulum_config():
             return http_unexpected("Failed to write Reticulum config")
@@ -416,6 +420,97 @@ def register_reticulum_instance_routes(routes, app):
 
         return web.json_response({"discovery": discovery_config})
 
+    DISCOVERY_BOUNDED_SCAN_FILE_THRESHOLD = 3000
+    DISCOVERY_DEEP_SCAN_INTERVAL = 300.0
+
+    def _bounded_discovery_list(discovery, directory, max_return):
+        """Approximate list_discovered_interfaces() for large stores.
+
+        File mtimes track last_heard rewrites closely enough to pick
+        candidates, so only the freshest entries are unpacked. Replicates
+        the RNS remove/status rules without pruning; the full RNS scan still
+        runs periodically to delete expired entries.
+        """
+        from RNS.Discovery import (
+            InterfaceAnnounceHandler,
+            is_hostname,
+            is_ip_address,
+        )
+
+        now = time.time()
+        candidates = []
+        for name in os.listdir(directory):
+            path = os.path.join(directory, name)
+            try:
+                st = os.stat(path)
+            except OSError:
+                continue
+            candidates.append((st.st_mtime, path))
+        candidates.sort(reverse=True)
+
+        try:
+            blackholed = discovery.rns_instance.get_blackholed_identities()
+        except Exception:
+            blackholed = []
+        try:
+            discovery_sources = RNS.Reticulum.interface_discovery_sources()
+        except Exception:
+            discovery_sources = set()
+
+        results = []
+        for _, path in candidates[: max(max_return * 2, 2000)]:
+            try:
+                with open(path, "rb") as f:
+                    info = umsgpack.unpackb(f.read())
+                heard_delta = now - info["last_heard"]
+                info["name"] = InterfaceAnnounceHandler.sanitize_name(info["name"])
+                try:
+                    if info.get("ifac_netname") == "None":
+                        info.pop("ifac_netname")
+                    if info.get("ifac_netkey") == "None":
+                        info.pop("ifac_netkey")
+                except Exception:
+                    pass
+                if (
+                    heard_delta > discovery.THRESHOLD_REMOVE
+                    or not info.get("transport_id")
+                    or not info.get("network_id")
+                    or (
+                        discovery_sources
+                        and bytes.fromhex(info["network_id"]) not in discovery_sources
+                    )
+                    or info.get("type") not in discovery.DISCOVERABLE_TYPES
+                    or bytes.fromhex(info["network_id"]) in blackholed
+                    or bytes.fromhex(info["transport_id"]) in blackholed
+                    or (
+                        "reachable_on" in info
+                        and not (
+                            is_ip_address(info["reachable_on"])
+                            or is_hostname(info["reachable_on"])
+                        )
+                    )
+                ):
+                    continue
+                if heard_delta > discovery.THRESHOLD_STALE:
+                    info["status"] = "stale"
+                elif heard_delta > discovery.THRESHOLD_UNKNOWN:
+                    info["status"] = "unknown"
+                else:
+                    info["status"] = "available"
+                info["status_code"] = discovery.STATUS_CODE_MAP[info["status"]]
+                results.append(info)
+            except Exception:
+                continue
+        results.sort(
+            key=lambda i: (
+                i.get("status_code", 0),
+                i.get("value", 0) or 0,
+                i.get("last_heard", 0),
+            ),
+            reverse=True,
+        )
+        return results
+
     def _collect_discovered_interfaces():
         # Lazy import: see reticulum_discovery_get.
         from meshchatx.meshchat import ReticulumMeshChat
@@ -425,8 +520,30 @@ def register_reticulum_instance_routes(routes, app):
         if cache and now - cache["ts"] < 3.0:
             return cache["payload"]
         try:
+            max_disc = 500
+            if app.current_context and app.current_context.config:
+                mv = app.current_context.config.discovered_interfaces_max_return.get()
+                if mv is not None and mv > 0:
+                    max_disc = min(int(mv), 50_000)
+
             discovery = InterfaceDiscovery(discover_interfaces=False)
-            interfaces = discovery.list_discovered_interfaces()
+            interfaces = None
+            directory = _discovery_storage_dir()
+            if directory and os.path.isdir(directory):
+                try:
+                    file_count = len(os.listdir(directory))
+                except OSError:
+                    file_count = 0
+                last_deep = getattr(app, "_discovery_last_deep_scan", 0.0)
+                if (
+                    file_count > DISCOVERY_BOUNDED_SCAN_FILE_THRESHOLD
+                    and now - last_deep < DISCOVERY_DEEP_SCAN_INTERVAL
+                ):
+                    interfaces = _bounded_discovery_list(discovery, directory, max_disc)
+                else:
+                    app._discovery_last_deep_scan = now
+            if interfaces is None:
+                interfaces = discovery.list_discovered_interfaces()
             reticulum_config = app._get_reticulum_section()
             whitelist_patterns = reticulum_config.get(
                 "interface_discovery_whitelist",
@@ -434,11 +551,6 @@ def register_reticulum_instance_routes(routes, app):
             blacklist_patterns = reticulum_config.get(
                 "interface_discovery_blacklist",
             )
-            max_disc = 500
-            if app.current_context and app.current_context.config:
-                mv = app.current_context.config.discovered_interfaces_max_return.get()
-                if mv is not None and mv > 0:
-                    max_disc = min(int(mv), 50_000)
             if len(interfaces) > max_disc:
                 interfaces = interfaces[:max_disc]
             active = []
@@ -566,9 +678,15 @@ def register_reticulum_instance_routes(routes, app):
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
             for name in sorted(os.listdir(directory)):
                 path = os.path.join(directory, name)
-                if not os.path.isfile(path):
+                # Only export entries the import path will accept: flat
+                # hexrep filenames written by RNS discovery persistence.
+                if not os.path.isfile(path) or not DISCOVERY_FILENAME_RE.fullmatch(name):
                     continue
-                zf.write(path, name)
+                try:
+                    zf.write(path, name)
+                except OSError:
+                    # Entry pruned or replaced mid-scan; skip it.
+                    continue
                 count += 1
         if count == 0:
             return None
@@ -583,6 +701,8 @@ def register_reticulum_instance_routes(routes, app):
         os.makedirs(directory, exist_ok=True)
         imported = 0
         skipped = 0
+        now = time.time()
+        remove_after = float(getattr(InterfaceDiscovery, "THRESHOLD_REMOVE", 7 * 86400))
         with zipfile.ZipFile(io.BytesIO(raw)) as zf:
             names = [n for n in zf.namelist() if not n.endswith("/")]
             if len(names) > DISCOVERY_IMPORT_MAX_MEMBERS:
@@ -594,7 +714,10 @@ def register_reticulum_instance_routes(routes, app):
                 if base != name or not DISCOVERY_FILENAME_RE.fullmatch(base):
                     skipped += 1
                     continue
-                payload = zf.read(name)
+                # Stream with a bound so a crafted member cannot expand into
+                # unbounded memory even if its declared size lies.
+                with zf.open(name) as member:
+                    payload = member.read(DISCOVERY_IMPORT_MAX_FILE_BYTES + 1)
                 if not payload or len(payload) > DISCOVERY_IMPORT_MAX_FILE_BYTES:
                     skipped += 1
                     continue
@@ -603,11 +726,36 @@ def register_reticulum_instance_routes(routes, app):
                 except Exception:
                     skipped += 1
                     continue
-                if not isinstance(info, dict) or "last_heard" not in info:
+                if not isinstance(info, dict):
                     skipped += 1
                     continue
-                with open(os.path.join(directory, base), "wb") as f:
-                    f.write(payload)
+                last_heard = info.get("last_heard")
+                if not isinstance(last_heard, (int, float)):
+                    skipped += 1
+                    continue
+                # Clamp entries into the kept window: future timestamps are
+                # capped at now, and archives older than the remove threshold
+                # are moved just inside it so importing an old backup does
+                # not delete the whole set on the next list pass.
+                if last_heard > now:
+                    last_heard = now
+                elif now - last_heard > remove_after:
+                    last_heard = now - (remove_after * 0.75)
+                if last_heard != info["last_heard"]:
+                    info["last_heard"] = last_heard
+                    payload = umsgpack.packb(info)
+                target = os.path.join(directory, base)
+                tmp = f"{target}.tmp-{os.getpid()}"
+                try:
+                    with open(tmp, "wb") as f:
+                        f.write(payload)
+                    os.replace(tmp, target)
+                finally:
+                    if os.path.exists(tmp):
+                        try:
+                            os.unlink(tmp)
+                        except OSError:
+                            pass
                 imported += 1
         return {"imported": imported, "skipped": skipped}
 
@@ -633,7 +781,10 @@ def register_reticulum_instance_routes(routes, app):
     @routes.post(API_V1_PREFIX + "/reticulum/discovered-interfaces/import")
     async def reticulum_discovered_interfaces_import(request):
         try:
-            data = await read_json_limited(request)
+            data = await read_json_limited(
+                request,
+                max_bytes=DISCOVERY_IMPORT_MAX_ZIP_BYTES * 2,
+            )
         except PayloadTooLargeError:
             return http_payload_too_large()
         except Exception:
@@ -654,6 +805,8 @@ def register_reticulum_instance_routes(routes, app):
             result = await asyncio.to_thread(_import_discovery_zip, raw, directory)
         except zipfile.BadZipFile:
             return http_error(422, "Uploaded file is not a valid zip archive")
+        except ValueError as e:
+            return http_error(422, str(e))
         except Exception:
             return http_unexpected("Failed to import discovered interfaces")
         return web.json_response(result)

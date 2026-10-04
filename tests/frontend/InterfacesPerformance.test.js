@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi } from "vitest";
 import InterfacesPage from "../../meshchatx/src/frontend/components/interfaces/InterfacesPage.vue";
 
@@ -87,6 +87,10 @@ describe("InterfacesPage Performance", () => {
             },
         });
 
+        // let the mount-time discovery poll settle, then lift the merge cap
+        // so the seeded list survives the next accumulation pass
+        await flushPromises();
+        wrapper.vm.discoveryConfig.discovered_interfaces_max_return = 5000;
         await wrapper.setData({
             discoveredInterfaces,
             activeTab: "overview",
@@ -95,8 +99,11 @@ describe("InterfacesPage Performance", () => {
         const end = performance.now();
         console.log(`Rendered ${numDiscovered} discovered interfaces in ${(end - start).toFixed(2)}ms`);
 
+        // the grid is paginated: the full list stays in the model but only
+        // the current page renders, keeping the DOM bounded at large counts
+        expect(wrapper.vm.sortedDiscoveredInterfaces.length).toBe(numDiscovered);
         const disconnectedBadges = wrapper.findAll(".bg-sem-action-danger\\/90");
-        expect(disconnectedBadges.length).toBe(numDiscovered);
+        expect(disconnectedBadges.length).toBe(wrapper.vm.discoveredPageSize);
         expect(end - start).toBeLessThan(60000);
     }, 60000);
 
