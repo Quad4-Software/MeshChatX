@@ -210,4 +210,40 @@ describe("InterfacesPage discovered interfaces cap", () => {
 
         expect(wrapper.vm.discoveredInterfaces).toHaveLength(500);
     });
+
+    it("paginates the discovered list and resets the page on filter change", async () => {
+        stubDiscovered(120);
+        const wrapper = mountInterfacesPage();
+        await flushPromises();
+        wrapper.vm.discoveryConfig.discovered_interfaces_max_return = 500;
+        await wrapper.vm.loadDiscoveredInterfaces();
+
+        expect(wrapper.vm.sortedDiscoveredInterfaces).toHaveLength(120);
+        expect(wrapper.vm.pagedDiscoveredInterfaces).toHaveLength(48);
+        expect(wrapper.vm.discoveredPageCount).toBe(3);
+        expect(wrapper.vm.discoveredRangeStart).toBe(1);
+        expect(wrapper.vm.discoveredRangeEnd).toBe(48);
+
+        wrapper.vm.discoveredPage = 3;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.pagedDiscoveredInterfaces).toHaveLength(24);
+        expect(wrapper.vm.discoveredRangeStart).toBe(97);
+
+        wrapper.vm.discoveredStatusFilter = "connected";
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.discoveredPage).toBe(1);
+    });
+
+    it("clamps the page when the filtered list shrinks", async () => {
+        stubDiscovered(120);
+        const wrapper = mountInterfacesPage();
+        await flushPromises();
+        wrapper.vm.discoveredStatusFilter = "all";
+        await wrapper.vm.loadDiscoveredInterfaces();
+
+        wrapper.vm.discoveredPage = 3;
+        wrapper.vm.discoveredInterfaces = wrapper.vm.discoveredInterfaces.slice(0, 10);
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.discoveredPage).toBe(1);
+    });
 });

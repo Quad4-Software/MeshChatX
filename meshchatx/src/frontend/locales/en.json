@@ -1768,7 +1768,9 @@
         "copied_share": "Interface config copied — paste in a message to share",
         "discovered_export_failed": "Failed to export discovered interfaces",
         "discovered_import_result": "Imported {imported} discovered interface(s), skipped {skipped}",
-        "discovered_import_failed": "Failed to import discovered interfaces"
+        "discovered_import_failed": "Failed to import discovered interfaces",
+        "previous": "Previous",
+        "next": "Next"
     },
     "map": {
         "title": "Map",

@@ -13,6 +13,7 @@ import json
 import os
 import shutil
 import tempfile
+import time
 import zipfile
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -230,7 +231,7 @@ def _make_discovery_file(directory, name, info):
 def _valid_discovery_info(**kwargs):
     info = {
         "name": "peer-iface",
-        "type": "TCPClientInterface",
+        "type": "TCPServerInterface",
         "reachable_on": "10.0.0.9",
         "port": 4242,
         "network_id": "aa" * 16,
@@ -310,3 +311,145 @@ async def test_discovered_interfaces_import_rejects_bad_payloads(temp_dir):
             JsonRequest({"data": base64.b64encode(b"not a zip").decode()}),
         )
         assert resp.status == 422
+
+
+def _seed_discovery_dir(discovery_dir, count, now=None):
+    os.makedirs(discovery_dir, exist_ok=True)
+    now = now if now is not None else time.time()
+    for i in range(count):
+        info = _valid_discovery_info(
+            name=f"peer-{i}",
+            last_heard=now - (i % 3600),
+            value=0,
+        )
+        path = os.path.join(discovery_dir, f"{i:032x}")
+        with open(path, "wb") as f:
+            f.write(umsgpack.packb(info))
+        os.utime(path, (info["last_heard"], info["last_heard"]))
+
+
+@pytest.mark.asyncio
+async def test_discovery_patch_max_return_null_resets_default(temp_dir):
+    app_instance, _config = build_app(temp_dir)
+    patch_handler = await find_route_handler(
+        app_instance,
+        "/api/v1/reticulum/discovery",
+        "PATCH",
+    )
+    resp = await patch_handler(
+        JsonRequest({"discovered_interfaces_max_return": 1500}),
+    )
+    assert resp.status == 200
+    assert (
+        app_instance.current_context.config.discovered_interfaces_max_return.get()
+        == 1500
+    )
+
+    # clearing the field must reset to the default, not fail validation
+    resp = await patch_handler(
+        JsonRequest({"discovered_interfaces_max_return": None}),
+    )
+    assert resp.status == 200
+    assert (
+        app_instance.current_context.config.discovered_interfaces_max_return.get()
+        == 500
+    )
+
+
+@pytest.mark.asyncio
+async def test_discovered_interfaces_import_clamps_old_last_heard(temp_dir):
+    app_instance, _config = build_app(temp_dir)
+    import_handler = await find_route_handler(
+        app_instance,
+        "/api/v1/reticulum/discovered-interfaces/import",
+        "POST",
+    )
+    storage_root = os.path.join(temp_dir, "imported")
+    import_dir = os.path.join(storage_root, "discovery", "interfaces")
+
+    now = time.time()
+    old_info = _valid_discovery_info(name="ancient", last_heard=now - 60 * 86400)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("cc" * 16, umsgpack.packb(old_info))
+
+    with patch.object(RNS.Reticulum, "storagepath", storage_root):
+        resp = await import_handler(
+            JsonRequest({"data": base64.b64encode(buf.getvalue()).decode()}),
+        )
+        result = json.loads(resp.body)
+        assert result == {"imported": 1, "skipped": 0}
+
+        with open(os.path.join(import_dir, "cc" * 16), "rb") as f:
+            info = umsgpack.unpackb(f.read())
+        # moved inside the keep window so the next list pass does not prune it
+        remove_after = float(InterfaceDiscovery.THRESHOLD_REMOVE)
+        assert now - info["last_heard"] < remove_after
+
+
+@pytest.mark.asyncio
+async def test_discovered_interfaces_import_skips_invalid_entries(temp_dir):
+    app_instance, _config = build_app(temp_dir)
+    import_handler = await find_route_handler(
+        app_instance,
+        "/api/v1/reticulum/discovered-interfaces/import",
+        "POST",
+    )
+    storage_root = os.path.join(temp_dir, "imported")
+    import_dir = os.path.join(storage_root, "discovery", "interfaces")
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("aa" * 16, umsgpack.packb(_valid_discovery_info(last_heard="not-a-number")))
+        zf.writestr("bb" * 16, b"x" * (70 * 1024))
+        zf.writestr("dd" * 16, umsgpack.packb(_valid_discovery_info(name="good")))
+
+    with patch.object(RNS.Reticulum, "storagepath", storage_root):
+        resp = await import_handler(
+            JsonRequest({"data": base64.b64encode(buf.getvalue()).decode()}),
+        )
+        result = json.loads(resp.body)
+        assert result == {"imported": 1, "skipped": 2}
+        assert os.path.isfile(os.path.join(import_dir, "dd" * 16))
+
+
+@pytest.mark.asyncio
+async def test_discovered_interfaces_bounded_scan_for_large_stores(temp_dir):
+    app_instance, _config = build_app(temp_dir)
+    get_handler = await find_route_handler(
+        app_instance,
+        "/api/v1/reticulum/discovered-interfaces",
+        "GET",
+    )
+    discovery_dir = os.path.join(temp_dir, "discovery", "interfaces")
+    _seed_discovery_dir(discovery_dir, 3100)
+
+    rns_inst = MagicMock()
+    rns_inst.get_blackholed_identities.return_value = []
+    with (
+        patch.object(RNS.Reticulum, "storagepath", temp_dir),
+        patch.object(RNS.Reticulum, "get_instance", return_value=rns_inst),
+        patch.object(
+            RNS.Reticulum,
+            "interface_discovery_sources",
+            return_value=set(),
+        ),
+    ):
+        # first collect takes the deep path and stamps the scan time
+        resp = await get_handler(MagicMock())
+        data = json.loads(resp.body)
+        assert len(data["interfaces"]) == 500
+        assert getattr(app_instance, "_discovery_last_deep_scan", 0) > 0
+
+        # invalidate the short cache and forbid the deep scan; the bounded
+        # path must still answer without calling list_discovered_interfaces
+        app_instance._discovered_interfaces_cache = None
+        with patch.object(
+            InterfaceDiscovery,
+            "list_discovered_interfaces",
+            side_effect=AssertionError("deep scan must not run"),
+        ):
+            resp2 = await get_handler(MagicMock())
+            data2 = json.loads(resp2.body)
+            assert len(data2["interfaces"]) == 500
+            assert data2["interfaces"][0]["name"].startswith("peer-")
