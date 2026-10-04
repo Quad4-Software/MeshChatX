@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import InterfacesPage from "../../meshchatx/src/frontend/components/interfaces/InterfacesPage.vue";
 
@@ -152,5 +152,62 @@ describe("InterfacesPage interface-stats merge", () => {
         const wrapper = mountInterfacesPage();
         await wrapper.vm.updateInterfaceStats();
         expect(wrapper.vm.interfaceStats.LoRa.status).toBe(true);
+    });
+});
+
+describe("InterfacesPage discovered interfaces cap", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    function stubDiscovered(count) {
+        const interfaces = [];
+        for (let i = 0; i < count; i++) {
+            interfaces.push({
+                discovery_hash: `${i}`.repeat(32),
+                name: `peer-${i}`,
+                reachable_on: `10.0.0.${i}`,
+                port: 4242,
+                last_heard: 1700000000 + i,
+            });
+        }
+        window.api = {
+            get: vi.fn((url) => {
+                if (url.includes("/api/v1/reticulum/discovered-interfaces")) {
+                    return Promise.resolve({ data: { interfaces, active: [] } });
+                }
+                if (url.includes("/api/v1/reticulum/interfaces")) {
+                    return Promise.resolve({ data: { interfaces: {} } });
+                }
+                return Promise.resolve({ data: {} });
+            }),
+        };
+    }
+
+    it("uses the configured max_return instead of the hardcoded bound", async () => {
+        stubDiscovered(10);
+        const wrapper = mountInterfacesPage();
+        // mounted() loads the discovery config asynchronously; let it settle
+        // so its null value does not clobber the configured cap
+        await flushPromises();
+        wrapper.vm.discoveryConfig.discovered_interfaces_max_return = 5;
+
+        await wrapper.vm.loadDiscoveredInterfaces();
+
+        expect(wrapper.vm.discoveredInterfaces).toHaveLength(5);
+        // newest last_heard entries win when the list overflows the cap
+        const heard = wrapper.vm.discoveredInterfaces.map((i) => i.last_heard);
+        expect(Math.min(...heard)).toBe(1700000005);
+    });
+
+    it("falls back to the default cap when the setting is unset", async () => {
+        stubDiscovered(600);
+        const wrapper = mountInterfacesPage();
+        await flushPromises();
+        wrapper.vm.discoveryConfig.discovered_interfaces_max_return = null;
+
+        await wrapper.vm.loadDiscoveredInterfaces();
+
+        expect(wrapper.vm.discoveredInterfaces).toHaveLength(500);
     });
 });

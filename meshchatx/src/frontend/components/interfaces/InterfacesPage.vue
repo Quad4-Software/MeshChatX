@@ -221,6 +221,31 @@
                                     <button
                                         type="button"
                                         class="secondary-chip text-xs"
+                                        :disabled="exportingDiscoveredInterfaces"
+                                        @click="exportDiscoveredInterfaces"
+                                    >
+                                        <MaterialDesignIcon icon-name="export" class="w-4 h-4" />
+                                        Export
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip text-xs"
+                                        :disabled="importingDiscoveredInterfaces"
+                                        @click="onImportDiscoveredClick"
+                                    >
+                                        <MaterialDesignIcon icon-name="import" class="w-4 h-4" />
+                                        Import
+                                    </button>
+                                    <input
+                                        ref="discovered-import-input"
+                                        type="file"
+                                        accept=".zip,application/zip"
+                                        class="hidden"
+                                        @change="onDiscoveredImportFile"
+                                    />
+                                    <button
+                                        type="button"
+                                        class="secondary-chip text-xs"
                                         @click="refreshDiscoveredInterfacesList"
                                     >
                                         <MaterialDesignIcon icon-name="refresh" class="w-4 h-4" />
@@ -612,6 +637,56 @@
                                             />
                                         </div>
                                         <div>
+                                            <div class="text-xs font-semibold text-sem-fg">Max Stored Interfaces</div>
+                                            <input
+                                                v-model.number="discoveryConfig.discovered_interfaces_max_return"
+                                                type="number"
+                                                min="1"
+                                                max="50000"
+                                                class="input-field"
+                                            />
+                                            <div class="text-xs text-sem-fg-muted">
+                                                Cap on stored and listed discovered interfaces, default 500.
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-semibold text-sem-fg">
+                                                Mark Unknown After (Days)
+                                            </div>
+                                            <input
+                                                v-model.number="discoveryConfig.interface_discovery_unknown_after_days"
+                                                type="number"
+                                                min="0"
+                                                step="0.5"
+                                                class="input-field"
+                                            />
+                                            <div class="text-xs text-sem-fg-muted">Default 1 day.</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-semibold text-sem-fg">Mark Stale After (Days)</div>
+                                            <input
+                                                v-model.number="discoveryConfig.interface_discovery_stale_after_days"
+                                                type="number"
+                                                min="0"
+                                                step="0.5"
+                                                class="input-field"
+                                            />
+                                            <div class="text-xs text-sem-fg-muted">Default 3 days.</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-semibold text-sem-fg">Delete After (Days)</div>
+                                            <input
+                                                v-model.number="discoveryConfig.interface_discovery_remove_after_days"
+                                                type="number"
+                                                min="0"
+                                                step="0.5"
+                                                class="input-field"
+                                            />
+                                            <div class="text-xs text-sem-fg-muted">
+                                                Discovered interfaces older than this are deleted, default 7 days.
+                                            </div>
+                                        </div>
+                                        <div>
                                             <div class="text-xs font-semibold text-sem-fg">Auto-connect Slots</div>
                                             <input
                                                 v-model.number="discoveryConfig.autoconnect_discovered_interfaces"
@@ -800,8 +875,9 @@ import { apiPath, EMITTER_EVENTS, STORAGE_KEYS } from "../../js/constants";
 import { useInterfaceListFilters } from "../../js/interfaces/useInterfaceListFilters.js";
 import { BATTERY_SAVER_CHANGED_EVENT, loadBatterySaverPrefs } from "../../js/settings/batterySaverPrefs.js";
 
-// Bounds the discovered-interfaces accumulation across discovery polls.
-const MAX_DISCOVERED_INTERFACES = 200;
+// Default bound for the discovered-interfaces accumulation across discovery
+// polls when the backend cap setting is unavailable.
+const DEFAULT_DISCOVERED_INTERFACES_CAP = 500;
 
 export default {
     name: "InterfacesPage",
@@ -841,6 +917,10 @@ export default {
                 autoconnect_announces_to_internal: false,
                 autoconnect_unverified_implementations: false,
                 default_bootstrap_only: false,
+                discovered_interfaces_max_return: null,
+                interface_discovery_unknown_after_days: null,
+                interface_discovery_stale_after_days: null,
+                interface_discovery_remove_after_days: null,
                 network_identity: "",
             },
             savingDiscovery: false,
@@ -848,6 +928,8 @@ export default {
             openDiscoveryActionKey: null,
             discoveredInterfaces: [],
             discoveredActive: [],
+            exportingDiscoveredInterfaces: false,
+            importingDiscoveredInterfaces: false,
             discoveredStatusFilter: "all",
             discoveryInterval: null,
             activeTab: "overview",
@@ -862,6 +944,13 @@ export default {
         },
         isElectron() {
             return ElectronUtils.isElectron();
+        },
+        discoveredInterfacesCap() {
+            const value = Number(this.discoveryConfig?.discovered_interfaces_max_return);
+            if (Number.isFinite(value) && value > 0) {
+                return Math.min(value, 50_000);
+            }
+            return DEFAULT_DISCOVERED_INTERFACES_CAP;
         },
         showRestartReminder() {
             return this.hasPendingInterfaceChanges;
@@ -1270,9 +1359,10 @@ export default {
 
                 // Bound the accumulation: keep the most recently heard entries.
                 const mergedList = Array.from(merged.values());
-                if (mergedList.length > MAX_DISCOVERED_INTERFACES) {
+                const cap = this.discoveredInterfacesCap;
+                if (mergedList.length > cap) {
                     mergedList.sort((a, b) => (b.last_heard ?? 0) - (a.last_heard ?? 0));
-                    mergedList.length = MAX_DISCOVERED_INTERFACES;
+                    mergedList.length = cap;
                 }
                 this.discoveredInterfaces = mergedList;
                 this.discoveredActive = active;
@@ -1453,6 +1543,20 @@ export default {
                     discovery.default_gravity !== ""
                         ? Number(discovery.default_gravity)
                         : null;
+                const numericOrNull = (value) =>
+                    value !== undefined && value !== null && value !== "" ? Number(value) : null;
+                this.discoveryConfig.discovered_interfaces_max_return = numericOrNull(
+                    discovery.discovered_interfaces_max_return
+                );
+                this.discoveryConfig.interface_discovery_unknown_after_days = numericOrNull(
+                    discovery.interface_discovery_unknown_after_days
+                );
+                this.discoveryConfig.interface_discovery_stale_after_days = numericOrNull(
+                    discovery.interface_discovery_stale_after_days
+                );
+                this.discoveryConfig.interface_discovery_remove_after_days = numericOrNull(
+                    discovery.interface_discovery_remove_after_days
+                );
                 this.discoveryConfig.autoconnect_interface_mode = discovery.autoconnect_interface_mode ?? "";
                 this.discoveryConfig.autoconnect_interface_gravity =
                     discovery.autoconnect_interface_gravity !== undefined &&
@@ -1506,6 +1610,26 @@ export default {
                     autoconnect_unverified_implementations:
                         this.discoveryConfig.autoconnect_unverified_implementations === true,
                     default_bootstrap_only: this.discoveryConfig.default_bootstrap_only,
+                    discovered_interfaces_max_return:
+                        this.discoveryConfig.discovered_interfaces_max_return === null ||
+                        this.discoveryConfig.discovered_interfaces_max_return === ""
+                            ? null
+                            : Number(this.discoveryConfig.discovered_interfaces_max_return),
+                    interface_discovery_unknown_after_days:
+                        this.discoveryConfig.interface_discovery_unknown_after_days === null ||
+                        this.discoveryConfig.interface_discovery_unknown_after_days === ""
+                            ? null
+                            : Number(this.discoveryConfig.interface_discovery_unknown_after_days),
+                    interface_discovery_stale_after_days:
+                        this.discoveryConfig.interface_discovery_stale_after_days === null ||
+                        this.discoveryConfig.interface_discovery_stale_after_days === ""
+                            ? null
+                            : Number(this.discoveryConfig.interface_discovery_stale_after_days),
+                    interface_discovery_remove_after_days:
+                        this.discoveryConfig.interface_discovery_remove_after_days === null ||
+                        this.discoveryConfig.interface_discovery_remove_after_days === ""
+                            ? null
+                            : Number(this.discoveryConfig.interface_discovery_remove_after_days),
                     network_identity: this.discoveryConfig.network_identity || null,
                 };
 
@@ -1520,6 +1644,60 @@ export default {
             } finally {
                 this.savingDiscovery = false;
             }
+        },
+        async exportDiscoveredInterfaces() {
+            if (this.exportingDiscoveredInterfaces) return;
+            this.exportingDiscoveredInterfaces = true;
+            try {
+                const response = await window.api.get(apiPath("/reticulum/discovered-interfaces/export"), {
+                    responseType: "blob",
+                });
+                const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+                await DownloadUtils.downloadFromApiResponse(response, `meshchatx-discovered-interfaces-${stamp}.zip`);
+            } catch (e) {
+                ToastUtils.error(this.$t("interfaces.discovered_export_failed"));
+                console.log(e);
+            } finally {
+                this.exportingDiscoveredInterfaces = false;
+            }
+        },
+        onImportDiscoveredClick() {
+            this.$refs["discovered-import-input"]?.click();
+        },
+        async onDiscoveredImportFile(event) {
+            const file = event?.target?.files?.[0];
+            if (event?.target) {
+                event.target.value = null;
+            }
+            if (!file) return;
+            this.importingDiscoveredInterfaces = true;
+            try {
+                const encoded = await this.readFileAsBase64(file);
+                const response = await window.api.post(apiPath("/reticulum/discovered-interfaces/import"), {
+                    data: encoded,
+                });
+                const imported = response.data?.imported ?? 0;
+                const skipped = response.data?.skipped ?? 0;
+                ToastUtils.success(this.$t("interfaces.discovered_import_result", { imported, skipped }));
+                await this.refreshDiscoveredInterfacesList();
+            } catch (e) {
+                ToastUtils.error(this.$t("interfaces.discovered_import_failed"));
+                console.log(e);
+            } finally {
+                this.importingDiscoveredInterfaces = false;
+            }
+        },
+        readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = String(reader.result || "");
+                    const comma = result.indexOf(",");
+                    resolve(comma >= 0 ? result.slice(comma + 1) : result);
+                };
+                reader.onerror = () => reject(reader.error || new Error("file read failed"));
+                reader.readAsDataURL(file);
+            });
         },
         toggleDiscoveryActionsMenu(iface) {
             const key = this.discoveryKey(iface);

@@ -1765,7 +1765,10 @@
         "kernel_iface_loading": "Loading…",
         "kernel_iface_picker_help": "Device is optional: one kernel interface name, or leave empty to bind using Listen IP only. Click a row to fill the field.",
         "auto_iface_ifname_chips_hint": "This host's interfaces: click to add or remove names in the field above.",
-        "copied_share": "Interface config copied — paste in a message to share"
+        "copied_share": "Interface config copied — paste in a message to share",
+        "discovered_export_failed": "Failed to export discovered interfaces",
+        "discovered_import_result": "Imported {imported} discovered interface(s), skipped {skipped}",
+        "discovered_import_failed": "Failed to import discovered interfaces"
     },
     "map": {
         "title": "Map",

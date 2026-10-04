@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Relay chat: the composer is now a multiline field that grows with content up to 160px. Enter sends, Shift+Enter inserts a newline, and Escape, ArrowUp message recall, and Tab nick completion behave as before.
+- Interfaces: discovered interface settings gained Max Stored Interfaces plus Mark Unknown After, Mark Stale After, and Delete After day fields, so retention of discovered interfaces is configurable instead of fixed at Reticulum defaults.
+- Interfaces: the discovery list can be exported as a zip of the Reticulum interface store and imported again on another install, supporting offline backup and sharing of discovered interfaces.
 
 ## [4.10.0] - 2026-10-03 [released]
 
