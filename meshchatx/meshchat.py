@@ -358,6 +358,44 @@ def _restore_rns_console_logging_after_reticulum_init(app) -> None:
         RNS.loglevel = RNS.LOG_WARNING
 
 
+_DISCOVERY_THRESHOLD_CONFIG = (
+    ("interface_discovery_unknown_after_days", "THRESHOLD_UNKNOWN", 24 * 60 * 60),
+    ("interface_discovery_stale_after_days", "THRESHOLD_STALE", 3 * 24 * 60 * 60),
+    ("interface_discovery_remove_after_days", "THRESHOLD_REMOVE", 7 * 24 * 60 * 60),
+)
+
+
+def _apply_interface_discovery_thresholds(config_dir: str):
+    """Set InterfaceDiscovery aging thresholds from reticulum config keys.
+
+    The keys are named with a _days suffix and accept float values. RNS
+    ignores unknown reticulum section options, so they live safely in the
+    same config file. Defaults match RNS when the keys are unset.
+    """
+    try:
+        from RNS.Discovery import InterfaceDiscovery
+
+        cfg = configparser.ConfigParser()
+        cfg.read(os.path.join(config_dir, "config"), encoding="utf-8")
+        section = cfg["reticulum"] if cfg.has_section("reticulum") else {}
+    except Exception:
+        section = {}
+    for key, attr, default_seconds in _DISCOVERY_THRESHOLD_CONFIG:
+        seconds = default_seconds
+        raw = section.get(key)
+        if raw is not None and str(raw).strip() != "":
+            try:
+                days = float(str(raw).strip())
+                if days > 0:
+                    seconds = days * 86400.0
+            except (TypeError, ValueError):
+                pass
+        try:
+            setattr(InterfaceDiscovery, attr, seconds)
+        except Exception:
+            pass
+
+
 def _create_reticulum_instance(
     config_dir: str,
     loglevel: int | None = None,
@@ -382,6 +420,7 @@ def _create_reticulum_instance(
         kwargs["logdest"] = resolved_logdest
 
     def _construct():
+        _apply_interface_discovery_thresholds(config_dir)
         if threading.current_thread() is threading.main_thread():
             return RNS.Reticulum(config_dir, **kwargs)
 

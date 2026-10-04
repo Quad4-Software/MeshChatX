@@ -4,13 +4,19 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import io
 import logging
 import os
+import re
 import time
+import zipfile
 from pathlib import Path
 
+import RNS
 from aiohttp import web
 from RNS.Discovery import InterfaceDiscovery
+from RNS.vendor import umsgpack
 
 from meshchatx.src.backend import i2p_support, reticulum_config_versions
 from meshchatx.src.backend.app_security_settings import get_trusted_proxy_cidrs
@@ -160,6 +166,20 @@ def register_reticulum_instance_routes(routes, app):
                 if app.current_context and app.current_context.config
                 else False,
             ),
+            "discovered_interfaces_max_return": (
+                app.current_context.config.discovered_interfaces_max_return.get()
+                if app.current_context and app.current_context.config
+                else None
+            ),
+            "interface_discovery_unknown_after_days": reticulum_config.get(
+                "interface_discovery_unknown_after_days",
+            ),
+            "interface_discovery_stale_after_days": reticulum_config.get(
+                "interface_discovery_stale_after_days",
+            ),
+            "interface_discovery_remove_after_days": reticulum_config.get(
+                "interface_discovery_remove_after_days",
+            ),
             "network_identity": reticulum_config.get("network_identity"),
         }
 
@@ -273,6 +293,28 @@ def register_reticulum_instance_routes(routes, app):
             if disc_val is False or str(disc_val).lower() in ("false", "no", "0"):
                 reticulum_config.pop("autoconnect_discovered_interfaces", None)
 
+        # Interface discovery aging thresholds live in the reticulum config
+        # file as _days floats. RNS ignores unknown options, and MeshChatX
+        # applies them to InterfaceDiscovery when RNS starts.
+        for threshold_key in (
+            "interface_discovery_unknown_after_days",
+            "interface_discovery_stale_after_days",
+            "interface_discovery_remove_after_days",
+        ):
+            if threshold_key not in data:
+                continue
+            value = data.get(threshold_key)
+            if value is None or value == "":
+                reticulum_config.pop(threshold_key, None)
+                continue
+            try:
+                days = float(value)
+            except (TypeError, ValueError):
+                return http_error(422, f"{threshold_key} must be a number of days")
+            if days <= 0 or days > 36500:
+                return http_error(422, f"{threshold_key} must be between 0 and 36500 days")
+            reticulum_config[threshold_key] = days
+
         # default_bootstrap_only is a MeshChatX-only setting, so do NOT write it
         # to Reticulum config so discovered/auto-connected interfaces are
         # never affected. Clean up any stale value in Reticulum config.
@@ -285,6 +327,23 @@ def register_reticulum_instance_routes(routes, app):
             app.current_context.config.default_bootstrap_only.set(
                 bool(data.get("default_bootstrap_only")),
             )
+
+        # discovered_interfaces_max_return is a MeshChatX-only cap on how many
+        # discovered interfaces the API returns, so keep it out of the
+        # Reticulum config file as well.
+        reticulum_config.pop("discovered_interfaces_max_return", None)
+        if (
+            app.current_context
+            and app.current_context.config
+            and "discovered_interfaces_max_return" in data
+        ):
+            try:
+                max_return = int(data.get("discovered_interfaces_max_return"))
+            except (TypeError, ValueError):
+                return http_error(422, "discovered_interfaces_max_return must be an integer")
+            if max_return < 1 or max_return > 50_000:
+                return http_error(422, "discovered_interfaces_max_return must be between 1 and 50000")
+            app.current_context.config.discovered_interfaces_max_return.set(max_return)
 
         if not app._write_reticulum_config():
             return http_unexpected("Failed to write Reticulum config")
@@ -336,6 +395,20 @@ def register_reticulum_instance_routes(routes, app):
                 app.current_context.config.default_bootstrap_only.get()
                 if app.current_context and app.current_context.config
                 else False,
+            ),
+            "discovered_interfaces_max_return": (
+                app.current_context.config.discovered_interfaces_max_return.get()
+                if app.current_context and app.current_context.config
+                else None
+            ),
+            "interface_discovery_unknown_after_days": reticulum_config.get(
+                "interface_discovery_unknown_after_days",
+            ),
+            "interface_discovery_stale_after_days": reticulum_config.get(
+                "interface_discovery_stale_after_days",
+            ),
+            "interface_discovery_remove_after_days": reticulum_config.get(
+                "interface_discovery_remove_after_days",
             ),
             "network_identity": reticulum_config.get("network_identity"),
             "reloaded": True,
@@ -474,6 +547,116 @@ def register_reticulum_instance_routes(routes, app):
             return web.json_response(payload)
         except Exception:
             return http_unexpected("Failed to load discovered interfaces")
+
+    def _discovery_storage_dir():
+        """Filesystem dir where RNS persists discovered interface entries."""
+        try:
+            storage = getattr(RNS.Reticulum, "storagepath", "") or ""
+            if not storage:
+                return None
+            return os.path.join(storage, "discovery", "interfaces")
+        except Exception:
+            return None
+
+    def _export_discovery_zip(directory: str) -> bytes | None:
+        if not os.path.isdir(directory):
+            return None
+        buf = io.BytesIO()
+        count = 0
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for name in sorted(os.listdir(directory)):
+                path = os.path.join(directory, name)
+                if not os.path.isfile(path):
+                    continue
+                zf.write(path, name)
+                count += 1
+        if count == 0:
+            return None
+        return buf.getvalue()
+
+    DISCOVERY_IMPORT_MAX_ZIP_BYTES = 512 * 1024 * 1024
+    DISCOVERY_IMPORT_MAX_MEMBERS = 100_000
+    DISCOVERY_IMPORT_MAX_FILE_BYTES = 64 * 1024
+    DISCOVERY_FILENAME_RE = re.compile(r"^[0-9a-fA-F]{16,64}$")
+
+    def _import_discovery_zip(raw: bytes, directory: str) -> dict:
+        os.makedirs(directory, exist_ok=True)
+        imported = 0
+        skipped = 0
+        with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+            names = [n for n in zf.namelist() if not n.endswith("/")]
+            if len(names) > DISCOVERY_IMPORT_MAX_MEMBERS:
+                raise ValueError("zip contains too many entries")
+            for name in names:
+                base = os.path.basename(name)
+                # RNS writes flat hexrep filenames; anything else is unsafe or
+                # not a discovered-interface entry.
+                if base != name or not DISCOVERY_FILENAME_RE.fullmatch(base):
+                    skipped += 1
+                    continue
+                payload = zf.read(name)
+                if not payload or len(payload) > DISCOVERY_IMPORT_MAX_FILE_BYTES:
+                    skipped += 1
+                    continue
+                try:
+                    info = umsgpack.unpackb(payload)
+                except Exception:
+                    skipped += 1
+                    continue
+                if not isinstance(info, dict) or "last_heard" not in info:
+                    skipped += 1
+                    continue
+                with open(os.path.join(directory, base), "wb") as f:
+                    f.write(payload)
+                imported += 1
+        return {"imported": imported, "skipped": skipped}
+
+    @routes.get(API_V1_PREFIX + "/reticulum/discovered-interfaces/export")
+    async def reticulum_discovered_interfaces_export(request):
+        directory = _discovery_storage_dir()
+        if not directory:
+            return http_not_found("No discovered interfaces storage")
+        try:
+            payload = await asyncio.to_thread(_export_discovery_zip, directory)
+        except Exception:
+            return http_unexpected("Failed to export discovered interfaces")
+        if payload is None:
+            return http_not_found("No discovered interfaces stored")
+        return web.Response(
+            body=payload,
+            headers={
+                "Content-Type": "application/zip",
+                "Content-Disposition": 'attachment; filename="meshchatx-discovered-interfaces.zip"',
+            },
+        )
+
+    @routes.post(API_V1_PREFIX + "/reticulum/discovered-interfaces/import")
+    async def reticulum_discovered_interfaces_import(request):
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            return http_bad_request("Invalid request body")
+        encoded = data.get("data")
+        if not isinstance(encoded, str) or not encoded:
+            return http_bad_request("data must be a base64 encoded zip file")
+        try:
+            raw = base64.b64decode(encoded, validate=True)
+        except Exception:
+            return http_bad_request("data must be valid base64")
+        if len(raw) > DISCOVERY_IMPORT_MAX_ZIP_BYTES:
+            return http_payload_too_large()
+        directory = _discovery_storage_dir()
+        if not directory:
+            return http_unexpected("Discovered interfaces storage is unavailable")
+        try:
+            result = await asyncio.to_thread(_import_discovery_zip, raw, directory)
+        except zipfile.BadZipFile:
+            return http_error(422, "Uploaded file is not a valid zip archive")
+        except Exception:
+            return http_unexpected("Failed to import discovered interfaces")
+        return web.json_response(result)
 
     def _transport_is_active():
         """True only when Reticulum reports transport running on this instance."""
