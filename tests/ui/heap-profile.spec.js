@@ -94,8 +94,25 @@ const INSTRUMENT = `
 })();
 `;
 
+async function settleListeners(page, cdp, maxMs = 2000) {
+    // Route changes detach the previous page asynchronously, so wait until
+    // the live listener count stops moving instead of sampling mid-teardown.
+    let last = -1;
+    const deadline = Date.now() + maxMs;
+    while (Date.now() < deadline) {
+        const { metrics } = await cdp.send("Performance.getMetrics");
+        const current = metrics.find((m) => m.name === "JSEventListeners")?.value || 0;
+        if (current === last) {
+            return;
+        }
+        last = current;
+        await page.waitForTimeout(150);
+    }
+}
+
 async function measure(page, cdp) {
     await cdp.send("HeapProfiler.collectGarbage");
+    await settleListeners(page, cdp);
     const { metrics } = await cdp.send("Performance.getMetrics");
     const pick = (name) => metrics.find((m) => m.name === name)?.value || 0;
     const counters = await page.evaluate(() => window.__leakCounters);
@@ -199,10 +216,7 @@ test.describe("heap profile across pages", () => {
             );
             const pageEntry = pages.find((p) => p.id === row.page);
             const budgets = heapBudgetsFor(pageEntry, HEAP_BUDGETS);
-            fs.writeFileSync(
-                path.join(REPORT_DIR, `${row.page}.json`),
-                JSON.stringify({ budgets, ...row }, null, 2)
-            );
+            fs.writeFileSync(path.join(REPORT_DIR, `${row.page}.json`), JSON.stringify({ budgets, ...row }, null, 2));
             const checks = [
                 ["heapDelta", row.heapDelta, budgets.heapDeltaMb * 1048576],
                 ["nodes", row.nodes, budgets.nodes],
