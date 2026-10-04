@@ -32,6 +32,7 @@ COPY scripts/wasm-exec-compat.mjs scripts/wasm-exec-compat.mjs
 COPY scripts/fetch-starter-mbtiles.mjs scripts/fetch-starter-mbtiles.mjs
 COPY scripts/copy-bergamot-wasm.mjs scripts/copy-bergamot-wasm.mjs
 COPY scripts/build-electron-shell-css.mjs scripts/build-electron-shell-css.mjs
+COPY scripts/copy-font-licenses.mjs scripts/copy-font-licenses.mjs
 COPY scripts/ensure-micron-parser-package.js scripts/ensure-micron-parser-package.js
 COPY scripts/sync-meshchatx-docs.js scripts/sync-meshchatx-docs.js
 COPY electron/loading.html electron/loading.html
