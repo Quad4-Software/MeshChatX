@@ -984,3 +984,28 @@ tasks:
         desc: Generate localization template
         cmds:
             - "{{.PYTHON}} scripts/generate_locale_template.py"
+
+    ci:setup:
+        desc: Portable CI prep (toolchain bootstrap, deps, optional tree RSM verify)
+        cmds:
+            - bash scripts/ci/setup.sh
+
+    ci:pr:
+        desc: PR quality gate (local, Forgejo, Gitea, or workflow wrapper)
+        cmds:
+            - bash scripts/ci/run.sh pr
+
+    ci:lint:
+        desc: Portable CI lint job
+        cmds:
+            - bash scripts/ci/run.sh lint
+
+    ci:list:
+        desc: List portable CI job names
+        cmds:
+            - bash scripts/ci/run.sh list
+
+    ci:docker:
+        desc: PR gate inside Dockerfile.ci (podman or docker)
+        cmds:
+            - bash scripts/ci/run-docker.sh pr

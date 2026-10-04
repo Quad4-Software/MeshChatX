@@ -1,0 +1,33 @@
+# Portable CI image. Run: bash scripts/ci/run-docker.sh pr
+
+FROM ubuntu:24.04
+
+RUN apt-get update \
+	&& DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+		bash ca-certificates curl git xz-utils \
+		build-essential pkg-config \
+		ffmpeg libopus0 libogg0 libsodium-dev \
+	&& rm -rf /var/lib/apt/lists/*
+
+ENV CI_TOOLCHAIN_ROOT=/opt/ci-toolchain
+ENV PATH=/opt/ci-toolchain/bin:/opt/ci-toolchain/node/bin:${PATH}
+ENV GOPATH=/opt/ci-toolchain/gopath
+ENV GOCACHE=/opt/ci-toolchain/gocache
+
+WORKDIR /src
+COPY scripts/ci/versions.env scripts/ci/versions.env
+COPY scripts/ci/env.sh scripts/ci/env.sh
+COPY scripts/ci/bootstrap-toolchain.sh scripts/ci/bootstrap-toolchain.sh
+
+RUN CI_BOOTSTRAP=install CI_TOOLCHAIN_ROOT=/opt/ci-toolchain \
+	bash scripts/ci/bootstrap-toolchain.sh install
+
+COPY pyproject.toml uv.lock package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches ./patches
+
+RUN uv sync --frozen --group dev \
+	&& pnpm install --frozen-lockfile
+
+COPY . .
+
+CMD ["bash", "scripts/ci/run.sh", "pr"]

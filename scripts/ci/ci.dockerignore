@@ -1,0 +1,13 @@
+.git
+node_modules/
+.meshchatx-artifacts*/
+meshchatx-artifacts/
+dist/
+coverage/
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+.idea/
+.vscode/
+.cursor/
+.DS_Store
