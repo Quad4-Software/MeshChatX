@@ -1178,6 +1178,14 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/reticulum/discovered-interfaces/export"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/discovered-interfaces/import"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/reticulum/discovery"
         },
         {

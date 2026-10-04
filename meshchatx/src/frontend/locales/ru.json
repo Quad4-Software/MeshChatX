@@ -1765,7 +1765,12 @@
         "kernel_iface_loading": "Загрузка…",
         "kernel_iface_picker_help": "Поле «устройство» необязательно: одно имя интерфейса ядра или пусто. Привязка только по Listen IP. Нажмите строку, чтобы подставить имя.",
         "auto_iface_ifname_chips_hint": "Интерфейсы этого узла: нажмите, чтобы добавить или убрать имя в поле выше.",
-        "copied_share": "Interface config copied — paste in a message to share"
+        "copied_share": "Interface config copied — paste in a message to share",
+        "discovered_export_failed": "Failed to export discovered interfaces",
+        "discovered_import_result": "Imported {imported} discovered interface(s), skipped {skipped}",
+        "discovered_import_failed": "Failed to import discovered interfaces",
+        "previous": "Previous",
+        "next": "Next"
     },
     "map": {
         "title": "Карта",
