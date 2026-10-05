@@ -217,6 +217,11 @@ class _DeadlinedRpcConnection:
         # -1 meaning an 8-byte unsigned length, then the body.
         deadline = time.monotonic() + self._timeout_s
         fd = self._conn.fileno()
+        # Connection._read is _multiprocessing.recv on Windows and os.read
+        # elsewhere. On Windows the shared-instance RPC is a TCP socket and
+        # fileno() returns a SOCKET handle, not a CRT fd, so os.read raises
+        # OSError EBADF and every shared-instance RPC reply fails.
+        read = getattr(self._conn, "_read", os.read)
 
         def _read_exact(n):
             buf = io.BytesIO()
@@ -226,7 +231,7 @@ class _DeadlinedRpcConnection:
                     raise TimeoutError(
                         f"shared instance RPC timed out after {self._timeout_s}s"
                     )
-                chunk = os.read(fd, n - buf.tell())
+                chunk = read(fd, n - buf.tell())
                 if not chunk:
                     raise ConnectionError("shared instance RPC connection closed")
                 buf.write(chunk)
