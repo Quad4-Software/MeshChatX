@@ -85,37 +85,44 @@
                                         isDownloadingAll ? $t("translator.downloading") : $t("translator.download_all")
                                     }}
                                 </button>
+                                <input
+                                    v-if="showCatalog && catalogPairs.length"
+                                    v-model="catalogSearch"
+                                    type="text"
+                                    class="input-field flex-1 min-w-32 max-w-56 text-xs px-2.5 py-1.5"
+                                    :placeholder="$t('translator.search_packs')"
+                                />
                             </div>
                             <div v-if="catalogError" class="mt-2 text-xs text-sem-danger">
                                 {{ catalogError }}
                             </div>
                             <div
-                                v-if="showCatalog && catalogPairs.length"
+                                v-if="showCatalog && filteredCatalog.length"
                                 class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
                             >
                                 <div
-                                    v-for="entry in catalogPairs"
-                                    :key="entry.pair"
+                                    v-for="group in filteredCatalog"
+                                    :key="group.key"
                                     class="flex items-center justify-between p-2 rounded-lg bg-sem-surface/60 border border-sem-border"
                                 >
                                     <div class="min-w-0">
                                         <div class="text-xs font-medium text-sem-fg truncate">
-                                            {{ catalogLabel(entry) }}
+                                            {{ groupLabel(group) }}
                                         </div>
                                         <div class="text-[10px] text-sem-fg-muted">
-                                            {{ entry.architecture }} ·
-                                            {{ $t("translator.size_kb", { size: Math.ceil(entry.size / 1024) }) }}
+                                            {{ group.architecture }} ·
+                                            {{ $t("translator.size_kb", { size: Math.ceil(group.size / 1024) }) }}
                                         </div>
                                     </div>
                                     <button
-                                        v-if="!installedPairSet.has(entry.pair)"
+                                        v-if="!isGroupInstalled(group)"
                                         type="button"
                                         class="text-xs text-sem-info hover:underline shrink-0 ml-2"
-                                        :disabled="isDownloading(entry.pair) || isDownloadingAll"
-                                        @click="downloadPack(entry.pair)"
+                                        :disabled="isGroupDownloading(group) || isDownloadingAll"
+                                        @click="downloadGroup(group)"
                                     >
                                         {{
-                                            isDownloading(entry.pair)
+                                            isGroupDownloading(group)
                                                 ? $t("translator.downloading")
                                                 : $t("translator.download")
                                         }}
@@ -124,6 +131,12 @@
                                         $t("translator.installed")
                                     }}</span>
                                 </div>
+                            </div>
+                            <div
+                                v-else-if="showCatalog && catalogPairs.length && !filteredCatalog.length"
+                                class="mt-2 text-xs text-sem-fg-muted"
+                            >
+                                {{ $t("translator.no_search_results") }}
                             </div>
                             <div v-if="fetchError" class="mt-2 text-xs text-sem-danger">
                                 {{ fetchError }}
@@ -247,6 +260,7 @@ export default {
             isLoadingCatalog: false,
             downloadingPairs: {},
             isDownloadingAll: false,
+            catalogSearch: "",
             fetchError: null,
             error: null,
         };
@@ -264,6 +278,48 @@ export default {
         },
         installedPairSet() {
             return new Set(this.packs.map((p) => p.pair));
+        },
+        mergedCatalog() {
+            // Catalog entries are directional (enru, ruen). Show both ways of
+            // a language pair as a single entry that downloads every
+            // direction present in the catalog.
+            const groups = new Map();
+            for (const entry of this.catalogPairs) {
+                const from = entry.from || entry.pair.slice(0, 2);
+                const to = entry.to || entry.pair.slice(2, 4);
+                const key = [from, to].sort().join("-");
+                let group = groups.get(key);
+                if (!group) {
+                    group = {
+                        key,
+                        from,
+                        to,
+                        directions: [],
+                        architecture: entry.architecture,
+                        size: 0,
+                    };
+                    groups.set(key, group);
+                }
+                group.directions.push(entry.pair);
+                group.size += entry.size || 0;
+            }
+            return Array.from(groups.values()).sort((a, b) =>
+                this.groupLabel(a).localeCompare(this.groupLabel(b), undefined, {
+                    sensitivity: "base",
+                })
+            );
+        },
+        filteredCatalog() {
+            const query = (this.catalogSearch || "").trim().toLowerCase();
+            if (!query) {
+                return this.mergedCatalog;
+            }
+            return this.mergedCatalog.filter((group) => {
+                if (group.directions.some((pair) => pair.includes(query))) {
+                    return true;
+                }
+                return this.groupLabel(group).toLowerCase().includes(query);
+            });
         },
         languageOptions() {
             const userLocale = (navigator.language || "en").slice(0, 2);
@@ -339,8 +395,59 @@ export default {
             const to = pack.to || pack.pair.slice(2, 4);
             return `${displayNames.of(from) || from} -> ${displayNames.of(to) || to}`;
         },
+        languageName(code) {
+            const userLocale = (navigator.language || "en").slice(0, 2);
+            try {
+                return new Intl.DisplayNames([userLocale], { type: "language" }).of(code) || code;
+            } catch {
+                return code;
+            }
+        },
+        groupLabel(group) {
+            const fromName = this.languageName(group.from);
+            const toName = this.languageName(group.to);
+            return group.directions.length > 1 ? `${fromName} <-> ${toName}` : `${fromName} -> ${toName}`;
+        },
         catalogLabel(entry) {
             return this.packLabel(entry);
+        },
+        isGroupInstalled(group) {
+            return group.directions.every((pair) => this.installedPairSet.has(pair));
+        },
+        isGroupDownloading(group) {
+            return Boolean(this.downloadingPairs[group.key]);
+        },
+        async downloadGroup(group) {
+            if (this.isGroupDownloading(group)) {
+                return;
+            }
+            const missing = group.directions.filter((pair) => !this.installedPairSet.has(pair));
+            if (!missing.length) {
+                return;
+            }
+            this.downloadingPairs = { ...this.downloadingPairs, [group.key]: true };
+            this.fetchError = null;
+            const failed = [];
+            try {
+                for (const pair of missing) {
+                    try {
+                        await TranslationService.downloadPack(pair);
+                    } catch (e) {
+                        console.error(`Failed to download pack ${pair}:`, e);
+                        failed.push(pair);
+                    }
+                }
+                if (failed.length) {
+                    this.fetchError = this.$t("translator.download_failed", {
+                        pair: failed.map((p) => p.toUpperCase()).join(", "),
+                    });
+                }
+                await this.loadPacks();
+            } finally {
+                const next = { ...this.downloadingPairs };
+                delete next[group.key];
+                this.downloadingPairs = next;
+            }
         },
         async toggleCatalog() {
             if (this.showCatalog) {

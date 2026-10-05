@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Maps: the tile server URL now accepts TileJSON endpoints (URLs ending in .json). Tile templates, attribution, zoom range, bounds, relative tile URLs, and scheme:tms are honored, and a bad document falls back to the next provider like a failed tile server.
+- Translator: the pack catalog now shows both directions of a language pair as a single bidirectional entry, and downloading it installs every direction present in the catalog. A search field filters the catalog by language or pair code.
 
 ## [4.10.1] - 2026-10-04 [released]
 
