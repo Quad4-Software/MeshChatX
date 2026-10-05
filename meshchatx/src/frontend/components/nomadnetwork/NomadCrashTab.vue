@@ -198,6 +198,8 @@ export default {
             renderDeadlineArmedAt: 0,
             bootWatchdogTimer: null,
             frameBootRetries: 0,
+            pendingTextRequestId: 0,
+            pendingTextRequests: {},
             fieldContextMenu: {
                 show: false,
                 justOpened: false,
@@ -624,6 +626,15 @@ export default {
                 this.schedulePushRender();
                 return;
             }
+            if (data.type === "page-text") {
+                const pending = this.pendingTextRequests[data.id];
+                if (pending) {
+                    delete this.pendingTextRequests[data.id];
+                    clearTimeout(pending.timer);
+                    pending.resolve(typeof data.text === "string" ? data.text : "");
+                }
+                return;
+            }
             if (data.type === "pong") {
                 this.lastPongAt = Date.now();
                 // A live ping is not a successful paint. Recover only if we
@@ -950,6 +961,26 @@ export default {
                 return;
             }
             this.postToFrame({ type: "set-partial", id: partialId, html: html || "" });
+        },
+        getPageText(timeoutMs = 3000) {
+            return new Promise((resolve) => {
+                if (!this.frameReady) {
+                    resolve("");
+                    return;
+                }
+                this.pendingTextRequestId += 1;
+                const id = this.pendingTextRequestId;
+                const timer = setTimeout(() => {
+                    delete this.pendingTextRequests[id];
+                    resolve("");
+                }, timeoutMs);
+                this.pendingTextRequests[id] = { resolve, timer };
+                if (!this.postToFrame({ type: "extract-text", id })) {
+                    delete this.pendingTextRequests[id];
+                    clearTimeout(timer);
+                    resolve("");
+                }
+            });
         },
     },
 };

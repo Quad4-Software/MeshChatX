@@ -422,6 +422,16 @@ window.addEventListener("message", (ev) => {
         post({ type: "pong", id: d.id });
         return;
     }
+    if (d.type === "extract-text") {
+        let text = "";
+        try {
+            text = root.innerText || "";
+        } catch {
+            text = root.textContent || "";
+        }
+        post({ type: "page-text", id: d.id, text });
+        return;
+    }
     if (d.type === "abort") {
         renderSeq += 1;
         teardownMultiline();

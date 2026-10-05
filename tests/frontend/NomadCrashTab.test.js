@@ -138,6 +138,41 @@ describe("NomadCrashTab.vue", () => {
         expect(wrapper.vm.skipRenderUntilPropChange).toBe(false);
     });
 
+    it("resolves page text from the frame via extract-text/postMessage", async () => {
+        const wrapper = mountReadyCrashTab();
+        const frame = wrapper.vm.$refs.frame;
+        const fakeWindow = frame.contentWindow;
+
+        const promise = wrapper.vm.getPageText();
+        await wrapper.vm.$nextTick();
+        const calls = postMessageSpy.mock.calls.filter((c) => c[0]?.type === "extract-text");
+        expect(calls.length).toBe(1);
+        const requestId = calls[0][0].id;
+        expect(requestId).toBeGreaterThan(0);
+
+        wrapper.vm.onWindowMessage({
+            source: fakeWindow,
+            origin: "null",
+            data: { channel: NOMAD_CRASH_TAB_CHANNEL, type: "page-text", id: requestId, text: "Hello page" },
+        });
+
+        await expect(promise).resolves.toBe("Hello page");
+        expect(wrapper.vm.pendingTextRequests[requestId]).toBeUndefined();
+    });
+
+    it("resolves empty page text on timeout when the frame never answers", async () => {
+        vi.useFakeTimers();
+        try {
+            const wrapper = mountReadyCrashTab();
+            const promise = wrapper.vm.getPageText(50);
+            await wrapper.vm.$nextTick();
+            vi.advanceTimersByTime(100);
+            await expect(promise).resolves.toBe("");
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it("teleports the frame to body so keep-alive detach keeps it alive", () => {
         const wrapper = mountCrashTab();
         const frame = wrapper.vm.$refs.frame;

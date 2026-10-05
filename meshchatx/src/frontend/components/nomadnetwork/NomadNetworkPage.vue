@@ -550,7 +550,8 @@
                 <!-- page content: capture-phase clicks so <a href> is handled before browser default navigation -->
                 <div
                     :class="[
-                        'flex-1 min-h-0 min-w-0 flex flex-col overflow-y-auto overflow-x-hidden nodeContainer relative contain-[layout_paint]',
+                        'flex-1 min-h-0 min-w-0 flex flex-col overflow-x-hidden nodeContainer relative contain-[layout_paint]',
+                        nodeContainerOverflowClass,
                         nomadRenderedShellFullBleed ? 'p-0 bg-transparent text-sem-fg' : 'p-3 bg-black text-white',
                         nomadShellDark ? 'nomad-shell-dark' : '',
                     ]"
@@ -1470,6 +1471,23 @@ export default {
             }
             return this.isFailedPageContent(this.nodePageContent);
         },
+        nodeContainerOverflowClass() {
+            // The rendered page lives in the crash-tab frame and scrolls
+            // inside itself. If the shell container stays scrollable here,
+            // padding and subpixel layout can make it a hair taller than its
+            // slot and surface a second slider next to the frame's (and the
+            // fixed frame tracks the oversized host rect). Keep scrolling
+            // only for the state banners, which are real flow content.
+            const stateShown =
+                this.showPageBusyBanner ||
+                this.showCancelledPageState ||
+                this.isFailedPageContent(this.nodePageContent) ||
+                this.showEmptyPageState;
+            if (this.showCrashTabHost && !stateShown) {
+                return "overflow-y-hidden";
+            }
+            return "overflow-y-auto";
+        },
         nodeContainerShellStyle() {
             if (this.nomadRenderedShellFullBleed && this.pageShellBackground) {
                 return { background: this.pageShellBackground };
@@ -1996,13 +2014,28 @@ export default {
             const url = `${window.location.origin}${window.location.pathname}#/popout/nomadnetwork/${encodedHash}`;
             window.open(url, "_blank", "width=1100,height=800,noopener");
         },
-        openNomadPageTranslation() {
-            const container = this.$el?.querySelector?.(".nodeContainer");
-            const text = container ? container.innerText?.trim() : "";
-            if (!text) {
+        async openNomadPageTranslation() {
+            // The rendered page lives in the sandboxed crash-tab frame, so
+            // ask it for text over postMessage. The .nodeContainer fallback
+            // covers non-frame content such as the plain shell states.
+            let text = "";
+            try {
+                const crashTab = this.$refs.crashTab;
+                if (crashTab && typeof crashTab.getPageText === "function") {
+                    text = (await crashTab.getPageText()) || "";
+                }
+            } catch {
+                text = "";
+            }
+            if (!text.trim()) {
+                const container = this.$el?.querySelector?.(".nodeContainer");
+                text = container ? container.innerText?.trim() : "";
+            }
+            if (!text.trim()) {
                 ToastUtils.info(this.$t("nomadnet.no_page_text_to_translate"));
                 return;
             }
+            text = text.trim();
             const maxLen = 2000;
             const snippet = text.length > maxLen ? `${text.slice(0, maxLen)}…` : text;
             const encoded = encodeURIComponent(snippet);
