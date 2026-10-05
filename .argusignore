@@ -16,6 +16,10 @@
 # First-party install/packaging code that legitimately does what the rules flag.
 CNT-001 docker/Dockerfile.build
 CNT-001 docker/Dockerfile.dev
+# Dockerfile.ci: .env* is excluded through scripts/ci/ci.dockerignore, which
+# run-docker.sh passes via --ignorefile. Argus cannot resolve the custom
+# ignorefile name, so CNT-009 fires on the wildcard COPY anyway.
+CNT-009 scripts/ci/Dockerfile.ci
 AUR-002 packaging/arch/PKGBUILD
 MAL-030 scripts/rpi/install_meshchatx.sh
 MAL-030 proxmox/build-lxc.sh
