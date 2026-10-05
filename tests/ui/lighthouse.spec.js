@@ -30,6 +30,17 @@ test.describe("Lighthouse page scores (simulated data)", () => {
 
     for (const entry of pages) {
         test(`lighthouse: ${entry.id}`, async ({ page, baseURL }) => {
+            // Freeze app-driven navigations on every document this target
+            // loads. Lighthouse navigates the shared CDP target itself to
+            // gather the measured page, and pages such as messages
+            // reactively router.replace on mount or when data lands, which
+            // kills the gatherer with "Inspected target navigated or
+            // closed". An init script no-ops the History API before app code
+            // runs on each load, including the load the audit performs.
+            await page.addInitScript(() => {
+                history.pushState = () => undefined;
+                history.replaceState = () => undefined;
+            });
             await gotoUiPage(page, entry, baseURL);
             if (entry.id === "map") {
                 await dismissMapOnboardingTooltip(page);
@@ -52,28 +63,6 @@ test.describe("Lighthouse page scores (simulated data)", () => {
             await page.waitForTimeout(2500);
 
             const url = page.url();
-            // Freeze app-driven navigations for the audit window. Pages such
-            // as messages reactively router.replace when panes focus or data
-            // lands, which kills the gatherer with "Inspected target
-            // navigated or closed". No-opping the History API keeps vue-router
-            // state internally but pins the audited document.
-            const freezeHistory = () =>
-                page.evaluate(() => {
-                    if (!window.__lhNavHold) {
-                        window.__lhNavHold = { push: history.pushState, replace: history.replaceState };
-                    }
-                    history.pushState = () => undefined;
-                    history.replaceState = () => undefined;
-                });
-            const thawHistory = () =>
-                page.evaluate(() => {
-                    if (window.__lhNavHold) {
-                        history.pushState = window.__lhNavHold.push;
-                        history.replaceState = window.__lhNavHold.replace;
-                        delete window.__lhNavHold;
-                    }
-                });
-            await freezeHistory();
             // Lighthouse navigates the shared CDP target itself. a concurrent
             // evaluate or teardown can race it into "Inspected target
             // navigated or closed". Retry only that transient protocol error.
@@ -81,32 +70,27 @@ test.describe("Lighthouse page scores (simulated data)", () => {
             // session event), re-open the target first so retries audit the
             // intended page rather than wherever the tab ended up.
             let runnerResult;
-            try {
-                for (let attempt = 1; ; attempt++) {
+            for (let attempt = 1; ; attempt++) {
+                try {
+                    runnerResult = await runLighthouseAudit(url, { port: LH_DEBUG_PORT });
+                    break;
+                } catch (err) {
+                    const msg = String((err && err.message) || err);
+                    if (attempt >= 5 || !/navigated or closed|Protocol error/.test(msg)) {
+                        throw err;
+                    }
+                    // eslint-disable-next-line no-console
+                    console.log(`LH ${entry.id}: retrying audit after transient error: ${msg.split("\n")[0]}`);
                     try {
-                        runnerResult = await runLighthouseAudit(url, { port: LH_DEBUG_PORT });
-                        break;
-                    } catch (err) {
-                        const msg = String((err && err.message) || err);
-                        if (attempt >= 5 || !/navigated or closed|Protocol error/.test(msg)) {
-                            throw err;
+                        if (page.url() !== url) {
+                            await gotoUiPage(page, entry, baseURL);
+                            await page.waitForTimeout(2500);
                         }
-                        // eslint-disable-next-line no-console
-                        console.log(`LH ${entry.id}: retrying audit after transient error: ${msg.split("\n")[0]}`);
-                        try {
-                            if (page.url() !== url) {
-                                await gotoUiPage(page, entry, baseURL);
-                                await page.waitForTimeout(2500);
-                                await freezeHistory();
-                            }
-                        } catch {
-                            // The next audit attempt fails on its own if the
-                            // re-navigation itself is broken.
-                        }
+                    } catch {
+                        // The next audit attempt fails on its own if the
+                        // re-navigation itself is broken.
                     }
                 }
-            } finally {
-                await thawHistory().catch(() => {});
             }
             const scores = scoresFromLhr(runnerResult.lhr);
             const vitals = vitalsFromLhr(runnerResult.lhr);
