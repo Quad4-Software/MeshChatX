@@ -1,0 +1,27 @@
+# Portable CI without marketplace Actions.
+
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+  pull_request:
+
+env:
+  PNPM_CONFIG_STRICT_DEP_BUILDS: "false"
+  RNS_REQUIRED_SIGNER: e46112d44649266d71fe2193e00a4710
+
+jobs:
+  pr:
+    name: PR gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Bootstrap toolchain
+        run: bash scripts/ci/bootstrap-toolchain.sh install
+      - name: PR gate
+        env:
+          RNS_INVENTORY_OUT: /tmp/meshchatx-ci-inventory.txt
+        run: bash scripts/ci/run.sh pr

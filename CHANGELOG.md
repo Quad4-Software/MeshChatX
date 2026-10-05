@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- NomadNet: rendered pages that use the full-bleed shell (.html, .md, .txt) no longer overflow the viewer by the header and toolbar height. The content container carried a stray min-h-full that beat its min-h-0, so the rendered frame ran ~54px past the bottom of the pane and its scrollbar hung below the page boundary, reading as the extra-slider artifact.
+
 ## [4.10.1] - 2026-10-04 [released]
 
 ### Fixed

@@ -551,9 +551,7 @@
                 <div
                     :class="[
                         'flex-1 min-h-0 min-w-0 flex flex-col overflow-y-auto overflow-x-hidden nodeContainer relative contain-[layout_paint]',
-                        nomadRenderedShellFullBleed
-                            ? 'p-0 bg-transparent min-h-full text-sem-fg'
-                            : 'p-3 bg-black text-white',
+                        nomadRenderedShellFullBleed ? 'p-0 bg-transparent text-sem-fg' : 'p-3 bg-black text-white',
                         nomadShellDark ? 'nomad-shell-dark' : '',
                     ]"
                     :style="nodeContainerShellStyle"

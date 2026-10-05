@@ -5,7 +5,7 @@ TASK ?= task
 .DEFAULT_GOAL := help
 
 .PHONY: install install-offline run dev dev-fe build format lint test test-be-perf clean help dist-linux dist-linux-x64
-.PHONY: tree-manifest tree-rsm-sign tree-rsm-verify
+.PHONY: tree-manifest tree-rsm-sign tree-rsm-verify ci-pr ci-docker
 
 install:
 	@$(TASK) install
@@ -55,8 +55,16 @@ tree-rsm-verify:
 tree-rsm-sign:
 	sh scripts/ci/sign-tree-rsm.sh
 
+ci-pr:
+	bash scripts/ci/run.sh pr
+
+ci-docker:
+	bash scripts/ci/run-docker.sh pr
+
 help:
 	@echo "Makefile targets (most delegate to Task, see: task --list)."
 	@echo "  make tree-rsm-verify  Verify meshchatx.rsm (no Task required)"
 	@echo "  make tree-rsm-sign    Sign tree inventory (requires RNS_ID_PATH)"
+	@echo "  make ci-pr            Portable PR CI (Forgejo, Gitea, local)"
+	@echo "  make ci-docker        PR CI in scripts/ci/Dockerfile.ci (Podman or Docker)"
 	@$(TASK) --list

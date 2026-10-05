@@ -65,6 +65,22 @@ For fully air-gapped artifact builds use the vendor bundle path described in
 
 For a Vite HMR loop, use task dev as described in **Installation and setup**.
 
+## Portable CI (Forgejo, Gitea, local, Podman)
+
+PR gate without GitHub Marketplace actions:
+
+| Command | Role |
+| --- | --- |
+| `bash scripts/ci/bootstrap-toolchain.sh install` | Pinned uv, Python, Node, pnpm, Task |
+| `CI_SKIP_TREE_VERIFY=1 bash scripts/ci/run.sh pr` | Lint plus backend, frontend, and lang tests |
+| `bash scripts/ci/run-docker.sh pr` | Same jobs in `scripts/ci/Dockerfile.ci` (Podman if available) |
+| `task ci:pr` / `make ci-pr` | Wrappers for `run.sh pr` |
+| `task ci:docker` / `make ci-docker` | Wrapper for `run-docker.sh pr` |
+
+Forgejo and Gitea: `.gitea/workflows/ci.yml` and `.forgejo/workflows/ci.yml`.
+
+Pinned versions: `scripts/ci/versions.env`.
+
 ## Lockfiles and install scripts
 
 From a clean clone:
