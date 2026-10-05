@@ -72,6 +72,12 @@ MEDIA_QUALITY_LATTICE = (25, 50, 75, 90)
 MEDIA_DIMENSION_LATTICE = (256, 512, 1024, 1920)
 # Hard cap on cache files. oldest entries are evicted beyond it.
 MEDIA_CACHE_MAX_FILES = 512
+# Cap on memoized source-file hashes so the map cannot grow without bound.
+MEDIA_HASH_CACHE_MAX_ENTRIES = 1024
+# Failed conversions get a marker file instead of respawning the encoder on
+# every request. The marker is retried after this many seconds so a backend
+# installed later still gets a chance.
+MEDIA_CONVERT_FAILURE_RETRY_SECONDS = 3600
 # tempfile.tempdir / os.environ are process-global, so every media convert
 # across every PageNode instance must serialize on one shared lock.
 _MEDIA_ENV_LOCK = threading.Lock()
@@ -393,6 +399,10 @@ class PageNode:
         self._file_access_grants_by_identity = {}
         self._file_access_grant_ttl = 300
         self._media_cache_lock = threading.Lock()
+        # source_path -> ((st_size, st_mtime_ns), sha256_hex). Hashing the
+        # whole source on every /media request is the dominant CPU cost on
+        # image-heavy nodes, so memoize by stat.
+        self._media_hash_cache = {}
 
         self.announce_enabled = bool(announce_enabled)
         self.announce_interval_seconds = normalize_announce_interval_seconds(
@@ -1023,10 +1033,22 @@ class PageNode:
 
     def _media_cache_key(self, source_path, quality, max_dimension):
         try:
-            with open(source_path, "rb") as f:
-                source_hash = hashlib.sha256(f.read()).hexdigest()
+            st = os.stat(source_path)
         except OSError:
             return None
+        stat_key = (st.st_size, st.st_mtime_ns)
+        cached = self._media_hash_cache.get(source_path)
+        if cached and cached[0] == stat_key:
+            source_hash = cached[1]
+        else:
+            try:
+                with open(source_path, "rb") as f:
+                    source_hash = hashlib.sha256(f.read()).hexdigest()
+            except OSError:
+                return None
+            if len(self._media_hash_cache) >= MEDIA_HASH_CACHE_MAX_ENTRIES:
+                self._media_hash_cache.clear()
+            self._media_hash_cache[source_path] = (stat_key, source_hash)
         dim = int(max_dimension) if max_dimension else "none"
         return f"{source_hash}.q{quality}.d{dim}.webp"
 
@@ -1067,6 +1089,11 @@ class PageNode:
                         os.environ[key] = old_value
 
         if not tmp_path or not os.path.isfile(tmp_path):
+            # Mark the failure so repeated requests for an unconvertible file
+            # do not respawn the encoder on every hit.
+            with contextlib.suppress(OSError):
+                with open(cache_path + ".fail", "wb"):
+                    pass
             return None
         self._evict_media_cache()
 
@@ -1079,6 +1106,24 @@ class PageNode:
                 os.unlink(tmp_path)
                 return None
         return cache_path
+
+    def _media_convert_failed_recently(self, cache_path):
+        marker = cache_path + ".fail"
+        if os.path.isfile(cache_path):
+            # A converted file makes any stale marker moot.
+            with contextlib.suppress(OSError):
+                os.unlink(marker)
+            return False
+        try:
+            age = time.time() - os.path.getmtime(marker)
+        except OSError:
+            return False
+        if age < MEDIA_CONVERT_FAILURE_RETRY_SECONDS:
+            return True
+        # Stale marker: retry so a backend installed later still converts.
+        with contextlib.suppress(OSError):
+            os.unlink(marker)
+        return False
 
     def _get_converted_media_path(
         self, source_path, quality=MEDIA_QUALITY, max_dimension=MEDIA_MAX_DIMENSION
@@ -1102,10 +1147,14 @@ class PageNode:
         cache_path = os.path.join(self.media_cache_dir, cache_key)
         if os.path.isfile(cache_path):
             return cache_path
+        if self._media_convert_failed_recently(cache_path):
+            return None
 
         with self._media_cache_lock:
             if os.path.isfile(cache_path):
                 return cache_path
+            if self._media_convert_failed_recently(cache_path):
+                return None
             return self._convert_media_to_webp(
                 source_path,
                 cache_path,
