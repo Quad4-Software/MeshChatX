@@ -10566,10 +10566,6 @@ class ReticulumMeshChat:
         if hasattr(lxmf_message, "next_delivery_attempt"):
             del lxmf_message.next_delivery_attempt
 
-        # this message should now be sent via a propagation node
-        lxmf_message.desired_method = LXMF.LXMessage.PROPAGATED
-        lxmf_message.try_propagation_on_fail = False
-
         # resend message
         source_hash = lxmf_message.source_hash.hex()
         router = ctx.message_router
@@ -10578,6 +10574,16 @@ class ReticulumMeshChat:
             and source_hash in ctx.forwarding_manager.forwarding_routers
         ):
             router = ctx.forwarding_manager.forwarding_routers[source_hash]
+
+        # Nothing to propagate to. handle_outbound raises IOError for a
+        # propagated message with no configured node.
+        if router is None or router.get_outbound_propagation_node() is None:
+            return
+
+        # this message should now be sent via a propagation node
+        lxmf_message.desired_method = LXMF.LXMessage.PROPAGATED
+        lxmf_message.try_propagation_on_fail = False
+
         router.handle_outbound(lxmf_message)
 
     # upserts the provided lxmf message to the database
@@ -10797,19 +10803,10 @@ class ReticulumMeshChat:
             # Wait on lxmf.delivery, not an identity hash or some other aspect dest.
             path_outcome = await self._await_transport_path(delivery_hash_bytes)
 
-        # Direct/opportunistic: peer path. Propagated: preferred propagation node path.
-        if not is_local_self and not path_outcome.path_available:
-            if wants_propagated:
-                msg = (
-                    "No path to preferred propagation node. "
-                    "Open Propagation Nodes or Path Finder, wait for a route, then try again."
-                )
-            else:
-                msg = (
-                    "No path to destination. "
-                    "Use Path Finder or wait for a route, then try again."
-                )
-            raise TimeoutError(msg)
+        # Pathless sends are reported to the caller as a timeout, but the
+        # message still gets built below so it can be persisted as failed and
+        # picked up by announce-triggered auto-resend or a manual resend once
+        # a path appears. Only raising here would drop the send silently.
 
         # create destination for recipients lxmf delivery address
         lxmf_destination = RNS.Destination(
@@ -11005,6 +11002,72 @@ class ReticulumMeshChat:
                     ),
                 )
             return lxmf_message
+
+        if not path_outcome.path_available:
+            # A late path response may have landed while the message was
+            # being built. Recheck before committing to the failed state.
+            path_wait_target = (
+                prop_node_bytes if wants_propagated else delivery_hash_bytes
+            )
+            if isinstance(path_wait_target, (bytes, bytearray)) and (
+                RNS.Transport.has_path(bytes(path_wait_target))
+            ):
+                path_outcome = reticulum_pathfinding.OutboundPathOutcome(
+                    True,
+                    "late_path_response",
+                    False,
+                )
+
+        if not path_outcome.path_available:
+            # Persist the failed outbound so the announce-triggered
+            # auto-resend and manual resend can deliver it once a path
+            # appears, instead of dropping it at the path gate. Reaction-only
+            # payloads rebuild through send_reaction and telemetry is
+            # ephemeral, so neither is stored.
+            if not (no_display or is_reaction_only or is_telemetry_payload):
+                lxmf_message.pack()
+                lxmf_message.state = LXMF.LXMessage.FAILED
+                path_row_hex = None
+                if wants_propagated and isinstance(
+                    prop_node_bytes,
+                    (bytes, bytearray),
+                ):
+                    path_row_hex = bytes(prop_node_bytes).hex()
+                elif isinstance(delivery_hash_bytes, (bytes, bytearray)):
+                    path_row_hex = delivery_hash_bytes.hex()
+                self.db_upsert_lxmf_message(
+                    lxmf_message,
+                    context=ctx,
+                    path_finding_measure=reticulum_pathfinding.format_outbound_path_finding_measure(
+                        path_outcome,
+                    ),
+                    path_row_hash_hex=path_row_hex,
+                    state_override="failed",
+                )
+                await self.websocket_broadcast(
+                    json.dumps(
+                        {
+                            "type": "lxmf_message_created",
+                            "lxmf_message": convert_lxmf_message_to_dict(
+                                lxmf_message,
+                                include_attachments=False,
+                                reticulum=self.reticulum,
+                                message_router=ctx.message_router,
+                            ),
+                        },
+                    ),
+                )
+            if wants_propagated:
+                msg = (
+                    "No path to preferred propagation node. "
+                    "Open Propagation Nodes or Path Finder, wait for a route, then try again."
+                )
+            else:
+                msg = (
+                    "No path to destination. "
+                    "Use Path Finder or wait for a route, then try again."
+                )
+            raise TimeoutError(msg)
 
         # register delivery callbacks
         lxmf_message.register_delivery_callback(

@@ -6,6 +6,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.reticulum_pathfinding import OutboundPathOutcome
@@ -46,11 +47,21 @@ def send_app():
 async def test_eect_direct_blocks_when_path_unavailable(send_app):
     with eect_scenario("path.direct.blocks_when_unavailable") as (_s, _seed, _rng):
         destination_hash = "aa" * 16
-        send_app.recall_identity = MagicMock(return_value=MagicMock())
+        send_app.recall_identity = MagicMock(return_value=RNS.Identity())
         send_app._await_transport_path = AsyncMock(
             return_value=OutboundPathOutcome(False, "new_path_requested", True),
         )
-        with pytest.raises(TimeoutError) as caught:
+        with (
+            patch(
+                "meshchatx.meshchat.LXMF.LXMessage",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "meshchatx.meshchat.convert_lxmf_message_to_dict",
+                return_value={"hash": "01" * 16, "state": "failed"},
+            ),
+            pytest.raises(TimeoutError) as caught,
+        ):
             await send_app.send_message(
                 destination_hash=destination_hash,
                 content="hi",
@@ -65,7 +76,7 @@ async def test_eect_propagated_awaits_prop_node_path(send_app):
     with eect_scenario("path.propagated.awaits_prop_node") as (_s, _seed, _rng):
         destination_hash = "aa" * 16
         prop_node = b"\xbb" * 16
-        send_app.recall_identity = MagicMock(return_value=MagicMock())
+        send_app.recall_identity = MagicMock(return_value=RNS.Identity())
         send_app.message_router.get_outbound_propagation_node.return_value = prop_node
         send_app.message_router.propagation_destination = MagicMock(hash=b"\xcc" * 16)
         send_app._await_transport_path = AsyncMock(
@@ -109,13 +120,23 @@ async def test_eect_propagated_blocks_when_prop_node_path_unavailable(send_app):
     ):
         destination_hash = "aa" * 16
         prop_node = b"\xbb" * 16
-        send_app.recall_identity = MagicMock(return_value=MagicMock())
+        send_app.recall_identity = MagicMock(return_value=RNS.Identity())
         send_app.message_router.get_outbound_propagation_node.return_value = prop_node
         send_app.message_router.propagation_destination = MagicMock(hash=b"\xcc" * 16)
         send_app._await_transport_path = AsyncMock(
             return_value=OutboundPathOutcome(False, "new_path_requested", True),
         )
-        with pytest.raises(TimeoutError) as caught:
+        with (
+            patch(
+                "meshchatx.meshchat.LXMF.LXMessage",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "meshchatx.meshchat.convert_lxmf_message_to_dict",
+                return_value={"hash": "01" * 16, "state": "failed"},
+            ),
+            pytest.raises(TimeoutError) as caught,
+        ):
             await send_app.send_message(
                 destination_hash=destination_hash,
                 content="hi",

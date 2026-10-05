@@ -41,7 +41,7 @@ class ConfigManager:
         self.auto_send_failed_messages_to_propagation_node = self.BoolConfig(
             self,
             "auto_send_failed_messages_to_propagation_node",
-            False,
+            True,
         )
         self.delivery_helptips_enabled = self.BoolConfig(
             self,
