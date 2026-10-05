@@ -2616,9 +2616,14 @@ export default {
                 if (!testUrl.includes("://")) {
                     testUrl = `https://${testUrl.replace(/^\/+/, "")}`;
                 }
-                if (testUrl.includes("{z}") || testUrl.includes("{x}") || testUrl.includes("{y}")) {
-                    testUrl = testUrl.replace("{z}", "0").replace("{x}", "0").replace("{y}", "0");
-                }
+                testUrl = testUrl
+                    .replaceAll("{z}", "0")
+                    .replaceAll("{x}", "0")
+                    .replaceAll("{-y}", "0")
+                    .replaceAll("{y}", "0")
+                    .replaceAll("{s}", "a")
+                    .replaceAll("{a-c}", "a")
+                    .replaceAll("{r}", "");
                 const controller = new AbortController();
                 timeoutId = setTimeout(() => controller.abort(), 8000);
                 const response = await fetch(testUrl, {
@@ -3013,8 +3018,11 @@ export default {
                 });
                 // A bad doc (404, malformed JSON, missing tiles) lands here
                 // with no tile requests, so failover would never kick in.
-                source.on("error", () => {
-                    this.onOnlineRasterTileLoadFailure();
+                // Source.setState("error") emits "change", not "error".
+                source.on("change", () => {
+                    if (source.getState() === "error") {
+                        this.onOnlineRasterTileLoadFailure();
+                    }
                 });
             }
             this.wireRasterTileLoading(source, isOffline);

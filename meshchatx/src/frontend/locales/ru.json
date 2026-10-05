@@ -4760,6 +4760,8 @@
         "download": "Download",
         "downloading": "Downloading...",
         "download_all": "Download all",
+        "search_packs": "Search packs",
+        "no_search_results": "No packs match your search",
         "installed": "Installed",
         "catalog_failed": "Could not load the pack catalog. Outbound downloads may be blocked by privacy mode.",
         "download_failed": "Download failed for {pair}.",

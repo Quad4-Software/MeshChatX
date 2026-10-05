@@ -2037,7 +2037,7 @@ export default {
             }
             text = text.trim();
             const maxLen = 2000;
-            const snippet = text.length > maxLen ? `${text.slice(0, maxLen)}…` : text;
+            const snippet = text.length > maxLen ? `${text.slice(0, maxLen)}...` : text;
             const encoded = encodeURIComponent(snippet);
             const url = `${window.location.origin}${window.location.pathname}#/translator?text=${encoded}`;
             window.open(url, "_blank", "noopener");

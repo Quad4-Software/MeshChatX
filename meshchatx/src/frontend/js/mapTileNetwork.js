@@ -64,7 +64,9 @@ export function resolveTileJsonTileUrls(doc, docUrl) {
     // minus y), which is the standard-XYZ equivalent of a TMS row order.
     const isTms = doc.scheme === "tms";
     const tiles = doc.tiles.map((t) => {
-        let template = String(t);
+        // OpenLayers only expands {z}/{x}/{y}/{-y}/{a-c}; Leaflet style
+        // {s} and {r} placeholders would stay literal in request URLs.
+        let template = String(t).replaceAll("{s}", "{a-c}").replaceAll("{r}", "");
         if (isTms) {
             template = template.replaceAll("{y}", "{-y}");
         }

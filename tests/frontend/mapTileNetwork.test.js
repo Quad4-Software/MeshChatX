@@ -136,6 +136,12 @@ describe("mapTileNetwork", () => {
             ]);
         });
 
+        it("converts leaflet placeholders inside tile templates", () => {
+            const doc = { tiles: ["https://{s}.t.example/{z}/{x}/{y}{r}.png"] };
+            const out = resolveTileJsonTileUrls(doc, "https://srv.example/doc.json");
+            expect(out.tiles).toEqual(["https://{a-c}.t.example/{z}/{x}/{y}.png"]);
+        });
+
         it("flips the y template for scheme:tms documents", () => {
             const doc = { scheme: "tms", tiles: ["https://t.example/{z}/{x}/{y}.png"] };
             const out = resolveTileJsonTileUrls(doc, "https://srv.example/doc.json");

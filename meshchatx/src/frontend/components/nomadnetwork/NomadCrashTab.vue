@@ -352,6 +352,11 @@ export default {
         this.stopWatchdog();
         this.clearRenderDeadline();
         this.clearBootWatchdog();
+        for (const pending of Object.values(this.pendingTextRequests)) {
+            clearTimeout(pending.timer);
+            pending.resolve("");
+        }
+        this.pendingTextRequests = {};
     },
     methods: {
         /**

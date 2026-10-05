@@ -134,7 +134,8 @@ describe("TranslatorPage.vue", () => {
 
         const download = wrapper.findAll("button").find((b) => b.text() === "Download");
         await download.trigger("click");
-        await vi.waitFor(() => expect(wrapper.vm.isDownloading("fren")).toBe(false));
+        const frenGroup = wrapper.vm.mergedCatalog.find((g) => g.directions.includes("fren"));
+        await vi.waitFor(() => expect(wrapper.vm.isGroupDownloading(frenGroup)).toBe(false));
         const [url, body] = apiMock.post.mock.calls[0];
         expect(url).toContain("/translation/packs/fetch");
         expect(body).toEqual({ pair: "fren" });

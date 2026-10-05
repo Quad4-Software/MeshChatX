@@ -408,9 +408,6 @@ export default {
             const toName = this.languageName(group.to);
             return group.directions.length > 1 ? `${fromName} <-> ${toName}` : `${fromName} -> ${toName}`;
         },
-        catalogLabel(entry) {
-            return this.packLabel(entry);
-        },
         isGroupInstalled(group) {
             return group.directions.every((pair) => this.installedPairSet.has(pair));
         },
@@ -467,27 +464,6 @@ export default {
                 this.catalogError = this.$t("translator.catalog_failed");
             } finally {
                 this.isLoadingCatalog = false;
-            }
-        },
-        isDownloading(pair) {
-            return Boolean(this.downloadingPairs[pair]);
-        },
-        async downloadPack(pair) {
-            if (this.downloadingPairs[pair]) {
-                return;
-            }
-            this.downloadingPairs = { ...this.downloadingPairs, [pair]: true };
-            this.fetchError = null;
-            try {
-                await TranslationService.downloadPack(pair);
-                await this.loadPacks();
-            } catch (e) {
-                console.error(`Failed to download pack ${pair}:`, e);
-                this.fetchError = this.$t("translator.download_failed", { pair: pair.toUpperCase() });
-            } finally {
-                const next = { ...this.downloadingPairs };
-                delete next[pair];
-                this.downloadingPairs = next;
             }
         },
         async downloadAll() {
