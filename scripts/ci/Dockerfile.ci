@@ -30,4 +30,10 @@ RUN uv sync --frozen --group dev \
 
 COPY . .
 
+RUN useradd --create-home --shell /bin/bash ci \
+	&& chown -R ci:ci /src /opt/ci-toolchain
+
+USER ci
+RUN git config --global --add safe.directory /src
+
 CMD ["bash", "scripts/ci/run.sh", "pr"]

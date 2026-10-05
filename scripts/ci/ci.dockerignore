@@ -11,3 +11,8 @@ htmlcov/
 .vscode/
 .cursor/
 .DS_Store
+
+# Environment files
+.env
+.env.local
+.env.*.local
