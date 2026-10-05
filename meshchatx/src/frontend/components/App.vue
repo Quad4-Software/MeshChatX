@@ -2688,7 +2688,7 @@ export default {
                 ) {
                     if (!this.isCallWindowOpen && !this.$route.meta.isPopout) {
                         this.isCallWindowOpen = true;
-                        window.open("/call.html", "MeshChatXCallWindow", "width=600,height=800");
+                        window.open("/call.html", "MeshChatXCallWindow", "width=600,height=800,noopener");
                     }
                 } else {
                     this.isCallWindowOpen = false;

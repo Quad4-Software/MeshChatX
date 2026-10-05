@@ -59,7 +59,7 @@ const {
 } = require("./desktopPrivacySettings");
 const { getLogsDir } = require("./backendCrashReport");
 const { installBrokenPipeGuards, createMainProcessLogger } = require("./safeConsole");
-const { createRendererCrashHandler } = require("./rendererCrash");
+const { createRendererCrashHandler, createChildWindowCrashHandler } = require("./rendererCrash");
 
 function resolvePreloadScriptPath() {
     const bundled = path.join(__dirname, "preload.bundle.js");
@@ -715,7 +715,22 @@ function attachInWindowNavigationGuard(webContents) {
 app.on("web-contents-created", (_event, contents) => {
     attachWindowOpenHandler(contents);
     attachInWindowNavigationGuard(contents);
+    attachChildWindowCrashHandler(contents);
 });
+
+const childWindowCrashHandler = createChildWindowCrashHandler({
+    log: (message) => log(message),
+    getMainWindow: () => mainWindow,
+    windowForContents: (contents) => BrowserWindow.fromWebContents(contents),
+});
+
+// Popout/call windows get their own renderer process when opened with
+// noopener, so a crash there must not take the shell down. The app-level
+// render-process-gone handler only logs; destroy the dead child window so
+// it does not linger as an unresponsive black frame.
+function attachChildWindowCrashHandler(contents) {
+    childWindowCrashHandler.attach(contents);
+}
 
 function attachDevToolsF12Shortcut(browserWindow) {
     // DevTools stay off in packaged builds. They are a development aid only.

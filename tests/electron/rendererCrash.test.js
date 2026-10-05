@@ -231,3 +231,76 @@ describe("electron/rendererCrash", () => {
         expect(describeExitCode(1)).toBe("1 (0x00000001)");
     });
 });
+
+describe("electron/rendererCrash child window handler", () => {
+    const makeChild = () => {
+        const contents = {
+            _type: "window",
+            handlers: {},
+            getType() {
+                return this._type;
+            },
+            on(event, fn) {
+                this.handlers[event] = fn;
+            },
+        };
+        return contents;
+    };
+
+    it("destroys a child window when its renderer dies", async () => {
+        const { createChildWindowCrashHandler } = await import("../../electron/rendererCrash.js");
+        const childContents = makeChild();
+        const destroyed = [];
+        const childWin = { isDestroyed: () => false, destroy: vi.fn(() => destroyed.push(true)) };
+        const handler = createChildWindowCrashHandler({
+            log: () => {},
+            getMainWindow: () => ({ webContents: { id: 1 }, isDestroyed: () => false }),
+            windowForContents: () => childWin,
+        });
+        handler.attach(childContents);
+        childContents.handlers["render-process-gone"]({}, { reason: "oom", exitCode: 1 });
+        expect(childWin.destroy).toHaveBeenCalled();
+    });
+
+    it("skips the main window's own webContents", async () => {
+        const { createChildWindowCrashHandler } = await import("../../electron/rendererCrash.js");
+        const mainContents = makeChild();
+        const mainWin = { webContents: mainContents, isDestroyed: () => false };
+        const windowForContents = vi.fn();
+        const handler = createChildWindowCrashHandler({
+            log: () => {},
+            getMainWindow: () => mainWin,
+            windowForContents,
+        });
+        handler.attach(mainContents);
+        mainContents.handlers["render-process-gone"]({}, { reason: "crashed" });
+        expect(windowForContents).not.toHaveBeenCalled();
+    });
+
+    it("ignores non-window webContents", async () => {
+        const { createChildWindowCrashHandler } = await import("../../electron/rendererCrash.js");
+        const devtools = makeChild();
+        devtools._type = "devtools";
+        const handler = createChildWindowCrashHandler({
+            log: () => {},
+            getMainWindow: () => null,
+            windowForContents: () => null,
+        });
+        handler.attach(devtools);
+        expect(devtools.handlers["render-process-gone"]).toBeUndefined();
+    });
+
+    it("does not destroy an already-destroyed window", async () => {
+        const { createChildWindowCrashHandler } = await import("../../electron/rendererCrash.js");
+        const childContents = makeChild();
+        const childWin = { isDestroyed: () => true, destroy: vi.fn() };
+        const handler = createChildWindowCrashHandler({
+            log: () => {},
+            getMainWindow: () => null,
+            windowForContents: () => childWin,
+        });
+        handler.attach(childContents);
+        childContents.handlers["render-process-gone"]({}, { reason: "crashed" });
+        expect(childWin.destroy).not.toHaveBeenCalled();
+    });
+});

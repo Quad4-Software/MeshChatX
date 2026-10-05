@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - NomadNet: page translation now works with the sandboxed page renderer. The shell asks the renderer frame for the page text over the frame channel instead of reading an empty shell container, so the translate button opens the translator with real page content.
 - NomadNet: the page shell no longer can show its own scrollbar next to the rendered frame's scrollbar. The container only scrolls for state banners now, which removes the second slider on platforms with always-on scrollbars.
 - NomadNet: serving nodes no longer re-hash the whole source image on every /media request; the hash is memoized by file stat. Failed conversions are marked and skipped for an hour instead of respawning the encoder on every request, which removes the sustained CPU spikes on image-heavy pages.
+- Desktop: the call window no longer shares the main window's renderer process, so a crash there cannot take the whole app down. Crashed popout and call windows are now destroyed instead of lingering as dead frames.
 - NomadNet: rendered pages that use the full-bleed shell (.html, .md, .txt) no longer overflow the viewer by the header and toolbar height. The content container carried a stray min-h-full that beat its min-h-0, so the rendered frame ran ~54px past the bottom of the pane and its scrollbar hung below the page boundary, reading as the extra-slider artifact.
 
 ### Added

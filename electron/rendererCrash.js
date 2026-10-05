@@ -1,6 +1,8 @@
 const fs = require("fs");
 const path = require("node:path");
 
+const { formatRenderProcessGoneDetails } = require("./mainHelpers");
+
 // Reasons where the renderer is gone for good and the window shows a dead
 // page. clean-exit and killed are intentional exits and get no dialog.
 const RECOVERABLE_REASONS = new Set(["crashed", "launch-failed", "abnormal-exit", "oom", "integrity-failure"]);
@@ -225,8 +227,45 @@ function createRendererCrashHandler(deps) {
     return { handle, handleChildProcessGone, isRecoverableCrash };
 }
 
+/**
+ * Popout/call child windows get their own renderer process (noopener), so a
+ * crash there must not take the shell down. The main window already has its
+ * own crash handler with a recovery dialog; for child windows, destroy the
+ * dead window so it does not linger as an unresponsive black frame.
+ *
+ * @param {object} deps
+ * @param {(message: string) => void} deps.log
+ * @param {() => any} deps.getMainWindow
+ * @param {(contents: any) => any} deps.windowForContents
+ * @param {(details: unknown) => string} [deps.formatDetails]
+ */
+function createChildWindowCrashHandler(deps) {
+    const { log, getMainWindow, windowForContents } = deps;
+    const formatDetails = deps.formatDetails || formatRenderProcessGoneDetails;
+
+    function attach(contents) {
+        if (!contents || contents.getType() !== "window") {
+            return;
+        }
+        contents.on("render-process-gone", (_event, details) => {
+            const main = getMainWindow();
+            if (main && !main.isDestroyed() && contents === main.webContents) {
+                return;
+            }
+            log(`Child window renderer died: ${formatDetails(details)}`);
+            const win = windowForContents(contents);
+            if (win && !win.isDestroyed()) {
+                win.destroy();
+            }
+        });
+    }
+
+    return { attach };
+}
+
 module.exports = {
     createRendererCrashHandler,
+    createChildWindowCrashHandler,
     disableGpuMarkerPath,
     describeExitCode,
     RECOVERABLE_REASONS,
