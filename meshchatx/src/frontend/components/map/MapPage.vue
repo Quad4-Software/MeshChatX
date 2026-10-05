@@ -1202,6 +1202,7 @@ import {
     buildNominatimSearchUrl,
     neighborTileCoords,
     expandTileUrl,
+    ResolvedTileJSON,
     NOMINATIM_FETCH_TIMEOUT_MS,
     NOMINATIM_FETCH_RETRIES,
     NOMINATIM_FETCH_RETRY_BASE_DELAY_MS,
@@ -2612,6 +2613,9 @@ export default {
             let timeoutId = null;
             try {
                 let testUrl = url.endsWith("/") ? url.slice(0, -1) : url;
+                if (!testUrl.includes("://")) {
+                    testUrl = `https://${testUrl.replace(/^\/+/, "")}`;
+                }
                 if (testUrl.includes("{z}") || testUrl.includes("{x}") || testUrl.includes("{y}")) {
                     testUrl = testUrl.replace("{z}", "0").replace("{x}", "0").replace("{y}", "0");
                 }
@@ -2641,10 +2645,18 @@ export default {
             return normalized === OPENFREEMAP_DEFAULT_STYLE || normalized === DEFAULT_OSM_RASTER;
         },
         resolveRasterTileUrl(url) {
-            const normalized = (url || DEFAULT_OSM_RASTER).trim();
+            let normalized = (url || DEFAULT_OSM_RASTER).trim();
             if (this.isOpenFreeMapStyleUrl(normalized)) {
                 return DEFAULT_OSM_RASTER;
             }
+            // Scheme-less hosts or //host paths resolve relative to the app
+            // origin and always fail.
+            if (normalized && !normalized.includes("://")) {
+                normalized = `https://${normalized.replace(/^\/+/, "")}`;
+            }
+            // OpenLayers expands {z}/{x}/{y}/{-y}/{a-c} only. Leaflet style
+            // {s} and {r} placeholders would stay literal in the request URL.
+            normalized = normalized.replaceAll("{s}", "{a-c}").replaceAll("{r}", "");
             return normalized;
         },
         getOnboardingAnchorEl() {
@@ -2948,6 +2960,12 @@ export default {
                 tileUrl = this.resolveRasterTileUrl(customTileUrl);
             }
 
+            if (this.isTileJsonUrl(tileUrl)) {
+                // TileJSON: the document carries its own tiles templates,
+                // attribution, and zoom range.
+                return this.getTileJsonRasterSource(tileUrl, isOffline);
+            }
+
             const xyzOptions = {
                 url: tileUrl,
                 crossOrigin: "anonymous",
@@ -2972,7 +2990,37 @@ export default {
                     this.onOnlineRasterTileLoadedOk();
                 });
             }
-
+            this.wireRasterTileLoading(source, isOffline);
+            return source;
+        },
+        isTileJsonUrl(url) {
+            if (typeof url !== "string") {
+                return false;
+            }
+            const path = url.split(/[?#]/, 1)[0].toLowerCase();
+            return path.endsWith(".json");
+        },
+        getTileJsonRasterSource(tileUrl, isOffline) {
+            const source = new ResolvedTileJSON({
+                url: this.resolveRasterTileUrl(tileUrl),
+                crossOrigin: "anonymous",
+                transition: 0,
+                cacheSize: 2048,
+            });
+            if (!isOffline) {
+                source.on("tileloadend", () => {
+                    this.onOnlineRasterTileLoadedOk();
+                });
+                // A bad doc (404, malformed JSON, missing tiles) lands here
+                // with no tile requests, so failover would never kick in.
+                source.on("error", () => {
+                    this.onOnlineRasterTileLoadFailure();
+                });
+            }
+            this.wireRasterTileLoading(source, isOffline);
+            return source;
+        },
+        wireRasterTileLoading(source, isOffline) {
             if (isOffline) {
                 source.setTileLoadFunction(async (tile, src) => {
                     // Cached tiles first: offline view should render instantly
@@ -3013,8 +3061,6 @@ export default {
                     this.onOnlineRasterTileLoadFailure();
                 });
             }
-
-            return source;
         },
         onOnlineRasterTileLoadedOk() {
             this.tileErrorCount = Math.max(0, this.tileErrorCount - 4);

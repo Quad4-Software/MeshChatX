@@ -1804,7 +1804,7 @@
         "cache_cleared": "Tile cache cleared",
         "tile_server_url": "Tile Server URL",
         "tile_server_url_placeholder": "https://tile.openstreetmap.org/{'{'}z{'}'}/{'{'}x{'}'}/{'{'}y{'}'}.png",
-        "tile_server_url_hint": "Use {z}, {x}, {y} for zoom, column, row",
+        "tile_server_url_hint": "Use {z}, {x}, {y} for zoom, column, row, or a TileJSON endpoint ending in .json",
         "tile_server_saved": "Tile server URL saved",
         "tile_server_openstreetmap": "OpenStreetMap",
         "nominatim_api_url": "Nominatim API URL",

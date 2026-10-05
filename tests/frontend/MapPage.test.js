@@ -568,6 +568,35 @@ describe("MapPage.vue", () => {
         expect(wrapper.vm.coordinateFormat).toBe("wgs84");
     });
 
+    it("normalizes scheme-less tile URLs and leaflet placeholders", async () => {
+        const wrapper = mountMapPage();
+        await flushPromises();
+        expect(wrapper.vm.resolveRasterTileUrl("tiles.example.com/{z}/{x}/{y}.png")).toBe(
+            "https://tiles.example.com/{z}/{x}/{y}.png",
+        );
+        expect(wrapper.vm.resolveRasterTileUrl("//tiles.example.com/{z}/{x}/{y}.png")).toBe(
+            "https://tiles.example.com/{z}/{x}/{y}.png",
+        );
+        expect(wrapper.vm.resolveRasterTileUrl("https://{s}.tiles.example.com/{z}/{x}/{y}.png")).toBe(
+            "https://{a-c}.tiles.example.com/{z}/{x}/{y}.png",
+        );
+        expect(wrapper.vm.resolveRasterTileUrl("https://t.example.com/{z}/{x}/{y}{r}.png")).toBe(
+            "https://t.example.com/{z}/{x}/{y}.png",
+        );
+        expect(wrapper.vm.resolveRasterTileUrl("https://t.example.com/{z}/{x}/{y}.png")).toBe(
+            "https://t.example.com/{z}/{x}/{y}.png",
+        );
+    });
+
+    it("detects tilejson endpoints", async () => {
+        const wrapper = mountMapPage();
+        await flushPromises();
+        expect(wrapper.vm.isTileJsonUrl("https://tiles.example.com/cyclosm/tilejson.json")).toBe(true);
+        expect(wrapper.vm.isTileJsonUrl("https://tiles.example.com/style.json?v=2")).toBe(true);
+        expect(wrapper.vm.isTileJsonUrl("https://t.example.com/{z}/{x}/{y}.png")).toBe(false);
+        expect(wrapper.vm.isTileJsonUrl("/api/v1/map/tiles/{z}/{x}/{y}.png")).toBe(false);
+    });
+
     it("bumps geoWasmEpoch when refreshGeoWasmEpoch finds WASM ready", async () => {
         const wrapper = mountMapPage();
         await flushPromises();

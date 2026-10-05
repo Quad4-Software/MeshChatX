@@ -571,15 +571,32 @@ def create_security_middleware(app):
             script_sources = ["'self'", "'wasm-unsafe-eval'", "blob:"]
         style_sources = ["'self'", "'unsafe-inline'"]
 
-        if app.current_context and app.current_context.config and not privacy_mode:
-            # Helper to add domain from URL
+        if app.current_context and app.current_context.config:
+            # Configured endpoints are explicit opt-ins and stay allowed in
+            # privacy mode: mesh-hosted tile/search servers are the main reason
+            # privacy mode users set them. Only the default public origins are
+            # gated.
             def add_domain_from_url(url, target_list):
                 if not url:
                     return None
                 try:
-                    parsed = urlparse(url)
+                    raw = url.strip()
+                    if not raw:
+                        return None
+                    # Users may enter scheme-less hosts or //host paths.
+                    if "://" not in raw:
+                        raw = f"https://{raw.lstrip('/')}"
+                    parsed = urlparse(raw)
+                    # Tile URL templates can carry {s}-style subdomain
+                    # placeholders that urlparse keeps literally.
                     if parsed.netloc:
-                        domain = f"{parsed.scheme}://{parsed.netloc}"
+                        netloc = re.sub(r"\{[^}]*\}", "*", parsed.netloc)
+                        scheme = (
+                            parsed.scheme
+                            if parsed.scheme in ("http", "https")
+                            else "https"
+                        )
+                        domain = f"{scheme}://{netloc}"
                         if domain not in target_list:
                             target_list.append(domain)
                         return domain
@@ -593,14 +610,24 @@ def create_security_middleware(app):
                 connect_sources,
             )
 
-            # Add map tile server domain
+            # Add map tile server domain. The shipped public default is still
+            # gated by privacy mode; anything else is a deliberate user opt-in.
             map_tile_url = app.current_context.config.map_tile_server_url.get()
-            add_domain_from_url(map_tile_url, img_sources)
-            add_domain_from_url(map_tile_url, connect_sources)
+            if not privacy_mode or (
+                map_tile_url
+                and map_tile_url.strip()
+                != "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            ):
+                add_domain_from_url(map_tile_url, img_sources)
+                add_domain_from_url(map_tile_url, connect_sources)
 
-            # Add nominatim API domain
+            # Add nominatim API domain under the same default-vs-custom split.
             nominatim_url = app.current_context.config.map_nominatim_api_url.get()
-            add_domain_from_url(nominatim_url, connect_sources)
+            if not privacy_mode or (
+                nominatim_url
+                and nominatim_url.strip() != "https://nominatim.openstreetmap.org"
+            ):
+                add_domain_from_url(nominatim_url, connect_sources)
 
             # Add custom CSP sources from config
             def add_extra_sources(extra_str, target_list):

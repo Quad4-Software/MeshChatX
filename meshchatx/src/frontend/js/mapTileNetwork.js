@@ -1,3 +1,5 @@
+import TileJSON from "ol/source/TileJSON";
+
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const TILE_FETCH_TIMEOUT_MS = 8000;
@@ -14,7 +16,11 @@ export function normalizeHttpBaseUrl(url) {
 }
 
 export function buildNominatimSearchUrl(nominatimApiUrl, searchQuery, limit = 10) {
-    const base = normalizeHttpBaseUrl(nominatimApiUrl);
+    let base = normalizeHttpBaseUrl(nominatimApiUrl);
+    // Scheme-less hosts or //host paths would resolve relative to the app origin.
+    if (base && !base.includes("://")) {
+        base = `https://${base.replace(/^\/+/, "")}`;
+    }
     const enc = encodeURIComponent(searchQuery);
     return `${base}/search?format=json&q=${enc}&limit=${limit}&addressdetails=1`;
 }
@@ -46,6 +52,42 @@ export function neighborTileCoords(lon, lat, zoom, ring = 1) {
         }
     }
     return out;
+}
+
+export function resolveTileJsonTileUrls(doc, docUrl) {
+    // TileJSON allows relative tile URL templates; resolve them against the
+    // document URL so OpenLayers fetches the tile host instead of the app origin.
+    if (!doc || typeof doc !== "object" || !Array.isArray(doc.tiles)) {
+        return doc;
+    }
+    // OpenLayers ignores scheme:tms. Flip the y template to {-y} (grid max
+    // minus y), which is the standard-XYZ equivalent of a TMS row order.
+    const isTms = doc.scheme === "tms";
+    const tiles = doc.tiles.map((t) => {
+        let template = String(t);
+        if (isTms) {
+            template = template.replaceAll("{y}", "{-y}");
+        }
+        try {
+            // URL percent-encodes { } in paths; restore template placeholders.
+            return new URL(template, docUrl).href.replaceAll("%7B", "{").replaceAll("%7D", "}");
+        } catch {
+            return template;
+        }
+    });
+    return { ...doc, tiles };
+}
+
+export class ResolvedTileJSON extends TileJSON {
+    constructor(options) {
+        const docUrl = options && options.url ? String(options.url) : "";
+        super(options);
+        this.docUrl_ = docUrl;
+    }
+
+    handleTileJSONResponse(doc) {
+        super.handleTileJSONResponse(resolveTileJsonTileUrls(doc, this.docUrl_));
+    }
 }
 
 export function expandTileUrl(template, z, x, y) {

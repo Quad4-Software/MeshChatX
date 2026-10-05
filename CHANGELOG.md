@@ -7,7 +7,12 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Messaging: outbound sends that fail the path wait are now persisted as failed messages instead of being dropped, so they resend automatically when the peer announces and can be resent manually. The propagation-node fallback now defaults on for new configurations and is a safe no-op when no propagation node is set.
+- Maps: user-configured tile servers, Nominatim endpoints, and extra CSP sources are no longer stripped from the Content Security Policy in privacy mode; only the shipped public defaults stay gated. Scheme-less and subdomain-template ({s}, {r}) tile URLs are normalized so OpenLayers and the CSP match real hosts.
 - NomadNet: rendered pages that use the full-bleed shell (.html, .md, .txt) no longer overflow the viewer by the header and toolbar height. The content container carried a stray min-h-full that beat its min-h-0, so the rendered frame ran ~54px past the bottom of the pane and its scrollbar hung below the page boundary, reading as the extra-slider artifact.
+
+### Added
+
+- Maps: the tile server URL now accepts TileJSON endpoints (URLs ending in .json). Tile templates, attribution, zoom range, bounds, relative tile URLs, and scheme:tms are honored, and a bad document falls back to the next provider like a failed tile server.
 
 ## [4.10.1] - 2026-10-04 [released]
 

@@ -7,6 +7,7 @@ import {
     TILE_FETCH_TIMEOUT_MS,
     neighborTileCoords,
     expandTileUrl,
+    resolveTileJsonTileUrls,
 } from "@/js/mapTileNetwork";
 
 describe("mapTileNetwork", () => {
@@ -116,6 +117,34 @@ describe("mapTileNetwork", () => {
             const tiles = neighborTileCoords(0, 0, 4, 1);
             expect(tiles).toHaveLength(9);
             expect(tiles.every((t) => t.z === 4)).toBe(true);
+        });
+    });
+
+    describe("resolveTileJsonTileUrls", () => {
+        it("keeps absolute tile templates as-is", () => {
+            const doc = { tiles: ["https://t.example/{z}/{x}/{y}.png"] };
+            const out = resolveTileJsonTileUrls(doc, "https://srv.example/layer/tilejson.json");
+            expect(out.tiles).toEqual(["https://t.example/{z}/{x}/{y}.png"]);
+        });
+
+        it("resolves root-relative and doc-relative tile templates", () => {
+            const doc = { tiles: ["/{z}/{x}/{y}.png", "tiles/{z}/{x}/{y}.png"] };
+            const out = resolveTileJsonTileUrls(doc, "https://srv.example/layer/tilejson.json");
+            expect(out.tiles).toEqual([
+                "https://srv.example/{z}/{x}/{y}.png",
+                "https://srv.example/layer/tiles/{z}/{x}/{y}.png",
+            ]);
+        });
+
+        it("flips the y template for scheme:tms documents", () => {
+            const doc = { scheme: "tms", tiles: ["https://t.example/{z}/{x}/{y}.png"] };
+            const out = resolveTileJsonTileUrls(doc, "https://srv.example/doc.json");
+            expect(out.tiles).toEqual(["https://t.example/{z}/{x}/{-y}.png"]);
+        });
+
+        it("passes non-array tiles and bad inputs through untouched", () => {
+            expect(resolveTileJsonTileUrls({ name: "x" }, "https://a.example/doc.json")).toEqual({ name: "x" });
+            expect(resolveTileJsonTileUrls(null, "https://a.example/doc.json")).toBeNull();
         });
     });
 });
