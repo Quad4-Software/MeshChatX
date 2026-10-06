@@ -321,3 +321,56 @@ async def test_bitrates_falls_back_to_full_reload(app):
     assert response.status == 200, body
     assert body["reloaded"] is True
     assert body["reloaded_live"] is False
+
+
+@pytest.mark.asyncio
+async def test_import_attaches_imported_interfaces_live(app):
+    app._get_interfaces_snapshot = lambda: dict(app.reticulum.config["interfaces"])
+    app._write_reticulum_config = lambda **kw: True
+    app.reticulum.attach_interface = MagicMock(return_value=True)
+
+    handler = _find_handler(app, "POST", "/api/v1/reticulum/interfaces/import")
+    response = await handler(
+        _Request(
+            {
+                "config": """[[Imported UDP]]
+type = UDPInterface
+listen_ip = 0.0.0.0
+listen_port = 4242
+forward_ip = 10.0.0.1
+forward_port = 4242
+""",
+                "selected_interface_names": ["Imported UDP"],
+            }
+        )
+    )
+    body = _body(response)
+    assert response.status == 200, body
+    assert body["applied_live"] is True
+    app.reticulum.attach_interface.assert_called_once_with("Imported UDP")
+
+
+@pytest.mark.asyncio
+async def test_import_reports_not_applied_when_attach_refused(app):
+    app._get_interfaces_snapshot = lambda: dict(app.reticulum.config["interfaces"])
+    app._write_reticulum_config = lambda **kw: True
+    app.reticulum.attach_interface = MagicMock(return_value=False)
+
+    handler = _find_handler(app, "POST", "/api/v1/reticulum/interfaces/import")
+    response = await handler(
+        _Request(
+            {
+                "config": """[[Imported UDP]]
+type = UDPInterface
+listen_ip = 0.0.0.0
+listen_port = 4242
+forward_ip = 10.0.0.1
+forward_port = 4242
+""",
+                "selected_interface_names": ["Imported UDP"],
+            }
+        )
+    )
+    body = _body(response)
+    assert response.status == 200, body
+    assert body["applied_live"] is False

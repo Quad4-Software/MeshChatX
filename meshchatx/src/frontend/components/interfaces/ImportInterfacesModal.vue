@@ -164,10 +164,10 @@ export default {
             this.importableInterfaces = [];
             this.selectedInterfaces = [];
         },
-        dismiss(result = false) {
+        dismiss(result = false, appliedLive = false) {
             this.isShowing = false;
             const imported = result === true;
-            this.$emit("dismissed", imported);
+            this.$emit("dismissed", imported, appliedLive);
         },
         clearSelectedFile() {
             this.selectedFile = null;
@@ -250,13 +250,14 @@ export default {
 
             try {
                 // import interfaces
-                await window.api.post(apiPath("/reticulum/interfaces/import"), {
+                const response = await window.api.post(apiPath("/reticulum/interfaces/import"), {
                     config: await this.selectedFile.text(),
                     selected_interface_names: this.selectedInterfaces,
                 });
 
-                // dismiss modal
-                this.dismiss(true);
+                // dismiss modal; report whether the backend attached the
+                // imported interfaces live or a restart is still needed
+                this.dismiss(true, response?.data?.applied_live === true);
 
                 // tell user interfaces were imported
                 DialogUtils.alert(this.$t("interfaces.import_success"));

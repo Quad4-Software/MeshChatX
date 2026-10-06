@@ -1786,9 +1786,20 @@ def register_interfaces_routes(routes, app):
                     "(ConfigObj section syntax)."
                 )
 
+            # RNS 1.5.5: attach each imported interface so the import applies
+            # without a stack restart. applied_live is only true when every
+            # enabled import came up; the UI asks for a restart otherwise.
+            applied_live = True
+            for name, details in interface_config.items():
+                if not _interface_section_enabled(details):
+                    continue
+                if not await _live_apply_attach(app, name):
+                    applied_live = False
+
             return web.json_response(
                 {
                     "message": "Interfaces imported successfully",
+                    "applied_live": applied_live,
                 },
             )
 
