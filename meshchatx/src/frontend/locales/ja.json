@@ -2459,7 +2459,8 @@
         "filters_custom_name": "フィルター名",
         "filters_custom_query": "例: family, mom, a1b2c3",
         "filters_custom_add": "フィルターを追加",
-        "filters_custom_remove": "カスタムフィルターを削除"
+        "filters_custom_remove": "カスタムフィルターを削除",
+        "translate_auto_conversation": "Auto-translate this conversation"
     },
     "settings": {
         "tabs": {

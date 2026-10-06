@@ -2459,7 +2459,8 @@
         "filters_custom_name": "Назва фільтра",
         "filters_custom_query": "напр. сім'я, мама, a1b2c3",
         "filters_custom_add": "Додати фільтр",
-        "filters_custom_remove": "Видалити власний фільтр"
+        "filters_custom_remove": "Видалити власний фільтр",
+        "translate_auto_conversation": "Auto-translate this conversation"
     },
     "settings": {
         "tabs": {

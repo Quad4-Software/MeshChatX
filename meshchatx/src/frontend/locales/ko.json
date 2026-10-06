@@ -2459,7 +2459,8 @@
         "filters_custom_name": "필터 이름",
         "filters_custom_query": "예: family, mom, a1b2c3",
         "filters_custom_add": "필터 추가",
-        "filters_custom_remove": "사용자 지정 필터 삭제"
+        "filters_custom_remove": "사용자 지정 필터 삭제",
+        "translate_auto_conversation": "Auto-translate this conversation"
     },
     "settings": {
         "tabs": {

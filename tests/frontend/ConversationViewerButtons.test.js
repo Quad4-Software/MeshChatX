@@ -392,6 +392,147 @@ describe("ConversationViewer.vue button interactions", () => {
             );
         });
 
+        it("bubble translation never writes into the composer draft", async () => {
+            TranslationService.translate.mockResolvedValue({ target: { text: "übersetzte Nachricht" } });
+            const wrapper = mountViewer();
+            wrapper.vm.hasTranslator = true;
+            wrapper.vm.translatorLanguages = [{ pair: "ende", from: "en", to: "de" }];
+            const chatItem = {
+                type: "lxmf_message",
+                is_outbound: false,
+                lxmf_message: { hash: "msg-bubble", content: "Hello for translate", state: "delivered", fields: {} },
+            };
+            wrapper.vm.newMessageText = "my draft stays";
+
+            await wrapper.vm.applyBubbleMessageTranslation(chatItem, "ende");
+
+            expect(wrapper.vm.newMessageText).toBe("my draft stays");
+            expect(wrapper.vm.messageBubbleTranslation["msg-bubble"].translatedText).toBe("übersetzte Nachricht");
+            // and a send snapshot still carries only the draft text
+            const snapshot = await wrapper.vm.buildOutboundJobSnapshot();
+            expect(snapshot.text).toBe("my draft stays");
+        });
+
+        it("a quoted reply embeds the original text, not the translation", async () => {
+            TranslationService.translate.mockResolvedValue({ target: { text: "übersetzt" } });
+            const wrapper = mountViewer();
+            wrapper.vm.hasTranslator = true;
+            wrapper.vm.translatorLanguages = [{ pair: "ende", from: "en", to: "de" }];
+            const chatItem = {
+                type: "lxmf_message",
+                is_outbound: false,
+                lxmf_message: { hash: "msg-orig", content: "original english", state: "delivered", fields: {} },
+            };
+            await wrapper.vm.applyBubbleMessageTranslation(chatItem, "ende");
+            expect(wrapper.vm.messageBubbleTranslation["msg-orig"].translatedText).toBe("übersetzt");
+
+            // copyableMessagePlainText powers copy + translate + quote paths;
+            // it must always yield the original content.
+            expect(wrapper.vm.copyableMessagePlainText(chatItem)).toBe("original english");
+            wrapper.vm.chatItems.push(chatItem);
+            wrapper.vm.replyToMessage(chatItem);
+            const snapshot = await wrapper.vm.buildOutboundJobSnapshot();
+            expect(snapshot.text).not.toBe("übersetzt");
+            expect(snapshot.replyQuotedContent).toBe("original english");
+        });
+
+        it("per-peer translate prefs roundtrip through localStorage", async () => {
+            const store = {};
+            localStorage.getItem.mockImplementation((k) => store[k] ?? null);
+            localStorage.setItem.mockImplementation((k, v) => {
+                store[k] = v;
+            });
+            const wrapper = mountViewer();
+            wrapper.vm._persistPeerTranslatePrefs("ende", true);
+            expect(wrapper.vm._readPeerTranslatePrefs()).toEqual({ pair: "ende", auto: true });
+            wrapper.vm._persistPeerTranslatePrefs("enes", false);
+            expect(wrapper.vm._readPeerTranslatePrefs()).toEqual({ pair: "enes", auto: false });
+        });
+
+        it("defaultBubbleTranslateTargetForModal prefers the peer's remembered pair", async () => {
+            localStorage.getItem.mockImplementation((k) =>
+                k.startsWith("meshchatx.peerTranslate.") ? JSON.stringify({ pair: "enes", auto: false }) : null
+            );
+            const wrapper = mountViewer();
+            wrapper.vm.hasTranslator = true;
+            wrapper.vm.translatorLanguages = [
+                { pair: "ende", from: "en", to: "de" },
+                { pair: "enes", from: "en", to: "es" },
+            ];
+            expect(wrapper.vm.defaultBubbleTranslateTargetForModal()).toBe("enes");
+        });
+
+        it("confirming a bubble translate with auto persists prefs and translates loaded inbound", async () => {
+            const store = {};
+            localStorage.getItem.mockImplementation((k) => store[k] ?? null);
+            localStorage.setItem.mockImplementation((k, v) => {
+                store[k] = v;
+            });
+            TranslationService.translate.mockResolvedValue({ target: { text: "tr" } });
+            const wrapper = mountViewer();
+            wrapper.vm.hasTranslator = true;
+            wrapper.vm.translatorLanguages = [{ pair: "ende", from: "en", to: "de" }];
+            const chatItem = {
+                type: "lxmf_message",
+                is_outbound: false,
+                lxmf_message: { hash: "m1", content: "hi", state: "delivered", fields: {} },
+            };
+            wrapper.vm.chatItems = [chatItem];
+            wrapper.vm.translateTargetModalContext = { type: "bubble", chatItem };
+            wrapper.vm.translateTargetModalValue = "ende";
+            wrapper.vm.peerTranslateAuto = true;
+            await wrapper.vm.confirmTranslateTargetModal();
+
+            const key = "meshchatx.peerTranslate." + "a".repeat(32);
+            expect(JSON.parse(store[key])).toEqual({ pair: "ende", auto: true });
+            expect(wrapper.vm.messageBubbleTranslation["m1"].translatedText).toBe("tr");
+        });
+
+        it("new inbound messages auto-translate when the peer pref is enabled", async () => {
+            localStorage.getItem.mockImplementation((k) =>
+                k.startsWith("meshchatx.peerTranslate.") ? JSON.stringify({ pair: "enes", auto: true }) : null
+            );
+            TranslationService.translate.mockResolvedValue({ target: { text: "hola" } });
+            const wrapper = mountViewer();
+            wrapper.vm.hasTranslator = true;
+            wrapper.vm.translatorLanguages = [{ pair: "enes", from: "en", to: "es" }];
+
+            wrapper.vm.onLxmfMessageReceived({
+                hash: "in-1",
+                source_hash: "a".repeat(32),
+                destination_hash: "b".repeat(32),
+                content: "hello",
+                state: "delivered",
+                fields: {},
+            });
+            await new Promise((r) => setTimeout(r, 0));
+            expect(TranslationService.translate).toHaveBeenCalledWith(
+                expect.objectContaining({ from: "en", to: "es", text: "hello" })
+            );
+            expect(wrapper.vm.messageBubbleTranslation["in-1"].translatedText).toBe("hola");
+            expect(wrapper.vm.newMessageText ?? "").not.toBe("hola");
+        });
+
+        it("new inbound messages stay untranslated when the peer pref is off", async () => {
+            localStorage.getItem.mockImplementation((k) =>
+                k.startsWith("meshchatx.peerTranslate.") ? JSON.stringify({ pair: "enes", auto: false }) : null
+            );
+            const wrapper = mountViewer();
+            wrapper.vm.hasTranslator = true;
+            wrapper.vm.translatorLanguages = [{ pair: "enes", from: "en", to: "es" }];
+
+            wrapper.vm.onLxmfMessageReceived({
+                hash: "in-2",
+                source_hash: "a".repeat(32),
+                destination_hash: "b".repeat(32),
+                content: "hello",
+                state: "delivered",
+                fields: {},
+            });
+            await new Promise((r) => setTimeout(r, 0));
+            expect(TranslationService.translate).not.toHaveBeenCalled();
+        });
+
         it("generatePaperMessageFromComposition sends lxm.generate_paper_uri over the websocket", async () => {
             const sendSpy = vi.spyOn(WebSocketConnection, "send").mockImplementation(() => {});
             const wrapper = mountViewer();

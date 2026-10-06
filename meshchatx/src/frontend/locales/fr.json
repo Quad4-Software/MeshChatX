@@ -2459,7 +2459,8 @@
         "filters_custom_name": "Nom du filtre",
         "filters_custom_query": "ex. famille, maman, a1b2c3",
         "filters_custom_add": "Ajouter un filtre",
-        "filters_custom_remove": "Supprimer le filtre personnalisé"
+        "filters_custom_remove": "Supprimer le filtre personnalisé",
+        "translate_auto_conversation": "Auto-translate this conversation"
     },
     "settings": {
         "tabs": {

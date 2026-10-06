@@ -2459,7 +2459,8 @@
         "filters_custom_name": "筛选名称",
         "filters_custom_query": "例如 family, mom, a1b2c3",
         "filters_custom_add": "添加筛选",
-        "filters_custom_remove": "删除自定义筛选"
+        "filters_custom_remove": "删除自定义筛选",
+        "translate_auto_conversation": "Auto-translate this conversation"
     },
     "settings": {
         "tabs": {

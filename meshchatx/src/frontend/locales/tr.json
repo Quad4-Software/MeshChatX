@@ -2459,7 +2459,8 @@
         "filters_custom_name": "Filtre adı",
         "filters_custom_query": "ör. aile, anne, a1b2c3",
         "filters_custom_add": "Filtre ekle",
-        "filters_custom_remove": "Özel filtreyi kaldır"
+        "filters_custom_remove": "Özel filtreyi kaldır",
+        "translate_auto_conversation": "Auto-translate this conversation"
     },
     "settings": {
         "tabs": {
