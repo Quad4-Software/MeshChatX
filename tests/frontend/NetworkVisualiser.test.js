@@ -226,6 +226,94 @@ describe("NetworkVisualiser.vue", () => {
         expect(overlay.text()).toContain("50%");
     });
 
+    it("cancel button on loading overlay stops the in-flight update", async () => {
+        const wrapper = mountVisualiser();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        wrapper.vm.isLoading = true;
+        wrapper.vm.isUpdating = true;
+        wrapper.vm.totalNodesToLoad = 100;
+        wrapper.vm.loadedNodesCount = 50;
+        wrapper.vm.loadingStatus = "Processing Batch 2 / 4...";
+        await wrapper.vm.$nextTick();
+
+        const overlay = wrapper.find(".absolute.inset-0.z-20");
+        const cancelBtn = overlay.find("button");
+        await cancelBtn.trigger("click");
+
+        expect(wrapper.vm.isLoading).toBe(false);
+        expect(wrapper.vm.isUpdating).toBe(false);
+        expect(wrapper.vm.abortController.signal.aborted).toBe(true);
+        expect(wrapper.vm.totalNodesToLoad).toBe(0);
+        expect(wrapper.vm.loadedNodesCount).toBe(0);
+        expect(wrapper.vm.currentBatch).toBe(0);
+    });
+
+    it("stopLoading freezes vis-network physics instead of leaving it paused mid-settle", async () => {
+        const wrapper = mountVisualiser();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        const stopSimulation = vi.fn();
+        const setOptions = vi.fn();
+        wrapper.vm.network = { stopSimulation, setOptions };
+        wrapper.vm.isLoading = true;
+        wrapper.vm.isUpdating = true;
+
+        wrapper.vm.stopLoading();
+
+        expect(stopSimulation).toHaveBeenCalledTimes(1);
+        expect(setOptions).toHaveBeenCalledWith(
+            expect.objectContaining({ physics: { enabled: false } })
+        );
+    });
+
+    it("the next update after stopLoading gets a fresh abort signal and completes", async () => {
+        const wrapper = mountVisualiser();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        wrapper.vm.stopLoading();
+        const abortedSignal = wrapper.vm.abortController.signal;
+        expect(abortedSignal.aborted).toBe(true);
+
+        await wrapper.vm.manualUpdate();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        expect(wrapper.vm.abortController.signal).not.toBe(abortedSignal);
+        expect(wrapper.vm.abortController.signal.aborted).toBe(false);
+        expect(wrapper.vm.isLoading).toBe(false);
+        expect(wrapper.vm.isUpdating).toBe(false);
+    });
+
+    it("a stale update finally block does not clear flags of a newer run", async () => {
+        const wrapper = mountVisualiser();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        const updateSpy = vi.spyOn(wrapper.vm, "update");
+        let resolveStale, resolveNew;
+        updateSpy.mockReturnValueOnce(new Promise((r) => (resolveStale = r)));
+
+        wrapper.vm.manualUpdate(); // stale run
+        expect(wrapper.vm.isLoading).toBe(true);
+
+        wrapper.vm.stopLoading(); // bumps _updateSeq and resets flags
+        expect(wrapper.vm.isLoading).toBe(false);
+
+        updateSpy.mockReturnValueOnce(new Promise((r) => (resolveNew = r)));
+        wrapper.vm.manualUpdate(); // newer run
+        expect(wrapper.vm.isLoading).toBe(true);
+
+        resolveStale(); // stale run exits; its finally must not touch flags
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(wrapper.vm.isLoading).toBe(true);
+        expect(wrapper.vm.isUpdating).toBe(true);
+
+        resolveNew(); // new run finishes and clears its own flags
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(wrapper.vm.isLoading).toBe(false);
+        expect(wrapper.vm.isUpdating).toBe(false);
+        vi.restoreAllMocks();
+    });
+
     it("filters nodes based on search query", async () => {
         const wrapper = mountVisualiser();
         await new Promise((resolve) => setTimeout(resolve, 100));

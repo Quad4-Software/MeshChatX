@@ -26,6 +26,7 @@
             :loaded-nodes-count="loadedNodesCount"
             :current-batch="currentBatch"
             :total-batches="totalBatches"
+            @cancel="stopLoading"
         />
 
         <NetworkVisualiserToolbar
@@ -257,6 +258,7 @@ export default {
             pathFetchConcurrency: pickAdaptiveFetchConcurrency(),
             lodRafId: null,
             vizRunGeneration: 0,
+            updateSeq: 0,
             physicsPausedForDrag: false,
             engineMode: "checking",
             fps: 0,
@@ -1330,24 +1332,59 @@ export default {
             // auto reload (interval respects battery saver)
             this.restartAutoReloadInterval();
         },
+        stopLoading() {
+            // Invalidate the running update: generation bump closes every
+            // isCurrentRun() gate, and the abort rejects in-flight fetches.
+            this.vizRunGeneration += 1;
+            this.updateSeq += 1;
+            this.iconQueueGeneration += 1;
+            this.iconQueue = [];
+            if (this.abortController) {
+                this.abortController.abort();
+            }
+            // The paused-physics restore in processVisualization is gated on
+            // the run id, so a stopped run would leave physics off. Freeze the
+            // partial graph instead of letting it drift with no settle pass.
+            if (this.network && typeof this.network.stopSimulation === "function") {
+                this.network.stopSimulation();
+                this.network.setOptions({
+                    physics: { enabled: false },
+                    edges: { smooth: VIZ_EDGE_SMOOTH },
+                });
+            }
+            // A fresh controller comes from update() so the next run works.
+            this.isLoading = false;
+            this.isUpdating = false;
+            this.totalNodesToLoad = 0;
+            this.loadedNodesCount = 0;
+            this.currentBatch = 0;
+            this.totalBatches = 0;
+        },
         async manualUpdate() {
             if (this.isLoading || this.isUpdating) return;
             this.isLoading = true;
             this.isUpdating = true;
+            const seq = ++this.updateSeq;
             try {
                 await this.update({ silent: false });
             } finally {
-                this.isLoading = false;
-                this.isUpdating = false;
+                // A superseded run must not clear the flags of a newer one.
+                if (seq === this.updateSeq) {
+                    this.isLoading = false;
+                    this.isUpdating = false;
+                }
             }
         },
         async onAutoReload() {
             if (!this.autoReload || this.isUpdating || this.isLoading) return;
             this.isUpdating = true;
+            const seq = ++this.updateSeq;
             try {
                 await this.update({ silent: true });
             } finally {
-                this.isUpdating = false;
+                if (seq === this.updateSeq) {
+                    this.isUpdating = false;
+                }
             }
         },
         scheduleUpdateLOD() {
@@ -1512,6 +1549,11 @@ export default {
             }
         },
         async update(options = {}) {
+            if (this.abortController.signal.aborted) {
+                // The previous run was stopped before it finished. Give this
+                // run a live signal; the stale run is fenced off by the run id.
+                this.abortController = new AbortController();
+            }
             const silent = options.silent === true;
             const alreadyPainted = this.displayNodeCount > 0;
 
