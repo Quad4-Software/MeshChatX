@@ -269,14 +269,14 @@ describe("NetworkVisualiser.vue", () => {
 
     it("the next update after stopLoading gets a fresh abort signal and completes", async () => {
         const wrapper = mountVisualiser();
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        // Let the initial load settle so manualUpdate cannot early-return.
+        await vi.waitFor(() => expect(wrapper.vm.isUpdating).toBe(false), { timeout: 5000 });
 
         wrapper.vm.stopLoading();
         const abortedSignal = wrapper.vm.abortController.signal;
         expect(abortedSignal.aborted).toBe(true);
 
         await wrapper.vm.manualUpdate();
-        await new Promise((resolve) => setTimeout(resolve, 50));
 
         expect(wrapper.vm.abortController.signal).not.toBe(abortedSignal);
         expect(wrapper.vm.abortController.signal.aborted).toBe(false);
@@ -286,7 +286,8 @@ describe("NetworkVisualiser.vue", () => {
 
     it("a stale update finally block does not clear flags of a newer run", async () => {
         const wrapper = mountVisualiser();
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        // Wait for the initial load to settle so updateSeq starts clean.
+        await vi.waitFor(() => expect(wrapper.vm.isUpdating).toBe(false), { timeout: 5000 });
 
         const updateSpy = vi.spyOn(wrapper.vm, "update");
         let resolveStale, resolveNew;
@@ -316,13 +317,15 @@ describe("NetworkVisualiser.vue", () => {
 
     it("filters nodes based on search query", async () => {
         const wrapper = mountVisualiser();
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        // Initial load is real: initVisNetwork -> manualUpdate -> update.
+        // Poll until the graph exists instead of a fixed sleep.
+        await vi.waitFor(() => expect(wrapper.vm.nodes.length).toBeGreaterThan(0), { timeout: 5000 });
 
         const searchInput = wrapper.find('input[type="text"]');
         await searchInput.setValue("Remote Node");
 
         // searchQuery watcher debounces processVisualization
-        await new Promise((resolve) => setTimeout(resolve, 150));
+        await vi.waitFor(() => expect(wrapper.vm.nodes.length).toBeGreaterThan(0), { timeout: 5000 });
         await wrapper.vm.$nextTick();
 
         // The number of nodes in the DataSet should match the search
@@ -333,8 +336,8 @@ describe("NetworkVisualiser.vue", () => {
 
     it("fuzzing: handles large and messy network data without crashing", async () => {
         const wrapper = mountVisualiser();
-        // Wait for initial load to finish
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        // Wait for the real initial load chain to settle.
+        await vi.waitFor(() => expect(wrapper.vm.isUpdating).toBe(false), { timeout: 5000 });
 
         // Generate messy path table
         const nodeCount = 500;
@@ -367,15 +370,16 @@ describe("NetworkVisualiser.vue", () => {
 
         await wrapper.vm.processVisualization();
 
-        expect(wrapper.vm.nodes.length).toBeGreaterThan(0);
-        // Ensure no crash happened and cleanup worked
-        expect(wrapper.vm.isLoading).toBe(false);
+        // A background update may re-run processVisualization; poll past it.
+        await vi.waitFor(() => expect(wrapper.vm.nodes.length).toBeGreaterThan(0), { timeout: 5000 });
+        // No crash happened and no background update is still running.
+        await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false), { timeout: 5000 });
     });
 
     it("fuzzing: handles missing announce data gracefully", async () => {
         const wrapper = mountVisualiser();
-        // Wait for initial load to finish
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        // Wait for the real initial load chain to settle.
+        await vi.waitFor(() => expect(wrapper.vm.isUpdating).toBe(false), { timeout: 5000 });
 
         // Set interfaces so eth0 exists
         wrapper.vm.interfaces = [{ name: "eth0", status: true }];
@@ -397,8 +401,8 @@ describe("NetworkVisualiser.vue", () => {
 
     it("fuzzing: handles circular or malformed links", async () => {
         const wrapper = mountVisualiser();
-        // Wait for initial load to finish
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        // Wait for the real initial load chain to settle.
+        await vi.waitFor(() => expect(wrapper.vm.isUpdating).toBe(false), { timeout: 5000 });
 
         wrapper.vm.interfaces = [{ name: "eth0", status: true }];
         wrapper.vm.announces = {
@@ -426,8 +430,8 @@ describe("NetworkVisualiser.vue", () => {
 
     it("performance: measures time to process 1000 nodes", async () => {
         const wrapper = mountVisualiser();
-        // Wait for initial load to finish
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        // Wait for the real initial load chain to settle.
+        await vi.waitFor(() => expect(wrapper.vm.isUpdating).toBe(false), { timeout: 5000 });
 
         const nodeCount = 1000;
 
@@ -870,9 +874,7 @@ describe("NetworkVisualiser.vue", () => {
             { name: "Gamma", discovery_hash: "dc", hops: 1 },
         ];
         wrapper.vm.searchQuery = "10.20.0";
-        await new Promise((resolve) => setTimeout(resolve, 160));
-
-        expect(wrapper.vm.nodes.get("discovered~da")).toBeTruthy();
+        await vi.waitFor(() => expect(wrapper.vm.nodes.get("discovered~da")).toBeTruthy(), { timeout: 5000 });
         expect(wrapper.vm.nodes.get("discovered~db")).toBeTruthy();
         expect(wrapper.vm.nodes.get("discovered~dc")).toBeNull();
         wrapper.unmount();
@@ -895,7 +897,7 @@ describe("NetworkVisualiser.vue", () => {
         wrapper.vm.showDiscoveredInterfaces = true;
         wrapper.vm.discoveredInterfaces = [{ name: "eth0-peer", discovery_hash: "d9", hops: 1 }];
         wrapper.vm.searchQuery = "eth0";
-        await new Promise((resolve) => setTimeout(resolve, 160));
+        await vi.waitFor(() => expect(wrapper.vm.nodes.get("eth0")).toBeTruthy(), { timeout: 5000 });
 
         expect(wrapper.vm.nodes.get("me")).toBeNull();
         expect(wrapper.vm.nodes.get("eth0")).toBeTruthy();

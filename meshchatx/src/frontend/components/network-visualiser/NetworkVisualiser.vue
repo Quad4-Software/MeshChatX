@@ -1216,7 +1216,7 @@ export default {
             this.hoverTooltip = { x, y, text };
         },
         async initVisNetwork() {
-            const container = document.getElementById("network");
+            const container = this.$el?.querySelector("#network") ?? null;
             if (this._vizUnmounted || !container) {
                 return;
             }
