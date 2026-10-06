@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 - Network visualiser: the loading overlay now has a cancel button. Stopping aborts in-flight fetches, halts physics and batch work, and leaves a fresh load one click away on the refresh button.
 - Telemetry: tracked peers that never answer are no longer polled every interval forever. Each unanswered request doubles the wait up to a daily cap, and after a bounded number of misses the peer is skipped until a telemetry response re-arms it or tracking is re-toggled.
 - Messaging: automatic resends no longer retry feature-only deliveries (commands, reactions, telemetry) to peers that never sent one back, so Sideband and other LXMF clients are not spammed with payload types they cannot parse.
+- Contacts: shared address output now uses the bare 32-hex hash when no public key is known, since not every LXMF client parses an lxmf:// URI. lxma:// output is unchanged when a public key is available.
 
 ### Added
 

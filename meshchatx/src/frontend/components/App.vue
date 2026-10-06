@@ -2204,9 +2204,11 @@ export default {
         getMyIdentityUri() {
             if (!this.config?.lxmf_address_hash) return null;
             const publicKey = this.config?.identity_public_key;
+            // Bare hash when the pubkey is unknown: lxmf:// is not accepted
+            // by every LXMF client, while the 32-hex form is.
             return publicKey
                 ? `lxma://${this.config.lxmf_address_hash}:${publicKey}`
-                : `lxmf://${this.config.lxmf_address_hash}`;
+                : this.config.lxmf_address_hash;
         },
         async copyIdentityUri() {
             const uri = this.getMyIdentityUri();

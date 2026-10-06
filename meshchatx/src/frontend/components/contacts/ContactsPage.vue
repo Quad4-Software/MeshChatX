@@ -690,7 +690,9 @@ export default {
             if (this.config?.identity_public_key) {
                 return `lxma://${this.config.lxmf_address_hash}:${this.config.identity_public_key}`;
             }
-            return `lxmf://${this.config.lxmf_address_hash}`;
+            // Bare hash: lxma:// and lxmf:// are not universally parsed;
+            // every LXMF client accepts the 32-hex form.
+            return this.config.lxmf_address_hash;
         },
         async getContacts(append = false) {
             if (append) {
@@ -1001,7 +1003,9 @@ export default {
 
             const destinationHash = contact?.lxmf_address || contact?.remote_identity_hash;
             if (destinationHash) {
-                await this.copyToClipboard(`lxmf://${destinationHash}`, this.$t("contacts.contact_uri_copied"));
+                // Bare hash for maximum client compatibility; lxmf:// is not
+                // accepted by every LXMF client.
+                await this.copyToClipboard(destinationHash, this.$t("contacts.contact_uri_copied"));
             } else {
                 ToastUtils.error(this.$t("contacts.failed_build_contact_uri"));
             }
@@ -1019,7 +1023,9 @@ export default {
             this.closeContextMenu();
             const lxmaUri = await this.fetchContactLxmaUri(contact);
             const destinationHash = contact?.lxmf_address || contact?.remote_identity_hash;
-            const fallback = destinationHash ? `lxmf://${destinationHash}` : null;
+            // Bare hash fallback: lxmf:// is not accepted by every LXMF
+            // client, while the 32-hex form is.
+            const fallback = destinationHash || null;
             const uri = lxmaUri || fallback;
             if (!uri) {
                 ToastUtils.error(this.$t("contacts.failed_build_contact_uri"));
