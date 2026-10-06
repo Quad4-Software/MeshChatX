@@ -2,10 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [4.10.2] - TBD [unreleased]
 
 ### Fixed
 
+- Windows: shared-instance RPC replies are read through the connection dispatch path instead of os.read, fixing bad file descriptor errors that broke LXMF delivery, interface stats, and interface management on Windows builds when connected to an external rnsd.
 - Messaging: outbound sends that fail the path wait are now persisted as failed messages instead of being dropped, so they resend automatically when the peer announces and can be resent manually. The propagation-node fallback now defaults on for new configurations and is a safe no-op when no propagation node is set.
 - Maps: user-configured tile servers, Nominatim endpoints, and extra CSP sources are no longer stripped from the Content Security Policy in privacy mode; only the shipped public defaults stay gated. Scheme-less and subdomain-template ({s}, {r}) tile URLs are normalized so OpenLayers and the CSP match real hosts.
 - NomadNet: page translation now works with the sandboxed page renderer. The shell asks the renderer frame for the page text over the frame channel instead of reading an empty shell container, so the translate button opens the translator with real page content.
@@ -22,6 +23,7 @@ All notable changes to this project will be documented in this file.
 - Messages: the message translate bar now has an auto-translate toggle per conversation. The chosen language pair is remembered per contact, and when auto-translate is on, new incoming messages are translated on arrival and the newest loaded messages are translated when the conversation opens.
 - Maps: the tile server URL now accepts TileJSON endpoints (URLs ending in .json). Tile templates, attribution, zoom range, bounds, relative tile URLs, and scheme:tms are honored, and a bad document falls back to the next provider like a failed tile server.
 - Translator: the pack catalog now shows both directions of a language pair as a single bidirectional entry, and downloading it installs every direction present in the catalog. A search field filters the catalog by language or pair code.
+- Updated Python deps: rns 1.5.7, lxst 0.5.4 floor.
 
 ## [4.10.1] - 2026-10-04 [released]
 
