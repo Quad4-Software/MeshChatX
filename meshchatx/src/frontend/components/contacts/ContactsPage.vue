@@ -60,6 +60,7 @@
                         v-else-if="!isLoading && contacts.length === 0"
                         icon="account-multiple-outline"
                         :title="$t('contacts.no_contacts')"
+                        root-class="mt-4"
                     />
                     <SidebarVirtualList
                         v-else-if="mergedContacts.length >= MIN_VIRTUAL_SIDEBAR_ITEMS"
