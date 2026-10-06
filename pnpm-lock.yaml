@@ -228,9 +228,25 @@ importers:
 
   .:
     dependencies:
+      electron-prompt:
+        specifier: ^1.7.0
+        version: 1.7.0
+    devDependencies:
       '@browsermt/bergamot-translator':
         specifier: 0.4.9
         version: 0.4.9
+      '@commitlint/cli':
+        specifier: ^21.2.2
+        version: 21.2.2(@types/node@24.13.3)(conventional-commits-parser@7.1.2)(typescript@6.0.3)
+      '@commitlint/config-conventional':
+        specifier: ^21.2.2
+        version: 21.2.2
+      '@electron/fuses':
+        specifier: ^2.1.3
+        version: 2.1.3
+      '@eslint/js':
+        specifier: ^9.39.5
+        version: 9.39.5
       '@fontsource/ibm-plex-sans':
         specifier: 5.3.0
         version: 5.3.0
@@ -249,88 +265,21 @@ importers:
       '@mdi/js':
         specifier: ^7.4.47
         version: 7.4.47
-      '@tailwindcss/forms':
-        specifier: ^0.5.11
-        version: 0.5.11(tailwindcss@4.3.3)
-      '@tanstack/vue-virtual':
-        specifier: ^3.13.36
-        version: 3.13.36(vue@3.5.43(typescript@6.0.3))
-      compressorjs:
-        specifier: ^1.3.0
-        version: 1.3.0
-      dompurify:
-        specifier: '>=3.4.13'
-        version: 3.4.14
-      electron-prompt:
-        specifier: ^1.7.0
-        version: 1.7.0
-      emoji-picker-element:
-        specifier: ^1.29.1
-        version: 1.29.1
-      emoji-picker-element-data:
-        specifier: ^1.8.0
-        version: 1.8.0
-      jsqr:
-        specifier: ^1.4.0
-        version: 1.4.0
-      jszip:
-        specifier: ^3.10.1
-        version: 3.10.1
-      marked:
-        specifier: ^18.0.11
-        version: 18.0.11
-      ol:
-        specifier: ^10.10.0
-        version: 10.10.0(patch_hash=7a81e7a0079f5cb1b6dfbbc9132c02a29925b8d763a2034f0be3c501962bf0cf)
-      ol-mapbox-style:
-        specifier: ^13.4.3
-        version: 13.4.3(patch_hash=87c6327a8f4eb62619701c3771899d7336600ca6de85321db2f58e3b1585a2cc)(ol@10.10.0(patch_hash=7a81e7a0079f5cb1b6dfbbc9132c02a29925b8d763a2034f0be3c501962bf0cf))
-      pinia:
-        specifier: ^4.0.3
-        version: 4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.43(typescript@6.0.3))
-      qrcode:
-        specifier: ^1.5.4
-        version: 1.5.4
-      vis-data:
-        specifier: ^8.0.5
-        version: 8.0.5(uuid@14.0.1)(vis-util@6.0.2(@egjs/hammerjs@2.0.17)(component-emitter@2.0.0))
-      vis-network:
-        specifier: ^10.1.2
-        version: 10.1.2(@egjs/hammerjs@2.0.17)(component-emitter@2.0.0)(keycharm@0.4.0)(uuid@14.0.1)(vis-data@8.0.5(uuid@14.0.1)(vis-util@6.0.2(@egjs/hammerjs@2.0.17)(component-emitter@2.0.0)))(vis-util@6.0.2(@egjs/hammerjs@2.0.17)(component-emitter@2.0.0))
-      vis-util:
-        specifier: 6.0.2
-        version: 6.0.2(@egjs/hammerjs@2.0.17)(component-emitter@2.0.0)
-      vue:
-        specifier: ^3.5.43
-        version: 3.5.43(typescript@6.0.3)
-      vue-i18n:
-        specifier: ^11.4.10
-        version: 11.4.10(vue@3.5.43(typescript@6.0.3))
-      vue-router:
-        specifier: ^4.6.4
-        version: 4.6.4(vue@3.5.43(typescript@6.0.3))
-    devDependencies:
-      '@commitlint/cli':
-        specifier: ^21.2.2
-        version: 21.2.2(@types/node@24.13.3)(conventional-commits-parser@7.1.2)(typescript@6.0.3)
-      '@commitlint/config-conventional':
-        specifier: ^21.2.2
-        version: 21.2.2
-      '@electron/fuses':
-        specifier: ^2.1.3
-        version: 2.1.3
-      '@eslint/js':
-        specifier: ^9.39.5
-        version: 9.39.5
       '@playwright/test':
         specifier: ^1.62.1
         version: 1.62.1
       '@tailwindcss/cli':
         specifier: ^4.3.3
         version: 4.3.3
+      '@tailwindcss/forms':
+        specifier: ^0.5.11
+        version: 0.5.11(tailwindcss@4.3.3)
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@8.2.2(@types/node@24.13.3)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))
+      '@tanstack/vue-virtual':
+        specifier: ^3.13.36
+        version: 3.13.36(vue@3.5.43(typescript@6.0.3))
       '@vitejs/plugin-vue':
         specifier: ^6.0.8
         version: 6.0.8(vite@8.2.2(@types/node@24.13.3)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))(vue@3.5.43(typescript@6.0.3))
@@ -346,12 +295,18 @@ importers:
       axe-core:
         specifier: 4.13.0
         version: 4.13.0
+      compressorjs:
+        specifier: ^1.3.0
+        version: 1.3.0
       cross-env:
         specifier: ^10.1.0
         version: 10.1.0
       dayjs:
         specifier: ^1.11.23
         version: 1.11.23
+      dompurify:
+        specifier: '>=3.4.13'
+        version: 3.4.14
       electron:
         specifier: 44.5.1
         version: 44.5.1(supports-color@7.2.0)
@@ -361,6 +316,12 @@ importers:
       electron-builder-squirrel-windows:
         specifier: ^26.15.3
         version: 26.15.3(dmg-builder@26.15.3)(supports-color@7.2.0)
+      emoji-picker-element:
+        specifier: ^1.29.1
+        version: 1.29.1
+      emoji-picker-element-data:
+        specifier: ^1.8.0
+        version: 1.8.0
       eslint:
         specifier: ^9.39.5
         version: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
@@ -385,21 +346,42 @@ importers:
       jsdom:
         specifier: ^30.0.1
         version: 30.0.1(@noble/hashes@2.4.0)
+      jsqr:
+        specifier: ^1.4.0
+        version: 1.4.0
+      jszip:
+        specifier: ^3.10.1
+        version: 3.10.1
       knip:
         specifier: ^6.33.0
         version: 6.33.0
       lighthouse:
         specifier: ^13.4.1
         version: 13.4.1(supports-color@7.2.0)
+      marked:
+        specifier: ^18.0.11
+        version: 18.0.11
       micron-parser:
         specifier: github:RFnexus/micron-parser-js#ce24ce44adf804230a16520a9f79cd5f183c0bb5
         version: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/ce24ce44adf804230a16520a9f79cd5f183c0bb5
       minimatch:
         specifier: '>=10.2.3'
         version: 10.2.3
+      ol:
+        specifier: ^10.10.0
+        version: 10.10.0(patch_hash=7a81e7a0079f5cb1b6dfbbc9132c02a29925b8d763a2034f0be3c501962bf0cf)
+      ol-mapbox-style:
+        specifier: ^13.4.3
+        version: 13.4.3(patch_hash=87c6327a8f4eb62619701c3771899d7336600ca6de85321db2f58e3b1585a2cc)(ol@10.10.0(patch_hash=7a81e7a0079f5cb1b6dfbbc9132c02a29925b8d763a2034f0be3c501962bf0cf))
+      pinia:
+        specifier: ^4.0.3
+        version: 4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.43(typescript@6.0.3))
       prettier:
         specifier: ^3.9.6
         version: 3.9.6
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -409,6 +391,15 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
+      vis-data:
+        specifier: ^8.0.5
+        version: 8.0.5(uuid@14.0.1)(vis-util@6.0.2(@egjs/hammerjs@2.0.17)(component-emitter@2.0.0))
+      vis-network:
+        specifier: ^10.1.2
+        version: 10.1.2(@egjs/hammerjs@2.0.17)(component-emitter@2.0.0)(keycharm@0.4.0)(uuid@14.0.1)(vis-data@8.0.5(uuid@14.0.1)(vis-util@6.0.2(@egjs/hammerjs@2.0.17)(component-emitter@2.0.0)))(vis-util@6.0.2(@egjs/hammerjs@2.0.17)(component-emitter@2.0.0))
+      vis-util:
+        specifier: 6.0.2
+        version: 6.0.2(@egjs/hammerjs@2.0.17)(component-emitter@2.0.0)
       vite:
         specifier: ^8.2.2
         version: 8.2.2(@types/node@24.13.3)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)
@@ -418,9 +409,18 @@ importers:
       vitest:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@24.13.3)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))
+      vue:
+        specifier: ^3.5.43
+        version: 3.5.43(typescript@6.0.3)
       vue-eslint-parser:
         specifier: ^10.4.1
         version: 10.4.1(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
+      vue-i18n:
+        specifier: ^11.4.10
+        version: 11.4.10(vue@3.5.43(typescript@6.0.3))
+      vue-router:
+        specifier: ^4.6.4
+        version: 4.6.4(vue@3.5.43(typescript@6.0.3))
       vue-tsc:
         specifier: ^3.3.11
         version: 3.3.11(typescript@6.0.3)
