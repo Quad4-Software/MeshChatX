@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 - NomadNet: rendered pages that use the full-bleed shell (.html, .md, .txt) no longer overflow the viewer by the header and toolbar height. The content container carried a stray min-h-full that beat its min-h-0, so the rendered frame ran ~54px past the bottom of the pane and its scrollbar hung below the page boundary, reading as the extra-slider artifact.
 - Network visualiser: leaving the page during engine setup no longer orphans a live graph instance per visit; the init chain now checks for unmount after every await and destroys anything created in flight.
 - Network visualiser: the loading overlay now has a cancel button. Stopping aborts in-flight fetches, halts physics and batch work, and leaves a fresh load one click away on the refresh button.
+- Telemetry: tracked peers that never answer are no longer polled every interval forever. Each unanswered request doubles the wait up to a daily cap, and after a bounded number of misses the peer is skipped until a telemetry response re-arms it or tracking is re-toggled.
+- Messaging: automatic resends no longer retry feature-only deliveries (commands, reactions, telemetry) to peers that never sent one back, so Sideband and other LXMF clients are not spammed with payload types they cannot parse.
 
 ### Added
 

@@ -1134,6 +1134,30 @@ class MessageDAO:
         )
         return bool(row)
 
+    def has_incoming_feature_message(self, peer_hash: str) -> bool:
+        """True when the peer has ever sent a feature-field message.
+
+        Commands, reaction, and telemetry fields are the observed
+        evidence that the peer can parse feature-only payloads.
+        """
+        row = self.provider.fetchone(
+            """
+            SELECT 1 AS ok FROM lxmf_messages
+            WHERE peer_hash = ?
+              AND is_incoming = 1
+              AND fields IS NOT NULL
+              AND (
+                  instr(fields, '"reaction"') > 0 OR instr(fields, '"0x40"') > 0
+               OR instr(fields, '"commands"') > 0 OR instr(fields, '"0x09"') > 0
+               OR instr(fields, '"telemetry"') > 0 OR instr(fields, '"0x02"') > 0
+               OR instr(fields, '"0x03"') > 0
+              )
+            LIMIT 1
+            """,
+            (peer_hash,),
+        )
+        return bool(row)
+
     def get_failed_messages_count(self, destination_hash):
         row = self.provider.fetchone(
             "SELECT COUNT(*) as count FROM lxmf_messages WHERE state = 'failed' AND peer_hash = ?",

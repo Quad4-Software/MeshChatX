@@ -75,6 +75,7 @@ from meshchatx.src.backend.auto_resend_guard import (
     cooldown_until,
     fields_have_attachments,
     fields_with_auto_resend_count,
+    is_feature_only_message,
     next_attempt_count,
     parse_fields_dict,
     should_skip_for_budget,
@@ -218,6 +219,10 @@ from meshchatx.src.backend.seccomp_sandbox import (
 )
 from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.sideband_plugin_loader import SidebandPluginLoader
+from meshchatx.src.backend.telemetry_request_policy import (
+    effective_request_interval,
+    is_request_paused,
+)
 from meshchatx.src.backend.telemetry_utils import Telemeter, _valid_number
 from meshchatx.src.backend.web_audio_proxy import LazyWebAudioBridge
 from meshchatx.src.env_config import MeshchatEnv
@@ -6331,7 +6336,16 @@ class ReticulumMeshChat:
 
                 for peer in tracked_peers:
                     dest_hash = peer["destination_hash"]
-                    interval = peer.get("interval_seconds", 60)
+                    unanswered = peer.get("unanswered_count") or 0
+                    # Peers that never answer are backed off to a daily
+                    # request and then paused; a telemetry response resets
+                    # the counter and re-arms them automatically.
+                    if is_request_paused(unanswered):
+                        continue
+                    interval = effective_request_interval(
+                        peer.get("interval_seconds", 60),
+                        unanswered,
+                    )
                     last_req = peer.get("last_request_at")
 
                     if last_req is None or now - last_req >= interval:
@@ -6345,9 +6359,8 @@ class ReticulumMeshChat:
                             no_display=False,
                             context=ctx,
                         )
-                        # Update last request time
                         await asyncio.to_thread(
-                            ctx.database.telemetry.update_last_request_at,
+                            ctx.database.telemetry.mark_request_sent,
                             dest_hash,
                             now,
                         )
@@ -11216,6 +11229,7 @@ class ReticulumMeshChat:
                     received_from=ctx.local_lxmf_destination.hexhash,
                     physical_link=physical_link,
                 )
+                ctx.database.telemetry.mark_response_received(source_hash)
 
                 # broadcast telemetry update via websocket
                 AsyncUtils.run_async(
@@ -11676,6 +11690,18 @@ class ReticulumMeshChat:
                         continue
 
                     fields = parse_fields_dict(failed_message.get("fields"))
+                    if is_feature_only_message(
+                        failed_message.get("content"),
+                        failed_message.get("title"),
+                        fields,
+                    ) and not ctx.database.messages.has_incoming_feature_message(
+                        lookup_hash,
+                    ):
+                        # Feature-only payloads (commands, reactions,
+                        # telemetry) are meaningless to peers that never
+                        # sent one back; do not spend resend attempts.
+                        continue
+
                     allow_attachments = ctx.config.allow_auto_resending_failed_messages_with_attachments.get()
                     if not allow_attachments and fields_have_attachments(fields):
                         print(
