@@ -126,6 +126,7 @@ from tests.backend.http_api_response_schemas import (
     STICKER_PACKS_LIST_SCHEMA,
     STICKERS_LIST_SCHEMA,
     SYSTEM_NETWORK_INTERFACES_SCHEMA,
+    TRAFFIC_SCHEMA,
     TELEMETRY_HISTORY_SCHEMA,
     TELEMETRY_LATEST_SCHEMA,
     TELEMETRY_PEERS_SCHEMA,
@@ -187,6 +188,11 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         SYSTEM_NETWORK_INTERFACES_SCHEMA,
     ),
     HttpJsonContract("GET", "/api/v1/reticulum/interfaces", INTERFACES_LIST_SCHEMA),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/reticulum/traffic",
+        TRAFFIC_SCHEMA,
+    ),
     HttpJsonContract(
         "GET",
         "/api/v1/reticulum/interface-modules",

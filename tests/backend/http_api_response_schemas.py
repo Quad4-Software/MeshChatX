@@ -312,6 +312,32 @@ INTERFACE_STATS_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+TRAFFIC_SCHEMA: dict = {
+    "type": "object",
+    "required": [
+        "updated_at",
+        "uptime_s",
+        "interfaces",
+        "components",
+        "peers",
+        "totals",
+        "residual",
+        "history",
+    ],
+    "properties": {
+        "updated_at": _NUMBER,
+        "uptime_s": _INTEGER,
+        "interfaces": _ARRAY,
+        "components": _ARRAY,
+        "peers": _ARRAY,
+        "totals": _OBJECT,
+        "residual": _OBJECT,
+        "history": _ARRAY,
+        "hints": _ARRAY,
+    },
+    "additionalProperties": True,
+}
+
 PATH_TABLE_SCHEMA: dict = {
     "type": "object",
     "required": ["path_table"],
