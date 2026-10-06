@@ -9,11 +9,11 @@ the protocol's own guards keep packets on the wire under a cap.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import threading
 import time
 import types
+from itertools import pairwise
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -70,7 +70,7 @@ def test_rrc_reconnect_attempts_bounded_per_hour(monkeypatch):
 
     assert attempts_in_hour <= 14
     assert delays[-1] == rrc_manager.RECONNECT_BACKOFF_MAX_S
-    assert all(a <= b for a, b in zip(delays, delays[1:]))
+    assert all(a <= b for a, b in pairwise(delays))
 
 
 def test_rrc_hello_loop_bounded(monkeypatch):
@@ -256,7 +256,7 @@ def test_nomad_link_cache_bounded(clean_link_cache):
 
     for i in range(MAX_CACHED_LINKS + 10):
         link = _fake_link()
-        link.teardown.side_effect = lambda l=link: teardowns.append(l)
+        link.teardown.side_effect = lambda lnk=link: teardowns.append(lnk)
         _cache_link_if_active(bytes([i % 256]) * 16, link)
 
     nomad_dl.sweep_stale_links()

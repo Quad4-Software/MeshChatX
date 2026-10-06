@@ -41,6 +41,11 @@ test.describe("Lighthouse page scores (simulated data)", () => {
                 history.pushState = () => undefined;
                 history.replaceState = () => undefined;
             });
+            // Keep the service worker out of the audited page entirely:
+            // re-navigations in the retry loop would re-register it, and a
+            // SW-served document is what kills Network.getResponseBody and
+            // nulls whole category scores.
+            await page.route("**/service-worker.js", (route) => route.abort());
             await gotoUiPage(page, entry, baseURL);
             if (entry.id === "map") {
                 await dismissMapOnboardingTooltip(page);
@@ -81,11 +86,12 @@ test.describe("Lighthouse page scores (simulated data)", () => {
                     }
                     // eslint-disable-next-line no-console
                     console.log(`LH ${entry.id}: retrying audit after transient error: ${msg.split("\n")[0]}`);
+                    // Always re-navigate: a killed gather leaves the tab on
+                    // the same URL with the same stale document, so a URL
+                    // check would retry the identical state that just failed.
                     try {
-                        if (page.url() !== url) {
-                            await gotoUiPage(page, entry, baseURL);
-                            await page.waitForTimeout(2500);
-                        }
+                        await gotoUiPage(page, entry, baseURL);
+                        await page.waitForTimeout(2500);
                     } catch {
                         // The next audit attempt fails on its own if the
                         // re-navigation itself is broken.
