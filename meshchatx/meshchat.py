@@ -46,6 +46,7 @@ from meshchatx.android_push_bridge import (
 from meshchatx.src.backend import (
     i2p_support,
     reticulum_pathfinding,
+    traffic_stats,
 )
 from meshchatx.src.backend.active_sessions import (
     ActiveSessionTracker,
@@ -4287,6 +4288,7 @@ class ReticulumMeshChat:
             timeout=120,
             max_bytes=2 * 1024 * 1024,
             reticulum=getattr(self, "reticulum", None),
+            traffic_component=traffic_stats.COMPONENT_CRAWLER,
             **nomad_link_identity_kwargs(
                 self,
                 bytes.fromhex(destination_hash),
@@ -9884,6 +9886,19 @@ class ReticulumMeshChat:
         try:
             source_hash = lxmf_message.source_hash.hex()
             unverified_reason = getattr(lxmf_message, "unverified_reason", None)
+
+            packed = getattr(lxmf_message, "packed", None)
+            traffic_stats.get_meter().record(
+                traffic_stats.COMPONENT_LXMF,
+                rx=(
+                    len(packed)
+                    if packed
+                    else len(lxmf_message.content or b"")
+                    + len(lxmf_message.title or b"")
+                    + 96
+                ),
+                peer=source_hash,
+            )
 
             if unverified_reason == LXMF.LXMessage.SIGNATURE_INVALID:
                 logger.warning("Invalid LXMF signature from %s, dropping", source_hash)

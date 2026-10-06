@@ -20,6 +20,7 @@ from typing import ClassVar
 
 import RNS
 
+from meshchatx.src.backend import traffic_stats
 from meshchatx.src.backend.path_utils import (
     path_response_window,
     slowest_online_bitrate,
@@ -787,7 +788,15 @@ class RRCHub:
         except Exception:
             return False
 
+    def _peer_label(self):
+        hub = self.hub_hash
+        return hub.hex() if isinstance(hub, (bytes, bytearray)) else str(hub)
+
     def _raw_send(self, link, payload):
+        if not isinstance(link, _LoopbackEndpoint):
+            traffic_stats.get_meter().record(
+                traffic_stats.COMPONENT_RRC, tx=len(payload), peer=self._peer_label()
+            )
         if isinstance(link, _LoopbackEndpoint):
             link.from_client(payload)
         else:
@@ -806,6 +815,9 @@ class RRCHub:
         if not self._packet_would_fit(link, payload):
             msg = "message exceeds link MTU"
             raise RuntimeError(msg)
+        traffic_stats.get_meter().record(
+            traffic_stats.COMPONENT_RRC, tx=len(payload), peer=self._peer_label()
+        )
         RNS.Packet(link, payload).send()
 
     def _send_env_then_maybe_record(self, env, local_msg):
@@ -1423,6 +1435,10 @@ class RRCHub:
             return list(self.messages.get(room, []))
 
     def _on_packet(self, data):
+        if not isinstance(self.link, _LoopbackEndpoint):
+            traffic_stats.get_meter().record(
+                traffic_stats.COMPONENT_RRC, rx=len(data), peer=self._peer_label()
+            )
         self._sweep_pending_delivery()
         try:
             env = proto.decode(data)

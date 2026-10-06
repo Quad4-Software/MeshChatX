@@ -52,6 +52,15 @@ export const CORE_TOOLS_ENTRIES = [
         group: "diagnostics",
     },
     {
+        name: "traffic",
+        route: { name: "traffic" },
+        icon: "chart-bar",
+        iconBg: "tool-card__icon bg-cyan-50 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-200",
+        titleKey: "tools.traffic.title",
+        descriptionKey: "tools.traffic.description",
+        group: "diagnostics",
+    },
+    {
         name: "rnpath",
         route: { name: "rnpath" },
         icon: "route",

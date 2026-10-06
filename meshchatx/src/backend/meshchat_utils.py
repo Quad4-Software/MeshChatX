@@ -47,11 +47,49 @@ def create_lxmf_router(
         original_signal = signal.signal
         try:
             signal.signal = lambda s, h: None
-            return LXMF.LXMRouter(**kwargs)
+            router = LXMF.LXMRouter(**kwargs)
         finally:
             signal.signal = original_signal
     else:
-        return LXMF.LXMRouter(**kwargs)
+        router = LXMF.LXMRouter(**kwargs)
+    _install_lxmf_traffic_metering(router)
+    return router
+
+
+def _install_lxmf_traffic_metering(router):
+    """Count outbound LXMF payload bytes for the traffic meter.
+
+    handle_outbound is the single send funnel; the wire size only exists
+    after pack(), so the wrapper meters the message's packed bytes the
+    first time pack succeeds.
+    """
+    from meshchatx.src.backend import traffic_stats
+
+    original_handle_outbound = router.handle_outbound
+
+    def handle_outbound_metered(lxmf_message):
+        try:
+            original_pack = lxmf_message.pack
+
+            def pack_and_meter(*args, **kwargs):
+                was_packed = lxmf_message.packed is not None
+                result = original_pack(*args, **kwargs)
+                if not was_packed and lxmf_message.packed:
+                    dest = getattr(lxmf_message, "destination_hash", None)
+                    peer = dest.hex() if isinstance(dest, (bytes, bytearray)) else None
+                    traffic_stats.get_meter().record(
+                        traffic_stats.COMPONENT_LXMF,
+                        tx=len(lxmf_message.packed),
+                        peer=peer,
+                    )
+                return result
+
+            lxmf_message.pack = pack_and_meter
+        except Exception:
+            pass
+        return original_handle_outbound(lxmf_message)
+
+    router.handle_outbound = handle_outbound_metered
 
 
 def list_inbound_deliveries(router) -> list[dict]:

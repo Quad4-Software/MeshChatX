@@ -17,7 +17,7 @@ from collections import deque
 
 import RNS
 
-from meshchatx.src.backend import constants
+from meshchatx.src.backend import constants, traffic_stats
 from meshchatx.src.backend.rrc import protocol as proto
 from meshchatx.src.backend.rrc.hub_commands import HubCommandHandler
 from meshchatx.src.backend.rrc.hub_policy import HubPolicy
@@ -532,8 +532,20 @@ class RRCHubServer:
         if isinstance(link, _LoopbackEndpoint):
             link.from_server(payload)
             return
+        peer = self._peer_label_for(link)
+        traffic_stats.get_meter().record(
+            traffic_stats.COMPONENT_RRC, tx=len(payload), peer=peer
+        )
         with contextlib.suppress(Exception):
             RNS.Packet(link, payload).send()
+
+    def _peer_label_for(self, link):
+        with self._lock:
+            sess = self._sessions.get(link)
+        peer = getattr(sess, "peer", None) if sess is not None else None
+        if isinstance(peer, (bytes, bytearray)):
+            return peer.hex()
+        return str(peer) if peer else None
 
     def _attach_loopback(self, link, client_identity):
         with self._lock:
@@ -552,6 +564,12 @@ class RRCHubServer:
         self._on_close(link)
 
     def _on_packet(self, link, data):
+        if not isinstance(link, _LoopbackEndpoint):
+            traffic_stats.get_meter().record(
+                traffic_stats.COMPONENT_RRC,
+                rx=len(data),
+                peer=self._peer_label_for(link),
+            )
         try:
             env = proto.decode(data)
         except Exception:

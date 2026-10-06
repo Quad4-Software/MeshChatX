@@ -1705,6 +1705,13 @@
         "add_interface_sidebar_a11y": "Shortcuts and community presets",
         "community_quick_start": "Community Quick-Start",
         "community_quick_start_hint": "Presets from meshchatx.com/interfaces, bundled at release.",
+        "community_filter_title": "Filter community presets",
+        "community_filter_all": "All",
+        "community_filter_tcp": "TCP",
+        "community_filter_backbone": "Backbone",
+        "community_filter_i2p": "I2P",
+        "community_filter_yggdrasil": "Yggdrasil",
+        "community_filter_other": "Other",
         "community_quick_start_hide": "Hide suggested interfaces",
         "community_use_preset": "Use This",
         "community_presets_hidden_hint": "Community presets are hidden. Show them again here or in Settings.",
@@ -3934,6 +3941,10 @@
             "nfc_join_this": "Join this network",
             "nfc_failed": "NFC operation failed",
             "satellite_hint": "This device can fall back to a satellite link. It is a slow, metered IP path. Keep interface bitrate and announce caps low on links that might use it."
+        },
+        "traffic": {
+            "title": "Traffic",
+            "description": "See which interfaces and app components are moving bytes on the wire, with hints about what is driving it."
         }
     },
     "ping": {
@@ -5457,5 +5468,54 @@
         "check_failed": "Update check failed",
         "apply_failed": "Update apply failed",
         "manual_install_notice": "Install the verified file manually using the instructions above."
+    },
+    "traffic": {
+        "upload_rate": "Upload rate",
+        "download_rate": "Download rate",
+        "total_sent": "Total sent",
+        "total_received": "Total received",
+        "what_is_driving_it": "What is driving it",
+        "by_component": "By component",
+        "by_component_hint": "Payload bytes attributed to each component. The residual row covers announces, path requests, link setup, and transport forwarding that Reticulum performs below the app layer.",
+        "component": "Component",
+        "upload": "Up",
+        "download": "Down",
+        "total_up": "Total up",
+        "total_down": "Total down",
+        "residual": "Network overhead (announces, links, transport)",
+        "by_interface": "By interface",
+        "interface": "Interface",
+        "type": "Type",
+        "announces": "Announces",
+        "propagated": "Propagated",
+        "load_failed": "Failed to load traffic stats.",
+        "measurement_note": "Rates are computed from Reticulum interface counters and component reports. Component numbers are payload bytes; the wire adds protocol overhead, which shows up under the residual row.",
+        "hints": {
+            "idle": "Interface traffic is near zero. Nothing is moving beyond occasional keepalives.",
+            "transport_mode": "Transport mode is on: most traffic ({tx_bps} B/s up, {rx_bps} B/s down) is forwarding other nodes on the network.",
+            "announce_discovery": "Announce and discovery traffic is flowing ({bps} B/s), {discovery_interfaces} discovery-capable interface(s).",
+            "rrc_hubs": "{hubs} RRC hub link(s) connected. Hub links exchange chat, presence, and control traffic.",
+            "crawler": "The NomadNet crawler is actively fetching pages ({bps} B/s).",
+            "propagation_node_inbound": "Propagation sync traffic with a remote node ({bps} B/s). The local propagation node is not enabled.",
+            "crawler_observed": "Crawler-attributed traffic observed while the crawler is disabled (a queued task may still be finishing).",
+            "propagation_node_serving": "The local propagation node is serving stored messages ({bps} B/s propagated).",
+            "propagation_node_enabled": "The local propagation node is enabled, currently idle.",
+            "crawler_enabled": "The NomadNet crawler is enabled and will fetch pages on schedule. Currently idle."
+        },
+        "recent_activity": "Recent activity",
+        "updated_seconds_ago": "Updated {s}s ago",
+        "pause": "Pause",
+        "resume": "Resume",
+        "paused": "Paused",
+        "by_peer": "By peer",
+        "by_peer_hint": "Byte traffic attributed to each remote destination this node talks to.",
+        "peer": "Peer",
+        "data": "Data",
+        "components": {
+            "lxmf": "LXMF",
+            "rrc": "RRC hub",
+            "nomadnet": "NomadNet",
+            "crawler": "Crawler"
+        }
     }
 }
