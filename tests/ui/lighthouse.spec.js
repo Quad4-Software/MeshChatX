@@ -29,7 +29,7 @@ test.describe("Lighthouse page scores (simulated data)", () => {
     });
 
     for (const entry of pages) {
-        test(`lighthouse: ${entry.id}`, async ({ page, baseURL }) => {
+        test(`lighthouse: ${entry.id}`, async ({ page, baseURL, context }) => {
             // Freeze app-driven navigations on every document this target
             // loads. Lighthouse navigates the shared CDP target itself to
             // gather the measured page, and pages such as messages
@@ -37,37 +37,39 @@ test.describe("Lighthouse page scores (simulated data)", () => {
             // kills the gatherer with "Inspected target navigated or
             // closed". An init script no-ops the History API before app code
             // runs on each load, including the load the audit performs.
-            await page.addInitScript(() => {
-                history.pushState = () => undefined;
-                history.replaceState = () => undefined;
-            });
-            // Keep the service worker out of the audited page entirely:
-            // re-navigations in the retry loop would re-register it, and a
-            // SW-served document is what kills Network.getResponseBody and
-            // nulls whole category scores.
-            await page.route("**/service-worker.js", (route) => route.abort());
-            await gotoUiPage(page, entry, baseURL);
-            if (entry.id === "map") {
-                await dismissMapOnboardingTooltip(page);
-            }
+            const preparePage = async (target) => {
+                await target.addInitScript(() => {
+                    history.pushState = () => undefined;
+                    history.replaceState = () => undefined;
+                });
+                // Keep the service worker out of the audited page entirely:
+                // re-navigations in the retry loop would re-register it, and
+                // a SW-served document is what kills Network.getResponseBody
+                // and nulls whole category scores.
+                await target.route("**/service-worker.js", (route) => route.abort());
+                await gotoUiPage(target, entry, baseURL);
+                if (entry.id === "map") {
+                    await dismissMapOnboardingTooltip(target);
+                }
+                // The service worker registered by the initial page load can
+                // serve the audited navigation from cache, which makes CDP
+                // unable to read the document body (Network.getResponseBody:
+                // no resource with given identifier) and nulls whole category
+                // scores. Unregister so audits measure the raw network page.
+                await target.evaluate(async () => {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(regs.map((r) => r.unregister()));
+                });
+                // Let post-mount work settle (router redirects, ws handshakes)
+                // before the audit takes over the target. A mid-audit navigation
+                // kills the perf gatherer with "Inspected target navigated or
+                // closed".
+                await target.waitForTimeout(2500);
+                return target;
+            };
 
-            // The service worker registered by the initial page load can
-            // serve the audited navigation from cache, which makes CDP
-            // unable to read the document body (Network.getResponseBody:
-            // no resource with given identifier) and nulls whole category
-            // scores. Unregister so audits measure the raw network page.
-            await page.evaluate(async () => {
-                const regs = await navigator.serviceWorker.getRegistrations();
-                await Promise.all(regs.map((r) => r.unregister()));
-            });
-
-            // Let post-mount work settle (router redirects, ws handshakes)
-            // before the audit takes over the target. A mid-audit navigation
-            // kills the perf gatherer with "Inspected target navigated or
-            // closed".
-            await page.waitForTimeout(2500);
-
-            const url = page.url();
+            let auditPage = await preparePage(page);
+            const url = auditPage.url();
             // Lighthouse navigates the shared CDP target itself. a concurrent
             // evaluate or teardown can race it into "Inspected target
             // navigated or closed". Retry only that transient protocol error.
@@ -86,12 +88,17 @@ test.describe("Lighthouse page scores (simulated data)", () => {
                     }
                     // eslint-disable-next-line no-console
                     console.log(`LH ${entry.id}: retrying audit after transient error: ${msg.split("\n")[0]}`);
-                    // Always re-navigate: a killed gather leaves the tab on
-                    // the same URL with the same stale document, so a URL
-                    // check would retry the identical state that just failed.
+                    // Re-navigate on retry, and on persistent failure move to
+                    // a fresh page: a crashed renderer leaves the old target
+                    // closed and every subsequent gather would die the same
+                    // way on it.
                     try {
-                        await gotoUiPage(page, entry, baseURL);
-                        await page.waitForTimeout(2500);
+                        if (attempt >= 3) {
+                            auditPage = await preparePage(await context.newPage());
+                        } else {
+                            await gotoUiPage(auditPage, entry, baseURL);
+                            await auditPage.waitForTimeout(2500);
+                        }
                     } catch {
                         // The next audit attempt fails on its own if the
                         // re-navigation itself is broken.

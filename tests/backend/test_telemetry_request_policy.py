@@ -46,10 +46,7 @@ def test_effective_request_interval_backoff():
     assert effective_request_interval(60, 1) == 120
     assert effective_request_interval(60, 2) == 240
     assert effective_request_interval(60, 10) == 61440
-    assert (
-        effective_request_interval(60, 30)
-        == TELEMETRY_REQUEST_MAX_INTERVAL_SECONDS
-    )
+    assert effective_request_interval(60, 30) == TELEMETRY_REQUEST_MAX_INTERVAL_SECONDS
     assert effective_request_interval(None, 3) == 480
     assert effective_request_interval("junk", 1) == 120
     assert effective_request_interval(60, "x") == 60
@@ -93,10 +90,13 @@ def test_tracking_mark_request_and_response(db):
 def test_mark_response_received_ignores_untracked_peer(db):
     # No row: nothing to reset, no crash.
     db.telemetry.mark_response_received("b" * 32)
-    assert db.provider.fetchone(
-        "SELECT 1 FROM telemetry_tracking WHERE destination_hash = ?",
-        ("b" * 32,),
-    ) is None
+    assert (
+        db.provider.fetchone(
+            "SELECT 1 FROM telemetry_tracking WHERE destination_hash = ?",
+            ("b" * 32,),
+        )
+        is None
+    )
 
 
 def test_toggle_tracking_rearms_paused_peer(db):
