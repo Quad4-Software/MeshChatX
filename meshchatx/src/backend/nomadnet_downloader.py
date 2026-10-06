@@ -567,7 +567,7 @@ class NomadnetDownloader:
     def _record_link_traffic(self) -> None:
         """Attribute link byte deltas to this downloader's component."""
         link = self.link
-        if link is None or self._link_tx0 is None:
+        if link is None or self._link_tx0 is None or self._link_rx0 is None:
             return
         try:
             tx = max(0, link.txbytes - self._link_tx0)
