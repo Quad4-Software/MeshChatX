@@ -1281,6 +1281,10 @@
             "path": "/api/v1/reticulum/reload"
         },
         {
+            "method": "GET",
+            "path": "/api/v1/reticulum/traffic"
+        },
+        {
             "method": "POST",
             "path": "/api/v1/rncp/cancel"
         },

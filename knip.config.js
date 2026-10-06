@@ -14,7 +14,7 @@ export default {
         "tests/**/*.{js,cjs,mjs}",
     ],
     ignore: ["meshchatx/src/frontend/public/**", "electron/assets/**", "**/*.worklet.js"],
-    ignoreDependencies: ["@tailwindcss/forms"],
+    ignoreDependencies: ["@tailwindcss/forms", "puppeteer-core"],
     ignoreIssues: {
         "meshchatx/src/frontend/js/reticulumPathfinding.js": ["unlisted"],
     },
