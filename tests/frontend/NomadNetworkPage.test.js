@@ -2166,5 +2166,23 @@ describe("NomadNetworkPage.vue", () => {
             expect(wrapper.vm.nodePagePathHistory.length).toBeLessThanOrEqual(100);
             wrapper.unmount();
         });
+
+        it("keeps the shell container unscrolled while the frame owns the page", async () => {
+            const wrapper = mountNomadNetworkPage();
+            const dest = "a".repeat(32);
+            wrapper.vm.selectedNode = { destination_hash: dest, name: "n" };
+            wrapper.vm.nodePagePath = `${dest}:/page/index.mu`;
+            wrapper.vm.nodePageContent = ">#!\n# Hello";
+            wrapper.vm.isLoadingNodePage = false;
+            await wrapper.vm.$nextTick();
+            // Frame owns the view: shell must not show its own slider.
+            expect(wrapper.vm.showCrashTabHost).toBe(true);
+            expect(wrapper.vm.nodeContainerOverflowClass).toBe("overflow-y-hidden");
+            // While a page state banner shows, flow content scrolls again.
+            wrapper.vm.isLoadingNodePage = true;
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.nodeContainerOverflowClass).toBe("overflow-y-auto");
+            wrapper.unmount();
+        });
     });
 });

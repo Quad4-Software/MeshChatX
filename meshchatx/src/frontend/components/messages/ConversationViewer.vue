@@ -1384,6 +1384,14 @@
                             </button>
                         </div>
                     </div>
+                    <label class="flex items-center gap-2 text-xs text-sem-fg-muted select-none">
+                        <input
+                            v-model="peerTranslateAuto"
+                            type="checkbox"
+                            class="h-3.5 w-3.5 rounded border-sem-border/90 accent-sem-info"
+                        />
+                        {{ $t("messages.translate_auto_conversation") }}
+                    </label>
                     <p v-if="!translateTargetSelectOptions.length" class="text-xs text-sem-warning -mt-0.5">
                         {{ $t("messages.translate_no_languages") }}
                     </p>
@@ -1932,6 +1940,7 @@ export default {
             hasTranslator: false,
             translatorLanguages: [],
             translateTargetBarOpen: false,
+            peerTranslateAuto: false,
             translateTargetModalValue: "en",
             translateTargetModalContext: null,
             isTranslateTargetModalWorking: false,
@@ -2910,6 +2919,45 @@ export default {
                 /* empty */
             }
         },
+        _peerTranslatePrefsKey() {
+            const h = this.selectedPeer?.destination_hash;
+            return h ? STORAGE_KEYS.PEER_TRANSLATE_PREFS_PREFIX + String(h).toLowerCase() : null;
+        },
+        _readPeerTranslatePrefs() {
+            const key = this._peerTranslatePrefsKey();
+            if (!key) {
+                return null;
+            }
+            try {
+                const parsed = JSON.parse(localStorage.getItem(key) || "null");
+                if (parsed && typeof parsed === "object") {
+                    return {
+                        pair:
+                            String(parsed.pair || "")
+                                .toLowerCase()
+                                .slice(0, 4) || null,
+                        auto: parsed.auto === true,
+                    };
+                }
+            } catch {
+                /* empty */
+            }
+            return null;
+        },
+        _persistPeerTranslatePrefs(pair, auto) {
+            const key = this._peerTranslatePrefsKey();
+            const pairNorm = String(pair || "")
+                .toLowerCase()
+                .slice(0, 4);
+            if (!key || !pairNorm) {
+                return;
+            }
+            try {
+                localStorage.setItem(key, JSON.stringify({ pair: pairNorm, auto: auto === true }));
+            } catch {
+                /* empty */
+            }
+        },
         defaultTranslateTargetForModal() {
             const opts = this.translateTargetSelectOptions;
             if (!opts.length) {
@@ -2922,7 +2970,41 @@ export default {
             return opts[0].value;
         },
         defaultBubbleTranslateTargetForModal() {
+            const opts = this.translateTargetSelectOptions;
+            const prefs = this._readPeerTranslatePrefs();
+            if (prefs?.pair && opts.some((o) => o.value === prefs.pair)) {
+                return prefs.pair;
+            }
             return this.defaultTranslateTargetForModal();
+        },
+        _maybeAutoTranslateIncoming(chatItem) {
+            const prefs = this._readPeerTranslatePrefs();
+            if (!prefs?.auto || !prefs.pair || !this.hasTranslator) {
+                return;
+            }
+            if (!this.canTranslateMessageBubbleFromMenu(chatItem)) {
+                return;
+            }
+            void this.applyBubbleMessageTranslation(chatItem, prefs.pair, { silent: true });
+        },
+        autoTranslateLoadedInbound() {
+            const prefs = this._readPeerTranslatePrefs();
+            if (!prefs?.auto || !prefs.pair || !this.hasTranslator) {
+                return;
+            }
+            // Bounded burst: translate the newest inbound bubbles only so a
+            // long history does not queue hundreds of pack requests on open.
+            const pending = this.chatItems
+                .filter(
+                    (i) =>
+                        !i.is_outbound &&
+                        this.canTranslateMessageBubbleFromMenu(i) &&
+                        !this.messageBubbleTranslation[i.lxmf_message?.hash]
+                )
+                .slice(-15);
+            for (const item of pending) {
+                void this.applyBubbleMessageTranslation(item, prefs.pair, { silent: true });
+            }
         },
         _bubbleTranslateSourcePreview() {
             return this.normalizedLocaleCode(this.config?.language || this.$i18n.locale) || "en";
@@ -2971,6 +3053,7 @@ export default {
                 this.bubbleTranslateBarIgnoreOutsideUntil = t + 500;
                 this.translateTargetModalContext = { type: "bubble", chatItem };
                 this.translateTargetModalValue = this.defaultBubbleTranslateTargetForModal();
+                this.peerTranslateAuto = this._readPeerTranslatePrefs()?.auto === true;
                 this.translateTargetBarOpen = true;
             };
             queueMicrotask(() => {
@@ -3000,6 +3083,10 @@ export default {
                     await this.applyComposeTranslation(targetLang);
                 } else if (ctx.type === "bubble" && ctx.chatItem) {
                     await this.applyBubbleMessageTranslation(ctx.chatItem, targetLang);
+                    this._persistPeerTranslatePrefs(targetLang, this.peerTranslateAuto);
+                    if (this.peerTranslateAuto) {
+                        this.autoTranslateLoadedInbound();
+                    }
                 }
                 this.translateTargetBarOpen = false;
                 this.translateTargetModalContext = null;
@@ -3053,7 +3140,7 @@ export default {
                 this.isTranslatingMessage = false;
             }
         },
-        async applyBubbleMessageTranslation(chatItem, targetPair) {
+        async applyBubbleMessageTranslation(chatItem, targetPair, options = {}) {
             const hash = chatItem?.lxmf_message?.hash;
             const text = this.copyableMessagePlainText(chatItem);
             if (!hash || !text) {
@@ -3090,7 +3177,9 @@ export default {
             } catch (e) {
                 delete this.messageBubbleTranslation[hash];
                 console.error("Translation failed:", e);
-                ToastUtils.error(this.$t("messages.translation_failed"));
+                if (!options.silent) {
+                    ToastUtils.error(this.$t("messages.translation_failed"));
+                }
             }
         },
         setBubbleMessageShowOriginal(hash, show) {
@@ -3361,6 +3450,7 @@ export default {
             this.scrollMessagesToBottom({ pinAfter: true });
 
             this.autoLoadAudioAttachments(this.chatItems);
+            this.autoTranslateLoadedInbound();
         },
         async loadPrevious() {
             // Pagination requests must not overlap. Initial page loads (empty thread) must still run
@@ -3891,12 +3981,14 @@ export default {
                 return;
             }
 
-            this._pushChatItem({
+            const pushedItem = {
                 type: "lxmf_message",
                 is_outbound: false,
                 lxmf_message: this.normalizeLxmfMessage(lxmfMessage, false),
-            });
+            };
+            this._pushChatItem(pushedItem);
             this._invalidateDisplayGroupsCache();
+            this._maybeAutoTranslateIncoming(pushedItem);
 
             const conversation = this.findConversation(this.selectedPeer.destination_hash);
             const target = conversation || this.selectedPeer;

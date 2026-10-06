@@ -206,6 +206,11 @@ const router = createRouter({
             component: () => import("./components/rnstatus/RNStatusPage.vue"),
         },
         {
+            name: "traffic",
+            path: "/traffic",
+            component: () => import("./components/tools/TrafficPage.vue"),
+        },
+        {
             name: "rnpath",
             path: "/rnpath",
             component: () => import("./components/tools/RNPathPage.vue"),

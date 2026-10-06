@@ -355,10 +355,57 @@ async def test_csp_privacy_mode_strips_external_sources(mock_rns_minimal, tmp_pa
         )
         response = await security_middleware(request, mock_handler)
         csp = response.headers.get("Content-Security-Policy", "")
+        # Built-in public origins are stripped in privacy mode, but
+        # user-configured endpoints are explicit opt-ins and stay allowed:
+        # mesh-hosted tile/search servers are the privacy mode use case.
         assert "openstreetmap.org" not in csp
-        assert "api.example.com" not in csp
-        assert "tiles.example.com" not in csp
+        assert "cartocdn.com" not in csp
+        assert "openfreemap.org" not in csp
+        assert "https://api.example.com" in csp
+        assert "https://tiles.example.com" in csp
         assert "connect-src 'self'" in csp
+
+
+@pytest.mark.asyncio
+async def test_csp_scheme_less_and_subdomain_tile_urls_allowed(
+    mock_rns_minimal,
+    tmp_path,
+):
+    """Scheme-less hosts and {s} subdomain templates must reach the CSP."""
+    storage_dir = str(tmp_path / "storage")
+    config_dir = str(tmp_path / "config")
+
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=storage_dir,
+            reticulum_config_dir=config_dir,
+        )
+        app_instance.config.map_tile_server_url.set(
+            "tiles.example.com/{z}/{x}/{y}.png",
+        )
+
+        request = MagicMock(spec=web.Request)
+        request.path = "/"
+        request.app = {}
+
+        async def mock_handler(req):
+            return web.Response(text="test")
+
+        routes = web.RouteTableDef()
+        _, _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(
+            routes
+        )
+        response = await security_middleware(request, mock_handler)
+        csp = response.headers.get("Content-Security-Policy", "")
+        assert "https://tiles.example.com" in csp
+
+        app_instance.config.map_tile_server_url.set(
+            "https://{s}.tiles.example.com/{z}/{x}/{y}.png",
+        )
+        response = await security_middleware(request, mock_handler)
+        csp = response.headers.get("Content-Security-Policy", "")
+        assert "https://*.tiles.example.com" in csp
 
 
 @pytest.mark.asyncio

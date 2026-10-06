@@ -134,7 +134,8 @@ describe("TranslatorPage.vue", () => {
 
         const download = wrapper.findAll("button").find((b) => b.text() === "Download");
         await download.trigger("click");
-        await vi.waitFor(() => expect(wrapper.vm.isDownloading("fren")).toBe(false));
+        const frenGroup = wrapper.vm.mergedCatalog.find((g) => g.directions.includes("fren"));
+        await vi.waitFor(() => expect(wrapper.vm.isGroupDownloading(frenGroup)).toBe(false));
         const [url, body] = apiMock.post.mock.calls[0];
         expect(url).toContain("/translation/packs/fetch");
         expect(body).toEqual({ pair: "fren" });
@@ -168,6 +169,91 @@ describe("TranslatorPage.vue", () => {
         const [url, body] = apiMock.post.mock.calls[0];
         expect(url).toContain("/translation/packs/fetch");
         expect(body).toEqual({ all: true });
+    });
+
+    it("merges both directions of a pair into one entry and downloads both", async () => {
+        const postedPairs = [];
+        apiMock.get.mockImplementation((url) => {
+            if (url.includes("/api/v1/translation/catalog")) {
+                return Promise.resolve({
+                    data: {
+                        pairs: [
+                            { pair: "enru", from: "en", to: "ru", architecture: "base", size: 1024 },
+                            { pair: "ruen", from: "ru", to: "en", architecture: "base", size: 1024 },
+                            { pair: "fren", from: "fr", to: "en", architecture: "tiny", size: 2048 },
+                        ],
+                    },
+                });
+            }
+            if (url.includes("/api/v1/translation/packs")) {
+                return Promise.resolve({ data: { packs: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        apiMock.post.mockImplementation((url, body) => {
+            if (url.includes("/api/v1/translation/packs/fetch")) {
+                postedPairs.push(body);
+                return Promise.resolve({ data: { installed: [body.pair], failed: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountTranslatorPage();
+        await vi.waitFor(() => expect(wrapper.vm.packs.length).toBe(0));
+
+        const toggle = wrapper.findAll("button").find((b) => b.text() === "Download packs");
+        await toggle.trigger("click");
+        await vi.waitFor(() => expect(wrapper.vm.catalogPairs.length).toBe(3));
+
+        // Two directions collapse into one entry.
+        expect(wrapper.vm.mergedCatalog.length).toBe(2);
+        const merged = wrapper.vm.mergedCatalog.find((g) => g.directions.length === 2);
+        expect(merged).toBeDefined();
+        expect(wrapper.vm.groupLabel(merged)).toContain("<->");
+
+        const downloadButtons = wrapper.findAll("button").filter((b) => b.text() === "Download");
+        expect(downloadButtons.length).toBe(2);
+
+        // One click downloads both directions.
+        await wrapper.vm.downloadGroup(merged);
+        await vi.waitFor(() => expect(postedPairs.length).toBe(2));
+        expect(postedPairs).toContainEqual({ pair: "enru" });
+        expect(postedPairs).toContainEqual({ pair: "ruen" });
+    });
+
+    it("filters the merged catalog with the search input", async () => {
+        apiMock.get.mockImplementation((url) => {
+            if (url.includes("/api/v1/translation/catalog")) {
+                return Promise.resolve({
+                    data: {
+                        pairs: [
+                            { pair: "enru", from: "en", to: "ru", architecture: "base", size: 1024 },
+                            { pair: "ruen", from: "ru", to: "en", architecture: "base", size: 1024 },
+                            { pair: "fren", from: "fr", to: "en", architecture: "tiny", size: 2048 },
+                        ],
+                    },
+                });
+            }
+            if (url.includes("/api/v1/translation/packs")) {
+                return Promise.resolve({ data: { packs: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountTranslatorPage();
+        await vi.waitFor(() => expect(wrapper.vm.packs.length).toBe(0));
+        wrapper.vm.showCatalog = true;
+        wrapper.vm.catalogPairs = await import("@/js/TranslationService.js").then((m) => m.fetchCatalog());
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.filteredCatalog.length).toBe(2);
+        wrapper.vm.catalogSearch = "russian";
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.filteredCatalog.length).toBe(1);
+        wrapper.vm.catalogSearch = "fren";
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.filteredCatalog.length).toBe(1);
+        wrapper.vm.catalogSearch = "zzzz";
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.filteredCatalog.length).toBe(0);
     });
 
     it("surfaces a catalog error when downloads are blocked", async () => {

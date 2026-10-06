@@ -134,15 +134,44 @@ class TelemetryDAO:
         now = datetime.now(UTC).isoformat()
         self.provider.execute(
             """
-            INSERT INTO telemetry_tracking (destination_hash, is_tracking, updated_at)
-            VALUES (?, ?, ?)
+            INSERT INTO telemetry_tracking (destination_hash, is_tracking, unanswered_count, updated_at)
+            VALUES (?, ?, 0, ?)
             ON CONFLICT(destination_hash) DO UPDATE SET
                 is_tracking = EXCLUDED.is_tracking,
+                unanswered_count = 0,
                 updated_at = EXCLUDED.updated_at
         """,
             (destination_hash, int(is_tracking), now),
         )
         return is_tracking
+
+    def mark_request_sent(self, destination_hash, timestamp=None):
+        """Record an outbound request.
+
+        Stamps last_request_at and grows the unanswered counter that
+        drives request backoff.
+        """
+        import time
+
+        ts = time.time() if timestamp is None else timestamp
+        self.provider.execute(
+            "UPDATE telemetry_tracking SET last_request_at = ?, "
+            "unanswered_count = COALESCE(unanswered_count, 0) + 1 "
+            "WHERE destination_hash = ?",
+            (ts, destination_hash),
+        )
+
+    def mark_response_received(self, destination_hash):
+        """Reset the unanswered counter when the peer sends telemetry.
+
+        Only applies to rows that exist, which keeps tracking state
+        meaningful.
+        """
+        self.provider.execute(
+            "UPDATE telemetry_tracking SET unanswered_count = 0 "
+            "WHERE destination_hash = ? AND COALESCE(unanswered_count, 0) > 0",
+            (destination_hash,),
+        )
 
     def get_tracked_peers(self):
         return self.provider.fetchall(

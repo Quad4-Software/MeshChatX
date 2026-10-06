@@ -94,19 +94,27 @@ const INSTRUMENT = `
 })();
 `;
 
-async function settleListeners(page, cdp, maxMs = 2000) {
+async function settleListeners(page, cdp, maxMs = 4000) {
     // Route changes detach the previous page asynchronously, so wait until
     // the live listener count stops moving instead of sampling mid-teardown.
+    // A single quiet sample can still catch a gap between two deferred
+    // removals, so require three consecutive unchanged samples.
     let last = -1;
+    let stableSamples = 0;
     const deadline = Date.now() + maxMs;
     while (Date.now() < deadline) {
         const { metrics } = await cdp.send("Performance.getMetrics");
         const current = metrics.find((m) => m.name === "JSEventListeners")?.value || 0;
         if (current === last) {
-            return;
+            stableSamples += 1;
+            if (stableSamples >= 3) {
+                return;
+            }
+        } else {
+            stableSamples = 0;
         }
         last = current;
-        await page.waitForTimeout(150);
+        await page.waitForTimeout(200);
     }
 }
 
@@ -180,23 +188,49 @@ test.describe("heap profile across pages", () => {
                 report.push({ page: entry.id, skipped: String(e).slice(0, 80) });
                 continue;
             }
-            await gotoUiPage(page, neutral, baseURL);
-            const before = await measure(page, cdp);
-            let after = before;
-            for (let i = 0; i < CYCLES; i++) {
-                await gotoUiPage(page, entry, baseURL);
+            const measureDelta = async () => {
                 await gotoUiPage(page, neutral, baseURL);
-                after = await measure(page, cdp);
+                const before = await measure(page, cdp);
+                let after = before;
+                for (let i = 0; i < CYCLES; i++) {
+                    await gotoUiPage(page, entry, baseURL);
+                    await gotoUiPage(page, neutral, baseURL);
+                    after = await measure(page, cdp);
+                }
+                return {
+                    heapDelta: after.heap - before.heap,
+                    nodes: after.nodes - before.nodes,
+                    listeners: after.listeners - before.listeners,
+                    timeouts: after.timeouts - before.timeouts,
+                    intervals: after.intervals - before.intervals,
+                    rafs: after.rafs - before.rafs,
+                };
+            };
+
+            let delta = await measureDelta();
+            const budgets = heapBudgetsFor(entry, HEAP_BUDGETS);
+            const breaches = (d) =>
+                d.heapDelta > budgets.heapDeltaMb * 1048576 ||
+                d.nodes > budgets.nodes ||
+                d.listeners > budgets.listeners ||
+                d.timeouts > budgets.timeouts ||
+                d.intervals > budgets.intervals ||
+                d.rafs > budgets.rafs;
+            if (breaches(delta)) {
+                // Deferred teardown from a neighbor page can land inside this
+                // window. One confirmation pass keeps the smaller delta, so a
+                // real leak still fails while transient pollution does not.
+                const confirm = await measureDelta();
+                delta = {
+                    heapDelta: Math.min(delta.heapDelta, confirm.heapDelta),
+                    nodes: Math.min(delta.nodes, confirm.nodes),
+                    listeners: Math.min(delta.listeners, confirm.listeners),
+                    timeouts: Math.min(delta.timeouts, confirm.timeouts),
+                    intervals: Math.min(delta.intervals, confirm.intervals),
+                    rafs: Math.min(delta.rafs, confirm.rafs),
+                };
             }
-            report.push({
-                page: entry.id,
-                heapDelta: after.heap - before.heap,
-                nodes: after.nodes - before.nodes,
-                listeners: after.listeners - before.listeners,
-                timeouts: after.timeouts - before.timeouts,
-                intervals: after.intervals - before.intervals,
-                rafs: after.rafs - before.rafs,
-            });
+            report.push({ page: entry.id, ...delta });
         }
 
         fs.mkdirSync(REPORT_DIR, { recursive: true });

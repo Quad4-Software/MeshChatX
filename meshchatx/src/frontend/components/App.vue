@@ -2204,9 +2204,9 @@ export default {
         getMyIdentityUri() {
             if (!this.config?.lxmf_address_hash) return null;
             const publicKey = this.config?.identity_public_key;
-            return publicKey
-                ? `lxma://${this.config.lxmf_address_hash}:${publicKey}`
-                : `lxmf://${this.config.lxmf_address_hash}`;
+            // Bare hash when the pubkey is unknown: lxmf:// is not accepted
+            // by every LXMF client, while the 32-hex form is.
+            return publicKey ? `lxma://${this.config.lxmf_address_hash}:${publicKey}` : this.config.lxmf_address_hash;
         },
         async copyIdentityUri() {
             const uri = this.getMyIdentityUri();
@@ -2688,7 +2688,7 @@ export default {
                 ) {
                     if (!this.isCallWindowOpen && !this.$route.meta.isPopout) {
                         this.isCallWindowOpen = true;
-                        window.open("/call.html", "MeshChatXCallWindow", "width=600,height=800");
+                        window.open("/call.html", "MeshChatXCallWindow", "width=600,height=800,noopener");
                     }
                 } else {
                     this.isCallWindowOpen = false;

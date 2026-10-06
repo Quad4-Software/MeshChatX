@@ -9,7 +9,7 @@ from collections.abc import Callable
 
 import RNS
 
-from meshchatx.src.backend import reticulum_pathfinding
+from meshchatx.src.backend import reticulum_pathfinding, traffic_stats
 from meshchatx.src.backend.async_utils import AsyncUtils
 from meshchatx.src.backend.path_utils import (
     link_establishment_window,
@@ -217,6 +217,7 @@ class NomadnetDownloader:
         private: bool = False,
         local_identity=None,
         identify_on_connect: bool = False,
+        traffic_component: str = traffic_stats.COMPONENT_NOMADNET,
     ):
         self.app_name = "nomadnetwork"
         self.aspects = "node"
@@ -234,6 +235,9 @@ class NomadnetDownloader:
         self.private = bool(private)
         self.local_identity = local_identity
         self.identify_on_connect = bool(identify_on_connect) and not self.private
+        self.traffic_component = traffic_component
+        self._link_tx0 = None
+        self._link_rx0 = None
         self.request_receipt = None
         self.is_cancelled = False
         self._outcome_delivered = False
@@ -465,6 +469,13 @@ class NomadnetDownloader:
         if self.is_cancelled or self._outcome_delivered:
             return
 
+        try:
+            self._link_tx0 = link.txbytes
+            self._link_rx0 = link.rxbytes
+        except Exception:
+            self._link_tx0 = None
+            self._link_rx0 = None
+
         self._emit_phase("transferring")
 
         if not self.private:
@@ -550,7 +561,25 @@ class NomadnetDownloader:
             if self.is_cancelled or self._outcome_delivered:
                 return False
             self._outcome_delivered = True
-            return True
+        self._record_link_traffic()
+        return True
+
+    def _record_link_traffic(self) -> None:
+        """Attribute link byte deltas to this downloader's component."""
+        link = self.link
+        if link is None or self._link_tx0 is None or self._link_rx0 is None:
+            return
+        try:
+            tx = max(0, link.txbytes - self._link_tx0)
+            rx = max(0, link.rxbytes - self._link_rx0)
+            traffic_stats.get_meter().record(
+                self.traffic_component,
+                tx=tx,
+                rx=rx,
+                peer=self.destination_hash.hex(),
+            )
+        except Exception:
+            pass
 
     def on_response(self, request_receipt: RNS.RequestReceipt):
         if not self._claim_outcome():
@@ -598,6 +627,7 @@ class NomadnetPageDownloader(NomadnetDownloader):
         local_identity=None,
         identify_on_connect: bool = False,
         max_bytes: int | None = None,
+        traffic_component: str = traffic_stats.COMPONENT_NOMADNET,
     ):
         self.on_page_download_success = on_page_download_success
         self.on_page_download_failure = on_page_download_failure
@@ -615,6 +645,7 @@ class NomadnetPageDownloader(NomadnetDownloader):
             private=private,
             local_identity=local_identity,
             identify_on_connect=identify_on_connect,
+            traffic_component=traffic_component,
         )
 
     def on_download_success(self, request_receipt: RNS.RequestReceipt):

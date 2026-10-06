@@ -29,6 +29,10 @@ module.exports = defineConfig({
                 `--remote-debugging-port=${LH_DEBUG_PORT}`,
                 // Avoid SW caching skewing cold-load audits on repeat runs.
                 "--disable-features=ServiceWorker",
+                // CI runners have a small /dev/shm; a renderer crash there
+                // closes the audit target mid-gather ("Inspected target
+                // navigated or closed", null category scores).
+                "--disable-dev-shm-usage",
             ],
         },
     },

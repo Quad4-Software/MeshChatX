@@ -114,6 +114,39 @@ def parse_fields_dict(fields_raw: Any) -> dict:
     return _parse_fields(fields_raw)
 
 
+_FEATURE_FIELD_KEYS = {
+    "commands",
+    "0x09",
+    "9",
+    "reaction",
+    "0x40",
+    "64",
+    "telemetry",
+    "telemetry_stream",
+    "0x02",
+    "0x03",
+    "2",
+    "3",
+}
+
+
+def is_feature_only_message(
+    content: Any,
+    title: Any,
+    fields_raw: Any,
+) -> bool:
+    """True when a message carries only LXMF feature fields and no body.
+
+    Command, reaction and telemetry-only deliveries mean nothing to peers
+    that cannot parse those fields, so auto-resend should only spend
+    attempts on them when the peer has shown feature support.
+    """
+    if str(content or "").strip() or str(title or "").strip():
+        return False
+    fields = _parse_fields(fields_raw)
+    return any(str(key) in _FEATURE_FIELD_KEYS for key in fields)
+
+
 def should_skip_for_budget(
     fields_raw: Any,
     *,

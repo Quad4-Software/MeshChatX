@@ -2,11 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [4.10.2] - TBD [unreleased]
 
 ### Fixed
 
+- Contacts: the empty-state box no longer sits flush against the search bar separator.
+- Themes: toggle switches now have a border outline in the off state so they stay visible on near-black themes.
+
+- Windows: shared-instance RPC replies are read through the connection dispatch path instead of os.read, fixing bad file descriptor errors that broke LXMF delivery, interface stats, and interface management on Windows builds when connected to an external rnsd.
+- Messaging: outbound sends that fail the path wait are now persisted as failed messages instead of being dropped, so they resend automatically when the peer announces and can be resent manually. The propagation-node fallback now defaults on for new configurations and is a safe no-op when no propagation node is set.
+- Maps: user-configured tile servers, Nominatim endpoints, and extra CSP sources are no longer stripped from the Content Security Policy in privacy mode; only the shipped public defaults stay gated. Scheme-less and subdomain-template ({s}, {r}) tile URLs are normalized so OpenLayers and the CSP match real hosts.
+- NomadNet: page translation now works with the sandboxed page renderer. The shell asks the renderer frame for the page text over the frame channel instead of reading an empty shell container, so the translate button opens the translator with real page content.
+- NomadNet: the page shell no longer can show its own scrollbar next to the rendered frame's scrollbar. The container only scrolls for state banners now, which removes the second slider on platforms with always-on scrollbars.
+- NomadNet: serving nodes no longer re-hash the whole source image on every /media request; the hash is memoized by file stat. Failed conversions are marked and skipped for an hour instead of respawning the encoder on every request, which removes the sustained CPU spikes on image-heavy pages.
+- Desktop: every popout window (call, nomad tab, translator, paper message, and the rest) now runs in its own renderer process where the API allows it, so a crash there cannot take the whole app down. A crashed child window is destroyed instead of lingering as a dead frame; the main window's crash recovery dialog is unchanged.
 - NomadNet: rendered pages that use the full-bleed shell (.html, .md, .txt) no longer overflow the viewer by the header and toolbar height. The content container carried a stray min-h-full that beat its min-h-0, so the rendered frame ran ~54px past the bottom of the pane and its scrollbar hung below the page boundary, reading as the extra-slider artifact.
+- Network visualiser: leaving the page during engine setup no longer orphans a live graph instance per visit; the init chain now checks for unmount after every await and destroys anything created in flight.
+- Network visualiser: the loading overlay now has a cancel button. Stopping aborts in-flight fetches, halts physics and batch work, and leaves a fresh load one click away on the refresh button.
+- Telemetry: tracked peers that never answer are no longer polled every interval forever. Each unanswered request doubles the wait up to a daily cap, and after a bounded number of misses the peer is skipped until a telemetry response re-arms it or tracking is re-toggled.
+- Messaging: automatic resends no longer retry feature-only deliveries (commands, reactions, telemetry) to peers that never sent one back, so Sideband and other LXMF clients are not spammed with payload types they cannot parse.
+- Contacts: shared address output now uses the bare 32-hex hash when no public key is known, since not every LXMF client parses an lxmf:// URI. lxma:// output is unchanged when a public key is available.
+
+### Added
+
+- Interfaces: bulk config imports now attach imported interfaces live instead of requiring a restart; the restart banner only appears when live attach could not bring one up.
+- Health: the monitor now tracks file descriptor counts, warning when usage nears the limit and when the count climbs steadily across the check window, catching slow descriptor leaks early.
+- Diagnostics: new Traffic tool shows live upload and download rates per interface and per component, per-peer byte attribution, announce and propagated splits, a rolling activity chart, and plain-language hints explaining what is driving the wire load.
+- Interfaces: I2P community presets can now be quick-added like other presets. They run through the normal add-interface checks, so transport mode and the single-I2P rule still apply.
+- Interfaces: the community presets list now has a filter dropdown for TCP, Backbone, I2P, Yggdrasil, and other types.
+- Messages: the message translate bar now has an auto-translate toggle per conversation. The chosen language pair is remembered per contact, and when auto-translate is on, new incoming messages are translated on arrival and the newest loaded messages are translated when the conversation opens.
+- Maps: the tile server URL now accepts TileJSON endpoints (URLs ending in .json). Tile templates, attribution, zoom range, bounds, relative tile URLs, and scheme:tms are honored, and a bad document falls back to the next provider like a failed tile server.
+- Translator: the pack catalog now shows both directions of a language pair as a single bidirectional entry, and downloading it installs every direction present in the catalog. A search field filters the catalog by language or pair code.
+- Updated Python deps: rns 1.5.7, lxst 0.5.4 floor.
 
 ## [4.10.1] - 2026-10-04 [released]
 

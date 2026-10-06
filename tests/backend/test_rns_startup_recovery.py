@@ -4,6 +4,9 @@
 
 from __future__ import annotations
 
+import struct
+
+import pytest
 from RNS.vendor.configobj import ConfigObj
 
 from meshchatx.src.backend import rns_startup_recovery as recovery
@@ -405,3 +408,149 @@ def test_create_reticulum_with_recovery_sweeps_ratchets(tmp_path, monkeypatch):
     assert result is not None
     assert called
     assert not (ratchets / ("b" * 32 + ".out")).exists()
+
+
+def _socket_rpc_pair():
+    """Return (client_conn, server_conn) joined over a real TCP socket."""
+    import multiprocessing.connection as mp_conn
+
+    listener = mp_conn.Listener(("127.0.0.1", 0), family="AF_INET")
+    client = mp_conn.Client(listener.address, family="AF_INET")
+    server = listener.accept()
+    listener.close()
+    return client, server
+
+
+class _FakeConn:
+    """Minimal stand-in for a multiprocessing Connection.
+
+    _read mirrors the Windows socket dispatch: Connection._read is
+    _multiprocessing.recv on Windows and os.read on POSIX.
+    """
+
+    def __init__(self, frame: bytes, chunk_size: int = 4):
+        self._frame = frame
+        self._pos = 0
+        self._chunk_size = chunk_size
+        self.read_calls = 0
+
+    def fileno(self):
+        return 9999
+
+    def poll(self, timeout):
+        return self._pos < len(self._frame)
+
+    def _read(self, fd, size):
+        assert fd == 9999
+        self.read_calls += 1
+        chunk = self._frame[self._pos : self._pos + self._chunk_size]
+        self._pos += len(chunk)
+        return chunk
+
+
+def test_deadlined_rpc_connection_recv_bytes_roundtrip():
+    client, server = _socket_rpc_pair()
+    try:
+        wrapped = recovery._DeadlinedRpcConnection(client, timeout_s=5.0)
+        payload = b"hello rns rpc" * 200
+        server.send_bytes(payload)
+        assert wrapped.recv_bytes() == payload
+    finally:
+        client.close()
+        server.close()
+
+
+def test_deadlined_rpc_connection_recv_bytes_timeout():
+    client, server = _socket_rpc_pair()
+    try:
+        wrapped = recovery._DeadlinedRpcConnection(client, timeout_s=0.2)
+        with pytest.raises(TimeoutError):
+            wrapped.recv_bytes()
+    finally:
+        client.close()
+        server.close()
+
+
+def test_deadlined_rpc_connection_recv_bytes_partial_frame_timeout():
+    client, server = _socket_rpc_pair()
+    try:
+        wrapped = recovery._DeadlinedRpcConnection(client, timeout_s=0.2)
+        server._send(struct.pack("!i", 100)[:2])
+        with pytest.raises(TimeoutError):
+            wrapped.recv_bytes()
+    finally:
+        client.close()
+        server.close()
+
+
+def test_deadlined_rpc_connection_recv_bytes_closed():
+    client, server = _socket_rpc_pair()
+    try:
+        wrapped = recovery._DeadlinedRpcConnection(client, timeout_s=5.0)
+        server.close()
+        with pytest.raises(ConnectionError):
+            wrapped.recv_bytes()
+    finally:
+        client.close()
+
+
+def test_deadlined_rpc_connection_uses_conn_read_dispatch():
+    """Windows sockets are not CRT fds: reads must go through conn._read."""
+    body = b"rpc-payload"
+    conn = _FakeConn(struct.pack("!i", len(body)) + body)
+    wrapped = recovery._DeadlinedRpcConnection(conn, timeout_s=1.0)
+    assert wrapped.recv_bytes() == body
+    assert conn.read_calls > 0
+
+
+def test_deadlined_rpc_connection_extended_length_frame():
+    body = b"big"
+    frame = struct.pack("!i", -1) + struct.pack("!Q", len(body)) + body
+    conn = _FakeConn(frame)
+    wrapped = recovery._DeadlinedRpcConnection(conn, timeout_s=1.0)
+    assert wrapped.recv_bytes() == body
+
+
+def test_deadlined_rpc_connection_bad_message_length():
+    body = b"x" * 10
+    conn = _FakeConn(struct.pack("!i", len(body)) + body)
+    wrapped = recovery._DeadlinedRpcConnection(conn, timeout_s=1.0)
+    with pytest.raises(OSError):
+        wrapped.recv_bytes(maxlength=5)
+
+
+def test_deadlined_rpc_connection_delegates_other_methods():
+    client, server = _socket_rpc_pair()
+    try:
+        wrapped = recovery._DeadlinedRpcConnection(client, timeout_s=1.0)
+        payload = b"delegated"
+        wrapped.send_bytes(payload)
+        assert server.recv_bytes() == payload
+    finally:
+        client.close()
+        server.close()
+
+
+def test_install_shared_instance_rpc_deadline_wraps_client(monkeypatch):
+    import RNS
+
+    recovery._RPC_PATCHED = False
+    real_client, server = _socket_rpc_pair()
+    original = RNS.Reticulum.get_rpc_client
+    try:
+        monkeypatch.setattr(
+            RNS.Reticulum,
+            "get_rpc_client",
+            lambda self: real_client,
+            raising=False,
+        )
+        assert recovery.install_shared_instance_rpc_deadline(timeout_s=2.0) is True
+        conn = RNS.Reticulum.get_rpc_client(object())
+        assert isinstance(conn, recovery._DeadlinedRpcConnection)
+        server.send_bytes(b"pong")
+        assert conn.recv_bytes() == b"pong"
+    finally:
+        RNS.Reticulum.get_rpc_client = original
+        recovery._RPC_PATCHED = False
+        real_client.close()
+        server.close()

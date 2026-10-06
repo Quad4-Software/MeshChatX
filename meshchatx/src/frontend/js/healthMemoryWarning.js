@@ -17,11 +17,13 @@ export const CLIENT_HEAP_SAMPLE_INTERVAL_MS = 30000;
 let dismissedThisEpisode = false;
 let toastVisible = false;
 let consecutiveHighHeap = 0;
+const shownFdWarningKinds = new Set();
 
 export function resetMemoryWarningStateForTests() {
     dismissedThisEpisode = false;
     toastVisible = false;
     consecutiveHighHeap = 0;
+    shownFdWarningKinds.clear();
 }
 
 function warningDataFromPayload(payload) {
@@ -142,8 +144,30 @@ export function handleHealthWarningPayload(payload, toastUtils) {
         markMemoryWarningRecovered();
         return "recovered";
     }
-    if (!isMemoryHealthWarningPayload(payload)) {
-        return "ignored";
+    if (isMemoryHealthWarningPayload(payload)) {
+        return showMemoryWarningToastIfNeeded(toastUtils, { fromHealthWs: true }) ? "shown" : "ignored";
     }
-    return showMemoryWarningToastIfNeeded(toastUtils, { fromHealthWs: true }) ? "shown" : "ignored";
+    return handleFdWarningPayload(payload, toastUtils) ? "shown" : "ignored";
+}
+
+const FD_WARNING_KINDS = new Set(["fd_pressure", "fd_growth"]);
+
+function handleFdWarningPayload(payload, toastUtils) {
+    const data = warningDataFromPayload(payload);
+    if (!data || !FD_WARNING_KINDS.has(data.kind)) {
+        return false;
+    }
+    if (shownFdWarningKinds.has(data.kind)) {
+        return false;
+    }
+    if (!toastUtils || typeof toastUtils.warning !== "function") {
+        return false;
+    }
+    shownFdWarningKinds.add(data.kind);
+    toastUtils.warning(
+        typeof data.message === "string" && data.message ? data.message : data.kind,
+        8000,
+        `health-fd-${data.kind}`
+    );
+    return true;
 }

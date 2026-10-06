@@ -17,6 +17,13 @@
                 </div>
             </div>
             <div class="text-sm font-medium text-sem-fg">{{ loadingStatus }}</div>
+            <button
+                type="button"
+                class="rounded-lg border border-sem-border bg-sem-surface-muted px-3 py-1.5 text-xs font-semibold text-sem-fg transition-colors hover:bg-sem-surface focus:outline-hidden focus-visible:ring-1 focus-visible:ring-sem-info/50"
+                @click="$emit('cancel')"
+            >
+                {{ $t("common.cancel") }}
+            </button>
             <div v-if="totalNodesToLoad > 0" class="w-48 space-y-2">
                 <div class="h-1.5 bg-sem-surface-muted rounded-full overflow-hidden">
                     <div
@@ -47,5 +54,6 @@ export default {
         currentBatch: { type: Number, default: 0 },
         totalBatches: { type: Number, default: 0 },
     },
+    emits: ["cancel"],
 };
 </script>

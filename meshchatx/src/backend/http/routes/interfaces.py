@@ -13,7 +13,7 @@ import RNS
 from aiohttp import web
 
 from meshchatx.android_push_bridge import _is_chaquopy_android
-from meshchatx.src.backend import i2p_support
+from meshchatx.src.backend import i2p_support, traffic_stats
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.host_interfaces import list_host_network_interfaces
 from meshchatx.src.backend.http.errors import (
@@ -1786,9 +1786,20 @@ def register_interfaces_routes(routes, app):
                     "(ConfigObj section syntax)."
                 )
 
+            # RNS 1.5.5: attach each imported interface so the import applies
+            # without a stack restart. applied_live is only true when every
+            # enabled import came up; the UI asks for a restart otherwise.
+            applied_live = True
+            for name, details in interface_config.items():
+                if not _interface_section_enabled(details):
+                    continue
+                if not await _live_apply_attach(app, name):
+                    applied_live = False
+
             return web.json_response(
                 {
                     "message": "Interfaces imported successfully",
+                    "applied_live": applied_live,
                 },
             )
 
@@ -1807,5 +1818,12 @@ def register_interfaces_routes(routes, app):
                 "interface_stats": await app._aget_interface_stats_payload(),
             },
         )
+
+    @routes.get(API_V1_PREFIX + "/reticulum/traffic")
+    async def reticulum_traffic(request):
+        stats = await app._aget_interface_stats_payload()
+        payload = traffic_stats.get_meter().snapshot(stats.get("interfaces") or [])
+        payload["hints"] = traffic_stats.compute_hints(payload, app)
+        return web.json_response(payload)
 
     # get path table

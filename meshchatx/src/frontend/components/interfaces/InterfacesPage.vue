@@ -1403,10 +1403,12 @@ export default {
         showImportInterfacesModal() {
             this.$refs["import-interfaces-modal"].show();
         },
-        onImportInterfacesModalDismissed(imported = false) {
+        onImportInterfacesModalDismissed(imported = false, appliedLive = false) {
             // reload interfaces as something may have been imported
             this.loadInterfaces();
-            if (imported) {
+            // imported interfaces are attached live by the backend; only
+            // flag a restart when that did not take.
+            if (imported && !appliedLive) {
                 this.trackInterfaceChange();
             }
         },

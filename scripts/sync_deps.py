@@ -211,6 +211,26 @@ def main(argv: list[str]) -> int:
     if gradle_text != gradle_orig:
         GRADLE.write_text(gradle_text, encoding="utf-8")
 
+    # The Android wheel-build script hardcodes the wheel versions it fetches
+    # and patches; keep its defaults aligned with [android.wheels].
+    wheel_script = ROOT / "scripts" / "build-android-wheels-local.sh"
+    if wheel_script.exists():
+        script_text = wheel_script.read_text(encoding="utf-8")
+        script_orig = script_text
+        for name, version in android_wheels.items():
+            var = f"{name.upper().replace('-', '_')}_VERSION"
+            script_text = re.sub(
+                rf'^{var}="[^"]*"$', f'{var}="{version}"', script_text, flags=re.M
+            )
+            script_text = re.sub(
+                rf"(--{name.replace('_', '-')}-version V[^\n]*default: )[^)\n]+",
+                rf"\g<1>{version}",
+                script_text,
+            )
+        if script_text != script_orig:
+            wheel_script.write_text(script_text, encoding="utf-8")
+            print(f"{wheel_script.name}: synced wheel defaults")
+
     misses = []
     for sec, table in (
         (SECTION_SHARED, shared),

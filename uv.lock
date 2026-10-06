@@ -2988,7 +2988,7 @@ wheels = [
 
 [[package]]
 name = "reticulum-meshchatx"
-version = "4.10.1"
+version = "4.10.2"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -3055,7 +3055,7 @@ requires-dist = [
     { name = "psutil", specifier = ">=7.2.2" },
     { name = "pycparser", specifier = ">=3.0" },
     { name = "pyserial", specifier = ">=3.5" },
-    { name = "rns", specifier = ">=1.5.6" },
+    { name = "rns", specifier = ">=1.5.7" },
     { name = "seccompy", specifier = "==0.2.0" },
     { name = "wasmtime", specifier = ">=49.0.0" },
     { name = "websockets", specifier = ">=17.1" },
@@ -3098,15 +3098,15 @@ wheels = [
 
 [[package]]
 name = "rns"
-version = "1.5.6"
+version = "1.5.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "pyserial" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/63/b9/aca7c31217b322904b51daca52756d8a5b68291b4b2d0c081dbf8f0b4a09/rns-1.5.6.tar.gz", hash = "sha256:57a2498a6581e994b088ad815f096b7c23ed321e3909b44fe1589f8b08506898", size = 559316, upload-time = "2026-10-02T10:09:37.618Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/eb/62/ec929e1a614e0d9f5266f816d73a060eb6b0c89f6684e9ef0b7bedcac17d/rns-1.5.7.tar.gz", hash = "sha256:2bb48232e0a10b59b2b21b60e76592362210cdabd343d7b97a3bf1aba22dd879", size = 559127, upload-time = "2026-10-05T11:54:54.015Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/96/f7/55d8706b77f907c7c1f141341cebbcb975a9b05e84762ea6735431770089/rns-1.5.6-py3-none-any.whl", hash = "sha256:975a646836749560f4553e4cc82d7dc9774c6c79c8beef08357264e1d8443626", size = 644253, upload-time = "2026-10-02T10:09:30.39Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/5a/ee933b9f465040039286ffa76c5e509f334b61014061cdc1b0e46bcb3753/rns-1.5.7-py3-none-any.whl", hash = "sha256:0e4aaf8cc47f770da34572d2215b45fea900e104b009551600eb9741a41faddf", size = 644289, upload-time = "2026-10-05T11:54:49.765Z" },
 ]
 
 [[package]]

@@ -431,6 +431,7 @@ class DatabaseSchema:
                     is_tracking INTEGER DEFAULT 1,
                     interval_seconds INTEGER DEFAULT 60,
                     last_request_at REAL,
+                    unanswered_count INTEGER DEFAULT 0,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )

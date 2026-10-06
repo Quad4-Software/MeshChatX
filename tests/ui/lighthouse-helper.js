@@ -3,6 +3,7 @@ const path = require("path");
 const lighthouseModule = require("lighthouse");
 const lighthouse = lighthouseModule.default || lighthouseModule;
 const desktopConfig = lighthouseModule.desktopConfig;
+const puppeteer = require("puppeteer-core");
 
 const LH_DEBUG_PORT = parseInt(process.env.LH_DEBUG_PORT || "9222", 10);
 const REPORT_DIR = process.env.LH_REPORT_DIR || path.join("test-results", "lighthouse");
@@ -40,27 +41,70 @@ function buildLhConfig(formFactor) {
 }
 
 /**
+ * Attach to the Playwright-controlled page over CDP so the audit runs on
+ * the prepared target. lighthouse(url) opens its own puppeteer tab, which
+ * would bypass the History-API freeze that keeps the app from navigating
+ * mid-gather.
+ *
  * @param {string} url absolute page URL including hash route
- * @param {{ port?: number, formFactor?: "mobile"|"desktop" }} [opts]
+ * @param {number} port CDP port
+ * @returns {Promise<{page: LH.Puppeteer.Page, browser: LH.Puppeteer.Browser}|undefined>}
+ */
+async function findAuditablePage(url, port) {
+    let browser;
+    try {
+        browser = await puppeteer.connect({
+            browserURL: `http://127.0.0.1:${port}`,
+            defaultViewport: null,
+        });
+    } catch {
+        return undefined;
+    }
+    const pages = await browser.pages();
+    const page = pages.find((p) => p.url() === url) ||
+        pages.find((p) => p.url().startsWith(new URL(url).origin));
+    if (!page) {
+        await browser.disconnect();
+        return undefined;
+    }
+    return { page, browser };
+}
+
+/**
+ * @param {string} url absolute page URL including hash route
+ * @param {{ port?: number, formFactor?: "mobile"|"desktop", auditPageUrl?: string }} [opts]
  */
 async function runLighthouseAudit(url, opts = {}) {
     const port = opts.port ?? LH_DEBUG_PORT;
     const formFactor = opts.formFactor || "desktop";
+    const flags = {
+        port,
+        output: ["json", "html"],
+        logLevel: "error",
+    };
+    const config = buildLhConfig(formFactor);
 
     // Gatherer flake (for example Network.getResponseBody on a
     // service-worker-served document, or the target navigating mid-gather)
     // can null an entire category score. Retry a couple of times so a
     // transient protocol error does not fail the budget.
     for (let attempt = 0; attempt < 3; attempt++) {
-        const runnerResult = await lighthouse(
-            url,
-            {
-                port,
-                output: ["json", "html"],
-                logLevel: "error",
-            },
-            buildLhConfig(formFactor)
-        );
+        let attached;
+        try {
+            attached = await findAuditablePage(url, port);
+        } catch {
+            attached = undefined;
+        }
+        let runnerResult;
+        try {
+            runnerResult = attached
+                ? await lighthouseModule.navigation(attached.page, url, { config, flags })
+                : await lighthouse(url, flags, config);
+        } finally {
+            if (attached) {
+                await attached.browser.disconnect();
+            }
+        }
 
         if (!runnerResult || !runnerResult.lhr) {
             throw new Error(`Lighthouse returned no result for ${url}`);
@@ -69,8 +113,13 @@ async function runLighthouseAudit(url, opts = {}) {
         const missing = ["performance", "accessibility", "best-practices"].some(
             (key) => cats[key] == null || cats[key].score == null
         );
-        if (!missing || attempt === 2) {
+        if (!missing) {
             return runnerResult;
+        }
+        if (attempt === 2) {
+            // Let callers retry a partial report the same way they retry a
+            // killed gather: a mid-gather navigation is the usual cause.
+            throw new Error(`Lighthouse returned missing category scores for ${url} (transient gather failure)`);
         }
     }
 }

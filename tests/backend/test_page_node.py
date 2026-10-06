@@ -1167,3 +1167,61 @@ class TestPageNodeMedia:
         assert len(result) == 2
         assert hasattr(result[0], "read")
         assert result[1].get("name") == b"image.webp"
+
+    def test_media_cache_key_memoizes_source_hash_by_stat(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        image_path = os.path.join(node.files_dir, "photo.png")
+        self._write_webp(image_path, b"\x89PNG" * 64)
+
+        with patch(
+            "meshchatx.src.backend.page_node.hashlib.sha256",
+            wraps=__import__("hashlib").sha256,
+        ) as sha_spy:
+            key1 = node._media_cache_key(image_path, 90, 1024)
+            key2 = node._media_cache_key(image_path, 90, 1024)
+            assert key1 == key2
+            assert sha_spy.call_count == 1
+
+            # A content or mtime change must bust the memoized hash.
+            os.utime(image_path, ns=(1234567890000000000, 1234567890000000000))
+            key3 = node._media_cache_key(image_path, 90, 1024)
+            assert sha_spy.call_count == 2
+            assert key3 == key1
+
+            self._write_webp(image_path, b"\x89PNG" * 128)
+            os.utime(image_path, ns=(1234567890000000001, 1234567890000000001))
+            key4 = node._media_cache_key(image_path, 90, 1024)
+            assert sha_spy.call_count == 3
+            assert key4 != key1
+
+    def test_failed_media_conversion_is_negative_cached(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        image_path = os.path.join(node.files_dir, "broken.png")
+        self._write_webp(image_path, b"not really a png")
+
+        with patch(
+            "meshchatx.src.backend.page_node.convert_file_to_webp",
+            return_value=False,
+        ) as convert_spy:
+            assert node._get_converted_media_path(image_path) is None
+            # Second request must not respawn the encoder.
+            assert node._get_converted_media_path(image_path) is None
+            assert convert_spy.call_count == 1
+            assert any(n.endswith(".fail") for n in os.listdir(node.media_cache_dir))
+
+            # A stale failure marker retries the conversion.
+            fail_path = next(
+                os.path.join(node.media_cache_dir, n)
+                for n in os.listdir(node.media_cache_dir)
+                if n.endswith(".fail")
+            )
+            old = 2 * 60 * 60
+            st = os.stat(fail_path)
+            os.utime(
+                fail_path,
+                ns=(st.st_atime_ns, int(st.st_mtime_ns - old * 1e9)),
+            )
+            assert node._get_converted_media_path(image_path) is None
+            assert convert_spy.call_count == 2

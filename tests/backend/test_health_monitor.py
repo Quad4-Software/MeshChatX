@@ -276,3 +276,64 @@ def test_loop_probe_ignores_healthy_loop(monkeypatch):
         assert not dumps
     finally:
         loop.call_soon_threadsafe(loop.stop)
+
+
+class TestHealthMonitorFdTracking(unittest.TestCase):
+    """fd/handle accounting: absolute limit warning plus leak trend."""
+
+    def setUp(self):
+        self.log_handler = MagicMock()
+        self.log_handler.current_log_entropy = 0.5
+        self.log_handler.current_error_rate = 0.0
+        self.monitor = HealthMonitor(log_handler=self.log_handler, app=None)
+
+    def _mock_process(self, fd_count):
+        proc = MagicMock()
+        proc.num_fds.return_value = fd_count
+        del proc.num_handles  # force the num_fds branch
+        return proc
+
+    @patch("meshchatx.src.backend.recovery.health_monitor.resource")
+    def test_fd_pressure_when_near_limit(self, mock_resource):
+        mock_resource.getrlimit.return_value = (1024, 4096)
+        mock_resource.RLIMIT_NOFILE = 7
+        self.monitor._process = self._mock_process(900)  # 88% of 1024
+        with patch.object(self.monitor, "_broadcast") as mock_bc:
+            self.monitor._check()
+            kinds = [c[0][0]["kind"] for c in mock_bc.call_args_list]
+            assert "fd_pressure" in kinds
+
+    @patch("meshchatx.src.backend.recovery.health_monitor.resource")
+    def test_fd_growth_trend_detected(self, mock_resource):
+        mock_resource.getrlimit.return_value = (1048576, 1048576)
+        mock_resource.RLIMIT_NOFILE = 7
+        self.monitor._process = MagicMock()
+        # Fill the window with a near-monotonic climb: 200 -> 460.
+        self.monitor._fd_history.extend([200, 240, 280, 310, 370, 430])
+        self.monitor._process.num_fds.return_value = 460
+        del self.monitor._process.num_handles
+        with patch.object(self.monitor, "_broadcast") as mock_bc:
+            self.monitor._check()
+            kinds = [c[0][0]["kind"] for c in mock_bc.call_args_list]
+            assert "fd_growth" in kinds
+
+    @patch("meshchatx.src.backend.recovery.health_monitor.resource")
+    def test_fd_no_warning_on_stable_count(self, mock_resource):
+        mock_resource.getrlimit.return_value = (1048576, 1048576)
+        mock_resource.RLIMIT_NOFILE = 7
+        self.monitor._process = MagicMock()
+        self.monitor._fd_history.extend([300, 310, 295, 305, 300, 305])
+        self.monitor._process.num_fds.return_value = 305
+        del self.monitor._process.num_handles
+        with patch.object(self.monitor, "_broadcast") as mock_bc:
+            self.monitor._check()
+            kinds = [c[0][0]["kind"] for c in mock_bc.call_args_list]
+            assert "fd_growth" not in kinds
+            assert "fd_pressure" not in kinds
+
+    def test_fd_handles_missing_gracefully(self):
+        proc = MagicMock()
+        del proc.num_fds
+        del proc.num_handles
+        self.monitor._process = proc
+        assert self.monitor._read_fd_stats() == (None, None)

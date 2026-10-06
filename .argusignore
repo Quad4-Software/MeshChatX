@@ -53,3 +53,16 @@ JS-003 tests/frontend/bakeBuildMeta.test.js
 # OWASP-001: the alg:none JWT in this test is a rejection fixture asserting
 # the verifier refuses unsigned tokens.
 OWASP-001 tests/backend/test_oidc.py
+
+# AST exec-family indicators (landed in a newer ruleset): every flagged site
+# is deliberate and reviewed - module/plugin loaders, test harnesses, and CI
+# tooling. They carry noqa or harness-level guards already.
+AST-PY-002 meshchatx/src/backend/recovery/crash_recovery.py
+AST-PY-002 meshchatx/src/backend/voicemail_manager.py
+AST-PY-005 meshchatx/src/backend/lxst_pyogg_ctypes_compat.py
+AST-PY-005 meshchatx/src/backend/sideband_plugin_loader.py
+AST-PY-005 tests/backend/test_crash_recovery.py
+AST-GO-001 geo-wasm/mgrs/geolib_test.go
+AST-GO-001 geo-wasm/mgrs/proj_test.go
+AST-GO-001 geo-wasm/mgrs/ups_proj_test.go
+AST-GO-001 scripts/license_scope_mapper.go

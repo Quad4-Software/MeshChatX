@@ -43,6 +43,26 @@ def mock_app():
     return app
 
 
+def _mock_outbound_msg():
+    mock_msg = MagicMock()
+    mock_msg.hash = b"\x01" * 16
+    mock_msg.fields = {}
+    mock_msg.incoming = False
+    return mock_msg
+
+
+def _patch_message_construction(mock_msg):
+    # RNS.Destination stays real so lxmf_delivery_hash_bytes still computes the
+    # correct lxmf.delivery hash from the recalled identity.
+    return (
+        patch("meshchatx.meshchat.LXMF.LXMessage", return_value=mock_msg),
+        patch(
+            "meshchatx.meshchat.convert_lxmf_message_to_dict",
+            return_value={"hash": "01" * 16, "state": "failed"},
+        ),
+    )
+
+
 @pytest.mark.asyncio
 async def test_path_wait_uses_lxmf_delivery_hash_not_identity_hash(mock_app):
     """Pasting an identity hash must wait on lxmf.delivery, not the identity hash."""
@@ -55,14 +75,25 @@ async def test_path_wait_uses_lxmf_delivery_hash_not_identity_hash(mock_app):
         return_value=OutboundPathOutcome(False, "new_path_requested", True),
     )
     mock_app._is_self_lxmf_destination = MagicMock(return_value=False)
-    with pytest.raises(TimeoutError, match="No path to destination"):
-        await mock_app.send_message(
-            destination_hash=identity_hex,
-            content="hi",
-            delivery_method="direct",
-        )
+    mock_msg = _mock_outbound_msg()
+    patches = _patch_message_construction(mock_msg)
+    with patches[0], patches[1]:
+        with pytest.raises(TimeoutError, match="No path to destination"):
+            await mock_app.send_message(
+                destination_hash=identity_hex,
+                content="hi",
+                delivery_method="direct",
+            )
     mock_app._await_transport_path.assert_awaited_once_with(delivery)
     mock_app.message_router.handle_outbound.assert_not_called()
+    # The failed outbound is persisted so announce-triggered auto-resend and
+    # manual resend can deliver it once a path appears.
+    mock_msg.pack.assert_called_once()
+    mock_app.db_upsert_lxmf_message.assert_called_once()
+    assert (
+        mock_app.db_upsert_lxmf_message.call_args.kwargs.get("state_override")
+        == "failed"
+    )
     print("LXMF_IDENTITY_HASH_PATH_WAIT_ORACLE_PROVED")
 
 
@@ -75,12 +106,15 @@ async def test_path_wait_keeps_lxmf_delivery_hash(mock_app):
         return_value=OutboundPathOutcome(False, "new_path_requested", True),
     )
     mock_app._is_self_lxmf_destination = MagicMock(return_value=False)
-    with pytest.raises(TimeoutError, match="No path to destination"):
-        await mock_app.send_message(
-            destination_hash=delivery.hex(),
-            content="hi",
-            delivery_method="direct",
-        )
+    mock_msg = _mock_outbound_msg()
+    patches = _patch_message_construction(mock_msg)
+    with patches[0], patches[1]:
+        with pytest.raises(TimeoutError, match="No path to destination"):
+            await mock_app.send_message(
+                destination_hash=delivery.hex(),
+                content="hi",
+                delivery_method="direct",
+            )
     mock_app._await_transport_path.assert_awaited_once_with(delivery)
 
 
@@ -99,25 +133,30 @@ async def test_send_message_recall_fails_before_path_wait(mock_app):
 @pytest.mark.asyncio
 async def test_send_message_blocks_when_path_unavailable(mock_app):
     destination_hash = "aa" * 16
-    fake_identity = MagicMock()
+    fake_identity = RNS.Identity()
     mock_app.recall_identity = MagicMock(return_value=fake_identity)
     mock_app._await_transport_path = AsyncMock(
         return_value=OutboundPathOutcome(False, "new_path_requested", True),
     )
-    with pytest.raises(TimeoutError, match="No path to destination"):
-        await mock_app.send_message(
-            destination_hash=destination_hash,
-            content="hi",
-            delivery_method="direct",
-        )
+    mock_msg = _mock_outbound_msg()
+    patches = _patch_message_construction(mock_msg)
+    with patches[0], patches[1]:
+        with pytest.raises(TimeoutError, match="No path to destination"):
+            await mock_app.send_message(
+                destination_hash=destination_hash,
+                content="hi",
+                delivery_method="direct",
+            )
     mock_app.message_router.handle_outbound.assert_not_called()
+    mock_msg.pack.assert_called_once()
+    mock_app.db_upsert_lxmf_message.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_send_message_propagated_awaits_prop_node_path(mock_app):
     destination_hash = "aa" * 16
     prop_node = b"\xbb" * 16
-    fake_identity = MagicMock()
+    fake_identity = RNS.Identity()
     mock_app.recall_identity = MagicMock(return_value=fake_identity)
     mock_app.message_router.get_outbound_propagation_node.return_value = prop_node
     mock_app.message_router.propagation_destination = MagicMock(hash=b"\xcc" * 16)
@@ -156,25 +195,29 @@ async def test_send_message_propagated_awaits_prop_node_path(mock_app):
 async def test_send_message_propagated_blocks_without_prop_node_path(mock_app):
     destination_hash = "aa" * 16
     prop_node = b"\xbb" * 16
-    mock_app.recall_identity = MagicMock(return_value=MagicMock())
+    mock_app.recall_identity = MagicMock(return_value=RNS.Identity())
     mock_app.message_router.get_outbound_propagation_node.return_value = prop_node
     mock_app.message_router.propagation_destination = MagicMock(hash=b"\xcc" * 16)
     mock_app._await_transport_path = AsyncMock(
         return_value=OutboundPathOutcome(False, "new_path_requested", True),
     )
-    with pytest.raises(TimeoutError, match="propagation node"):
-        await mock_app.send_message(
-            destination_hash=destination_hash,
-            content="hi",
-            delivery_method="propagated",
-        )
+    mock_msg = _mock_outbound_msg()
+    patches = _patch_message_construction(mock_msg)
+    with patches[0], patches[1]:
+        with pytest.raises(TimeoutError, match="propagation node"):
+            await mock_app.send_message(
+                destination_hash=destination_hash,
+                content="hi",
+                delivery_method="propagated",
+            )
     mock_app.message_router.handle_outbound.assert_not_called()
+    mock_msg.pack.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_send_message_propagated_requires_preferred_node(mock_app):
     destination_hash = "aa" * 16
-    mock_app.recall_identity = MagicMock(return_value=MagicMock())
+    mock_app.recall_identity = MagicMock(return_value=RNS.Identity())
     mock_app.message_router.get_outbound_propagation_node.return_value = None
     with pytest.raises(ValueError, match="preferred propagation node"):
         await mock_app.send_message(
@@ -385,11 +428,14 @@ async def test_send_message_await_path_timeout(mock_app):
         return_value=OutboundPathOutcome(False, "new_path_requested", True),
     )
     destination_hash = "aa" * 16
-    fake_identity = MagicMock()
+    fake_identity = RNS.Identity()
     mock_app.recall_identity = MagicMock(return_value=fake_identity)
 
-    with pytest.raises(TimeoutError, match="No path to destination"):
-        await mock_app.send_message(
-            destination_hash=destination_hash,
-            content="hi",
-        )
+    mock_msg = _mock_outbound_msg()
+    patches = _patch_message_construction(mock_msg)
+    with patches[0], patches[1]:
+        with pytest.raises(TimeoutError, match="No path to destination"):
+            await mock_app.send_message(
+                destination_hash=destination_hash,
+                content="hi",
+            )
