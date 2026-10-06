@@ -348,6 +348,7 @@ export default {
         },
     },
     beforeUnmount() {
+        this._vizUnmounted = true;
         if (this.abortController) {
             this.abortController.abort();
         }
@@ -1130,6 +1131,12 @@ export default {
             if (!opts.skipWarm) {
                 await warmVisualiserWasm();
             }
+            // The wasm warm and each engine await span the route change when
+            // a page visit is short. Renderer or interval work after unmount
+            // would orphan a live graph and its listeners.
+            if (this._vizUnmounted) {
+                return;
+            }
             const preferred = this.preferredRenderer || loadVisualiserDisplayPrefs().renderer || "auto";
 
             if (preferred === "vis") {
@@ -1138,8 +1145,15 @@ export default {
             }
 
             const started = await this.tryStartWebGL();
+            if (this._vizUnmounted) {
+                this.destroyActiveRenderer();
+                return;
+            }
             if (started) {
                 await this.manualUpdate();
+                if (this._vizUnmounted) {
+                    return;
+                }
                 this.restartAutoReloadInterval();
                 return;
             }
@@ -1201,6 +1215,9 @@ export default {
         },
         async initVisNetwork() {
             const container = document.getElementById("network");
+            if (this._vizUnmounted || !container) {
+                return;
+            }
             const isDarkMode = document.documentElement.classList.contains("dark");
             this.rendererMode = "vis";
 

@@ -69,8 +69,13 @@ async function runLighthouseAudit(url, opts = {}) {
         const missing = ["performance", "accessibility", "best-practices"].some(
             (key) => cats[key] == null || cats[key].score == null
         );
-        if (!missing || attempt === 2) {
+        if (!missing) {
             return runnerResult;
+        }
+        if (attempt === 2) {
+            // Let callers retry a partial report the same way they retry a
+            // killed gather: a mid-gather navigation is the usual cause.
+            throw new Error(`Lighthouse returned missing category scores for ${url} (transient gather failure)`);
         }
     }
 }

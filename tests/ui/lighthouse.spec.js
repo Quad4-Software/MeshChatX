@@ -76,7 +76,7 @@ test.describe("Lighthouse page scores (simulated data)", () => {
                     break;
                 } catch (err) {
                     const msg = String((err && err.message) || err);
-                    if (attempt >= 5 || !/navigated or closed|Protocol error/.test(msg)) {
+                    if (attempt >= 5 || !/navigated or closed|Protocol error|missing category scores/.test(msg)) {
                         throw err;
                     }
                     // eslint-disable-next-line no-console
