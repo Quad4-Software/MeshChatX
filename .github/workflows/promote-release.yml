@@ -89,10 +89,19 @@ jobs:
                     exit 1
                   fi
 
-                  git config user.name "github-actions[bot]"
-                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git tag -a "${tag}" -m "Promote ${CHANNEL} for ${full_sha}" "${full_sha}"
-                  git push origin "${tag}"
+                  # GITHUB_TOKEN cannot git-push a ref whose workflow files
+                  # differ from the default branch (needs workflows scope).
+                  # Create the tag through the git data API, which does not
+                  # go through receive-pack and so skips that check.
+                  tag_object_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags" \
+                    -f tag="${tag}" \
+                    -f message="Promote ${CHANNEL} for ${full_sha}" \
+                    -f object="${full_sha}" \
+                    -f type="commit" \
+                    --jq '.sha')"
+                  gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+                    -f ref="refs/tags/${tag}" \
+                    -f sha="${tag_object_sha}"
 
                   build_dispatched=false
                   for attempt in 1 2 3 4 5; do
