@@ -2154,6 +2154,39 @@
                                     </p>
                                 </div>
                                 <div class="flex items-center gap-0.5 shrink-0">
+                                    <DropDownMenu>
+                                        <template #button>
+                                            <button
+                                                type="button"
+                                                class="relative p-1 text-sem-fg-muted transition-colors hover:text-sem-fg shrink-0"
+                                                :title="$t('interfaces.community_filter_title')"
+                                            >
+                                                <MaterialDesignIcon icon-name="filter-variant" class="size-5" />
+                                                <span
+                                                    v-if="communityTypeFilter !== 'all'"
+                                                    class="absolute right-0 top-0 size-2 rounded-full bg-sem-action-primary"
+                                                ></span>
+                                            </button>
+                                        </template>
+                                        <template #items>
+                                            <DropDownMenuItem
+                                                v-for="opt in communityTypeFilterOptions"
+                                                :key="opt.id"
+                                                @click.stop="communityTypeFilter = opt.id"
+                                            >
+                                                <MaterialDesignIcon
+                                                    :icon-name="communityTypeFilter === opt.id ? 'check' : opt.icon"
+                                                    class="w-5 h-5"
+                                                    :class="
+                                                        communityTypeFilter === opt.id
+                                                            ? 'text-sem-accent'
+                                                            : 'text-sem-fg-muted'
+                                                    "
+                                                />
+                                                <span>{{ $t(opt.labelKey) }}</span>
+                                            </DropDownMenuItem>
+                                        </template>
+                                    </DropDownMenu>
                                     <button
                                         type="button"
                                         class="text-sem-fg-muted hover:text-sem-fg-muted hover:text-sem-fg transition-colors p-1 shrink-0"
@@ -2169,7 +2202,7 @@
                                 class="divide-y divide-gray-100 dark:divide-zinc-800 max-h-[min(50vh,28rem)] overflow-y-auto"
                             >
                                 <div
-                                    v-for="communityIface in communityInterfaces"
+                                    v-for="communityIface in filteredCommunityInterfaces"
                                     :key="
                                         communityIface.name +
                                         (communityIface.target_host || '') +
@@ -2178,19 +2211,22 @@
                                     class="flex p-3 sm:p-4 items-center gap-2 hover:bg-sem-surface-muted/30 dark:hover:bg-zinc-800/20 transition-colors"
                                 >
                                     <div class="min-w-0 flex-1">
-                                        <div class="font-bold text-sm text-sem-fg">
+                                        <div
+                                            class="font-bold text-sm text-sem-fg truncate"
+                                            :title="communityIface.name"
+                                        >
                                             {{ communityIface.name }}
                                         </div>
                                         <div
-                                            class="text-[10px] font-mono text-sem-fg-muted mt-0.5 flex flex-wrap items-center gap-2"
+                                            class="text-[10px] font-mono text-sem-fg-muted mt-0.5 flex flex-wrap items-center gap-2 min-w-0"
                                         >
                                             <MaterialDesignIcon icon-name="server-network" class="size-3 shrink-0" />
-                                            <template v-if="communityIface.type === 'I2PInterface'">
-                                                {{ communityIface.target_host }}
-                                            </template>
-                                            <template v-else>
-                                                {{ communityIface.target_host }}:{{ communityIface.target_port }}
-                                            </template>
+                                            <span
+                                                class="truncate max-w-full"
+                                                :title="communityPresetAddress(communityIface)"
+                                            >
+                                                {{ communityPresetAddress(communityIface) }}
+                                            </span>
                                             <span
                                                 v-if="communityIface.online === true"
                                                 class="text-sem-success flex items-center gap-1"
@@ -2336,11 +2372,18 @@ import DialogUtils from "../../js/DialogUtils";
 import { apiPath } from "../../js/constants";
 import ToastUtils from "../../js/ToastUtils";
 import { numOrNull, parseRNodeFrequencyHz } from "../../js/interfaceDiscoveryUtils";
+import {
+    COMMUNITY_FILTER_OPTIONS,
+    communityPresetAddress as presetAddress,
+    filterCommunityInterfaces,
+} from "../../js/interfaces/communityPresetFilter.js";
 import ExpandingSection from "./ExpandingSection.vue";
 import AddInterfaceDiscoveryPanel from "./internal/AddInterfaceDiscoveryPanel.vue";
 import FormLabel from "../forms/FormLabel.vue";
 import Toggle from "../forms/Toggle.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import DropDownMenu from "../DropDownMenu.vue";
+import DropDownMenuItem from "../DropDownMenuItem.vue";
 import BundledDocsHint from "./BundledDocsHint.vue";
 import { RETICULUM_MANUAL_INTERFACES_OVERVIEW_REL } from "../../js/reticulumDocsEntryUrl.js";
 import AndroidBridge from "../../js/rnode/AndroidBridge";
@@ -2355,6 +2398,8 @@ export default {
         AddInterfaceDiscoveryPanel,
         Toggle,
         BundledDocsHint,
+        DropDownMenu,
+        DropDownMenuItem,
     },
     setup() {
         return { ...useRNodeInterfaceForm() };
@@ -2378,6 +2423,7 @@ export default {
 
             communityInterfaces: [],
             communityInterfacesFetchDone: false,
+            communityTypeFilter: "all",
 
             comports: [],
 
@@ -2534,6 +2580,12 @@ export default {
         };
     },
     computed: {
+        communityTypeFilterOptions() {
+            return COMMUNITY_FILTER_OPTIONS;
+        },
+        filteredCommunityInterfaces() {
+            return filterCommunityInterfaces(this.communityInterfaces, this.communityTypeFilter);
+        },
         communityPresetsEnabled() {
             if (this.isEditingInterface) {
                 return false;
@@ -2665,6 +2717,9 @@ export default {
         }
     },
     methods: {
+        communityPresetAddress(iface) {
+            return presetAddress(iface);
+        },
         async loadLocalLinkCapabilities() {
             try {
                 const res = await window.api.get(apiPath("/locallink/capabilities"));
@@ -3591,8 +3646,12 @@ export default {
             if (!config || !config.type || !config.name || this.isSaving) {
                 return;
             }
-            if (config.type === "I2PInterface") {
-                ToastUtils.error(this.$t("interfaces.i2p_import_forbidden"));
+            if (config.type === "I2PInterface" && !this.canAddI2PInterface) {
+                ToastUtils.error(
+                    !this.transportEnabled
+                        ? this.$t("interfaces.i2p_transport_required")
+                        : this.$t("interfaces.i2p_already_exists")
+                );
                 return;
             }
             this.isSaving = true;
