@@ -20,8 +20,14 @@ import json
 import logging
 import sys
 import threading
+from itertools import pairwise
 
 import psutil
+
+try:
+    import resource
+except ImportError:  # Windows has no resource module
+    resource = None
 
 _log = logging.getLogger("meshchatx.health_monitor")
 
@@ -44,6 +50,11 @@ class HealthMonitor:
     IO_WARN_AVG10 = 25.0
     IO_RECOVER_AVG10 = 10.0
     CONSECUTIVE_NEEDED = 2  # consecutive bad readings before alert
+    # File descriptor tracking: an absolute warning near the soft limit
+    # plus a growth-trend warning for slow leaks that never reach it.
+    FD_WARN_FRACTION = 0.8  # warn at >=80% of the NOFILE soft limit
+    FD_LEAK_GROWTH = 0.5  # warn when the count grew >50% across the window
+    FD_LEAK_MIN_DELTA = 128  # plus this absolute delta as a noise floor
 
     def __init__(self, log_handler, app=None):
         self.log_handler = log_handler
@@ -60,6 +71,8 @@ class HealthMonitor:
         self._io_avg10_history = collections.deque(maxlen=self.ENTROPY_WINDOW)
         self._loop_probe_thread = None
         self._loop_stall_reported = False
+        self._fd_history = collections.deque(maxlen=self.ENTROPY_WINDOW)
+        self._process = None
 
     def start(self):
         if self._running:
@@ -225,6 +238,34 @@ class HealthMonitor:
             ):
                 self._recover_io_pressure(io_avg10)
 
+        fd_count, fd_soft_limit = self._read_fd_stats()
+        if fd_count is not None:
+            self._fd_history.append(fd_count)
+            if fd_soft_limit and fd_count >= fd_soft_limit * self.FD_WARN_FRACTION:
+                warnings.append(
+                    {
+                        "kind": "fd_pressure",
+                        "message": (
+                            f"File descriptor usage high: "
+                            f"{fd_count}/{fd_soft_limit} "
+                            f"({fd_count / fd_soft_limit:.0%} of limit)"
+                        ),
+                        "value": fd_count,
+                    },
+                )
+            elif self._fd_growth_detected(fd_count):
+                warnings.append(
+                    {
+                        "kind": "fd_growth",
+                        "message": (
+                            f"File descriptor count climbing: "
+                            f"{self._fd_history[0]} -> {fd_count} over the "
+                            f"health window - possible descriptor leak"
+                        ),
+                        "value": fd_count,
+                    },
+                )
+
         if self._consecutive_below(self._mem_available_history, self.MEMORY_WARN_MB):
             warnings.append(
                 {
@@ -243,6 +284,55 @@ class HealthMonitor:
         for w in warnings:
             _log.warning("Health warning: %s", w["message"])
             self._broadcast(w)
+
+    def _read_fd_stats(self):
+        """Return (fd_count, soft_limit) using the best per-platform probe.
+
+        num_fds covers Linux/macOS; num_handles is the Windows equivalent
+        (threads and handles lumped together, but the trend is still the
+        leak signal). The soft limit comes from RLIMIT_NOFILE; platforms
+        without the resource module report None.
+        """
+        try:
+            if self._process is None:
+                self._process = psutil.Process()
+            if hasattr(self._process, "num_fds"):
+                count = self._process.num_fds()
+            elif hasattr(self._process, "num_handles"):
+                count = self._process.num_handles()
+            else:
+                return None, None
+            if not isinstance(count, (int, float)):
+                return None, None
+            count = int(count)
+        except Exception:
+            return None, None
+        soft = None
+        if resource is not None:
+            try:
+                soft, _ = resource.getrlimit(resource.RLIMIT_NOFILE)
+            except (OSError, ValueError):
+                soft = None
+            if soft is not None and soft < 0:
+                soft = None
+        return count, soft
+
+    def _fd_growth_detected(self, latest: int) -> bool:
+        """True when the fd count has been rising across the whole window.
+
+        A real leak produces a near-monotonic climb; require the window to
+        be full and most steps increasing so transient bursts (announce
+        sweeps, sync storms) do not fire it.
+        """
+        history = list(self._fd_history)
+        if len(history) < self.ENTROPY_WINDOW:
+            return False
+        first = history[0]
+        delta_needed = max(self.FD_LEAK_MIN_DELTA, int(first * self.FD_LEAK_GROWTH))
+        if latest < first + delta_needed:
+            return False
+        ups = sum(1 for a, b in pairwise(history) if b > a)
+        return ups >= len(history) - 2
 
     @staticmethod
     def _read_io_pressure():

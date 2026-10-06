@@ -160,3 +160,54 @@ describe("healthMemoryWarning", () => {
         });
     });
 });
+
+describe("fd warning payloads", () => {
+    beforeEach(() => {
+        resetMemoryWarningStateForTests();
+    });
+
+    it("shows the backend message once per kind", () => {
+        const toastUtils = { warning: vi.fn() };
+        const payload = {
+            data: {
+                kind: "fd_pressure",
+                message: "File descriptor usage high: 900/1024 (88% of limit)",
+            },
+        };
+        expect(handleHealthWarningPayload(payload, toastUtils)).toBe("shown");
+        expect(toastUtils.warning).toHaveBeenCalledWith(
+            "File descriptor usage high: 900/1024 (88% of limit)",
+            8000,
+            "health-fd-fd_pressure",
+        );
+        // second occurrence of the same kind is deduped for the session
+        expect(handleHealthWarningPayload(payload, toastUtils)).toBe("ignored");
+        expect(toastUtils.warning).toHaveBeenCalledTimes(1);
+    });
+
+    it("fd_growth warns independently of fd_pressure", () => {
+        const toastUtils = { warning: vi.fn() };
+        expect(
+            handleHealthWarningPayload(
+                { data: { kind: "fd_pressure", message: "near limit" } },
+                toastUtils,
+            ),
+        ).toBe("shown");
+        expect(
+            handleHealthWarningPayload(
+                { data: { kind: "fd_growth", message: "climbing" } },
+                toastUtils,
+            ),
+        ).toBe("shown");
+        expect(toastUtils.warning).toHaveBeenCalledTimes(2);
+    });
+
+    it("ignores unrelated kinds and missing messages", () => {
+        const toastUtils = { warning: vi.fn() };
+        expect(
+            handleHealthWarningPayload({ data: { kind: "io_pressure" } }, toastUtils),
+        ).toBe("ignored");
+        expect(handleHealthWarningPayload(null, toastUtils)).toBe("ignored");
+        expect(toastUtils.warning).not.toHaveBeenCalled();
+    });
+});
