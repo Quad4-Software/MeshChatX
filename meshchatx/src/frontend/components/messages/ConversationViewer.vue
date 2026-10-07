@@ -157,7 +157,11 @@
                                     v-for="entry in selectedPeerChatDisplayGroupsOldestFirstAugmented"
                                     :key="entry.key"
                                 >
-                                    <ConversationMessageEntry :entry="entry" :cv="conversationViewerSelf" />
+                                    <ConversationMessageEntry
+                                        :entry="entry"
+                                        :cv="conversationViewerSelf"
+                                        :class="{ 'msg-enter-self': freshInboundFlowKeys.has(entry.key) }"
+                                    />
                                 </template>
                             </div>
                         </template>
@@ -188,6 +192,7 @@
                             <ConversationMessageListVirtual
                                 ref="messageListVirtual"
                                 :groups="selectedPeerChatDisplayGroupsOldestFirstAugmented"
+                                :list-key="selectedPeer ? selectedPeer.destination_hash : ''"
                                 :get-scroll-element="getMessagesScrollElement"
                                 :cv="conversationViewerSelf"
                             />
@@ -1709,7 +1714,7 @@ import {
     stashConversationFirstPage,
     takeConversationPrefetch,
 } from "../../js/conversationPrefetch.js";
-import { displayGroupsOldestFirst, MIN_VIRTUAL_DISPLAY_GROUPS } from "./messageListVirtual.js";
+import { diffFreshInboundKeys, displayGroupsOldestFirst, MIN_VIRTUAL_DISPLAY_GROUPS } from "./messageListVirtual.js";
 import {
     buildDisplayGroupsNewestFirst,
     prependDisplayGroupsNewestFirst,
@@ -1889,6 +1894,7 @@ export default {
             loadPreviousInFlight: 0,
             hasMorePrevious: true,
             chatWindowTailTrimmed: false,
+            freshInboundFlowKeys: new Set(),
 
             newMessageDeliveryMethod: null,
             newMessageText: "",
@@ -2478,6 +2484,36 @@ export default {
                 if (!value && !this.initialLoadActive) {
                     this.messagesViewportReady = true;
                 }
+            },
+        },
+        // Flow-mode entrance animation for inbound messages appended while
+        // the conversation is open. Switching peers re-primes the seen-key
+        // set so existing history never animates. The virtual list does its
+        // own tracking via the listKey prop.
+        selectedPeerChatDisplayGroupsOldestFirstAugmented: {
+            handler(groups) {
+                const peerKey = this.selectedPeer ? this.selectedPeer.destination_hash : "";
+                if (!this._flowMsgListState || this._flowMsgListState.peerKey !== peerKey) {
+                    this._flowMsgListState = {
+                        peerKey,
+                        known: new Set((groups || []).map((g) => g.key)),
+                    };
+                    this.freshInboundFlowKeys = new Set();
+                    return;
+                }
+                const { fresh, nextKeys } = diffFreshInboundKeys(groups, this._flowMsgListState.known);
+                this._flowMsgListState.known = nextKeys;
+                if (!fresh.length) {
+                    return;
+                }
+                const merged = new Set(this.freshInboundFlowKeys);
+                fresh.forEach((k) => merged.add(k));
+                this.freshInboundFlowKeys = merged;
+                setTimeout(() => {
+                    const pruned = new Set(this.freshInboundFlowKeys);
+                    fresh.forEach((k) => pruned.delete(k));
+                    this.freshInboundFlowKeys = pruned;
+                }, 700);
             },
         },
         showTelemetryInChat() {

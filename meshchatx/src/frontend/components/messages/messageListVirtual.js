@@ -78,3 +78,35 @@ export function findDisplayGroupIndexForMessageHash(groupsOldestFirst, hash) {
     }
     return -1;
 }
+
+/**
+ * Keys for inbound groups appended at the tail of an already-live list.
+ * The caller keeps a Set of keys it has seen; only brand-new keys inside
+ * the last positions animate, so opening a conversation, loading older
+ * history, and virtual-scroll remounts never play the entrance.
+ *
+ * @param {unknown[]} groupsOldestFirst
+ * @param {Set<string>} knownKeys
+ * @param {number} tailWindow
+ * @returns {{ fresh: string[], nextKeys: Set<unknown> }}
+ */
+export function diffFreshInboundKeys(groupsOldestFirst, knownKeys, tailWindow = 6) {
+    const fresh = [];
+    const nextKeys = new Set();
+    if (!Array.isArray(groupsOldestFirst)) {
+        return { fresh, nextKeys };
+    }
+    const tailStart = Math.max(0, groupsOldestFirst.length - tailWindow);
+    groupsOldestFirst.forEach((g, i) => {
+        const key = g?.key;
+        nextKeys.add(key);
+        if (i < tailStart || knownKeys.has(key)) {
+            return;
+        }
+        const item = g?.items?.[0] ?? g?.chatItem;
+        if (item && item.is_outbound === false) {
+            fresh.push(key);
+        }
+    });
+    return { fresh, nextKeys };
+}

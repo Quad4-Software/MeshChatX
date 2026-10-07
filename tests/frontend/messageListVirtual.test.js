@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+    diffFreshInboundKeys,
     MIN_VIRTUAL_DISPLAY_GROUPS,
     displayGroupsOldestFirst,
     estimateGroupHeight,
@@ -74,5 +75,66 @@ describe("messageListVirtual.js", () => {
 
     it("MIN_VIRTUAL_DISPLAY_GROUPS is a positive threshold", () => {
         expect(MIN_VIRTUAL_DISPLAY_GROUPS).toBeGreaterThan(10);
+    });
+});
+
+describe("diffFreshInboundKeys", () => {
+    const single = (key, is_outbound = false) => ({
+        type: "single",
+        key,
+        chatItem: { is_outbound },
+    });
+    const imageGroup = (key, is_outbound = false) => ({
+        type: "imageGroup",
+        key,
+        items: [{ is_outbound }],
+    });
+
+    it("flags inbound keys appended at the tail", () => {
+        const known = new Set(["a", "b"]);
+        const groups = [single("a"), single("b"), single("c")];
+        const { fresh, nextKeys } = diffFreshInboundKeys(groups, known);
+        expect(fresh).toEqual(["c"]);
+        expect(nextKeys.has("c")).toBe(true);
+    });
+
+    it("skips outbound keys appended at the tail", () => {
+        const known = new Set(["a"]);
+        const groups = [single("a"), single("b", true)];
+        expect(diffFreshInboundKeys(groups, known).fresh).toEqual([]);
+    });
+
+    it("skips known keys and non-message groups", () => {
+        const known = new Set(["a", "b"]);
+        const groups = [
+            single("a"),
+            { type: "dateDivider", key: "d1" },
+            single("b"),
+        ];
+        expect(diffFreshInboundKeys(groups, known).fresh).toEqual([]);
+    });
+
+    it("does not flag keys appended beyond the tail window", () => {
+        const known = new Set(["a"]);
+        const groups = [single("n1")].concat(
+            [single("a")],
+            Array.from({ length: 10 }, (_, i) => single(`t${i}`)),
+        );
+        // n1 sits at index 0, outside the last-6 window -> not fresh
+        const { fresh } = diffFreshInboundKeys(groups, known);
+        expect(fresh).not.toContain("n1");
+        expect(fresh.length).toBe(6);
+    });
+
+    it("flags inbound image groups", () => {
+        const known = new Set(["a"]);
+        const groups = [single("a"), imageGroup("g1")];
+        expect(diffFreshInboundKeys(groups, known).fresh).toEqual(["g1"]);
+    });
+
+    it("handles empty and non-array input", () => {
+        const { fresh, nextKeys } = diffFreshInboundKeys(null, new Set());
+        expect(fresh).toEqual([]);
+        expect(nextKeys.size).toBe(0);
     });
 });

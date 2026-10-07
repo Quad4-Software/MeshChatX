@@ -8,6 +8,7 @@
             :ref="measureElement"
             :data-index="v.index"
             class="absolute left-0 top-0 w-full box-border px-0 [overflow-anchor:none]"
+            :class="{ 'msg-enter': freshInboundKeys.has(groups[v.index]?.key) }"
             :style="{ transform: `translateY(${v.start}px)` }"
         >
             <ConversationMessageEntry :entry="groups[v.index]" :cv="cv" />
@@ -16,10 +17,14 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { useVirtualizer } from "@tanstack/vue-virtual";
 import ConversationMessageEntry from "./ConversationMessageEntry.vue";
-import { estimateGroupHeight, findDisplayGroupIndexForMessageHash } from "./messageListVirtual.js";
+import {
+    diffFreshInboundKeys,
+    estimateGroupHeight,
+    findDisplayGroupIndexForMessageHash,
+} from "./messageListVirtual.js";
 
 const props = defineProps({
     groups: {
@@ -34,6 +39,12 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    // Identifies the conversation (peer hash). Switching peers resets the
+    // seen-key tracking so existing history never animates on open.
+    listKey: {
+        type: String,
+        default: "",
+    },
 });
 
 const virtualizer = useVirtualizer(
@@ -47,6 +58,35 @@ const virtualizer = useVirtualizer(
 
 const virtualItems = computed(() => virtualizer.value.getVirtualItems());
 const totalSize = computed(() => virtualizer.value.getTotalSize());
+
+// Keys of inbound groups appended while the list is live. They get a short
+// entrance animation on the inner entry; scroll remounts and history
+// prepends stay static because only tail additions are tracked.
+const freshInboundKeys = ref(new Set());
+let knownKeys = new Set();
+let primedKey = null;
+
+watch([() => props.groups, () => props.listKey], ([groups]) => {
+    if (primedKey !== props.listKey) {
+        primedKey = props.listKey;
+        knownKeys = new Set(groups.map((g) => g.key));
+        freshInboundKeys.value = new Set();
+        return;
+    }
+    const { fresh, nextKeys } = diffFreshInboundKeys(groups, knownKeys);
+    knownKeys = nextKeys;
+    if (!fresh.length) {
+        return;
+    }
+    const merged = new Set(freshInboundKeys.value);
+    fresh.forEach((k) => merged.add(k));
+    freshInboundKeys.value = merged;
+    setTimeout(() => {
+        const pruned = new Set(freshInboundKeys.value);
+        fresh.forEach((k) => pruned.delete(k));
+        freshInboundKeys.value = pruned;
+    }, 700);
+});
 
 function measureElement(el) {
     if (el) {
