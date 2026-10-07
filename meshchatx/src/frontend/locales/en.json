@@ -1777,7 +1777,8 @@
         "discovered_import_result": "Imported {imported} discovered interface(s), skipped {skipped}",
         "discovered_import_failed": "Failed to import discovered interfaces",
         "previous": "Previous",
-        "next": "Next"
+        "next": "Next",
+        "rnode_bt_permission_denied": "Bluetooth permission is required for this RNode transport. Grant it in app settings and try again."
     },
     "map": {
         "title": "Map",

@@ -815,7 +815,7 @@
                                                     <Toggle
                                                         id="rnode-use-ble"
                                                         :model-value="newInterfaceRNodeUseBle"
-                                                        @update:model-value="setRNodeTransportBle"
+                                                        @update:model-value="onRNodeBleToggled"
                                                     />
                                                     <FormLabel
                                                         for="rnode-use-ble"
@@ -827,7 +827,7 @@
                                                     <Toggle
                                                         id="rnode-use-bt"
                                                         :model-value="newInterfaceRNodeUseBt"
-                                                        @update:model-value="setRNodeTransportBt"
+                                                        @update:model-value="onRNodeBtToggled"
                                                     />
                                                     <FormLabel
                                                         for="rnode-use-bt"
@@ -2743,6 +2743,35 @@ export default {
                 this.awarePermissionRequesting = false;
             }
         },
+        async requestRNodeBluetoothPermission() {
+            // RNode BLE and classic Bluetooth both fail silently on Android
+            // without BLUETOOTH_CONNECT/BLUETOOTH_SCAN, so ask while the user
+            // is still looking at the form instead of after a dead attach.
+            if (!this.androidBridge.isAvailable()) {
+                return;
+            }
+            if (this.androidBridge.hasPermission(AndroidBridge.PERM_BLUETOOTH)) {
+                return;
+            }
+            const result = await this.androidBridge.requestPermission(AndroidBridge.PERM_BLUETOOTH);
+            if (result === "settings") {
+                ToastUtils.error(this.$t("interfaces.rnode_bt_permission_denied"));
+            } else if (result !== "granted" && result !== "requested" && result !== true) {
+                ToastUtils.warning(this.$t("interfaces.rnode_bt_permission_denied"));
+            }
+        },
+        async onRNodeBleToggled(value) {
+            this.setRNodeTransportBle(value);
+            if (value) {
+                await this.requestRNodeBluetoothPermission();
+            }
+        },
+        async onRNodeBtToggled(value) {
+            this.setRNodeTransportBt(value);
+            if (value) {
+                await this.requestRNodeBluetoothPermission();
+            }
+        },
         applyDiscoveryPatch(patch) {
             this.discovery = {
                 ...this.discovery,
@@ -3720,6 +3749,13 @@ export default {
                         ToastUtils.error(this.$t("interfaces.i2p_peers_required"));
                         return;
                     }
+                }
+
+                if (
+                    this.newInterfaceType === "RNodeInterface" &&
+                    (this.newInterfaceRNodeUseBle || this.newInterfaceRNodeUseBt)
+                ) {
+                    await this.requestRNodeBluetoothPermission();
                 }
 
                 if (this.newInterfaceType === "RNodeInterface" && this.newInterfaceRNodeUseBle) {

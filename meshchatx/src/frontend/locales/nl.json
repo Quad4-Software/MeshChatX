@@ -1777,7 +1777,8 @@
         "community_filter_backbone": "Backbone",
         "community_filter_i2p": "I2P",
         "community_filter_yggdrasil": "Yggdrasil",
-        "community_filter_other": "Other"
+        "community_filter_other": "Other",
+        "rnode_bt_permission_denied": "Bluetooth permission is required for this RNode transport. Grant it in app settings and try again."
     },
     "map": {
         "title": "Kaart",
