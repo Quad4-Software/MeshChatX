@@ -159,13 +159,23 @@ def test_hints_announce_and_rrc_and_crawler():
             },
         ],
     }
+    from meshchatx.src.backend.rrc.manager import RRCHub
+
     hints = compute_hints(
         payload,
         _App(
             _Ctx(
                 config=_Cfg(crawler_enabled=_BoolCfg(True)),
                 rrc_manager=type(
-                    "M", (), {"hubs": [type("H", (), {"status": "connected"})()]}
+                    "M",
+                    (),
+                    {
+                        "hubs": [
+                            type("H", (), {"status": RRCHub.STATUS_CONNECTED})(),
+                            type("H", (), {"status": RRCHub.STATUS_CONNECTED})(),
+                            type("H", (), {"status": RRCHub.STATUS_DISCONNECTED})(),
+                        ],
+                    },
                 )(),
             )
         ),
@@ -174,6 +184,8 @@ def test_hints_announce_and_rrc_and_crawler():
     assert "announce_discovery" in ids
     assert "rrc_hubs" in ids
     assert "crawler" in ids
+    hubs_hint = next(h for h in hints if h["id"] == "rrc_hubs")
+    assert hubs_hint["params"]["hubs"] == 2
 
 
 def test_hints_propagation_inbound_only():
