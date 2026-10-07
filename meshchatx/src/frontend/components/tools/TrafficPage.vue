@@ -21,13 +21,13 @@
                 <button
                     type="button"
                     class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-sem-warning text-white text-sm font-medium hover:bg-sem-warning disabled:opacity-50 disabled:pointer-events-none"
-                    :disabled="isLoading"
-                    @click="refresh"
+                    :disabled="isRefreshing"
+                    @click="refresh(true)"
                 >
                     <MaterialDesignIcon
                         icon-name="refresh"
                         class="h-4 w-4 shrink-0"
-                        :class="{ 'animate-spin-reverse': isLoading }"
+                        :class="{ 'animate-spin-reverse': isRefreshing }"
                     />
                     <span class="hidden sm:inline">{{ $t("rnstatus.refresh") }}</span>
                 </button>
@@ -302,6 +302,7 @@ export default {
             data: null,
             error: null,
             isLoading: false,
+            isRefreshing: false,
             pollTimer: null,
             paused: false,
         };
@@ -348,9 +349,12 @@ export default {
         }
     },
     methods: {
-        async refresh() {
+        async refresh(manual = false) {
             if (this.isLoading) return;
             this.isLoading = true;
+            if (manual) {
+                this.isRefreshing = true;
+            }
             try {
                 const response = await window.api.get(apiPath("/reticulum/traffic"));
                 this.data = response?.data || null;
@@ -359,6 +363,7 @@ export default {
                 this.error = this.$t("traffic.load_failed");
             } finally {
                 this.isLoading = false;
+                this.isRefreshing = false;
             }
         },
         sparkMax(field) {
