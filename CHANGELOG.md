@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.10.3] - TBD [unreleased]
+
 ## [4.10.2] - 2026-10-07 [released]
 
 ### Fixed
