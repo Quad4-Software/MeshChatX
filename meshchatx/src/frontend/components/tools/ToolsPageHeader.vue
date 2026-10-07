@@ -2,29 +2,29 @@
 
 <template>
     <div
-        class="flex flex-wrap items-center gap-x-2 gap-y-2 pl-1.5 pr-3 sm:pl-2 sm:pr-4 md:pl-4 md:pr-6 py-3 sm:py-4 border-b border-sem-border bg-sem-canvas shrink-0 min-w-0"
+        class="flex flex-wrap items-center gap-x-2 gap-y-1.5 pl-1.5 pr-3 sm:pl-2 sm:pr-4 md:pl-4 md:pr-6 py-1.5 sm:py-2 border-b border-sem-border bg-sem-canvas shrink-0 min-w-0"
     >
         <RouterLink
             :to="backTo"
-            class="inline-flex items-center justify-center gap-0.5 sm:gap-1 rounded-lg pl-0 pr-1.5 sm:pr-2 py-2 min-h-9 min-w-9 sm:min-w-0 text-sm font-medium text-sem-fg-muted hover:bg-sem-surface-muted transition-colors shrink-0 order-first"
+            class="inline-flex items-center justify-center gap-0.5 sm:gap-1 rounded-lg pl-0 pr-1.5 sm:pr-2 py-1.5 min-h-8 min-w-8 sm:min-w-0 text-sm font-medium text-sem-fg-muted hover:bg-sem-surface-muted transition-colors shrink-0 order-first"
             :aria-label="$t('tools.back_to_tools')"
         >
-            <MaterialDesignIcon icon-name="chevron-left" class="size-6 sm:size-5 shrink-0" />
+            <MaterialDesignIcon icon-name="chevron-left" class="size-5 shrink-0" />
             <span class="hidden sm:inline truncate max-w-[8rem]">{{ resolvedBackLabel }}</span>
         </RouterLink>
 
-        <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 basis-0">
-            <div class="p-2 rounded-lg shrink-0" :class="iconWrapClass">
-                <MaterialDesignIcon :icon-name="icon" class="size-5 sm:size-6" :class="iconClass" />
+        <div class="flex items-center gap-2 min-w-0 flex-1 basis-0">
+            <div class="p-1.5 rounded-lg shrink-0" :class="iconWrapClass">
+                <MaterialDesignIcon :icon-name="icon" class="size-4 sm:size-5" :class="iconClass" />
             </div>
             <div class="min-w-0">
-                <p v-if="eyebrow" class="text-xs uppercase tracking-wide text-sem-fg-muted truncate">
+                <p v-if="eyebrow" class="text-[11px] leading-tight uppercase tracking-wide text-sem-fg-muted truncate">
                     {{ eyebrow }}
                 </p>
-                <h1 class="text-lg sm:text-xl font-bold text-sem-fg truncate">
+                <h1 class="text-base sm:text-lg font-bold text-sem-fg leading-snug truncate">
                     {{ title }}
                 </h1>
-                <p v-if="description" class="text-xs sm:text-sm text-sem-fg-muted line-clamp-2 sm:line-clamp-none">
+                <p v-if="description" class="text-xs text-sem-fg-muted leading-snug line-clamp-1 sm:line-clamp-2">
                     {{ description }}
                 </p>
             </div>
