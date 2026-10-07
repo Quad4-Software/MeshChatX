@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.10.2] - TBD [unreleased]
+## [4.10.2] - 2026-10-07 [released]
 
 ### Fixed
 
@@ -25,6 +25,9 @@ All notable changes to this project will be documented in this file.
 - Android: Bluetooth RNode interfaces (BLE and classic) added or imported through the UI now write the Android-native Reticulum keys at save time, so the live attach takes the Bluetooth path instead of treating a bt:// or ble:// port as a dead USB serial device. Leftover Bluetooth keys are also stripped when an interface is switched back to serial or TCP, since the Android implementation lets stale ble_* settings override the port.
 - Android: the RNode form now asks for Bluetooth permission when the BLE or Bluetooth transport is enabled, instead of relying on the bundled startup prompt that can be dismissed and never re-shown.
 - Android (build): the bundled Reticulum wheel now guards paired-device enumeration against devices with no name and denied Bluetooth permissions, so one bad bonding record or a missing grant no longer kills RNode Bluetooth bring-up.
+- Relay chat: the hide join/part preference now applies. A setup-time read shadowed the setting's lookup, so presence lines kept rendering and the toggle wrote the old value back to storage.
+- Tools: the traffic page refresh button no longer flashes on every background poll; the spinner now only runs for manual refreshes.
+- Tools: the traffic page RRC hint now counts connected hubs by the real status constant instead of a string comparison that always read zero.
 
 ### Added
 
@@ -37,6 +40,8 @@ All notable changes to this project will be documented in this file.
 - Maps: the tile server URL now accepts TileJSON endpoints (URLs ending in .json). Tile templates, attribution, zoom range, bounds, relative tile URLs, and scheme:tms are honored, and a bad document falls back to the next provider like a failed tile server.
 - Translator: the pack catalog now shows both directions of a language pair as a single bidirectional entry, and downloading it installs every direction present in the catalog. A search field filters the catalog by language or pair code.
 - Updated Python deps: rns 1.5.7, lxst 0.5.4 floor.
+- Messages: inbound messages that arrive while a conversation is open now enter with a short fade-and-rise instead of appearing instantly. History, outbound messages, and reduced-motion settings are unaffected.
+- Tools: shared tool page headers are slimmer so tool content gets more vertical space.
 
 ## [4.10.1] - 2026-10-04 [released]
 
