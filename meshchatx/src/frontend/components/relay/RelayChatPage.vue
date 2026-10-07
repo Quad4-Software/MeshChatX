@@ -1897,9 +1897,14 @@ export default {
                 // never reveal them again.
                 excludeMessage: (msg) => inst?.proxy.isIgnoredMsg(msg),
                 decorateMessages: (msgs) => inst?.proxy.applyLocalHighlightFlags(msgs),
+                // Read via $data, not the instance proxy. The immediate
+                // messages watcher calls this during setup() before data()
+                // is applied, and a proxy get at that time caches the key
+                // against ctx, shadowing the data property for the life of
+                // the component.
                 buildTimelineOptions: () => ({
-                    hideJoinPart: inst?.proxy.hideJoinPart === true,
-                    unreadBeforeSeq: inst?.proxy.unreadDividerSeq ?? null,
+                    hideJoinPart: inst?.proxy.$data?.hideJoinPart === true,
+                    unreadBeforeSeq: inst?.proxy.$data?.unreadDividerSeq ?? null,
                 }),
                 onScrollState: (el, distanceToBottom) => inst?.proxy._onMessagesScrollState(distanceToBottom),
                 t: (...args) => inst?.proxy.$t(...args),

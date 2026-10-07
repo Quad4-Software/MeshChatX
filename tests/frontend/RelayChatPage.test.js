@@ -1599,6 +1599,7 @@ describe("RelayChatPage.vue", () => {
                 const wrapper = mountPage();
                 await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
                 wrapper.vm.setHideJoinPart(true);
+                expect(wrapper.vm.hideJoinPart).toBe(true);
                 expect(JSON.parse(localStorage.getItem("meshchatx.rrc.prefs") || "{}")._?.hideJoinPart).toBe(true);
                 useConfigStore().config = { identity_hash: "id-real" };
                 await vi.waitFor(() => expect(wrapper.vm.relayPrefsLoadedKey).toBe("id-real"));
