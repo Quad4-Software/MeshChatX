@@ -915,3 +915,358 @@ def test_normalize_bluetooth_is_noop_off_android(tmp_path):
     )
     text = config_path.read_text(encoding="utf-8")
     assert "port = ble://MyRNode" in text
+
+
+def test_translate_bluetooth_port_bt_name():
+    iface = {"type": "RNodeInterface", "port": "bt://MyRNode"}
+    assert rnode_support.translate_rnode_bluetooth_port_for_android(iface) is True
+    assert "port" not in iface
+    assert iface["allow_bluetooth"] is True
+    assert iface["target_device_name"] == "MyRNode"
+
+
+def test_translate_bluetooth_port_bt_address():
+    iface = {"type": "RNodeInterface", "port": "bt://aa:bb:cc:dd:ee:ff"}
+    assert rnode_support.translate_rnode_bluetooth_port_for_android(iface) is True
+    assert "port" not in iface
+    assert iface["allow_bluetooth"] is True
+    assert iface["target_device_address"] == "aa:bb:cc:dd:ee:ff"
+    assert "target_device_name" not in iface
+
+
+def test_translate_bluetooth_port_bare_bt():
+    iface = {"type": "RNodeInterface", "port": "bt://"}
+    assert rnode_support.translate_rnode_bluetooth_port_for_android(iface) is True
+    assert "port" not in iface
+    assert iface["allow_bluetooth"] is True
+    assert "target_device_name" not in iface
+    assert "target_device_address" not in iface
+
+
+def test_translate_bluetooth_port_ble_name():
+    iface = {"type": "RNodeInterface", "port": "ble://MyRNode"}
+    assert rnode_support.translate_rnode_bluetooth_port_for_android(iface) is True
+    assert "port" not in iface
+    assert iface["ble_name"] == "MyRNode"
+
+
+def test_translate_bluetooth_port_ble_address():
+    iface = {"type": "RNodeInterface", "port": "ble://aabbccddeeff"}
+    assert rnode_support.translate_rnode_bluetooth_port_for_android(iface) is True
+    assert "port" not in iface
+    assert iface["ble_addr"] == "aabbccddeeff"
+
+
+def test_translate_bluetooth_port_bare_ble():
+    iface = {"type": "RNodeInterface", "port": "ble://"}
+    assert rnode_support.translate_rnode_bluetooth_port_for_android(iface) is True
+    assert "port" not in iface
+    assert iface["force_ble"] is True
+
+
+def test_translate_bluetooth_port_strips_stale_bt_keys_on_serial():
+    """Stale Bluetooth keys must not survive a switch back to serial."""
+    iface = {
+        "type": "RNodeInterface",
+        "port": "/dev/ttyUSB0",
+        "ble_name": "MyRNode",
+        "allow_bluetooth": "yes",
+        "target_device_name": "MyRNode",
+    }
+    assert rnode_support.translate_rnode_bluetooth_port_for_android(iface) is True
+    assert iface["port"] == "/dev/ttyUSB0"
+    for key in (
+        "ble_name",
+        "ble_addr",
+        "force_ble",
+        "allow_bluetooth",
+        "target_device_name",
+        "target_device_address",
+    ):
+        assert key not in iface
+
+
+def test_translate_bluetooth_port_strips_stale_ble_keys_on_tcp_host():
+    iface = {
+        "type": "RNodeInterface",
+        "tcp_host": "10.0.0.2:7633",
+        "ble_addr": "aa:bb:cc:dd:ee:ff",
+    }
+    assert rnode_support.translate_rnode_bluetooth_port_for_android(iface) is True
+    assert "ble_addr" not in iface
+    assert iface["tcp_host"] == "10.0.0.2:7633"
+
+
+def test_translate_bluetooth_port_untouched_serial():
+    iface = {"type": "RNodeInterface", "port": "/dev/ttyUSB0"}
+    assert rnode_support.translate_rnode_bluetooth_port_for_android(iface) is False
+    assert iface == {"type": "RNodeInterface", "port": "/dev/ttyUSB0"}
+
+
+def test_translate_bluetooth_port_blank_port_with_allow_bluetooth():
+    iface = {
+        "type": "RNodeInterface",
+        "port": "",
+        "allow_bluetooth": "true",
+        "target_device_name": "MyRNode",
+    }
+    assert rnode_support.translate_rnode_bluetooth_port_for_android(iface) is True
+    assert "port" not in iface
+    assert iface["target_device_name"] == "MyRNode"
+
+
+def test_normalize_bluetooth_strips_stale_ble_keys_on_serial(tmp_path):
+    """Startup normalization strips leftover Bluetooth keys on a real port."""
+    config_path = _write_rnode_config(
+        tmp_path,
+        "port = /dev/ttyUSB0\nble_name = OldRNode\nallow_bluetooth = yes\n",
+    )
+    assert (
+        rnode_support.normalize_rnode_bluetooth_in_config(
+            str(config_path), is_android=True
+        )
+        is True
+    )
+    text = config_path.read_text(encoding="utf-8")
+    assert "port = /dev/ttyUSB0" in text
+    assert "ble_name" not in text
+    assert "allow_bluetooth" not in text
+
+
+# --- Route-level: Android writes translated keys, not bt:///ble:// ports ---
+
+
+def _route_config_dict(interfaces=None):
+    class ConfigDict(dict):
+        def write(self):
+            return True
+
+    return ConfigDict(
+        {
+            "reticulum": {"enable_transport": "True"},
+            "interfaces": interfaces or {},
+        },
+    )
+
+
+def _rnode_add_payload(port):
+    return {
+        "name": "BT RNode",
+        "type": "RNodeInterface",
+        "interface_enabled": True,
+        "port": port,
+        "frequency": 433000000,
+        "bandwidth": 125000,
+        "txpower": 7,
+        "spreadingfactor": 12,
+        "codingrate": 5,
+    }
+
+
+@pytest.mark.asyncio
+async def test_add_rnode_bt_port_writes_android_keys(tmp_path, monkeypatch):
+    """bt:// ports persist as Android keys instead of a dead serial port."""
+    import json
+    from unittest.mock import MagicMock, patch
+
+    import RNS
+
+    from meshchatx.meshchat import ReticulumMeshChat
+    from tests.backend.http_request_stubs import JsonContent
+
+    identity = MagicMock(spec=RNS.Identity)
+    identity.hash = b"test_hash_32_bytes_long_01234567"
+    identity.hexhash = identity.hash.hex()
+    identity.get_private_key.return_value = b"test_private_key"
+
+    config = _route_config_dict()
+    monkeypatch.setattr(
+        "meshchatx.src.backend.http.routes.interfaces._is_chaquopy_android",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        "meshchatx.src.backend.rnode_support.rnode_transport_supported",
+        lambda iface, is_android=None: True,
+    )
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = str(tmp_path / "config")
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.transport_enabled.return_value = True
+
+        app = ReticulumMeshChat(
+            identity=identity,
+            storage_dir=str(tmp_path),
+            reticulum_config_dir=str(tmp_path),
+        )
+
+        handler = None
+        for route in app.get_routes():
+            if (
+                route.path == "/api/v1/reticulum/interfaces/add"
+                and route.method == "POST"
+            ):
+                handler = route.handler
+                break
+        assert handler is not None
+
+        request = MagicMock()
+        request.content = JsonContent(_rnode_add_payload("bt://MyRNode"))
+
+        async def _json():
+            return _rnode_add_payload("bt://MyRNode")
+
+        request.json = _json
+        response = await handler(request)
+        body = json.loads(response.body)
+        assert response.status == 200, body
+
+        entry = config["interfaces"]["BT RNode"]
+        assert "port" not in entry
+        assert entry["allow_bluetooth"] is True
+        assert entry["target_device_name"] == "MyRNode"
+
+
+@pytest.mark.asyncio
+async def test_add_rnode_ble_port_writes_android_keys(tmp_path, monkeypatch):
+    import json
+    from unittest.mock import MagicMock, patch
+
+    import RNS
+
+    from meshchatx.meshchat import ReticulumMeshChat
+    from tests.backend.http_request_stubs import JsonContent
+
+    identity = MagicMock(spec=RNS.Identity)
+    identity.hash = b"test_hash_32_bytes_long_01234567"
+    identity.hexhash = identity.hash.hex()
+    identity.get_private_key.return_value = b"test_private_key"
+
+    config = _route_config_dict()
+    monkeypatch.setattr(
+        "meshchatx.src.backend.http.routes.interfaces._is_chaquopy_android",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        "meshchatx.src.backend.rnode_support.rnode_transport_supported",
+        lambda iface, is_android=None: True,
+    )
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = str(tmp_path / "config")
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.transport_enabled.return_value = True
+
+        app = ReticulumMeshChat(
+            identity=identity,
+            storage_dir=str(tmp_path),
+            reticulum_config_dir=str(tmp_path),
+        )
+
+        handler = None
+        for route in app.get_routes():
+            if (
+                route.path == "/api/v1/reticulum/interfaces/add"
+                and route.method == "POST"
+            ):
+                handler = route.handler
+                break
+        assert handler is not None
+
+        payload = _rnode_add_payload("ble://aa:bb:cc:dd:ee:ff")
+        request = MagicMock()
+        request.content = JsonContent(payload)
+
+        async def _json():
+            return payload
+
+        request.json = _json
+        response = await handler(request)
+        body = json.loads(response.body)
+        assert response.status == 200, body
+
+        entry = config["interfaces"]["BT RNode"]
+        assert "port" not in entry
+        assert entry["ble_addr"] == "aa:bb:cc:dd:ee:ff"
+        assert "ble_name" not in entry
+
+
+@pytest.mark.asyncio
+async def test_add_rnode_bt_port_desktop_keeps_port(tmp_path, monkeypatch):
+    """Desktop keeps the bt:// port; the Android translation must not run."""
+    import json
+    from unittest.mock import MagicMock, patch
+
+    import RNS
+
+    from meshchatx.meshchat import ReticulumMeshChat
+    from tests.backend.http_request_stubs import JsonContent
+
+    identity = MagicMock(spec=RNS.Identity)
+    identity.hash = b"test_hash_32_bytes_long_01234567"
+    identity.hexhash = identity.hash.hex()
+    identity.get_private_key.return_value = b"test_private_key"
+
+    config = _route_config_dict()
+    monkeypatch.setattr(
+        "meshchatx.src.backend.http.routes.interfaces._is_chaquopy_android",
+        lambda: False,
+    )
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = str(tmp_path / "config")
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.transport_enabled.return_value = True
+
+        app = ReticulumMeshChat(
+            identity=identity,
+            storage_dir=str(tmp_path),
+            reticulum_config_dir=str(tmp_path),
+        )
+
+        handler = None
+        for route in app.get_routes():
+            if (
+                route.path == "/api/v1/reticulum/interfaces/add"
+                and route.method == "POST"
+            ):
+                handler = route.handler
+                break
+        assert handler is not None
+
+        payload = _rnode_add_payload("bt://MyRNode")
+        request = MagicMock()
+        request.content = JsonContent(payload)
+
+        async def _json():
+            return payload
+
+        request.json = _json
+        response = await handler(request)
+        body = json.loads(response.body)
+        assert response.status == 200, body
+
+        entry = config["interfaces"]["BT RNode"]
+        assert entry["port"] == "bt://MyRNode"
+        assert "allow_bluetooth" not in entry

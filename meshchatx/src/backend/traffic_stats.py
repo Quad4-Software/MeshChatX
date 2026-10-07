@@ -403,10 +403,12 @@ def compute_hints(payload: dict, app) -> list[dict]:
     rrc_manager = getattr(ctx, "rrc_manager", None) if ctx else None
     if rrc_manager is not None:
         try:
+            from meshchatx.src.backend.rrc.manager import RRCHub
+
             hubs = sum(
                 1
                 for h in getattr(rrc_manager, "hubs", [])
-                if getattr(h, "status", "") == "connected"
+                if getattr(h, "status", None) == RRCHub.STATUS_CONNECTED
             )
         except Exception:
             hubs = 0

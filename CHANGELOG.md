@@ -22,6 +22,9 @@ All notable changes to this project will be documented in this file.
 - Telemetry: tracked peers that never answer are no longer polled every interval forever. Each unanswered request doubles the wait up to a daily cap, and after a bounded number of misses the peer is skipped until a telemetry response re-arms it or tracking is re-toggled.
 - Messaging: automatic resends no longer retry feature-only deliveries (commands, reactions, telemetry) to peers that never sent one back, so Sideband and other LXMF clients are not spammed with payload types they cannot parse.
 - Contacts: shared address output now uses the bare 32-hex hash when no public key is known, since not every LXMF client parses an lxmf:// URI. lxma:// output is unchanged when a public key is available.
+- Android: Bluetooth RNode interfaces (BLE and classic) added or imported through the UI now write the Android-native Reticulum keys at save time, so the live attach takes the Bluetooth path instead of treating a bt:// or ble:// port as a dead USB serial device. Leftover Bluetooth keys are also stripped when an interface is switched back to serial or TCP, since the Android implementation lets stale ble_* settings override the port.
+- Android: the RNode form now asks for Bluetooth permission when the BLE or Bluetooth transport is enabled, instead of relying on the bundled startup prompt that can be dismissed and never re-shown.
+- Android (build): the bundled Reticulum wheel now guards paired-device enumeration against devices with no name and denied Bluetooth permissions, so one bad bonding record or a missing grant no longer kills RNode Bluetooth bring-up.
 
 ### Added
 

@@ -241,6 +241,71 @@ def normalize_rnode_tcp_host_in_config(config_path: str) -> bool:
     return modified
 
 
+def translate_rnode_bluetooth_port_for_android(iface: dict) -> bool:
+    """Rewrite a desktop-style Bluetooth RNode port as Android RNS keys.
+
+    The desktop RNodeInterface takes the transport from the port value
+    (ble://name|mac, bt://name|mac). The Android-specific implementation
+    ignores that and reads ble_name/ble_addr/force_ble for BLE and
+    allow_bluetooth plus target_device_name/target_device_address for
+    classic Bluetooth. A port that is set always means USB serial, so an
+    untranslated entry attaches as a dead serial device and never connects.
+
+    Mutates *iface* in place. Returns True when the entry was rewritten.
+    """
+    port = iface.get("port")
+
+    if rnode_port_is_ble(port):
+        target = _ble_target_from_port(port)
+        iface.pop("port", None)
+        if target and _looks_like_mac(target):
+            iface["ble_addr"] = target
+            iface.pop("ble_name", None)
+        elif target:
+            iface["ble_name"] = target
+            iface.pop("ble_addr", None)
+        else:
+            iface["force_ble"] = True
+        return True
+
+    if rnode_port_is_bt(port):
+        target = _bt_target_from_port(port)
+        iface.pop("port", None)
+        iface["allow_bluetooth"] = True
+        if target and _looks_like_mac(target):
+            iface["target_device_address"] = target
+            iface.pop("target_device_name", None)
+        elif target:
+            iface["target_device_name"] = target
+            iface.pop("target_device_address", None)
+        return True
+
+    allow_bluetooth = str(iface.get("allow_bluetooth", "")).lower() in _TRUE_STRINGS
+    if allow_bluetooth and _port_is_blank(port) and "port" in iface:
+        # A blank port still counts as "a port is set" for the Android
+        # implementation, which would pick the USB-serial path.
+        iface.pop("port", None)
+        return True
+    if not _port_is_blank(port) or str(iface.get("tcp_host", "")).strip():
+        # A real serial/TCP port leaves stale Android Bluetooth keys from an
+        # earlier edit reachable: ble_name/ble_addr/force_ble force use_ble
+        # ahead of the serial path in open_port.
+        removed = False
+        for key in (
+            "ble_name",
+            "ble_addr",
+            "force_ble",
+            "allow_bluetooth",
+            "target_device_name",
+            "target_device_address",
+        ):
+            if key in iface:
+                iface.pop(key, None)
+                removed = True
+        return removed
+    return False
+
+
 def normalize_rnode_bluetooth_in_config(
     config_path: str,
     *,
@@ -248,13 +313,9 @@ def normalize_rnode_bluetooth_in_config(
 ) -> bool:
     """Translate desktop-style Bluetooth RNode ports to Android RNS keys.
 
-    The desktop RNodeInterface takes the transport from the port value
-    (ble://name|mac). The Android-specific implementation ignores that and
-    reads ble_name/ble_addr/force_ble for BLE and allow_bluetooth plus
-    target_device_name/target_device_address for classic Bluetooth. A port
-    that is set always means USB serial. Entries written through the UI use
-    the desktop schemes, so on Android they must be rewritten or the
-    interface silently tries to open a USB device and never connects.
+    Entries written through the UI use the desktop schemes, so on Android
+    they must be rewritten or the interface silently tries to open a USB
+    device and never connects.
 
     Returns True if any interfaces were modified.
     """
@@ -282,40 +343,7 @@ def normalize_rnode_bluetooth_in_config(
             continue
         if not _is_rnode_tcp_config_type(iface.get("type")):
             continue
-        port = iface.get("port")
-
-        if rnode_port_is_ble(port):
-            target = _ble_target_from_port(port)
-            iface.pop("port", None)
-            if target and _looks_like_mac(target):
-                iface["ble_addr"] = target
-                iface.pop("ble_name", None)
-            elif target:
-                iface["ble_name"] = target
-                iface.pop("ble_addr", None)
-            else:
-                iface["force_ble"] = True
-            modified = True
-            continue
-
-        if rnode_port_is_bt(port):
-            target = _bt_target_from_port(port)
-            iface.pop("port", None)
-            iface["allow_bluetooth"] = True
-            if target and _looks_like_mac(target):
-                iface["target_device_address"] = target
-                iface.pop("target_device_name", None)
-            elif target:
-                iface["target_device_name"] = target
-                iface.pop("target_device_address", None)
-            modified = True
-            continue
-
-        allow_bluetooth = str(iface.get("allow_bluetooth", "")).lower() in _TRUE_STRINGS
-        if allow_bluetooth and _port_is_blank(port):
-            # A blank port still counts as "a port is set" for the Android
-            # implementation, which would pick the USB-serial path.
-            iface.pop("port", None)
+        if translate_rnode_bluetooth_port_for_android(iface):
             modified = True
 
     if modified:

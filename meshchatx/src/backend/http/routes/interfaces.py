@@ -1173,6 +1173,18 @@ def register_interfaces_routes(routes, app):
             interface_details["spreadingfactor"] = interface_spreadingfactor
             interface_details["codingrate"] = interface_codingrate
 
+            # RNS's Android RNodeInterface reads ble:// and bt:// ports as
+            # USB serial targets. Translate to its native keys now so the
+            # live attach below picks the Bluetooth path instead of a dead
+            # serial port. Startup normalization remains as a safety net for
+            # imported and hand-edited configs.
+            if _is_chaquopy_android():
+                from meshchatx.src.backend.rnode_support import (
+                    translate_rnode_bluetooth_port_for_android,
+                )
+
+                translate_rnode_bluetooth_port_for_android(interface_details)
+
             # set optional RNodeInterface options
             InterfaceEditor.update_value(interface_details, data, "callsign")
             InterfaceEditor.update_value(interface_details, data, "id_callsign")
@@ -1746,6 +1758,14 @@ def register_interfaces_routes(routes, app):
                         iface_body["txpower"] = InterfaceEditor.normalize_rnode_txpower(
                             txpower,
                         )
+                    # See the add route: Android needs ble:// and bt:// ports
+                    # rewritten as native keys before the live attach below.
+                    if _is_chaquopy_android():
+                        from meshchatx.src.backend.rnode_support import (
+                            translate_rnode_bluetooth_port_for_android,
+                        )
+
+                        translate_rnode_bluetooth_port_for_android(iface_body)
                 elif iface_type == "RNodeMultiInterface":
                     for sub_key, sub in list(iface_body.items()):
                         if isinstance(sub, dict):

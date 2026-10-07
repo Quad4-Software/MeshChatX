@@ -991,6 +991,8 @@ end_marker = (
 new_block = '''        import importlib.util
         serial = None
         self.bt_manager = None
+        self.bt_target_device_name = target_device_name
+        self.bt_target_device_address = target_device_address
         if RNS.vendor.platformutils.is_android():
             self.on_android  = True
             if importlib.util.find_spec('usbserial4a') != None:
@@ -1003,8 +1005,6 @@ new_block = '''        import importlib.util
                     from usbserial4a import serial4a as serial
                     self.parity = "N"
 
-                    self.bt_target_device_name = target_device_name
-                    self.bt_target_device_address = target_device_address
                     if allow_bluetooth:
                         try:
                             self.bt_manager = AndroidBluetoothManager(
@@ -1027,8 +1027,49 @@ bt_enabled_marker = '''    def bt_enabled(self):
         return self.bt_adapter.getDefaultAdapter().isEnabled()
 '''
 bt_enabled_new = '''    def bt_enabled(self):
-        adapter = self.bt_adapter.getDefaultAdapter()
-        return adapter != None and adapter.isEnabled()
+        try:
+            adapter = self.bt_adapter.getDefaultAdapter()
+            return adapter != None and adapter.isEnabled()
+        except Exception:
+            return False
+'''
+
+# Paired devices can carry a null name (BLE-only or partially populated
+# bonding records). An unguarded .lower() kills device enumeration, so the
+# manager reports "no suitable bluetooth devices" forever.
+get_name_replacements = [
+    (
+        "if device.getName().lower() == self.target_device_name.lower():",
+        'if str(device.getName() or "").lower() == self.target_device_name.lower():',
+    ),
+    (
+        'if device.getName().lower().startswith("rnode "):',
+        'if str(device.getName() or "").lower().startswith("rnode "):',
+    ),
+    (
+        "if device.getName().lower() == self.target_name.lower():",
+        'if str(device.getName() or "").lower() == self.target_name.lower():',
+    ),
+    (
+        'if device.getName().startswith("RNode "):',
+        'if str(device.getName() or "").startswith("RNode "):',
+    ),
+]
+
+# getBondedDevices() needs BLUETOOTH_CONNECT on API 31+. A denied grant raises
+# SecurityException, which propagates out of open_port and the BLE connection
+# thread, leaving the interface offline with no retry path.
+paired_devices_marker = '''    def get_paired_devices(self):
+        if self.bt_enabled():
+            return self.bt_adapter.getDefaultAdapter().getBondedDevices()
+'''
+paired_devices_new = '''    def get_paired_devices(self):
+        if self.bt_enabled():
+            try:
+                return self.bt_adapter.getDefaultAdapter().getBondedDevices()
+            except Exception as e:
+                RNS.log("Could not query paired Bluetooth devices: "+str(e), RNS.LOG_ERROR)
+                return []
 '''
 
 def patch_rnode_interface(data):
@@ -1036,11 +1077,21 @@ def patch_rnode_interface(data):
     start_idx = text.index(start_marker)
     end_idx = text.index(end_marker, start_idx) + len(end_marker)
     text = text[:start_idx] + new_block + text[end_idx:]
-    # getDefaultAdapter() returns null on devices without Bluetooth. A null
-    # dereference here would kill the BLE connection job thread.
+    # getDefaultAdapter() returns null on devices without Bluetooth and every
+    # Bluetooth call can raise SecurityException when the runtime permission
+    # was denied. An unhandled raise here would kill the connection thread.
     if bt_enabled_marker not in text:
         raise SystemExit("bt_enabled marker not found in RNodeInterface.py")
     text = text.replace(bt_enabled_marker, bt_enabled_new, 1)
+    for marker, replacement in get_name_replacements:
+        if marker not in text:
+            raise SystemExit("getName marker not found in RNodeInterface.py: " + marker)
+        # The target_device_name match appears in both the address-with-name
+        # and name-only branches, so replace every occurrence.
+        text = text.replace(marker, replacement)
+    if paired_devices_marker not in text:
+        raise SystemExit("get_paired_devices marker not found in RNodeInterface.py")
+    text = text.replace(paired_devices_marker, paired_devices_new, 1)
     return text.encode("utf-8")
 
 patched_target = "RNS/Interfaces/Android/RNodeInterface.py"

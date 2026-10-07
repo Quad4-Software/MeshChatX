@@ -34,20 +34,23 @@ def _java():
 
 
 def _to_java_bytes(value):
+    """Coerce to bytes for Java byte[] parameters.
+
+    Chaquopy converts bytes/bytearray to byte[] directly; a list of ints is
+    not guaranteed to resolve against a byte[] overload.
+    """
     if value is None:
-        return []
-    if isinstance(value, (bytes, bytearray)):
-        return list(value)
-    if isinstance(value, (list, tuple)):
-        return list(value)
+        return b""
+    if isinstance(value, bytes):
+        return value
+    if isinstance(value, (bytearray, memoryview)):
+        return bytes(value)
+    if isinstance(value, str):
+        return value.encode()
     try:
-        return list(value.encode())
-    except AttributeError:
-        pass
-    try:
-        return list(value)
-    except TypeError:
-        return [value]
+        return bytes(value)
+    except (TypeError, ValueError):
+        return b""
 
 
 def _make_python_bluetooth_proxy(dispatcher):
