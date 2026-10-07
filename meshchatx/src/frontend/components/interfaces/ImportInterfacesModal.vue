@@ -255,7 +255,7 @@ export default {
                     selected_interface_names: this.selectedInterfaces,
                 });
 
-                // dismiss modal; report whether the backend attached the
+                // dismiss modal. Report whether the backend attached the
                 // imported interfaces live or a restart is still needed
                 this.dismiss(true, response?.data?.applied_live === true);
 

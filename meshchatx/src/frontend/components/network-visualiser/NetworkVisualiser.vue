@@ -1551,7 +1551,7 @@ export default {
         async update(options = {}) {
             if (this.abortController.signal.aborted) {
                 // The previous run was stopped before it finished. Give this
-                // run a live signal; the stale run is fenced off by the run id.
+                // run a live signal. The stale run is fenced off by the run id.
                 this.abortController = new AbortController();
             }
             const silent = options.silent === true;

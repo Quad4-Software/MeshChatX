@@ -85,7 +85,7 @@ const IGNORED_CONSOLE = [
     /failed to fetch/i,
     /websocket/i,
     /404/,
-    /SRI hash mismatch/i, // local rebuilds change hashes; integrity.json is regenerated
+    /SRI hash mismatch/i, // local rebuilds change hashes. Integrity.json is regenerated
     /favicon/i,
     /deprecation/i,
     /ResizeObserver/i,
@@ -115,7 +115,7 @@ async function prepareSession(context) {
             data: { version: "999.999.999" },
         });
     } catch {
-        // Backend without auth/session endpoints; still crawl.
+        // Backend without auth/session endpoints. Still crawl.
     }
 }
 
@@ -205,7 +205,7 @@ async function probeMenus(page, report) {
                     });
                 }
             } catch {
-                // Non-interactive or hidden control; skip.
+                // Non-interactive or hidden control. Skip.
             }
         }
     } finally {

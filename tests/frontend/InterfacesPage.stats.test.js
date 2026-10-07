@@ -187,7 +187,7 @@ describe("InterfacesPage discovered interfaces cap", () => {
     it("uses the configured max_return instead of the hardcoded bound", async () => {
         stubDiscovered(10);
         const wrapper = mountInterfacesPage();
-        // mounted() loads the discovery config asynchronously; let it settle
+        // mounted() loads the discovery config asynchronously. Let it settle
         // so its null value does not clobber the configured cap
         await flushPromises();
         wrapper.vm.discoveryConfig.discovered_interfaces_max_return = 5;

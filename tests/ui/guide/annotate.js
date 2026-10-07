@@ -11,7 +11,7 @@
  *   { kind: "caption", text, sub?, pos: "top"|"bottom" }     floating caption strip
  *
  * selector values are full playwright selectors ("text=Foo", "#id", css,
- * "role=tab[name=..]"); geometry is resolved via locator.boundingBox() so the
+ * "role=tab[name=..]"). Geometry is resolved via locator.boundingBox() so the
  * page never sees selector syntax. Colors follow the active theme via CSS
  * vars so guides match the theme they are captured in. pointer-events:none.
  */
@@ -36,7 +36,7 @@ const OVERLAY_CSS = `
     position: fixed; backdrop-filter: blur(10px) saturate(0.6);
     border-radius: 8px;
 }
-#${LAYER_ID} .guide-dim { position: fixed; background: var(--guide-dim); }
+#${LAYER_ID} .guide-dim { position: fixed. Background: var(--guide-dim); }
 #${LAYER_ID} .guide-badge {
     position: fixed; width: 26px; height: 26px; border-radius: 999px;
     background: var(--guide-accent); color: var(--guide-accent-text);

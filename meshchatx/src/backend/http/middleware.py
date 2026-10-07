@@ -611,7 +611,7 @@ def create_security_middleware(app):
             )
 
             # Add map tile server domain. The shipped public default is still
-            # gated by privacy mode; anything else is a deliberate user opt-in.
+            # gated by privacy mode. Anything else is a deliberate user opt-in.
             map_tile_url = app.current_context.config.map_tile_server_url.get()
             if not privacy_mode or (
                 map_tile_url

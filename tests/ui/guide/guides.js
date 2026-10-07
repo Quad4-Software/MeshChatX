@@ -14,7 +14,7 @@
  *   shots    [{ name, actions?(page), annotations, caption? }]
  *   clips    [{ name, actions(page), fps?, format?: "webp"|"gif" }]
  *
- * actions run before the shot/clip is captured; annotations use
+ * actions run before the shot/clip is captured. Annotations use
  * applyGuideAnnotations kinds (box, spotlight, blur, arrow, caption).
  */
 

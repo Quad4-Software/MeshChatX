@@ -130,7 +130,7 @@ export async function withRetries(fn, options = {}) {
 
 /**
  * Resolves when all Codec2 helper scripts are present. Rejects if any script fails to load.
- * Call from features that require Codec2; use {@link startCodec2ScriptsBackgroundLoad} for startup.
+ * Call from features that require Codec2. Use {@link startCodec2ScriptsBackgroundLoad} for startup.
  */
 export function ensureCodec2ScriptsLoaded() {
     if (typeof window === "undefined") {

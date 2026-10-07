@@ -20,7 +20,7 @@ TMPDIR="$(mktemp -d -t meshchat-e2e-XXXXXX)"
 export MESHCHAT_LOG_DIR="$TMPDIR/logs"
 mkdir -p "$MESHCHAT_LOG_DIR"
 
-# Live-mesh peer: backend gets a TCPServerInterface; the peer subprocess
+# Live-mesh peer: backend gets a TCPServerInterface. The peer subprocess
 # links in as a TCP client and runs lxmf.delivery plus an RRC hub. Specs
 # coordinate through E2E_PEER_SHARE files. Skip with E2E_LIVE_MESH=0.
 # Fixed default so the Playwright spec process can find it without env.
@@ -168,7 +168,7 @@ fi
 
 if [[ "$E2E_LIVE_MESH" == "1" ]]; then
     # A killed earlier run's cleanup trap can delete the share dir after
-    # our initial mkdir; recreate it just before use.
+    # our initial mkdir. Recreate it just before use.
     mkdir -p "$E2E_PEER_SHARE" "$E2E_PEER2_SHARE"
     echo "E2E: starting chaos proxy :${E2E_CHAOS_PORT} -> :${E2E_PEER_PORT}"
     echo pass > "${E2E_PEER_SHARE}/chaos.mode"

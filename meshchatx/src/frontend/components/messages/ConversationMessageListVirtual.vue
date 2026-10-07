@@ -60,7 +60,7 @@ const virtualItems = computed(() => virtualizer.value.getVirtualItems());
 const totalSize = computed(() => virtualizer.value.getTotalSize());
 
 // Keys of inbound groups appended while the list is live. They get a short
-// entrance animation on the inner entry; scroll remounts and history
+// entrance animation on the inner entry. Scroll remounts and history
 // prepends stay static because only tail additions are tracked.
 const freshInboundKeys = ref(new Set());
 let knownKeys = new Set();

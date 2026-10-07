@@ -5,7 +5,7 @@
  *
  * Each sidebar context (conversations, announces) has a fixed catalog of
  * available filters. The user layout is just an ordered list of the filter
- * ids shown as chips; any catalog filter can still be toggled active from
+ * ids shown as chips. Any catalog filter can still be toggled active from
  * the overflow menu. The layout lives in localStorage, matching how other
  * per-browser UI prefs (FOLDERS_EXPANDED, INTERFACES_STATUS_FILTER) persist.
  */

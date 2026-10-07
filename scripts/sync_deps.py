@@ -212,7 +212,7 @@ def main(argv: list[str]) -> int:
         GRADLE.write_text(gradle_text, encoding="utf-8")
 
     # The Android wheel-build script hardcodes the wheel versions it fetches
-    # and patches; keep its defaults aligned with [android.wheels].
+    # and patches. Keep its defaults aligned with [android.wheels].
     wheel_script = ROOT / "scripts" / "build-android-wheels-local.sh"
     if wheel_script.exists():
         script_text = wheel_script.read_text(encoding="utf-8")

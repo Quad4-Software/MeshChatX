@@ -192,7 +192,7 @@ async def test_lxmf_resend_announce_storm_bounded(db):
             if feature_only
             else "{}",
         )
-    # Feature-only rows are capability-gated; give the peer evidence so all
+    # Feature-only rows are capability-gated. Give the peer evidence so all
     # rows are resend-eligible and only the cooldown limits the traffic.
     _insert_incoming_feature(db, peer=peer, msg_hash="fe" * 16)
 
@@ -272,7 +272,7 @@ async def test_nomad_download_reuses_cached_link(clean_link_cache, monkeypatch):
     nomadnet_cached_links[dest] = cached
     _nomadnet_link_last_used[dest] = time.time()
 
-    # Identity.recall only runs on the link-creation path; a cached-link hit
+    # Identity.recall only runs on the link-creation path. A cached-link hit
     # returns long before it. Explode loudly if a new link is attempted.
     monkeypatch.setattr(nomad_dl.RNS, "Identity", MagicMock())
     nomad_dl.RNS.Identity.recall.side_effect = AssertionError("new link attempted")

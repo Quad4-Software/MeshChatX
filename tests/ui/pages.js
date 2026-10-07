@@ -82,7 +82,7 @@ const UI_PAGES = [
         readyKind: "text",
         ready: "Hosted node",
         ci: true,
-        // seeded demo data renders hundreds of node rows; the listener count
+        // seeded demo data renders hundreds of node rows. The listener count
         // tracks the row count, not a leak.
         heap: { nodes: 800, listeners: 60 },
     },

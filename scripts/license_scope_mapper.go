@@ -24,7 +24,7 @@
 //
 //  2. --clean-non-target-spdx and --replace-existing rewrite or delete
 //     SPDX markers in tracked files. Run with --report-json first and
-//     review the diff before enabling either flag; third-party SPDX lines
+//     review the diff before enabling either flag. Third-party SPDX lines
 //     in vendored or generated files must not be silently stripped.
 //
 //  3. The default base license is "0BSD AND MIT", which means BOTH licenses
@@ -690,7 +690,7 @@ func similarityDetail(a, b fileData) matchResult {
 
 // classify maps a similarity result to an SPDX expression. The pure-0BSD
 // branch requires both --allow-pure-0bsd and --pure-0bsd-confirm-no-derivation
-// because textual similarity alone cannot prove non-derivation; renamed or
+// because textual similarity alone cannot prove non-derivation. Renamed or
 // heavily refactored forks of upstream files retain MIT obligations.
 func classify(match matchResult, cfg config) (string, string) {
 	sim := match.similarityPct / 100.0

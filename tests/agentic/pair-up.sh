@@ -78,7 +78,7 @@ else
     done
 fi
 
-# CSRF tokens are bound to the session cookie; keep a jar per instance.
+# CSRF tokens are bound to the session cookie. Keep a jar per instance.
 post() { # post <base-url> <path> <json>
     local base="$1" jar; jar="$(mktemp -t mcx-cookies-XXXXXX)"
     local token; token="$(curl -sf -c "$jar" "$base/api/v1/auth/csrf" \

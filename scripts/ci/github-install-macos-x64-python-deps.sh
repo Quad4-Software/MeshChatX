@@ -99,7 +99,7 @@ uv sync --frozen --group dev \
     --no-install-package pycodec2
 
 # numpy is marker-split per interpreter version, so the lock holds more than
-# one release. The sync above already picked the right wheel; pin that one.
+# one release. The sync above already picked the right wheel. Pin that one.
 _NUMPY_VERSION="$("$_PY" -c 'import importlib.metadata; print(importlib.metadata.version("numpy"))')"
 if [[ -z "$_NUMPY_VERSION" ]]; then
     echo "github-install-macos-x64-python-deps: failed to read installed numpy version" >&2

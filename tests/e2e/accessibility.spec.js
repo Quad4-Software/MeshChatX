@@ -5,7 +5,7 @@ const { join } = require("path");
 
 // axe-core accessibility audit over the full route crawl. axe is injected
 // per route via addScriptTag and run against the whole document. Violations
-// with impact "serious" or "critical" fail the test; "moderate" and "minor"
+// with impact "serious" or "critical" fail the test. "Moderate" and "minor"
 // are logged as warnings so they can be triaged without blocking the suite.
 
 const ROUTES = [

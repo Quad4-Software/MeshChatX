@@ -726,7 +726,7 @@ const childWindowCrashHandler = createChildWindowCrashHandler({
 
 // Popout/call windows get their own renderer process when opened with
 // noopener, so a crash there must not take the shell down. The app-level
-// render-process-gone handler only logs; destroy the dead child window so
+// render-process-gone handler only logs. Destroy the dead child window so
 // it does not linger as an unresponsive black frame.
 function attachChildWindowCrashHandler(contents) {
     childWindowCrashHandler.attach(contents);

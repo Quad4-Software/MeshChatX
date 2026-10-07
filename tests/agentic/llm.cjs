@@ -17,7 +17,7 @@ const VISION_MODEL = process.env.AGENTIC_VISION_MODEL || MODEL;
 const TIMEOUT_MS = parseInt(process.env.AGENTIC_LLM_TIMEOUT_MS || "120000", 10);
 
 function configured() {
-    // A local default endpoint counts as configured; remote endpoints need a key.
+    // A local default endpoint counts as configured. Remote endpoints need a key.
     if (/^(https?:\/\/)?(127\.|localhost|0\.0\.0\.0|\[::1\])/.test(BASE_URL)) {
         return true;
     }
