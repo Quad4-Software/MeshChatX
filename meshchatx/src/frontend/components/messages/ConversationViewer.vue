@@ -231,7 +231,7 @@
                 >
                     <button
                         type="button"
-                        class="flex items-center justify-center size-10 min-h-[44px] min-w-[44px] rounded-full bg-sem-surface/90 backdrop-blur-sm border border-sem-border shadow-sm text-sem-fg-muted hover:bg-sem-surface-muted hover:bg-sem-surface-muted hover:text-sem-fg hover:text-sem-fg transition-colors"
+                        class="flex items-center justify-center size-10 min-h-[44px] min-w-[44px] rounded-full bg-transparent border border-sem-border shadow-sm text-sem-fg-muted hover:bg-sem-surface-muted hover:bg-sem-surface-muted hover:text-sem-fg hover:text-sem-fg transition-colors"
                         title="Scroll to bottom"
                         @click="scrollMessagesToBottom()"
                     >
@@ -473,7 +473,7 @@
                         <div class="flex items-end gap-2 min-w-0">
                             <div
                                 v-click-outside="{ handler: onStickerPickerClickOutside, capture: true }"
-                                class="composer-pill relative flex-1 min-w-0 flex items-end gap-0.5 rounded-2xl border border-sem-border bg-sem-surface-muted/60 pl-1.5 pr-1 transition-all focus-within:ring-2 focus-within:ring-sem-focus focus-within:border-sem-focus-border shadow-xs"
+                                class="composer-pill relative flex-1 min-w-0 flex items-end gap-0.5 rounded-2xl border border-sem-border bg-transparent pl-1.5 pr-1 transition-all focus-within:ring-2 focus-within:ring-sem-focus focus-within:border-sem-focus-border shadow-xs"
                             >
                                 <!-- attachments button inside the pill, left side -->
                                 <div v-click-outside="closeMobileAttachmentMenu" class="relative shrink-0 self-center">
