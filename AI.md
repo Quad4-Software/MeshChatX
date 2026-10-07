@@ -8,15 +8,15 @@ Every AI-assisted commit ends with trailers for example:
 
 ```
 Harness: Nullray
-Model: Kimi K3, GLM-5.3-Flash, Qwen3.8
-Method: Fireworks (ZDR)
+Model: Qwen3.8
+Method: Local
 ```
 
 - `Harness` is the agent/orchestration layer that drove the change.
 - `Model` is the model that produced the code.
 - `Method` is the inference path. Use `Local` for models running on your
-  own hardware, or the provider name plus data-retention terms for API
-  inference (for example `Fireworks (ZDR)` = zero data retention).
+  own hardware. For API inference record the provider name plus
+  data-retention terms instead.
 
 `git log --format='%(trailers)'` or `git log --grep='^Model:'` audits them.
 Trailers are metadata, not authorship; the human committer remains the
@@ -34,7 +34,7 @@ git push origin refs/notes/ai-provenance
 Each note is JSON:
 
 ```json
-{"harness":"Nullray","model":"Kimi K3","method":"Fireworks (ZDR)","ts":"2026-10-01T09:00:00Z"}
+{"harness":"Nullray","model":"Qwen3.8","method":"Local","ts":"2026-10-01T09:00:00Z"}
 ```
 
 Notes do not change commit SHAs and can be corrected after the fact
@@ -52,8 +52,8 @@ Then configure the identity this machine reports. Example:
 
 ```
 git config --global ai.harness "Nullray"
-git config --global ai.model   "Kimi K3, GLM-5.3-Flash, Qwen3.8"
-git config --global ai.method  "Fireworks (ZDR)"
+git config --global ai.model   "Qwen3.8"
+git config --global ai.method  "Local"
 ```
 
 With the config present, every commit gains the trailers plus the note.
