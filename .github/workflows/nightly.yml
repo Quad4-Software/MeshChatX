@@ -36,6 +36,12 @@ env:
         azure.archive.ubuntu.com:80
         archive.ubuntu.com:80
         *.ubuntu.com:443
+        deb.debian.org:80
+        deb.debian.org:443
+        security.debian.org:80
+        security.debian.org:443
+        *.debian.org:80
+        *.debian.org:443
         packages.microsoft.com:443
         pypi.org:443
         upload.pypi.org:443

@@ -332,7 +332,14 @@ def test_font_family_whitelist_matches_frontend_bundled_fonts():
 
     start = app_src.index('if "ui_font_family" in data:')
     end = app_src.index("self.config.ui_font_family.set", start)
-    backend_fonts = set(re.findall(r'"([a-z\-]+)"', app_src[start:end]))
+    block = app_src[start:end]
+    # Migration aliases (old -> new) are not allowed values.
+    block = re.sub(
+        r'if val == "[a-z\-]+":\s*\n\s*val = "[a-z\-]+"',
+        "",
+        block,
+    )
+    backend_fonts = set(re.findall(r'"([a-z\-]+)"', block))
 
     fe_src = (repo / "meshchatx/src/frontend/js/fontLoader.js").read_text()
     bundled = set(re.findall(r"^\s+\"?([a-z\-]+)\"?:\s*'", fe_src, re.M))

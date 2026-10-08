@@ -111,6 +111,7 @@ env:
         *.stepsecurity.io:443
     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     NODE_OPTIONS: --max-old-space-size=8192
+    TINYGO_VERSION: "0.42.0"
 
 jobs:
     build:
@@ -156,10 +157,13 @@ jobs:
                   node-version: ${{ inputs.node_version }}
                   pnpm-version: ${{ inputs.pnpm_version }}
 
-            - name: Set up Go (visualiser-wasm)
+            - name: Set up Go (visualiser-wasm / geo-wasm)
               uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
               with:
                   go-version: "1.27.x"
+
+            - name: Install TinyGo
+              run: sh scripts/ci/setup-tinygo.sh ${{ env.TINYGO_VERSION }}
 
             - name: Install frontend dependencies
               run: pnpm install --frozen-lockfile
