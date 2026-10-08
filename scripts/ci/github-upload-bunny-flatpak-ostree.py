@@ -45,6 +45,8 @@ PHASE_SUMMARY_IDX = 6
 # Pull-zone cache for mutable discovery files must stay short. A 30-day HIT on
 # summary.idx after orphan-pruning objects is what broke install: clients
 # resolve a commit the CDN no longer holds. Objects stay long-cache.
+# cdn.quad4.io (pull zone 6505458) also has Bunny edge rules that force the
+# same TTLs regardless of origin headers: 60s on discovery, 1y on objects.
 SHORT_CACHE_CONTROL = "public, max-age=60, must-revalidate"
 LONG_CACHE_CONTROL = "public, max-age=31536000, immutable"
 
