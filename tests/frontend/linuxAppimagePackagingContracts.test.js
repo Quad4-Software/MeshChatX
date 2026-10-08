@@ -25,13 +25,17 @@ describe("Linux AppImage packaging contracts", () => {
     it("warms AppImage tools before freeze and retries ECONNRESET", () => {
         const script = readSource("scripts/ci/github-build-linux-release-assets.sh");
         const warmAt = script.indexOf("github-warm-appimage-tools.sh");
-        const freezeAt = script.indexOf("PLATFORM=linux ARCH=x64 pnpm run build");
+        // Prebuilt frontend skips Vite; full build still runs when not prebuilt.
+        const freezeAt = script.indexOf("_electron_backend x64");
         const retryAt = script.indexOf("run_electron_builder --linux");
         expect(warmAt).toBeGreaterThan(-1);
         expect(freezeAt).toBeGreaterThan(warmAt);
         expect(retryAt).toBeGreaterThan(freezeAt);
         expect(script).toContain("ECONNRESET");
         expect(script).toContain("run_electron_builder()");
+        expect(script).toContain("MESHCHATX_FRONTEND_PREBUILT");
+        expect(script).toContain("pnpm run build-backend");
+        expect(script).toContain('PLATFORM=linux ARCH="$1" pnpm run build');
     });
 
     it("caches electron-builder toolsets on Linux package and release jobs", () => {
