@@ -143,14 +143,28 @@ if [ "${SKIP_ELECTRON:-0}" != 1 ]; then
             bash scripts/ci/github-warm-appimage-tools.sh
         fi
         pnpm run electron-postinstall
+        if [ "${MESHCHATX_FRONTEND_PREBUILT:-0}" = "1" ]; then
+            if [[ ! -f "meshchatx/public/index.html" ]]; then
+                echo "MESHCHATX_FRONTEND_PREBUILT=1 but meshchatx/public/index.html is missing." >&2
+                exit 1
+            fi
+            echo "Reusing prebuilt frontend assets in meshchatx/public/."
+            _electron_backend() {
+                PLATFORM=linux ARCH="$1" pnpm run build-backend
+            }
+        else
+            _electron_backend() {
+                PLATFORM=linux ARCH="$1" pnpm run build
+            }
+        fi
         if [ "$NATIVE_ARCH" = "x64" ]; then
             echo "Electron linux x64 ($appimage_deb_targets)..."
-            PLATFORM=linux ARCH=x64 pnpm run build
+            _electron_backend x64
             # shellcheck disable=SC2086
             run_electron_builder --linux $appimage_deb_targets --x64 --publish=never
         elif [ "$NATIVE_ARCH" = "arm64" ]; then
             echo "Electron linux arm64 ($appimage_deb_targets)..."
-            PLATFORM=linux ARCH=arm64 pnpm run build
+            _electron_backend arm64
             # shellcheck disable=SC2086
             run_electron_builder --linux $appimage_deb_targets --arm64 --publish=never
         fi
