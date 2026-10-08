@@ -81,7 +81,7 @@ export function findDisplayGroupIndexForMessageHash(groupsOldestFirst, hash) {
 
 /**
  * Keys for inbound groups appended at the tail of an already-live list.
- * The caller keeps a Set of keys it has seen; only brand-new keys inside
+ * The caller keeps a Set of keys it has seen. Only brand-new keys inside
  * the last positions animate, so opening a conversation, loading older
  * history, and virtual-scroll remounts never play the entrance.
  *

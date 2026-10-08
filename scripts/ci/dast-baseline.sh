@@ -59,7 +59,7 @@ if [[ "$ready" != "1" ]]; then
     exit 1
 fi
 
-# Fresh template set on every CI run; -ni disables update checks mid-scan.
+# Fresh template set on every CI run. The -ni flag disables update checks mid-scan.
 nuclei -update-templates
 
 # Scope: exclude tags that are destructive or pure noise against a local

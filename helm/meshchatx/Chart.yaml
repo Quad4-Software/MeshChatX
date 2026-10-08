@@ -3,7 +3,7 @@ name: meshchatx
 description: MeshChatX - all-in-one Reticulum client (LXMF messaging, calls, NomadNet, map, propagation)
 type: application
 version: 0.1.0
-appVersion: "4.10.2"
+appVersion: "4.10.3"
 keywords:
     - reticulum
     - lxmf

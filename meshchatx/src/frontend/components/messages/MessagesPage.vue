@@ -104,9 +104,8 @@
                         @outbound-compose-enqueued="onOutboundComposeEnqueued"
                     />
                     <div
-                        v-if="!pane.peer"
+                        v-if="!pane.peer && dragOverPaneId === pane.id"
                         class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 text-center text-sem-fg-secondary"
-                        :class="{ hidden: !multiPaneActive && dragOverPaneId !== pane.id }"
                     >
                         <MaterialDesignIcon icon-name="message-text-outline" class="size-8 opacity-70" />
                         <span class="text-sm">{{ $t("messages.select_conversation_for_pane") }}</span>

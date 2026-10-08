@@ -547,7 +547,7 @@
                         }
                         attemptHint.textContent = "";
                         connectionNotice.textContent = "";
-                        // Theme/config may 503 until identity is ready; ignore failures.
+                        // Theme/config may 503 until identity is ready. Ignore failures.
                         syncThemeFromConfig();
                         setTimeout(onReady, 200);
                         return;

@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.10.3] - TBD [unreleased]
+
 ## [4.10.2] - 2026-10-07 [released]
 
 ### Fixed
@@ -11,13 +13,13 @@ All notable changes to this project will be documented in this file.
 
 - Windows: shared-instance RPC replies are read through the connection dispatch path instead of os.read, fixing bad file descriptor errors that broke LXMF delivery, interface stats, and interface management on Windows builds when connected to an external rnsd.
 - Messaging: outbound sends that fail the path wait are now persisted as failed messages instead of being dropped, so they resend automatically when the peer announces and can be resent manually. The propagation-node fallback now defaults on for new configurations and is a safe no-op when no propagation node is set.
-- Maps: user-configured tile servers, Nominatim endpoints, and extra CSP sources are no longer stripped from the Content Security Policy in privacy mode; only the shipped public defaults stay gated. Scheme-less and subdomain-template ({s}, {r}) tile URLs are normalized so OpenLayers and the CSP match real hosts.
+- Maps: user-configured tile servers, Nominatim endpoints, and extra CSP sources are no longer stripped from the Content Security Policy in privacy mode. Only the shipped public defaults stay gated. Scheme-less and subdomain-template ({s}, {r}) tile URLs are normalized so OpenLayers and the CSP match real hosts.
 - NomadNet: page translation now works with the sandboxed page renderer. The shell asks the renderer frame for the page text over the frame channel instead of reading an empty shell container, so the translate button opens the translator with real page content.
 - NomadNet: the page shell no longer can show its own scrollbar next to the rendered frame's scrollbar. The container only scrolls for state banners now, which removes the second slider on platforms with always-on scrollbars.
-- NomadNet: serving nodes no longer re-hash the whole source image on every /media request; the hash is memoized by file stat. Failed conversions are marked and skipped for an hour instead of respawning the encoder on every request, which removes the sustained CPU spikes on image-heavy pages.
-- Desktop: every popout window (call, nomad tab, translator, paper message, and the rest) now runs in its own renderer process where the API allows it, so a crash there cannot take the whole app down. A crashed child window is destroyed instead of lingering as a dead frame; the main window's crash recovery dialog is unchanged.
+- NomadNet: serving nodes no longer re-hash the whole source image on every /media request. The hash is memoized by file stat. Failed conversions are marked and skipped for an hour instead of respawning the encoder on every request, which removes the sustained CPU spikes on image-heavy pages.
+- Desktop: every popout window (call, nomad tab, translator, paper message, and the rest) now runs in its own renderer process where the API allows it, so a crash there cannot take the whole app down. A crashed child window is destroyed instead of lingering as a dead frame. The main window's crash recovery dialog is unchanged.
 - NomadNet: rendered pages that use the full-bleed shell (.html, .md, .txt) no longer overflow the viewer by the header and toolbar height. The content container carried a stray min-h-full that beat its min-h-0, so the rendered frame ran ~54px past the bottom of the pane and its scrollbar hung below the page boundary, reading as the extra-slider artifact.
-- Network visualiser: leaving the page during engine setup no longer orphans a live graph instance per visit; the init chain now checks for unmount after every await and destroys anything created in flight.
+- Network visualiser: leaving the page during engine setup no longer orphans a live graph instance per visit. The init chain now checks for unmount after every await and destroys anything created in flight.
 - Network visualiser: the loading overlay now has a cancel button. Stopping aborts in-flight fetches, halts physics and batch work, and leaves a fresh load one click away on the refresh button.
 - Telemetry: tracked peers that never answer are no longer polled every interval forever. Each unanswered request doubles the wait up to a daily cap, and after a bounded number of misses the peer is skipped until a telemetry response re-arms it or tracking is re-toggled.
 - Messaging: automatic resends no longer retry feature-only deliveries (commands, reactions, telemetry) to peers that never sent one back, so Sideband and other LXMF clients are not spammed with payload types they cannot parse.
@@ -26,12 +28,12 @@ All notable changes to this project will be documented in this file.
 - Android: the RNode form now asks for Bluetooth permission when the BLE or Bluetooth transport is enabled, instead of relying on the bundled startup prompt that can be dismissed and never re-shown.
 - Android (build): the bundled Reticulum wheel now guards paired-device enumeration against devices with no name and denied Bluetooth permissions, so one bad bonding record or a missing grant no longer kills RNode Bluetooth bring-up.
 - Relay chat: the hide join/part preference now applies. A setup-time read shadowed the setting's lookup, so presence lines kept rendering and the toggle wrote the old value back to storage.
-- Tools: the traffic page refresh button no longer flashes on every background poll; the spinner now only runs for manual refreshes.
+- Tools: the traffic page refresh button no longer flashes on every background poll. The spinner now only runs for manual refreshes.
 - Tools: the traffic page RRC hint now counts connected hubs by the real status constant instead of a string comparison that always read zero.
 
 ### Added
 
-- Interfaces: bulk config imports now attach imported interfaces live instead of requiring a restart; the restart banner only appears when live attach could not bring one up.
+- Interfaces: bulk config imports now attach imported interfaces live instead of requiring a restart. The restart banner only appears when live attach could not bring one up.
 - Health: the monitor now tracks file descriptor counts, warning when usage nears the limit and when the count climbs steadily across the check window, catching slow descriptor leaks early.
 - Diagnostics: new Traffic tool shows live upload and download rates per interface and per component, per-peer byte attribution, announce and propagated splits, a rolling activity chart, and plain-language hints explaining what is driving the wire load.
 - Interfaces: I2P community presets can now be quick-added like other presets. They run through the normal add-interface checks, so transport mode and the single-I2P rule still apply.
@@ -86,7 +88,7 @@ All notable changes to this project will be documented in this file.
 - Config: ui_font_family, ui_custom_font_name, nomad_* and other newer settings now round-trip through GET /config instead of silently reverting, and multi-megabyte custom font data serves on demand via /api/v1/app/custom-font.
 - Icons: LxmfUserIcon badges render their glyph again. Percentage padding was measured against the card width instead of the icon and collapsed the SVG to zero size, leaving empty colored circles on bot and contact rows.
 - Docs: ![alt](src) markdown no longer renders as a stray bang plus a link, unsafe image sources are dropped, and relative image paths resolve under /meshchatx-docs/ in-app.
-- UI: the Banished page screenshot path no longer exposes the skeleton grid; loaded-state markers gate capture.
+- UI: the Banished page screenshot path no longer exposes the skeleton grid. Loaded-state markers gate capture.
 
 ### Security
 
@@ -143,11 +145,11 @@ All notable changes to this project will be documented in this file.
 - Shared-instance RNS calls can no longer wedge the web server. The shared RPC recv had no deadline, so a stalled rnsd blocked whatever thread asked, including the aiohttp loop serving /interface-stats, /path-table, path probe, blocklist and telephone endpoints. Route handlers now run those calls in a thread when a shared instance is in use, and every shared-instance RPC recv carries a 10s deadline.
 - RNode Flasher: the page 500s in dev mode because Vite refuses dynamic imports of public assets, and the fallback code imported vendor modules without any SRI check. Vendor bundles now load through a hash-verified blob URL path shared by all flasher scripts, and the dead web-serial polyfill reference (the file was never shipped) is removed.
 - RRC: reconnect backoff can no longer overflow after days of retries (the exponent is capped), a dead link reporting close twice no longer double-counts the backoff, and a connect that crosses a manual disconnect no longer installs its link anyway. A connect attempt epoch now drops links from superseded workers.
-- RRC: hub error text can no longer delete room history files; only explicit remove/clear actions erase the archive. History files now compact to the retention window instead of growing without bound.
-- RRC: pending-delivery echoes age out on message reads, not only on inbound packets; active-room tracking normalizes room names so mixed-case paths cannot split unread state or history.
+- RRC: hub error text can no longer delete room history files. Only explicit remove/clear actions erase the archive. History files now compact to the retention window instead of growing without bound.
+- RRC: pending-delivery echoes age out on message reads, not only on inbound packets. Active-room tracking normalizes room names so mixed-case paths cannot split unread state or history.
 - Removed dead code: the bot_propagation re-export shim, the never-wired lifecycle deferred_network module, two unused frontend API wrappers, the unused FormSubLabel component, a dead RRC ping path (send_ping was never called, so pong tracking and its bookkeeping were inert), the trusted-publisher OO store cluster, unused config fields, and roughly two dozen unreachable DAO, plugin, sandbox, and diagnostics helpers.
 - Map coordinate format now persists: the PATCH handler and config export were wired (the setting was previously silently dropped).
-- API hardening from OpenAPI contract fuzzing: malformed JSON bodies (arrays or nulls in string fields) no longer 500 on the RRC join-room, hub-create, room key/topic, archive, and LXMF send endpoints; they now fail 400 with a named reason. The lxmf send error response also gained the standard error/code/message fields.
+- API hardening from OpenAPI contract fuzzing: malformed JSON bodies (arrays or nulls in string fields) no longer 500 on the RRC join-room, hub-create, room key/topic, archive, and LXMF send endpoints. They now fail 400 with a named reason. The lxmf send error response also gained the standard error/code/message fields.
 - RRC room names containing lone-surrogate unicode are rejected at normalize time instead of exploding mid-encode inside CBOR.
 - RNPath tool: a remote query no longer fires without a management identity (it returned a guaranteed 400 on every poll and spammed the console), and the search box is clamped so oversized input cannot overflow the HTTP request line.
 - Testing: an OpenAPI spec now ships under docs/openapi.yaml covering 79 API operations, exercised live by Schemathesis against a loopback backend in CI, plus an atheris coverage-guided fuzz suite over the RRC envelope codec and parsers, golden CBOR wire captures pinned against decode/round-trip drift, deterministic replay of recorded RRC sessions, a SIGKILL crash-consistency suite that kills the backend mid-write and asserts storage integrity on restart, a shared-instance e2e that runs the backend against a real rnsd, and scripted exploratory personas (impatient, adversarial input, data-heavy seeding) over all routes.
@@ -164,10 +166,10 @@ All notable changes to this project will be documented in this file.
 - Live e2e now also asserts interface byte counters stay bounded during idle announce windows and real chat flows, catching unbounded announce or path-request churn before it becomes a traffic bill.
 - Telephony: dialing by identity hash no longer resolves a wrong identity. The announce fallback rebuilt the peer identity from its public key through a private-key API, producing a constant wrong hash, so calls by identity hash could never find a path.
 - Backend: fixed a self-deadlock in AsyncUtils.run_async where a done-callback could fire inline while the futures lock was held, freezing the main event loop and wedging the server under sustained announce traffic. A live Playwright mesh suite now covers real LXMF delivery and relay-hub connect, join, and echo over a local TCP link.
-- LXMF: a transient blocklist or contact lookup error can no longer bounce inbound long messages with a false REJECTED state; the pre-transfer policy only rejects on a positive verdict, matching the 4.8.8 unknown-peer rule.
+- LXMF: a transient blocklist or contact lookup error can no longer bounce inbound long messages with a false REJECTED state. The pre-transfer policy only rejects on a positive verdict, matching the 4.8.8 unknown-peer rule.
 - Health monitor now probes the main event loop and dumps all thread stacks to the log if the loop stops answering, and SIGUSR1 dumps stacks on demand, so silent server wedges self-diagnose.
 - Relay chat: auto-connect now waits for the first interface to come online before sending path requests, so hubs connect quickly after a restart instead of burning a full path-request window.
-- Contacts context menu dismisses consistently on Escape, and the announce sidebar no longer corrupts first-seen timestamps or custom names from slim live announce payloads; announce list pagination no longer skips server rows when live nodes arrive mid-browse.
+- Contacts context menu dismisses consistently on Escape, and the announce sidebar no longer corrupts first-seen timestamps or custom names from slim live announce payloads. Announce list pagination no longer skips server rows when live nodes arrive mid-browse.
 - Sandbox: seccomp denylist now prefers the seccompy backend (pure Python, no libseccomp needed) and falls back to libseccomp via ctypes when it is absent.
 - Crawler: re-queued tasks keep their retry budget instead of resetting to zero, in-flight tasks count toward the per-node page cap, a successful crawl clears the previous skip reason, and a node's own page destinations are never queued for self-crawl.
 - Page nodes write pages and hosted files atomically and open served files with O_NOFOLLOW so a swapped symlink cannot redirect a served path after the jail check.

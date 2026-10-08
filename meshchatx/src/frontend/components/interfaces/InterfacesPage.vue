@@ -1406,7 +1406,7 @@ export default {
         onImportInterfacesModalDismissed(imported = false, appliedLive = false) {
             // reload interfaces as something may have been imported
             this.loadInterfaces();
-            // imported interfaces are attached live by the backend; only
+            // imported interfaces are attached live by the backend. Only
             // flag a restart when that did not take.
             if (imported && !appliedLive) {
                 this.trackInterfaceChange();

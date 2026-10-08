@@ -153,7 +153,7 @@ def workload_loop(share, state):
 
 
 def slope_oracle(csv_path, warmup_frac, eps):
-    """Least-squares slope per metric; FAIL on significant positive slope.
+    """Least-squares slope per metric. FAIL on significant positive slope.
 
     Counters that only grow (rx/tx) are normalized to per-interval rate
     first so a constant workload reads as flat.
@@ -182,7 +182,7 @@ def slope_oracle(csv_path, warmup_frac, eps):
         slope = sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True)) / var
         resid = [y - (slope * x + my - slope * mx) for x, y in zip(xs, ys, strict=True)]
         sd = (sum(r * r for r in resid) / max(1, n - 2)) ** 0.5
-        # Standard error of the slope is sd / sqrt(Sxx); the previous
+        # Standard error of the slope is sd / sqrt(Sxx). The previous
         # fitted-mean SE scaled the threshold ~n times too strict and the
         # oracle could never fire.
         se_slope = sd / (var**0.5)

@@ -125,7 +125,8 @@
                     <div
                         v-if="selectedPeerChatItems.length > 0"
                         :key="selectedPeer ? selectedPeer.destination_hash : ''"
-                        class="min-w-0 px-4 py-6"
+                        class="min-w-0 px-4 pt-6"
+                        :style="{ paddingBottom: composerContentPad }"
                         :class="useVirtualMessageList ? 'relative flex flex-col' : 'flex flex-col'"
                     >
                         <template v-if="!useVirtualMessageList">
@@ -225,22 +226,6 @@
             </div>
 
             <Transition name="scroll-fab">
-                <div
-                    v-if="!autoScrollOnNewMessage && messagesViewportReady"
-                    class="flex justify-center pb-1.5 pt-0.5 shrink-0"
-                >
-                    <button
-                        type="button"
-                        class="flex items-center justify-center size-10 min-h-[44px] min-w-[44px] rounded-full bg-transparent border border-sem-border shadow-sm text-sem-fg-muted hover:bg-sem-surface-muted hover:bg-sem-surface-muted hover:text-sem-fg hover:text-sem-fg transition-colors"
-                        title="Scroll to bottom"
-                        @click="scrollMessagesToBottom()"
-                    >
-                        <MaterialDesignIcon icon-name="chevron-down" class="size-5" />
-                    </button>
-                </div>
-            </Transition>
-
-            <Transition name="scroll-fab">
                 <div v-if="reactionPickerChatItem" class="absolute inset-0 z-40" @click.self="closeReactionPicker">
                     <div
                         ref="reactionPickerPanel"
@@ -271,9 +256,27 @@
                 </div>
             </Transition>
 
+            <Transition name="scroll-fab">
+                <div
+                    v-if="!autoScrollOnNewMessage && messagesViewportReady"
+                    class="absolute inset-x-0 z-30 flex justify-center pointer-events-none"
+                    :style="{ bottom: scrollFabBottom }"
+                >
+                    <button
+                        type="button"
+                        class="pointer-events-auto flex items-center justify-center size-10 min-h-[44px] min-w-[44px] rounded-full bg-transparent border border-sem-border shadow-sm text-sem-fg-muted hover:bg-sem-surface-muted hover:bg-sem-surface-muted hover:text-sem-fg hover:text-sem-fg transition-colors"
+                        title="Scroll to bottom"
+                        @click="scrollMessagesToBottom()"
+                    >
+                        <MaterialDesignIcon icon-name="chevron-down" class="size-5" />
+                    </button>
+                </div>
+            </Transition>
+
             <!-- send message: floating composer, transparent backdrop -->
             <div
-                class="w-full px-3 sm:px-4 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+                ref="composerOverlay"
+                class="absolute inset-x-0 bottom-0 z-30 w-full px-3 sm:px-4 pt-1"
                 :style="composerChromeStyle"
             >
                 <div class="w-full">
@@ -473,7 +476,7 @@
                         <div class="flex items-end gap-2 min-w-0">
                             <div
                                 v-click-outside="{ handler: onStickerPickerClickOutside, capture: true }"
-                                class="composer-pill relative flex-1 min-w-0 flex items-end gap-0.5 rounded-2xl border border-sem-border bg-transparent pl-1.5 pr-1 transition-all focus-within:ring-2 focus-within:ring-sem-focus focus-within:border-sem-focus-border shadow-xs"
+                                class="composer-pill relative flex-1 min-w-0 flex items-end gap-0.5 rounded-2xl border border-sem-border bg-sem-surface/40 backdrop-blur-md pl-1.5 pr-1 transition-all focus-within:ring-2 focus-within:ring-sem-focus focus-within:border-sem-focus-border shadow-xs"
                             >
                                 <!-- attachments button inside the pill, left side -->
                                 <div v-click-outside="closeMobileAttachmentMenu" class="relative shrink-0 self-center">
@@ -1992,6 +1995,7 @@ export default {
             sendStatusTickInterval: null,
             windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
             keyboardInsetPx: 0,
+            composerOverlayHeight: 72,
             peerHeaderCompact: false,
             peerHeaderResizeObserver: null,
             scrollBottomGen: 0,
@@ -2189,6 +2193,15 @@ export default {
             return {
                 paddingBottom: "max(0.625rem, env(safe-area-inset-bottom, 0px))",
             };
+        },
+        // The composer overlays the message list, so the list content gets
+        // bottom padding matching the measured overlay height and the scroll
+        // button floats just above it.
+        composerContentPad() {
+            return `${this.composerOverlayHeight + 8}px`;
+        },
+        scrollFabBottom() {
+            return `${this.composerOverlayHeight + 10}px`;
         },
         propagationSyncOverlayIcon() {
             if (this.isSyncingPropagationNode) {
@@ -2471,6 +2484,7 @@ export default {
                 this.initialLoad();
                 this.$nextTick(() => {
                     this.resetStaleConversationScrollSurface();
+                    this.bindComposerOverlayObserver();
                 });
                 if (newPeer) {
                     this.loadDraft(newPeer.destination_hash);
@@ -2585,6 +2599,18 @@ export default {
 
         this.reloadIngestedPaperMessageHashes();
 
+        // Track the floating composer height so the message list keeps enough
+        // bottom padding for it.
+        if (typeof ResizeObserver !== "undefined") {
+            this._composerOverlayObserver = new ResizeObserver((entries) => {
+                const el = entries[0] && entries[0].target;
+                if (el) {
+                    this.composerOverlayHeight = el.offsetHeight;
+                }
+            });
+            this.bindComposerOverlayObserver();
+        }
+
         // check translator
         this.checkTranslator();
 
@@ -2611,6 +2637,10 @@ export default {
     },
     beforeUnmount() {
         this.scrollBottomGen += 1;
+        if (this._composerOverlayObserver) {
+            this._composerOverlayObserver.disconnect();
+            this._composerOverlayObserver = null;
+        }
         clearTimeout(this.paperGenerateTimeout);
         this._cleanupReactionPickerDrag();
         this.closeReactionPicker();
@@ -2763,6 +2793,15 @@ export default {
                 this.peerHeaderResizeObserver.disconnect();
                 this.peerHeaderResizeObserver = null;
             }
+        },
+        bindComposerOverlayObserver() {
+            const el = this.$refs.composerOverlay;
+            if (!el || !this._composerOverlayObserver) {
+                return;
+            }
+            this._composerOverlayObserver.disconnect();
+            this._composerOverlayObserver.observe(el);
+            this.composerOverlayHeight = el.offsetHeight || this.composerOverlayHeight;
         },
         renderMarkdown(text) {
             return MarkdownRenderer.render(text);

@@ -101,7 +101,7 @@ for idx, (name, rooms) in enumerate(
 
 hub = hubs[0]
 
-# Headless host has no audio devices; the hostless bridge swaps LXST
+# Headless host has no audio devices. The hostless bridge swaps LXST
 # LineSource/LineSink for no-op transports so Telephone works everywhere.
 install_hostless_lxst_audio()
 import LXST
@@ -155,7 +155,7 @@ def ensure_storm_dests(n):
 
 outbox_pos = 0
 pending = []
-# Bounded lifetime only when explicitly requested; a self-killing peer
+# Bounded lifetime only when explicitly requested. A self-killing peer
 # silently deflates soak runs and late spec assertions.
 deadline_s = float(os.environ.get("E2E_PEER_MAX_AGE", "0") or 0)
 deadline = time.time() + deadline_s if deadline_s > 0 else None

@@ -305,7 +305,7 @@ async function rnsh() {
         const chunks = res.json?.chunks || [];
         return chunks.map((c) => c.text || "").join("");
     };
-    // Wait for the shell prompt before sending input; bytes sent during
+    // Wait for the shell prompt before sending input. Bytes sent during
     // channel negotiation are dropped.
     const ready = await poll(async () => {
         const text = await readOutput();
@@ -327,7 +327,7 @@ async function rnsh() {
 }
 
 async function rnx() {
-    // Bob opens an rnx listener; Alice executes a remote command.
+    // Bob opens an rnx listener. Alice executes a remote command.
     const existing = await get(BOB, "/api/v1/rnx/sessions");
     for (const s of existing.json?.sessions || []) {
         if (s.mode === "listen") {

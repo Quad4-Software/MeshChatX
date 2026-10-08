@@ -1004,7 +1004,7 @@ export default {
 
             const destinationHash = contact?.lxmf_address || contact?.remote_identity_hash;
             if (destinationHash) {
-                // Bare hash for maximum client compatibility; lxmf:// is not
+                // Bare hash for maximum client compatibility. lxmf:// is not
                 // accepted by every LXMF client.
                 await this.copyToClipboard(destinationHash, this.$t("contacts.contact_uri_copied"));
             } else {

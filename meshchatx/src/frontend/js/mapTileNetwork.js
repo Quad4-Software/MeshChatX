@@ -55,7 +55,7 @@ export function neighborTileCoords(lon, lat, zoom, ring = 1) {
 }
 
 export function resolveTileJsonTileUrls(doc, docUrl) {
-    // TileJSON allows relative tile URL templates; resolve them against the
+    // TileJSON allows relative tile URL templates. Resolve them against the
     // document URL so OpenLayers fetches the tile host instead of the app origin.
     if (!doc || typeof doc !== "object" || !Array.isArray(doc.tiles)) {
         return doc;
@@ -64,14 +64,14 @@ export function resolveTileJsonTileUrls(doc, docUrl) {
     // minus y), which is the standard-XYZ equivalent of a TMS row order.
     const isTms = doc.scheme === "tms";
     const tiles = doc.tiles.map((t) => {
-        // OpenLayers only expands {z}/{x}/{y}/{-y}/{a-c}; Leaflet style
+        // OpenLayers only expands {z}/{x}/{y}/{-y}/{a-c}. Leaflet style
         // {s} and {r} placeholders would stay literal in request URLs.
         let template = String(t).replaceAll("{s}", "{a-c}").replaceAll("{r}", "");
         if (isTms) {
             template = template.replaceAll("{y}", "{-y}");
         }
         try {
-            // URL percent-encodes { } in paths; restore template placeholders.
+            // URL percent-encodes { } in paths. Restore template placeholders.
             return new URL(template, docUrl).href.replaceAll("%7B", "{").replaceAll("%7D", "}");
         } catch {
             return template;

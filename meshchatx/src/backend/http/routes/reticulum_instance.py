@@ -696,7 +696,7 @@ def register_reticulum_instance_routes(routes, app):
                 try:
                     zf.write(path, name)
                 except OSError:
-                    # Entry pruned or replaced mid-scan; skip it.
+                    # Entry pruned or replaced mid-scan. Skip it.
                     continue
                 count += 1
         if count == 0:
@@ -720,7 +720,7 @@ def register_reticulum_instance_routes(routes, app):
                 raise ValueError("zip contains too many entries")
             for name in names:
                 base = os.path.basename(name)
-                # RNS writes flat hexrep filenames; anything else is unsafe or
+                # RNS writes flat hexrep filenames. Anything else is unsafe or
                 # not a discovered-interface entry.
                 if base != name or not DISCOVERY_FILENAME_RE.fullmatch(base):
                     skipped += 1

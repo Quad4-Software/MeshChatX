@@ -445,7 +445,7 @@ async def test_discovered_interfaces_bounded_scan_for_large_stores(temp_dir):
         assert len(data["interfaces"]) == 500
         assert getattr(app_instance, "_discovery_last_deep_scan", 0) > 0
 
-        # invalidate the short cache and forbid the deep scan; the bounded
+        # invalidate the short cache and forbid the deep scan. The bounded
         # path must still answer without calling list_discovered_interfaces
         app_instance._discovered_interfaces_cache = None
         with patch.object(

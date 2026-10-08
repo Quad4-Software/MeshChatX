@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Resolve the repo's installed Playwright browser and launch the MCP
 # against it. @playwright/mcp pins its own browser revision, which rarely
-# matches the version the repo's playwright installed; pointing at the
+# matches the version the repo's playwright installed. Pointing at the
 # resolved binary sidesteps the mismatch.
 #
 #   run-playwright-mcp.sh [chromium|firefox] [extra mcp args...]

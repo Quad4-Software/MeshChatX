@@ -1207,7 +1207,7 @@ async def test_add_rnode_ble_port_writes_android_keys(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_add_rnode_bt_port_desktop_keeps_port(tmp_path, monkeypatch):
-    """Desktop keeps the bt:// port; the Android translation must not run."""
+    """Desktop keeps the bt:// port. The Android translation must not run."""
     import json
     from unittest.mock import MagicMock, patch
 

@@ -230,7 +230,7 @@ function createRendererCrashHandler(deps) {
 /**
  * Popout/call child windows get their own renderer process (noopener), so a
  * crash there must not take the shell down. The main window already has its
- * own crash handler with a recovery dialog; for child windows, destroy the
+ * own crash handler with a recovery dialog. For child windows, destroy the
  * dead window so it does not linger as an unresponsive black frame.
  *
  * @param {object} deps

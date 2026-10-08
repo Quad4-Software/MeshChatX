@@ -303,7 +303,7 @@ describe("NetworkVisualiser.vue", () => {
         wrapper.vm.manualUpdate(); // newer run
         expect(wrapper.vm.isLoading).toBe(true);
 
-        resolveStale(); // stale run exits; its finally must not touch flags
+        resolveStale(); // stale run exits. Its finally must not touch flags
         await new Promise((resolve) => setTimeout(resolve, 0));
         expect(wrapper.vm.isLoading).toBe(true);
         expect(wrapper.vm.isUpdating).toBe(true);
@@ -370,7 +370,7 @@ describe("NetworkVisualiser.vue", () => {
 
         await wrapper.vm.processVisualization();
 
-        // A background update may re-run processVisualization; poll past it.
+        // A background update may re-run processVisualization. Poll past it.
         await vi.waitFor(() => expect(wrapper.vm.nodes.length).toBeGreaterThan(0), { timeout: 5000 });
         // No crash happened and no background update is still running.
         await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false), { timeout: 5000 });

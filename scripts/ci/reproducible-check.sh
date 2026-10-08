@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Reproducibility probe: build the wheel twice and compare SHA256.
-# SOURCE_DATE_EPOCH pins archive timestamps; remaining nondeterminism
+# SOURCE_DATE_EPOCH pins archive timestamps. Remaining nondeterminism
 # (ordering, embedded paths) is exactly what this check exists to catch.
 set -euo pipefail
 

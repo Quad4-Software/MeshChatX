@@ -48,7 +48,7 @@ def test_rates_computed_between_snapshots():
     time.sleep(0.3)
     meter.record(COMPONENT_LXMF, rx=300)
     second = meter.snapshot([_iface("i0", txb=1300, rxb=1600)])
-    # ~0.3s for 300 bytes -> ~1000 B/s raw; EMA blends with the prior
+    # ~0.3s for 300 bytes -> ~1000 B/s raw. EMA blends with the prior
     # zero sample, so the displayed rate lands well under raw.
     assert 200 < second["totals"]["rx_bps"] < 1200
     assert 200 < second["interfaces"][0]["tx_bps"] < 1200
