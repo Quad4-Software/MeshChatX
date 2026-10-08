@@ -7,6 +7,7 @@ import importlib.util
 from pathlib import Path
 from types import ModuleType
 from unittest.mock import patch
+import urllib.error
 
 import pytest
 
@@ -117,6 +118,7 @@ def test_upload_ostree_tree_order_and_no_track_prune(
         body: bytes,
         access_key: str,
         content_type: str,
+        cache_control: str | None = None,
         max_attempts: int = 4,
     ) -> None:
         puts.append(url)
@@ -125,6 +127,8 @@ def test_upload_ostree_tree_order_and_no_track_prune(
         patch.object(ostree_up, "put_file", side_effect=fake_put),
         patch.object(ostree_up, "prune_remote_orphans") as prune,
         patch.object(ostree_up, "list_remote_files", return_value=set()),
+        patch.object(ostree_up, "purge_pullzone_urls"),
+        patch.object(ostree_up, "verify_public_summary"),
     ):
         rc = ostree_up.upload_ostree_tree(
             root,
@@ -160,6 +164,7 @@ def test_upload_ostree_tree_phase_barrier_with_workers(
         body: bytes,
         access_key: str,
         content_type: str,
+        cache_control: str | None = None,
         max_attempts: int = 4,
     ) -> None:
         puts.append(url)
@@ -168,6 +173,8 @@ def test_upload_ostree_tree_phase_barrier_with_workers(
         patch.object(ostree_up, "put_file", side_effect=fake_put),
         patch.object(ostree_up, "prune_remote_orphans"),
         patch.object(ostree_up, "list_remote_files", return_value=set()),
+        patch.object(ostree_up, "purge_pullzone_urls"),
+        patch.object(ostree_up, "verify_public_summary"),
     ):
         rc = ostree_up.upload_ostree_tree(
             root,
@@ -208,7 +215,7 @@ def test_upload_skips_existing_content_addressed_objects(
     puts: list[str] = []
     pruned_local: list[set] = []
 
-    def fake_put(url, body, access_key, content_type, max_attempts=4):
+    def fake_put(url, body, access_key, content_type, cache_control=None, max_attempts=4):
         puts.append(url)
 
     def fake_prune(base, access_key, prefix, local_rels):
@@ -218,6 +225,8 @@ def test_upload_skips_existing_content_addressed_objects(
         patch.object(ostree_up, "put_file", side_effect=fake_put),
         patch.object(ostree_up, "list_remote_files", return_value=remote),
         patch.object(ostree_up, "prune_remote_orphans", side_effect=fake_prune),
+        patch.object(ostree_up, "purge_pullzone_urls"),
+        patch.object(ostree_up, "verify_public_summary"),
     ):
         rc = ostree_up.upload_ostree_tree(
             root,
@@ -240,6 +249,70 @@ def test_workflow_flatpak_ostree_timeout_and_workers() -> None:
     assert "BUNNY_UPLOAD_WORKERS" in text
     # Job timeout must leave headroom for cold Bunny publishes.
     assert "timeout-minutes: 180" in text
+    assert "BUNNY_API_KEY" in text
+    assert "BUNNY_PULL_ZONE_ID" in text
+
+
+def test_cache_control_short_for_discovery(ostree_up: ModuleType) -> None:
+    short = ostree_up.SHORT_CACHE_CONTROL
+    long = ostree_up.LONG_CACHE_CONTROL
+    assert ostree_up.cache_control_for("repo/summary.idx") == short
+    assert ostree_up.cache_control_for("repo/summary") == short
+    assert ostree_up.cache_control_for("repo/refs/heads/x") == short
+    assert ostree_up.cache_control_for("meshchatx.flatpakrepo") == short
+    assert ostree_up.cache_control_for("repo/objects/aa/obj.filez") == long
+
+
+def test_summary_idx_digest_and_verify_detects_stale(
+    ostree_up: ModuleType, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import gzip
+    import hashlib
+
+    # Minimal x86_64\\0\\0 + 32-byte digest layout; digest is hash of gz body.
+    payload = b"dummy-summary"
+    gz = gzip.compress(payload)
+    digest = hashlib.sha256(gz).digest()
+    idx = b"x86_64\x00\x00" + digest + b"trailer"
+    assert ostree_up._summary_idx_digest(idx) == digest.hex()
+
+    good_commit = "97b443c027ad646076c85cab12f8af3f95ef5ec44012e01daf1a1603fdaee553"
+
+    def fake_get(url: str, timeout: int = 30) -> bytes:
+        if "summary.idx" in url:
+            return idx
+        if f"summaries/{digest.hex()}.gz" in url:
+            # Wrong bytes: hash will not match digest in idx.
+            return gzip.compress(b"stale-other-summary")
+        if "/refs/heads/" in url and "/stable" in url:
+            return (good_commit + "\n").encode()
+        if "/refs/heads/" in url:
+            raise urllib.error.HTTPError(url, 404, "missing", hdrs=None, fp=None)
+        raise AssertionError(url)
+
+    def fake_head(url: str, timeout: int = 20) -> bool:
+        return f"97/{good_commit[2:]}.commit" in url
+
+    monkeypatch.setattr(ostree_up, "_http_get", fake_get)
+    monkeypatch.setattr(ostree_up, "_http_head_ok", fake_head)
+    monkeypatch.setenv("FLATPAK_CDN_BASE_URL", "https://cdn.example/flatpak")
+    with pytest.raises(SystemExit, match="hash is"):
+        ostree_up.verify_public_summary()
+
+    # Matching gz + live ref commit should pass.
+    def fake_get_ok(url: str, timeout: int = 30) -> bytes:
+        if "summary.idx" in url:
+            return idx
+        if f"summaries/{digest.hex()}.gz" in url:
+            return gz
+        if "/refs/heads/" in url and "/stable" in url:
+            return (good_commit + "\n").encode()
+        if "/refs/heads/" in url:
+            raise urllib.error.HTTPError(url, 404, "missing", hdrs=None, fp=None)
+        raise AssertionError(url)
+
+    monkeypatch.setattr(ostree_up, "_http_get", fake_get_ok)
+    ostree_up.verify_public_summary()
 
 
 def test_export_script_uses_cdn_meshchatx() -> None:

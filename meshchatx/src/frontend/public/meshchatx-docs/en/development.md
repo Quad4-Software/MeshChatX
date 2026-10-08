@@ -134,7 +134,7 @@ Before a Testing or Beta cut, edit release/channel_prompt.json (focus_areas, not
 5. Rollback: publish a new Stable from a known-good prior SHA. Do not rewrite a published release.
 6. Users see the channel badge in the sidebar and About. Testing/Beta also get a one-time prompt.
 7. Flatpak: the tag's `flatpak-ostree` job publishes to `https://cdn.quad4.io/flatpak/` on branch `testing`, `beta`, or `stable`. Keep that OSTree tree under `flatpak/` only. After the first good CDN publish, disable GitHub Pages if it still hosts the old Flatpak tree.
-8. Bunny pull zone (`cdn.quad4.io`): long cache on `/flatpak/repo/objects/*` and `/deltas/*`. No cache or must-revalidate on `summary*`, `refs`, `config`, and `*.flatpakref` / `*.flatpakrepo`.
+8. Bunny pull zone (`cdn.quad4.io`): long immutable cache on `/flatpak/repo/objects/*` and `/deltas/*`. Discovery files (`summary`, `summary.sig`, `summary.idx`, `summaries/*`, `refs/*`, `config`, `*.flatpakref`, `*.flatpakrepo`) upload with `max-age=60, must-revalidate`. Release upload also purges those URLs when `BUNNY_API_KEY` and `BUNNY_PULL_ZONE_ID` are set, then verifies the live index does not point at pruned commits.
 
 Hard rule for CI speed: cache toolchains and downloads only. Tagged release binaries must be built inside that tag's single build-release run_id. Never attach artifacts from another run.
 

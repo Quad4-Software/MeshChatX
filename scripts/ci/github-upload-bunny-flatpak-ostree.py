@@ -42,6 +42,12 @@ PHASE_SUMMARY = 4
 PHASE_SUMMARY_SIG = 5
 PHASE_SUMMARY_IDX = 6
 
+# Pull-zone cache for mutable discovery files must stay short. A 30-day HIT on
+# summary.idx after orphan-pruning objects is what broke install: clients
+# resolve a commit the CDN no longer holds. Objects stay long-cache.
+SHORT_CACHE_CONTROL = "public, max-age=60, must-revalidate"
+LONG_CACHE_CONTROL = "public, max-age=31536000, immutable"
+
 
 def encode_object_rel(rel: str) -> str:
     return "/".join(quote(part, safe="") for part in rel.split("/"))
@@ -52,6 +58,26 @@ def mime_for(path: Path) -> str:
         return "application/wasm"
     guessed, _enc = mimetypes.guess_type(path.name)
     return guessed or "application/octet-stream"
+
+
+def cache_control_for(rel: str) -> str:
+    """Cache-Control written to Edge Storage and honored by the pull zone."""
+    if rel.startswith("repo/objects/") or rel.startswith("repo/deltas/"):
+        return LONG_CACHE_CONTROL
+    name = Path(rel).name
+    if name in {
+        "summary",
+        "summary.sig",
+        "summary.idx",
+        "summary.idx.sig",
+        "config",
+    }:
+        return SHORT_CACHE_CONTROL
+    if rel.startswith("repo/refs/") or rel.startswith("repo/summaries/"):
+        return SHORT_CACHE_CONTROL
+    if name.endswith((".flatpakref", ".flatpakrepo")) or name == "index.html":
+        return SHORT_CACHE_CONTROL
+    return SHORT_CACHE_CONTROL
 
 
 def upload_phase(rel: str) -> int:
@@ -92,20 +118,25 @@ def put_file(
     body: bytes,
     access_key: str,
     content_type: str,
+    cache_control: str | None = None,
     max_attempts: int = 4,
 ) -> None:
     checksum = hashlib.sha256(body).hexdigest().upper()
     timeout = 600 if len(body) > 50_000_000 else 120
     for attempt in range(1, max_attempts + 1):
+        headers = {
+            "AccessKey": access_key,
+            "Content-Type": content_type,
+            "Checksum": checksum,
+        }
+        if cache_control:
+            # Bunny Edge Storage stores this and the pull zone serves it.
+            headers["Cache-Control"] = cache_control
         req = urllib.request.Request(  # noqa: S310 - CI storage endpoint
             url,
             data=body,
             method="PUT",
-            headers={
-                "AccessKey": access_key,
-                "Content-Type": content_type,
-                "Checksum": checksum,
-            },
+            headers=headers,
         )
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - CI storage endpoint
@@ -250,8 +281,153 @@ def _upload_one(
     url = f"{base}/{encode_object_rel(object_rel)}"
     path = root / rel
     body = path.read_bytes()
-    put_file(url, body, access_key, mime_for(path))
+    put_file(
+        url,
+        body,
+        access_key,
+        mime_for(path),
+        cache_control=cache_control_for(rel),
+    )
     return f"phase={upload_phase(rel)} {url}"
+
+
+def is_immutable_object(rel: str) -> bool:
+    return rel.startswith("repo/objects/") or rel.startswith("repo/deltas/")
+
+
+def purge_pullzone_urls(urls: list[str]) -> None:
+    """Best-effort CDN edge purge so clients stop seeing a stale summary.idx."""
+    api_key = os.environ.get("BUNNY_API_KEY", "").strip()
+    zone = os.environ.get("BUNNY_PULL_ZONE_ID", "").strip()
+    if not api_key or not zone:
+        print(
+            "bunny purge skipped (set BUNNY_API_KEY and BUNNY_PULL_ZONE_ID)",
+            file=sys.stderr,
+            flush=True,
+        )
+        return
+    for url in urls:
+        req = urllib.request.Request(  # noqa: S310 - CI CDN API
+            f"https://api.bunny.net/purge?url={quote(url, safe='')}",
+            method="POST",
+            headers={"AccessKey": api_key},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:  # noqa: S310
+                code = resp.getcode()
+        except urllib.error.HTTPError as e:
+            print(f"bunny purge HTTP {e.code} for {url}", file=sys.stderr, flush=True)
+            continue
+        print(f"bunny purge {code} {url}", flush=True)
+
+
+def public_cdn_base() -> str:
+    return os.environ.get("FLATPAK_CDN_BASE_URL", "https://cdn.quad4.io/flatpak").rstrip(
+        "/"
+    )
+
+
+def discovery_purge_urls(prefix: str = DEFAULT_PREFIX) -> list[str]:
+    base = public_cdn_base()
+    # Only the paths Flatpak clients always re-check. Objects stay cached.
+    return [
+        f"{base}/repo/summary",
+        f"{base}/repo/summary.sig",
+        f"{base}/repo/summary.idx",
+        f"{base}/repo/summary.idx.sig",
+        f"{base}/repo/config",
+        f"{base}/meshchatx.flatpakrepo",
+        f"{base}/meshchatx.flatpakref",
+        f"{base}/meshchatx-stable.flatpakref",
+        f"{base}/meshchatx-beta.flatpakref",
+        f"{base}/meshchatx-testing.flatpakref",
+        f"{base}/index.html",
+    ]
+
+
+def _http_get(url: str, timeout: int = 30) -> bytes:
+    with urllib.request.urlopen(url, timeout=timeout) as resp:  # noqa: S310
+        return resp.read()
+
+
+def _http_head_ok(url: str, timeout: int = 20) -> bool:
+    try:
+        with urllib.request.urlopen(  # noqa: S310
+            urllib.request.Request(url, method="HEAD"), timeout=timeout
+        ) as resp:
+            return resp.getcode() == 200
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return False
+        raise
+
+
+def _summary_idx_digest(idx: bytes) -> str:
+    """Return the first arch summary blob digest (hex) from summary.idx.
+
+    Layout starts with an arch label (e.g. ``x86_64``), two NULs, then a bare
+    32-byte SHA-256 of the gzip-compressed per-arch summary.
+    """
+    nul = idx.find(b"\x00\x00")
+    if nul < 0 or nul + 2 + 32 > len(idx):
+        raise SystemExit("could not parse digest from live summary.idx")
+    return idx[nul + 2 : nul + 2 + 32].hex()
+
+
+def verify_public_summary(app_id: str = "com.meshchatx.app") -> None:
+    """Fail if the live CDN index/ref graph cannot install the app.
+
+    Flatpak prefers summary.idx over summary. After publish we require:
+
+    1. summary.idx is fetchable and names a summaries/*.gz blob that exists
+    2. that gzip blob's SHA-256 matches the digest in summary.idx
+    3. every app branch ref under refs/heads has a live .commit object
+    """
+    import gzip
+    import hashlib
+
+    base = public_cdn_base()
+    bust = f"?v={int(time.time())}"
+
+    idx = _http_get(f"{base}/repo/summary.idx{bust}")
+    digest_hex = _summary_idx_digest(idx)
+    sum_url = f"{base}/repo/summaries/{digest_hex}.gz{bust}"
+    try:
+        gz = _http_get(sum_url)
+    except urllib.error.HTTPError as e:
+        raise SystemExit(
+            f"live summary.idx points at missing summaries/{digest_hex}.gz "
+            f"(HTTP {e.code}). Purge the pull zone or re-upload summary.idx."
+        ) from e
+    actual = hashlib.sha256(gz).hexdigest()
+    if actual != digest_hex:
+        raise SystemExit(
+            f"summaries/{digest_hex}.gz hash is {actual}, not the digest "
+            f"named by summary.idx. Edge cache is stale; purge summary.idx."
+        )
+    # Ensure the blob decompresses (corrupt cache body).
+    try:
+        gzip.decompress(gz)
+    except OSError as e:
+        raise SystemExit(f"summaries/{digest_hex}.gz is not valid gzip: {e}") from e
+
+    found = 0
+    for branch in ("stable", "beta", "testing"):
+        ref_url = f"{base}/repo/refs/heads/app/{app_id}/x86_64/{branch}{bust}"
+        try:
+            commit = _http_get(ref_url).decode().strip()
+        except urllib.error.HTTPError:
+            continue
+        if len(commit) != 64 or any(c not in "0123456789abcdef" for c in commit):
+            raise SystemExit(f"bad ref body for {branch}: {commit!r}")
+        obj = f"{base}/repo/objects/{commit[:2]}/{commit[2:]}.commit{bust}"
+        if not _http_head_ok(obj):
+            raise SystemExit(f"ref {branch}={commit} missing object {obj}")
+        found += 1
+        print(f"verify ok ref branch={branch} commit={commit}", flush=True)
+    if found == 0:
+        raise SystemExit(f"no app/{app_id}/x86_64/{{stable,beta,testing}} refs on CDN")
+    print(f"verify_public_summary: ok (digest={digest_hex} branches={found})", flush=True)
 
 
 def upload_ostree_tree(
@@ -269,22 +445,29 @@ def upload_ostree_tree(
     if "repo/config" not in rels:
         print("missing repo/config under export root", file=sys.stderr, flush=True)
         return 1
+    if "repo/summary.idx" not in rels:
+        print(
+            "missing repo/summary.idx under export root "
+            "(flatpak build-update-repo must emit an indexed summary)",
+            file=sys.stderr,
+            flush=True,
+        )
+        return 1
 
     base = base.rstrip("/")
     prefix = prefix.strip("/")
     local_set = set(rels)
     pool = upload_workers() if workers is None else max(1, min(workers, MAX_WORKERS))
 
-    # Content-addressed ostree objects are immutable by name: a remote path
-    # that exists is byte-identical, so skipping it avoids a rewrite that
-    # would cold-start the edge cache for that object. local_set keeps the
-    # full file set so orphan pruning does not delete skipped objects.
+    # Content-addressed objects are immutable by name: skip rewrite when
+    # already present. Mutable discovery files always re-upload so Cache-Control
+    # and body stay current.
     remote = list_remote_files(base, access_key, prefix)
     before = len(rels)
     rels = [
         rel
         for rel in rels
-        if not (rel.startswith("repo/objects/") and f"{prefix}/{rel}" in remote)
+        if not (is_immutable_object(rel) and f"{prefix}/{rel}" in remote)
     ]
     skipped = before - len(rels)
 
@@ -316,8 +499,15 @@ def upload_ostree_tree(
             for fut in as_completed(futures):
                 print(fut.result(), flush=True)
 
+    # Drop stale discovery files from the pull zone before orphan prune so
+    # clients stop resolving commits we are about to delete.
+    purge_pullzone_urls(discovery_purge_urls(prefix))
+
     if prune_orphans:
         prune_remote_orphans(base, access_key, prefix, local_set)
+        purge_pullzone_urls(discovery_purge_urls(prefix))
+
+    verify_public_summary()
     return 0
 
 
