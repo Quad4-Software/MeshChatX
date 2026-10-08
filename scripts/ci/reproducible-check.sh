@@ -11,6 +11,8 @@ mkdir -p "$A" "$B"
 trap 'rm -rf "$(dirname "$A")"' EXIT
 
 for out in "$A" "$B"; do
+    # Fresh build/lib each pass so package-data cannot merge stale public assets.
+    rm -rf build/lib build/bdist.* reticulum_meshchatx.egg-info
     SOURCE_DATE_EPOCH="$EPOCH" uv build --wheel --out-dir "$out" >/dev/null
 done
 

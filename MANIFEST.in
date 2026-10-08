@@ -1,6 +1,13 @@
 graft vendor
 recursive-include meshchatx/public *
 recursive-exclude meshchatx/public/repository-server-bundled *
+# Stale Vite leftovers must never enter the sdist/wheel even if public/ is dirty.
+recursive-exclude meshchatx/public *NerdFont*
+recursive-exclude meshchatx/public *RobotoMonoNerdFont*
+recursive-exclude meshchatx/public tailwind-v3.4.3-forms-v0.5.7.js
+global-exclude *NerdFont*
+global-exclude *RobotoMonoNerdFont*
+global-exclude tailwind-v3.4.3-forms-v0.5.7.js
 recursive-include meshchatx/src/backend *
 include meshchatx/src/version.py
 include meshchatx/src/__init__.py

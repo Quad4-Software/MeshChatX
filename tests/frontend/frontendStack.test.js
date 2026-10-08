@@ -48,6 +48,16 @@ describe("frontend stack migration reference", () => {
         expect(vite).toContain("emptyOutDir: false");
         expect(vite).toMatch(/rmSync\(assetsDir/);
 
+        const manifest = readRepo("MANIFEST.in");
+        expect(manifest).toMatch(/NerdFont/);
+        expect(manifest).toMatch(/tailwind-v3\.4\.3-forms-v0\.5\.7\.js/);
+        const pyproject = readRepo("pyproject.toml");
+        expect(pyproject).toMatch(/NerdFont/);
+        expect(pyproject).toMatch(/tailwind-v3\.4\.3-forms-v0\.5\.7\.js/);
+        const checkScript = readRepo("scripts/ci/check-public-packaging.py");
+        expect(checkScript).toContain("MAX_HASHES_PER_STEM");
+        expect(checkScript).toContain("LEFTOVER_RES");
+
         expect(vite).toContain("tsconfigPaths: true");
         expect(vite).toContain('"micron-parser"');
         expect(vite).toMatch(/node_modules["'],\s*["']micron-parser["'],\s*["']js["'],\s*["']micron-parser\.js["']/);

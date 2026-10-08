@@ -46,6 +46,8 @@ if [ "$SKIP_WHEEL" -eq 1 ]; then
     fi
 else
     rm -f dist/reticulum_meshchatx-*.whl
+    # setuptools merges into build/lib; wipe so public/ assets do not pile up.
+    rm -rf build/lib build/bdist.* reticulum_meshchatx.egg-info
     uv build --wheel
     WHEEL="$(ls dist/reticulum_meshchatx-*.whl | head -n 1)"
 fi

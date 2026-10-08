@@ -676,8 +676,15 @@ tasks:
         desc: Build Python wheel package
         deps: [install]
         cmds:
+            # setuptools merges package-data into build/lib; a stale tree piles
+            # old hashed Vite chunks and leftovers into every subsequent wheel.
+            - rm -rf build/lib build/bdist.* reticulum_meshchatx.egg-info
+            - "{{.PYTHON}} scripts/ci/check-public-packaging.py"
             - uv build --wheel
             - "{{.PYTHON}} scripts/move_wheels.py"
+            - |
+                whl="$(ls -1 python-dist/reticulum_meshchatx-*-py3-none-any.whl | sort -V | tail -1)"
+                "{{.PYTHON}}" scripts/ci/check-public-packaging.py --wheel "$whl"
 
     build:pyz:
         desc: Build single-file Python zipapp (PYZ)

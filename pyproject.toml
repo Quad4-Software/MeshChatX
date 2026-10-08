@@ -74,7 +74,13 @@ meshchatx = ["public/**/*", "public/*", "src/backend/data/community_interfaces.j
 "src/backend/data/map/.gitkeep", "src/frontend/public/repository-server-index.html"]
 
 [tool.setuptools.exclude-package-data]
-meshchatx = ["public/repository-server-bundled/**"]
+meshchatx = [
+  "public/repository-server-bundled/**",
+  # Belt-and-suspenders if a dirty public/ tree is present at pack time.
+  "public/**/*NerdFont*",
+  "public/**/*RobotoMonoNerdFont*",
+  "public/**/tailwind-v3.4.3-forms-v0.5.7.js",
+]
 
 [build-system]
 requires = ["setuptools>=83.0", "wheel"]
