@@ -1,5 +1,5 @@
-# Testing channel builds from dev: push a nightly-* tag when dev has new
-# commits since the last Testing prerelease, then dispatch build-release.yml.
+# Testing channel builds from master: push a nightly-* tag when master has
+# new commits since the last Testing prerelease, then dispatch build-release.yml.
 # Tag push alone does not start other workflows when using GITHUB_TOKEN
 # (GitHub Actions event loop prevention). Workflow_dispatch is required.
 #
@@ -101,7 +101,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
-                  ref: dev
+                  ref: master
                   fetch-depth: 0
                   persist-credentials: false
 
@@ -125,7 +125,7 @@ jobs:
                       last_testing_sha="$(git rev-parse "refs/tags/${last_testing_tag}^{commit}" 2>/dev/null || true)"
                     fi
                     if [ -n "${last_testing_sha}" ] && [ "${last_testing_sha}" = "${full_sha}" ]; then
-                      echo "No new commits on dev since last Testing release (${last_testing_tag} @ ${last_testing_sha}); skipping scheduled release."
+                      echo "No new commits on master since last Testing release (${last_testing_tag} @ ${last_testing_sha}); skipping scheduled release."
                       skip_release=true
                     fi
                   fi
@@ -136,7 +136,7 @@ jobs:
                   echo "Testing tag: ${tag} @ ${full_sha} (skip_release=${skip_release})"
 
     tag:
-        name: Tag dev and dispatch build-release
+        name: Tag master and dispatch build-release
         needs: metadata
         if: needs.metadata.outputs.skip_release != 'true'
         runs-on: ubuntu-latest
@@ -152,7 +152,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
-                  ref: dev
+                  ref: master
                   fetch-depth: 0
                   # Tag push needs the persisted token (git push origin).
                   persist-credentials: true
@@ -206,9 +206,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
-                  # Scheduled/dispatch runs default to master; this workflow
-                  # tests the dev track.
-                  ref: dev
+                  ref: master
                   persist-credentials: false
 
             - name: Keep newest Testing prereleases
@@ -231,9 +229,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
-                  # Scheduled/dispatch runs default to master; this workflow
-                  # tests the dev track.
-                  ref: dev
+                  ref: master
                   persist-credentials: false
             - name: Set up development environment
               uses: $/.github/actions/setup-dev-environment
@@ -256,9 +252,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
-                  # Scheduled/dispatch runs default to master; this workflow
-                  # tests the dev track.
-                  ref: dev
+                  ref: master
                   persist-credentials: false
             - name: Build Dockerfile.dev
               run: docker build -f docker/Dockerfile.dev -t meshchatx-dev:ci .
@@ -279,7 +273,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
-                  ref: dev
+                  ref: master
                   persist-credentials: false
             - name: Summarize workflow durations and failure rates
               env:

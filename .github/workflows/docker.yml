@@ -1,7 +1,7 @@
 # Build multi-arch image, push to GHCR, and keyless-sign the manifest (Cosign).
 # Optionally also push to Docker Hub when credentials are configured (fork-friendly).
-# Runs on push to master (tags :latest and :sha-*), dev (tags :dev and :sha-*),
-# tags (semver tags + :latest), and workflow_dispatch.
+# Runs on push to master (tags :dev and :sha-*), tags (semver tags + :latest),
+# and workflow_dispatch (:latest + :dev + :sha-* on master).
 #
 # Optional Docker Hub (same tag set as GHCR):
 #   Repository secrets (both required to enable Hub push. Omit either to skip):
@@ -33,7 +33,6 @@ on:
     push:
         branches:
             - master
-            - dev
         # Branch pushes rebuild only when image inputs change. Tag pushes still
         # run (GitHub does not apply path filters to tag pushes the same way).
         paths:
@@ -260,6 +259,7 @@ jobs:
               env:
                   GITHUB_REF: ${{ github.ref }}
                   GITHUB_REF_NAME: ${{ github.ref_name }}
+                  GITHUB_EVENT_NAME: ${{ github.event_name }}
                   TAG_SUFFIX: ${{ matrix.tag_suffix }}
                   IMAGE_NAME: ${{ steps.image.outputs.name }}
               run: |
@@ -277,6 +277,7 @@ jobs:
               env:
                   GITHUB_REF: ${{ github.ref }}
                   GITHUB_REF_NAME: ${{ github.ref_name }}
+                  GITHUB_EVENT_NAME: ${{ github.event_name }}
                   TAG_SUFFIX: ${{ matrix.tag_suffix }}
                   DH_USER: ${{ secrets.DOCKERHUB_USERNAME }}
                   DH_REPO_NAME: ${{ vars.DOCKERHUB_REPOSITORY }}

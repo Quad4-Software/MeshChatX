@@ -1,5 +1,9 @@
 ## [4.10.3] - TBD [unreleased]
 
+### Changed
+
+- CI now targets master only. The dev branch is retired, so every master commit still publishes the rolling `:dev` Docker image while `:latest` moves only on release tags and manual runs. The Android Gradle egress allowlist now includes jitpack.io.
+
 ### Fixed
 
 - **NomadNet crash-tab**: Electron no longer shows dual vertical scrollbars on micron-parser-js pages. The crash-tab document had `overflow-x: hidden` on both `html` and `body` with `height: 100%`, which computes `overflow-y: auto` on both and nests two scrollports. `html` is now non-scrolling and `body` is the sole vertical scroller.

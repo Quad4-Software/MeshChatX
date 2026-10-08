@@ -2,7 +2,8 @@
 # Generate Docker image tags from git context.
 #
 # Usage: docker-tags.sh <image_name> [output_file]
-# Environment: GITEA_REF / GITHUB_REF, GITEA_REF_NAME / GITHUB_REF_NAME, TAG_SUFFIX
+# Environment: GITEA_REF / GITHUB_REF, GITEA_REF_NAME / GITHUB_REF_NAME, TAG_SUFFIX,
+#              GITHUB_EVENT_NAME (workflow_dispatch adds the latest tag on branch runs)
 #
 # The output file contains one -t registry/image:tag per line,
 # suitable for passing directly to docker buildx build.
@@ -24,12 +25,18 @@ _suffix_tag() {
 SHA="$(git rev-parse --short HEAD)"
 REF="${GITEA_REF:-${GITHUB_REF:-}}"
 BRANCH="${GITEA_REF_NAME:-${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}}"
+EVENT="${GITHUB_EVENT_NAME:-}"
 
 echo "-t ${IMAGE}:$(_suffix_tag "sha-${SHA}")" >> "$OUTPUT"
 
 case "$BRANCH" in
     master|main)
-        echo "-t ${IMAGE}:$(_suffix_tag "latest")" >> "$OUTPUT"
+        # Every master commit publishes the rolling :dev image. The floating
+        # :latest tag is reserved for manual runs and release tags.
+        echo "-t ${IMAGE}:$(_suffix_tag "dev")" >> "$OUTPUT"
+        if [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "-t ${IMAGE}:$(_suffix_tag "latest")" >> "$OUTPUT"
+        fi
         ;;
     dev)
         echo "-t ${IMAGE}:$(_suffix_tag "dev")" >> "$OUTPUT"

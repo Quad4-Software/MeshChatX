@@ -1,4 +1,4 @@
-# Native Electron builds for Windows, macOS arm64, and macOS x86_64 on every push/PR to dev.
+# Native Electron builds for Windows, macOS arm64, and macOS x86_64 on every push/PR to master.
 # Kept separate from ci.yml so the main test suite can finish without waiting on
 # the per-arch macOS builds, while still always verifying all desktop targets.
 #
@@ -7,22 +7,22 @@
 #   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
 #   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
 
-name: Native build (dev)
+name: Native build
 
 on:
     push:
         branches:
-            - dev
+            - master
     pull_request:
         branches:
-            - dev
+            - master
     workflow_dispatch:
 
 permissions:
     contents: read
 
 concurrency:
-    group: native-dev-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    group: native-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
     cancel-in-progress: true
 
 env:
