@@ -2,15 +2,16 @@
 
 ### Changed
 
-- Relay chat: the room composer floats over the message list with a transparent backdrop and frosted pill, matching the conversation composer. The scroll-to-bottom control sits above it.
-- Relay chat: a second Enter or send click while a post is already in flight is ignored, so one press cannot push two mids to the hub.
-- CI: frontend reusable build installs TinyGo before Vite so geo/visualiser WASM compile, and nightly harden-runner allows Debian apt mirrors used by Dockerfile.dev.
-- Packaging: production Vite builds wipe `meshchatx/public/assets` and scrub leftover Nerd Font / browser-Tailwind files so hashed chunks cannot accumulate across releases.
-- Packaging: wheel/sdist packaging excludes Nerd Font and browser-Tailwind leftovers. `task build:wheel` and PyPI build wipe stale `build/lib` and run `scripts/ci/check-public-packaging.py` so hashed Vite chunks cannot re-enter the wheel.
-- CI: Linux package builds reuse the frontend artifact (`MESHCHATX_FRONTEND_PREBUILT`) instead of rebuilding Vite on the packaging runner.
+- Packaging: production Vite builds wipe `meshchatx/public/assets` and scrub leftover Nerd Font / browser-Tailwind files so hashed chunks cannot accumulate across releases. Wheel and sdist packaging exclude those leftovers. `task build:wheel` and PyPI/Android wheel jobs wipe stale `build/lib` and run `scripts/ci/check-public-packaging.py` before packing.
 - Packaging: standalone docs HTML no longer loads the browser Tailwind runtime JS (~0.8 MB). Layout uses a small static stylesheet instead.
 - Packaging: dropped the bundled Roboto Mono Nerd Font (~2.4 MB). Nomad and Micron pages use JetBrains Mono / system monospace. Existing `roboto-mono-nerd` font settings migrate to JetBrains Mono.
-- Build: visualiser and geo WASM artifacts now require TinyGo (`-opt=z`). Stock `GOOS=js GOARCH=wasm` is no longer a silent fallback.
+- Build: visualiser and geo WASM artifacts require TinyGo (`-opt=z`). Stock `GOOS=js GOARCH=wasm` is no longer a silent fallback.
+- CI: the reusable frontend build installs TinyGo before Vite. Linux package builds reuse the frontend artifact (`MESHCHATX_FRONTEND_PREBUILT`) instead of rebuilding Vite on the packaging runner. Nightly harden-runner allows Debian apt mirrors used by Dockerfile.dev.
+
+### Fixed
+
+- Relay chat: the room composer floats over the message list with a transparent backdrop and frosted pill, matching the conversation composer. The scroll-to-bottom control sits above it.
+- Relay chat: a second Enter or send click while a post is already in flight is ignored, so one press cannot push two mids to the hub.
 
 ## [4.10.3] - 2026-10-08 [released]
 
