@@ -2,16 +2,16 @@
 
 ### Changed
 
-- Packaging: production Vite builds wipe `meshchatx/public/assets` and scrub leftover Nerd Font / browser-Tailwind files so hashed chunks cannot accumulate across releases. Wheel and sdist packaging exclude those leftovers. `task build:wheel` and PyPI/Android wheel jobs wipe stale `build/lib` and run `scripts/ci/check-public-packaging.py` before packing.
-- Packaging: standalone docs HTML no longer loads the browser Tailwind runtime JS (~0.8 MB). Layout uses a small static stylesheet instead.
-- Packaging: dropped the bundled Roboto Mono Nerd Font (~2.4 MB). Nomad and Micron pages use JetBrains Mono / system monospace. Existing `roboto-mono-nerd` font settings migrate to JetBrains Mono.
-- Build: visualiser and geo WASM artifacts require TinyGo (`-opt=z`). Stock `GOOS=js GOARCH=wasm` is no longer a silent fallback.
-- CI: the reusable frontend build installs TinyGo before Vite. Linux package builds reuse the frontend artifact (`MESHCHATX_FRONTEND_PREBUILT`) instead of rebuilding Vite on the packaging runner. Nightly harden-runner allows Debian apt mirrors used by Dockerfile.dev.
+- Python and desktop packages no longer ship old Vite chunks, the Nerd Font, or the browser Tailwind script. Release builds start from a clean frontend tree.
+- Standalone docs pages use a small static stylesheet instead of the old browser Tailwind file.
+- Nomad and Micron monospace UI uses JetBrains Mono / system fonts. An existing Roboto Mono Nerd Font setting switches over automatically.
+- Map and network visualiser WASM builds require TinyGo.
 
 ### Fixed
 
-- Relay chat: the room composer floats over the message list with a transparent backdrop and frosted pill, matching the conversation composer. The scroll-to-bottom control sits above it.
-- Relay chat: a second Enter or send click while a post is already in flight is ignored, so one press cannot push two mids to the hub.
+- Relay chat: the compose box floats over the room history with a light frosted look, same idea as the conversation composer. The scroll-to-bottom control sits above it.
+- Relay chat: Enter or Send while a message is already going out is ignored, so one press cannot post the same line twice.
+- Flatpak install from the MeshChatX remote failed after the last release. The CDN index is kept in sync with the package files again so `flatpak install` can pull the app.
 
 ## [4.10.3] - 2026-10-08 [released]
 
@@ -462,7 +462,7 @@
 
 - **Bug Reports Extension (off by default)**: Capture crashes and issues locally, group duplicates, and send a redacted report over the RNS when you choose. Crash screens can open or save into Bug Reports.
 - **Release channels**: Testing, Beta, and Stable. The sidebar shows which channel you are on. Testing and Beta ask once how to file useful bug reports.
-- **Install options**: Flatpak channels at https://cdn.meshchatx.com/flatpak/ (testing, beta, stable). Docker images with testing and beta tags.
+- **Install options**: Flatpak channels at https://cdn.quad4.io/flatpak/ (testing, beta, stable). Docker images with testing and beta tags.
 - **Plugins**: Richer plugin pages (tabs, tables, images, and more). Enabled plugins appear as their own destinations in the app. Plugin pages follow the theme and accent colors.
 - **Archives**: Search shows short previews. Open Micron, Markdown, or HTML previews from a card. Recrawl a page from the viewer. Layout stacks on phones.
 - **Smart Crawler**: Crawls less aggressively (about one request per node per day). Sites can opt out with # nocrawl or Archives settings.
