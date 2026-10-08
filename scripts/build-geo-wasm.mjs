@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Builds geo-wasm (Go MGRS/OLC) and copies artifacts into frontend public vendor/.
+ * Builds geo-wasm with TinyGo (MGRS/OLC) and copies artifacts into frontend public vendor/.
  * Writes integrity.json with SHA-384 SRI hashes.
  */
 import fs from "fs";
@@ -109,24 +109,30 @@ function main() {
     fs.mkdirSync(OUT_DIR, { recursive: true });
     const wasmOut = path.join(OUT_DIR, WASM_NAME);
     const tinygo = findTinyGo();
-    const build = tinygo
-        ? spawnSync(tinygo, ["build", "-target", "wasm", "-opt=z", "-no-debug", "-o", wasmOut, "./cmd/wasm"], {
-              cwd: GO_MOD_DIR,
-              env: process.env,
-              encoding: "utf8",
-          })
-        : spawnSync("go", ["build", "-trimpath", "-ldflags=-s -w", "-o", wasmOut, "./cmd/wasm"], {
-              cwd: GO_MOD_DIR,
-              env: { ...process.env, GOOS: "js", GOARCH: "wasm" },
-              encoding: "utf8",
-          });
+    if (!tinygo) {
+        const msg =
+            "build-geo-wasm: tinygo not found. Install TinyGo (see scripts/ci/setup-tinygo.sh) or set TINYGO to the binary path. Stock Go wasm is not used.";
+        if (process.env.MESHCHATX_OFFLINE_BUILD === "1") {
+            const wasmPath = path.join(OUT_DIR, WASM_NAME);
+            const execPath = path.join(OUT_DIR, EXEC_NAME);
+            if (fs.existsSync(wasmPath) && fs.existsSync(execPath)) {
+                console.log("build-geo-wasm: tinygo missing but artifacts present (offline).");
+                process.exit(0);
+            }
+        }
+        console.error(msg);
+        process.exit(1);
+    }
+    const build = spawnSync(tinygo, ["build", "-target", "wasm", "-opt=z", "-no-debug", "-o", wasmOut, "./cmd/wasm"], {
+        cwd: GO_MOD_DIR,
+        env: process.env,
+        encoding: "utf8",
+    });
     if (build.status !== 0) {
         console.error(build.stderr || build.stdout || "wasm build failed");
         process.exit(1);
     }
-    if (tinygo) {
-        console.log("build-geo-wasm: built with TinyGo");
-    }
+    console.log("build-geo-wasm: built with TinyGo");
 
     const execSrc = findWasmExec();
     if (!execSrc) {

@@ -1,3 +1,10 @@
+## [4.10.4] - TBD [unreleased]
+
+### Changed
+
+- Packaging: dropped the bundled Roboto Mono Nerd Font (~2.4 MB). Nomad and Micron pages use JetBrains Mono / system monospace. Existing `roboto-mono-nerd` font settings migrate to JetBrains Mono.
+- Build: visualiser and geo WASM artifacts now require TinyGo (`-opt=z`). Stock `GOOS=js GOARCH=wasm` is no longer a silent fallback.
+
 ## [4.10.3] - 2026-10-08 [released]
 
 ### Changed

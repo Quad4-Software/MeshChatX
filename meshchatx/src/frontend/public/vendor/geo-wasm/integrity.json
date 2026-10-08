@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "wasm": "sha384-ahzUXSbSqPrBxrS3TQnWl8zu/JNfGybMCIYor2S448LeapN8EvZ12pWlamq6KaDw",
-  "wasmExec": "sha384-PWCs+V4BDf9yY1yjkD/p+9xNEs4iEbuvq+HezAOJiY3XL5GI6VyJXMsvnjiwNbce",
-  "wasmExecSource": "/usr/lib/go/lib/wasm/wasm_exec.js"
+  "wasm": "sha384-LUnBXF4B20b1Eln4lhLytF6xUSSwv3YiwbtxRiboUkA6NtdlA9WKVl2i7O9a1QNx",
+  "wasmExec": "sha384-PfGeEcr9Xuv41kJc81dgnXe6i1CorXb2JfA0qLxhxqd3/za7JqDklFKWqtto+x0V",
+  "wasmExecSource": "/run/media/user1/projects/meshchatx/.tools/tinygo/targets/wasm_exec.js"
 }

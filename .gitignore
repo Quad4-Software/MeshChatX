@@ -213,3 +213,6 @@ tests/agentic/tests/
 microvm/state/
 # UI metrics baseline is machine-specific (tests/ui/metrics-check.mjs)
 tests/ui/baseline.json
+
+# Local toolchain downloads (TinyGo, etc.)
+.tools/

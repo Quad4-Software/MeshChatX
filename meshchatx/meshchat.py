@@ -6577,6 +6577,8 @@ class ReticulumMeshChat:
 
         if "ui_font_family" in data:
             val = str(data["ui_font_family"] or "system").strip()
+            if val == "roboto-mono-nerd":
+                val = "jetbrains-mono"
             if val not in (
                 "system",
                 "noto-sans",
@@ -6584,7 +6586,6 @@ class ReticulumMeshChat:
                 "jetbrains-mono",
                 "ibm-plex-sans",
                 "space-grotesk",
-                "roboto-mono-nerd",
                 "custom",
             ):
                 val = "system"

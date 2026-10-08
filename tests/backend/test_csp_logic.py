@@ -167,7 +167,7 @@ async def test_security_middleware_allows_nomad_crash_tab_frame_and_cors(
             "/nomad-crash-tab.html",
             "/assets/nomad-crash-tab-abc123.js",
             "/assets/nomad-page-chrome-abc123.css",
-            "/assets/RobotoMonoNerdFont-Regular-abc123.ttf",
+            "/assets/JetBrainsMono-Regular-abc123.woff2",
             # Shared Vite chunks imported by the crash-tab entry (no "nomad-crash-tab"
             # in the filename). Opaque null Origin requires ACAO on these too.
             "/assets/shared-async-DbyfccQO.js",

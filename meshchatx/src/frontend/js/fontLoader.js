@@ -6,7 +6,6 @@
  * ui_font_family options:
  *   "system"   - browser default (Tailwind stack)
  *   "noto-sans" - bundled @fontsource/noto-sans
- *   "roboto-mono-nerd" - bundled RobotoMonoNerdFont
  *   "custom"   - user-uploaded font stored as base64 in ui_custom_font_data
  *
  * Custom font data is a base64-encoded woff2/ttf blob injected via @font-face.
@@ -21,7 +20,6 @@ const BUNDLED_FONTS = {
     "jetbrains-mono": '"JetBrains Mono", ui-monospace, monospace',
     "ibm-plex-sans": '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
     "space-grotesk": '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
-    "roboto-mono-nerd": '"Roboto Mono Nerd Font", ui-monospace, monospace',
 };
 
 /**
@@ -102,7 +100,11 @@ async function loadCustomFont() {
  */
 export async function applyFontConfig(config) {
     if (!config) return;
-    const fontKey = config.ui_font_family || "system";
+    // Dropped bundled Roboto Mono Nerd Font. Map the old setting to JetBrains Mono.
+    let fontKey = config.ui_font_family || "system";
+    if (fontKey === "roboto-mono-nerd") {
+        fontKey = "jetbrains-mono";
+    }
     let customName = config.ui_custom_font_name || "MeshChatCustom";
     if (fontKey === "custom") {
         const cached = _customFontCache;
