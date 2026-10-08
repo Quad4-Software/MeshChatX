@@ -1,6 +1,6 @@
 # Comment on open issues referenced by fix-style commit messages pushed to a
 # release line. GitHub already auto-closes issues on the default branch, but
-# fixes land on dev/next first, where nothing tells the reporter progress
+# fixes land on master/next first, where nothing tells the reporter progress
 # happened. A single comment per commit sha keeps the thread honest without
 # spamming: repeated pushes of the same commit are deduplicated.
 
@@ -10,7 +10,6 @@ on:
     push:
         branches:
             - master
-            - dev
             - next
 
 permissions:

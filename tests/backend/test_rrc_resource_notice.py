@@ -146,3 +146,40 @@ def test_hub_notice_motd_accepts_destination_hash_src(tmp_path):
 
     hub._handle_notice(_notice_env("server rules be nice", src=bytes(range(16))))
     assert hub.motd == "server rules be nice"
+
+
+def _notice_env(body, src):
+    return {
+        proto.K_T: proto.T_NOTICE,
+        proto.K_BODY: body,
+        proto.K_ROOM: None,
+        proto.K_SRC: src,
+    }
+
+
+def test_chunked_list_notice_reassembles(tmp_path):
+    """An oversized /list reply arrives from rrcd as per-line NOTICE envelopes."""
+    manager = make_manager(tmp_path, nickname="alice")
+    hub = manager.add_hub(bytes(range(16)))
+    src = bytes(range(16))
+    hub._silent_list_pending = 1
+
+    for line in ["Registered public rooms:", "  lobby - the lobby", "  dev"]:
+        hub._handle_notice(_notice_env(line, src))
+    # A non-matching notice ends the burst and flushes the buffer.
+    hub._handle_notice(_notice_env("unrelated hub notice", src))
+
+    assert hub.available_rooms == {"lobby": "the lobby", "dev": None}
+    assert hub._silent_list_pending == 0
+
+
+def test_chunked_list_flushes_on_non_notice(tmp_path):
+    manager = make_manager(tmp_path, nickname="alice")
+    hub = manager.add_hub(bytes(range(16)))
+    src = bytes(range(16))
+
+    for line in ["Registered public rooms:", "  lobby"]:
+        hub._handle_notice(_notice_env(line, src))
+    hub._on_packet(proto.encode({proto.K_T: proto.T_PING}))
+
+    assert hub.available_rooms == {"lobby": None}

@@ -11,7 +11,7 @@ name: Build Linux packages
 on:
     push:
         branches:
-            - dev
+            - master
         paths:
             - "package.json"
             - "scripts/ensure-flatpak-flathub-remote.sh"
@@ -23,7 +23,7 @@ on:
             - ".github/actions/**"
     pull_request:
         branches:
-            - dev
+            - master
         paths:
             - "package.json"
             - "scripts/ensure-flatpak-flathub-remote.sh"

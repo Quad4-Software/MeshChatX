@@ -13,11 +13,9 @@ on:
     push:
         branches:
             - master
-            - dev
     pull_request:
         branches:
             - master
-            - dev
     schedule:
         - cron: "30 12 * * 1"
         - cron: "35 18 * * 3"

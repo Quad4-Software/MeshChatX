@@ -169,6 +169,14 @@ class RRCHub:
         self._silent_list_deadline = 0.0
         self._silent_who_rooms = set()
         self._silent_who_ts = {}
+        # rrcd splits a /list reply that exceeds the link MDU into separate
+        # T_NOTICE envelopes, one line each. The bare
+        # "Registered public rooms:" header starts a short collection window;
+        # following indented room lines are buffered and replayed as one
+        # notice so the list parser still sees the full text.
+        self._room_list_chunks = None
+        self._room_list_chunk_src = None
+        self._room_list_chunk_timer = None
 
         self.nick_override = None
         self._pending_joins = set()
@@ -655,12 +663,19 @@ class RRCHub:
             self._silent_who_rooms.clear()
             self._silent_who_ts.clear()
             self.nicks.clear()
+            chunk_timer = self._room_list_chunk_timer
+            self._room_list_chunks = None
+            self._room_list_chunk_src = None
+            self._room_list_chunk_timer = None
             expected = link is getattr(self, "_expected_closed_link", None)
             if expected:
                 self._expected_closed_link = None
             should_reconnect = (
                 self.auto_reconnect and not self._manual_disconnect and not expected
             )
+        if chunk_timer is not None:
+            with contextlib.suppress(Exception):
+                chunk_timer.cancel()
         if was_welcomed and rooms:
             text = "Disconnected from hub" if manual else "Connection lost"
             self._record_connection_event(text, rooms=rooms)
@@ -1451,6 +1466,10 @@ class RRCHub:
         if t is None:
             return
 
+        # A non-NOTICE envelope terminates a chunked /list burst.
+        if t != proto.T_NOTICE and self._room_list_chunks is not None:
+            self._flush_room_list_chunks()
+
         handler = self._PACKET_HANDLERS.get(t)
         if handler is not None:
             try:
@@ -1722,6 +1741,26 @@ class RRCHub:
             )
         )
 
+        flushed = False
+        if is_hub_src:
+            with self._lock:
+                if self._room_list_chunks is not None:
+                    if body.startswith("  ") and time.monotonic() < self._room_list_chunk_deadline:
+                        self._room_list_chunks.append(body)
+                        return
+                    flushed = True
+                elif body.strip() == "Registered public rooms:":
+                    self._room_list_chunks = [body.strip()]
+                    self._room_list_chunk_src = src
+                    self._room_list_chunk_deadline = time.monotonic() + 1.5
+                    timer = threading.Timer(1.6, self._flush_room_list_chunks)
+                    timer.daemon = True
+                    timer.start()
+                    self._room_list_chunk_timer = timer
+                    return
+        if flushed:
+            self._flush_room_list_chunks()
+
         nick_prefix = "nickname set to "
         if body.startswith(nick_prefix) and is_hub_src:
             new_nick = body[len(nick_prefix) :].strip()
@@ -1809,6 +1848,30 @@ class RRCHub:
         if isinstance(mid, (bytes, bytearray)):
             msg.mid = bytes(mid)
         self._record_notice(msg)
+
+    def _flush_room_list_chunks(self):
+        with self._lock:
+            chunks = self._room_list_chunks
+            src = self._room_list_chunk_src
+            timer = self._room_list_chunk_timer
+            self._room_list_chunks = None
+            self._room_list_chunk_src = None
+            self._room_list_chunk_timer = None
+        if timer is not None:
+            with contextlib.suppress(Exception):
+                timer.cancel()
+        if not chunks:
+            return
+        # Replay the buffered lines as the single notice the hub meant to
+        # send so parsing, silence handling, and recording all apply once.
+        self._handle_notice(
+            {
+                proto.K_T: proto.T_NOTICE,
+                proto.K_BODY: "\n".join(chunks),
+                proto.K_ROOM: None,
+                proto.K_SRC: src,
+            }
+        )
 
     def _handle_error(self, env):
         body = env.get(proto.K_BODY)
