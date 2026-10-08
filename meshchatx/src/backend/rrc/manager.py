@@ -1745,7 +1745,10 @@ class RRCHub:
         if is_hub_src:
             with self._lock:
                 if self._room_list_chunks is not None:
-                    if body.startswith("  ") and time.monotonic() < self._room_list_chunk_deadline:
+                    if (
+                        body.startswith("  ")
+                        and time.monotonic() < self._room_list_chunk_deadline
+                    ):
                         self._room_list_chunks.append(body)
                         return
                     flushed = True
