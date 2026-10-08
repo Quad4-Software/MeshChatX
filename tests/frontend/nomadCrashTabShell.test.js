@@ -38,6 +38,15 @@ describe("nomadCrashTabShell", () => {
         expect(crashTabHtml).toMatch(/#root\s*\{[^}]*overflow-x:\s*hidden/s);
     });
 
+    it("keeps a single vertical scroll owner on the crash-tab document", () => {
+        // html must not become a second scrollport. A bare overflow-x:hidden
+        // on the shared html,body rule computes overflow-y:auto and stacks two
+        // vertical sliders next to micron pages in Electron.
+        expect(crashTabHtml).toMatch(/html\s*\{[^}]*overflow:\s*hidden/s);
+        expect(crashTabHtml).toMatch(/body\s*\{[^}]*overflow-y:\s*auto/s);
+        expect(crashTabHtml).not.toMatch(/html,\s*body\s*\{[^}]*overflow-x:\s*hidden/s);
+    });
+
     it("paints a dark document before the renderer module loads", () => {
         expect(crashTabHtml).toContain('content="dark"');
         expect(crashTabHtml).toContain("color-scheme: dark");
