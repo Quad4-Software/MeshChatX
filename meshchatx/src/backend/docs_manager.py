@@ -381,6 +381,8 @@ class DocsManager:
     @staticmethod
     def _standalone_html_shell(title, body_html):
         safe_title = html.escape(title)
+        # Static layout CSS only. The former browser Tailwind runtime JS is not
+        # shipped; utility class names below are expanded here.
         return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -388,7 +390,6 @@ class DocsManager:
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
     <title>{safe_title}</title>
-    <script src="/assets/js/tailwindcss/tailwind-v3.4.3-forms-v0.5.7.js"></script>
     <style>
         :root {{
             color-scheme: light dark;
@@ -398,6 +399,8 @@ class DocsManager:
             --mc-code-bg: #1e293b;
             --mc-code-fg: #f1f5f9;
             --mc-border: #e5e7eb;
+            --mc-link: #2563eb;
+            --mc-link-hover: #1d4ed8;
         }}
         @media (prefers-color-scheme: dark) {{
             :root {{
@@ -407,24 +410,80 @@ class DocsManager:
                 --mc-code-bg: #18181b;
                 --mc-code-fg: #f4f4f5;
                 --mc-border: #3f3f46;
+                --mc-link: #60a5fa;
+                --mc-link-hover: #93c5fd;
             }}
         }}
+        * {{ box-sizing: border-box; }}
         body {{
+            margin: 0 auto;
+            padding: 1rem;
+            max-width: 56rem;
             background-color: var(--mc-bg);
             color: var(--mc-fg);
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            line-height: 1.5;
         }}
-        a {{ color: #2563eb; }}
-        @media (prefers-color-scheme: dark) {{
-            a {{ color: #60a5fa; }}
+        @media (min-width: 768px) {{
+            body {{ padding: 2rem; }}
+        }}
+        a {{ color: var(--mc-link); text-decoration: none; }}
+        a:hover {{ color: var(--mc-link-hover); text-decoration: underline; }}
+        h1 {{
+            margin: 0 0 1rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 2rem;
+        }}
+        ul {{ list-style: none; margin: 0; padding: 0; }}
+        li.mb-1 {{
+            margin: 1rem 0 0.25rem;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--mc-muted);
+        }}
+        li.mb-2 {{ margin: 0 0 0.5rem; }}
+        li.ml-3 {{ margin-left: 0.75rem; }}
+        .max-w-none {{ max-width: none; }}
+        .break-words {{ overflow-wrap: anywhere; word-break: break-word; }}
+        .whitespace-pre-wrap {{ white-space: pre-wrap; }}
+        .font-mono {{
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         }}
         pre, code {{
             background-color: var(--mc-code-bg);
             color: var(--mc-code-fg);
         }}
-        th, td {{ border-color: var(--mc-border); }}
+        pre {{
+            margin: 0.75rem 0;
+            padding: 0.75rem 1rem;
+            overflow-x: auto;
+            border-radius: 0.5rem;
+        }}
+        code {{
+            padding: 0.1rem 0.35rem;
+            border-radius: 0.25rem;
+            font-size: 0.9em;
+        }}
+        pre code {{
+            padding: 0;
+            background: transparent;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.75rem 0;
+        }}
+        th, td {{
+            border: 1px solid var(--mc-border);
+            padding: 0.4rem 0.6rem;
+            text-align: left;
+            vertical-align: top;
+        }}
+        img {{ max-width: 100%; height: auto; }}
     </style>
 </head>
-<body class="p-4 md:p-8 max-w-4xl mx-auto">
+<body>
     {body_html}
 </body>
 </html>"""

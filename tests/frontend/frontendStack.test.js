@@ -40,6 +40,14 @@ describe("frontend stack migration reference", () => {
         const vite = readRepo("vite.config.mjs");
         expect(vite).toContain("rolldownOptions");
         expect(vite).toContain("chunkImportMap: false");
+        expect(vite).toContain("LEFTOVER_PUBLIC_PATTERNS");
+        expect(vite).toContain("RobotoMonoNerdFont");
+        expect(vite).toMatch(/tailwind-v3.*forms-v0/);
+        // emptyOutDir stays false so non-Vite trees under public survive, but
+        // production builds wipe assets/ before emit to avoid hash pile-up.
+        expect(vite).toContain("emptyOutDir: false");
+        expect(vite).toMatch(/rmSync\(assetsDir/);
+
         expect(vite).toContain("tsconfigPaths: true");
         expect(vite).toContain('"micron-parser"');
         expect(vite).toMatch(/node_modules["'],\s*["']micron-parser["'],\s*["']js["'],\s*["']micron-parser\.js["']/);

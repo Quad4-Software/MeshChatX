@@ -32,6 +32,8 @@ const idbChunkGroups = [
 ];
 
 const assetsDir = path.join(import.meta.dirname, "meshchatx", "public", "assets");
+const publicOutDir = path.join(import.meta.dirname, "meshchatx", "public");
+const LEFTOVER_PUBLIC_PATTERNS = [/RobotoMonoNerdFont/i, /NerdFont/i, /tailwind-v3\.4\.3-forms-v0\.5\.7\.js$/i];
 
 const e2eBackendPort = process.env.E2E_BACKEND_PORT || "8000";
 
@@ -284,11 +286,40 @@ export default defineConfig(({ command }) => {
     const bundledDev = envBool(process.env.MESHCHAT_VITE_BUNDLED_DEV);
     const vueDevToolsOn = isVueDevToolsEnabled({ command });
 
-    // Only clear hashed assets on production build. Loading this config for
-    // `vite` / `vite preview` must not wipe meshchatx/public/assets used by
-    // the Python static server (Lighthouse, packaged UI).
-    if (command === "build" && fs.existsSync(assetsDir)) {
-        fs.rmSync(assetsDir, { recursive: true, force: true });
+    // Production builds must not accumulate hashed Vite chunks across runs.
+    // emptyOutDir stays false so reticulum-docs-bundled and other non-Vite
+    // trees under meshchatx/public survive. We wipe assets/ ourselves, then
+    // scrub leftover Nerd Font / browser-Tailwind files if any remain.
+    // Config loads for `vite` / `vite preview` must not touch that tree.
+    if (command === "build") {
+        if (fs.existsSync(assetsDir)) {
+            fs.rmSync(assetsDir, { recursive: true, force: true });
+        }
+        if (fs.existsSync(publicOutDir)) {
+            const stack = [publicOutDir];
+            while (stack.length) {
+                const dir = stack.pop();
+                for (const name of fs.readdirSync(dir)) {
+                    const full = path.join(dir, name);
+                    let st;
+                    try {
+                        st = fs.lstatSync(full);
+                    } catch {
+                        continue;
+                    }
+                    if (st.isDirectory()) {
+                        stack.push(full);
+                        continue;
+                    }
+                    if (!st.isFile()) {
+                        continue;
+                    }
+                    if (LEFTOVER_PUBLIC_PATTERNS.some((re) => re.test(full))) {
+                        fs.rmSync(full, { force: true });
+                    }
+                }
+            }
+        }
     }
 
     return {
@@ -410,8 +441,10 @@ export default defineConfig(({ command }) => {
                 },
             },
 
-            // we want to compile vite app to meshchatx/public which is bundled and served by the python executable
-            outDir: path.join(import.meta.dirname, "meshchatx", "public"),
+            // Compile into meshchatx/public for the Python static server.
+            // Do not empty the whole outDir: docs / repo wheels live beside assets/.
+            // Hashed chunks are cleared above before each production build.
+            outDir: publicOutDir,
             emptyOutDir: false,
 
             rolldownOptions: {

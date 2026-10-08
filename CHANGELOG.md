@@ -2,6 +2,8 @@
 
 ### Changed
 
+- Packaging: production Vite builds wipe `meshchatx/public/assets` and scrub leftover Nerd Font / browser-Tailwind files so hashed chunks cannot accumulate across releases.
+- Packaging: standalone docs HTML no longer loads the browser Tailwind runtime JS (~0.8 MB). Layout uses a small static stylesheet instead.
 - Packaging: dropped the bundled Roboto Mono Nerd Font (~2.4 MB). Nomad and Micron pages use JetBrains Mono / system monospace. Existing `roboto-mono-nerd` font settings migrate to JetBrains Mono.
 - Build: visualiser and geo WASM artifacts now require TinyGo (`-opt=z`). Stock `GOOS=js GOARCH=wasm` is no longer a silent fallback.
 

@@ -585,3 +585,12 @@ def test_get_doc_content_rewrites_relative_image_src(tmp_path):
     out = dm.get_doc_content("en/guide.md")
     assert out is not None
     assert 'src="/meshchatx-docs/en/../assets/guides/g/x.webp"' in out["html"]
+
+
+def test_standalone_html_shell_has_no_browser_tailwind_runtime():
+    html = DocsManager._standalone_html_shell("Example", "<p>hi</p>")
+    assert "tailwind-v3.4.3" not in html
+    assert "cdn.tailwindcss.com" not in html
+    assert "<script src=" not in html
+    assert "max-width: 56rem" in html
+    assert "<p>hi</p>" in html
