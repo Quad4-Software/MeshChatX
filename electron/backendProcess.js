@@ -20,6 +20,7 @@ function createInitialRuntimeState() {
         running: false,
         pid: null,
         lastExitCode: null,
+        lastExitSignal: null,
         lastError: "",
         lastEventAt: null,
     };
@@ -106,10 +107,11 @@ function createBackendProcessManager(deps) {
         return resolvedExePath;
     }
 
-    function recordCrash(code) {
+    function recordCrash(code, signalName = null) {
         const logs = getJoinedLogs();
         lastCrash = {
-            code,
+            code: code == null ? null : code,
+            signal: signalName || null,
             stdout: logs.stdout,
             stderr: logs.stderr,
             at: Date.now(),
@@ -123,16 +125,22 @@ function createBackendProcessManager(deps) {
         }
     }
 
-    function notifyStartupFailure(code) {
+    function notifyStartupFailure(code, signalName = null) {
         const paths = getDiagnosticPaths(storageDir(), reticulumConfigDir());
-        notifyRenderer("backend-startup-failed", {
-            code,
+        const payload = {
+            code: code == null ? null : code,
+            signal: signalName || null,
             at: lastCrash?.at ?? Date.now(),
             stdout: lastCrash?.stdout || "",
             stderr: lastCrash?.stderr || "",
             paths,
+        };
+        notifyRenderer("backend-startup-failed", payload);
+        notifyRenderer("backend-process-exited", {
+            code: payload.code,
+            signal: payload.signal,
+            at: payload.at,
         });
-        notifyRenderer("backend-process-exited", { code, at: lastCrash?.at ?? Date.now() });
     }
 
     function attachChildHandlers(proc) {
@@ -158,25 +166,36 @@ function createBackendProcessManager(deps) {
             runtimeState.lastEventAt = Date.now();
         });
 
-        proc.on("exit", async (code) => {
+        proc.on("exit", async (code, signalName) => {
+            // Node delivers (code, signal). A signal-terminated child has
+            // code === null and signal === "SIGPIPE" (etc). Treat either as a
+            // real exit so I2P-driven SIGPIPE deaths are reported.
             runtimeState.running = false;
-            runtimeState.lastExitCode = code;
+            runtimeState.lastExitCode = code == null ? null : code;
+            runtimeState.lastExitSignal = signalName || null;
             runtimeState.lastEventAt = Date.now();
             childProcess = null;
 
-            if (code == null || deps.isQuiting()) {
+            if (deps.isQuiting()) {
+                return;
+            }
+            if (code == null && !signalName) {
                 return;
             }
 
-            recordCrash(code);
+            recordCrash(code, signalName || null);
 
             const page = getMainWindowPageKind();
             if (page === "loading") {
-                notifyStartupFailure(code);
+                notifyStartupFailure(code, signalName || null);
                 return;
             }
 
-            notifyRenderer("backend-process-exited", { code, at: lastCrash.at });
+            notifyRenderer("backend-process-exited", {
+                code: code == null ? null : code,
+                signal: signalName || null,
+                at: lastCrash.at,
+            });
 
             if (page === "app") {
                 return;

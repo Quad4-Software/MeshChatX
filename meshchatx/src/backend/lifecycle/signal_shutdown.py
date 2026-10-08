@@ -121,12 +121,38 @@ def meshchat_signal_handler(signum: int, frame: FrameType | None) -> None:
     _raise_graceful_exit()
 
 
+def ignore_sigpipe(*, signal_fn: Callable[..., Any] | None = None) -> bool:
+    """Ignore SIGPIPE so broken sockets raise EPIPE to Python instead of killing us.
+
+    Reticulum's I2P keepalive writes to a dead SAM socket return EPIPE. With
+    the default SIGPIPE disposition that terminates the whole backend process
+    before the except path runs. Ignoring SIGPIPE keeps the process alive so
+    I2PInterface can shut the peer down and reconnect when SAM returns.
+    Windows has no SIGPIPE.
+    """
+    if not hasattr(signal, "SIGPIPE"):
+        return False
+    install = signal_fn or signal.signal
+    try:
+        install(signal.SIGPIPE, signal.SIG_IGN)
+        return True
+    except ValueError:
+        return False
+    except Exception as exc:
+        logger.warning("Failed to ignore SIGPIPE: %s", exc)
+        return False
+
+
 def install_meshchat_signal_handlers(
     *,
     force: bool = False,
     signal_fn: Callable[..., Any] | None = None,
 ) -> bool:
-    """Install MeshChat SIGINT/SIGTERM handlers on the main thread."""
+    """Install MeshChat SIGINT/SIGTERM handlers on the main thread.
+
+    Also ignores SIGPIPE when available so broken peer sockets (I2P SAM
+    keepalives included) surface as Python exceptions instead of process death.
+    """
     global _HANDLERS_INSTALLED
     if _HANDLERS_INSTALLED and not force:
         return True
@@ -134,6 +160,7 @@ def install_meshchat_signal_handlers(
     try:
         install(signal.SIGINT, meshchat_signal_handler)
         install(signal.SIGTERM, meshchat_signal_handler)
+        ignore_sigpipe(signal_fn=install)
     except ValueError:
         # signal.signal only works on the main thread
         return False

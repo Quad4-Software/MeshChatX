@@ -50,7 +50,7 @@
      * @param {number|null|undefined} exitCode
      * @returns {{ category: string, summary: string, hints: string[] }}
      */
-    function diagnoseBackendCrash(stderr, stdout, exitCode) {
+    function diagnoseBackendCrash(stderr, stdout, exitCode, exitSignal = null) {
         const combined = `${stdout || ""}\n${stderr || ""}`.toLowerCase();
         const rawCombined = `${stdout || ""}\n${stderr || ""}`;
         const hints = [];
@@ -132,6 +132,15 @@
             };
         }
 
+        if (exitSignal) {
+            hints.push("Open the logs folder below and review meshchatx.log and last-backend-crash.json.");
+            return {
+                category: "exit-signal",
+                summary: `The backend was terminated by ${exitSignal}.`,
+                hints,
+            };
+        }
+
         if (exitCode != null && exitCode !== 0) {
             hints.push("Open the logs folder below and review meshchatx.log and last-backend-crash.json.");
             return {
@@ -176,8 +185,17 @@
         const crash = opts.crash && typeof opts.crash === "object" ? opts.crash : null;
         const paths = opts.paths && typeof opts.paths === "object" ? opts.paths : null;
 
-        if (state && state.running === false && state.lastExitCode != null) {
-            const diagnosis = diagnoseBackendCrash(crash?.stderr || "", crash?.stdout || "", state.lastExitCode);
+        if (
+            state &&
+            state.running === false &&
+            (state.lastExitCode != null || state.lastExitSignal || (crash && crash.signal))
+        ) {
+            const diagnosis = diagnoseBackendCrash(
+                crash?.stderr || "",
+                crash?.stdout || "",
+                state.lastExitCode,
+                state.lastExitSignal || crash?.signal || null
+            );
             const logHint = formatLogPathHint(paths);
             const detailParts = [diagnosis.summary, ...diagnosis.hints];
             if (logHint) {
@@ -189,6 +207,7 @@
                 detail: detailParts.join(" "),
                 category: diagnosis.category,
                 exitCode: state.lastExitCode,
+                exitSignal: state.lastExitSignal || crash?.signal || null,
                 hints: diagnosis.hints,
                 logHint,
                 crash,

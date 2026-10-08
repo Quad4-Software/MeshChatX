@@ -372,6 +372,7 @@ trustedIpcHandle("crash-recovery-info", () => {
         stderr: lastCrash.stderr || logs.stderr || "",
         stdout: lastCrash.stdout || logs.stdout || "",
         exitCode: lastCrash.code != null ? lastCrash.code : null,
+        exitSignal: lastCrash.signal || null,
     });
 });
 

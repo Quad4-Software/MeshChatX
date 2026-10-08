@@ -161,9 +161,10 @@ function parseMemoryLogLine(text) {
  * @param {string} stderr
  * @param {string} stdout
  * @param {number|null} exitCode
+ * @param {string|null} [exitSignal]
  * @returns {{ category: string, summary: string, hints: string[] }}
  */
-function diagnoseBackendCrash(stderr, stdout, exitCode) {
+function diagnoseBackendCrash(stderr, stdout, exitCode, exitSignal = null) {
     const combined = `${stdout || ""}\n${stderr || ""}`.toLowerCase();
     const rawCombined = `${stdout || ""}\n${stderr || ""}`;
     const hints = [];
@@ -287,6 +288,20 @@ function diagnoseBackendCrash(stderr, stdout, exitCode) {
         return {
             category: "native-crash",
             summary: "The backend process crashed natively (access violation).",
+            hints,
+        };
+    }
+
+    if (exitSignal) {
+        hints.push("Open the logs folder below and send meshchatx.log plus the crash report when asking for support.");
+        if (String(exitSignal).toUpperCase() === "SIGPIPE") {
+            hints.push(
+                "SIGPIPE usually means a peer socket closed mid-write (for example I2P/SAM). MeshChatX ignores SIGPIPE at startup so this should not kill modern builds."
+            );
+        }
+        return {
+            category: "exit-signal",
+            summary: `The backend was terminated by ${exitSignal}.`,
             hints,
         };
     }

@@ -91,6 +91,30 @@ def test_install_meshchat_signal_handlers_registers_sigint_sigterm():
     )
     assert seen[signal.SIGINT] is ss.meshchat_signal_handler
     assert seen[signal.SIGTERM] is ss.meshchat_signal_handler
+    if hasattr(signal, "SIGPIPE"):
+        assert seen[signal.SIGPIPE] is signal.SIG_IGN
+
+
+def test_ignore_sigpipe_sets_sig_ign_when_available():
+    seen = {}
+
+    def fake_signal(signum, handler):
+        seen[signum] = handler
+
+    if not hasattr(signal, "SIGPIPE"):
+        assert ss.ignore_sigpipe(signal_fn=fake_signal) is False
+        assert seen == {}
+        return
+
+    assert ss.ignore_sigpipe(signal_fn=fake_signal) is True
+    assert seen[signal.SIGPIPE] is signal.SIG_IGN
+
+
+def test_ignore_sigpipe_returns_false_off_main_thread_valueerror():
+    def boom(_signum, _handler):
+        raise ValueError("signal only works in main thread")
+
+    assert ss.ignore_sigpipe(signal_fn=boom) is False
 
 
 def test_durable_flush_all_databases_is_idempotent(tmp_path: Path):

@@ -64,6 +64,37 @@ describe("electron/backendProcess", () => {
         expect(manager.getRuntimeState().lastExitCode).toBe(255);
     });
 
+    it("records SIGPIPE deaths when exit code is null", async () => {
+        // Node child exit handlers receive (code, signal). Signal kills have
+        // a null code, which previously made MeshChat drop the event entirely.
+        const notifyRenderer = vi.fn();
+        const showCrashPage = vi.fn();
+        const manager = createBackendProcessManager({
+            log: vi.fn(),
+            getDefaultStorageDir: () => "/tmp/storage",
+            getDefaultReticulumConfigDir: () => "/tmp/reticulum",
+            getMainWindowPageKind: () => "app",
+            isQuiting: () => false,
+            notifyRenderer,
+            showCrashPage,
+            spawn: spawnMock,
+        });
+
+        manager.setUserProvidedArguments([]);
+        await manager.spawnBackend("/tmp/ReticulumMeshChatX", { backend: { ok: true, issues: [] } });
+
+        fakeProc.emit("exit", null, "SIGPIPE");
+        await new Promise((resolve) => setImmediate(resolve));
+
+        expect(notifyRenderer).toHaveBeenCalledWith(
+            "backend-process-exited",
+            expect.objectContaining({ code: null, signal: "SIGPIPE" })
+        );
+        expect(manager.getRuntimeState().lastExitCode).toBe(null);
+        expect(manager.getRuntimeState().lastExitSignal).toBe("SIGPIPE");
+        expect(manager.getLastCrash()).toEqual(expect.objectContaining({ code: null, signal: "SIGPIPE" }));
+    });
+
     it("notifies loading screen when backend exits during startup", async () => {
         const notifyRenderer = vi.fn();
         const showCrashPage = vi.fn();

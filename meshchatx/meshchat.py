@@ -12471,6 +12471,11 @@ def main():
     # Initialize crash recovery system early to catch startup errors
     recovery = CrashRecovery()
     recovery.install()
+    # Broken-pipe writes (I2P SAM keepalives, dropped TCP peers) must raise
+    # EPIPE into Python, not kill the process via the default SIGPIPE action.
+    from meshchatx.src.backend.lifecycle.signal_shutdown import ignore_sigpipe
+
+    ignore_sigpipe()
     raise_nofile_soft_limit()
     install_rns_panic_containment()
     install_shared_instance_rpc_deadline()

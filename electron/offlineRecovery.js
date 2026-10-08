@@ -135,12 +135,18 @@ function buildDataCleanupGuide(ctx) {
  * @param {string} params.stderr
  * @param {string} params.stdout
  * @param {number|null} params.exitCode
+ * @param {string|null} [params.exitSignal]
  * @returns {object}
  */
 function getCrashRecoveryInfo(params) {
     const backups = listRecoveryBackups(params.storageDir);
     const preferredBackup = pickPreferredRestoreBackup(backups);
-    const diagnosis = diagnoseBackendCrash(params.stderr || "", params.stdout || "", params.exitCode ?? null);
+    const diagnosis = diagnoseBackendCrash(
+        params.stderr || "",
+        params.stdout || "",
+        params.exitCode ?? null,
+        params.exitSignal ?? null
+    );
     const paths = {
         storageDir: params.storageDir || null,
         reticulumConfigDir: params.reticulumConfigDir || null,

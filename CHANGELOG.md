@@ -6,6 +6,7 @@
 
 ### Fixed
 
+- **I2P / SIGPIPE**: losing the I2P router (or any broken peer socket) no longer kills the Linux backend. The process now ignores SIGPIPE at startup so keepalive writes that return EPIPE reach Reticulum exception handlers and can reconnect when SAM returns. Electron also retains the signal name when a child exits with a null code, so signal-terminated backends are reported instead of silently dropped (fixes #137).
 - **NomadNet crash-tab**: Electron no longer shows dual vertical scrollbars on micron-parser-js pages. The crash-tab document had `overflow-x: hidden` on both `html` and `body` with `height: 100%`, which computes `overflow-y: auto` on both and nests two scrollports. `html` is now non-scrolling and `body` is the sole vertical scroller.
 - Relay chat: the channel list (/list) now populates on hubs whose reply exceeds the link MDU. rrcd splits oversized notices into one NOTICE envelope per line, so the header was parsed as an empty list and the room lines landed as stray system notices. The client now reassembles the burst into one notice before parsing.
 - Messages: the conversation composer now floats over the message list instead of holding a normal-flow band at the bottom, so it no longer shows as a background strip while scrolling up. The scroll-to-bottom button floats above it, and the pill uses a subtle backdrop blur. The empty pane in split view no longer shows the drop-hint overlay over the compose input.
