@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Relay chat: the room composer floats over the message list with a transparent backdrop and frosted pill, matching the conversation composer. The scroll-to-bottom control sits above it.
 - CI: frontend reusable build installs TinyGo before Vite so geo/visualiser WASM compile, and nightly harden-runner allows Debian apt mirrors used by Dockerfile.dev.
 - Packaging: production Vite builds wipe `meshchatx/public/assets` and scrub leftover Nerd Font / browser-Tailwind files so hashed chunks cannot accumulate across releases.
 - Packaging: wheel/sdist packaging excludes Nerd Font and browser-Tailwind leftovers. `task build:wheel` and PyPI build wipe stale `build/lib` and run `scripts/ci/check-public-packaging.py` so hashed Vite chunks cannot re-enter the wheel.

@@ -563,12 +563,12 @@
                     </div>
 
                     <div class="relative flex flex-1 min-h-0 overflow-hidden">
-                        <!-- messages -->
-                        <div class="flex flex-1 min-w-0 flex-col min-h-0">
+                        <!-- messages + floating composer (transparent backdrop) -->
+                        <div class="relative flex flex-1 min-w-0 flex-col min-h-0">
                             <div
                                 ref="messageList"
-                                class="relative flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-4"
-                                style="overflow-anchor: none"
+                                class="relative flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-sem-canvas p-3 sm:p-4"
+                                style="overflow-anchor: none; overscroll-behavior-y: contain"
                                 @scroll="onMessagesScroll"
                             >
                                 <div
@@ -582,6 +582,7 @@
                                     v-else
                                     class="relative min-w-0"
                                     :class="useVirtualMessageList ? '' : 'space-y-1.5'"
+                                    :style="{ paddingBottom: composerContentPad }"
                                 >
                                     <button
                                         v-show="!isLoadingPrevious && hasMorePrevious"
@@ -613,11 +614,12 @@
                             <Transition name="scroll-fab">
                                 <div
                                     v-if="!relayAtBottom && selectedRoom"
-                                    class="flex justify-center pb-1.5 pt-0.5 shrink-0"
+                                    class="absolute inset-x-0 z-30 flex justify-center pointer-events-none"
+                                    :style="{ bottom: scrollFabBottom }"
                                 >
                                     <button
                                         type="button"
-                                        class="relative flex items-center justify-center size-10 min-h-[44px] min-w-[44px] rounded-full bg-sem-surface/90 backdrop-blur-sm border border-sem-border shadow-sm text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg transition-colors"
+                                        class="pointer-events-auto relative flex items-center justify-center size-10 min-h-[44px] min-w-[44px] rounded-full bg-transparent border border-sem-border shadow-sm text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg transition-colors"
                                         :title="$t('relay_chat.scroll_to_bottom')"
                                         @click="scrollToBottom()"
                                     >
@@ -633,53 +635,56 @@
                             </Transition>
 
                             <div
-                                v-if="replyTarget && selectedHub && selectedRoom"
-                                class="mx-3 mt-2 flex items-center gap-2 rounded-xl border border-sem-border bg-sem-surface px-3 py-1.5 shadow-xs"
-                            >
-                                <MaterialDesignIcon icon-name="reply" class="size-4 shrink-0 text-sem-accent" />
-                                <div class="min-w-0 flex-1 text-xs">
-                                    <span class="font-semibold text-sem-accent">
-                                        {{ $t("messages.replying_to") }} {{ replyTarget.author }}
-                                    </span>
-                                    <div class="truncate text-sem-fg-muted italic">{{ replyTarget.text }}</div>
-                                </div>
-                                <button
-                                    type="button"
-                                    class="shrink-0 rounded p-1 text-sem-fg-muted hover:bg-sem-surface-raised hover:text-sem-fg"
-                                    :title="$t('common.cancel')"
-                                    @click="replyTarget = null"
-                                >
-                                    <MaterialDesignIcon icon-name="close" class="size-4" />
-                                </button>
-                            </div>
-                            <form
                                 v-if="selectedHub && selectedRoom"
-                                class="flex items-end gap-2 px-3 pb-3 pt-2"
-                                @submit.prevent="sendMessage"
+                                ref="composerOverlay"
+                                class="absolute inset-x-0 bottom-0 z-30 w-full px-3 sm:px-4 pt-1"
+                                :style="composerChromeStyle"
                             >
                                 <div
-                                    class="composer-pill relative flex-1 min-w-0 rounded-2xl border border-sem-border bg-sem-surface-muted/60 px-3 transition-all focus-within:ring-2 focus-within:ring-sem-focus focus-within:border-sem-focus-border shadow-xs"
+                                    v-if="replyTarget"
+                                    class="mb-2 flex items-center gap-2 rounded-xl border border-sem-border bg-sem-surface/80 backdrop-blur-md px-3 py-1.5 shadow-xs"
                                 >
-                                    <textarea
-                                        ref="composerInput"
-                                        v-model="composer"
-                                        rows="1"
-                                        :maxlength="selectedHub.max_msg_body_bytes || 350"
-                                        :placeholder="$t('relay_chat.message_placeholder')"
-                                        class="composer-textarea block w-full bg-transparent border-0 px-0 py-2.5 text-sm text-sem-fg placeholder:text-sem-fg-muted focus:outline-none focus:ring-0 resize-none overflow-y-auto leading-snug min-h-[40px] max-h-[160px]"
-                                        @keydown="onComposerKeydown"
-                                        @keydown.enter.exact.prevent="sendMessage"
-                                    ></textarea>
+                                    <MaterialDesignIcon icon-name="reply" class="size-4 shrink-0 text-sem-accent" />
+                                    <div class="min-w-0 flex-1 text-xs">
+                                        <span class="font-semibold text-sem-accent">
+                                            {{ $t("messages.replying_to") }} {{ replyTarget.author }}
+                                        </span>
+                                        <div class="truncate text-sem-fg-muted italic">{{ replyTarget.text }}</div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="shrink-0 rounded p-1 text-sem-fg-muted hover:bg-sem-surface-raised hover:text-sem-fg"
+                                        :title="$t('common.cancel')"
+                                        @click="replyTarget = null"
+                                    >
+                                        <MaterialDesignIcon icon-name="close" class="size-4" />
+                                    </button>
                                 </div>
-                                <button
-                                    type="submit"
-                                    :class="[btnPrimary, 'shrink-0 rounded-full p-2.5!']"
-                                    :title="$t('relay_chat.send')"
-                                    :disabled="!composer.trim() || sending"
-                                >
-                                    <MaterialDesignIcon icon-name="send" class="size-5" />
-                                </button>
-                            </form>
+                                <form class="flex items-end gap-2" @submit.prevent="sendMessage">
+                                    <div
+                                        class="composer-pill relative flex-1 min-w-0 rounded-2xl border border-sem-border bg-sem-surface/40 backdrop-blur-md px-3 transition-all focus-within:ring-2 focus-within:ring-sem-focus focus-within:border-sem-focus-border shadow-xs"
+                                    >
+                                        <textarea
+                                            ref="composerInput"
+                                            v-model="composer"
+                                            rows="1"
+                                            :maxlength="selectedHub.max_msg_body_bytes || 350"
+                                            :placeholder="$t('relay_chat.message_placeholder')"
+                                            class="composer-textarea block w-full bg-transparent border-0 px-0 py-2.5 text-sm text-sem-fg placeholder:text-sem-fg-muted focus:outline-none focus:ring-0 resize-none overflow-y-auto leading-snug min-h-[40px] max-h-[160px]"
+                                            @keydown="onComposerKeydown"
+                                            @keydown.enter.exact.prevent="sendMessage"
+                                        ></textarea>
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        :class="[btnPrimary, 'shrink-0 rounded-full p-2.5!']"
+                                        :title="$t('relay_chat.send')"
+                                        :disabled="!composer.trim() || sending"
+                                    >
+                                        <MaterialDesignIcon icon-name="send" class="size-5" />
+                                    </button>
+                                </form>
+                            </div>
                         </div>
 
                         <!-- members panel -->
@@ -2006,6 +2011,7 @@ export default {
             composer: "",
             replyTarget: null,
             sending: false,
+            composerOverlayHeight: 72,
             relayAtBottom: true,
             newMessagesBelow: 0,
             nickCycle: null,
@@ -2082,6 +2088,17 @@ export default {
         },
         composerByteWarning() {
             return this.composerByteCount > this.composerByteLimit * 0.8;
+        },
+        composerChromeStyle() {
+            return {
+                paddingBottom: "max(0.625rem, env(safe-area-inset-bottom, 0px))",
+            };
+        },
+        composerContentPad() {
+            return `${this.composerOverlayHeight + 8}px`;
+        },
+        scrollFabBottom() {
+            return `${this.composerOverlayHeight + 10}px`;
         },
         showUnreadBadges() {
             return useConfigStore().config?.rrc_unread_badges_enabled !== false;
@@ -2214,10 +2231,12 @@ export default {
         selectedHubHash() {
             this.messageTranslations = {};
             this.persistRelayLayout();
+            nextTick(() => this.bindComposerOverlayObserver());
         },
         selectedRoom() {
             this.messageTranslations = {};
             this.persistRelayLayout();
+            nextTick(() => this.bindComposerOverlayObserver());
         },
         view() {
             this.persistRelayLayout();
@@ -2242,6 +2261,15 @@ export default {
                 this.hostUptimeTick += 1;
             }
         }, 1000);
+        if (typeof ResizeObserver !== "undefined") {
+            this._composerOverlayObserver = new ResizeObserver((entries) => {
+                const el = entries[0] && entries[0].target;
+                if (el) {
+                    this.composerOverlayHeight = el.offsetHeight;
+                }
+            });
+            this.bindComposerOverlayObserver();
+        }
         this.fetchHubs().then(() => {
             this.restoreRelayLayout();
             this.applyPopoutRoute();
@@ -2289,6 +2317,10 @@ export default {
     },
     beforeUnmount() {
         this.saveCurrentRoomDraft();
+        if (this._composerOverlayObserver) {
+            this._composerOverlayObserver.disconnect();
+            this._composerOverlayObserver = null;
+        }
         offWsEvent(WS_EVENTS.RRC_CHANGE, this.onRrcChange);
         offWsEvent(WS_EVENTS.RRC_MESSAGE, this.onRrcMessage);
         offWsEvent(WS_EVENTS.RRC_SERVER_CHANGE, this.onRrcServerChange);
@@ -3966,6 +3998,18 @@ export default {
                 // ignore member refresh failures
             }
         },
+        bindComposerOverlayObserver() {
+            const el = this.$refs.composerOverlay;
+            if (!this._composerOverlayObserver) {
+                return;
+            }
+            this._composerOverlayObserver.disconnect();
+            if (!el) {
+                return;
+            }
+            this._composerOverlayObserver.observe(el);
+            this.composerOverlayHeight = el.offsetHeight || this.composerOverlayHeight;
+        },
         scrollToBottom() {
             this.relayAtBottom = true;
             this.newMessagesBelow = 0;
@@ -3990,6 +4034,10 @@ export default {
             }
             el.style.height = "auto";
             el.style.height = Math.min(el.scrollHeight, 160) + "px";
+            const overlay = this.$refs.composerOverlay;
+            if (overlay) {
+                this.composerOverlayHeight = overlay.offsetHeight || this.composerOverlayHeight;
+            }
         },
         onComposerKeydown(event) {
             // Escape clears a pending reply quote before anything else.

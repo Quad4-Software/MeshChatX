@@ -915,6 +915,21 @@ describe("RelayChatPage.vue", () => {
         expect(el.style.height).toBe("160px");
     });
 
+    it("composer floats over the message list with a transparent backdrop", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await wrapper.vm.$nextTick();
+
+        const overlay = wrapper.find("[ref=composerOverlay], .absolute.inset-x-0.bottom-0.z-30");
+        expect(overlay.exists()).toBe(true);
+        expect(wrapper.find(".composer-pill").classes().join(" ")).toContain("bg-sem-surface/40");
+        expect(wrapper.find(".composer-pill").classes().join(" ")).toContain("backdrop-blur-md");
+        expect(wrapper.vm.composerContentPad).toMatch(/px$/);
+        expect(wrapper.vm.scrollFabBottom).toMatch(/px$/);
+        expect(Number.parseInt(wrapper.vm.composerContentPad, 10)).toBeGreaterThan(0);
+    });
+
     it("composer watcher grows the textarea as text changes", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
