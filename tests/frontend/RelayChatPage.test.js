@@ -835,6 +835,45 @@ describe("RelayChatPage.vue", () => {
         expect(wrapper.vm.composer).toBe("");
     });
 
+    it("drops a concurrent send while the first post is in flight", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+
+        const messagePosts = () =>
+            axiosMock.post.mock.calls.filter(
+                ([url]) => typeof url === "string" && url.includes("/messages") && !url.includes("/retry")
+            );
+
+        let resolvePost;
+        const before = messagePosts().length;
+        axiosMock.post.mockImplementation((url, ...rest) => {
+            if (typeof url === "string" && url.includes("/messages") && !url.includes("/retry")) {
+                return new Promise((resolve) => {
+                    resolvePost = () => resolve({ data: { message: "Sent" } });
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        wrapper.vm.composer = "once only";
+        const first = wrapper.vm.sendMessage();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.sending).toBe(true);
+        expect(wrapper.vm.composer).toBe("");
+        expect(messagePosts().length).toBe(before + 1);
+
+        // Second Enter while still in flight must not post another mid.
+        wrapper.vm.composer = "once only";
+        await wrapper.vm.sendMessage();
+        expect(messagePosts().length).toBe(before + 1);
+
+        resolvePost();
+        await first;
+        expect(wrapper.vm.sending).toBe(false);
+        expect(messagePosts().length).toBe(before + 1);
+    });
+
     it("prepends a quote prefix when a reply target is set", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));

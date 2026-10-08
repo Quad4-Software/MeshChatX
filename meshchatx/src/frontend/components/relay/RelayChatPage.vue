@@ -4149,6 +4149,12 @@ export default {
             return out;
         },
         async sendMessage() {
+            // Guard first: Enter and the send button both call this, and a
+            // second press before sending flips true posts a second mid to
+            // the hub.
+            if (this.sending) {
+                return;
+            }
             const text = this.composer.trim();
             if (!text || !this.selectedHub || !this.selectedRoom) {
                 return;

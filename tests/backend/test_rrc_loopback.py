@@ -92,6 +92,29 @@ def test_loopback_join_send_relay(live_pair):
     assert _wait_for(lambda: server._stats["messages_relayed"] >= 1)
 
 
+def test_loopback_one_send_records_one_message(live_pair):
+    """Own send plus hub echo must land as a single room history row.
+
+    The client records the outbound envelope locally, then the hub echoes
+    it back. The echo confirms delivery and must not create a second mid.
+    """
+    server, hub = live_pair
+    hub.connect()
+    assert _wait_for(lambda: hub.welcomed)
+    hub.join_room("lobby")
+    assert _wait_for(lambda: "lobby" in hub.rooms)
+
+    hub.send_message("lobby", "dedupe me")
+    assert _wait_for(
+        lambda: any(m.text == "dedupe me" and m.kind == "msg" for m in hub.get_messages("lobby"))
+    )
+    # Hub echo arrives async on the loopback link.
+    assert _wait_for(lambda: any(m.delivery == "sent" for m in hub.get_messages("lobby") if m.text == "dedupe me"))
+    matches = [m for m in hub.get_messages("lobby") if m.kind == "msg" and m.text == "dedupe me"]
+    assert len(matches) == 1
+    assert _wait_for(lambda: server._stats["messages_relayed"] >= 1)
+
+
 def test_loopback_foreign_dest_hash_src_accepted(live_pair, monkeypatch):
     """Notices stamped with the destination hash still drive client state.
 
