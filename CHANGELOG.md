@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [4.10.3] - TBD [unreleased]
 
+### Fixed
+
+- Relay chat: the channel list (/list) now populates on hubs whose reply exceeds the link MDU. rrcd splits oversized notices into one NOTICE envelope per line, so the header was parsed as an empty list and the room lines landed as stray system notices. The client now reassembles the burst into one notice before parsing.
+- Messages: the conversation composer now floats over the message list instead of holding a normal-flow band at the bottom, so it no longer shows as a background strip while scrolling up. The scroll-to-bottom button floats above it, and the pill uses a subtle backdrop blur. The empty pane in split view no longer shows the drop-hint overlay over the compose input.
+- CI: harden-runner now enforces egress blocking on Linux runners with an explicit allowed-endpoints list built from observed run traffic.
+
 ## [4.10.2] - 2026-10-07 [released]
 
 ### Fixed
