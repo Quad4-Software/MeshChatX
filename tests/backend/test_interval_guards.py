@@ -71,3 +71,18 @@ async def test_propagation_sync_interval_clamped_to_minimum(
         == MIN_ANNOUNCE_INTERVAL_SECONDS
     )
     assert "below the" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_negative_intervals_normalize_to_disabled(mock_app, restore_intervals):
+    await mock_app.update_config({"auto_announce_interval_seconds": -5})
+    assert mock_app.config.auto_announce_interval_seconds.get() == 0
+    assert mock_app.config.auto_announce_enabled.get() is False
+
+    await mock_app.update_config(
+        {"lxmf_preferred_propagation_node_auto_sync_interval_seconds": -5},
+    )
+    assert (
+        mock_app.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get()
+        == 0
+    )

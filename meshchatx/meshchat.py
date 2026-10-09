@@ -6658,6 +6658,8 @@ class ReticulumMeshChat:
                 auto_announce_interval_seconds = (
                     self.config.auto_announce_interval_seconds.get()
                 )
+            if auto_announce_interval_seconds < 0:
+                auto_announce_interval_seconds = 0
             if auto_announce_interval_seconds > 0 and (
                 auto_announce_interval_seconds < MIN_ANNOUNCE_INTERVAL_SECONDS
             ):
@@ -6856,6 +6858,8 @@ class ReticulumMeshChat:
             )
             if value is None:
                 value = self.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get()
+            if value < 0:
+                value = 0
             if value > 0 and value < MIN_ANNOUNCE_INTERVAL_SECONDS:
                 # Each sync can pull a full mailbox, so a sub-minute interval
                 # turns the peer and the mesh into a transfer loop.
