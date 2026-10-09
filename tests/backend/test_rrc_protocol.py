@@ -484,8 +484,8 @@ def test_history_is_persisted_and_reloaded(tmp_path):
     assert any(m.text == "persisted text" for m in messages)
 
 
-def test_inbound_replay_by_envelope_id_is_dropped(tmp_path):
-    """A hub redelivering an already recorded envelope must not duplicate it."""
+def test_inbound_replay_by_envelope_id_counts_repeats(tmp_path):
+    """A hub redelivery folds into the row as a repeat count, not a new line."""
     manager = make_manager(tmp_path)
     hub = manager.add_hub(bytes(range(16)))
     hub.add_room("lobby")
@@ -498,7 +498,9 @@ def test_inbound_replay_by_envelope_id_is_dropped(tmp_path):
     )
     hub._handle_msg(env)
     hub._handle_msg(env)
-    assert len(hub.get_messages("lobby")) == 1
+    [msg] = hub.get_messages("lobby")
+    assert msg.dup_count == 2
+    assert msg.to_dict()["dup_count"] == 2
 
 
 def test_inbound_replay_keeps_sender_timestamp(tmp_path):
@@ -521,7 +523,7 @@ def test_inbound_replay_keeps_sender_timestamp(tmp_path):
 
 
 def test_replay_dedupes_against_loaded_history(tmp_path):
-    """A replay after restart matches the history row by mid or content."""
+    """A replay after restart counts against the loaded row."""
     manager = make_manager(tmp_path)
     hub = manager.add_hub(bytes(range(16)))
     hub.add_room("lobby")
@@ -539,14 +541,15 @@ def test_replay_dedupes_against_loaded_history(tmp_path):
     loaded_hub = reloaded.hubs[0]
     # Simulate a reconnect replay of the same envelope.
     loaded_hub._handle_msg(env)
-    assert len(loaded_hub.get_messages("lobby")) == 1
+    [msg] = loaded_hub.get_messages("lobby")
+    assert msg.dup_count == 2
 
 
-def test_same_text_resend_is_suppressed_within_buffer(tmp_path):
-    """A verbatim repeat from the same peer is indistinguishable from a replay.
+def test_same_text_resend_counts_as_repeat(tmp_path):
+    """A verbatim repeat from the same peer folds into the original row.
 
     Old clients re-send with a fresh envelope id and timestamp, so content
-    dedup drops repeats while the original is still in the room buffer.
+    matching counts repeats while the original is still in the room buffer.
     """
     manager = make_manager(tmp_path)
     hub = manager.add_hub(bytes(range(16)))
@@ -568,7 +571,79 @@ def test_same_text_resend_is_suppressed_within_buffer(tmp_path):
     )
     hub._handle_msg(first)
     hub._handle_msg(second)
-    assert len(hub.get_messages("lobby")) == 1
+    [msg] = hub.get_messages("lobby")
+    assert msg.dup_count == 2
+
+
+def test_repeat_count_survives_history_reload(tmp_path):
+    """Counts persisted as update records come back after a restart."""
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.add_room("lobby")
+    env = proto.make_envelope(
+        proto.T_MSG,
+        src=b"\x30" * 16,
+        room="lobby",
+        nick="dave",
+        body="counted",
+    )
+    hub._handle_msg(env)
+    hub._handle_msg(env)
+    hub._handle_msg(env)
+
+    reloaded = make_manager(tmp_path)
+    reloaded.load()
+    [msg] = reloaded.hubs[0].get_messages("lobby")
+    assert msg.dup_count == 3
+
+
+def test_legacy_duplicate_rows_merge_into_count(tmp_path):
+    """Repeat rows from files written before counts existed each count once."""
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.add_room("lobby")
+    base = proto.RRCMessage("msg", "lobby", b"\x30" * 16, "dave", "legacy dupe", 123)
+    for _ in range(3):
+        hub._append_history("lobby", base)
+
+    reloaded = make_manager(tmp_path)
+    reloaded.load()
+    [msg] = reloaded.hubs[0].get_messages("lobby")
+    assert msg.dup_count == 3
+
+
+def test_own_echo_repeat_counts_on_own_row(tmp_path):
+    """A hub re-relaying our own message after delivery bumps our row."""
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.add_room("lobby")
+    mid = b"\x42" * 8
+    own = proto.RRCMessage(
+        "msg", "lobby", manager.identity.hash, "me", "mine", proto.now_ms()
+    )
+    own.mid = mid
+    own.delivery = "sent"
+    hub._record_message(own, local=True)
+    hub._sent_ids.append(mid)
+    env = proto.make_envelope(
+        proto.T_MSG,
+        src=manager.identity.hash,
+        room="lobby",
+        nick="me",
+        body="mine",
+        mid=mid,
+    )
+    hub._handle_chat(env, "msg")
+    rows = [m for m in hub.get_messages("lobby") if m.text == "mine"]
+    assert len(rows) == 1
+    assert rows[0].dup_count == 2
+
+
+def test_dup_count_serializes_only_above_one():
+    m = proto.RRCMessage("msg", "lobby", None, None, "x", 0)
+    assert "dup_count" not in m.to_dict()
+    m.dup_count = 2
+    assert m.to_dict()["dup_count"] == 2
 
 
 def test_status_serialization(tmp_path):

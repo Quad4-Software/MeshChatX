@@ -326,6 +326,10 @@ class RRCMessage:
         # "sent" once confirmed, "failed" on timeout or link loss. None for
         # inbound and system messages.
         self.delivery = None
+        # How many copies of this message the hub delivered. Starts at 1 and
+        # increments when a redelivery is folded into the row instead of
+        # being recorded as a duplicate line.
+        self.dup_count = 1
 
     def to_dict(self):
         """Return a JSON-serializable representation of the message."""
@@ -346,4 +350,6 @@ class RRCMessage:
             out["delivery"] = self.delivery
             if isinstance(self.mid, (bytes, bytearray)):
                 out["mid"] = bytes(self.mid).hex()
+        if int(getattr(self, "dup_count", 1) or 1) > 1:
+            out["dup_count"] = int(self.dup_count)
         return out

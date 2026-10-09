@@ -128,3 +128,46 @@ def test_mention_regex_is_bounded_and_safe(body, nick):
     assert isinstance(pat, re.Pattern)
     # Search must terminate quickly even on pathological inputs.
     pat.search(body)
+
+
+@given(events=st.lists(st.integers(min_value=0, max_value=3), min_size=1, max_size=12))
+@settings(
+    max_examples=80,
+    deadline=None,
+    # Each example builds a fresh manager and never loads prior history,
+    # so the shared tmp_path cannot leak state between generated inputs.
+    suppress_health_check=(HealthCheck.function_scoped_fixture,),
+)
+def test_replay_count_matches_delivery_totals(tmp_path, events):
+    """Randomized deliveries: rows equal distinct messages, counts equal copies.
+
+    Each event either introduces a new message or replays an earlier one
+    with its original envelope id. Whatever the order, one row per distinct
+    message must remain and its repeat count must match the number of
+    deliveries the client saw.
+    """
+    from tests.backend.test_rrc_protocol import make_manager
+
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.add_room("lobby")
+    mids = {}
+    expected = {}
+    for i in events:
+        body = "m" + str(i)
+        mid = mids.get(i)
+        env = proto.make_envelope(
+            proto.T_MSG,
+            src=b"\x30" * 16,
+            room="lobby",
+            nick="dave",
+            body=body,
+            mid=mid,
+        )
+        mids[i] = env[proto.K_ID]
+        hub._handle_msg(env)
+        expected[body] = expected.get(body, 0) + 1
+
+    rows = hub.get_messages("lobby")
+    assert len(rows) == len(expected)
+    assert {m.text: m.dup_count for m in rows} == expected

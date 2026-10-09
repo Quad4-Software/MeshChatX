@@ -85,6 +85,7 @@ H_MENTION = "m"
 H_EVENT = "e"
 H_DELIVERY = "d"
 H_MID = "id"
+H_DUP = "c"
 
 # Own messages are confirmed when the hub relays the echo back. Links are
 # reliable transport, so a missing echo past this window means the hub
@@ -1157,7 +1158,7 @@ class RRCHub:
         return self.manager.ephemeral_notices
 
     def _entry_for(self, msg):
-        return {
+        entry = {
             H_KIND: msg.kind,
             H_SRC: bytes(msg.src) if isinstance(msg.src, (bytes, bytearray)) else None,
             H_NICK: msg.nick if isinstance(msg.nick, str) else None,
@@ -1170,6 +1171,10 @@ class RRCHub:
             if isinstance(getattr(msg, "mid", None), (bytes, bytearray))
             else None,
         }
+        dup_count = int(getattr(msg, "dup_count", 1) or 1)
+        if dup_count > 1:
+            entry[H_DUP] = dup_count
+        return entry
 
     def _msg_from_entry(self, room, entry):
         if not isinstance(entry, dict):
@@ -1197,6 +1202,10 @@ class RRCHub:
             # History only survives across sessions. anything still pending at
             # load can never be confirmed by this connection.
             m.delivery = "failed"
+        try:
+            m.dup_count = max(1, int(entry.get(H_DUP, 1) or 1))
+        except (TypeError, ValueError):
+            m.dup_count = 1
         return m
 
     def _persistable_room(self, room):
@@ -1280,7 +1289,20 @@ class RRCHub:
                     continue
                 if filter_msgs and m.kind in ("system", "notice"):
                     continue
-                if self._room_has_duplicate(msgs, m):
+                existing = self._find_duplicate(msgs, m)
+                if existing is not None:
+                    # Update records append the running repeat total and win
+                    # by max. Plain repeat rows from files written before
+                    # counts existed each stand for one more delivery.
+                    if H_DUP in e:
+                        existing.dup_count = max(
+                            int(getattr(existing, "dup_count", 1) or 1),
+                            int(getattr(m, "dup_count", 1) or 1),
+                        )
+                    else:
+                        existing.dup_count = (
+                            int(getattr(existing, "dup_count", 1) or 1) + 1
+                        )
                     continue
                 m.seq = self._next_seq()
                 msgs.append(m)
@@ -1345,15 +1367,15 @@ class RRCHub:
                     RNS.LOG_ERROR,
                 )
 
-    def _room_has_duplicate(self, buf, msg):
-        """True when buf already holds this envelope.
+    def _find_duplicate(self, buf, msg):
+        """Return the row in buf that this envelope repeats, or None.
 
         Matches on the envelope id when both sides have one, otherwise on
         identical kind, source, nick, and text. Timestamps are ignored:
         transports that re-stamp on retry would defeat a ts-aware check, and
         a verbatim repeat from the same peer is indistinguishable from a
         replay either way. The check only covers the bounded room buffer, so
-        the suppression window closes once the original scrolls out.
+        the repeat window closes once the original scrolls out.
         Locally sent rows carry no mid and are recorded through local=True,
         which skips this check entirely.
         """
@@ -1369,7 +1391,7 @@ class RRCHub:
                 and isinstance(m_mid, (bytes, bytearray))
                 and bytes(m_mid) == mid
             ):
-                return True
+                return m
             src_same = (m.src == msg.src) or (
                 isinstance(m.src, (bytes, bytearray))
                 and isinstance(msg.src, (bytes, bytearray))
@@ -1381,28 +1403,76 @@ class RRCHub:
                 and m.text == msg.text
                 and src_same
             ):
-                return True
-        return False
+                return m
+        return None
+
+    def _room_has_duplicate(self, buf, msg):
+        """True when buf already holds this envelope."""
+        return self._find_duplicate(buf, msg) is not None
+
+    def _bump_duplicate_by_mid(self, mid, room=None):
+        """Increment the repeat count on the recorded row with this mid.
+
+        Returns True when a row was found. A replay whose original already
+        scrolled out of the bounded buffer has nothing to bump and stays
+        silently dropped.
+        """
+        if not isinstance(mid, (bytes, bytearray)):
+            return False
+        mid_b = bytes(mid)
+        room_n = None
+        if isinstance(room, str) and room.strip():
+            room_n = room.strip().lower()
+        found = None
+        with self._lock:
+            candidates = [room_n] if room_n else list(self.messages.keys())
+            for r in candidates:
+                if not r:
+                    continue
+                for m in self.messages.get(r, []):
+                    m_mid = getattr(m, "mid", None)
+                    if isinstance(m_mid, (bytes, bytearray)) and bytes(m_mid) == mid_b:
+                        m.dup_count = int(getattr(m, "dup_count", 1) or 1) + 1
+                        self.manager._notify_messages(self, m)
+                        found = m
+                        break
+                if found is not None:
+                    break
+        if found is None:
+            return False
+        self._append_history(found.room, found)
+        self._clean_history()
+        return True
 
     def _record_message(self, msg, local=False):
         cap = self._per_room_cap()
+        bumped = None
         with self._lock:
             buf = self.messages.setdefault(msg.room or "*", [])
-            if not local and self._room_has_duplicate(buf, msg):
-                return
-            msg.seq = self._next_seq()
-            buf.append(msg)
-            if cap is not None and len(buf) > cap:
-                del buf[: len(buf) - cap]
-            if (
-                not local
-                and msg.room
-                and msg.room != self.manager.active_room_for(self)
-            ):
-                self._bump_unread(msg.room)
-                if msg.mention:
-                    self.mention_rooms.add(msg.room)
-            self.manager._notify_messages(self, msg)
+            if not local:
+                existing = self._find_duplicate(buf, msg)
+                if existing is not None:
+                    existing.dup_count = int(getattr(existing, "dup_count", 1) or 1) + 1
+                    self.manager._notify_messages(self, existing)
+                    bumped = existing
+            if bumped is None:
+                msg.seq = self._next_seq()
+                buf.append(msg)
+                if cap is not None and len(buf) > cap:
+                    del buf[: len(buf) - cap]
+                if (
+                    not local
+                    and msg.room
+                    and msg.room != self.manager.active_room_for(self)
+                ):
+                    self._bump_unread(msg.room)
+                    if msg.mention:
+                        self.mention_rooms.add(msg.room)
+                self.manager._notify_messages(self, msg)
+        if bumped is not None:
+            self._append_history(bumped.room, bumped)
+            self._clean_history()
+            return
         self._append_history(msg.room, msg)
         self._clean_history()
 
@@ -1705,16 +1775,26 @@ class RRCHub:
             with self._lock:
                 own_echo = bytes(mid) in self._sent_ids
         if own_echo:
-            self._confirm_delivery(bytes(mid))
+            confirmed = self._confirm_delivery(bytes(mid))
             with self._lock:
                 self._seen_envelope_ids.append(bytes(mid))
+            if not confirmed:
+                # The hub relayed our own message back again after delivery
+                # was already confirmed. Count the extra copy on our row.
+                self._bump_duplicate_by_mid(bytes(mid), room)
             return
         if isinstance(mid, (bytes, bytearray)):
+            stale = False
             with self._lock:
                 if bytes(mid) in self._seen_envelope_ids:
-                    # Redelivery of an already recorded envelope.
-                    return
-                self._seen_envelope_ids.append(bytes(mid))
+                    stale = True
+                else:
+                    self._seen_envelope_ids.append(bytes(mid))
+            if stale:
+                # Redelivery of an already recorded envelope. Fold it
+                # into the original row as a repeat count.
+                self._bump_duplicate_by_mid(bytes(mid), room)
+                return
         if isinstance(src, (bytes, bytearray)) and isinstance(nick, str) and nick:
             with self._lock:
                 self.nicks[bytes(src)] = nick
