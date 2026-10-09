@@ -309,7 +309,7 @@ def purge_pullzone_urls(urls: list[str]) -> None:
         )
         return
     for url in urls:
-        req = urllib.request.Request(  # noqa: S310 - CI CDN API
+        req = urllib.request.Request(
             f"https://api.bunny.net/purge?url={quote(url, safe='')}",
             method="POST",
             headers={"AccessKey": api_key},
@@ -324,9 +324,9 @@ def purge_pullzone_urls(urls: list[str]) -> None:
 
 
 def public_cdn_base() -> str:
-    return os.environ.get("FLATPAK_CDN_BASE_URL", "https://cdn.quad4.io/flatpak").rstrip(
-        "/"
-    )
+    return os.environ.get(
+        "FLATPAK_CDN_BASE_URL", "https://cdn.quad4.io/flatpak"
+    ).rstrip("/")
 
 
 def discovery_purge_urls(prefix: str = DEFAULT_PREFIX) -> list[str]:
@@ -354,9 +354,8 @@ def _http_get(url: str, timeout: int = 30) -> bytes:
 
 def _http_head_ok(url: str, timeout: int = 20) -> bool:
     try:
-        with urllib.request.urlopen(  # noqa: S310
-            urllib.request.Request(url, method="HEAD"), timeout=timeout
-        ) as resp:
+        request = urllib.request.Request(url, method="HEAD")  # noqa: S310 - CI CDN probe
+        with urllib.request.urlopen(request, timeout=timeout) as resp:  # noqa: S310
             return resp.getcode() == 200
     except urllib.error.HTTPError as e:
         if e.code == 404:
@@ -429,7 +428,9 @@ def verify_public_summary(app_id: str = "com.meshchatx.app") -> None:
         print(f"verify ok ref branch={branch} commit={commit}", flush=True)
     if found == 0:
         raise SystemExit(f"no app/{app_id}/x86_64/{{stable,beta,testing}} refs on CDN")
-    print(f"verify_public_summary: ok (digest={digest_hex} branches={found})", flush=True)
+    print(
+        f"verify_public_summary: ok (digest={digest_hex} branches={found})", flush=True
+    )
 
 
 def upload_ostree_tree(

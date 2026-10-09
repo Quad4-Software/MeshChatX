@@ -4,10 +4,10 @@
 from __future__ import annotations
 
 import importlib.util
+import urllib.error
 from pathlib import Path
 from types import ModuleType
 from unittest.mock import patch
-import urllib.error
 
 import pytest
 
@@ -215,7 +215,9 @@ def test_upload_skips_existing_content_addressed_objects(
     puts: list[str] = []
     pruned_local: list[set] = []
 
-    def fake_put(url, body, access_key, content_type, cache_control=None, max_attempts=4):
+    def fake_put(
+        url, body, access_key, content_type, cache_control=None, max_attempts=4
+    ):
         puts.append(url)
 
     def fake_prune(base, access_key, prefix, local_rels):
