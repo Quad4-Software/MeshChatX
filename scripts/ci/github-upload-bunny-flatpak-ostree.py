@@ -443,6 +443,42 @@ def verify_public_summary(app_id: str = "com.meshchatx.app") -> None:
     )
 
 
+def verify_public_summary_best_effort(
+    app_id: str = "com.meshchatx.app",
+    attempts: int = 5,
+    delay: float = 15.0,
+) -> None:
+    """Verify the live CDN, retrying past edge propagation, then warn.
+
+    A purge is asynchronous, so the edge can still serve the previous
+    summary.idx for a short window right after publishing. Retry with
+    backoff, and once the attempts are exhausted print a warning instead
+    of failing: the purge has already been issued and the edge converges
+    on its own.
+    """
+    last_error: SystemExit | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            verify_public_summary(app_id)
+            return
+        except SystemExit as e:
+            last_error = e
+            if attempt < attempts:
+                print(
+                    f"cdn verify attempt {attempt}/{attempts} failed: {e}. "
+                    f"Retrying in {delay:.0f}s",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                time.sleep(delay)
+    print(
+        f"warning: cdn verify did not converge after {attempts} attempts: "
+        f"{last_error}. The purge was issued, the edge converges on its own.",
+        file=sys.stderr,
+        flush=True,
+    )
+
+
 def upload_ostree_tree(
     root: Path,
     base: str,
@@ -520,7 +556,7 @@ def upload_ostree_tree(
         prune_remote_orphans(base, access_key, prefix, local_set)
         purge_pullzone_urls(discovery_purge_urls(prefix))
 
-    verify_public_summary()
+    verify_public_summary_best_effort()
     return 0
 
 

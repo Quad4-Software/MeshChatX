@@ -409,3 +409,37 @@ def test_release_asset_uploader_does_not_prune_flatpak_prefix() -> None:
     assert mod.parse_track_version("flatpak") is None
     assert mod.parse_track_version("flatpak/repo") is None
     assert mod.parse_track_version("release/v1.2.3") == ("release", "v1.2.3")
+
+
+def test_verify_best_effort_recovers_after_a_retry(
+    ostree_up: ModuleType, monkeypatch
+) -> None:
+    """A transient stale edge read must not fail the publish."""
+    state = {"n": 0}
+
+    def flaky(app_id: str = "com.meshchatx.app") -> None:
+        state["n"] += 1
+        if state["n"] < 2:
+            raise SystemExit("stale edge")
+
+    monkeypatch.setattr(ostree_up, "verify_public_summary", flaky)
+    monkeypatch.setattr(ostree_up.time, "sleep", lambda _s: None)
+    ostree_up.verify_public_summary_best_effort(attempts=3, delay=0)
+    assert state["n"] == 2
+
+
+def test_verify_best_effort_warns_when_the_edge_never_converges(
+    ostree_up: ModuleType, monkeypatch, capsys
+) -> None:
+    """Exhausted retries warn instead of failing the release job."""
+    state = {"n": 0}
+
+    def always_stale(app_id: str = "com.meshchatx.app") -> None:
+        state["n"] += 1
+        raise SystemExit("stale edge")
+
+    monkeypatch.setattr(ostree_up, "verify_public_summary", always_stale)
+    monkeypatch.setattr(ostree_up.time, "sleep", lambda _s: None)
+    ostree_up.verify_public_summary_best_effort(attempts=3, delay=0)
+    assert state["n"] == 3
+    assert "did not converge" in capsys.readouterr().err
