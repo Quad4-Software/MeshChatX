@@ -49,6 +49,7 @@ concurrency:
     cancel-in-progress: true
 
 env:
+    TINYGO_VERSION: "0.42.0"
     HARDEN_ENDPOINTS: >
         github.com:443
         api.github.com:443
@@ -213,6 +214,19 @@ jobs:
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
+
+            # The RPM and APK tasks run a full frontend build, and the
+            # visualiser WASM step requires TinyGo. Without it both formats
+            # were silently skipped as best effort.
+            - name: Set up Go (RPM/APK full builds)
+              if: matrix.arch == 'x64'
+              uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+              with:
+                  go-version: "1.27.x"
+
+            - name: Install TinyGo (RPM/APK full builds)
+              if: matrix.arch == 'x64'
+              run: sh scripts/ci/setup-tinygo.sh ${{ env.TINYGO_VERSION }}
 
             - name: Fetch frontend artifact
               uses: $/.github/actions/fetch-frontend-artifact

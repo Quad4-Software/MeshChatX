@@ -5,6 +5,7 @@
 - Nomad and Micron pages: restored the bundled Roboto Mono Nerd Font, so Nerd Font glyphs and icons on pages such as rngit render again instead of showing as boxes.
 - Settings: Roboto Mono Nerd Font is selectable as the UI font again.
 - CI: the wheel packaging check no longer treats the bundled Nerd Font as a leftover, so Android and Linux release builds pass with it.
+- Packages: RPM and Alpine APK assets build again. The Linux release job installs Go and TinyGo for the full builds those formats run, and the release log now lists the final asset set so a skipped format cannot pass unnoticed.
 
 ## [4.10.5] - 2026-10-09 [released]
 

@@ -183,13 +183,13 @@ if [ "${SKIP_ELECTRON:-0}" != 1 ]; then
         if has_format rpm; then
             echo "RPM (best-effort)..."
             if ! task dist:fe:rpm; then
-                echo "RPM build failed or skipped; continuing." >&2
+                echo "::warning::RPM build failed or skipped; continuing without it." >&2
             fi
         fi
         if has_format apk; then
             echo "APK (best-effort)..."
             if ! task dist:fe:apk; then
-                echo "APK build failed or skipped; continuing." >&2
+                echo "::warning::APK build failed or skipped; continuing without it." >&2
             fi
         fi
         _apk_file="$(find dist -maxdepth 1 -type f -name '*-alpine-*.apk' -print -quit 2>/dev/null || true)"
@@ -225,6 +225,11 @@ find python-dist -maxdepth 1 -type f -name "*.whl" -exec cp -f {} release-assets
 if [ -d meshchatx/public ] && [ "${SKIP_ELECTRON:-0}" != 1 ]; then
     ( cd meshchatx/public && zip -qr "${ROOT}/release-assets/meshchatx-frontend.zip" . )
 fi
+
+# Print what actually ships so a silently skipped format is visible in the
+# release log instead of only in the asset list.
+echo "release-assets contents:"
+ls -1 release-assets/
 
 {
     echo "## Integrity"
