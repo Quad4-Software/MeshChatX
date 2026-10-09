@@ -297,6 +297,7 @@
                         <option value="jetbrains-mono">{{ $t("app.ui_font_jetbrains_mono") }}</option>
                         <option value="ibm-plex-sans">{{ $t("app.ui_font_ibm_plex_sans") }}</option>
                         <option value="space-grotesk">{{ $t("app.ui_font_space_grotesk") }}</option>
+                        <option value="roboto-mono-nerd">{{ $t("app.ui_font_roboto_mono_nerd") }}</option>
                         <option v-if="config.ui_custom_font_name" value="custom">
                             {{ config.ui_custom_font_name }}
                         </option>
@@ -690,6 +691,7 @@ export default {
                 "jetbrains-mono": '"JetBrains Mono", ui-monospace, monospace',
                 "ibm-plex-sans": '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
                 "space-grotesk": '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
+                "roboto-mono-nerd": '"Roboto Mono Nerd Font", ui-monospace, monospace',
             };
             return stacks[key] ? { fontFamily: stacks[key] } : {};
         },

@@ -42,6 +42,7 @@ function loadRenderer() {
         import("./NomadPageRenderer.js"),
         import("./MicronWasmLoader.js"),
         import("dompurify"),
+        import("../fonts/RobotoMonoNerdFont/font.css"),
     ]).then(([micronMod, pageMod, wasmMod, purifyMod]) => {
         const DOMPurify = purifyMod.default || purifyMod;
         globalThis.DOMPurify = DOMPurify;

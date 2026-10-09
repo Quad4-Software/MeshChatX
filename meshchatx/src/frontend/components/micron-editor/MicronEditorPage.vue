@@ -1005,7 +1005,7 @@ Shading and coloring text and backgrounds is integral to micron output, and whil
 
 >>>Terminal Font
 
-While any unicode capable font can be used with micron, a monospaced font with broad glyph coverage keeps icons and tables aligned.
+While any unicode capable font can be used with micron, it's highly recommended to use a ${b}*"Nerd Font"${b}* (see https://www.nerdfonts.com/), which will add a lot of extra glyphs and icons to your output.
 
 > A Few Demo Outputs
 
@@ -1514,7 +1514,7 @@ ${b}=
 <style scoped>
 .nodeContainer {
     font-family:
-        "JetBrains Mono", ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+        "Roboto Mono Nerd Font", ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     line-height: normal;
     letter-spacing: normal;
     font-variant-ligatures: none;

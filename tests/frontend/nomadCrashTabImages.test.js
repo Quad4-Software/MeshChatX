@@ -12,6 +12,7 @@ vi.mock("../../meshchatx/src/frontend/js/MicronWasmLoader.js", () => ({
     preloadNomadMicronWasm: vi.fn(),
 }));
 vi.mock("dompurify", () => ({ default: {} }));
+vi.mock("../../meshchatx/src/frontend/fonts/RobotoMonoNerdFont/font.css", () => ({}));
 
 /**
  * Exercises the crash-tab renderer script's set-image handling in jsdom:

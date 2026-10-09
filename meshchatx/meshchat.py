@@ -6577,13 +6577,12 @@ class ReticulumMeshChat:
 
         if "ui_font_family" in data:
             val = str(data["ui_font_family"] or "system").strip()
-            if val == "roboto-mono-nerd":
-                val = "jetbrains-mono"
             if val not in (
                 "system",
                 "noto-sans",
                 "inter",
                 "jetbrains-mono",
+                "roboto-mono-nerd",
                 "ibm-plex-sans",
                 "space-grotesk",
                 "custom",

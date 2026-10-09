@@ -748,7 +748,7 @@ describe("NomadCrashTab.vue", () => {
         expect(src).toContain('import("./MicronParser.js")');
         expect(src).toContain('import("dompurify")');
         expect(src).toContain("globalThis.DOMPurify = DOMPurify");
-        expect(src).not.toContain("RobotoMonoNerdFont");
+        expect(src).toContain('import("../fonts/RobotoMonoNerdFont/font.css")');
         expect(src).toContain('parent.postMessage({ channel: NOMAD_CRASH_TAB_CHANNEL, ...msg }, "*")');
         expect(src).not.toContain("parentTargetOrigin");
         expect(src).toContain('d.type === "chrome"');
