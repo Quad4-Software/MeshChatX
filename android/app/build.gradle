@@ -50,8 +50,8 @@ android {
         applicationId System.getenv("MESHCHATX_APPLICATION_ID") ?: "com.meshchatx"
         minSdk 24
         targetSdk 35
-        versionCode 50003
-        versionName "4.10.3"
+        versionCode 50004
+        versionName "4.10.4"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
