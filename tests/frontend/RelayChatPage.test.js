@@ -618,6 +618,52 @@ describe("RelayChatPage.vue", () => {
         expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms/lobby/read`);
     });
 
+    it("shows a repeat count badge on redelivered messages", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({ data: { hubs: [makeHub()] } });
+            }
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({ data: { hubs: [makeHostedHub()] } });
+            }
+            if (url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [makeAnnounce()] } });
+            }
+            if (url.includes("/rooms/") && url.endsWith("/messages")) {
+                return Promise.resolve({
+                    data: {
+                        messages: [
+                            {
+                                kind: "msg",
+                                room: "lobby",
+                                src: "aabb",
+                                nick: "carol",
+                                text: "hello",
+                                ts: 1,
+                                mention: false,
+                                dup_count: 2,
+                            },
+                        ],
+                        members: [],
+                    },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await vi.waitFor(() => expect(wrapper.vm.messages.length).toBe(1));
+
+        expect(wrapper.find('[data-testid="duplicate-count"]').text()).toBe("x2");
+
+        // Turning the pref off hides the badge without dropping the row.
+        wrapper.vm.setShowDuplicateCount(false);
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find('[data-testid="duplicate-count"]').exists()).toBe(false);
+        expect(wrapper.text()).toContain("hello");
+    });
+
     it("shows hub motd inline in the room header", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));

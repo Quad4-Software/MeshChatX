@@ -215,6 +215,16 @@ describe("useRelayMessageTimeline", () => {
         expect(tl.messages.value[0].delivery).toBe("sending");
     });
 
+    it("pushLiveMessage patches the repeat count on a dedupe hit", () => {
+        const tl = makeTimeline();
+        tl.messages.value = [msg(1, "text")];
+        expect(tl.pushLiveMessage(msg(1, "text", { dup_count: 2 }))).toBe(false);
+        expect(tl.messages.value).toHaveLength(1);
+        expect(tl.messages.value[0].dup_count).toBe(2);
+        expect(tl.pushLiveMessage(msg(1, "text", { dup_count: 3 }))).toBe(false);
+        expect(tl.messages.value[0].dup_count).toBe(3);
+    });
+
     it("pushLiveMessage trims the oldest entries past the window cap", async () => {
         const tl = makeTimeline();
         tl.messages.value = Array.from({ length: 2000 }, (_, i) => msg(i + 1));

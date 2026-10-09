@@ -1529,6 +1529,21 @@
                                 }}</span>
                             </span>
                         </label>
+                        <label class="setting-toggle flex items-start gap-3">
+                            <Toggle
+                                id="rrc-show-duplicate-count"
+                                :model-value="showDuplicateCount"
+                                @update:model-value="setShowDuplicateCount"
+                            />
+                            <span class="min-w-0 text-sm">
+                                <span class="font-medium text-sem-fg">{{
+                                    $t("relay_chat.prefs_show_duplicate_count")
+                                }}</span>
+                                <span class="block text-xs text-sem-fg-muted">{{
+                                    $t("relay_chat.prefs_show_duplicate_count_hint")
+                                }}</span>
+                            </span>
+                        </label>
                         <div class="space-y-2">
                             <label class="block text-sm font-semibold text-sem-fg-secondary">{{
                                 $t("relay_chat.prefs_highlight_words")
@@ -2020,6 +2035,7 @@ export default {
             ignoredPeers: [],
             highlightWords: [],
             hideJoinPart: false,
+            showDuplicateCount: true,
             relayPrefsLoadedKey: "",
             unwatchRelayIdentity: null,
             applyingOptionsToAllHubs: false,
@@ -2299,9 +2315,16 @@ export default {
                 // so an existing identity's prefs are never overwritten.
                 const fallback = loadRelayPrefs("_");
                 const real = loadRelayPrefs(hash);
-                const realEmpty = real.ignored.length === 0 && real.highlightWords.length === 0 && !real.hideJoinPart;
+                const realEmpty =
+                    real.ignored.length === 0 &&
+                    real.highlightWords.length === 0 &&
+                    !real.hideJoinPart &&
+                    real.showDuplicateCount !== false;
                 const fallbackHasPrefs =
-                    fallback.ignored.length > 0 || fallback.highlightWords.length > 0 || fallback.hideJoinPart;
+                    fallback.ignored.length > 0 ||
+                    fallback.highlightWords.length > 0 ||
+                    fallback.hideJoinPart ||
+                    fallback.showDuplicateCount === false;
                 this.identityScope?.beginIdentity?.(hash);
                 if (realEmpty && fallbackHasPrefs) {
                     saveRelayPrefs(hash, fallback);
@@ -2410,12 +2433,14 @@ export default {
             this.ignoredPeers = prefs.ignored;
             this.highlightWords = prefs.highlightWords;
             this.hideJoinPart = prefs.hideJoinPart === true;
+            this.showDuplicateCount = prefs.showDuplicateCount !== false;
         },
         persistRelayPrefs() {
             saveRelayPrefs(this._scopedIdentityKey(), {
                 ignored: this.ignoredPeers,
                 highlightWords: this.highlightWords,
                 hideJoinPart: this.hideJoinPart,
+                showDuplicateCount: this.showDuplicateCount,
             });
         },
         isHiddenPresenceMessage(msg) {
@@ -2425,6 +2450,13 @@ export default {
             this.hideJoinPart = value === true;
             this.persistRelayPrefs();
             this._invalidateMessageTimelineCache();
+        },
+        showDupCount(msg) {
+            return this.showDuplicateCount === true && Number(msg?.dup_count) > 1;
+        },
+        setShowDuplicateCount(value) {
+            this.showDuplicateCount = value !== false;
+            this.persistRelayPrefs();
         },
         isOwnRelayMessage(msg) {
             const own = useConfigStore().config?.identity_hash;

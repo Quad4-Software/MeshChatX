@@ -199,13 +199,17 @@ export function useRelayMessageTimeline(options = {}) {
     function pushLiveMessage(msg) {
         const key = relayMessageKey(msg);
         if (key && messageKeySet.value.has(key)) {
-            // Same seq pushed again: a delivery-state update for an own
-            // message (sending -> sent/failed). Patch in place so the gray
-            // hint flips without a refetch.
-            if (typeof msg?.delivery === "string") {
-                const existing = messages.value.find((m) => relayMessageKey(m) === key);
-                if (existing && existing.delivery !== msg.delivery) {
+            // Same seq pushed again: a delivery-state or repeat-count update
+            // for an own message. Patch in place so the gray hint and the
+            // repeat badge flip without a refetch.
+            const existing = messages.value.find((m) => relayMessageKey(m) === key);
+            if (existing) {
+                if (typeof msg?.delivery === "string" && existing.delivery !== msg.delivery) {
                     existing.delivery = msg.delivery;
+                }
+                const nextCount = Number(msg?.dup_count);
+                if (Number.isFinite(nextCount) && nextCount > 1 && existing.dup_count !== nextCount) {
+                    existing.dup_count = nextCount;
                 }
             }
             return false;

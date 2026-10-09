@@ -33,7 +33,22 @@ describe("relayPrefsStore", () => {
         expect(loadRelayPrefs("id1").ignored).toHaveLength(1);
         expect(loadRelayPrefs("id1").highlightWords).toEqual(["x"]);
         expect(loadRelayPrefs("id2").highlightWords).toEqual(["y"]);
-        expect(loadRelayPrefs("missing")).toEqual({ ignored: [], highlightWords: [], hideJoinPart: false });
+        expect(loadRelayPrefs("missing")).toEqual({
+            ignored: [],
+            highlightWords: [],
+            hideJoinPart: false,
+            showDuplicateCount: true,
+        });
+    });
+
+    it("defaults the duplicate count on and round-trips it off", () => {
+        expect(loadRelayPrefs("id1").showDuplicateCount).toBe(true);
+        const saved = saveRelayPrefs("id1", { showDuplicateCount: false });
+        expect(saved.showDuplicateCount).toBe(false);
+        expect(loadRelayPrefs("id1").showDuplicateCount).toBe(false);
+        // A save that omits the field keeps the stored value.
+        saveRelayPrefs("id1", { highlightWords: ["x"] });
+        expect(loadRelayPrefs("id1").showDuplicateCount).toBe(false);
     });
 
     it("drops malformed entries on read and write", () => {
@@ -59,10 +74,16 @@ describe("relayPrefsStore", () => {
     });
 
     it("survives corrupt storage", () => {
+        const empty = {
+            ignored: [],
+            highlightWords: [],
+            hideJoinPart: false,
+            showDuplicateCount: true,
+        };
         localStorage.setItem(STORAGE_KEYS.RRC_PREFS, "not json{");
-        expect(loadRelayPrefs("id1")).toEqual({ ignored: [], highlightWords: [], hideJoinPart: false });
+        expect(loadRelayPrefs("id1")).toEqual(empty);
         localStorage.setItem(STORAGE_KEYS.RRC_PREFS, JSON.stringify(["array"]));
-        expect(loadRelayPrefs("id1")).toEqual({ ignored: [], highlightWords: [], hideJoinPart: false });
+        expect(loadRelayPrefs("id1")).toEqual(empty);
     });
 
     describe("isIgnoredRelayMessage", () => {

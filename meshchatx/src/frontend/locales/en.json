@@ -4178,6 +4178,8 @@
         "delivery_failed": "not delivered to hub",
         "delivery_retry": "retry",
         "delivery_failed_toast": "Message not delivered to hub",
+        "duplicate_count": "x{count}",
+        "duplicate_count_title": "Received {count} copies of this message",
         "host_users": "users",
         "host_announce_interval": "Announce interval",
         "host_announce_interval_hint": "Every {interval}",
@@ -4309,6 +4311,8 @@
         "prefs_ignored_empty": "No ignored users",
         "prefs_hide_join_part": "Hide join/part lines",
         "prefs_hide_join_part_hint": "Presence lines for peers joining or leaving are hidden in every room.",
+        "prefs_show_duplicate_count": "Show repeat count",
+        "prefs_show_duplicate_count_hint": "Redelivered copies show as an x2, x3 badge on the original message.",
         "apply_auto_options_all_hubs": "Apply these auto options to all hubs",
         "auto_options_applied_all_hubs": "Auto options applied to all hubs",
         "unignore": "Unignore"

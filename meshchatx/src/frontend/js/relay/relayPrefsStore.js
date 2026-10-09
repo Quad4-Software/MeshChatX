@@ -34,11 +34,17 @@ function writeRoot(root) {
 }
 
 function normalizeBucket(bucket) {
-    const out = { ignored: [], highlightWords: [], hideJoinPart: false };
+    const out = {
+        ignored: [],
+        highlightWords: [],
+        hideJoinPart: false,
+        showDuplicateCount: true,
+    };
     if (!bucket || typeof bucket !== "object" || Array.isArray(bucket)) {
         return out;
     }
     out.hideJoinPart = bucket.hideJoinPart === true;
+    out.showDuplicateCount = bucket.showDuplicateCount !== false;
     if (Array.isArray(bucket.ignored)) {
         for (const entry of bucket.ignored) {
             if (!entry || typeof entry !== "object") {
@@ -66,7 +72,7 @@ export function loadRelayPrefs(identityKey = "_") {
     return normalizeBucket(readRoot()[key]);
 }
 
-export function saveRelayPrefs(identityKey, { ignored, highlightWords, hideJoinPart } = {}) {
+export function saveRelayPrefs(identityKey, { ignored, highlightWords, hideJoinPart, showDuplicateCount } = {}) {
     const key = typeof identityKey === "string" && identityKey ? identityKey : "_";
     const root = readRoot();
     const previous = normalizeBucket(root[key]);
@@ -74,6 +80,7 @@ export function saveRelayPrefs(identityKey, { ignored, highlightWords, hideJoinP
         ignored,
         highlightWords,
         hideJoinPart: hideJoinPart === undefined ? previous.hideJoinPart : hideJoinPart,
+        showDuplicateCount: showDuplicateCount === undefined ? previous.showDuplicateCount : showDuplicateCount,
     });
     bucket.ignored = bucket.ignored.slice(0, MAX_IGNORED);
     bucket.highlightWords = bucket.highlightWords.slice(0, MAX_WORDS).map((w) => w.slice(0, MAX_WORD_LEN));

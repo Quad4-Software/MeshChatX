@@ -67,6 +67,13 @@
         :data-msg-key="page.messageKey(entry.msg)"
     >
         <span class="mr-1 text-xs text-sem-fg-muted">{{ page.formatTime(entry.msg.ts) }}</span>
+        <span
+            v-if="page.showDupCount(entry.msg)"
+            class="mr-1 rounded bg-sem-surface/70 px-1 py-px align-middle text-[10px] font-medium text-sem-fg-muted"
+            :title="$t('relay_chat.duplicate_count_title', { count: entry.msg.dup_count })"
+            data-testid="duplicate-count"
+            >{{ $t("relay_chat.duplicate_count", { count: entry.msg.dup_count }) }}</span
+        >
         * {{ page.displayName(entry.msg) }}
         <!-- eslint-disable vue/no-v-html -- sanitized via renderMessageHtml -->
         <span
@@ -101,6 +108,13 @@
         @contextmenu="page.openMessageContextMenu($event, entry.msg)"
     >
         <span class="mr-1.5 text-xs text-sem-fg-muted">{{ page.formatTime(entry.msg.ts) }}</span>
+        <span
+            v-if="page.showDupCount(entry.msg)"
+            class="mr-1.5 rounded bg-sem-surface/70 px-1 py-px align-middle text-[10px] font-medium text-sem-fg-muted"
+            :title="$t('relay_chat.duplicate_count_title', { count: entry.msg.dup_count })"
+            data-testid="duplicate-count"
+            >{{ $t("relay_chat.duplicate_count", { count: entry.msg.dup_count }) }}</span
+        >
         <span class="mr-1.5 font-semibold" :style="page.nameStyle(entry.msg)">{{ page.displayName(entry.msg) }}:</span>
         <!-- eslint-disable vue/no-v-html -- sanitized via renderMessageHtml -->
         <span
