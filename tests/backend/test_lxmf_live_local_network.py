@@ -426,6 +426,24 @@ _BOB_BROKEN_LOOKUPS_SCRIPT = _FIELD_CODEC + textwrap.dedent(
 )
 
 
+def _read_json_when_ready(path: Path, timeout: float = 10.0) -> dict:
+    """Read a JSON file, retrying while the writer is still flushing it.
+
+    The pair scripts write these files directly, so the file existing does
+    not guarantee parseable content yet. Reading on appearance alone raced
+    the writer and produced empty-body JSONDecodeErrors under CI load.
+    """
+    deadline = time.time() + timeout
+    last_error: Exception | None = None
+    while time.time() < deadline:
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            last_error = e
+            time.sleep(0.1)
+    raise AssertionError(f"could not read JSON from {path}: {last_error}")
+
+
 def _run_local_delivery(
     tmp_path: Path,
     payload: dict | None = None,
@@ -511,14 +529,14 @@ def _run_local_delivery(
         deadline = time.time() + 10
         while time.time() < deadline and not send_path.is_file():
             time.sleep(0.1)
-        inbox_data = json.loads(inbox.read_text(encoding="utf-8"))
+        inbox_data = _read_json_when_ready(inbox)
         send_data = {}
         if send_path.is_file():
-            send_data = json.loads(send_path.read_text(encoding="utf-8"))
+            send_data = _read_json_when_ready(send_path)
         return {
             "inbox": inbox_data,
             "send": send_data,
-            "ready": json.loads(ready.read_text(encoding="utf-8")),
+            "ready": _read_json_when_ready(ready),
         }
     finally:
         (share_dir / "stop").write_text("1", encoding="utf-8")
