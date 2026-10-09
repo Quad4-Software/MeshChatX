@@ -1027,6 +1027,7 @@ class RRCHub:
                         iter(self._pending_delivery.items())
                     )
                     stale_msg.delivery = "failed"
+                    stale_msg._auto_retryable = True
                     stale.append(stale_msg)
                     del self._pending_delivery[stale_mid]
             for stale_msg in stale:
@@ -1048,6 +1049,7 @@ class RRCHub:
             for mid, (msg, sent_at) in list(self._pending_delivery.items()):
                 if now - sent_at >= DELIVERY_TIMEOUT_S:
                     msg.delivery = "failed"
+                    msg._auto_retryable = True
                     expired.append(msg)
                     del self._pending_delivery[mid]
         for msg in expired:
@@ -1060,9 +1062,11 @@ class RRCHub:
         # Notifications fire outside the lock by the caller on a snapshot.
         for msg in failed:
             msg.delivery = "failed"
+            msg._auto_retryable = True
         return failed
 
     def _confirm_delivery(self, mid):
+        """Confirm a pending own-message echo. True when one was pending."""
         msg = None
         with self._lock:
             entry = self._pending_delivery.pop(mid, None)
@@ -1071,9 +1075,15 @@ class RRCHub:
                 msg.delivery = "sent"
         if msg is not None:
             self.manager._notify_messages(self, msg)
+        return msg is not None
 
     def retry_message(self, room, seq):
-        """Resend an own message that failed delivery. Returns the new mid."""
+        """Resend an own message that failed delivery. Returns the mid.
+
+        The original envelope id and timestamp are reused: a retry is the
+        same logical message, and a hub that relays it after the original
+        already landed lets dedup-aware receivers collapse the pair.
+        """
         room = proto.normalize_room(room)
         msg = None
         with self._lock:
@@ -1085,12 +1095,16 @@ class RRCHub:
             raise ValueError(f"no message with seq {seq}")
         if msg.delivery != "failed":
             raise ValueError("only failed messages can be retried")
+        resend_mid = msg.mid if isinstance(msg.mid, (bytes, bytearray)) else None
+        resend_ts = msg.ts if isinstance(msg.ts, int) and msg.ts > 0 else None
         if msg.kind == "action":
             env = proto.make_envelope(
                 proto.T_ACTION,
                 src=self.manager.identity.hash,
                 room=room,
                 body=msg.text,
+                mid=resend_mid,
+                ts=resend_ts,
             )
         else:
             env = proto.make_envelope(
@@ -1098,6 +1112,8 @@ class RRCHub:
                 src=self.manager.identity.hash,
                 room=room,
                 body=msg.text,
+                mid=resend_mid,
+                ts=resend_ts,
             )
         nick = msg.nick or self.get_effective_nick()
         if nick:
@@ -1121,6 +1137,7 @@ class RRCHub:
                 with self._lock:
                     self._pending_delivery.pop(mid_b, None)
             msg.delivery = "failed"
+            msg._auto_retryable = True
             raise
         self.manager._notify_messages(self, msg)
         return mid
@@ -1590,11 +1607,23 @@ class RRCHub:
                         self._silent_who_ts.pop(r, None)
             # Resend once messages that failed when the previous link dropped.
             # The JOINED confirm is in, so the retry lands in a real room.
+            # Only in-session failures qualify: history-loaded rows read as
+            # "failed" because they were persisted while still unconfirmed,
+            # and replaying them duplicates delivered messages on every
+            # restart. Command-shaped text is skipped as well: a resent
+            # "/..." body executes as a hub command, not a chat message.
             for m in list(self.messages.get(r, [])):
-                if m.delivery == "failed" and not getattr(m, "_auto_retried", False):
-                    m._auto_retried = True
-                    with contextlib.suppress(Exception):
-                        self.retry_message(r, m.seq)
+                if (
+                    m.delivery != "failed"
+                    or getattr(m, "_auto_retried", False)
+                    or not getattr(m, "_auto_retryable", False)
+                ):
+                    continue
+                if isinstance(m.text, str) and m.text.lstrip().startswith("/"):
+                    continue
+                m._auto_retried = True
+                with contextlib.suppress(Exception):
+                    self.retry_message(r, m.seq)
             self.manager.save()
         else:
             joiner = None
