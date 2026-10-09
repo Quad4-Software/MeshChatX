@@ -3067,9 +3067,7 @@ export default {
                     name: this.hostHubSettingsForm.name.trim() || undefined,
                     announce: this.hostHubSettingsForm.announce,
                     announce_interval_seconds: this.hostHubSettingsForm.announce_interval_seconds,
-                    rate_limit_msgs_per_minute: clampHostRateLimit(
-                        this.hostHubSettingsForm.rate_limit_msgs_per_minute
-                    ),
+                    rate_limit_msgs_per_minute: clampHostRateLimit(this.hostHubSettingsForm.rate_limit_msgs_per_minute),
                 });
                 this.showHostHubSettings = false;
                 ToastUtils.success(this.$t("relay_chat.settings_saved"));

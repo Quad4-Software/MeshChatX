@@ -106,11 +106,23 @@ def test_loopback_one_send_records_one_message(live_pair):
 
     hub.send_message("lobby", "dedupe me")
     assert _wait_for(
-        lambda: any(m.text == "dedupe me" and m.kind == "msg" for m in hub.get_messages("lobby"))
+        lambda: any(
+            m.text == "dedupe me" and m.kind == "msg" for m in hub.get_messages("lobby")
+        )
     )
     # Hub echo arrives async on the loopback link.
-    assert _wait_for(lambda: any(m.delivery == "sent" for m in hub.get_messages("lobby") if m.text == "dedupe me"))
-    matches = [m for m in hub.get_messages("lobby") if m.kind == "msg" and m.text == "dedupe me"]
+    assert _wait_for(
+        lambda: any(
+            m.delivery == "sent"
+            for m in hub.get_messages("lobby")
+            if m.text == "dedupe me"
+        )
+    )
+    matches = [
+        m
+        for m in hub.get_messages("lobby")
+        if m.kind == "msg" and m.text == "dedupe me"
+    ]
     assert len(matches) == 1
     assert _wait_for(lambda: server._stats["messages_relayed"] >= 1)
 
