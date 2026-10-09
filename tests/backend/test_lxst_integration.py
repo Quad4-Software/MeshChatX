@@ -186,3 +186,59 @@ def test_telephone_manager_init_uses_real_lxst_telephone(monkeypatch, tmp_path):
     assert tm.telephone.busy_tone_seconds == 0
 
     tm.teardown()
+
+
+def test_lxst_packetizer_drops_frames_on_inactive_link(monkeypatch):
+    """A dead call link must not keep putting audio frames on the wire.
+
+    MeshChatX relies on this LXST guard: when a call link drops mid
+    transmission, the frame sink must stop sending rather than queueing
+    audio into a dead link.
+    """
+    import RNS
+    from LXST.Codecs import Raw
+    from LXST.Network import Packetizer
+
+    link = RNS.Link.__new__(RNS.Link)
+    link.status = RNS.Link.CLOSED
+    packetizer = Packetizer(link)
+    packetizer.source = SimpleNamespace(codec=Raw())
+
+    created = []
+    monkeypatch.setattr(
+        RNS,
+        "Packet",
+        lambda *args, **kwargs: created.append(args) or MagicMock(),
+    )
+
+    packetizer.handle_frame(b"\x00" * 16)
+    assert created == []
+
+    link.status = RNS.Link.ACTIVE
+    packetizer.handle_frame(b"\x00" * 16)
+    assert len(created) == 1
+
+
+def test_lxst_packetizer_failure_flags_and_calls_back(monkeypatch):
+    """A send failure flags the transmit error and invokes the callback.
+
+    LXST wires this callback to hang the call up, so a stuck sender ends
+    the session instead of retrying frames forever.
+    """
+    import RNS
+    from LXST.Codecs import Raw
+    from LXST.Network import Packetizer
+
+    link = RNS.Link.__new__(RNS.Link)
+    link.status = RNS.Link.ACTIVE
+    failures = []
+    packetizer = Packetizer(link, failure_callback=lambda: failures.append(True))
+    packetizer.source = SimpleNamespace(codec=Raw())
+
+    failing_packet = MagicMock()
+    failing_packet.send.return_value = False
+    monkeypatch.setattr(RNS, "Packet", lambda *args, **kwargs: failing_packet)
+
+    packetizer.handle_frame(b"\x00" * 16)
+    assert packetizer.transmit_failure is True
+    assert failures == [True]
