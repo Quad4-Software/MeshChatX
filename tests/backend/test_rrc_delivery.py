@@ -325,6 +325,58 @@ def test_connect_auto_reconnect_no_reticulum_returns_fast(tmp_path, monkeypatch)
     assert started == [hub]
 
 
+def test_path_request_bucket_spends_burst_then_refills(tmp_path):
+    """Two requests go out, then the bucket holds until the refill window."""
+    from meshchatx.src.backend.rrc import manager as rrc_manager
+
+    hub = RRCHub(_Mgr(), b"\x55" * 16, name="dead hub")
+    assert hub._take_path_request_token() is True
+    assert hub._take_path_request_token() is True
+    assert hub._take_path_request_token() is False
+
+    hub._path_token_last -= rrc_manager.PATH_REQUEST_REFILL_S
+    assert hub._take_path_request_token() is True
+    assert hub._take_path_request_token() is False
+
+
+def test_connect_worker_path_requests_bounded_by_burst(tmp_path, monkeypatch):
+    """A dead hub gets the burst and no more inside the wait window.
+
+    Without the bucket this worker sends one request per retry cadence
+    for the whole window, which for a large configured hub set turns
+    into a sustained mesh wide path request spray.
+    """
+    from meshchatx.src.backend.rrc import manager as rrc_manager
+
+    _manager, hub = _manager_with_hub(tmp_path)
+    hub.auto_reconnect = False
+    requests = []
+
+    monkeypatch.setattr(rrc_manager, "slowest_online_bitrate", lambda *a, **k: None)
+    monkeypatch.setattr(rrc_manager, "path_response_window", lambda *a, **k: 1.0)
+    monkeypatch.setattr(rrc_manager, "CONNECT_PATH_RETRY_S", 0.1)
+    monkeypatch.setattr(
+        rrc_manager.RNS.Transport,
+        "has_path",
+        staticmethod(lambda h: False),
+    )
+    monkeypatch.setattr(
+        rrc_manager.RNS.Transport,
+        "request_path",
+        staticmethod(lambda h: requests.append(h)),
+    )
+    monkeypatch.setattr(
+        rrc_manager.RNS.Identity,
+        "recall",
+        staticmethod(lambda h: None),
+    )
+
+    hub._connect_worker()
+
+    assert hub.status == RRCHub.STATUS_FAILED
+    assert len(requests) == int(rrc_manager.PATH_REQUEST_BURST)
+
+
 def test_restart_does_not_replay_sent_history(tmp_path):
     """Full restart cycle: delivered history must not repost to the hub.
 

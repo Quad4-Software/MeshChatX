@@ -46,13 +46,18 @@ RECONNECT_BACKOFF_JITTER = 0.25
 # but unreachable hub cannot pin the reconnect loop at the fastest tier.
 ANNOUNCE_RESET_MIN_INTERVAL_S = 300.0
 
-# Minimum interval between path requests sent to the same hub during
-# connect attempts.
 # Minimum seconds between path requests emitted by connect workers. Doubles
-# as the cross-attempt dedup window and the in-window retry cadence: a single
-# request on cold air stalls a connect, while 60s was far too coarse for a
-# retry to matter inside one attempt window.
+# as the in-window retry cadence: a single request on cold air stalls a
+# connect, while 60s was far too coarse for a retry to matter inside one
+# attempt window.
 CONNECT_PATH_RETRY_S = 5.0
+# A path request is broadcast on every interface, so a hub that stays
+# unreachable gets a small burst (the initial request plus one in-window
+# retry) and then at most one request per refill window across attempts.
+# Without this floor, a large configured hub set with dead hubs sprays
+# path requests for as long as the backoff ladder takes to decay.
+PATH_REQUEST_BURST = 2.0
+PATH_REQUEST_REFILL_S = 60.0
 # Upper bound for a link stuck in PENDING during connect. RNS's own
 # establishment timeout can run several minutes on a dead path, which
 # leaves the hub parked in CONNECTING with no forward progress.
@@ -178,6 +183,8 @@ class RRCHub:
         self._reconnect_timer = None
         self._last_announce_reset = float("-inf")
         self._last_path_request = float("-inf")
+        self._path_request_tokens = PATH_REQUEST_BURST
+        self._path_token_last = time.monotonic()
         self._had_session = False
         # Envelope id -> (message, sent monotonic). Echo-confirmed, timed out,
         # or flushed failed on link loss.
@@ -469,14 +476,17 @@ class RRCHub:
                         break
                     hub_identity = None
                     now_m = time.monotonic()
-                    if not RNS.Transport.has_path(self.hub_hash) and (
-                        now_m - self._last_path_request >= CONNECT_PATH_RETRY_S
+                    if (
+                        not RNS.Transport.has_path(self.hub_hash)
+                        and now_m - self._last_path_request >= CONNECT_PATH_RETRY_S
+                        and self._take_path_request_token()
                     ):
                         # Retry the request inside the connect window: the
                         # first packet can go out before an interface is
                         # fully online, and a single dropped request would
-                        # otherwise stall the whole window. The cadence cap
-                        # doubles as the dedup for back-to-back attempts.
+                        # otherwise stall the whole window. The token bucket
+                        # bounds the sustained rate across attempts so dead
+                        # hubs cannot spray mesh wide requests.
                         self._last_path_request = now_m
                         RNS.Transport.request_path(self.hub_hash)
                     time.sleep(0.2)
@@ -579,6 +589,27 @@ class RRCHub:
             if self.link is not None:
                 return
         self._schedule_reconnect()
+
+    def _take_path_request_token(self):
+        """Spend one path request token, or False when the burst is spent.
+
+        Path requests are flooded on every interface, so retries are token
+        bucketed per hub: the burst covers the initial request and one
+        in-window retry, and the refill bounds what a permanently
+        unreachable hub can send across connect attempts.
+        """
+        with self._lock:
+            now = time.monotonic()
+            elapsed = max(0.0, now - self._path_token_last)
+            self._path_token_last = now
+            self._path_request_tokens = min(
+                PATH_REQUEST_BURST,
+                self._path_request_tokens + elapsed / PATH_REQUEST_REFILL_S,
+            )
+            if self._path_request_tokens < 1.0:
+                return False
+            self._path_request_tokens -= 1.0
+            return True
 
     def _on_established(self, link):
         with contextlib.suppress(Exception):

@@ -1,5 +1,9 @@
 ## [4.10.7] - TBD [unreleased]
 
+### Fixed
+
+- Relay chat: unreachable hubs no longer spray mesh wide path requests while the reconnect backoff grows. Each hub gets a small burst for the first attempt, then at most one request per minute.
+
 ## [4.10.6] - 2026-10-09 [released]
 
 ### Fixed
