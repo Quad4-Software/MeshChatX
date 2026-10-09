@@ -12,6 +12,7 @@ from meshchatx.src.backend.http.errors import (
     http_bad_request,
     http_not_found,
     http_payload_too_large,
+    http_rate_limited,
     http_unavailable,
 )
 from meshchatx.src.backend.http.uploads import (
@@ -408,13 +409,11 @@ def register_rrc_routes(routes, app):
             else:
                 hub.send_message(room, text)
         except RateLimitedError as e:
-            return web.json_response(
-                {
-                    "message": "Hub rate limit reached. Retry in "
-                    + str(max(1, round(e.retry_after)))
-                    + "s.",
-                },
-                status=429,
+            return http_rate_limited(
+                "Hub rate limit reached. Retry in "
+                + str(max(1, round(e.retry_after)))
+                + "s.",
+                retry_after=e.retry_after,
             )
         except (ValueError, RuntimeError) as e:
             return http_bad_request(str(e))
@@ -435,13 +434,11 @@ def register_rrc_routes(routes, app):
         try:
             mid = hub.retry_message(room, seq)
         except RateLimitedError as e:
-            return web.json_response(
-                {
-                    "message": "Hub rate limit reached. Retry in "
-                    + str(max(1, round(e.retry_after)))
-                    + "s.",
-                },
-                status=429,
+            return http_rate_limited(
+                "Hub rate limit reached. Retry in "
+                + str(max(1, round(e.retry_after)))
+                + "s.",
+                retry_after=e.retry_after,
             )
         except (ValueError, RuntimeError) as e:
             return http_bad_request(str(e))

@@ -120,6 +120,19 @@ def http_payload_too_large(
     return web.json_response(_error_payload(message, code, extra), status=413)
 
 
+def http_rate_limited(
+    message: str,
+    *,
+    code: str = "rate_limited",
+    retry_after: float | None = None,
+    **extra: Any,
+) -> web.Response:
+    """429 with the canonical shape and an optional retry hint in seconds."""
+    if retry_after is not None:
+        extra.setdefault("retry_after", max(1, round(retry_after)))
+    return web.json_response(_error_payload(message, code, extra), status=429)
+
+
 def http_unavailable(
     message: str, *, code: str = "unavailable", **extra: Any
 ) -> web.Response:

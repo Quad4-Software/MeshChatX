@@ -212,7 +212,11 @@ async def test_rrc_send_message_rate_limited_returns_429(mock_app):
         ),
     )
     assert response.status == 429
-    assert "rate limit" in json.loads(response.body)["message"].lower()
+    body = json.loads(response.body)
+    assert body["code"] == "rate_limited"
+    assert "rate limit" in body["message"].lower()
+    assert body["error"] == body["message"]
+    assert body["retry_after"] >= 1
 
 
 @pytest.mark.asyncio
@@ -243,6 +247,7 @@ async def test_rrc_retry_message_rate_limited_returns_429(mock_app):
         ),
     )
     assert response.status == 429
+    assert json.loads(response.body)["code"] == "rate_limited"
     # The row was not flipped to sending by the rejected retry.
     assert msg.delivery == "failed"
 
