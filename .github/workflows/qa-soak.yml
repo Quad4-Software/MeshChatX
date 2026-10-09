@@ -162,6 +162,7 @@ jobs:
                   uv run pytest \
                       tests/backend/test_lxmf_live_local_network.py \
                       tests/backend/test_lxmf_live_rejection.py \
+                      tests/backend/test_rrc_live_rrcd.py \
                       tests/backend/test_long_running_stress.py \
                       -v --timeout=600
 
