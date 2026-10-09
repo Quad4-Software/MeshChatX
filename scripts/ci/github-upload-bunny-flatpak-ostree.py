@@ -320,6 +320,16 @@ def purge_pullzone_urls(urls: list[str]) -> None:
         except urllib.error.HTTPError as e:
             print(f"bunny purge HTTP {e.code} for {url}", file=sys.stderr, flush=True)
             continue
+        except urllib.error.URLError as e:
+            # A blocked or unreachable purge endpoint must not fail the
+            # release: the upload already completed and the purge is
+            # best effort.
+            print(
+                f"bunny purge unreachable for {url}: {e}",
+                file=sys.stderr,
+                flush=True,
+            )
+            continue
         print(f"bunny purge {code} {url}", flush=True)
 
 

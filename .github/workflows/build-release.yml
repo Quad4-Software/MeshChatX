@@ -95,6 +95,7 @@ env:
         *.alpinelinux.org:443
         *.r2.cloudflarestorage.com:443
         *.storage.bunnycdn.com:443
+        api.bunny.net:443
         cdn.quad4.io:443
         dl.flathub.org:443
         flathub.org:443
