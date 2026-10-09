@@ -41,15 +41,14 @@ def test_clean_tree_ok(chk, tmp_path: Path):
     assert chk.check_tree(public) == []
 
 
-def test_leftover_nerd_font_fails(chk, tmp_path: Path):
+def test_bundled_nerd_font_is_allowed(chk, tmp_path: Path):
+    """The bundled Nerd Font ships again, so it is not a leftover."""
     public = tmp_path / "public"
     assets = public / "assets"
     assets.mkdir(parents=True)
     (public / "index.html").write_text("<html></html>\n", encoding="utf-8")
     (assets / "RobotoMonoNerdFont-Regular-DyU2aSNn.ttf").write_bytes(b"font")
-    errors = chk.check_tree(public)
-    assert errors
-    assert any("NerdFont" in e or "leftover" in e for e in errors)
+    assert chk.check_tree(public) == []
 
 
 def test_leftover_tailwind_fails(chk, tmp_path: Path):
@@ -75,7 +74,7 @@ def test_hash_pileup_fails(chk, tmp_path: Path):
     assert any("MessagesPage" in e for e in errors)
 
 
-def test_wheel_leftover_fails(chk, tmp_path: Path):
+def test_wheel_tailwind_leftover_fails(chk, tmp_path: Path):
     whl = tmp_path / "demo-0-py3-none-any.whl"
     with zipfile.ZipFile(whl, "w") as zf:
         zf.writestr("demo/public/index.html", "<html></html>\n")
@@ -90,6 +89,7 @@ def test_wheel_leftover_fails(chk, tmp_path: Path):
     errors = chk.check_wheel(whl)
     assert errors
     assert any("leftover" in e for e in errors)
+    assert all("NerdFont" not in e for e in errors)
 
 
 def test_main_exit_codes(chk, tmp_path: Path, capsys):
@@ -98,7 +98,7 @@ def test_main_exit_codes(chk, tmp_path: Path, capsys):
     (public / "index.html").write_text("<html></html>\n", encoding="utf-8")
     (public / "assets").mkdir()
     assert chk.main(["--public", str(public)]) == 0
-    bad = public / "assets" / "RobotoMonoNerdFont-x.ttf"
+    bad = public / "assets" / "tailwind-v3.4.3-forms-v0.5.7.js"
     bad.write_bytes(b"x")
     assert chk.main(["--public", str(public)]) == 1
     err = capsys.readouterr().err

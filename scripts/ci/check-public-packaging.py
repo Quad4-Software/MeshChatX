@@ -5,8 +5,11 @@
 Production Vite builds wipe assets/ and scrub known leftovers. This check
 catches a dirty tree before uv build / electron packaging:
 
-  - leftover Nerd Font or browser-Tailwind runtime files
+  - leftover browser-Tailwind runtime files
   - hashed Vite chunks piled up across builds (3+ hashes for one stem)
+
+The bundled Roboto Mono Nerd Font is a shipped asset again, so Nerd Font
+paths under public/ are expected and not treated as leftovers.
 """
 
 from __future__ import annotations
@@ -23,11 +26,7 @@ PUBLIC = ROOT / "meshchatx" / "public"
 ASSETS = PUBLIC / "assets"
 
 # Paths (any depth under public) that must never ship.
-LEFTOVER_RES = (
-    re.compile(r"RobotoMonoNerdFont", re.I),
-    re.compile(r"NerdFont", re.I),
-    re.compile(r"tailwind-v3\.4\.3-forms-v0\.5\.7\.js$", re.I),
-)
+LEFTOVER_RES = (re.compile(r"tailwind-v3\.4\.3-forms-v0\.5\.7\.js$", re.I),)
 
 # Vite emits Name-<hash>.ext; group by (Name, ext).
 HASHED_ASSET = re.compile(r"^(.+)-[A-Za-z0-9_-]{6,}\.([A-Za-z0-9]+)$")
