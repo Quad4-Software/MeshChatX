@@ -72,7 +72,7 @@ class RNCPHandler:
         self.reticulum = reticulum_instance
         self.identity = identity
         self.storage_dir = storage_dir
-        self.active_transfers = {}
+        self.active_transfers: dict[str, dict] = {}
         self.receive_destination = None
         self.fetch_jail = None
         self.fetch_auto_compress = True
@@ -600,7 +600,7 @@ class RNCPHandler:
         auto_compress = not no_compress
         metadata = {"name": os.path.basename(file_path).encode("utf-8")}
 
-        transfer_ref = {"id": None}
+        transfer_ref: dict[str, str | None] = {"id": None}
         send_label = os.path.basename(file_path)
 
         def progress_callback(resource):

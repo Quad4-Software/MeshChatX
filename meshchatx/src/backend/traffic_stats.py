@@ -308,23 +308,24 @@ class TrafficStats:
     def _active_transfers_locked(self) -> list[dict]:
         """Caller holds _lock. snapshot() also builds payloads under it."""
         self._prune_transfers_locked(time.monotonic())
-        entries = [
-            {
-                "id": entry.get("id"),
-                "kind": entry.get("kind"),
-                "label": entry.get("label")
-                or _COMPONENT_LABELS.get(entry.get("kind"), entry.get("kind")),
-                "direction": entry.get("direction"),
-                "peer": entry.get("peer"),
-                "done": int(entry.get("done") or 0),
-                "total": entry.get("total"),
-                "progress": round(float(entry.get("progress") or 0.0), 3),
-                "started_at": entry.get("started_at"),
-            }
-            for entry in self._transfers.values()
-        ]
+        entries = [self._transfer_row(entry) for entry in self._transfers.values()]
         entries.sort(key=lambda e: e.get("started_at") or 0.0, reverse=True)
         return entries
+
+    @staticmethod
+    def _transfer_row(entry: dict) -> dict:
+        kind = str(entry.get("kind") or "")
+        return {
+            "id": entry.get("id"),
+            "kind": kind,
+            "label": entry.get("label") or _COMPONENT_LABELS.get(kind, kind),
+            "direction": entry.get("direction"),
+            "peer": entry.get("peer"),
+            "done": int(entry.get("done") or 0),
+            "total": entry.get("total"),
+            "progress": round(float(entry.get("progress") or 0.0), 3),
+            "started_at": entry.get("started_at"),
+        }
 
     def _prune_transfers_locked(self, now_monotonic: float) -> None:
         """Caller holds _lock. Drop stale entries, then cap the registry."""
