@@ -98,6 +98,7 @@ def _insert_row(
 def _bind_resend_app(db):
     app = MagicMock()
     app._auto_resend_coordinator = guard.AutoResendCoordinator()
+    app._auto_resend_warned_at = {}
     app.websocket_broadcast = AsyncMock()
     app.send_message = AsyncMock()
     app.resend_failed_messages_for_destination = types.MethodType(

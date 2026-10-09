@@ -362,11 +362,13 @@ def test_flood_guard_payload_and_hint():
 
 
 def test_flood_guard_thread_starts_once():
+    before = sum(1 for t in threading.enumerate() if t.name == "mcx-traffic-guard")
     meter = TrafficStats()
     meter.start_flood_guard()
     meter.start_flood_guard()
-    names = [t.name for t in threading.enumerate()]
-    assert names.count("mcx-traffic-guard") == 1
+    after = sum(1 for t in threading.enumerate() if t.name == "mcx-traffic-guard")
+    # Other meters in the same process may already own a guard thread.
+    assert after - before == 1
     assert meter._flood_started is True
 
 
