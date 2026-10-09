@@ -6,9 +6,13 @@
 - Standalone docs pages use a small static stylesheet instead of the old browser Tailwind file.
 - Nomad and Micron monospace UI uses JetBrains Mono / system fonts. An existing Roboto Mono Nerd Font setting switches over automatically.
 - Map and network visualiser WASM builds require TinyGo.
+- Relay chat: redelivered copies now show as an x2, x3 badge on the original message instead of folding in silently. Counts survive restarts and hub reconnects, and a relay preference turns the badge off.
 
 ### Fixed
 
+- Relay chat: restarting the app no longer reposts your recent messages to every configured hub and room. Rows saved while a send was still unconfirmed loaded back as failed and were retried on rejoin, so delivered messages arrived again at staggered times. Only sends that fail in the current session auto-retry now, and replayed text that looks like a hub command is skipped.
+- Relay chat: retried messages reuse the original envelope id and timestamp instead of minting new ones, so receivers that dedupe by id collapse a retry with the original copy.
+- Messages: resending a failed message now keeps its original title and timestamp, so a resend that rebuilds the same payload carries the same message hash and dedupes at receivers and propagation nodes instead of arriving as a copy stamped at retry time.
 - Relay chat: the compose box floats over the room history with a light frosted look, same idea as the conversation composer. The scroll-to-bottom control sits above it.
 - Relay chat: Enter or Send while a message is already going out is ignored, so one press cannot post the same line twice.
 - Flatpak install from the MeshChatX remote failed after the last release. The CDN index is kept in sync with the package files again so `flatpak install` can pull the app.
