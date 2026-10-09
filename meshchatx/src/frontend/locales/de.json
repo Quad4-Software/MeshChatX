@@ -4180,6 +4180,8 @@
         "host_users": "Benutzer",
         "host_announce_interval": "Announce-Intervall",
         "host_announce_interval_hint": "Alle {interval}",
+        "host_rate_limit": "Nachrichtenratenlimit",
+        "host_rate_limit_hint": "Nachrichten pro Minute, die ein Client senden darf. Wird im WELCOME beworben und von diesem Hub durchgesetzt.",
         "host_hub_settings": "Hub-Einstellungen",
         "presence_joined": "{count} beigetreten",
         "presence_left": "{count} verlassen",

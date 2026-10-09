@@ -1318,6 +1318,22 @@
                                 }}
                             </p>
                         </div>
+                        <div class="space-y-1.5">
+                            <label class="block text-sm font-semibold text-sem-fg-secondary">{{
+                                $t("relay_chat.host_rate_limit")
+                            }}</label>
+                            <input
+                                id="rrc-host-rate-limit"
+                                v-model.number="hostHubSettingsForm.rate_limit_msgs_per_minute"
+                                type="number"
+                                min="1"
+                                max="10000"
+                                step="1"
+                                class="input-field w-32 tabular-nums"
+                                :aria-label="$t('relay_chat.host_rate_limit')"
+                            />
+                            <p class="text-xs text-sem-fg-muted">{{ $t("relay_chat.host_rate_limit_hint") }}</p>
+                        </div>
                         <div class="flex justify-end gap-2 pt-1">
                             <button type="button" :class="btnSecondary" @click="showHostHubSettings = false">
                                 {{ $t("common.cancel") }}
@@ -1872,6 +1888,18 @@ function secondsToAnnounceMinutes(seconds) {
         return Math.round(DEFAULT_ANNOUNCE_INTERVAL_SECONDS / 60);
     }
     return clampAnnounceIntervalMinutes(Math.round(s / 60));
+}
+
+const HOST_RATE_LIMIT_MIN = 1;
+const HOST_RATE_LIMIT_MAX = 10000;
+const HOST_RATE_LIMIT_DEFAULT = 240;
+
+function clampHostRateLimit(value) {
+    const n = Number.parseInt(String(value ?? ""), 10);
+    if (!Number.isFinite(n)) {
+        return HOST_RATE_LIMIT_DEFAULT;
+    }
+    return Math.max(HOST_RATE_LIMIT_MIN, Math.min(HOST_RATE_LIMIT_MAX, n));
 }
 
 export default {
@@ -3025,6 +3053,7 @@ export default {
                 name: hub.name || "",
                 announce: hub.announce !== false,
                 announce_interval_seconds: resolveAnnounceIntervalSeconds(hub.announce_interval_seconds),
+                rate_limit_msgs_per_minute: clampHostRateLimit(hub.rate_limit_msgs_per_minute),
             };
             this.hostAnnounceIntervalDraft = null;
             this.showHostHubSettings = true;
@@ -3038,6 +3067,9 @@ export default {
                     name: this.hostHubSettingsForm.name.trim() || undefined,
                     announce: this.hostHubSettingsForm.announce,
                     announce_interval_seconds: this.hostHubSettingsForm.announce_interval_seconds,
+                    rate_limit_msgs_per_minute: clampHostRateLimit(
+                        this.hostHubSettingsForm.rate_limit_msgs_per_minute
+                    ),
                 });
                 this.showHostHubSettings = false;
                 ToastUtils.success(this.$t("relay_chat.settings_saved"));

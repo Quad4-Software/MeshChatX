@@ -4180,6 +4180,8 @@
         "host_users": "usuarios",
         "host_announce_interval": "Intervalo de anuncio",
         "host_announce_interval_hint": "Cada {interval}",
+        "host_rate_limit": "Límite de mensajes",
+        "host_rate_limit_hint": "Mensajes por minuto que un cliente puede enviar. Se anuncia en WELCOME y este hub lo aplica.",
         "host_hub_settings": "Ajustes del hub",
         "presence_joined": "{count} se unieron",
         "presence_left": "{count} salieron",

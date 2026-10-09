@@ -1150,7 +1150,59 @@ describe("RelayChatPage.vue", () => {
             name: "Renamed",
             announce: false,
             announce_interval_seconds: 900,
+            rate_limit_msgs_per_minute: 240,
         });
+    });
+
+    it("opens hosted hub settings with the stored rate limit and saves it", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({
+                    data: { hubs: [makeHostedHub({ rate_limit_msgs_per_minute: 30 })] },
+                });
+            }
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({ data: { hubs: [] } });
+            }
+            if (url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.serverHubs.length).toBe(1));
+
+        wrapper.vm.openHostHubSettings(wrapper.vm.serverHubs[0]);
+        expect(wrapper.vm.hostHubSettingsForm.rate_limit_msgs_per_minute).toBe(30);
+        await wrapper.vm.saveHostHubSettings();
+
+        expect(axiosMock.patch).toHaveBeenCalledWith(`/api/v1/rrc/servers/${HOSTED_HUB_ID}`, {
+            name: "My Hub",
+            announce: true,
+            announce_interval_seconds: 900,
+            rate_limit_msgs_per_minute: 30,
+        });
+    });
+
+    it("clamps an out-of-range rate limit on save", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.serverHubs.length).toBe(1));
+
+        wrapper.vm.openHostHubSettings(wrapper.vm.serverHubs[0]);
+        wrapper.vm.hostHubSettingsForm.rate_limit_msgs_per_minute = 999999;
+        await wrapper.vm.saveHostHubSettings();
+        expect(axiosMock.patch).toHaveBeenCalledWith(
+            `/api/v1/rrc/servers/${HOSTED_HUB_ID}`,
+            expect.objectContaining({ rate_limit_msgs_per_minute: 10000 })
+        );
+
+        axiosMock.patch.mockClear();
+        wrapper.vm.hostHubSettingsForm.rate_limit_msgs_per_minute = 0;
+        await wrapper.vm.saveHostHubSettings();
+        expect(axiosMock.patch).toHaveBeenCalledWith(
+            `/api/v1/rrc/servers/${HOSTED_HUB_ID}`,
+            expect.objectContaining({ rate_limit_msgs_per_minute: 1 })
+        );
     });
 
     it("preserves a zero announce interval when opening hosted hub settings", async () => {
@@ -1193,6 +1245,7 @@ describe("RelayChatPage.vue", () => {
             name: "My Hub",
             announce: true,
             announce_interval_seconds: 0,
+            rate_limit_msgs_per_minute: 240,
         });
     });
 

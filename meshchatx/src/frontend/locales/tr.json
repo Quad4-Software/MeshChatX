@@ -4180,6 +4180,8 @@
         "host_users": "kullanıcı",
         "host_announce_interval": "Duyuru aralığı",
         "host_announce_interval_hint": "Her {interval}",
+        "host_rate_limit": "Mesaj hız sınırı",
+        "host_rate_limit_hint": "Bir istemcinin dakikada gönderebileceği mesaj sayısı. WELCOME'da duyurulur ve bu hub tarafından uygulanır.",
         "host_hub_settings": "Merkez ayarları",
         "presence_joined": "{count} katıldı",
         "presence_left": "{count} ayrıldı",
