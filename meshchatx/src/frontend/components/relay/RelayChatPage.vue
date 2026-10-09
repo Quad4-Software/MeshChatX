@@ -2289,6 +2289,12 @@ export default {
             nextTick(() => this.adjustComposerHeight());
         },
     },
+    created() {
+        // Holds layout writes until restoreRelayLayout has read the saved
+        // layout. Without this, mount time auto-selection persists an empty
+        // layout over the saved one before the restore reads it.
+        this._suppressRelayLayoutPersist = true;
+    },
     mounted() {
         onWsEvent(WS_EVENTS.RRC_CHANGE, this.onRrcChange);
         onWsEvent(WS_EVENTS.RRC_MESSAGE, this.onRrcMessage);
@@ -2315,7 +2321,11 @@ export default {
             this.bindComposerOverlayObserver();
         }
         this.fetchHubs().then(() => {
-            this.restoreRelayLayout();
+            try {
+                this.restoreRelayLayout();
+            } finally {
+                this._suppressRelayLayoutPersist = false;
+            }
             this.applyPopoutRoute();
             this.applyRouteQuery();
         });
@@ -2723,10 +2733,13 @@ export default {
             // persist is scoped per identity now. Suppress it until the
             // teardown watchers have flushed.
             this._suppressRelayLayoutPersist = true;
-            nextTick(() => {
-                this._suppressRelayLayoutPersist = false;
+            this.fetchHubs().then(() => {
+                try {
+                    this.restoreRelayLayout();
+                } finally {
+                    this._suppressRelayLayoutPersist = false;
+                }
             });
-            this.fetchHubs().then(() => this.restoreRelayLayout());
             this.fetchServers();
             if (!this.isPopoutMode) {
                 this.fetchDiscovered();
@@ -2837,6 +2850,7 @@ export default {
             }
             const saved = loadRelayLayout(this._scopedIdentityKey());
             if (!saved) {
+                this.selectDefaultRoom();
                 return;
             }
             if (["chat", "discovery", "host", "bots", "search"].includes(saved.view)) {
@@ -2867,7 +2881,28 @@ export default {
                 } else if (rooms.length > 0) {
                     this.selectRoom(saved.selectedHubHash, rooms[0]);
                 }
+            } else {
+                this.selectDefaultRoom();
             }
+        },
+        selectDefaultRoom() {
+            // Land on the first room of the selected hub so a fresh layout
+            // (or one whose hub is gone) opens a usable view instead of an
+            // empty pane.
+            if (this.selectedRoom) {
+                return;
+            }
+            const hub = this.hubs.find((h) => h.hub_hash === this.selectedHubHash) || this.hubs[0];
+            if (!hub) {
+                return;
+            }
+            const rooms = this.orderedRoomsFor(hub);
+            if (rooms.length === 0) {
+                return;
+            }
+            this._setSelectedHub(hub.hub_hash);
+            this.expandedHubs[hub.hub_hash] = true;
+            this.selectRoom(hub.hub_hash, rooms[0]);
         },
         orderedRoomsFor(hub) {
             if (!hub || !Array.isArray(hub.known_rooms)) {

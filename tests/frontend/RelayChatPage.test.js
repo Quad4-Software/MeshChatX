@@ -72,6 +72,10 @@ describe("RelayChatPage.vue", () => {
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
         window.api = axiosMock;
+        // Each test starts from a clean saved layout. Layout persistence is
+        // exercised within tests, and leaking a previous test's view or
+        // selection into the next mount hides real regressions.
+        window.localStorage.removeItem("meshchatx.relay.layout");
 
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/rrc/hubs") {
@@ -1270,6 +1274,37 @@ describe("RelayChatPage.vue", () => {
         wrapper.vm.toggleAvailableRooms(HUB_HASH);
         expect(wrapper.vm.isAvailableRoomsExpanded(HUB_HASH)).toBe(false);
         expect(wrapper.vm.availableRoomsExpanded[HUB_HASH]).toBe(false);
+    });
+
+    it("remembers available rooms collapse across navigation", async () => {
+        window.localStorage.removeItem("meshchatx.relay.layout");
+        let wrapper;
+        let wrapper2;
+        try {
+            wrapper = mountPage();
+            await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+            expect(wrapper.vm.isAvailableRoomsExpanded(HUB_HASH)).toBe(true);
+
+            wrapper.vm.toggleAvailableRooms(HUB_HASH);
+            expect(wrapper.vm.isAvailableRoomsExpanded(HUB_HASH)).toBe(false);
+
+            // Leaving the page persists the layout; returning must restore
+            // it. Mount time auto-selection must not clobber the saved
+            // layout before restoreRelayLayout reads it.
+            wrapper.unmount();
+            wrapper = null;
+            wrapper2 = mountPage();
+            await vi.waitFor(() => expect(wrapper2.vm.hubs.length).toBe(1));
+            expect(wrapper2.vm.isAvailableRoomsExpanded(HUB_HASH)).toBe(false);
+        } finally {
+            if (wrapper) {
+                wrapper.unmount();
+            }
+            if (wrapper2) {
+                wrapper2.unmount();
+            }
+            window.localStorage.removeItem("meshchatx.relay.layout");
+        }
     });
 
     it("creates a room on a hosted hub via the API", async () => {
