@@ -715,7 +715,7 @@ jobs:
                   key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
 
             - name: Run Playwright smoke E2E
-              run: bash scripts/ci/github-e2e.sh tests/e2e/smoke.spec.js tests/e2e/live-mesh.spec.js
+              run: bash scripts/ci/github-e2e.sh tests/e2e/smoke.spec.js tests/e2e/live-mesh.spec.js tests/e2e/nomad-favourites-menu.spec.js
 
             - name: Upload Playwright junit results
               if: always()

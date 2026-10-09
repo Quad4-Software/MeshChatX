@@ -395,6 +395,7 @@
                                 if (!favouriteContextMenu.justOpened) closeContextMenus();
                             },
                             capture: true,
+                            isActive: favouriteContextMenu.show,
                         }"
                         :show="favouriteContextMenu.show"
                         :x="favouriteContextMenu.x"
@@ -451,7 +452,11 @@
                 <!-- Section Context Menu (Teleport to body) -->
                 <Teleport to="body">
                     <ContextMenuPanel
-                        v-click-outside="{ handler: closeContextMenus, capture: true }"
+                        v-click-outside="{
+                            handler: closeContextMenus,
+                            capture: true,
+                            isActive: sectionContextMenu.show,
+                        }"
                         :show="sectionContextMenu.show"
                         :x="sectionContextMenu.x"
                         :y="sectionContextMenu.y"
@@ -791,6 +796,7 @@
                                 if (!announceContextMenu.justOpened) closeContextMenus();
                             },
                             capture: true,
+                            isActive: announceContextMenu.show,
                         }"
                         :show="announceContextMenu.show"
                         :x="announceContextMenu.x"
