@@ -14,6 +14,9 @@ auto-resend a new hash when a peer announces or a path/ping succeeds.
 from __future__ import annotations
 
 import asyncio
+import subprocess
+import sys
+import textwrap
 import time
 import types
 from types import SimpleNamespace
@@ -420,35 +423,60 @@ async def test_auto_resend_passes_title_and_timestamp(db):
     assert kwargs["timestamp"] == old_ts
 
 
-def test_lxmf_pack_preserves_pinned_timestamp_hash(tmp_path):
-    """Contract the resend relies on: pinned timestamp means identical hash."""
-    import RNS
+def test_lxmf_pack_preserves_pinned_timestamp_hash():
+    """Contract the resend relies on: pinned timestamp means identical hash.
 
-    try:
-        instance = RNS.Reticulum.get_instance()
-    except Exception:
-        instance = None
-    if instance is None:
-        RNS.Reticulum(configdir=str(tmp_path / "rns"), loglevel=RNS.LOG_NONE)
+    Runs in a subprocess: a live Reticulum instance fills the process-wide
+    Transport tables and would break every later RNS test in the same worker.
+    """
+    script = textwrap.dedent(
+        """
+        import os, tempfile
+        import RNS, LXMF
 
-    identity = RNS.Identity()
-    dest = RNS.Destination(
-        identity, RNS.Destination.OUT, RNS.Destination.SINGLE, "lxmf", "delivery"
+        tmpdir = tempfile.mkdtemp(prefix="meshchat_pack_test_")
+        with open(os.path.join(tmpdir, "config"), "w") as f:
+            f.write(
+                "[reticulum]\\n"
+                "  enable_transport = No\\n"
+                "  share_instance = No\\n"
+                "  panic_on_interface_error = No\\n"
+                "\\n"
+                "[interfaces]\\n"
+            )
+        RNS.Reticulum(configdir=tmpdir, loglevel=RNS.LOG_NONE)
+        identity = RNS.Identity()
+        dest = RNS.Destination(
+            identity, RNS.Destination.OUT, RNS.Destination.SINGLE, "lxmf", "delivery"
+        )
+        source = RNS.Destination(
+            identity, RNS.Destination.IN, RNS.Destination.SINGLE, "lxmf", "delivery"
+        )
+        ts = 1700000000.5
+        first = LXMF.LXMessage(dest, source, "body", title="t")
+        first.timestamp = ts
+        first.pack()
+        second = LXMF.LXMessage(dest, source, "body", title="t")
+        second.timestamp = ts
+        second.pack()
+        fresh = LXMF.LXMessage(dest, source, "body", title="t")
+        fresh.pack()
+        assert first.hash == second.hash, "pinned timestamp must keep the hash"
+        assert fresh.hash != first.hash, "fresh timestamp must change the hash"
+        print("PACK_HASH_OK")
+        """
     )
-    source = RNS.Destination(
-        identity, RNS.Destination.IN, RNS.Destination.SINGLE, "lxmf", "delivery"
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
     )
-    ts = 1_700_000_000.5
-    first = LXMF.LXMessage(dest, source, "body", title="t")
-    first.timestamp = ts
-    first.pack()
-    second = LXMF.LXMessage(dest, source, "body", title="t")
-    second.timestamp = ts
-    second.pack()
-    assert first.hash == second.hash
-    fresh = LXMF.LXMessage(dest, source, "body", title="t")
-    fresh.pack()
-    assert fresh.hash != first.hash
+    assert result.returncode == 0, (
+        f"pack hash check failed:\n{result.stderr}\n{result.stdout}"
+    )
+    assert "PACK_HASH_OK" in result.stdout
 
 
 @pytest.mark.asyncio
