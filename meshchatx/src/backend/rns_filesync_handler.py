@@ -14,7 +14,7 @@ from typing import Any
 from rns_filesync.permissions import PermissionStore
 from rns_filesync.service import FileSyncService
 
-from meshchatx.src.backend import constants
+from meshchatx.src.backend import constants, traffic_stats
 from meshchatx.src.backend.results import err_result, err_result_from, ok_result
 from meshchatx.src.json_store import load_json, save_json
 from meshchatx.src.path_utils import (
@@ -866,10 +866,7 @@ class RnsFilesyncHandler:
             "filesync.peer.disconnected",
             payload if isinstance(payload, dict) else {"peer": payload},
         )
-        service.on_sync_progress = lambda payload: self._emit(
-            "filesync.sync.progress",
-            payload if isinstance(payload, dict) else {"progress": payload},
-        )
+        service.on_sync_progress = self._on_sync_progress
         service.on_file_updated = lambda payload: self._emit(
             "filesync.file.updated",
             payload if isinstance(payload, dict) else {"path": payload},
@@ -882,6 +879,79 @@ class RnsFilesyncHandler:
             "filesync.error",
             payload if isinstance(payload, dict) else {"error": str(payload)},
         )
+
+    def _on_sync_progress(self, payload) -> None:
+        """Emit sync progress and feed the traffic meter.
+
+        Sends know the local file size, so their byte progress is metered
+        as it happens. Receives only carry a fraction; their bytes are
+        metered from the landed file when the transfer completes.
+        """
+        data = payload if isinstance(payload, dict) else {"progress": payload}
+        self._emit("filesync.sync.progress", data)
+
+        path = data.get("path")
+        direction = str(data.get("direction") or "").lower()
+        receive = direction.startswith("rec")
+        peer = data.get("peer_id")
+        try:
+            progress = min(1.0, max(0.0, float(data.get("progress") or 0.0)))
+        except (TypeError, ValueError):
+            return
+        transfer_id = "filesync:" + str(peer or "") + ":" + str(path or "sync")
+        meter = traffic_stats.get_meter()
+
+        total = None
+        done = None
+        if path:
+            abspath = self._sync_abs_path(path)
+            if abspath and not receive:
+                with contextlib.suppress(OSError):
+                    total = os.path.getsize(abspath)
+        if total:
+            done = int(progress * total)
+
+        meter.transfer_progress(
+            transfer_id,
+            kind=traffic_stats.COMPONENT_FILESYNC,
+            direction="rx" if receive else "tx",
+            peer=str(peer) if peer else None,
+            done=done,
+            total=total,
+            progress=progress,
+            label=str(path) if path else None,
+        )
+
+        if progress >= 1.0:
+            if receive and path:
+                # The landed file is the only byte count a receive can
+                # report. Meter what is on disk now.
+                abspath = self._sync_abs_path(path)
+                size = None
+                if abspath:
+                    with contextlib.suppress(OSError):
+                        size = os.path.getsize(abspath)
+                if size:
+                    meter.transfer_progress(
+                        transfer_id,
+                        kind=traffic_stats.COMPONENT_FILESYNC,
+                        direction="rx",
+                        peer=str(peer) if peer else None,
+                        done=size,
+                        total=size,
+                        progress=1.0,
+                        label=str(path),
+                    )
+            meter.transfer_finished(transfer_id)
+
+    def _sync_abs_path(self, relpath: str) -> str | None:
+        """Absolute path for a sync relative path, when it stays in jail."""
+        if not isinstance(relpath, str) or not relpath:
+            return None
+        candidate = os.path.realpath(os.path.join(self._sync_root(), relpath))
+        if not self._is_under_sync_root(candidate):
+            return None
+        return candidate
 
     def _permissions(self) -> PermissionStore:
         if self.service is not None:

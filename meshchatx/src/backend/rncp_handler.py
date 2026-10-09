@@ -9,6 +9,7 @@ from collections.abc import Callable
 
 import RNS
 
+from meshchatx.src.backend import traffic_stats
 from meshchatx.src.path_utils import (
     PathJailError,
     first_component_under,
@@ -312,6 +313,35 @@ class RNCPHandler:
             "status": "receiving",
             "started_at": time.time(),
         }
+        meter = traffic_stats.get_meter()
+
+        def progress(res, _tid=transfer_id):
+            total = getattr(res, "total_size", None)
+            done = int(res.get_progress() * total) if total else None
+            meter.transfer_progress(
+                _tid,
+                kind=traffic_stats.COMPONENT_RNCP,
+                direction="rx",
+                done=done,
+                total=total,
+                label=self._receive_label(res),
+            )
+
+        with contextlib.suppress(Exception):
+            resource.progress_callback(progress)
+
+    @staticmethod
+    def _receive_label(resource):
+        try:
+            metadata = resource.metadata
+            if isinstance(metadata, dict) and metadata.get("name"):
+                name = metadata["name"]
+                if isinstance(name, (bytes, bytearray)):
+                    return bytes(name).decode("utf-8", errors="replace")
+                return str(name)
+        except Exception:
+            pass
+        return None
 
     def _receive_resource_concluded(self, resource):
         transfer_id = resource.hash.hex()
@@ -385,6 +415,19 @@ class RNCPHandler:
                     "error": None,
                 },
             )
+        if resource.status == RNS.Resource.COMPLETE:
+            meter = traffic_stats.get_meter()
+            total = getattr(resource, "total_size", None)
+            if total:
+                meter.transfer_progress(
+                    transfer_id,
+                    kind=traffic_stats.COMPONENT_RNCP,
+                    direction="rx",
+                    done=total,
+                    total=total,
+                    label=self._receive_label(resource),
+                )
+        traffic_stats.get_meter().transfer_finished(transfer_id)
         self._on_transfer_terminal(transfer_id)
 
     def _fetch_request(
@@ -557,10 +600,26 @@ class RNCPHandler:
         auto_compress = not no_compress
         metadata = {"name": os.path.basename(file_path).encode("utf-8")}
 
+        transfer_ref = {"id": None}
+        send_label = os.path.basename(file_path)
+
         def progress_callback(resource):
+            progress = resource.get_progress()
             if on_progress:
-                progress = resource.get_progress()
                 on_progress(progress)
+            transfer_id = transfer_ref["id"]
+            if transfer_id:
+                total = getattr(resource, "total_size", None)
+                done = int(progress * total) if total else None
+                traffic_stats.get_meter().transfer_progress(
+                    transfer_id,
+                    kind=traffic_stats.COMPONENT_RNCP,
+                    direction="tx",
+                    peer=destination_hash.hex(),
+                    done=done,
+                    total=total,
+                    label=send_label,
+                )
 
         resource = RNS.Resource(
             await asyncio.to_thread(open, file_path, "rb"),
@@ -572,6 +631,7 @@ class RNCPHandler:
         )
 
         transfer_id = resource.hash.hex()
+        transfer_ref["id"] = transfer_id
         self.active_transfers[transfer_id] = {
             "resource": resource,
             "status": "sending",
@@ -591,6 +651,7 @@ class RNCPHandler:
                 if transfer_id in self.active_transfers:
                     self.active_transfers[transfer_id]["status"] = "cancelled"
                     self._on_transfer_terminal(transfer_id)
+                traffic_stats.get_meter().transfer_finished(transfer_id)
                 msg = "Transfer cancelled"
                 raise InterruptedError(msg)
             await asyncio.sleep(0.1)
@@ -602,6 +663,19 @@ class RNCPHandler:
             if transfer_id in self.active_transfers:
                 self.active_transfers[transfer_id]["status"] = "completed"
                 self._on_transfer_terminal(transfer_id)
+            meter = traffic_stats.get_meter()
+            total = getattr(resource, "total_size", None)
+            if total:
+                meter.transfer_progress(
+                    transfer_id,
+                    kind=traffic_stats.COMPONENT_RNCP,
+                    direction="tx",
+                    peer=destination_hash.hex(),
+                    done=total,
+                    total=total,
+                    label=send_label,
+                )
+            meter.transfer_finished(transfer_id)
             link.teardown()
             return {
                 "transfer_id": transfer_id,
@@ -611,6 +685,7 @@ class RNCPHandler:
         if transfer_id in self.active_transfers:
             self.active_transfers[transfer_id]["status"] = "failed"
             self._on_transfer_terminal(transfer_id)
+        traffic_stats.get_meter().transfer_finished(transfer_id)
         link.teardown()
         msg = "Transfer failed"
         raise Exception(msg)
