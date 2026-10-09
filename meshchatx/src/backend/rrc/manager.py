@@ -58,6 +58,10 @@ CONNECT_PATH_RETRY_S = 5.0
 # path requests for as long as the backoff ladder takes to decay.
 PATH_REQUEST_BURST = 2.0
 PATH_REQUEST_REFILL_S = 60.0
+# Minimum seconds between send budget warnings for the same hub.
+BUDGET_WARN_MIN_INTERVAL_S = 60.0
+# Repeat counts that log a redelivery warning for the same row.
+DUP_WARN_COUNTS = (5, 10, 25, 50, 100, 250, 500)
 # Upper bound for a link stuck in PENDING during connect. RNS's own
 # establishment timeout can run several minutes on a dead path, which
 # leaves the hub parked in CONNECTING with no forward progress.
@@ -185,6 +189,7 @@ class RRCHub:
         self._last_path_request = float("-inf")
         self._path_request_tokens = PATH_REQUEST_BURST
         self._path_token_last = time.monotonic()
+        self._last_budget_warn = float("-inf")
         self._had_session = False
         # Envelope id -> (message, sent monotonic). Echo-confirmed, timed out,
         # or flushed failed on link loss.
@@ -888,12 +893,30 @@ class RRCHub:
 
     def _take_send_budget(self):
         """Spend one message token, or raise RateLimitedError."""
+        warn = False
+        retry_after = 0.0
         with self._lock:
             self._refill_send_budget()
             if self._send_budget_tokens < 1.0:
                 rate = self._send_budget_capacity() / 60.0
-                raise RateLimitedError((1.0 - self._send_budget_tokens) / rate)
-            self._send_budget_tokens -= 1.0
+                retry_after = (1.0 - self._send_budget_tokens) / rate
+                now = time.monotonic()
+                if now - self._last_budget_warn >= BUDGET_WARN_MIN_INTERVAL_S:
+                    self._last_budget_warn = now
+                    warn = True
+            else:
+                self._send_budget_tokens -= 1.0
+                return
+        if warn:
+            # Rate limited so a burst cannot fill the log with one warning
+            # per rejected send.
+            self._log(
+                "send budget exhausted, next send in "
+                + str(max(1, round(retry_after)))
+                + "s",
+                RNS.LOG_WARNING,
+            )
+        raise RateLimitedError(retry_after)
 
     def _refund_send_budget(self):
         with self._lock:
@@ -1542,9 +1565,29 @@ class RRCHub:
                     break
         if found is None:
             return False
+        count = int(getattr(found, "dup_count", 1) or 1)
+        if count in DUP_WARN_COUNTS:
+            # A row that keeps growing means a peer is redelivering the
+            # same envelope over and over, which is the wire spam pattern
+            # the repeat badge exists to expose.
+            self._log(
+                "message redelivered "
+                + str(count)
+                + " times in #"
+                + str(found.room)
+                + " from "
+                + self._short_hash(found.src),
+                RNS.LOG_WARNING,
+            )
         self._append_history(found.room, found)
         self._clean_history()
         return True
+
+    @staticmethod
+    def _short_hash(value):
+        if isinstance(value, (bytes, bytearray)) and value:
+            return bytes(value).hex()[:12]
+        return "unknown"
 
     def _record_message(self, msg, local=False):
         cap = self._per_room_cap()
@@ -1788,6 +1831,8 @@ class RRCHub:
             # and replaying them duplicates delivered messages on every
             # restart. Command-shaped text is skipped as well: a resent
             # "/..." body executes as a hub command, not a chat message.
+            retried = 0
+            budget_blocked = False
             for m in list(self.messages.get(r, [])):
                 if (
                     m.delivery != "failed"
@@ -1801,10 +1846,36 @@ class RRCHub:
                     # Hub send budget is spent. Leave the remaining rows
                     # failed so a later rejoin or manual retry can send
                     # them without tripping hub-side enforcement.
+                    budget_blocked = True
                     break
                 m._auto_retried = True
                 with contextlib.suppress(Exception):
                     self.retry_message(r, m.seq)
+                retried += 1
+            if retried:
+                # Rejoin replay is bounded but still worth surfacing: a
+                # persistent count here means links keep dropping with
+                # unconfirmed sends on them.
+                self._log(
+                    "rejoin retry resent " + str(retried) + " held message(s) to #" + r,
+                    RNS.LOG_DEBUG,
+                )
+            if budget_blocked:
+                remaining = sum(
+                    1
+                    for m in self.messages.get(r, [])
+                    if m.delivery == "failed"
+                    and getattr(m, "_auto_retryable", False)
+                    and not getattr(m, "_auto_retried", False)
+                )
+                self._log(
+                    "send budget reached, "
+                    + str(remaining)
+                    + " failed message(s) in #"
+                    + r
+                    + " wait for a later rejoin or manual retry",
+                    RNS.LOG_INFO,
+                )
             self.manager.save()
         else:
             joiner = None

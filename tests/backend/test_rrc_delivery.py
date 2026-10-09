@@ -7,7 +7,11 @@ import time
 import pytest
 
 from meshchatx.src.backend.rrc import protocol as proto
-from meshchatx.src.backend.rrc.manager import DELIVERY_TIMEOUT_S, RRCHub
+from meshchatx.src.backend.rrc.manager import (
+    DELIVERY_TIMEOUT_S,
+    RateLimitedError,
+    RRCHub,
+)
 from meshchatx.src.backend.rrc.server import _LoopbackEndpoint
 from tests.backend.test_rrc_server import (
     FakeManager,
@@ -445,3 +449,66 @@ def test_restart_preserves_failed_badge_without_silently_resending(tmp_path):
     # The badge still marks the row as unconfirmed so the user can see it
     # and retry by hand. Only automatic replay is suppressed.
     assert loaded and loaded[-1].delivery == "failed"
+
+
+def test_send_budget_warning_is_rate_limited(tmp_path):
+    """A blocked send logs one warning, not one per rejected call."""
+    hub = RRCHub(_Mgr(), b"\x77" * 16, name="hub")
+    hub.rate_limit_msgs_per_minute = 2
+    with hub._lock:
+        hub._send_budget_tokens = 2.0
+        hub._send_budget_last = time.monotonic()
+
+    logs = []
+    hub._log = lambda msg, level=None: logs.append((level, msg))
+
+    hub._take_send_budget()
+    hub._take_send_budget()
+    for _ in range(5):
+        with pytest.raises(RateLimitedError):
+            hub._take_send_budget()
+
+    warnings = [msg for level, msg in logs if level == RNS.LOG_WARNING]
+    assert len(warnings) == 1
+    assert "send budget exhausted" in warnings[0]
+
+
+def test_duplicate_redelivery_warning_at_threshold(tmp_path):
+    """A row that keeps growing logs a redelivery warning once per tier."""
+    from meshchatx.src.backend.rrc.manager import DUP_WARN_COUNTS
+
+    _server, hub = _loopback_client_hub(tmp_path)
+    mid = hub.send_message("general", "dup target")
+    row = [m for m in hub.messages["general"] if m.text == "dup target"][-1]
+    assert row.dup_count == 1
+
+    logs = []
+    hub._log = lambda msg, level=None: logs.append((level, msg))
+
+    threshold = DUP_WARN_COUNTS[0]
+    for _ in range(threshold - 1):
+        assert hub._bump_duplicate_by_mid(mid) is True
+    assert row.dup_count == threshold
+
+    warnings = [msg for level, msg in logs if level == RNS.LOG_WARNING]
+    assert len(warnings) == 1
+    assert "redelivered " + str(threshold) + " times" in warnings[0]
+
+
+def test_rejoin_retry_logs_resent_count(tmp_path):
+    """The bounded rejoin replay logs how many held messages it resent."""
+    _server, hub = _loopback_client_hub(tmp_path)
+    msg = proto.RRCMessage("msg", "general", b"\x22" * 16, "me", "lost?", 0)
+    msg.delivery = "sending"
+    msg.mid = b"\x99" * 8
+    msg.seq = 9001
+    hub._pending_delivery[msg.mid] = (msg, time.monotonic() - DELIVERY_TIMEOUT_S - 1)
+    hub.messages["general"].append(msg)
+    hub._sweep_pending_delivery()
+    assert msg.delivery == "failed"
+
+    logs = []
+    hub._log = lambda msg, level=None: logs.append((level, msg))
+    _self_join(hub)
+
+    assert any("rejoin retry resent 1 held message" in msg for _level, msg in logs)
