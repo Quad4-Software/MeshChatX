@@ -57,6 +57,11 @@ _ANNOUNCE_DEFAULT_BY_CONFIG_VERSION = {
 MIN_ANNOUNCE_INTERVAL_SECONDS = constants.MIN_ANNOUNCE_INTERVAL_SECONDS
 MAX_ANNOUNCE_INTERVAL_SECONDS = constants.MAX_ANNOUNCE_INTERVAL_SECONDS
 
+# Bounds for the per-client message rate a hub advertises in WELCOME and
+# enforces on inbound chat envelopes.
+MIN_RATE_LIMIT_MSGS_PER_MINUTE = 1
+MAX_RATE_LIMIT_MSGS_PER_MINUTE = 10000
+
 
 def normalize_announce_interval_seconds(
     value,
@@ -74,6 +79,23 @@ def normalize_announce_interval_seconds(
     return max(
         MIN_ANNOUNCE_INTERVAL_SECONDS,
         min(MAX_ANNOUNCE_INTERVAL_SECONDS, seconds),
+    )
+
+
+def normalize_rate_limit_msgs_per_minute(
+    value,
+    default=proto.DEFAULT_RATE_PER_MINUTE,
+):
+    """Clamp the per-client message rate the hub advertises and enforces."""
+    if value is None:
+        return int(default)
+    try:
+        per_min = int(value)
+    except (TypeError, ValueError):
+        return int(default)
+    return max(
+        MIN_RATE_LIMIT_MSGS_PER_MINUTE,
+        min(MAX_RATE_LIMIT_MSGS_PER_MINUTE, per_min),
     )
 
 
@@ -167,6 +189,7 @@ class RRCHubServer:
         greeting=None,
         announce=True,
         announce_interval_seconds=DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        rate_limit_msgs_per_minute=None,
         enabled=True,
     ):
         self.manager = manager
@@ -184,7 +207,9 @@ class RRCHubServer:
         self.max_room_name_bytes = proto.DEFAULT_MAX_ROOM_BYTES
         self.max_msg_body_bytes = proto.DEFAULT_MAX_MSG_BYTES
         self.max_rooms_per_session = proto.DEFAULT_MAX_ROOMS
-        self.rate_limit_msgs_per_minute = proto.DEFAULT_RATE_PER_MINUTE
+        self.rate_limit_msgs_per_minute = normalize_rate_limit_msgs_per_minute(
+            rate_limit_msgs_per_minute,
+        )
         self.control_rate_per_minute = proto.DEFAULT_CONTROL_RATE_PER_MINUTE
         self.max_sessions = DEFAULT_MAX_SESSIONS
         self.max_sessions_per_peer = DEFAULT_MAX_SESSIONS_PER_PEER
@@ -1334,6 +1359,7 @@ class RRCHubServer:
                 "uptime_seconds": uptime_seconds,
                 "announce": self.announce,
                 "announce_interval_seconds": self.announce_interval_seconds,
+                "rate_limit_msgs_per_minute": self.rate_limit_msgs_per_minute,
                 "greeting": self.greeting,
                 "clients": sum(1 for s in self._sessions.values() if s.welcomed),
                 "trusted_identities": policy["trusted_identities"],
@@ -1366,6 +1392,7 @@ class RRCHubServer:
             "enabled": self.enabled,
             "announce": self.announce,
             "announce_interval_seconds": self.announce_interval_seconds,
+            "rate_limit_msgs_per_minute": self.rate_limit_msgs_per_minute,
             "greeting": self.greeting,
             "trusted_identities": policy["trusted_identities"],
             "banned_identities": policy["banned_identities"],
@@ -1427,6 +1454,7 @@ class RRCServerManager:
         greeting=None,
         announce=True,
         announce_interval_seconds=DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        rate_limit_msgs_per_minute=None,
         enabled=True,
     ):
         identity = RNS.Identity()
@@ -1439,6 +1467,7 @@ class RRCServerManager:
             greeting=greeting,
             announce=announce,
             announce_interval_seconds=announce_interval_seconds,
+            rate_limit_msgs_per_minute=rate_limit_msgs_per_minute,
             enabled=enabled,
         )
         trusted = self._owner_trusted_hex_list()
@@ -1508,6 +1537,7 @@ class RRCServerManager:
         greeting=None,
         announce=None,
         announce_interval_seconds=None,
+        rate_limit_msgs_per_minute=None,
         trusted_identities=None,
         banned_identities=None,
     ):
@@ -1522,6 +1552,11 @@ class RRCServerManager:
             hub.set_announce_settings(
                 announce=announce,
                 announce_interval_seconds=announce_interval_seconds,
+            )
+        if rate_limit_msgs_per_minute is not None:
+            hub.rate_limit_msgs_per_minute = normalize_rate_limit_msgs_per_minute(
+                rate_limit_msgs_per_minute,
+                default=hub.rate_limit_msgs_per_minute,
             )
         if trusted_identities is not None or banned_identities is not None:
             hub.policy.apply_config(
@@ -1615,6 +1650,7 @@ class RRCServerManager:
             announce_interval_seconds=(
                 interval if interval is not None else DEFAULT_ANNOUNCE_INTERVAL_SECONDS
             ),
+            rate_limit_msgs_per_minute=entry.get("rate_limit_msgs_per_minute"),
             enabled=bool(entry.get("enabled", True)),
         )
         hub.configure_storage(

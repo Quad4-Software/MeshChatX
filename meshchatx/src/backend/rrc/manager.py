@@ -93,6 +93,22 @@ H_DUP = "c"
 DELIVERY_TIMEOUT_S = 15.0
 
 
+class RateLimitedError(RuntimeError):
+    """Raised when a hub's advertised message rate would be exceeded.
+
+    The hub counts inbound chat envelopes against its own limit and may
+    respond with ERROR or drop the link for clients that ignore it. The
+    client keeps a local budget so no code path can spend more than the
+    advertised rate.
+    """
+
+    def __init__(self, retry_after):
+        self.retry_after = max(0.0, float(retry_after))
+        super().__init__(
+            "hub rate limit reached, retry in " + str(round(self.retry_after, 1)) + "s",
+        )
+
+
 class RRCHub:
     """A single RRC hub connection and its associated rooms and history."""
 
@@ -125,6 +141,10 @@ class RRCHub:
         self.max_msg_body_bytes = proto.DEFAULT_MAX_MSG_BYTES
         self.max_rooms_per_session = proto.DEFAULT_MAX_ROOMS
         self.rate_limit_msgs_per_minute = proto.DEFAULT_RATE_PER_MINUTE
+        # Local copy of the hub's advertised send budget, refilled at the
+        # advertised rate so client sends never trip hub-side enforcement.
+        self._send_budget_tokens = float(self.rate_limit_msgs_per_minute)
+        self._send_budget_last = time.monotonic()
 
         self.rooms = set()
         self.messages = {}
@@ -818,6 +838,45 @@ class RRCHub:
         else:
             RNS.Packet(link, payload).send()
 
+    def _send_budget_capacity(self):
+        try:
+            per_min = int(self.rate_limit_msgs_per_minute)
+        except (TypeError, ValueError):
+            per_min = proto.DEFAULT_RATE_PER_MINUTE
+        return float(max(1, per_min))
+
+    def _refill_send_budget(self):
+        capacity = self._send_budget_capacity()
+        now = time.monotonic()
+        elapsed = max(0.0, now - self._send_budget_last)
+        self._send_budget_last = now
+        self._send_budget_tokens = min(
+            capacity,
+            self._send_budget_tokens + elapsed * (capacity / 60.0),
+        )
+
+    def _take_send_budget(self):
+        """Spend one message token, or raise RateLimitedError."""
+        with self._lock:
+            self._refill_send_budget()
+            if self._send_budget_tokens < 1.0:
+                rate = self._send_budget_capacity() / 60.0
+                raise RateLimitedError((1.0 - self._send_budget_tokens) / rate)
+            self._send_budget_tokens -= 1.0
+
+    def _refund_send_budget(self):
+        with self._lock:
+            self._refill_send_budget()
+            self._send_budget_tokens = min(
+                self._send_budget_capacity(),
+                self._send_budget_tokens + 1.0,
+            )
+
+    def _has_send_budget(self):
+        with self._lock:
+            self._refill_send_budget()
+            return self._send_budget_tokens >= 1.0
+
     def _send_env(self, env):
         with self._lock:
             link = self.link
@@ -913,7 +972,12 @@ class RRCHub:
                 self._redact_command_for_history(text),
                 proto.now_ms(),
             )
-        self._send_env_then_maybe_record(env, local_msg)
+        self._take_send_budget()
+        try:
+            self._send_env_then_maybe_record(env, local_msg)
+        except Exception:
+            self._refund_send_budget()
+            raise
 
     @staticmethod
     def _redact_command_for_history(text):
@@ -971,11 +1035,13 @@ class RRCHub:
             text,
             proto.now_ms(),
         )
+        self._take_send_budget()
         self._track_outbound(local_msg, mid)
         try:
             self._send_env_then_maybe_record(env, local_msg)
         except Exception:
             self._untrack_outbound(local_msg)
+            self._refund_send_budget()
             raise
         return mid
 
@@ -1005,11 +1071,13 @@ class RRCHub:
             text,
             proto.now_ms(),
         )
+        self._take_send_budget()
         self._track_outbound(local_msg, mid)
         try:
             self._send_env_then_maybe_record(env, local_msg)
         except Exception:
             self._untrack_outbound(local_msg)
+            self._refund_send_budget()
             raise
         return mid
 
@@ -1120,6 +1188,8 @@ class RRCHub:
         if nick:
             env[proto.K_NICK] = nick
         mid = env[proto.K_ID]
+        # A rate-limited retry must not flip the row back to sending.
+        self._take_send_budget()
         with self._lock:
             if isinstance(msg.mid, (bytes, bytearray)):
                 self._pending_delivery.pop(bytes(msg.mid), None)
@@ -1139,6 +1209,7 @@ class RRCHub:
                     self._pending_delivery.pop(mid_b, None)
             msg.delivery = "failed"
             msg._auto_retryable = True
+            self._refund_send_budget()
             raise
         self.manager._notify_messages(self, msg)
         return mid
@@ -1611,6 +1682,10 @@ class RRCHub:
             self.rate_limit_msgs_per_minute = int(
                 limits[proto.L_RATE_LIMIT_MSGS_PER_MINUTE],
             )
+            # A fresh session starts with a full budget for the new limit.
+            with self._lock:
+                self._send_budget_tokens = self._send_budget_capacity()
+                self._send_budget_last = time.monotonic()
 
     def _own_hash(self):
         return self.manager.identity.hash if self.manager.identity is not None else None
@@ -1691,6 +1766,11 @@ class RRCHub:
                     continue
                 if isinstance(m.text, str) and m.text.lstrip().startswith("/"):
                     continue
+                if not self._has_send_budget():
+                    # Hub send budget is spent. Leave the remaining rows
+                    # failed so a later rejoin or manual retry can send
+                    # them without tripping hub-side enforcement.
+                    break
                 m._auto_retried = True
                 with contextlib.suppress(Exception):
                     self.retry_message(r, m.seq)

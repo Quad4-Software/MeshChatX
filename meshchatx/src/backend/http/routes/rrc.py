@@ -20,6 +20,7 @@ from meshchatx.src.backend.http.uploads import (
 )
 from meshchatx.src.backend.rrc import protocol as rrc_protocol
 from meshchatx.src.backend.rrc import search as rrc_search
+from meshchatx.src.backend.rrc.manager import RateLimitedError
 
 
 def register_rrc_routes(routes, app):
@@ -406,6 +407,15 @@ def register_rrc_routes(routes, app):
                 hub.send_command(text.strip(), room=room)
             else:
                 hub.send_message(room, text)
+        except RateLimitedError as e:
+            return web.json_response(
+                {
+                    "message": "Hub rate limit reached. Retry in "
+                    + str(max(1, round(e.retry_after)))
+                    + "s.",
+                },
+                status=429,
+            )
         except (ValueError, RuntimeError) as e:
             return http_bad_request(str(e))
         return web.json_response({"message": "Sent"})
@@ -424,6 +434,15 @@ def register_rrc_routes(routes, app):
             return http_bad_request("invalid message seq")
         try:
             mid = hub.retry_message(room, seq)
+        except RateLimitedError as e:
+            return web.json_response(
+                {
+                    "message": "Hub rate limit reached. Retry in "
+                    + str(max(1, round(e.retry_after)))
+                    + "s.",
+                },
+                status=429,
+            )
         except (ValueError, RuntimeError) as e:
             return http_bad_request(str(e))
         return web.json_response(
@@ -534,6 +553,11 @@ def register_rrc_routes(routes, app):
             create_kwargs["announce_interval_seconds"] = data.get(
                 "announce_interval_seconds",
             )
+        if "rate_limit_msgs_per_minute" in data:
+            rate_limit = data.get("rate_limit_msgs_per_minute")
+            if isinstance(rate_limit, bool) or not isinstance(rate_limit, int):
+                return http_bad_request("rate_limit_msgs_per_minute must be an integer")
+            create_kwargs["rate_limit_msgs_per_minute"] = rate_limit
         hub = manager.create_hub(**create_kwargs)
         return web.json_response({"hub": hub.to_dict()})
 
@@ -558,6 +582,10 @@ def register_rrc_routes(routes, app):
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
+        if "rate_limit_msgs_per_minute" in data:
+            rate_limit = data.get("rate_limit_msgs_per_minute")
+            if isinstance(rate_limit, bool) or not isinstance(rate_limit, int):
+                return http_bad_request("rate_limit_msgs_per_minute must be an integer")
         manager.update_hub(
             hub.hub_id,
             name=(data.get("name") if "name" in data else None),
@@ -566,6 +594,11 @@ def register_rrc_routes(routes, app):
             announce_interval_seconds=(
                 data.get("announce_interval_seconds")
                 if "announce_interval_seconds" in data
+                else None
+            ),
+            rate_limit_msgs_per_minute=(
+                data.get("rate_limit_msgs_per_minute")
+                if "rate_limit_msgs_per_minute" in data
                 else None
             ),
             trusted_identities=(

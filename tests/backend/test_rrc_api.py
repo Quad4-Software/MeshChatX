@@ -186,3 +186,104 @@ async def test_rrc_rooms_list_disconnected_returns_400(mock_app):
     assert response.status == 400
     data = json.loads(response.body)
     assert "not connected" in data["message"]
+
+
+@pytest.mark.asyncio
+async def test_rrc_send_message_rate_limited_returns_429(mock_app):
+    import time as _time
+
+    post_hub = _find_handler(mock_app, "/api/v1/rrc/hubs", "POST")
+    await post_hub(_make_request(json_body={"hub_hash": HUB_HASH_HEX}))
+    hub = mock_app.rrc_manager.find_hub_by_hex(HUB_HASH_HEX)
+    assert hub is not None
+    hub.rate_limit_msgs_per_minute = 1
+    hub._send_budget_tokens = 0.0
+    hub._send_budget_last = _time.monotonic()
+
+    send = _find_handler(
+        mock_app,
+        "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages",
+        "POST",
+    )
+    response = await send(
+        _make_request(
+            json_body={"text": "hello"},
+            match_info={"hub_hash": HUB_HASH_HEX, "room": "lobby"},
+        ),
+    )
+    assert response.status == 429
+    assert "rate limit" in json.loads(response.body)["message"].lower()
+
+
+@pytest.mark.asyncio
+async def test_rrc_retry_message_rate_limited_returns_429(mock_app):
+    import time as _time
+
+    from meshchatx.src.backend.rrc import protocol as proto
+
+    post_hub = _find_handler(mock_app, "/api/v1/rrc/hubs", "POST")
+    await post_hub(_make_request(json_body={"hub_hash": HUB_HASH_HEX}))
+    hub = mock_app.rrc_manager.find_hub_by_hex(HUB_HASH_HEX)
+    msg = proto.RRCMessage("msg", "lobby", b"\x22" * 16, "me", "x", 0)
+    msg.delivery = "failed"
+    msg.seq = 1
+    hub.messages["lobby"] = [msg]
+    hub.rate_limit_msgs_per_minute = 1
+    hub._send_budget_tokens = 0.0
+    hub._send_budget_last = _time.monotonic()
+
+    retry = _find_handler(
+        mock_app,
+        "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages/{seq}/retry",
+        "POST",
+    )
+    response = await retry(
+        _make_request(
+            match_info={"hub_hash": HUB_HASH_HEX, "room": "lobby", "seq": "1"},
+        ),
+    )
+    assert response.status == 429
+    # The row was not flipped to sending by the rejected retry.
+    assert msg.delivery == "failed"
+
+
+@pytest.mark.asyncio
+async def test_rrc_server_patch_sets_and_clamps_rate_limit(mock_app):
+    post = _find_handler(mock_app, "/api/v1/rrc/servers", "POST")
+    created = await post(_make_request(json_body={"name": "Limited Hub"}))
+    hub_id = json.loads(created.body)["hub"]["id"]
+
+    patch = _find_handler(mock_app, "/api/v1/rrc/servers/{hub_id}", "PATCH")
+    response = await patch(
+        _make_request(
+            json_body={"rate_limit_msgs_per_minute": 30},
+            match_info={"hub_id": hub_id},
+        ),
+    )
+    assert response.status == 200
+    assert json.loads(response.body)["hub"]["rate_limit_msgs_per_minute"] == 30
+
+    response = await patch(
+        _make_request(
+            json_body={"rate_limit_msgs_per_minute": 999999},
+            match_info={"hub_id": hub_id},
+        ),
+    )
+    assert json.loads(response.body)["hub"]["rate_limit_msgs_per_minute"] == 10000
+
+
+@pytest.mark.asyncio
+async def test_rrc_server_patch_rejects_bad_rate_limit(mock_app):
+    post = _find_handler(mock_app, "/api/v1/rrc/servers", "POST")
+    created = await post(_make_request(json_body={"name": "Hub"}))
+    hub_id = json.loads(created.body)["hub"]["id"]
+
+    patch = _find_handler(mock_app, "/api/v1/rrc/servers/{hub_id}", "PATCH")
+    for bad in ("fast", 12.5, True, None):
+        response = await patch(
+            _make_request(
+                json_body={"rate_limit_msgs_per_minute": bad},
+                match_info={"hub_id": hub_id},
+            ),
+        )
+        assert response.status == 400, bad
