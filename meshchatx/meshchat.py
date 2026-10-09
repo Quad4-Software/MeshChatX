@@ -82,7 +82,10 @@ from meshchatx.src.backend.auto_resend_guard import (
     should_skip_for_budget,
 )
 from meshchatx.src.backend.colour_utils import ColourUtils
-from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.constants import (
+    API_V1_PREFIX,
+    MIN_ANNOUNCE_INTERVAL_SECONDS,
+)
 from meshchatx.src.backend.database.access_attempts import (
     MAX_FAILED_BEFORE_LOCKOUT,
     MAX_TRUSTED_LOGIN_PER_WINDOW,
@@ -6653,6 +6656,17 @@ class ReticulumMeshChat:
                 auto_announce_interval_seconds = (
                     self.config.auto_announce_interval_seconds.get()
                 )
+            if auto_announce_interval_seconds > 0 and (
+                auto_announce_interval_seconds < MIN_ANNOUNCE_INTERVAL_SECONDS
+            ):
+                # Announces flood every interface and every peer re-broadcasts
+                # them, so a sub-minute interval is a mesh wide packet storm.
+                logger.warning(
+                    "auto_announce_interval_seconds %s is below the %ss minimum, clamping",
+                    auto_announce_interval_seconds,
+                    MIN_ANNOUNCE_INTERVAL_SECONDS,
+                )
+                auto_announce_interval_seconds = MIN_ANNOUNCE_INTERVAL_SECONDS
             self.config.auto_announce_interval_seconds.set(
                 auto_announce_interval_seconds,
             )
@@ -6840,6 +6854,15 @@ class ReticulumMeshChat:
             )
             if value is None:
                 value = self.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get()
+            if value > 0 and value < MIN_ANNOUNCE_INTERVAL_SECONDS:
+                # Each sync can pull a full mailbox, so a sub-minute interval
+                # turns the peer and the mesh into a transfer loop.
+                logger.warning(
+                    "propagation auto sync interval %ss is below the %ss minimum, clamping",
+                    value,
+                    MIN_ANNOUNCE_INTERVAL_SECONDS,
+                )
+                value = MIN_ANNOUNCE_INTERVAL_SECONDS
             self.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.set(
                 value,
             )
