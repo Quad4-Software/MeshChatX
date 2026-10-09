@@ -52,6 +52,11 @@ _MAX_HISTORY = 120
 # short memory so numbers track smoothly instead of twitching.
 _EMA_ALPHA = 0.35
 
+# Peer buckets and their smoothed rates are session totals. Bound the
+# table so a long-running node on a busy mesh cannot grow it forever;
+# the coldest peers are dropped first.
+MAX_PEERS = 512
+
 # Flood detection: sustained rates above these thresholds log a rate
 # limited warning naming the component. Defaults sit far above healthy
 # mesh traffic (a busy TCP peer peaks in the tens of KB/s) so they only
@@ -67,13 +72,15 @@ FLOOD_WARN_HISTORY = 16
 
 
 class _Counter:
-    __slots__ = ("components", "prev_rx", "prev_tx", "rx", "tx")
+    __slots__ = ("components", "prev_rx", "prev_tx", "rx", "seen", "tx")
 
     def __init__(self):
         self.tx = 0
         self.rx = 0
         self.prev_tx = 0
         self.prev_rx = 0
+        # last activity, used to evict cold peer buckets
+        self.seen = 0.0
         # peer buckets carry a per-component byte breakdown for drilldown
         self.components: dict[str, list[int]] = {}
 
@@ -390,6 +397,16 @@ class TrafficStats:
                 emitted.append(warning)
         return emitted
 
+    def _prune_peers_locked(self) -> None:
+        """Caller holds _lock. Evict the coldest peers over the cap."""
+        if len(self._peers) <= MAX_PEERS:
+            return
+        ordered = sorted(self._peers.items(), key=lambda item: item[1].seen)
+        for peer_hash, _counter in ordered[: len(self._peers) - MAX_PEERS]:
+            self._peers.pop(peer_hash, None)
+            self._ema.pop("p:" + peer_hash + ":tx", None)
+            self._ema.pop("p:" + peer_hash + ":rx", None)
+
     def _smooth(self, key: str, value: float) -> float:
         prev = self._ema.get(key)
         if prev is None:
@@ -420,6 +437,7 @@ class TrafficStats:
                 if peer_counter is None:
                     peer_counter = _Counter()
                     self._peers[peer] = peer_counter
+                peer_counter.seen = time.time()
                 peer_counter.tx += int(tx)
                 peer_counter.rx += int(rx)
                 by_comp = peer_counter.components.setdefault(component, [0, 0])
@@ -594,6 +612,7 @@ class TrafficStats:
             )
         peers.sort(key=lambda p: p["tx_bytes"] + p["rx_bytes"], reverse=True)
         peers = peers[:40]
+        self._prune_peers_locked()
 
         totals = {
             "tx_bytes": self._last_totals.tx,

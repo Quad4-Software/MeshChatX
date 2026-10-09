@@ -11,6 +11,7 @@ from meshchatx.src.backend.traffic_stats import (
     COMPONENT_NOMADNET,
     COMPONENT_RNCP,
     COMPONENT_RRC,
+    MAX_PEERS,
     MAX_TRANSFERS,
     TRANSFER_STALE_S,
     TrafficStats,
@@ -508,3 +509,15 @@ def test_hint_active_transfers():
     assert active
     assert active[0]["params"]["count"] == 1
     assert "rncp" in active[0]["params"]["kinds"]
+
+
+def test_peer_table_is_bounded():
+    meter = TrafficStats()
+    for i in range(MAX_PEERS + 10):
+        meter.record(COMPONENT_LXMF, tx=1, peer=f"{i:032x}")
+    payload = meter.snapshot([_iface("i0", txb=0, rxb=0)])
+    assert payload["peers_total"] <= MAX_PEERS
+    assert len(meter._peers) <= MAX_PEERS
+    # Smoothed rate keys follow the peer table: at most two per peer.
+    peer_ema_keys = [k for k in meter._ema if k.startswith("p:")]
+    assert len(peer_ema_keys) <= MAX_PEERS * 2
