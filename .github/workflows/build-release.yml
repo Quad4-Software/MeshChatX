@@ -420,6 +420,10 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         runs-on: ubuntu-latest
         environment: release
+        # The CDN publish is best effort. A failure here must not fail the
+        # release: GitHub, PyPI, and rngit assets are already complete and
+        # the CDN upload can be retried without a new tag.
+        continue-on-error: true
         # Cold publish is thousands of small PUTs to Bunny Edge Storage.
         timeout-minutes: 180
         concurrency:
@@ -1020,8 +1024,7 @@ jobs:
                     fail=1
                   fi
                   if [[ "${{ needs.flatpak-ostree.result }}" != "success" ]]; then
-                    echo "::error::Flatpak OSTree (BunnyCDN) job did not succeed (${{ needs.flatpak-ostree.result }})"
-                    fail=1
+                    echo "::warning::Flatpak OSTree (BunnyCDN) job did not succeed (${{ needs.flatpak-ostree.result }}); the release is still valid and the CDN publish can be retried without a new tag"
                   fi
                   if [[ "${{ needs.build-release.result }}" != "success" ]]; then
                     echo "::error::Desktop build job did not succeed (${{ needs.build-release.result }})"

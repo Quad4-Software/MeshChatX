@@ -1,5 +1,14 @@
 ## [4.10.5] - TBD [unreleased]
 
+### Fixed
+
+- Flatpak CDN: the release purge now reaches the Bunny API under the CI egress allowlist, and an unreachable purge no longer fails the whole release.
+- CI: the Flatpak OSTree publish is best effort in the release pipeline. A CDN failure no longer fails the release run, since the GitHub, PyPI, and rngit assets are already complete.
+
+### Notes
+
+- v4.10.4 is skipped due to a CI/CD issue with the Flatpak CDN purge and tags are immutable.
+
 ## [4.10.4] - 2026-10-09 [released]
 
 ### Changed
