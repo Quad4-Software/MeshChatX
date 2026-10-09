@@ -729,6 +729,8 @@ class ReticulumMeshChat:
         self.current_context: IdentityContext | None = None
         self._propagation_sync_metrics: dict[str, dict] = {}
         self._auto_resend_coordinator = AutoResendCoordinator()
+        # Rate limits auto-resend budget warnings per destination.
+        self._auto_resend_warned_at: dict[str, float] = {}
 
         from meshchatx.src.backend.lifecycle.signal_shutdown import (
             register_shutdown_app,
@@ -11725,6 +11727,8 @@ class ReticulumMeshChat:
                 lookup_hash,
             )
             now = time.time()
+            resent = 0
+            budget_skipped = 0
 
             for failed_message in failed_messages:
                 try:
@@ -11736,6 +11740,7 @@ class ReticulumMeshChat:
                         failed_message.get("fields"),
                         max_attempts=MAX_AUTO_RESEND_ATTEMPTS,
                     ):
+                        budget_skipped += 1
                         continue
 
                     if ctx.database.messages.has_recent_outbound_with_content(
@@ -11872,9 +11877,32 @@ class ReticulumMeshChat:
                         new_hash,
                         attempt,
                     )
+                    resent += 1
 
                 except Exception as e:
                     print("Error resending failed message: " + str(e))
+
+            if resent:
+                logger.debug(
+                    "Auto-resend dispatched %d failed message(s) to %s",
+                    resent,
+                    destination_hash,
+                )
+            if budget_skipped:
+                # Rate limited per destination so a busy announce peer does
+                # not turn one stuck mailbox into a log flood.
+                key = "lxmf:" + destination_hash
+                last = self._auto_resend_warned_at.get(key, float("-inf"))
+                if time.time() - last >= 300.0:
+                    if len(self._auto_resend_warned_at) > 512:
+                        self._auto_resend_warned_at.clear()
+                    self._auto_resend_warned_at[key] = time.time()
+                    logger.warning(
+                        "Auto-resend budget exhausted for %d message(s) to %s, "
+                        "manual retry required",
+                        budget_skipped,
+                        destination_hash,
+                    )
 
     def on_rrc_hub_announce_received(
         self,
