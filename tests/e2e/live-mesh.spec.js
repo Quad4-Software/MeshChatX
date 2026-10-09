@@ -300,6 +300,52 @@ test.describe("Live mesh traffic budget", () => {
     });
 });
 
+test.describe("Traffic tool live payload", () => {
+    test.setTimeout(120000);
+
+    test("traffic payload carries transfers, peer totals, and history context", async ({ request }) => {
+        await prepareE2eSession(request);
+        const response = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/reticulum/traffic`);
+        expect(response.ok()).toBeTruthy();
+        const payload = await response.json();
+
+        expect(Array.isArray(payload.transfers)).toBe(true);
+        expect(typeof payload.peers_total).toBe("number");
+        expect(Array.isArray(payload.history)).toBe(true);
+        expect(Array.isArray(payload.components)).toBe(true);
+        expect(Array.isArray(payload.warnings)).toBe(true);
+        for (const point of payload.history) {
+            expect(typeof point.tx_bps).toBe("number");
+            expect(typeof point.rx_bps).toBe("number");
+            expect(point).toHaveProperty("top");
+        }
+
+        // The chart tooltip reads history points; one sample must exist
+        // after the poll that this request just triggered.
+        const second = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/reticulum/traffic`);
+        const again = await second.json();
+        expect(again.history.length).toBeGreaterThanOrEqual(1);
+    });
+
+    test("traffic page chart shows a hover tooltip", async ({ page, request }) => {
+        await prepareE2eSession(request);
+        // Two polls so the chart has at least one line segment to hover.
+        await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/reticulum/traffic`);
+        await new Promise((r) => setTimeout(r, 3200));
+
+        await page.goto("/#/traffic");
+        const chart = page.locator('svg[viewBox="0 0 320 80"]').first();
+        await expect(chart).toBeVisible({ timeout: 30000 });
+
+        const box = await chart.boundingBox();
+        expect(box).toBeTruthy();
+        await page.mouse.move(box.x + box.width * 0.6, box.y + box.height / 2);
+        await expect(page.getByText(/Mostly |Upload|Download/).first()).toBeVisible({
+            timeout: 10000,
+        });
+    });
+});
+
 test.describe("Live mesh multi-hub RRC", () => {
     test.setTimeout(600000);
     test.skip(!peerReady(), "live peer subprocess not running");

@@ -5497,7 +5497,13 @@
         "propagated": "Propagated",
         "load_failed": "Failed to load traffic stats.",
         "measurement_note": "Rates are computed from Reticulum interface counters and component reports. Component numbers are payload bytes. The wire adds protocol overhead, which shows up under the residual row.",
+        "peers_note": "Показано {shown} з {total} вузлів за обсягом.",
+        "driven_by": "Переважно {component}",
+        "chart_hint": "Наведіть курсор на графік, щоб побачити, що переважало в кожен момент.",
+        "active_transfers_hint": "Тривають передачі RNCP та синхронізації файлів. Байти враховуються в міру передавання.",
+        "active_transfers": "Активні передачі",
         "hints": {
+            "active_transfers": "Активних передач: {count}.",
             "flood_warning": "Стабільно високий трафік на {component}: {kbps} КБ/с. Перевірте цикл повторів або зависла відправка.",
             "idle": "Interface traffic is near zero. Nothing is moving beyond occasional keepalives.",
             "transport_mode": "Transport mode is on: most traffic ({tx_bps} B/s up, {rx_bps} B/s down) is forwarding other nodes on the network.",
@@ -5520,6 +5526,8 @@
         "peer": "Peer",
         "data": "Data",
         "components": {
+            "filesync": "Синхронізація файлів",
+            "rncp": "RNCP",
             "lxmf": "LXMF",
             "rrc": "RRC hub",
             "nomadnet": "NomadNet",

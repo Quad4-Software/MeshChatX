@@ -5497,7 +5497,13 @@
         "propagated": "Propagated",
         "load_failed": "Failed to load traffic stats.",
         "measurement_note": "Rates are computed from Reticulum interface counters and component reports. Component numbers are payload bytes. The wire adds protocol overhead, which shows up under the residual row.",
+        "peers_note": "按字节显示 {total} 个对等节点中的前 {shown} 个。",
+        "driven_by": "主要是 {component}",
+        "chart_hint": "将鼠标悬停在图表上可查看每个时间点的主要来源。",
+        "active_transfers_hint": "正在进行中的 RNCP 和文件同步传输。字节数随传输进度统计。",
+        "active_transfers": "活动传输",
         "hints": {
+            "active_transfers": "{count} 个传输进行中。",
             "flood_warning": "持续高流量：{component}：{kbps} KB/s。请检查是否存在重试循环或发送卡住。",
             "idle": "Interface traffic is near zero. Nothing is moving beyond occasional keepalives.",
             "transport_mode": "Transport mode is on: most traffic ({tx_bps} B/s up, {rx_bps} B/s down) is forwarding other nodes on the network.",
@@ -5520,6 +5526,8 @@
         "peer": "Peer",
         "data": "Data",
         "components": {
+            "filesync": "文件同步",
+            "rncp": "RNCP",
             "lxmf": "LXMF",
             "rrc": "RRC hub",
             "nomadnet": "NomadNet",

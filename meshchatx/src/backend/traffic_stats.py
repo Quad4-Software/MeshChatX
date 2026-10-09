@@ -28,13 +28,22 @@ COMPONENT_LXMF = "lxmf"
 COMPONENT_RRC = "rrc"
 COMPONENT_NOMADNET = "nomadnet"
 COMPONENT_CRAWLER = "crawler"
+COMPONENT_RNCP = "rncp"
+COMPONENT_FILESYNC = "filesync"
 
 _COMPONENT_LABELS = {
     COMPONENT_LXMF: "LXMF messaging",
     COMPONENT_RRC: "RRC hubs",
     COMPONENT_NOMADNET: "NomadNet pages",
     COMPONENT_CRAWLER: "NomadNet crawler",
+    COMPONENT_RNCP: "RNCP transfers",
+    COMPONENT_FILESYNC: "File sync",
 }
+
+# Active transfer registry bounds. Entries leave on finish; the cap and the
+# stale sweep protect against a missed finish call.
+MAX_TRANSFERS = 32
+TRANSFER_STALE_S = 600.0
 
 _MAX_HISTORY = 120
 
@@ -107,6 +116,10 @@ class TrafficStats:
         # interface stats path so the guard thread never touches RNS RPC.
         self._iface_sample_at = 0.0
         self._iface_totals: tuple[int, int] | None = None
+        # Active transfers: components push progress here so the Traffic
+        # page can show in-flight work and byte attribution stays in one
+        # place (deltas are metered as progress arrives).
+        self._transfers: dict[str, dict] = {}
 
     def start_flood_guard(self) -> None:
         """Start the background flood detector once per meter."""
@@ -197,6 +210,133 @@ class TrafficStats:
             "outbound" if direction == "tx" else "inbound",
         )
         return entry
+
+    # -- active transfers --------------------------------------------------
+
+    def transfer_progress(
+        self,
+        transfer_id: str,
+        *,
+        kind: str,
+        direction: str = "tx",
+        peer: str | None = None,
+        done: int | None = None,
+        total: int | None = None,
+        progress: float | None = None,
+        label: str | None = None,
+    ) -> None:
+        """Report transfer progress and meter the byte delta.
+
+        Components call this from their existing progress callbacks. The
+        delta since the previous report is attributed to kind, so the
+        component table and the transfer list cannot disagree.
+        """
+        if not transfer_id or not kind:
+            return
+        now = time.monotonic()
+        delta = 0
+        with self._lock:
+            entry = self._transfers.get(transfer_id)
+            if entry is None:
+                entry = {
+                    "id": transfer_id,
+                    "kind": kind,
+                    "direction": "rx" if direction == "rx" else "tx",
+                    "peer": peer,
+                    "label": label,
+                    "total": None,
+                    "done": 0,
+                    "progress": 0.0,
+                    "started_at": time.time(),
+                }
+                self._transfers[transfer_id] = entry
+                self._prune_transfers_locked(now)
+            if peer:
+                entry["peer"] = peer
+            if label:
+                entry["label"] = label
+            if direction:
+                entry["direction"] = "rx" if direction == "rx" else "tx"
+            if total is not None:
+                try:
+                    entry["total"] = max(0, int(total))
+                except (TypeError, ValueError):
+                    pass
+            if done is not None:
+                try:
+                    done_i = max(0, int(done))
+                except (TypeError, ValueError):
+                    done_i = None
+                if done_i is not None:
+                    delta = max(0, done_i - int(entry.get("done") or 0))
+                    entry["done"] = max(int(entry.get("done") or 0), done_i)
+            if progress is not None:
+                try:
+                    entry["progress"] = min(1.0, max(0.0, float(progress)))
+                except (TypeError, ValueError):
+                    pass
+            elif entry.get("total"):
+                entry["progress"] = min(
+                    1.0,
+                    float(entry.get("done") or 0) / float(entry["total"]),
+                )
+            entry["updated_at"] = time.time()
+        if delta:
+            if entry.get("direction") == "rx":
+                self.record(kind, rx=delta, peer=entry.get("peer"))
+            else:
+                self.record(kind, tx=delta, peer=entry.get("peer"))
+
+    def transfer_finished(self, transfer_id: str) -> None:
+        """Drop a finished transfer from the active list."""
+        if not transfer_id:
+            return
+        with self._lock:
+            self._transfers.pop(transfer_id, None)
+
+    def active_transfers(self) -> list[dict]:
+        with self._lock:
+            return self._active_transfers_locked()
+
+    def _active_transfers_locked(self) -> list[dict]:
+        """Caller holds _lock. snapshot() also builds payloads under it."""
+        self._prune_transfers_locked(time.monotonic())
+        entries = [
+            {
+                "id": entry.get("id"),
+                "kind": entry.get("kind"),
+                "label": entry.get("label")
+                or _COMPONENT_LABELS.get(entry.get("kind"), entry.get("kind")),
+                "direction": entry.get("direction"),
+                "peer": entry.get("peer"),
+                "done": int(entry.get("done") or 0),
+                "total": entry.get("total"),
+                "progress": round(float(entry.get("progress") or 0.0), 3),
+                "started_at": entry.get("started_at"),
+            }
+            for entry in self._transfers.values()
+        ]
+        entries.sort(key=lambda e: e.get("started_at") or 0.0, reverse=True)
+        return entries
+
+    def _prune_transfers_locked(self, now_monotonic: float) -> None:
+        """Caller holds _lock. Drop stale entries, then cap the registry."""
+        cutoff = time.time() - TRANSFER_STALE_S
+        stale = [
+            tid
+            for tid, entry in self._transfers.items()
+            if (entry.get("updated_at") or entry.get("started_at") or 0.0) < cutoff
+        ]
+        for tid in stale:
+            self._transfers.pop(tid, None)
+        if len(self._transfers) <= MAX_TRANSFERS:
+            return
+        ordered = sorted(
+            self._transfers.items(),
+            key=lambda item: item[1].get("started_at") or 0.0,
+        )
+        for tid, _entry in ordered[: len(self._transfers) - MAX_TRANSFERS]:
+            self._transfers.pop(tid, None)
 
     def recent_warnings(self) -> list[dict]:
         with self._flood_warn_lock:
@@ -323,14 +463,26 @@ class TrafficStats:
             self._last_totals.tx = total_tx
             self._last_totals.rx = total_rx
             self._last_sample_at = now
+            self._last_payload = self._build_payload(elapsed_override=elapsed)
+            # History entries carry the dominant component so the chart
+            # tooltip can name what was driving each point in time.
+            top_id = None
+            top_bps = 0.0
+            for row in self._last_payload.get("components") or []:
+                rate = (row.get("tx_bps") or 0.0) + (row.get("rx_bps") or 0.0)
+                if rate > top_bps:
+                    top_id = row.get("id")
+                    top_bps = rate
             self._history.append(
                 {
                     "t": time.time(),
                     "tx_bps": self._total_rates["tx_bps"],
                     "rx_bps": self._total_rates["rx_bps"],
+                    "top": top_id if top_bps >= 1.0 else None,
+                    "top_bps": round(top_bps, 1),
                 }
             )
-            self._last_payload = self._build_payload(elapsed_override=elapsed)
+            self._last_payload["history"] = list(self._history)
             return self._last_payload
 
     def _diff_interfaces(self, rows: list[dict], elapsed) -> list[dict]:
@@ -461,6 +613,8 @@ class TrafficStats:
             "interfaces": list(self._interface_rates),
             "components": components,
             "peers": peers,
+            "peers_total": len(self._peers),
+            "transfers": self._active_transfers_locked(),
             "totals": totals,
             "residual": residual,
             "history": list(self._history),
@@ -502,6 +656,21 @@ def compute_hints(payload: dict, app) -> list[dict]:
     interfaces = payload.get("interfaces") or []
     tx_bps = totals.get("tx_bps") or 0.0
     rx_bps = totals.get("rx_bps") or 0.0
+
+    # In-flight transfers explain an active burst better than any rate.
+    transfers = payload.get("transfers") or []
+    if transfers:
+        kinds = sorted({t.get("kind") for t in transfers if t.get("kind")})
+        hints.append(
+            {
+                "id": "active_transfers",
+                "severity": "info",
+                "params": {
+                    "count": len(transfers),
+                    "kinds": ", ".join(kinds),
+                },
+            },
+        )
 
     # Flood warnings lead: they explain why the numbers were high and what
     # to check, and stay visible after a burst ends.

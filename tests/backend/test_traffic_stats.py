@@ -6,9 +6,13 @@ import time
 
 from meshchatx.src.backend.traffic_stats import (
     COMPONENT_CRAWLER,
+    COMPONENT_FILESYNC,
     COMPONENT_LXMF,
     COMPONENT_NOMADNET,
+    COMPONENT_RNCP,
     COMPONENT_RRC,
+    MAX_TRANSFERS,
+    TRANSFER_STALE_S,
     TrafficStats,
     compute_hints,
 )
@@ -399,3 +403,108 @@ def test_snapshot_warns_on_hot_interface_totals(caplog):
     assert payload["warnings"]
     assert payload["warnings"][0]["component"] == "total"
     assert "total" in caplog.text or "KB/s" in caplog.text
+
+
+def test_transfer_progress_meters_deltas_and_lists_active():
+    meter = TrafficStats()
+    meter.transfer_progress(
+        "t1",
+        kind=COMPONENT_RNCP,
+        peer="ab" * 16,
+        done=1000,
+        total=5000,
+    )
+    rows = meter.active_transfers()
+    assert len(rows) == 1
+    assert rows[0]["kind"] == COMPONENT_RNCP
+    assert rows[0]["direction"] == "tx"
+    assert rows[0]["done"] == 1000
+    assert rows[0]["total"] == 5000
+    assert rows[0]["progress"] == 0.2
+    assert rows[0]["label"] == "RNCP transfers"
+
+    # A later report meters only the delta, not the cumulative total.
+    meter.transfer_progress("t1", kind=COMPONENT_RNCP, done=3000)
+    payload = meter.snapshot([_iface("i0", txb=0, rxb=0)])
+    rncp = {c["id"]: c for c in payload["components"]}[COMPONENT_RNCP]
+    assert rncp["tx_bytes"] == 3000
+    assert payload["transfers"][0]["done"] == 3000
+
+    meter.transfer_finished("t1")
+    assert meter.active_transfers() == []
+    # Sub-second polls reuse the last payload, so wait for a fresh sample.
+    time.sleep(0.3)
+    payload = meter.snapshot([_iface("i0", txb=0, rxb=0)])
+    assert payload["transfers"] == []
+    rncp = {c["id"]: c for c in payload["components"]}[COMPONENT_RNCP]
+    assert rncp["tx_bytes"] == 3000
+
+
+def test_transfer_receive_direction_meters_rx():
+    meter = TrafficStats()
+    meter.transfer_progress(
+        "rx1",
+        kind=COMPONENT_FILESYNC,
+        direction="rx",
+        done=2048,
+        total=4096,
+    )
+    payload = meter.snapshot([_iface("i0", txb=0, rxb=0)])
+    filesync = {c["id"]: c for c in payload["components"]}[COMPONENT_FILESYNC]
+    assert filesync["rx_bytes"] == 2048
+    assert filesync["tx_bytes"] == 0
+    assert payload["transfers"][0]["direction"] == "rx"
+
+
+def test_transfer_fraction_progress_without_bytes():
+    meter = TrafficStats()
+    meter.transfer_progress(
+        "f1",
+        kind=COMPONENT_FILESYNC,
+        direction="tx",
+        progress=0.75,
+    )
+    rows = meter.active_transfers()
+    assert rows[0]["progress"] == 0.75
+    assert rows[0]["done"] == 0
+    payload = meter.snapshot([_iface("i0", txb=0, rxb=0)])
+    # No byte reports: nothing is attributed for this transfer.
+    assert payload["components"] == []
+
+
+def test_transfer_stale_entries_pruned():
+    meter = TrafficStats()
+    meter.transfer_progress("old", kind=COMPONENT_RNCP, done=10, total=10)
+    with meter._lock:
+        meter._transfers["old"]["updated_at"] = time.time() - TRANSFER_STALE_S - 5
+    assert meter.active_transfers() == []
+
+
+def test_transfer_registry_capped():
+    meter = TrafficStats()
+    for i in range(MAX_TRANSFERS + 5):
+        meter.transfer_progress("t" + str(i), kind=COMPONENT_RNCP, done=1, total=1)
+    assert len(meter.active_transfers()) <= MAX_TRANSFERS
+
+
+def test_history_entries_carry_top_component():
+    meter = TrafficStats()
+    meter.record(COMPONENT_LXMF, tx=1)
+    meter.snapshot([_iface("i0", txb=0, rxb=0)])
+    time.sleep(0.3)
+    meter.record(COMPONENT_LXMF, tx=4096)
+    payload = meter.snapshot([_iface("i0", txb=4096, rxb=0)])
+    assert payload["history"]
+    assert payload["history"][-1]["top"] == COMPONENT_LXMF
+    assert payload["history"][-1]["top_bps"] > 0
+
+
+def test_hint_active_transfers():
+    meter = TrafficStats()
+    meter.transfer_progress("t1", kind=COMPONENT_RNCP, done=10, total=100)
+    payload = meter.snapshot([_iface("i0", txb=1000, rxb=1000)])
+    hints = compute_hints(payload, _App(_Ctx()))
+    active = [h for h in hints if h["id"] == "active_transfers"]
+    assert active
+    assert active[0]["params"]["count"] == 1
+    assert "rncp" in active[0]["params"]["kinds"]

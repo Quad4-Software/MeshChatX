@@ -69,7 +69,10 @@
                     </div>
                 </div>
 
-                <div v-if="sparklineTx || sparklineRx" class="rounded-xl border border-sem-border bg-sem-surface p-4">
+                <div
+                    v-if="sparklineTx || sparklineRx"
+                    class="relative rounded-xl border border-sem-border bg-sem-surface p-4"
+                >
                     <div class="flex items-center justify-between gap-3">
                         <h2 class="text-sm font-semibold text-sem-fg">{{ $t("traffic.recent_activity") }}</h2>
                         <div class="flex items-center gap-4 text-[10px] text-sem-fg-muted">
@@ -92,7 +95,17 @@
                             <span class="tabular-nums">{{ lastUpdatedLabel }}</span>
                         </div>
                     </div>
-                    <svg class="mt-2 h-20 w-full" viewBox="0 0 320 80" preserveAspectRatio="none">
+                    <p class="mt-1 text-[10px] text-sem-fg-muted">{{ $t("traffic.chart_hint") }}</p>
+                    <svg
+                        class="mt-2 h-20 w-full cursor-crosshair touch-none"
+                        viewBox="0 0 320 80"
+                        preserveAspectRatio="none"
+                        @mousemove="onSparkMove"
+                        @mouseleave="onSparkLeave"
+                        @touchstart="onSparkMove"
+                        @touchmove="onSparkMove"
+                        @touchend="onSparkLeave"
+                    >
                         <line
                             v-for="y in [20, 40, 60]"
                             :key="y"
@@ -135,7 +148,38 @@
                             stroke-linejoin="round"
                         />
                         <line x1="0" y1="79" x2="320" y2="79" stroke="var(--mc-border)" stroke-width="1" />
+                        <template v-if="sparkHover">
+                            <line
+                                :x1="sparkHover.x"
+                                y1="0"
+                                :x2="sparkHover.x"
+                                y2="79"
+                                stroke="var(--mc-fg-muted)"
+                                stroke-width="0.5"
+                                stroke-dasharray="2 2"
+                            />
+                            <circle :cx="sparkHover.x" :cy="sparkHover.yTx" r="2.5" fill="var(--mc-warning)" />
+                            <circle :cx="sparkHover.x" :cy="sparkHover.yRx" r="2.5" fill="var(--mc-info)" />
+                        </template>
                     </svg>
+                    <div
+                        v-if="sparkHover"
+                        class="pointer-events-none absolute top-16 z-10 w-44 rounded-lg border border-sem-border bg-sem-surface p-2 text-xs shadow-lg"
+                        :style="sparkTooltipStyle"
+                    >
+                        <div class="text-sem-fg-muted">{{ sparkHover.time }}</div>
+                        <div class="mt-1 flex items-center justify-between gap-2 text-sem-fg">
+                            <span class="text-sem-warning">{{ $t("traffic.upload") }}</span>
+                            <span class="tabular-nums">{{ formatRate(sparkHover.tx_bps) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-2 text-sem-fg">
+                            <span class="text-sem-info">{{ $t("traffic.download") }}</span>
+                            <span class="tabular-nums">{{ formatRate(sparkHover.rx_bps) }}</span>
+                        </div>
+                        <div v-if="sparkHover.topLabel" class="mt-1 border-t border-sem-border pt-1 text-sem-fg-muted">
+                            {{ $t("traffic.driven_by", { component: sparkHover.topLabel }) }}
+                        </div>
+                    </div>
                 </div>
 
                 <div v-if="hints.length" class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-2">
@@ -152,6 +196,50 @@
                                 :class="hint.severity === 'warning' ? 'text-sem-danger' : 'text-sem-warning'"
                             />
                             <span>{{ hintText(hint) }}</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div
+                    v-if="transferRows.length"
+                    class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-3"
+                >
+                    <h2 class="text-sm font-semibold text-sem-fg">
+                        {{ $t("traffic.active_transfers") }}
+                    </h2>
+                    <p class="text-xs text-sem-fg-muted">{{ $t("traffic.active_transfers_hint") }}</p>
+                    <ul class="space-y-3">
+                        <li v-for="row in transferRows" :key="row.id" class="space-y-1.5">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="truncate text-sm text-sem-fg" :title="row.label">
+                                        {{ row.label || componentLabel(row.kind) }}
+                                    </div>
+                                    <div
+                                        v-if="row.peer"
+                                        class="truncate font-mono text-xs text-sem-fg-muted"
+                                        :title="row.peer"
+                                    >
+                                        {{ row.peer }}
+                                    </div>
+                                </div>
+                                <div class="shrink-0 text-right text-xs tabular-nums">
+                                    <div :class="row.direction === 'rx' ? 'text-sem-info' : 'text-sem-warning'">
+                                        {{ row.direction === "rx" ? $t("traffic.download") : $t("traffic.upload") }}
+                                        {{ Math.round((row.progress || 0) * 100) }}%
+                                    </div>
+                                    <div v-if="row.total" class="text-sem-fg-muted">
+                                        {{ formatBytes(row.done) }} / {{ formatBytes(row.total) }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="h-1.5 overflow-hidden rounded bg-sem-surface-muted">
+                                <div
+                                    class="h-full transition-[width] duration-300"
+                                    :class="row.direction === 'rx' ? 'bg-sem-info' : 'bg-sem-warning'"
+                                    :style="{ width: Math.round((row.progress || 0) * 100) + '%' }"
+                                ></div>
+                            </div>
                         </li>
                     </ul>
                 </div>
@@ -205,6 +293,7 @@
                 <div v-if="peerRows.length" class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-3">
                     <h2 class="text-sm font-semibold text-sem-fg">{{ $t("traffic.by_peer") }}</h2>
                     <p class="text-xs text-sem-fg-muted">{{ $t("traffic.by_peer_hint") }}</p>
+                    <p v-if="peersNote" class="text-xs text-sem-fg-muted">{{ peersNote }}</p>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead>
@@ -306,6 +395,7 @@ export default {
             isRefreshing: false,
             pollTimer: null,
             paused: false,
+            sparkHover: null,
         };
     },
     computed: {
@@ -318,17 +408,80 @@ export default {
         peerRows() {
             return this.data?.peers || [];
         },
+        // Both series share one vertical scale so their heights compare
+        // honestly. Per-series scaling made a trickle look like a flood.
+        sparkGeometry() {
+            const rows = this.data?.history || [];
+            if (rows.length < 2) {
+                return { tx: null, rx: null, areaTx: null, areaRx: null, max: 1, rows };
+            }
+            let max = 1;
+            for (const row of rows) {
+                max = Math.max(max, row.tx_bps || 0, row.rx_bps || 0);
+            }
+            const points = (field) =>
+                rows
+                    .map((row, i) => {
+                        const x = (i / (rows.length - 1)) * 320;
+                        const y = 78 - ((row[field] || 0) / max) * 72;
+                        return `${x.toFixed(1)},${y.toFixed(1)}`;
+                    })
+                    .join(" ");
+            const tx = points("tx_bps");
+            const rx = points("rx_bps");
+            return {
+                tx,
+                rx,
+                areaTx: `0,79 ${tx} 320,79`,
+                areaRx: `0,79 ${rx} 320,79`,
+                max,
+                rows,
+            };
+        },
         sparklineTx() {
-            return this.sparkPoints("tx_bps");
+            return this.sparkGeometry.tx;
         },
         sparklineRx() {
-            return this.sparkPoints("rx_bps");
+            return this.sparkGeometry.rx;
         },
         sparkAreaTx() {
-            return this.sparkArea("tx_bps");
+            return this.sparkGeometry.areaTx;
         },
         sparkAreaRx() {
-            return this.sparkArea("rx_bps");
+            return this.sparkGeometry.areaRx;
+        },
+        transferRows() {
+            return this.data?.transfers || [];
+        },
+        componentLabels() {
+            const map = {};
+            for (const row of this.data?.components || []) {
+                if (row.id) {
+                    map[row.id] = row.label || row.id;
+                }
+            }
+            return map;
+        },
+        peersNote() {
+            const total = this.data?.peers_total || 0;
+            const shown = this.peerRows.length;
+            if (!total || total <= shown) {
+                return "";
+            }
+            return this.$t("traffic.peers_note", { shown, total });
+        },
+        sparkTooltipStyle() {
+            const pct = this.sparkHover?.pct ?? 0;
+            let translate = "-50%";
+            if (pct < 18) {
+                translate = "0";
+            } else if (pct > 82) {
+                translate = "-100%";
+            }
+            return {
+                left: `${pct}%`,
+                transform: `translateX(${translate})`,
+            };
         },
         lastUpdatedLabel() {
             const t = this.data?.updated_at;
@@ -340,7 +493,15 @@ export default {
     async mounted() {
         await this.refresh();
         this.pollTimer = setInterval(() => {
-            if (!this.paused) this.refresh();
+            if (this.paused) {
+                return;
+            }
+            // A hidden tab has no reader: skip the poll instead of paying
+            // for a full payload every interval.
+            if (typeof document !== "undefined" && document.hidden) {
+                return;
+            }
+            this.refresh();
         }, POLL_MS);
     },
     beforeUnmount() {
@@ -367,14 +528,60 @@ export default {
                 this.isRefreshing = false;
             }
         },
-        sparkMax(field) {
-            const rows = this.data?.history || [];
-            return Math.max(...rows.map((r) => r[field] || 0), 1);
-        },
         sparkPeak(field) {
             const rows = this.data?.history || [];
             if (!rows.length) return 0;
             return Math.max(...rows.map((r) => r[field] || 0));
+        },
+        onSparkMove(event) {
+            const rows = this.sparkGeometry.rows;
+            if (rows.length < 2) {
+                this.sparkHover = null;
+                return;
+            }
+            const svg = event.currentTarget;
+            const rect = svg?.getBoundingClientRect?.();
+            if (!rect || !rect.width) {
+                return;
+            }
+            const touch = event.touches && event.touches[0];
+            const clientX = touch ? touch.clientX : event.clientX;
+            if (typeof clientX !== "number") {
+                return;
+            }
+            const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+            const index = Math.round(ratio * (rows.length - 1));
+            const row = rows[index];
+            if (!row) {
+                return;
+            }
+            const max = this.sparkGeometry.max;
+            const y = (value) => 78 - ((value || 0) / max) * 72;
+            const at = row.t
+                ? new Date(row.t * 1000).toLocaleTimeString()
+                : this.$t("traffic.updated_seconds_ago", { s: 0 });
+            this.sparkHover = {
+                index,
+                pct: ratio * 100,
+                x: (index / (rows.length - 1)) * 320,
+                yTx: y(row.tx_bps),
+                yRx: y(row.rx_bps),
+                tx_bps: row.tx_bps || 0,
+                rx_bps: row.rx_bps || 0,
+                time: at,
+                topLabel: row.top ? this.componentLabel(row.top) : "",
+            };
+        },
+        onSparkLeave() {
+            this.sparkHover = null;
+        },
+        componentLabel(id) {
+            if (!id) {
+                return "";
+            }
+            const key = `traffic.components.${id}`;
+            const translated = this.$t(key);
+            return translated === key ? this.componentLabels[id] || id : translated;
         },
         togglePause() {
             this.paused = !this.paused;
@@ -391,35 +598,11 @@ export default {
             return Math.max(0, total - overhead);
         },
         peerComponentLabels(row) {
-            const order = ["lxmf", "rrc", "nomadnet", "crawler"];
-            const labels = {
-                lxmf: this.$t("traffic.components.lxmf"),
-                rrc: this.$t("traffic.components.rrc"),
-                nomadnet: this.$t("traffic.components.nomadnet"),
-                crawler: this.$t("traffic.components.crawler"),
-            };
             const comps = row.components || {};
-            return order
+            return Object.keys(comps)
                 .filter((k) => comps[k] && (comps[k].tx || comps[k].rx))
-                .map((k) => labels[k] || k)
+                .map((k) => this.componentLabel(k))
                 .join(", ");
-        },
-        sparkPoints(field) {
-            const rows = this.data?.history || [];
-            if (rows.length < 2) return null;
-            const max = this.sparkMax(field);
-            return rows
-                .map((r, i) => {
-                    const x = (i / (rows.length - 1)) * 320;
-                    const y = 78 - ((r[field] || 0) / max) * 72;
-                    return `${x.toFixed(1)},${y.toFixed(1)}`;
-                })
-                .join(" ");
-        },
-        sparkArea(field) {
-            const points = this.sparkPoints(field);
-            if (!points) return null;
-            return `0,79 ${points} 320,79`;
         },
         formatBytes(value) {
             return Utils.formatBytes(value || 0);

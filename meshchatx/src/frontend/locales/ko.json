@@ -5497,7 +5497,13 @@
         "propagated": "Propagated",
         "load_failed": "Failed to load traffic stats.",
         "measurement_note": "Rates are computed from Reticulum interface counters and component reports. Component numbers are payload bytes. The wire adds protocol overhead, which shows up under the residual row.",
+        "peers_note": "바이트 기준으로 {total}개 피어 중 상위 {shown}개를 표시합니다.",
+        "driven_by": "주로 {component}",
+        "chart_hint": "그래프 위에 마우스를 올리면 각 시점을 주도한 항목을 볼 수 있습니다.",
+        "active_transfers_hint": "진행 중인 RNCP 및 파일 동기화 전송입니다. 바이트는 진행되는 대로 집계됩니다.",
+        "active_transfers": "활성 전송",
         "hints": {
+            "active_transfers": "{count}개 전송이 진행 중입니다.",
             "flood_warning": "지속적인 높은 트래픽: {component}: {kbps} KB/s. 재시도 루프나 멈춘 전송이 있는지 확인하세요.",
             "idle": "Interface traffic is near zero. Nothing is moving beyond occasional keepalives.",
             "transport_mode": "Transport mode is on: most traffic ({tx_bps} B/s up, {rx_bps} B/s down) is forwarding other nodes on the network.",
@@ -5520,6 +5526,8 @@
         "peer": "Peer",
         "data": "Data",
         "components": {
+            "filesync": "파일 동기화",
+            "rncp": "RNCP",
             "lxmf": "LXMF",
             "rrc": "RRC hub",
             "nomadnet": "NomadNet",

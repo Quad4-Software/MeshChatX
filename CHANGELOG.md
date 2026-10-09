@@ -3,9 +3,12 @@
 ### Added
 
 - Traffic tools: sustained high traffic now raises a warning in the log and on the Traffic page, naming the component (LXMF, RRC, NomadNet, crawler) or the wire total when the load is announces, path requests, or forwarding. Warnings are rate limited so a flood cannot flood the log.
+- Traffic tools: active transfers now show with progress, covering RNCP file transfers and file sync. Their bytes are metered as they move, so the component table names them instead of hiding them in the residual row.
+- Traffic tools: hovering the chart shows the upload and download rates at that point in time and which component was driving them. Both series now share one vertical scale so their heights compare honestly.
 
 ### Fixed
 
+- Relay chat: the available rooms section remembers whether it was collapsed or expanded when you navigate away and come back. Mount time auto-selection no longer overwrites the saved layout before it is restored.
 - Relay chat: unreachable hubs no longer spray mesh wide path requests while the reconnect backoff grows. Each hub gets a small burst for the first attempt, then at most one request per minute.
 - Settings: the auto announce interval and the propagation auto sync interval now clamp to a one minute minimum instead of accepting sub-minute values that turn announces and mailbox syncs into mesh wide storms.
 - Relay chat: the log now names the hub when a send budget blocks, warns when a message keeps getting redelivered, and reports how many held messages a rejoin resent.

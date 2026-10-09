@@ -5497,7 +5497,13 @@
         "propagated": "Propagated",
         "load_failed": "Failed to load traffic stats.",
         "measurement_note": "Rates are computed from Reticulum interface counters and component reports. Component numbers are payload bytes. The wire adds protocol overhead, which shows up under the residual row.",
+        "peers_note": "De top {shown} van {total} peers op bytes.",
+        "driven_by": "Vooral {component}",
+        "chart_hint": "Beweeg over de grafiek om te zien wat elk moment aandreef.",
+        "active_transfers_hint": "Lopende RNCP- en bestandssynchronisatie-overdrachten. Bytes worden geteld terwijl ze gaan.",
+        "active_transfers": "Actieve overdrachten",
         "hints": {
+            "active_transfers": "{count} overdracht(en) bezig.",
             "flood_warning": "Aanhoudend hoog verkeer op {component}: {kbps} KB/s. Controleer op een herhaallus of een vastgelopen verzender.",
             "idle": "Interface traffic is near zero. Nothing is moving beyond occasional keepalives.",
             "transport_mode": "Transport mode is on: most traffic ({tx_bps} B/s up, {rx_bps} B/s down) is forwarding other nodes on the network.",
@@ -5520,6 +5526,8 @@
         "peer": "Peer",
         "data": "Data",
         "components": {
+            "filesync": "Bestandssynchronisatie",
+            "rncp": "RNCP",
             "lxmf": "LXMF",
             "rrc": "RRC hub",
             "nomadnet": "NomadNet",
