@@ -10722,6 +10722,7 @@ class ReticulumMeshChat:
         reaction_emoji: str | None = None,
         app_extensions: dict | None = None,
         no_display: bool = False,
+        timestamp: float | None = None,
         context=None,
     ) -> LXMF.LXMessage:
         ctx = context or self.current_context
@@ -10893,6 +10894,11 @@ class ReticulumMeshChat:
             title=title,
             desired_method=desired_delivery_method,
         )
+        # Resends pin the original timestamp so the wire payload hashes
+        # identically to the first attempt and dedupes downstream instead
+        # of arriving as a copy stamped at retry time.
+        if isinstance(timestamp, (int, float)) and timestamp > 0:
+            lxmf_message.timestamp = float(timestamp)
         # Telemetry payloads are ephemeral. Falling back to propagation burns a
         # stamp PoW round on every failed opportunistic send (the tracking loop
         # fires once a minute) and only ever delivers stale location pings.
@@ -11784,13 +11790,18 @@ class ReticulumMeshChat:
                             file_attachments,
                         )
 
-                    # send new message with failed message content
+                    # send new message with failed message content. Title
+                    # and timestamp carry over so a payload that rebuilds
+                    # identically keeps the original message hash and
+                    # dedupes at receivers and propagation nodes.
                     new_message = await self.send_message(
                         failed_message["destination_hash"],
                         failed_message["content"],
                         image_field=image_field,
                         audio_field=audio_field,
                         file_attachments_field=file_attachments_field,
+                        title=failed_message.get("title") or "",
+                        timestamp=failed_message.get("timestamp"),
                         context=ctx,
                     )
 
@@ -11802,21 +11813,29 @@ class ReticulumMeshChat:
                         continue
 
                     new_hash = new_message.hash.hex()
+
+                    if new_hash != message_hash:
+                        ctx.database.messages.delete_lxmf_message_by_hash(message_hash)
+
+                        # tell all websocket clients that old failed message was deleted so it can remove from ui
+                        await self.websocket_broadcast(
+                            json.dumps(
+                                {
+                                    "type": "lxmf_message_deleted",
+                                    "hash": message_hash,
+                                },
+                            ),
+                        )
+                    else:
+                        # An identical resend carries the original hash. The
+                        # upsert's terminal-state guard keeps the row marked
+                        # failed, so replace it to reopen delivery tracking.
+                        ctx.database.messages.delete_lxmf_message_by_hash(message_hash)
+                        self.db_upsert_lxmf_message(new_message, context=ctx)
+
                     ctx.database.messages.set_auto_resend_count_on_message(
                         new_hash,
                         attempt,
-                    )
-
-                    ctx.database.messages.delete_lxmf_message_by_hash(message_hash)
-
-                    # tell all websocket clients that old failed message was deleted so it can remove from ui
-                    await self.websocket_broadcast(
-                        json.dumps(
-                            {
-                                "type": "lxmf_message_deleted",
-                                "hash": message_hash,
-                            },
-                        ),
                     )
 
                 except Exception as e:

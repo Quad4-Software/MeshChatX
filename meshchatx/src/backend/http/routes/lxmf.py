@@ -857,8 +857,10 @@ def register_lxmf_routes(routes, app):
         # Stop a live in-flight copy first so the resend cannot race it. Dead
         # rows in progress states (lost object after a crash or a receipt that
         # never arrived) fall through to the same rebuild path. The resend
-        # creates a new message, so a copy still parked on a propagation node
-        # can deliver twice. That is the same tradeoff the restart sweep makes.
+        # pins the original timestamp, so a payload that rebuilds identically
+        # keeps the original message hash: a copy still parked on a
+        # propagation node then dedupes on receipt instead of delivering
+        # twice. Fields that do not round-trip still mint a new hash.
         if app.message_router is not None:
             try:
                 app.message_router.cancel_outbound(bytes.fromhex(message_hash))
@@ -914,6 +916,7 @@ def register_lxmf_routes(routes, app):
                 reaction_to_hash=reaction_to_hash,
                 reaction_emoji=reaction_emoji,
                 app_extensions=validated_app_extensions,
+                timestamp=db_lxmf_message["timestamp"],
             )
         except Exception as e:
             internal = str(e).strip()
@@ -928,17 +931,25 @@ def register_lxmf_routes(routes, app):
             return web.json_response({"message": detail}, status=status)
 
         is_local_self = app._is_self_lxmf_destination(destination_hash)
-        app.database.messages.delete_lxmf_message_by_hash(message_hash)
-        # Tell every client the old failed row is gone. The initiating client
-        # removes it locally but other sessions would keep a stale row.
-        await app.websocket_broadcast(
-            json.dumps(
-                {
-                    "type": "lxmf_message_deleted",
-                    "hash": message_hash,
-                },
-            ),
-        )
+        new_message_hash = lxmf_message.hash.hex() if lxmf_message.hash else None
+        if new_message_hash == message_hash:
+            # An identical resend carries the original hash. The upsert's
+            # terminal-state guard keeps a failed/cancelled row marked
+            # failed, so replace it to reopen delivery tracking.
+            app.database.messages.delete_lxmf_message_by_hash(message_hash)
+            app.db_upsert_lxmf_message(lxmf_message)
+        else:
+            app.database.messages.delete_lxmf_message_by_hash(message_hash)
+            # Tell every client the old failed row is gone. The initiating client
+            # removes it locally but other sessions would keep a stale row.
+            await app.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "lxmf_message_deleted",
+                        "hash": message_hash,
+                    },
+                ),
+            )
         return web.json_response(
             {
                 "lxmf_message": convert_lxmf_message_to_dict(

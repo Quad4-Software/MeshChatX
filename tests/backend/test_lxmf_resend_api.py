@@ -49,6 +49,7 @@ def _stored_row(message_hash, fields):
         "progress": 0.0,
         "delivery_attempts": 2,
         "next_delivery_attempt_at": None,
+        "timestamp": 1_700_000_000.5,
     }
 
 

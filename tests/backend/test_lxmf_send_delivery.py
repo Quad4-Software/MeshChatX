@@ -351,6 +351,107 @@ async def test_auto_resend_emits_new_hash_not_same_hash(db):
 
 
 @pytest.mark.asyncio
+async def test_auto_resend_same_hash_keeps_row(db):
+    """An identical resend upserts in place; the row must not be deleted.
+
+    When title and timestamp carry over, a payload that rebuilds the same
+    way hashes identically to the failed original and the upsert replaces
+    it. Deleting by hash afterwards would kill the live outbound row.
+    """
+    peer = "a" * 32
+    same_hash = bytes.fromhex("f" * 32)
+    _insert_row(
+        db, msg_hash=same_hash.hex(), peer=peer, content="retry", state="failed"
+    )
+    app, ctx = _bind_resend_app(db)
+
+    async def send_ok(*args, **kwargs):
+        m = MagicMock()
+        m.hash = same_hash
+        _insert_row(
+            db,
+            msg_hash=same_hash.hex(),
+            peer=peer,
+            content="retry",
+            state="outbound",
+        )
+        return m
+
+    app.send_message.side_effect = send_ok
+    # The same-hash branch replaces the row via db_upsert_lxmf_message:
+    # model it with a fresh insert of the reopened outbound row.
+    app.db_upsert_lxmf_message.side_effect = lambda *a, **kw: _insert_row(
+        db,
+        msg_hash=same_hash.hex(),
+        peer=peer,
+        content="retry",
+        state="outbound",
+    )
+    await app.resend_failed_messages_for_destination(peer, context=ctx)
+    row = db.provider.fetchone(
+        "SELECT state, fields FROM lxmf_messages WHERE hash = ?",
+        (same_hash.hex(),),
+    )
+    assert row is not None
+    assert row["state"] == "outbound"
+    assert guard.read_auto_resend_count(row["fields"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_auto_resend_passes_title_and_timestamp(db):
+    """Resend forwards the original title and timestamp for hash-stable retries."""
+    peer = "c" * 32
+    old_ts = time.time() - 3600
+    _insert_row(
+        db, msg_hash="d" * 32, peer=peer, content="retry", state="failed", ts=old_ts
+    )
+    db.provider.execute(
+        "UPDATE lxmf_messages SET title = ? WHERE hash = ?",
+        ("hello", "d" * 32),
+    )
+    app, ctx = _bind_resend_app(db)
+    m = MagicMock()
+    m.hash = bytes.fromhex("e" * 32)
+    app.send_message.return_value = m
+
+    await app.resend_failed_messages_for_destination(peer, context=ctx)
+    kwargs = app.send_message.call_args.kwargs
+    assert kwargs["title"] == "hello"
+    assert kwargs["timestamp"] == old_ts
+
+
+def test_lxmf_pack_preserves_pinned_timestamp_hash(tmp_path):
+    """Contract the resend relies on: pinned timestamp means identical hash."""
+    import RNS
+
+    try:
+        instance = RNS.Reticulum.get_instance()
+    except Exception:
+        instance = None
+    if instance is None:
+        RNS.Reticulum(configdir=str(tmp_path / "rns"), loglevel=RNS.LOG_NONE)
+
+    identity = RNS.Identity()
+    dest = RNS.Destination(
+        identity, RNS.Destination.OUT, RNS.Destination.SINGLE, "lxmf", "delivery"
+    )
+    source = RNS.Destination(
+        identity, RNS.Destination.IN, RNS.Destination.SINGLE, "lxmf", "delivery"
+    )
+    ts = 1_700_000_000.5
+    first = LXMF.LXMessage(dest, source, "body", title="t")
+    first.timestamp = ts
+    first.pack()
+    second = LXMF.LXMessage(dest, source, "body", title="t")
+    second.timestamp = ts
+    second.pack()
+    assert first.hash == second.hash
+    fresh = LXMF.LXMessage(dest, source, "body", title="t")
+    fresh.pack()
+    assert fresh.hash != first.hash
+
+
+@pytest.mark.asyncio
 async def test_propagation_fallback_clears_packed_and_requeues_same_object():
     app = ReticulumMeshChat.__new__(ReticulumMeshChat)
     ctx = MagicMock()
