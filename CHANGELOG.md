@@ -1,3 +1,5 @@
+## [4.10.7] - TBD [unreleased]
+
 ## [4.10.6] - 2026-10-09 [released]
 
 ### Fixed
