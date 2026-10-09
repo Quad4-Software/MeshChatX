@@ -1,10 +1,13 @@
 """TrafficStats meter, rate diffing, residual math, and hint computation."""
 
+import logging
+import threading
 import time
 
 from meshchatx.src.backend.traffic_stats import (
     COMPONENT_CRAWLER,
     COMPONENT_LXMF,
+    COMPONENT_NOMADNET,
     COMPONENT_RRC,
     TrafficStats,
     compute_hints,
@@ -283,3 +286,114 @@ def test_peer_rates_smoothed():
     peer = payload["peers"][0]
     assert peer["tx_bytes"] == 600
     assert 0 < peer["tx_bps"] < 2000
+
+
+def test_flood_guard_warns_above_component_threshold(caplog):
+    """A sustained component rate above the threshold logs one warning."""
+    meter = TrafficStats()
+    meter.record(COMPONENT_RRC, tx=1)
+    meter.check_flood_rates(now=100.0)  # baseline sample, no rates yet
+    # 80 KB/s for 10s: above the 64 KB/s component floor, below the
+    # 128 KB/s total floor, so exactly one warning fires.
+    meter.record(COMPONENT_RRC, tx=(80 * 1024 * 10))
+    with caplog.at_level(logging.WARNING, logger="meshchatx.traffic"):
+        emitted = meter.check_flood_rates(now=110.0)
+    assert len(emitted) == 1
+    warning = emitted[0]
+    assert warning["component"] == COMPONENT_RRC
+    assert warning["direction"] == "tx"
+    assert warning["kbps"] == 80.0
+    assert "RRC hubs" in caplog.text
+    assert meter.recent_warnings() == emitted
+
+
+def test_flood_guard_rate_limits_repeats():
+    """A second breach inside the warn window stays silent."""
+    meter = TrafficStats()
+    meter.record(COMPONENT_RRC, tx=1)
+    meter.check_flood_rates(now=100.0)
+    meter.record(COMPONENT_RRC, tx=(80 * 1024 * 10))
+    assert len(meter.check_flood_rates(now=110.0)) == 1
+    meter.record(COMPONENT_RRC, tx=(80 * 1024 * 10))
+    assert meter.check_flood_rates(now=120.0) == []
+    # After the window passes, the same breach warns again. The byte delta
+    # scales with the sampled window so the rate stays at 80 KB/s.
+    meter.record(COMPONENT_RRC, tx=(80 * 1024 * 180))
+    assert len(meter.check_flood_rates(now=300.0)) == 1
+
+
+def test_flood_guard_ignores_normal_traffic():
+    meter = TrafficStats()
+    meter.record(COMPONENT_LXMF, tx=1)
+    meter.check_flood_rates(now=100.0)
+    meter.record(COMPONENT_LXMF, tx=(16 * 1024 * 10))
+    assert meter.check_flood_rates(now=110.0) == []
+    assert meter.recent_warnings() == []
+
+
+def test_flood_guard_total_threshold_across_components():
+    """Two components under the per-component floor can still sum over."""
+    meter = TrafficStats()
+    meter.record(COMPONENT_LXMF, tx=1)
+    meter.record(COMPONENT_NOMADNET, tx=1)
+    meter.check_flood_rates(now=100.0)
+    each = 70 * 1024 * 10
+    meter.record(COMPONENT_LXMF, tx=each)
+    meter.record(COMPONENT_NOMADNET, tx=each)
+    emitted = meter.check_flood_rates(now=110.0)
+    keys = {(w["component"], w["direction"]) for w in emitted}
+    assert ("total", "tx") in keys
+    assert ("lxmf", "tx") in keys
+    assert ("nomadnet", "tx") in keys
+
+
+def test_flood_guard_payload_and_hint():
+    meter = TrafficStats()
+    meter.record(COMPONENT_RRC, tx=1)
+    meter.check_flood_rates(now=100.0)
+    meter.record(COMPONENT_RRC, tx=(80 * 1024 * 10))
+    meter.check_flood_rates(now=110.0)
+    payload = meter.snapshot([_iface("i0", txb=0, rxb=0)])
+    assert payload["warnings"]
+    hints = compute_hints(payload, _App(_Ctx()))
+    assert hints[0]["id"] == "flood_warning"
+    assert hints[0]["severity"] == "warning"
+    assert hints[0]["params"]["component"] == "RRC hubs"
+
+
+def test_flood_guard_thread_starts_once():
+    meter = TrafficStats()
+    meter.start_flood_guard()
+    meter.start_flood_guard()
+    names = [t.name for t in threading.enumerate()]
+    assert names.count("mcx-traffic-guard") == 1
+    assert meter._flood_started is True
+
+
+def test_sample_interfaces_detects_residual_flood():
+    """Wire totals above the floor warn even with zero component bytes."""
+    meter = TrafficStats()
+    meter.sample_interfaces([_iface("i0", txb=0, rxb=0)])
+    # Simulate a 10s window with 2 MiB sent: 204.8 KB/s, above the floor.
+    meter._iface_sample_at -= 10.0
+    emitted = meter.sample_interfaces([_iface("i0", txb=2 * 1024 * 1024, rxb=0)])
+    assert [(w["component"], w["direction"]) for w in emitted] == [("total", "tx")]
+    assert emitted[0]["kbps"] == 204.8
+
+
+def test_sample_interfaces_dedupes_rapid_samples():
+    meter = TrafficStats()
+    meter.sample_interfaces([_iface("i0", txb=0, rxb=0)])
+    assert meter.sample_interfaces([_iface("i0", txb=10**9, rxb=0)]) == []
+
+
+def test_snapshot_warns_on_hot_interface_totals(caplog):
+    """A UI poll of a hot wire logs the same total warning."""
+    meter = TrafficStats()
+    meter.snapshot([_iface("i0", txb=0, rxb=0)])
+    time.sleep(0.3)
+    with caplog.at_level(logging.WARNING, logger="meshchatx.traffic"):
+        payload = meter.snapshot([_iface("i0", txb=int(200 * 1024 * 0.3), rxb=0)])
+    assert payload["warnings"]
+    assert payload["warnings"][0]["component"] == "total"
+    assert "total" in caplog.text or "KB/s" in caplog.text

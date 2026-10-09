@@ -1,8 +1,15 @@
 ## [4.10.7] - TBD [unreleased]
 
+### Added
+
+- Traffic tools: sustained high traffic now raises a warning in the log and on the Traffic page, naming the component (LXMF, RRC, NomadNet, crawler) or the wire total when the load is announces, path requests, or forwarding. Warnings are rate limited so a flood cannot flood the log.
+
 ### Fixed
 
 - Relay chat: unreachable hubs no longer spray mesh wide path requests while the reconnect backoff grows. Each hub gets a small burst for the first attempt, then at most one request per minute.
+- Settings: the auto announce interval and the propagation auto sync interval now clamp to a one minute minimum instead of accepting sub-minute values that turn announces and mailbox syncs into mesh wide storms.
+- Relay chat: the log now names the hub when a send budget blocks, warns when a message keeps getting redelivered, and reports how many held messages a rejoin resent.
+- Messages: the log warns when a destination has exhausted its auto-resend budget and messages need a manual retry.
 
 ## [4.10.6] - 2026-10-09 [released]
 

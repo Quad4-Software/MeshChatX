@@ -147,8 +147,9 @@
                             class="flex items-start gap-2 text-sm text-sem-fg-muted"
                         >
                             <MaterialDesignIcon
-                                icon-name="information-outline"
-                                class="h-4 w-4 mt-0.5 shrink-0 text-sem-warning"
+                                :icon-name="hint.severity === 'warning' ? 'alert-outline' : 'information-outline'"
+                                class="h-4 w-4 mt-0.5 shrink-0"
+                                :class="hint.severity === 'warning' ? 'text-sem-danger' : 'text-sem-warning'"
                             />
                             <span>{{ hintText(hint) }}</span>
                         </li>

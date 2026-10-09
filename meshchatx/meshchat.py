@@ -3997,6 +3997,7 @@ class ReticulumMeshChat:
             return
 
         gc_counter = 0
+        iface_tick = 0
 
         while self.running and ctx.running and ctx.session_id == session_id:
             now = time.time()
@@ -4014,6 +4015,18 @@ class ReticulumMeshChat:
                 # also announce forwarding aliases if any
                 if ctx.forwarding_manager:
                     await asyncio.to_thread(ctx.forwarding_manager.announce_aliases)
+
+            # Feed the traffic flood guard a wire sample through the bounded
+            # interface stats path. Catches residual floods (announces, path
+            # requests, forwarding) that component attribution cannot see.
+            iface_tick += 1
+            if iface_tick >= 20:
+                iface_tick = 0
+                with contextlib.suppress(Exception):
+                    stats_payload = await self._aget_interface_stats_payload()
+                    traffic_stats.get_meter().sample_interfaces(
+                        stats_payload.get("interfaces") or [],
+                    )
 
             gc_counter += 1
             if gc_counter >= 300:

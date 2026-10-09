@@ -15,9 +15,13 @@ handshakes, resource framing, and transport forwarding.
 
 from __future__ import annotations
 
+import contextlib
+import logging
 import threading
 import time
 from collections import deque
+
+_log = logging.getLogger("meshchatx.traffic")
 
 # Components that report their own wire traffic.
 COMPONENT_LXMF = "lxmf"
@@ -38,6 +42,19 @@ _MAX_HISTORY = 120
 # and raw per-window rates spike to zero between bursts. EMA keeps a
 # short memory so numbers track smoothly instead of twitching.
 _EMA_ALPHA = 0.35
+
+# Flood detection: sustained rates above these thresholds log a rate
+# limited warning naming the component. Defaults sit far above healthy
+# mesh traffic (a busy TCP peer peaks in the tens of KB/s) so they only
+# trip on a genuine runaway loop or message storm.
+FLOOD_WINDOW_S = 10.0
+FLOOD_SAMPLE_INTERVAL_S = 5.0
+FLOOD_TOTAL_TX_BPS = 128 * 1024
+FLOOD_TOTAL_RX_BPS = 1024 * 1024
+FLOOD_COMPONENT_TX_BPS = 64 * 1024
+FLOOD_COMPONENT_RX_BPS = 512 * 1024
+FLOOD_WARN_MIN_INTERVAL_S = 120.0
+FLOOD_WARN_HISTORY = 16
 
 
 class _Counter:
@@ -73,6 +90,165 @@ class TrafficStats:
         self._started_at = time.time()
         self._ema: dict[str, float] = {}
         self._peers: dict[str, _Counter] = {}
+        # Flood guard state: cumulative counters sampled on an interval by
+        # the background thread so runaway traffic is logged even when no
+        # UI page is open to poll snapshots.
+        self._flood_started = False
+        self._flood_last_sample = time.monotonic()
+        self._flood_last_counters: dict[str, tuple[int, int]] = {}
+        self._flood_last_total = (0, 0)
+        self._flood_warned_at: dict[str, float] = {}
+        self._flood_warnings: deque = deque(maxlen=FLOOD_WARN_HISTORY)
+        # Separate lock: snapshot() holds the main lock and also samples
+        # totals, so the warning path must not re-enter it.
+        self._flood_warn_lock = threading.Lock()
+        # Interface counter samples for residual detection (announces, path
+        # requests, link handshakes, forwarding): fed by the app's bounded
+        # interface stats path so the guard thread never touches RNS RPC.
+        self._iface_sample_at = 0.0
+        self._iface_totals: tuple[int, int] | None = None
+
+    def start_flood_guard(self) -> None:
+        """Start the background flood detector once per meter."""
+        with self._lock:
+            if self._flood_started:
+                return
+            self._flood_started = True
+        thread = threading.Thread(
+            target=self._flood_loop,
+            daemon=True,
+            name="mcx-traffic-guard",
+        )
+        thread.start()
+
+    def _flood_loop(self) -> None:
+        while True:
+            time.sleep(FLOOD_SAMPLE_INTERVAL_S)
+            with contextlib.suppress(Exception):
+                self.check_flood_rates()
+
+    def check_flood_rates(self, now: float | None = None) -> list[dict]:
+        """Sample component rates and log rate limited flood warnings.
+
+        Returns the warnings emitted by this call. Kept callable so tests
+        and future callers can drive detection without the thread.
+        """
+        now = time.monotonic() if now is None else float(now)
+        with self._lock:
+            elapsed = max(0.001, now - self._flood_last_sample)
+            self._flood_last_sample = now
+            samples = {cid: (c.tx, c.rx) for cid, c in self._components.items()}
+            total_tx = sum(v[0] for v in samples.values())
+            total_rx = sum(v[1] for v in samples.values())
+
+        emitted = []
+        for component, (tx, rx) in samples.items():
+            prev = self._flood_last_counters.get(component)
+            if prev is None:
+                continue
+            tx_rate = max(0.0, (tx - prev[0]) / elapsed)
+            rx_rate = max(0.0, (rx - prev[1]) / elapsed)
+            if tx_rate >= FLOOD_COMPONENT_TX_BPS:
+                warning = self._emit_flood_warning(component, "tx", tx_rate, now=now)
+                if warning is not None:
+                    emitted.append(warning)
+            if rx_rate >= FLOOD_COMPONENT_RX_BPS:
+                warning = self._emit_flood_warning(component, "rx", rx_rate, now=now)
+                if warning is not None:
+                    emitted.append(warning)
+        self._flood_last_counters = samples
+
+        prev_total = self._flood_last_total
+        self._flood_last_total = (total_tx, total_rx)
+        total_tx_rate = max(0.0, (total_tx - prev_total[0]) / elapsed)
+        total_rx_rate = max(0.0, (total_rx - prev_total[1]) / elapsed)
+        emitted.extend(self._check_total_rates(total_tx_rate, total_rx_rate, now))
+        return emitted
+
+    def _emit_flood_warning(
+        self,
+        component: str,
+        direction: str,
+        rate: float,
+        now: float | None = None,
+    ):
+        key = component + ":" + direction
+        now = time.monotonic() if now is None else float(now)
+        last = self._flood_warned_at.get(key, float("-inf"))
+        if now - last < FLOOD_WARN_MIN_INTERVAL_S:
+            return None
+        self._flood_warned_at[key] = now
+        label = _COMPONENT_LABELS.get(component, component)
+        entry = {
+            "ts": time.time(),
+            "component": component,
+            "label": label,
+            "direction": direction,
+            "bps": round(rate, 1),
+            "kbps": round(rate / 1024.0, 1),
+        }
+        with self._flood_warn_lock:
+            self._flood_warnings.append(entry)
+        _log.warning(
+            "Sustained high traffic on %s: %.1f KB/s %s. "
+            "Check for a retry loop or a stuck sender.",
+            label,
+            rate / 1024.0,
+            "outbound" if direction == "tx" else "inbound",
+        )
+        return entry
+
+    def recent_warnings(self) -> list[dict]:
+        with self._flood_warn_lock:
+            return list(self._flood_warnings)
+
+    def sample_interfaces(self, interface_rows: list[dict]) -> list[dict]:
+        """Feed raw interface counter rows for residual flood detection.
+
+        Rows are the same shape snapshot() consumes. The app calls this
+        from its bounded interface stats path, so announce storms, path
+        request sprays, and transport forwarding are still caught when no
+        UI page is polling. Returns warnings emitted by this sample.
+        """
+        if not isinstance(interface_rows, list):
+            return []
+        now = time.monotonic()
+        with self._lock:
+            have_baseline = self._iface_totals is not None
+            elapsed = now - self._iface_sample_at if self._iface_sample_at else 0.0
+            if have_baseline and elapsed < FLOOD_SAMPLE_INTERVAL_S:
+                return []
+            tx = sum(
+                row.get("txb") or 0 for row in interface_rows if isinstance(row, dict)
+            )
+            rx = sum(
+                row.get("rxb") or 0 for row in interface_rows if isinstance(row, dict)
+            )
+            prev = self._iface_totals
+            self._iface_sample_at = now
+            self._iface_totals = (tx, rx)
+        if prev is None or elapsed <= 0:
+            return []
+        tx_rate = max(0.0, (tx - prev[0]) / elapsed)
+        rx_rate = max(0.0, (rx - prev[1]) / elapsed)
+        return self._check_total_rates(tx_rate, rx_rate, now)
+
+    def _check_total_rates(
+        self,
+        tx_rate: float,
+        rx_rate: float,
+        now: float | None = None,
+    ) -> list[dict]:
+        emitted = []
+        if tx_rate >= FLOOD_TOTAL_TX_BPS:
+            warning = self._emit_flood_warning("total", "tx", tx_rate, now=now)
+            if warning is not None:
+                emitted.append(warning)
+        if rx_rate >= FLOOD_TOTAL_RX_BPS:
+            warning = self._emit_flood_warning("total", "rx", rx_rate, now=now)
+            if warning is not None:
+                emitted.append(warning)
+        return emitted
 
     def _smooth(self, key: str, value: float) -> float:
         prev = self._ema.get(key)
@@ -128,16 +304,17 @@ class TrafficStats:
             total_tx = sum(row.get("txb") or 0 for row in interfaces)
             total_rx = sum(row.get("rxb") or 0 for row in interfaces)
             if elapsed:
+                raw_tx = max(0.0, (total_tx - self._last_totals.tx) / elapsed)
+                raw_rx = max(0.0, (total_rx - self._last_totals.rx) / elapsed)
                 self._total_rates = {
-                    "tx_bps": self._smooth(
-                        "tot:tx",
-                        max(0.0, (total_tx - self._last_totals.tx) / elapsed),
-                    ),
-                    "rx_bps": self._smooth(
-                        "tot:rx",
-                        max(0.0, (total_rx - self._last_totals.rx) / elapsed),
-                    ),
+                    "tx_bps": self._smooth("tot:tx", raw_tx),
+                    "rx_bps": self._smooth("tot:rx", raw_rx),
                 }
+                # A UI poll is also a sample: warn when the wire total is
+                # running hot even if the background guard is not started.
+                # Detection uses the raw rate, the smoothed rate is for
+                # display only.
+                self._check_total_rates(raw_tx, raw_rx)
             else:
                 # Seed the smoother at zero on the first sample so the first
                 # burst ramps like every other series does.
@@ -287,6 +464,7 @@ class TrafficStats:
             "totals": totals,
             "residual": residual,
             "history": list(self._history),
+            "warnings": list(self._flood_warnings),
         }
 
 
@@ -324,6 +502,21 @@ def compute_hints(payload: dict, app) -> list[dict]:
     interfaces = payload.get("interfaces") or []
     tx_bps = totals.get("tx_bps") or 0.0
     rx_bps = totals.get("rx_bps") or 0.0
+
+    # Flood warnings lead: they explain why the numbers were high and what
+    # to check, and stay visible after a burst ends.
+    hints.extend(
+        {
+            "id": "flood_warning",
+            "severity": "warning",
+            "params": {
+                "component": warning.get("label") or warning.get("component"),
+                "kbps": warning.get("kbps"),
+                "direction": warning.get("direction"),
+            },
+        }
+        for warning in reversed((payload.get("warnings") or [])[-2:])
+    )
 
     if tx_bps + rx_bps < 8:
         hints.append({"id": "idle", "severity": "info", "params": {}})
@@ -459,4 +652,5 @@ def get_meter() -> TrafficStats:
     global _meter
     if _meter is None:
         _meter = TrafficStats()
+        _meter.start_flood_guard()
     return _meter
