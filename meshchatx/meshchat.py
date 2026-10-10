@@ -84,6 +84,7 @@ from meshchatx.src.backend.auto_resend_guard import (
 from meshchatx.src.backend.colour_utils import ColourUtils
 from meshchatx.src.backend.constants import (
     API_V1_PREFIX,
+    DEFAULT_DISPLAY_NAME,
     MIN_ANNOUNCE_INTERVAL_SECONDS,
 )
 from meshchatx.src.backend.database.access_attempts import (
@@ -6548,8 +6549,18 @@ class ReticulumMeshChat:
                 validated_issuer_url = None
 
         # update display name in config
-        if "display_name" in data and data["display_name"] != "":
-            self.config.display_name.set(data["display_name"])
+        if "display_name" in data:
+            display_name = data["display_name"]
+            if isinstance(display_name, str):
+                display_name = display_name.strip()
+            if not display_name:
+                # Clearing the field means "use the default name", the same
+                # fallback identity creation and switching already apply.
+                # Dropping the empty value silently kept the old name while
+                # the settings UI reported a save that changed nothing.
+                logger.debug("display_name cleared, using the default name")
+                display_name = DEFAULT_DISPLAY_NAME
+            self.config.display_name.set(display_name)
             # Update identity metadata cache
             self.update_identity_metadata_cache()
 

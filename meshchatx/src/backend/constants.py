@@ -15,6 +15,10 @@ from enum import StrEnum
 
 API_V1_PREFIX = "/api/v1"
 
+# Every identity carries a name. Creation and switching fall back to this
+# value, and an empty display name is normalized to it.
+DEFAULT_DISPLAY_NAME = "Anonymous Peer"
+
 
 class WsInboundType(StrEnum):
     """Client-to-server WebSocket message types.

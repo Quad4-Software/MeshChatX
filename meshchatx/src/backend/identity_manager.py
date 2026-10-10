@@ -8,6 +8,7 @@ import shutil
 
 import RNS
 
+from meshchatx.src.backend.constants import DEFAULT_DISPLAY_NAME
 from meshchatx.src.backend.database.config import ConfigDAO
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.database.schema import DatabaseSchema
@@ -80,7 +81,9 @@ class IdentityManager:
                 identities.append(
                     {
                         "hash": identity_hash,
-                        "display_name": metadata.get("display_name", "Anonymous Peer"),
+                        "display_name": metadata.get(
+                            "display_name", DEFAULT_DISPLAY_NAME
+                        ),
                         "icon_name": metadata.get("icon_name"),
                         "icon_foreground_colour": metadata.get(
                             "icon_foreground_colour",
@@ -103,7 +106,7 @@ class IdentityManager:
             if not os.path.exists(db_path):
                 continue
 
-            display_name = "Anonymous Peer"
+            display_name = DEFAULT_DISPLAY_NAME
             icon_name = None
             icon_foreground_colour = None
             icon_background_colour = None
@@ -114,7 +117,9 @@ class IdentityManager:
                 temp_provider = DatabaseProvider(db_path)
                 try:
                     temp_config_dao = ConfigDAO(temp_provider)
-                    display_name = temp_config_dao.get("display_name", "Anonymous Peer")
+                    display_name = temp_config_dao.get(
+                        "display_name", DEFAULT_DISPLAY_NAME
+                    )
                     icon_name = temp_config_dao.get("lxmf_user_icon_name")
                     icon_foreground_colour = temp_config_dao.get(
                         "lxmf_user_icon_foreground_colour",
@@ -159,7 +164,9 @@ class IdentityManager:
 
     def create_identity(self, display_name=None):
         new_identity = RNS.Identity(create_keys=True)
-        return self._save_new_identity(new_identity, display_name or "Anonymous Peer")
+        return self._save_new_identity(
+            new_identity, display_name or DEFAULT_DISPLAY_NAME
+        )
 
     def _save_new_identity(self, identity, display_name):
         identity_hash = identity.hash.hex()
@@ -191,7 +198,7 @@ class IdentityManager:
         resolved_name = (
             (display_name or "").strip()
             or existing_metadata.get("display_name")
-            or "Anonymous Peer"
+            or DEFAULT_DISPLAY_NAME
         )
         metadata = {
             "display_name": resolved_name,
