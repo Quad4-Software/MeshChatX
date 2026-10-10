@@ -243,6 +243,7 @@
         "last_announced": "Ostatni anons: {time}",
         "last_announced_never": "Ostatni anons: nigdy",
         "display_name_placeholder": "Nazwa wyświetlana",
+        "display_name_required": "Nazwa wyświetlana nie może być pusta. Przywrócono zapisaną nazwę.",
         "profile": "Profil",
         "manage_identity": "Zarządzaj swoją tożsamością, udziałem w transporcie i ustawieniami domyślnymi LXMF.",
         "theme": "Motyw",

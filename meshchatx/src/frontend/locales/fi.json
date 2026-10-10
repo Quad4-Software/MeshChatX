@@ -243,6 +243,7 @@
         "last_announced": "Viimeksi kuulutettu: {time}",
         "last_announced_never": "Viimeksi kuulutettu: ei koskaan",
         "display_name_placeholder": "Näyttönimi",
+        "display_name_required": "Näyttönimi ei voi olla tyhjä. Tallennettu nimi palautettiin.",
         "profile": "Profiili",
         "manage_identity": "Hallinnoi identiteettiäsi, välitykseen osallistumista ja LXMF-oletuksia.",
         "theme": "Teema",

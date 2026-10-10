@@ -243,6 +243,7 @@
         "last_announced": "Ultimo annuncio: {time}",
         "last_announced_never": "Ultimo annuncio: Mai",
         "display_name_placeholder": "Nome Visualizzato",
+        "display_name_required": "Il nome visualizzato non può essere vuoto. È stato ripristinato il nome salvato.",
         "profile": "Profilo",
         "manage_identity": "Gestisci la tua identità, la partecipazione al trasporto e i predefiniti LXMF.",
         "theme": "Tema",

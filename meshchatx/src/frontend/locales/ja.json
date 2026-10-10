@@ -243,6 +243,7 @@
         "last_announced": "最終アナウンス：{time}",
         "last_announced_never": "最終アナウンス：なし",
         "display_name_placeholder": "表示名",
+        "display_name_required": "表示名は空にできません。保存された名前を復元しました。",
         "profile": "プロフィール",
         "manage_identity": "識別情報、トランスポートへの参加、LXMF のデフォルト設定を管理します。",
         "theme": "テーマ",

@@ -243,6 +243,7 @@
         "last_announced": "Dernière annonce : {time}",
         "last_announced_never": "Dernière annonce: Jamais",
         "display_name_placeholder": "Afficher le nom",
+        "display_name_required": "Le nom affiché ne peut pas être vide. Le nom enregistré a été restauré.",
         "profile": "Profil",
         "manage_identity": "Gérer votre identité, la participation au transport et les défauts de LXMF.",
         "theme": "Thème",

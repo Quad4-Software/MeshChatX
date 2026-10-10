@@ -243,6 +243,7 @@
         "last_announced": "마지막 애너운스: {time}",
         "last_announced_never": "마지막 애너운스: 없음",
         "display_name_placeholder": "표시 이름",
+        "display_name_required": "표시 이름은 비워 둘 수 없습니다. 저장된 이름을 복원했습니다.",
         "profile": "프로필",
         "manage_identity": "신원, 전송 참여, LXMF 기본값을 관리합니다.",
         "theme": "테마",

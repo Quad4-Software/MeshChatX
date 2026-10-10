@@ -243,6 +243,7 @@
         "last_announced": "上次广播：{time}",
         "last_announced_never": "上次广播：从未",
         "display_name_placeholder": "显示名称",
+        "display_name_required": "显示名称不能为空。已恢复保存的名称。",
         "profile": "个人资料",
         "manage_identity": "管理您的身份、传输参与和 LXMF 默认设置。",
         "theme": "主题",

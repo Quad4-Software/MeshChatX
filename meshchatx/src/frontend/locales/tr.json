@@ -243,6 +243,7 @@
         "last_announced": "Son duyuru: {time}",
         "last_announced_never": "Son duyuru: hiç",
         "display_name_placeholder": "Görünen Ad",
+        "display_name_required": "Görünen ad boş olamaz. Kayıtlı ad geri yüklendi.",
         "profile": "Profil",
         "manage_identity": "Kimliğinizi, Transport katılımınızı ve LXMF varsayılanlarını yönetin.",
         "theme": "Tema",

@@ -25,10 +25,11 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {
         success: vi.fn(),
         error: vi.fn(),
+        info: vi.fn(),
     },
 }));
 
-const axiosMock = { get: vi.fn(), post: vi.fn() };
+const axiosMock = { get: vi.fn(), post: vi.fn(), patch: vi.fn() };
 const i18n = createI18n({
     legacy: false,
     locale: "en",
@@ -154,6 +155,9 @@ describe("App.vue sidebar identity label and announce control", () => {
                 ? Promise.resolve({ data: {} })
                 : Promise.resolve({ data: {} }),
         );
+        axiosMock.patch.mockImplementation((url, body) =>
+            Promise.resolve({ data: { config: makeConfig(body) } }),
+        );
         window.localStorage?.removeItem("meshchatx.sidebar.app");
         window.localStorage?.removeItem("meshchatx.sidebar.nav_layout");
     });
@@ -172,6 +176,37 @@ describe("App.vue sidebar identity label and announce control", () => {
         await flushPromises();
         await new Promise((resolve) => setTimeout(resolve, 50));
     }
+
+    it("does not save an empty display name from the sidebar", async () => {
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        wrapper.vm.onDisplayNameUpdate("");
+        await new Promise((resolve) => setTimeout(resolve, 700));
+        expect(axiosMock.patch).not.toHaveBeenCalled();
+    });
+
+    it("restores the saved name when the sidebar field is left empty", async () => {
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        wrapper.vm.onDisplayNameUpdate("");
+        wrapper.vm.flushIdentitySave();
+        await flushPromises();
+        expect(wrapper.vm.displayName).toBe("Test User");
+        expect(ToastUtils.info).toHaveBeenCalled();
+        expect(axiosMock.patch).not.toHaveBeenCalled();
+    });
+
+    it("saves a changed display name from the sidebar", async () => {
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        wrapper.vm.onDisplayNameUpdate("Ivan");
+        wrapper.vm.flushIdentitySave();
+        await flushPromises();
+        expect(axiosMock.patch).toHaveBeenCalledWith(
+            "/api/v1/config",
+            expect.objectContaining({ display_name: "Ivan" }),
+        );
+    });
 
     it("shows configured display name instead of My Identity", async () => {
         wrapper = makeMountedApp();

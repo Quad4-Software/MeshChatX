@@ -150,6 +150,44 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { display_name: "New Name" });
     });
 
+    it("does not PATCH an empty display name", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.config.display_name = "";
+        await w.vm.onDisplayNameChange();
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(api.patch).not.toHaveBeenCalled();
+        expect(w.vm.config.display_name).toBe("");
+    });
+
+    it("cancels a queued display name save when the field is cleared", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.config.display_name = "New Name";
+        await w.vm.onDisplayNameChange();
+        w.vm.config.display_name = "";
+        await w.vm.onDisplayNameChange();
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(api.patch).not.toHaveBeenCalled();
+    });
+
+    it("restores the saved name on blur with an empty field", async () => {
+        const w = await mountSettingsPage(api);
+        expect(w.vm.config.display_name).toBe("Test User");
+        w.vm.config.display_name = "";
+        await w.vm.onDisplayNameBlur();
+        await flushPromises();
+        expect(w.vm.config.display_name).toBe("Test User");
+        expect(ToastUtils.info).toHaveBeenCalled();
+    });
+
+    it("blur with a name does not touch the config", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.config.display_name = "Ivan";
+        await w.vm.onDisplayNameBlur();
+        await flushPromises();
+        expect(ToastUtils.info).not.toHaveBeenCalled();
+        expect(w.vm.config.display_name).toBe("Ivan");
+    });
+
     it("onMessageIconSizeChange PATCHes after debounce", async () => {
         const w = await mountSettingsPage(api);
         w.vm.config.message_icon_size = 40;

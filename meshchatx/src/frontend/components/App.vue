@@ -2265,6 +2265,15 @@ export default {
         },
         onDisplayNameUpdate(value) {
             this.displayName = value;
+            if (!String(value ?? "").trim()) {
+                // An empty field is a step towards typing a new name. Saving
+                // it would report a save that changed nothing.
+                if (this.identitySaveTimer != null) {
+                    clearTimeout(this.identitySaveTimer);
+                    this.identitySaveTimer = null;
+                }
+                return;
+            }
             this.scheduleIdentitySave();
         },
         scheduleIdentitySave() {
@@ -2281,12 +2290,22 @@ export default {
                 clearTimeout(this.identitySaveTimer);
                 this.identitySaveTimer = null;
             }
+            if (!String(this.displayName ?? "").trim()) {
+                // Leaving the field empty restores the saved name and says
+                // so, instead of silently reverting after a claimed save.
+                this.displayName = this.config?.display_name ?? "";
+                ToastUtils.info(this.$t("app.display_name_required"));
+                return;
+            }
             void this.saveIdentitySettings();
         },
         async saveIdentitySettings() {
             const nextName = this.displayName;
             const currentName = this.config?.display_name ?? "";
             if (String(nextName) === String(currentName)) {
+                return;
+            }
+            if (!String(nextName ?? "").trim()) {
                 return;
             }
             await this.updateConfig(

@@ -243,6 +243,7 @@
         "last_announced": "Laatst aangekondigd: {time}",
         "last_announced_never": "Laatst aangekondigd: nooit",
         "display_name_placeholder": "Naam tonen",
+        "display_name_required": "Weergavenaam mag niet leeg zijn. De opgeslagen naam is hersteld.",
         "profile": "Profiel",
         "manage_identity": "Beheer uw identiteit, transportparticipatie en LXMF defaults.",
         "theme": "Thema",

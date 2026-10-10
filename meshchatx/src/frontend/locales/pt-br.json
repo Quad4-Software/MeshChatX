@@ -243,6 +243,7 @@
         "last_announced": "Último anúncio: {time}",
         "last_announced_never": "Último anúncio: Nunca",
         "display_name_placeholder": "Nome de Exibição",
+        "display_name_required": "O nome de exibição não pode ficar vazio. O nome salvo foi restaurado.",
         "profile": "Perfil",
         "manage_identity": "Gerencie sua identidade, participação no transporte e padrões do LXMF.",
         "theme": "Tema",

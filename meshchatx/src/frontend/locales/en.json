@@ -243,6 +243,7 @@
         "last_announced": "Last announced: {time}",
         "last_announced_never": "Last announced: Never",
         "display_name_placeholder": "Display Name",
+        "display_name_required": "Display name cannot be empty. The saved name was restored.",
         "profile": "Profile",
         "manage_identity": "Manage your identity, transport participation and LXMF defaults.",
         "theme": "Theme",

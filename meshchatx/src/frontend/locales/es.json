@@ -243,6 +243,7 @@
         "last_announced": "Última anunciada: {time}",
         "last_announced_never": "Última anunciada: Nunca",
         "display_name_placeholder": "Nombre",
+        "display_name_required": "El nombre visible no puede estar vacío. Se restauró el nombre guardado.",
         "profile": "Perfil",
         "manage_identity": "Gestione su identidad, la participación en el transporte y los valores predeterminados de LXMF.",
         "theme": "Tema",

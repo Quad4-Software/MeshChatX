@@ -243,6 +243,7 @@
         "last_announced": "Zuletzt angekündigt: {time}",
         "last_announced_never": "Zuletzt angekündigt: Nie",
         "display_name_placeholder": "Anzeigename",
+        "display_name_required": "Der Anzeigename darf nicht leer sein. Der gespeicherte Name wurde wiederhergestellt.",
         "profile": "Profil",
         "manage_identity": "Verwalten Sie Ihre Identität, Transportbeteiligung und LXMF-Standardeinstellungen.",
         "theme": "Thema",

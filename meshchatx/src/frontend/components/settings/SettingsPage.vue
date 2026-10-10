@@ -20,6 +20,7 @@
                                         :placeholder="$t('app.display_name_placeholder')"
                                         class="w-full rounded-xl border border-sem-border bg-sem-surface px-3 py-2 text-base font-semibold text-sem-fg focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border outline-hidden transition"
                                         @input="onDisplayNameChange"
+                                        @blur="onDisplayNameBlur"
                                     />
                                 </div>
                                 <div class="min-w-0 text-sm text-sem-fg-muted">
@@ -4444,6 +4445,13 @@ export default {
             );
         },
         async onDisplayNameChange() {
+            if (!String(this.config.display_name ?? "").trim()) {
+                // An empty field is a step towards typing a new name. Saving
+                // it would bounce the saved name back into the field and
+                // report a save that changed nothing.
+                this.cancelConfigSave("display_name");
+                return;
+            }
             this.queueConfigSave(
                 "display_name",
                 async () => {
@@ -4456,6 +4464,15 @@ export default {
                 },
                 600
             );
+        },
+        async onDisplayNameBlur() {
+            if (String(this.config.display_name ?? "").trim()) {
+                return;
+            }
+            // Leaving the field empty restores the saved name and says so,
+            // instead of silently reverting after a claimed save.
+            await this.getConfig();
+            ToastUtils.info(this.$t("app.display_name_required"));
         },
         async onMessageIconSizeChange() {
             this.queueConfigSave(
