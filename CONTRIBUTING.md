@@ -1,5 +1,7 @@
 # Contributing to Reticulum MeshChatX
 
+Contributions are reviewed on a best-effort basis and may be closed without response. Feature requests are not accepted. Bug reports help, but there is no fix timeline.
+
 Two paths: **GitHub pull requests** (full dev workflow below) and **LXMF patches** over the mesh (format-patch section).
 
 ## Development workflow (GitHub)

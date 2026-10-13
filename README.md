@@ -2,6 +2,12 @@
 
 [Русский](lang/README.ru.md) | [Deutsch](lang/README.de.md) | [Italiano](lang/README.it.md) | [中文](lang/README.zh.md) | [日本語](lang/README.ja.md)
 
+## Project status
+
+Development and releases end on the 1st of January 2027. The repository will be archived read-only after the final release. v5.0.0 will be the last release and at that point will be fork/rebranding ready if anyone wants to take over the project.
+
+## About
+
 Initially MeshChatX was a fork of Reticulum MeshChat by Liam Cottle. It has evolved to be very much different and focused on modern software development principles. It may be buggy due to many changes and adapted to make it more maintainable and end goal of improving stability.
 
 There are many changes from MeshChat: LXST, [RRC](https://rrc.kc1awv.net/0) relay chat, a dedicated Map that is offline ready, raw SQL instead of an ORM, native fetch instead of Axios, latest stable Electron, wheels with bundled frontend, i18n, pnpm 12+ with supply chain security.
