@@ -1,11 +1,8 @@
 # Dependency audits, filesystem/container config scans, and CodeQL analysis.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
-#   actions/checkout@v6.0.1                       8e8c483db84b4bee98b60c0593521ed34d9990e8
-#   Quad4-Software/argus@v0.3.1                   35d2d5fc3d0569f60dc7481b64fd922092e4886a
-#   actions/download-artifact@v5.0.0              634f93cb2916e3fdff6788551b99b062d0335ce0
-#   github/codeql-action/init@v4.31.6             95e58e9a2cdfd71adc6e0353d5c52f41a045d225
-#   github/codeql-action/analyze@v4.31.6          95e58e9a2cdfd71adc6e0353d5c52f41a045d225
+#   actions/checkout@v6.0.1                       3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1                   35d2d5fc3d0569f60dc7481b64fd922092e4886a
+#   actions/download-artifact@v5.0.0              9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2             d208ec71e39ae46397cbf6569bef8439b9aab974 # v2.27.2          d208ec71e39ae46397cbf6569bef8439b9aab974
 
 name: Security
 
@@ -74,8 +71,6 @@ env:
         dl-cdn.alpinelinux.org:443
         *.alpinelinux.org:443
         *.r2.cloudflarestorage.com:443
-        *.storage.bunnycdn.com:443
-        cdn.quad4.io:443
         dl.flathub.org:443
         flathub.org:443
         api.securityscorecards.dev:443
@@ -91,9 +86,9 @@ env:
     NODE_OPTIONS: --max-old-space-size=8192
     PYTHON_VERSION: "3.14"
     NODE_VERSION: "24"
-    UV_VERSION: "0.11.15"
-    PNPM_VERSION: "12.7.0"
-    TRIVY_VERSION: "0.74.0"
+    UV_VERSION: "0.13.0"
+    PNPM_VERSION: "12.11.2"
+    TRIVY_VERSION: "0.76.0"
 
 jobs:
     dependency-audit:
@@ -104,12 +99,12 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -157,12 +152,12 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
                   fetch-depth: 0
@@ -218,23 +213,23 @@ jobs:
                       build-mode: none
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout repository
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
             - name: Initialize CodeQL
-              uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225
+              uses: github/codeql-action/init@d208ec71e39ae46397cbf6569bef8439b9aab974
               with:
                   languages: ${{ matrix.language }}
                   build-mode: ${{ matrix.build-mode }}
 
             - name: Perform CodeQL Analysis
-              uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225
+              uses: github/codeql-action/analyze@d208ec71e39ae46397cbf6569bef8439b9aab974
               with:
                   category: "/language:${{matrix.language}}"
 
@@ -253,12 +248,12 @@ jobs:
             FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout repository
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -276,12 +271,12 @@ jobs:
                   artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 
             - name: Initialize CodeQL
-              uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225
+              uses: github/codeql-action/init@d208ec71e39ae46397cbf6569bef8439b9aab974
               with:
                   languages: javascript-typescript
                   build-mode: none
 
             - name: Perform CodeQL Analysis
-              uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225
+              uses: github/codeql-action/analyze@d208ec71e39ae46397cbf6569bef8439b9aab974
               with:
                   category: "/language:javascript-typescript"

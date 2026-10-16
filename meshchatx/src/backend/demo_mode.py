@@ -5,9 +5,11 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 from aiohttp import web
 
+from meshchatx.src.backend import brand
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.env_utils import env_bool, env_str
 
@@ -40,7 +42,7 @@ def demo_auth_password_from_env() -> str:
 
 
 DEMO_FRAME_ANCESTORS_DEFAULT = (
-    "https://meshchatx.com https://*.meshchatx.com "
+    f"{brand.get('homepage', 'https://meshchatx.com')} https://*.{urlparse(brand.get('homepage', 'https://meshchatx.com')).hostname or 'meshchatx.com'} "
     "http://localhost:* http://127.0.0.1:* http://[::1]:*"
 )
 

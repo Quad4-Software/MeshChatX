@@ -56,7 +56,7 @@ export const SETTINGS_TABS = [
         labelKey: "settings.tabs.maintenance",
         descriptionKey: "settings.tabs.maintenance_desc",
         icon: "wrench-outline",
-        sections: ["maintenance", "selftest", "updates", "infrastructure", "reticulumStack"],
+        sections: ["maintenance", "selftest", "infrastructure", "reticulumStack"],
     },
     {
         id: "plugins",

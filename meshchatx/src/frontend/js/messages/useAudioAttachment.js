@@ -236,7 +236,7 @@ export function useAudioAttachment(options = {}) {
                 });
 
                 // determine audio mode
-                var audioMode = null;
+                var audioMode;
                 switch (codec2Mode) {
                     case "1200": {
                         audioMode = 0x04; // LXMF.AM_CODEC2_1200

@@ -1527,7 +1527,7 @@ export default {
             for (let z = minZoom; z <= maxZoom; z++) {
                 const n = 2 ** z;
                 const lonSpan = maxLon - minLon;
-                let xCount = 0;
+                let xCount;
                 const x1 = this.lonToTileMin(minLon, z);
                 const x2 = this.lonToTileMax(maxLon, z);
                 if (lonSpan >= 360 - 1e-9) {
@@ -5212,7 +5212,7 @@ export default {
             if (!contentRes.ok) {
                 throw new Error(`overlay content ${contentRes.status}`);
             }
-            let features = [];
+            let features;
             const fmt = overlay.format;
             if (fmt === "kmz") {
                 const buf = await contentRes.arrayBuffer();

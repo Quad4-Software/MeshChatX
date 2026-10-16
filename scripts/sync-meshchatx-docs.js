@@ -1,7 +1,6 @@
 /**
  * Copy docs/ tree into meshchatx/src/frontend/public/meshchatx-docs/ for in-app serving.
  * Source of truth: docs/ at repo root.
- * Agent guidance lives under .agents/ at repo root, not under docs/.
  */
 
 const fs = require("fs");

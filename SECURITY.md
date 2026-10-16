@@ -32,44 +32,6 @@ Official release binaries and packages are built in **automation on GitHub**, no
 
 **Optional extra signatures:** If you see *.cosign.bundle files next to a binary, those are additional attestations from a **repository-managed signing key** (when the project enables it). They are separate from the SLSA *.intoto.jsonl files. Either or both may be present depending on configuration.
 
-### Source tree integrity (.rsm)
-
-The repository root includes a signed rnid message file, meshchatx.rsm. It embeds a SHA-256 inventory of git-tracked files except itself and paths under any vendor/ tree. CI verifies the signature against the required signer identity e46112d44649266d71fe2193e00a4710, then re-hashes file bytes. Jobs also recheck the inventory at the end so a compromised runner cannot silently add or modify tracked files.
-
-Verify locally:
-
-```bash
-make tree-rsm-verify
-```
-
-Maintainers regenerate the signature after intentional tree changes (requires a private identity file that hashes to the signer above, never commit *.rid):
-
-```bash
-export RNS_ID_PATH="$HOME/.local/share/reticulum-go/reticulum-go-release.rid"
-make tree-rsm-sign
-```
-
-Enable tracked git hooks (format/lint on staged files, commitlint, optional meshchatx.rsm resign):
-
-```bash
-make hooks-install
-# or: task hooks:install
-```
-
-Skip one hook:
-
-```bash
-SKIP=ruff-format git commit ...
-```
-
-Skip RSM resign:
-
-```bash
-SKIP=meshchatx-rsm git commit ...
-# or
-SKIP_TREE_RSM_HOOK=1 git commit ...
-```
-
 ### Practical tips
 
 - Prefer **official download pages** or **GitHub Releases** for your copy of the app.

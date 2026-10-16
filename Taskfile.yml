@@ -407,12 +407,6 @@ tasks:
         cmds:
             - 'uv run python scripts/diagnostics-bundle.py --storage-dir "${STORAGE_DIR:?set STORAGE_DIR to the app storage dir}" --out-dir "{{.OUT_DIR | default "."}}"'
 
-    changelog:
-        desc: Generate a changelog draft from conventional commits (needs git-cliff)
-        cmds:
-            - sh -c 'command -v git-cliff >/dev/null 2>&1 || { echo "install git-cliff (https://git-cliff.org) to use this task"; exit 1; }; git cliff --unreleased --strip header'
-            - 'echo "To prepend to CHANGELOG.md: git cliff --latest --prepend CHANGELOG.md"'
-
     test:be:cov:
         desc: Backend tests with coverage floor (xdist worker data merged from temp-tests/coverage)
         vars:
@@ -924,30 +918,10 @@ tasks:
             - cd "{{.ANDROID_DIR}}" && ./gradlew clean
             - rm -rf "{{.PYTHON_SRC_DIR}}/meshchatx" "{{.ANDROID_DIR}}/app/src/main/python/meshchatx"
 
-    tree-manifest:
-        desc: Print SHA-256 inventory of git-tracked files (excludes meshchatx.rsm and vendor/)
-        cmds:
-            - sh scripts/ci/tree-manifest.sh generate
-
-    tree-rsm-sign:
-        desc: Sign tree inventory into meshchatx.rsm (requires RNS_ID_PATH)
-        cmds:
-            - sh scripts/ci/sign-tree-rsm.sh
-
-    tree-rsm-verify:
-        desc: Verify meshchatx.rsm signature and hashes (warn by default, RNS_TREE_VERIFY_STRICT=1 to fail)
-        cmds:
-            - sh scripts/ci/verify-tree-rsm.sh
-
-    check:commits:
-        desc: Validate commit messages (COMMITLINT_FROM defaults to origin/master)
-        cmds:
-            - ./node_modules/.bin/commitlint --from ${COMMITLINT_FROM:-origin/master} --to ${COMMITLINT_TO:-HEAD}
-
     tree-workspace-clean:
-        desc: Recheck inventory (warn by default, RNS_TREE_VERIFY_STRICT=1 to fail)
+        desc: Report unexpected workspace mutations left by a CI job
         cmds:
-            - sh scripts/ci/verify-workspace-clean.sh "${RNS_INVENTORY_OUT:-/tmp/meshchatx-tree-inventory.txt}"
+            - sh scripts/ci/verify-workspace-clean.sh
 
     verify:package:frozen:
         desc: Fail if frozen backend contains forbidden bloat paths
@@ -992,8 +966,13 @@ tasks:
         cmds:
             - "{{.PYTHON}} scripts/generate_locale_template.py"
 
+    brand:check:
+        desc: Verify static brand literals match brand.json
+        cmds:
+            - node scripts/check-brand.mjs
+
     ci:setup:
-        desc: Portable CI prep (toolchain bootstrap, deps, optional tree RSM verify)
+        desc: Portable CI prep (toolchain bootstrap, deps)
         cmds:
             - bash scripts/ci/setup.sh
 

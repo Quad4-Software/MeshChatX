@@ -63,8 +63,6 @@ env:
         dl-cdn.alpinelinux.org:443
         *.alpinelinux.org:443
         *.r2.cloudflarestorage.com:443
-        *.storage.bunnycdn.com:443
-        cdn.quad4.io:443
         dl.flathub.org:443
         flathub.org:443
         api.securityscorecards.dev:443
@@ -89,7 +87,7 @@ jobs:
             security-events: write
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
@@ -99,13 +97,13 @@ jobs:
                   persist-credentials: false
 
             - name: Run Scorecard
-              uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+              uses: ossf/scorecard-action@46dc3187a971a9febf3aeb7f94ccde489f7bb46a # v2.5.0
               with:
                   results_file: results.sarif
                   results_format: sarif
                   publish_results: true
 
             - name: Upload SARIF
-              uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+              uses: github/codeql-action/upload-sarif@d208ec71e39ae46397cbf6569bef8439b9aab974 # v2.27.2
               with:
                   sarif_file: results.sarif

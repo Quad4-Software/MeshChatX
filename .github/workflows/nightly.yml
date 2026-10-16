@@ -6,9 +6,7 @@
 # Product channel: Testing. Tag prefix stays nightly-* for download URL stability.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
-#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
-#
-name: Testing Release
+#   actions/checkout@v6.0.1            3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 Testing Release
 
 on:
     schedule:
@@ -74,8 +72,6 @@ env:
         dl-cdn.alpinelinux.org:443
         *.alpinelinux.org:443
         *.r2.cloudflarestorage.com:443
-        *.storage.bunnycdn.com:443
-        cdn.quad4.io:443
         dl.flathub.org:443
         flathub.org:443
         api.securityscorecards.dev:443
@@ -88,7 +84,7 @@ env:
         storage.googleapis.com:443
         *.stepsecurity.io:443
     PYTHON_VERSION: "3.14"
-    UV_VERSION: "0.11.15"
+    UV_VERSION: "0.13.0"
 
 jobs:
     metadata:
@@ -100,12 +96,12 @@ jobs:
             skip_release: ${{ steps.meta.outputs.skip_release }}
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   ref: master
                   fetch-depth: 0
@@ -151,12 +147,12 @@ jobs:
             actions: write
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   ref: master
                   fetch-depth: 0
@@ -205,12 +201,12 @@ jobs:
             contents: write
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   ref: master
                   persist-credentials: false
@@ -228,12 +224,12 @@ jobs:
         timeout-minutes: 20
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   ref: master
                   persist-credentials: false
@@ -251,12 +247,12 @@ jobs:
         timeout-minutes: 45
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   ref: master
                   persist-credentials: false
@@ -272,12 +268,12 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   ref: master
                   persist-credentials: false

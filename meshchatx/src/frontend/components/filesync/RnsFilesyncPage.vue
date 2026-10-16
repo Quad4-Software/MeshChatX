@@ -584,7 +584,7 @@ export default {
             }
             const bridge = typeof window !== "undefined" ? window.MeshChatXAndroid : null;
             if (bridge && typeof bridge.hasAllFilesAccess === "function") {
-                let hasAccess = false;
+                let hasAccess;
                 try {
                     hasAccess = Boolean(bridge.hasAllFilesAccess());
                 } catch {

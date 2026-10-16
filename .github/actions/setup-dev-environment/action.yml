@@ -13,7 +13,7 @@ inputs:
     uv-version:
         description: UV version installed from GitHub releases
         required: false
-        default: "0.11.15"
+        default: "0.13.0"
     node-version:
         description: Node.js version (used when install-node is true)
         required: false
@@ -21,11 +21,11 @@ inputs:
     pnpm-version:
         description: pnpm version activated through corepack
         required: false
-        default: "12.7.0"
+        default: "12.11.2"
     task-version:
         description: go-task version installed from GitHub releases
         required: false
-        default: "3.49.1"
+        default: "3.54.0"
     install-task:
         description: Install go-task for Taskfile.yml targets
         required: false
@@ -38,10 +38,6 @@ inputs:
         description: Set up Node/pnpm and install frontend dependencies
         required: false
         default: "true"
-    skip_tree_verify:
-        description: Set to true to skip meshchatx.rsm byte-level verify
-        required: false
-        default: "false"
 
 runs:
     using: composite
@@ -67,16 +63,6 @@ runs:
               MESHCHATX_INSTALL_PYTHON: ${{ inputs.install-python }}
               MESHCHATX_INSTALL_NODE: ${{ inputs.install-node }}
           run: bash scripts/ci/github-install-deps.sh
-
-        - name: Verify tree RSM
-          if: >-
-              inputs.skip_tree_verify != 'true' &&
-              inputs.install-python == 'true'
-          shell: bash
-          env:
-              RNS_REQUIRED_SIGNER: e46112d44649266d71fe2193e00a4710
-              RNS_INVENTORY_OUT: ${{ runner.temp }}/meshchatx-tree-inventory.txt
-          run: sh scripts/ci/verify-tree-rsm.sh
 
         - name: Setup Task
           if: inputs.install-task == 'true'

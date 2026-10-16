@@ -3,8 +3,7 @@ const { prepareE2eSession } = require("./helpers");
 
 // Exploratory route crawl: visits every non-popout application route,
 // follows in-app navigation links a bounded number of hops, and fails on
-// any uncaught pageerror or console error. This is the cheap version of
-// agentic exploration: broad UI coverage without hand-written scenarios.
+// any uncaught pageerror or console error. Broad UI coverage without hand-written scenarios.
 
 const ROUTES = [
     "/",

@@ -2,6 +2,7 @@ import path from "path";
 import fs from "fs";
 import { defineConfig } from "vite";
 import { MICRON_PARSER_GO_RELEASE_TAG } from "./scripts/micron-parser-go-version.mjs";
+import { loadBrand } from "./scripts/brand.mjs";
 import { meshchatxServiceWorkerPlugin } from "./scripts/build/generate_service_worker.mjs";
 import { detectLaunchEditor, isVueDevToolsEnabled } from "./scripts/vite-dx.mjs";
 import tailwindcss from "@tailwindcss/vite";
@@ -325,6 +326,7 @@ export default defineConfig(({ command }) => {
     return {
         experimental: bundledDev ? { bundledDev: true } : undefined,
         define: {
+            __BRAND__: JSON.stringify(loadBrand()),
             __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
             __VUE_PROD_DEVTOOLS__: "false",
             "import.meta.env.VITE_MICRON_WASM_BUNDLED": JSON.stringify(micronWasmBundled ? "true" : "false"),

@@ -1,0 +1,113 @@
+# Re-publish the Flatpak OSTree repo on GitHub Pages for an existing release
+# tag, e.g. to retry after the build-release job's best-effort publish failed.
+#
+# Pinned first-party actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v6.0.1            3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 Flatpak Pages
+
+on:
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: Release tag whose .flatpak asset is published
+                required: true
+                type: string
+
+concurrency:
+    group: flatpak-pages
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+env:
+    HARDEN_ENDPOINTS: >
+        github.com:443
+        api.github.com:443
+        codeload.github.com:443
+        uploads.github.com:443
+        *.githubusercontent.com:443
+        *.actions.githubusercontent.com:443
+        *.githubapp.com:443
+        *.github.io:443
+        azure.archive.ubuntu.com:80
+        archive.ubuntu.com:80
+        *.ubuntu.com:443
+        dl.flathub.org:443
+        flathub.org:443
+
+jobs:
+    flatpak-pages:
+        name: Flatpak OSTree (GitHub Pages)
+        runs-on: ubuntu-latest
+        environment: release
+        timeout-minutes: 120
+        permissions:
+            contents: write
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+              with:
+                  egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
+                  allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              with:
+                  persist-credentials: false
+
+            - name: Require Flatpak GPG credentials
+              env:
+                  FLATPAK_GPG_PRIVATE_KEY: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
+              run: |
+                  set -euo pipefail
+                  if [[ -z "${FLATPAK_GPG_PRIVATE_KEY:-}" ]]; then
+                    echo "::error::FLATPAK_GPG_PRIVATE_KEY is required to publish the Flatpak OSTree remote"
+                    exit 1
+                  fi
+
+            - name: Install flatpak and ostree
+              run: |
+                  set -euo pipefail
+                  sudo apt-get update -y
+                  sudo apt-get install -y --no-install-recommends \
+                      flatpak \
+                      ostree \
+                      curl \
+                      ca-certificates
+
+            - name: Import Flatpak GPG key
+              id: gpg
+              uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd
+              with:
+                  gpg_private_key: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
+                  passphrase: ${{ secrets.FLATPAK_GPG_PASSPHRASE }}
+
+            - name: Download .flatpak from release
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  RELEASE_TAG: ${{ inputs.tag }}
+              run: |
+                  set -euo pipefail
+                  mkdir -p dl/flatpak
+                  gh release download "${RELEASE_TAG}" \
+                      --pattern "*.flatpak" \
+                      --dir dl/flatpak \
+                      --clobber
+                  shopt -s nullglob
+                  bundles=(dl/flatpak/*.flatpak)
+                  if [[ ${#bundles[@]} -ne 1 ]]; then
+                    echo "Expected exactly one .flatpak asset on ${RELEASE_TAG}, found ${#bundles[@]}" >&2
+                    exit 1
+                  fi
+
+            - name: Export OSTree repo and publish to GitHub Pages
+              env:
+                  FLATPAK_REPO_BASE_URL: ${{ vars.FLATPAK_REPO_BASE_URL }}
+                  GPG_FINGERPRINT: ${{ steps.gpg.outputs.fingerprint }}
+                  REQUIRE_GPG: "1"
+                  GITHUB_REF_NAME: ${{ inputs.tag }}
+                  GITHUB_REPOSITORY: ${{ github.repository }}
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  set -euo pipefail
+                  bundles=(dl/flatpak/*.flatpak)
+                  bash scripts/ci/github-publish-flatpak-pages.sh "${bundles[0]}"

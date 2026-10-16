@@ -3,6 +3,7 @@ import vue from "@vitejs/plugin-vue";
 import path from "path";
 import fs from "fs";
 import { MICRON_PARSER_GO_RELEASE_TAG } from "./scripts/micron-parser-go-version.mjs";
+import { loadBrand } from "./scripts/brand.mjs";
 
 function isMicronWasmBundledResolved(repoRoot) {
     const wasmDir = path.join(repoRoot, "meshchatx", "src", "frontend", "public", "vendor", "micron-parser-go");
@@ -45,6 +46,7 @@ const appBuildTimeIso = new Date().toISOString();
 
 export default defineConfig({
     define: {
+        __BRAND__: JSON.stringify(loadBrand()),
         __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
         "import.meta.env.VITE_MICRON_WASM_BUNDLED": JSON.stringify(micronWasmBundled ? "true" : "false"),
         "import.meta.env.VITE_MICRON_PARSER_GO_RELEASE": JSON.stringify(MICRON_PARSER_GO_RELEASE_TAG),

@@ -304,7 +304,7 @@ function onClick(event) {
             } catch {
                 return;
             }
-            let el = null;
+            let el;
             try {
                 el = root.querySelector(`#${CSS.escape(id)}`);
             } catch {
@@ -372,7 +372,7 @@ async function renderPage(msg, seq, api) {
         return;
     }
     const opts = { ...renderOptions };
-    let html = "";
+    let html;
     try {
         html = api.renderNomadPageByPath(pagePathWithoutData, content, pagePartials, api.MicronParser, opts);
     } catch (err) {
@@ -423,7 +423,7 @@ window.addEventListener("message", (ev) => {
         return;
     }
     if (d.type === "extract-text") {
-        let text = "";
+        let text;
         try {
             text = root.innerText || "";
         } catch {
@@ -461,7 +461,7 @@ window.addEventListener("message", (ev) => {
         if (!id) {
             return;
         }
-        let target = null;
+        let target;
         try {
             target = root.querySelector(`[data-partial-id="${CSS.escape(id)}"]`);
         } catch {
@@ -477,7 +477,7 @@ window.addEventListener("message", (ev) => {
         if (index == null) {
             return;
         }
-        let el = null;
+        let el;
         try {
             el = root.querySelector(`.mu-image[data-mu-image-index="${CSS.escape(String(index))}"]`);
         } catch {

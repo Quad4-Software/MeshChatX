@@ -79,7 +79,7 @@ def wait_for_security(
                 f"backend exited early (code {proc.returncode}); log tail:\n{tail}"
             )
         try:
-            with urllib.request.urlopen(url, timeout=POLL_INTERVAL) as resp:  # noqa: S310 - loopback smoke endpoint
+            with urllib.request.urlopen(url, timeout=POLL_INTERVAL) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
             last_error = str(exc)
@@ -92,7 +92,7 @@ def shutdown_app(port: int) -> None:
     """Ask the backend to shut down cleanly."""
     url = f"http://127.0.0.1:{port}/api/v1/app/shutdown"
     try:
-        req = urllib.request.Request(url, method="POST")  # noqa: S310 - loopback smoke endpoint
+        req = urllib.request.Request(url, method="POST")
         with urllib.request.urlopen(req, timeout=10.0) as resp:  # noqa: S310 - loopback smoke endpoint
             resp.read()
     except urllib.error.URLError:

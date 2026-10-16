@@ -111,17 +111,4 @@ describe("vite-dx Vue DevTools gate", () => {
         const taskfile = readFileSync(resolve(ROOT, "Taskfile.yml"), "utf8");
         expect(taskfile).toContain("MESHCHAT_DEBUGPY=1 bash scripts/dev-local.sh");
     });
-
-    it("debugger launch configs attach debugpy on localhost and Chrome to Vite", () => {
-        const launch = JSON.parse(readFileSync(resolve(ROOT, ".vscode/launch.json"), "utf8"));
-        const names = launch.configurations.map((c) => c.name);
-        expect(names).toContain("Backend: Attach debugpy");
-        expect(names).toContain("Frontend: Chrome (Vite)");
-        const attach = launch.configurations.find((c) => c.name === "Backend: Attach debugpy");
-        expect(attach.connect).toEqual({ host: "127.0.0.1", port: 5678 });
-        const chrome = launch.configurations.find((c) => c.name === "Frontend: Chrome (Vite)");
-        expect(chrome.url).toBe("http://127.0.0.1:5173");
-        const compound = launch.compounds.find((c) => c.name === "MeshChatX: Vite + Python");
-        expect(compound.preLaunchTask).toBe("meshchatx: debug");
-    });
 });

@@ -2,9 +2,7 @@
 # Tagged release assets run in build-release.yml with draft.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
-#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
-#   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
-#   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
+#   actions/checkout@v6.0.1            3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1     cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2               55cc8345863c7cc4c66a329aec7e433d2d1c52a9
 
 name: Build Linux packages
 
@@ -88,8 +86,6 @@ env:
         dl-cdn.alpinelinux.org:443
         *.alpinelinux.org:443
         *.r2.cloudflarestorage.com:443
-        *.storage.bunnycdn.com:443
-        cdn.quad4.io:443
         dl.flathub.org:443
         flathub.org:443
         api.securityscorecards.dev:443
@@ -105,8 +101,8 @@ env:
     NODE_OPTIONS: --max-old-space-size=8192
     PYTHON_VERSION: "3.14"
     NODE_VERSION: "24"
-    UV_VERSION: "0.11.15"
-    PNPM_VERSION: "12.7.0"
+    UV_VERSION: "0.13.0"
+    PNPM_VERSION: "12.11.2"
 
 jobs:
     frontend:
@@ -138,12 +134,12 @@ jobs:
             MESHCHATX_FRONTEND_PREBUILT: "1"
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -160,7 +156,7 @@ jobs:
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Cache electron-builder toolsets
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: ~/.cache/electron-builder
                   key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
@@ -189,7 +185,7 @@ jobs:
               run: bash scripts/ci/github-build-linux-release-assets.sh
 
             - name: Upload Linux build-test artifact (${{ matrix.arch }})
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: meshchatx-linux-build-test-${{ matrix.arch }}-${{ github.ref_name }}-${{ github.run_id }}
                   path: release-assets/
@@ -208,12 +204,12 @@ jobs:
             MESHCHATX_FRONTEND_PREBUILT: "1"
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -261,7 +257,7 @@ jobs:
                   find dist -maxdepth 3 -type f \( -name "*.flatpak" -o -name "*.flatpakref" \) -print
 
             - name: Upload flatpak artifact
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: meshchatx-linux-flatpak-${{ github.ref_name }}-${{ github.run_id }}
                   path: dist/*.flatpak

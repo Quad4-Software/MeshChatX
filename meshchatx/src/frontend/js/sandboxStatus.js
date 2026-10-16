@@ -53,7 +53,7 @@ export function resolveSandboxFeature(info, feature) {
     const disabledByEnv = !!data[spec.disabledByEnv];
     const autoEnabled = !!data[spec.autoEnabled];
 
-    let badge = "app.enabled";
+    let badge;
     if (active) {
         badge = "app.enabled";
     } else if (unavailable) {

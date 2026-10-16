@@ -2,12 +2,7 @@
 # same workflow run and draft release as Linux/desktop/Flatpak (immutable per tag).
 #
 # Pinned first-party actions (keep in sync with android-build.yml):
-#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
-#   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
-#   actions/setup-java@v4.7.1          c5195efecf7bdfc987ee8bae7a71cb8b11521c00
-#   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
-#   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
-#   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
+#   actions/checkout@v6.0.1            3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1        5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0          de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1     cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2   9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2               55cc8345863c7cc4c66a329aec7e433d2d1c52a9
 
 name: Android APK (tag)
 
@@ -83,8 +78,6 @@ env:
         dl-cdn.alpinelinux.org:443
         *.alpinelinux.org:443
         *.r2.cloudflarestorage.com:443
-        *.storage.bunnycdn.com:443
-        cdn.quad4.io:443
         dl.flathub.org:443
         flathub.org:443
         api.securityscorecards.dev:443
@@ -99,7 +92,7 @@ env:
     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     NODE_OPTIONS: --max-old-space-size=8192
     NODE_VERSION: "24"
-    PNPM_VERSION: "12.7.0"
+    PNPM_VERSION: "12.11.2"
     PYTHON_VERSION: "3.11"
     JAVA_VERSION: "17"
     CHAQUOPY_REF: "9f563f45108a873d7feb363e1f754c0173f1114e"
@@ -116,12 +109,12 @@ jobs:
             FRONTEND_ARTIFACT_NAME: ${{ inputs.frontend_artifact_name }}
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   fetch-depth: 0
                   persist-credentials: false
@@ -161,7 +154,7 @@ jobs:
                   exit 1
 
             - name: Set up Java
-              uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+              uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
               with:
                   distribution: temurin
                   java-version: ${{ env.JAVA_VERSION }}
@@ -172,7 +165,7 @@ jobs:
                       android/app/build.gradle
 
             - name: Set up Python
-              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
 
@@ -187,7 +180,7 @@ jobs:
                   sudo apt-get install -y build-essential cmake pkg-config patchelf
 
             - name: Cache Cargo registry
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: |
                       ~/.cargo/registry
@@ -197,7 +190,7 @@ jobs:
                       android-cargo-
 
             - name: Cache Chaquopy wheel workdir
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: .local/chaquopy-build-wheel
                   key: chaquopy-work-${{ hashFiles('uv.lock', 'android/**/*.gradle', 'scripts/build-android-wheels-local.sh') }}-${{ env.CHAQUOPY_REF }}
@@ -353,7 +346,7 @@ jobs:
                   bash scripts/sign-android-apks.sh
 
             - name: Upload wheels
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: android-wheels-${{ github.ref_name }}-${{ github.run_id }}
                   path: android/vendor/*.whl
@@ -361,7 +354,7 @@ jobs:
 
             - name: Upload debug APK
               if: ${{ steps.track.outputs.track != 'master' }}
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: meshchatx-android-debug-${{ github.ref_name }}-${{ github.run_id }}
                   path: android/app/build/outputs/apk/debug/*.apk
@@ -369,7 +362,7 @@ jobs:
 
             - name: Upload test reports
               if: ${{ inputs.run_unit_tests }}
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: meshchatx-android-tests-${{ github.ref_name }}-${{ github.run_id }}
                   path: |
@@ -381,7 +374,7 @@ jobs:
 
             - name: Upload release APK
               if: ${{ steps.track.outputs.track == 'master' }}
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: meshchatx-android-release-${{ github.ref_name }}-${{ github.run_id }}
                   path: android/app/build/outputs/apk/release/*.apk
@@ -393,7 +386,7 @@ jobs:
 
             - name: Upload Android APK bundle for draft
               if: ${{ steps.track.outputs.track == 'master' }}
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: meshchatx-android-apks-${{ github.ref_name }}-${{ github.run_id }}
                   path: android-apks-for-draft/*.apk

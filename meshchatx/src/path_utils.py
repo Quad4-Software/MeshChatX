@@ -32,7 +32,7 @@ def is_under_root(candidate: str, root: str) -> bool:
 
     Pure string check. Both paths must already be realpath-resolved. Use
     is_path_within_dir for unresolved inputs. This is the membership test
-    required by .agents/conventions/path-jail.md.
+    required for path-jail containment.
     """
     if not candidate or not root:
         return False

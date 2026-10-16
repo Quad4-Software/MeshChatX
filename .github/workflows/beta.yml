@@ -2,9 +2,7 @@
 # then dispatch build-release.yml. Also triggers Android emulator smoke.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
-#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
-#
-name: Beta Release
+#   actions/checkout@v6.0.1            3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 Beta Release
 
 on:
     workflow_dispatch:
@@ -71,8 +69,6 @@ env:
         dl-cdn.alpinelinux.org:443
         *.alpinelinux.org:443
         *.r2.cloudflarestorage.com:443
-        *.storage.bunnycdn.com:443
-        cdn.quad4.io:443
         dl.flathub.org:443
         flathub.org:443
         api.securityscorecards.dev:443
@@ -97,12 +93,12 @@ jobs:
             commit_sha: ${{ steps.meta.outputs.commit_sha }}
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   ref: ${{ inputs.ref }}
                   fetch-depth: 0

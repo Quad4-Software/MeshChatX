@@ -502,7 +502,7 @@ describe("WebSocketConnection module", () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;
         global.window = makeWindowMock();
-        global.document = { visibilityState: "hidden" };
+        vi.stubGlobal("document", { visibilityState: "hidden" });
 
         const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 
@@ -518,7 +518,7 @@ describe("WebSocketConnection module", () => {
         expect(firstWs.readyState).toBe(MockWS.OPEN);
 
         // becoming visible should run the stale-connection check
-        global.document.visibilityState = "visible";
+        document.visibilityState = "visible";
         global.window.dispatchEvent(new Event("visibilitychange"));
 
         await vi.waitUntil(() => WebSocketConnection.ws && WebSocketConnection.ws !== firstWs);
@@ -532,7 +532,7 @@ describe("WebSocketConnection module", () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;
         global.window = makeWindowMock();
-        global.document = { visibilityState: "visible" };
+        vi.stubGlobal("document", { visibilityState: "visible" });
 
         const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
 

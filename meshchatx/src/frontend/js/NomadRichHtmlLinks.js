@@ -124,7 +124,7 @@ export function handleRichHtmlLinkClick(event, options = {}) {
     ) {
         stopEvent(event);
         const raw = fragAnchor.getAttribute("href").slice(1);
-        let id = raw;
+        let id;
         try {
             id = decodeURIComponent(raw);
         } catch {

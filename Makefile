@@ -1,11 +1,10 @@
-# Compatibility shim — Taskfile.yml owns install, lint, test, and build targets.
-# Tree RSM targets call shell scripts directly so Make works without Task.
+# Compatibility shim - Taskfile.yml owns install, lint, test, and build targets.
 TASK ?= task
 
 .DEFAULT_GOAL := help
 
 .PHONY: install install-offline run dev dev-fe build format lint test test-be-perf clean help dist-linux dist-linux-x64
-.PHONY: tree-manifest tree-rsm-sign tree-rsm-verify ci-pr ci-docker
+.PHONY: ci-pr ci-docker
 
 install:
 	@$(TASK) install
@@ -46,15 +45,6 @@ dist-linux:
 dist-linux-x64:
 	@$(TASK) dist:linux-x64
 
-tree-manifest:
-	sh scripts/ci/tree-manifest.sh generate
-
-tree-rsm-verify:
-	sh scripts/ci/verify-tree-rsm.sh
-
-tree-rsm-sign:
-	sh scripts/ci/sign-tree-rsm.sh
-
 ci-pr:
 	bash scripts/ci/run.sh pr
 
@@ -63,8 +53,6 @@ ci-docker:
 
 help:
 	@echo "Makefile targets (most delegate to Task, see: task --list)."
-	@echo "  make tree-rsm-verify  Verify meshchatx.rsm (no Task required)"
-	@echo "  make tree-rsm-sign    Sign tree inventory (requires RNS_ID_PATH)"
 	@echo "  make ci-pr            Portable PR CI (Forgejo, Gitea, local)"
 	@echo "  make ci-docker        PR CI in scripts/ci/Dockerfile.ci (Podman or Docker)"
 	@$(TASK) --list

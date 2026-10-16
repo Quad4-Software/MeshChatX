@@ -21,17 +21,15 @@ task build
 
 Makefile targets call the same Taskfile commands:
 
-| Command              | Delegates to | Description                               |
-| -------------------- | ------------ | ----------------------------------------- |
-| make install         | task install | Install pnpm and UV dependencies          |
-| make run             | task run     | Run MeshChatX via UV                      |
-| make build           | task build   | Build frontend and backend artifacts      |
-| make format          | task format  | Format frontend and backend               |
-| make lint            | task lint    | ESLint, vue-tsc, knip, Ruff, basedpyright |
-| make test            | task test    | Frontend and backend tests                |
-| make clean           | task clean   | Remove build artifacts and node_modules   |
-| make tree-rsm-verify | (shell)      | Verify meshchatx.rsm signature and hashes |
-| make tree-rsm-sign   | (shell)      | Sign tree inventory (needs RNS_ID_PATH)   |
+| Command      | Delegates to | Description                               |
+| ------------ | ------------ | ----------------------------------------- |
+| make install | task install | Install pnpm and UV dependencies          |
+| make run     | task run     | Run MeshChatX via UV                      |
+| make build   | task build   | Build frontend and backend artifacts      |
+| make format  | task format  | Format frontend and backend               |
+| make lint    | task lint    | ESLint, vue-tsc, knip, Ruff, basedpyright |
+| make test    | task test    | Frontend and backend tests                |
+| make clean   | task clean   | Remove build artifacts and node_modules   |
 
 ## Offline development
 
@@ -69,13 +67,13 @@ For a Vite HMR loop, use task dev as described in **Installation and setup**.
 
 PR gate without GitHub Marketplace actions:
 
-| Command | Role |
-| --- | --- |
-| `bash scripts/ci/bootstrap-toolchain.sh install` | Pinned uv, Python, Node, pnpm, Task |
-| `CI_SKIP_TREE_VERIFY=1 bash scripts/ci/run.sh pr` | Lint plus backend, frontend, and lang tests |
-| `bash scripts/ci/run-docker.sh pr` | Same jobs in `scripts/ci/Dockerfile.ci` (Podman if available) |
-| `task ci:pr` / `make ci-pr` | Wrappers for `run.sh pr` |
-| `task ci:docker` / `make ci-docker` | Wrapper for `run-docker.sh pr` |
+| Command                                           | Role                                                          |
+| ------------------------------------------------- | ------------------------------------------------------------- |
+| `bash scripts/ci/bootstrap-toolchain.sh install`  | Pinned uv, Python, Node, pnpm, Task                           |
+| `CI_SKIP_TREE_VERIFY=1 bash scripts/ci/run.sh pr` | Lint plus backend, frontend, and lang tests                   |
+| `bash scripts/ci/run-docker.sh pr`                | Same jobs in `scripts/ci/Dockerfile.ci` (Podman if available) |
+| `task ci:pr` / `make ci-pr`                       | Wrappers for `run.sh pr`                                      |
+| `task ci:docker` / `make ci-docker`               | Wrapper for `run-docker.sh pr`                                |
 
 Forgejo and Gitea: `.gitea/workflows/ci.yml` and `.forgejo/workflows/ci.yml`.
 
@@ -133,8 +131,6 @@ Before a Testing or Beta cut, edit release/channel_prompt.json (focus_areas, not
 4. Review the Stable **draft** GitHub release (assets, SLSA, cosign), then publish. Immutable releases cannot gain assets after publish.
 5. Rollback: publish a new Stable from a known-good prior SHA. Do not rewrite a published release.
 6. Users see the channel badge in the sidebar and About. Testing/Beta also get a one-time prompt.
-7. Flatpak: the tag's `flatpak-ostree` job publishes to `https://cdn.quad4.io/flatpak/` on branch `testing`, `beta`, or `stable`. Keep that OSTree tree under `flatpak/` only. After the first good CDN publish, disable GitHub Pages if it still hosts the old Flatpak tree.
-8. Bunny pull zone (`cdn.quad4.io`, zone id `6505458`): edge rules keep Flatpak discovery files at 60s TTL (`summary*`, `refs/*`, `summaries/*`, `*.flatpakref`, `*.flatpakrepo`, landing page) and object/delta files at 1-year immutable. Release upload still purges discovery URLs when `BUNNY_API_KEY` and `BUNNY_PULL_ZONE_ID` are set, then verifies the live index. Without those secrets, purge is skipped and the 60s edge TTL is the safety net.
 
 Hard rule for CI speed: cache toolchains and downloads only. Tagged release binaries must be built inside that tag's single build-release run_id. Never attach artifacts from another run.
 
@@ -144,7 +140,7 @@ Prerelease retention: keep about 7 Testing and 5 Beta GitHub prereleases (script
 
 Locale discovery is automatic. Add a file under meshchatx/src/frontend/locales/ (for example xx.json) with the same keys as en.json and a top-level _languageName string for the selector label. Copy en.json and translate the values. Machine-assisted generation is optional.
 
-For a machine-generated first draft from en.json, use any offline-capable tool you prefer and keep interpolation variables such as `{count}` intact. After a machine pass, have an LLM or a human check grammar, context, and tone.
+For a machine-generated first draft from en.json, use any offline-capable tool you prefer and keep interpolation variables such as `{count}` intact. After a machine pass, have a human check grammar, context, and tone.
 
 ```bash
 pnpm test -- tests/frontend/i18n.test.js --run
@@ -160,4 +156,3 @@ In-app MeshChatX guides under docs/en/ are English today. Localized landing page
 
 - **Architecture and design** for process layout and managers
 - **Building from source and packaging** for offline and APK builds
-- .agents/ for contributor agent conventions (not shipped in-app)

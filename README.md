@@ -21,7 +21,6 @@ MeshChatX is also focused on security and privacy, including usage of native OS 
 - Mirror: [CodeFloe](https://codefloe.com/Ivan/MeshChatX)
 - PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
-- Donate: [donate.md](donate.md)
 - LXMF: `f489752fbef161c64d65e385a4e9fc74`
 
 <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Quad4-Software/MeshChatX"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="60" alt="Get it on Obtainium"></a>
@@ -110,6 +109,5 @@ AppImage, deb, rpm, Flatpak, Electron, and Android: [Installation](docs/en/insta
 
 ## Security, license, credits
 
-- [SECURITY.md](SECURITY.md) · [LEGAL.md](LEGAL.md) · [donate.md](donate.md)
 - Project-owned code is 0BSD. Upstream MeshChat portions remain MIT. Full text: [LICENSE](LICENSE).
 - Credits: [Liam Cottle](https://github.com/liamcottle) (original MeshChat), [RFnexus](https://github.com/RFnexus) (micron parser JS), [markqvist](https://github.com/markqvist) (Reticulum, LXMF, LXST).

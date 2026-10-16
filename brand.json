@@ -1,0 +1,14 @@
+{
+    "name": "MeshChatX",
+    "product_name": "Reticulum MeshChatX",
+    "slug": "meshchatx",
+    "app_id": "com.meshchatx.app",
+    "repository": "Quad4-Software/MeshChatX",
+    "homepage": "https://meshchatx.com",
+    "issues_url": "https://github.com/Quad4-Software/MeshChatX/issues",
+    "container_image": "ghcr.io/quad4-software/meshchatx",
+    "flatpak_repo_base_url": "",
+    "copyright_holder": "MeshChatX contributors",
+    "security_contact": "f489752fbef161c64d65e385a4e9fc74",
+    "docker_hub_image": "quad4io/meshchatx"
+}

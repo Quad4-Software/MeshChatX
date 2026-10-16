@@ -7,6 +7,7 @@ import os
 
 from aiohttp import web
 
+from meshchatx.src.backend import brand
 from meshchatx.src.backend.http.safe_file_response import file_response
 
 
@@ -24,10 +25,12 @@ def register_shell_routes(routes, app):
                             <p>The MeshChatX web interface files were not found.</p>
                             <p>If you are running from source, you must build the frontend first:</p>
                             <pre style="background: #1e293b; padding: 1rem; border-radius: 4px; color: #e2e8f0; border: 1px solid #334155;">pnpm install && pnpm run build-frontend</pre>
-                            <p>For more information, see the <a href="https://github.com/Quad4-Software/MeshChatX" style="color: #38bdf8;">README</a>.</p>
+                            <p>For more information, see the <a href="{brand_repo_url}" style="color: #38bdf8;">README</a>.</p>
                         </body>
                     </html>
-                    """,
+                    """.format(
+                    brand_repo_url="https://github.com/" + brand.get("repository", ""),
+                ),
                 content_type="text/html",
                 status=500,
             )

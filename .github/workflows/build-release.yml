@@ -1,27 +1,10 @@
 # Single tagged-release pipeline: Linux release assets, Windows + macOS Electron
 # builds, Flatpak, Android APKs (master track tags via android-apk-tag.yml), SLSA
 # provenance (generic generator: Linux, desktop, optional Android+Flatpak), optional cosign bundles, and one draft GitHub release.
-# Optional: same draft upload/ tree is mirrored to bunny.net Edge Storage when
-# BUNNY_STORAGE_ACCESS_KEY is set (see draft job). Paths are release/<tag>,
-# testing/<tag>, or beta/<tag>. After each upload, older version folders under
-# that track are deleted so only the newest folder remains per track.
-# Flatpak OSTree remote: flatpak-ostree job publishes a signed archive-z2 repo
-# under storage prefix flatpak/ (served at https://cdn.quad4.io/flatpak/).
-# Branches testing/beta/stable follow the tag channel. That prefix is never
-# version-pruned like release tracks.
 # One workflow run per tag keeps the release graph immutable.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
-#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
-#   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
-#   actions/setup-node@v6.1.0          395ad3262231945c25e8478fd5baf05154b1d79f
-#   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
-#   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
-#   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
-#   actions/setup-java@v4.7.1          c5195efecf7bdfc987ee8bae7a71cb8b11521c00
-#   crazy-max/ghaction-import-gpg@v6   e89d40939c28e39f97cf32126055eeae86ba74ec
-#
-# SLSA generator: SHA-pin this reusable workflow. Nested composite actions inside
+#   actions/checkout@v6.0.1            3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1        5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0          949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0     cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2   9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2               55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0          de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1   2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0 SLSA generator: SHA-pin this reusable workflow. Nested composite actions inside
 # generator_generic_slsa3.yml are tag-pinned at v2.1.0 (detect-workflow-js,
 # generate-builder, secure-download-artifact, secure-builder-checkout). Repo
 # Actions policy must allow slsa-framework/slsa-github-generator/.github/actions/*
@@ -49,7 +32,7 @@ concurrency:
     cancel-in-progress: true
 
 env:
-    TINYGO_VERSION: "0.42.0"
+    TINYGO_VERSION: "0.43.0"
     HARDEN_ENDPOINTS: >
         github.com:443
         api.github.com:443
@@ -95,10 +78,8 @@ env:
         dl-cdn.alpinelinux.org:443
         *.alpinelinux.org:443
         *.r2.cloudflarestorage.com:443
-        *.storage.bunnycdn.com:443
-        api.bunny.net:443
-        cdn.quad4.io:443
         dl.flathub.org:443
+        *.github.io:443
         flathub.org:443
         api.securityscorecards.dev:443
         meshchatx.com:443
@@ -113,12 +94,12 @@ env:
     NODE_OPTIONS: --max-old-space-size=8192
     PYTHON_VERSION: "3.14"
     NODE_VERSION: "24"
-    UV_VERSION: "0.11.15"
-    PNPM_VERSION: "12.7.0"
-    COSIGN_VERSION: "3.0.6"
+    UV_VERSION: "0.13.0"
+    PNPM_VERSION: "12.11.2"
+    COSIGN_VERSION: "3.1.3"
     # Official .deb from aquasecurity/trivy releases. Scripts/ci/setup-trivy.sh verifies
     # checksums.txt (sigstore) + .deb SHA256 + .deb (sigstore). Bump with upstream tags.
-    TRIVY_VERSION: "0.74.0"
+    TRIVY_VERSION: "0.76.0"
 
 jobs:
     frontend:
@@ -129,7 +110,7 @@ jobs:
         with:
             artifact_name: meshchatx-frontend-release-${{ github.run_id }}-${{ github.run_attempt }}
             retention_days: 7
-            pnpm_version: "12.7.0"
+            pnpm_version: "12.11.2"
 
     frontend-android:
         name: Build frontend (Android / Python 3.11)
@@ -141,7 +122,7 @@ jobs:
             artifact_name: meshchatx-frontend-android-rel-${{ github.run_id }}-${{ github.run_attempt }}
             retention_days: 7
             python_version: "3.11"
-            pnpm_version: "12.7.0"
+            pnpm_version: "12.11.2"
 
     android-release:
         name: Android APKs (tag)
@@ -179,12 +160,12 @@ jobs:
             MESHCHATX_FRONTEND_PREBUILT: "1"
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -201,7 +182,7 @@ jobs:
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Cache electron-builder toolsets
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: ~/.cache/electron-builder
                   key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
@@ -256,7 +237,7 @@ jobs:
               run: bash scripts/ci/github-build-linux-release-assets.sh
 
             - name: Upload Linux release artifact (${{ matrix.arch }})
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: meshchatx-linux-release-${{ matrix.arch }}-${{ github.ref_name }}-${{ github.run_id }}
                   path: release-assets/
@@ -275,23 +256,23 @@ jobs:
             id-token: write
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
             - name: Download x64 artifacts
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: meshchatx-linux-release-x64-${{ github.ref_name }}-${{ github.run_id }}
                   path: release-assets
 
             - name: Download arm64 artifacts
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: meshchatx-linux-release-arm64-${{ github.ref_name }}-${{ github.run_id }}
                   path: release-assets
@@ -338,12 +319,12 @@ jobs:
             MESHCHATX_FRONTEND_PREBUILT: "1"
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -360,7 +341,7 @@ jobs:
                       appstream
 
             - name: Cache Flatpak runtimes
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: ~/.local/share/flatpak
                   key: flatpak-runtimes-25.08-${{ runner.os }}
@@ -390,7 +371,7 @@ jobs:
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Cache electron-builder toolsets
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: ~/.cache/electron-builder
                   key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
@@ -402,7 +383,7 @@ jobs:
               run: bash scripts/ci/github-install-deps.sh
 
             - name: Download frontend artifact
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: ${{ env.FRONTEND_ARTIFACT_NAME }}
                   path: meshchatx/public
@@ -424,60 +405,59 @@ jobs:
                   find dist -maxdepth 3 -type f \( -name "*.flatpak" -o -name "*.flatpakref" \) -print
 
             - name: Upload flatpak artifact
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: meshchatx-linux-flatpak-${{ github.ref_name }}-${{ github.run_id }}
                   path: dist/*.flatpak
                   if-no-files-found: error
                   retention-days: 30
 
-    flatpak-ostree:
-        name: Flatpak OSTree (BunnyCDN)
+    flatpak-pages:
+        name: Flatpak OSTree (GitHub Pages)
         needs: [flatpak]
         if: startsWith(github.ref, 'refs/tags/')
         runs-on: ubuntu-latest
         environment: release
-        # The CDN publish is best effort. A failure here must not fail the
+        # The Pages publish is best effort. A failure here must not fail the
         # release: GitHub, PyPI, and rngit assets are already complete and
-        # the CDN upload can be retried without a new tag.
+        # the publish can be retried via the flatpak-pages workflow.
         continue-on-error: true
-        # Cold publish is thousands of small PUTs to Bunny Edge Storage.
-        timeout-minutes: 180
+        timeout-minutes: 120
         concurrency:
-            group: flatpak-ostree-bunny
+            group: flatpak-pages
             cancel-in-progress: false
         permissions:
-            contents: read
+            contents: write
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
-            - name: Require Bunny Storage credentials
+            - name: Require Flatpak GPG credentials
               id: creds
               env:
-                  BUNNY_STORAGE_ACCESS_KEY: ${{ secrets.BUNNY_STORAGE_ACCESS_KEY }}
+                  FLATPAK_GPG_PRIVATE_KEY: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
               run: |
                   set -euo pipefail
                   if [[ "${GITHUB_REF_NAME}" == nightly-* || "${GITHUB_REF_NAME}" == testing-* ]]; then
-                    echo "::notice::Skipping Flatpak OSTree upload for testing release"
-                    echo "run_flatpak_ostree=false" >> "$GITHUB_OUTPUT"
+                    echo "::notice::Skipping Flatpak Pages publish for testing release"
+                    echo "run_flatpak_pages=false" >> "$GITHUB_OUTPUT"
                     exit 0
                   fi
-                  if [[ -z "${BUNNY_STORAGE_ACCESS_KEY:-}" ]]; then
-                    echo "::error::BUNNY_STORAGE_ACCESS_KEY is required to publish the Flatpak OSTree remote"
+                  if [[ -z "${FLATPAK_GPG_PRIVATE_KEY:-}" ]]; then
+                    echo "::error::FLATPAK_GPG_PRIVATE_KEY is required to publish the Flatpak OSTree remote"
                     exit 1
                   fi
-                  echo "run_flatpak_ostree=true" >> "$GITHUB_OUTPUT"
+                  echo "run_flatpak_pages=true" >> "$GITHUB_OUTPUT"
 
             - name: Install flatpak and ostree
-              if: steps.creds.outputs.run_flatpak_ostree == 'true'
+              if: steps.creds.outputs.run_flatpak_pages == 'true'
               run: |
                   set -euo pipefail
                   sudo apt-get update -y
@@ -489,34 +469,28 @@ jobs:
 
             - name: Import Flatpak GPG key
               id: gpg
-              if: steps.creds.outputs.run_flatpak_ostree == 'true'
-              uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec
+              if: steps.creds.outputs.run_flatpak_pages == 'true'
+              uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd
               with:
                   gpg_private_key: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
                   passphrase: ${{ secrets.FLATPAK_GPG_PASSPHRASE }}
 
             - name: Download Flatpak artifact
-              if: steps.creds.outputs.run_flatpak_ostree == 'true'
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              if: steps.creds.outputs.run_flatpak_pages == 'true'
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: meshchatx-linux-flatpak-${{ github.ref_name }}-${{ github.run_id }}
                   path: dl/flatpak
 
-            - name: Export OSTree repo and upload to Bunny
-              if: steps.creds.outputs.run_flatpak_ostree == 'true'
+            - name: Export OSTree repo and publish to GitHub Pages
+              if: steps.creds.outputs.run_flatpak_pages == 'true'
               env:
-                  BUNNY_STORAGE_ACCESS_KEY: ${{ secrets.BUNNY_STORAGE_ACCESS_KEY }}
-                  BUNNY_STORAGE_BASE_URL: ${{ vars.BUNNY_STORAGE_BASE_URL }}
-                  FLATPAK_CDN_BASE_URL: ${{ vars.FLATPAK_CDN_BASE_URL }}
-                  BUNNY_UPLOAD_WORKERS: "24"
-                  # Optional: purge pull-zone discovery files after upload so
-                  # clients do not keep a 30-day HIT on a stale summary.idx.
-                  BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}
-                  BUNNY_PULL_ZONE_ID: ${{ vars.BUNNY_PULL_ZONE_ID }}
+                  FLATPAK_REPO_BASE_URL: ${{ vars.FLATPAK_REPO_BASE_URL }}
                   GPG_FINGERPRINT: ${{ steps.gpg.outputs.fingerprint }}
                   REQUIRE_GPG: "1"
                   GITHUB_REF_NAME: ${{ github.ref_name }}
                   GITHUB_REPOSITORY: ${{ github.repository }}
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   set -euo pipefail
                   shopt -s nullglob
@@ -525,11 +499,7 @@ jobs:
                     echo "No .flatpak under dl/flatpak/" >&2
                     exit 1
                   fi
-                  export BUNNY_STORAGE_BASE_URL="${BUNNY_STORAGE_BASE_URL:-https://ny.storage.bunnycdn.com/quad4}"
-                  export FLATPAK_CDN_BASE_URL="${FLATPAK_CDN_BASE_URL:-https://cdn.quad4.io/flatpak}"
-                  mkdir -p flatpak-cdn
-                  bash scripts/ci/github-flatpak-ostree-export.sh "${bundles[0]}" flatpak-cdn
-                  python3 scripts/ci/github-upload-bunny-flatpak-ostree.py flatpak-cdn
+                  bash scripts/ci/github-publish-flatpak-pages.sh "${bundles[0]}"
 
     build-release:
         name: Build release (${{ matrix.label }})
@@ -565,12 +535,12 @@ jobs:
             MESHCHATX_FRONTEND_PREBUILT: "1"
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -587,7 +557,7 @@ jobs:
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Cache electron downloads and builder toolsets
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: |
                       ~/.cache/electron
@@ -599,7 +569,7 @@ jobs:
 
             - name: Cache Cargo registry (macOS x64 rustc slices)
               if: matrix.label == 'macos-x64'
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: |
                       ~/.cargo/registry
@@ -611,7 +581,7 @@ jobs:
 
             - name: Cache macOS x64 Python env
               if: matrix.label == 'macos-x64'
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: |
                       .venv-x64
@@ -639,7 +609,7 @@ jobs:
               run: /usr/sbin/softwareupdate --install-rosetta --agree-to-license || true
 
             - name: Download frontend artifact
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: ${{ env.FRONTEND_ARTIFACT_NAME }}
                   path: meshchatx/public
@@ -655,7 +625,7 @@ jobs:
               run: bash "${{ matrix.build_script }}"
 
             - name: Upload dist artifacts
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: ${{ matrix.artifact_prefix }}-${{ github.ref_name }}-${{ github.run_id }}
                   path: dist/
@@ -674,25 +644,25 @@ jobs:
             hashes: ${{ steps.hash.outputs.hashes }}
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
             - name: Download Windows dist
               continue-on-error: true
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: meshchatx-windows-${{ github.ref_name }}-${{ github.run_id }}
                   path: dl/win
 
             - name: Download macOS dist
               continue-on-error: true
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   pattern: meshchatx-macos*-${{ github.ref_name }}-${{ github.run_id }}
                   path: dl/mac
@@ -750,25 +720,25 @@ jobs:
             has_subjects: ${{ steps.hash.outputs.has_subjects }}
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
             - name: Download Android APK bundle
               continue-on-error: true
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: meshchatx-android-apks-${{ github.ref_name }}-${{ github.run_id }}
                   path: dl/android
 
             - name: Download Flatpak artifact
               continue-on-error: true
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: meshchatx-linux-flatpak-${{ github.ref_name }}-${{ github.run_id }}
                   path: dl/flatpak
@@ -822,71 +792,71 @@ jobs:
             contents: write
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
             - name: Download Linux release assets (x64)
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: meshchatx-linux-release-x64-${{ github.ref_name }}-${{ github.run_id }}
                   path: upload
 
             - name: Download Linux release assets (arm64)
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: meshchatx-linux-release-arm64-${{ github.ref_name }}-${{ github.run_id }}
                   path: upload
 
             - name: Download Windows dist
               continue-on-error: true
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: meshchatx-windows-${{ github.ref_name }}-${{ github.run_id }}
                   path: upload/win
 
             - name: Download macOS dist
               continue-on-error: true
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   pattern: meshchatx-macos*-${{ github.ref_name }}-${{ github.run_id }}
                   path: upload/mac
 
             - name: Download Flatpak artifact
               continue-on-error: true
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: meshchatx-linux-flatpak-${{ github.ref_name }}-${{ github.run_id }}
                   path: upload/flatpak
 
             - name: Download Android APK bundle
               continue-on-error: true
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: meshchatx-android-apks-${{ github.ref_name }}-${{ github.run_id }}
                   path: upload/android
 
             - name: Download SLSA provenance (Linux)
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: ${{ needs.slsa-provenance-linux.outputs.provenance-name }}
                   path: upload
 
             - name: Download SLSA provenance (desktop)
               continue-on-error: true
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: ${{ needs.slsa-provenance-desktop.outputs.provenance-name }}
                   path: upload
 
             - name: Download SLSA provenance (Android + Flatpak)
               continue-on-error: true
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: meshchatx-android-flatpak-${{ github.ref_name }}.intoto.jsonl
                   path: upload
@@ -921,37 +891,6 @@ jobs:
                   done
                   rm -f /tmp/cosign.key
 
-            - name: Install git-cliff for release notes
-              run: sh scripts/ci/setup-git-cliff.sh
-
-            - name: Generate signed update manifest
-              id: update_manifest
-              env:
-                  MESHCHATX_UPDATE_IDENTITY_B64: ${{ secrets.MESHCHATX_UPDATE_IDENTITY_B64 }}
-              run: |
-                  set -euo pipefail
-                  if [[ -z "${MESHCHATX_UPDATE_IDENTITY_B64:-}" ]]; then
-                    echo "::notice::MESHCHATX_UPDATE_IDENTITY_B64 not set; skipping signed update manifest."
-                    exit 0
-                  fi
-                  printf '%s' "$MESHCHATX_UPDATE_IDENTITY_B64" | base64 -d > /tmp/update-release.rid
-                  chmod 600 /tmp/update-release.rid
-                  trap 'rm -f /tmp/update-release.rid' EXIT
-                  version="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' meshchatx/src/version.py | head -1)"
-                  if [[ "${GITHUB_REF_NAME}" == nightly-* || "${GITHUB_REF_NAME}" == testing-* ]]; then
-                    track=testing
-                  elif [[ "${GITHUB_REF_NAME}" == beta-* || "${GITHUB_REF_NAME}" == preview-* ]]; then
-                    track=beta
-                  else
-                    track=release
-                  fi
-                  uv run --no-project --with 'rns==1.5.5' python scripts/build/update_manifest.py sign \
-                    --assets upload --version "$version" --tag "$GITHUB_REF_NAME" --track "$track" \
-                    --identity /tmp/update-release.rid \
-                    -o upload/update.json --rsm upload/update.rsm
-                  # Fail the job if the signed manifest does not verify.
-                  uv run --no-project --with 'rns==1.5.5' python scripts/build/update_manifest.py verify upload/update.rsm
-
             - name: Build CDN webseed torrent
               run: |
                   set -euo pipefail
@@ -974,46 +913,6 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
               run: bash scripts/ci/github-draft-release-upload-assets.sh upload
 
-            - name: Upload release assets to Bunny Storage
-              if: always() && !cancelled() && (steps.upload_gh_release.outcome == 'success' || steps.upload_gh_release.outcome == 'failure')
-              env:
-                  BUNNY_STORAGE_ACCESS_KEY: ${{ secrets.BUNNY_STORAGE_ACCESS_KEY }}
-                  BUNNY_STORAGE_BASE_URL: ${{ vars.BUNNY_STORAGE_BASE_URL }}
-              run: |
-                  set -euo pipefail
-                  if [[ -z "${BUNNY_STORAGE_ACCESS_KEY:-}" ]]; then
-                    echo "::notice::Skipping Bunny Storage (set repository secret BUNNY_STORAGE_ACCESS_KEY to enable)."
-                    exit 0
-                  fi
-                  export BUNNY_STORAGE_BASE_URL="${BUNNY_STORAGE_BASE_URL:-https://ny.storage.bunnycdn.com/quad4}"
-                  if [[ "${GITHUB_REF_NAME}" == nightly-* || "${GITHUB_REF_NAME}" == testing-* ]]; then
-                    track=testing
-                  elif [[ "${GITHUB_REF_NAME}" == beta-* || "${GITHUB_REF_NAME}" == preview-* ]]; then
-                    track=beta
-                  else
-                    track=release
-                  fi
-                  export BUNNY_STORAGE_OBJECT_PREFIX="${track}/${GITHUB_REF_NAME}"
-                  echo "Bunny Storage prefix: ${BUNNY_STORAGE_OBJECT_PREFIX}"
-                  python3 scripts/ci/github-upload-bunny-storage-release-assets.py upload
-
-                  # Publish the signed update manifest as the track's latest
-                  # pointer only after the artifact tree is fully uploaded, so
-                  # clients never see a manifest for missing files. A bare
-                  # track prefix is not a track/version pair, so the uploader
-                  # prunes nothing here.
-                  if [[ -f upload/update.rsm && -f upload/update.json ]]; then
-                    latest_dir="$(mktemp -d)"
-                    cp upload/update.json "${latest_dir}/latest.json"
-                    cp upload/update.rsm "${latest_dir}/latest.rsm"
-                    export BUNNY_STORAGE_OBJECT_PREFIX="${track}"
-                    echo "Bunny Storage prefix: ${BUNNY_STORAGE_OBJECT_PREFIX} (latest pointers)"
-                    python3 scripts/ci/github-upload-bunny-storage-release-assets.py "${latest_dir}"
-                    rm -rf "${latest_dir}"
-                  else
-                    echo "::notice::No signed update manifest; skipping latest pointer publish."
-                  fi
-
     release-artifact-gate:
         name: Verify required tagged release artifacts
         if: >-
@@ -1022,13 +921,13 @@ jobs:
             startsWith(github.ref, 'refs/tags/')
         needs:
             - flatpak
-            - flatpak-ostree
+            - flatpak-pages
             - build-release
             - draft-github-release
         runs-on: ubuntu-latest
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
@@ -1036,12 +935,12 @@ jobs:
               run: |
                   set -euo pipefail
                   fail=0
+                  if [[ "${{ needs.flatpak-pages.result }}" != "success" ]]; then
+                    echo "::warning::Flatpak OSTree (GitHub Pages) job did not succeed (${{ needs.flatpak-pages.result }}); the release is still valid and the publish can be retried without a new tag"
+                  fi
                   if [[ "${{ needs.flatpak.result }}" != "success" ]]; then
                     echo "::error::Flatpak job did not succeed (${{ needs.flatpak.result }})"
                     fail=1
-                  fi
-                  if [[ "${{ needs.flatpak-ostree.result }}" != "success" ]]; then
-                    echo "::warning::Flatpak OSTree (BunnyCDN) job did not succeed (${{ needs.flatpak-ostree.result }}); the release is still valid and the CDN publish can be retried without a new tag"
                   fi
                   if [[ "${{ needs.build-release.result }}" != "success" ]]; then
                     echo "::error::Desktop build job did not succeed (${{ needs.build-release.result }})"

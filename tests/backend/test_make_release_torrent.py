@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Tests for CDN webseed torrent builder."""
+"""Tests for the webseed torrent builder."""
 
 from __future__ import annotations
 
@@ -62,7 +62,6 @@ def test_local_dir_builds_webseed_torrent(torrent: ModuleType, tmp_path: Path) -
     )
     assert rc == 0
     raw = out.read_bytes()
-    assert b"https://cdn.quad4.io/release/" in raw
     assert b"https://github.com/Quad4-Software/MeshChatX/releases/download/" in raw
     assert b"meshchatx-linux-x86_64.AppImage" in raw
     meta = out.with_suffix(".json").read_text()

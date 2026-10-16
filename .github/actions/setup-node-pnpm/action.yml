@@ -10,7 +10,7 @@ inputs:
     pnpm-version:
         description: pnpm version activated through corepack
         required: false
-        default: "12.7.0"
+        default: "12.11.2"
     cache-dependency-path:
         description: Lockfile path used for the pnpm cache key
         required: false
@@ -20,12 +20,12 @@ runs:
     using: composite
     steps:
         - name: Set up Node.js
-          uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+          uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
           with:
               node-version: ${{ inputs.node-version }}
 
         - name: Cache corepack downloads
-          uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+          uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
           with:
               path: |
                   ~/.cache/node/corepack
@@ -60,7 +60,7 @@ runs:
               node -e "const major=Number(process.versions.node.split('.')[0]); if(major<24) process.exit(1)"
 
         - name: Cache pnpm dependencies
-          uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+          uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
           with:
               node-version: ${{ inputs.node-version }}
               cache: pnpm

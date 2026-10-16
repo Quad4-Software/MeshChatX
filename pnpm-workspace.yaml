@@ -84,11 +84,11 @@ minimumReleaseAgeExclude:
     - electron@44.5.1
     - source-map-js@1.2.2
 
-patchedDependencies:
-    ol@10.10.0: patches/ol@10.10.0.patch
-    ol-mapbox-style@13.4.3: patches/ol-mapbox-style@13.4.3.patch
-
 peerDependencyRules:
     allowedVersions:
         vis-data>uuid: ">=14.0.0"
         vis-network>uuid: ">=14.0.0"
+patchedDependencies:
+    "@maplibre/maplibre-gl-style-spec@26.4.1": patches/@maplibre__maplibre-gl-style-spec@26.4.1.patch
+    ol-mapbox-style@13.5.1: patches/ol-mapbox-style@13.5.1.patch
+    ol@10.11.0: patches/ol@10.11.0.patch

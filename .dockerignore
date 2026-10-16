@@ -1,6 +1,5 @@
 # Documentation
 LICENSE
-donate.md
 screenshots/
 
 vendor/lxmfy/tests/
@@ -65,7 +64,6 @@ venv.bak/
 .venv/
 
 # IDE and editor files
-.vscode/
 .idea/
 *.swp
 *.swo

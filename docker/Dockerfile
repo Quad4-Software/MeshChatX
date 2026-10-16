@@ -4,9 +4,9 @@
 # LXST musl filterlib bake runs in scripts/docker/prepare-venv.sh.
 
 ARG NODE_IMAGE=node:24-alpine
-ARG NODE_HASH=sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1
+ARG NODE_HASH=sha256:429bdfbc204b4eabc6438e6d34e4e9d8dd2ca1df8289bcd78cdd3c5db387b7a5
 ARG PYTHON_IMAGE=python:3.14.8-alpine3.24
-ARG PYTHON_HASH=sha256:8acac70227ce3b34da9453120c375cc5b66cd0b062d4dc6bc74286f81a3819e1
+ARG PYTHON_HASH=sha256:f6a589d43c42b9e7f7dc67a12d37132491f362859a5d750607710cc56da3bc72
 ARG VARIANT=standard
 ARG OCI_DESCRIPTION="MeshChatX is an all-in-one Reticulum client."
 ARG OCI_LICENSES="MIT AND 0BSD"
@@ -26,6 +26,7 @@ COPY scripts/fetch-micron-wasm.mjs scripts/fetch-micron-wasm.mjs
 COPY scripts/micron-wasm-resolve-bundled.mjs scripts/micron-wasm-resolve-bundled.mjs
 COPY scripts/micron-parser-go-version.mjs scripts/micron-parser-go-version.mjs
 COPY scripts/vite-dx.mjs scripts/vite-dx.mjs
+COPY scripts/brand.mjs scripts/brand.mjs
 COPY scripts/build-visualiser-wasm.mjs scripts/build-visualiser-wasm.mjs
 COPY scripts/build-geo-wasm.mjs scripts/build-geo-wasm.mjs
 COPY scripts/wasm-exec-compat.mjs scripts/wasm-exec-compat.mjs
@@ -96,7 +97,8 @@ ARG OCI_REVISION=""
 ARG OCI_VERSION=""
 ARG OCI_CREATED=""
 
-LABEL org.opencontainers.image.source="https://github.com/Quad4-Software/MeshChatX"
+ARG OCI_SOURCE="https://github.com/Quad4-Software/MeshChatX"
+LABEL org.opencontainers.image.source="${OCI_SOURCE}"
 LABEL org.opencontainers.image.description="${OCI_DESCRIPTION}"
 LABEL org.opencontainers.image.licenses="${OCI_LICENSES}"
 LABEL org.opencontainers.image.authors="Quad4"

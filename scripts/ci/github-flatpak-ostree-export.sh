@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: 0BSD
 # Import a single-file Flatpak bundle into an OSTree archive-z2 repo and write
-# CDN discovery files (.flatpakref, .flatpakrepo, landing page) for BunnyCDN.
+# CDN discovery files (.flatpakref, .flatpakrepo, landing page).
 #
 # Usage: github-flatpak-ostree-export.sh BUNDLE_PATH OUTPUT_DIR [BRANCH]
 #
@@ -9,7 +9,9 @@
 # (testing | beta | stable).
 #
 # Environment:
-#   FLATPAK_CDN_BASE_URL  public base (default https://cdn.quad4.io/flatpak)
+#   FLATPAK_REPO_BASE_URL  public base URL of the published repo tree (required)
+#   FLATPAK_PRUNE_DEPTH    ostree prune depth for static deltas (default 1)
+#   FLATPAK_STATIC_DELTAS  generate static deltas when 1 (default 0)
 #   GPG_FINGERPRINT       GPG key id for signing commits and summary
 #   REQUIRE_GPG           if 1, fail when GPG_FINGERPRINT is empty
 #   GITHUB_REPOSITORY     owner/repo for landing page link
@@ -44,7 +46,7 @@ case "$branch" in
         ;;
 esac
 
-cdn_base="${FLATPAK_CDN_BASE_URL:-https://cdn.quad4.io/flatpak}"
+cdn_base="${FLATPAK_REPO_BASE_URL:?set FLATPAK_REPO_BASE_URL to the published repo base URL}"
 cdn_base="${cdn_base%/}"
 repo_url="${cdn_base}/repo"
 repo_path="${OUT}/repo"
@@ -63,7 +65,7 @@ if curl -sfL --max-time 120 -o /dev/null "${repo_url}/summary"; then
     echo "Pulling existing ostree repo from ${repo_url}"
     ostree remote add --repo="${repo_path}" --if-not-exists --no-gpg-verify meshchatx-prev "${repo_url}" || true
     if ostree pull --repo="${repo_path}" meshchatx-prev --mirror --depth=-1 2>/dev/null; then
-        echo "Restored prior ostree commits from live CDN"
+        echo "Restored prior ostree commits from live repo"
     else
         echo "Live summary present but pull failed, continuing with local repo" >&2
     fi
@@ -128,12 +130,13 @@ echo "branch=${branch}"
 echo "Repo app refs:"
 printf '  %s\n' "${refs[@]}"
 
-flatpak build-update-repo \
-    "${update_args[@]}" \
-    --generate-static-deltas \
-    --prune \
-    --prune-depth=20 \
-    "${repo_path}"
+prune_depth="${FLATPAK_PRUNE_DEPTH:-1}"
+repo_update_args=("${update_args[@]}" --prune --prune-depth="${prune_depth}")
+if [[ "${FLATPAK_STATIC_DELTAS:-0}" == "1" ]]; then
+    repo_update_args+=(--generate-static-deltas)
+fi
+
+flatpak build-update-repo "${repo_update_args[@]}" "${repo_path}"
 
 gpg_key_line=""
 if [[ -n "${GPG_FINGERPRINT:-}" ]]; then
@@ -207,7 +210,7 @@ cat >"${OUT}/index.html" <<EOF
 </head>
 <body>
   <h1>MeshChatX Flatpak</h1>
-  <p>Install from the CDN remote, then run <code>flatpak update</code> for new releases on that branch.</p>
+  <p>Install from the remote, then run <code>flatpak update</code> for new releases on that branch.</p>
   <p>Only channels with a published build are listed. Beta and testing refs appear after the first beta-* or nightly-*/testing-* tag publishes.</p>${channel_sections}
   <h2>Remote only</h2>
   <pre>flatpak remote-add --if-not-exists meshchatx ${cdn_base}/meshchatx.flatpakrepo

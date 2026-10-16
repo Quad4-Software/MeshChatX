@@ -41,9 +41,8 @@ export function wasmImportFieldNames(wasmBuf) {
         const [count, countEnd] = readU32(wasmBuf, pos);
         pos = countEnd;
         for (let i = 0; i < count && pos < end; i += 1) {
-            let name;
-            [name, pos] = readName(wasmBuf, pos); // module
-            [name, pos] = readName(wasmBuf, pos); // field
+            [, pos] = readName(wasmBuf, pos); // module
+            [, pos] = readName(wasmBuf, pos); // field
             const kind = wasmBuf[pos];
             pos += 1;
             if (kind === 0) {

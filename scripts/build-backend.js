@@ -211,7 +211,7 @@ function verifyBinaryArchitecture(buildDir, expectedArch, targetName) {
         return true;
     }
 
-    let output = "";
+    let output;
     try {
         const result = spawnSync("file", ["--brief", "--no-pad", binaryPath], {
             encoding: "utf-8",

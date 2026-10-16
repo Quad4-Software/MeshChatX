@@ -2308,11 +2308,11 @@
                                             >rns.recipes</a
                                         >
                                         <a
-                                            href="https://meshchatx.com/interfaces"
+                                            :href="brand.homepage + '/interfaces'"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             class="secondary-chip py-1! px-2! text-[9px]!"
-                                            >meshchatx.com</a
+                                            >{{ brandHost }}</a
                                         >
                                         <a
                                             href="https://rmap.world/"
@@ -2386,6 +2386,7 @@ import DropDownMenu from "../DropDownMenu.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
 import BundledDocsHint from "./BundledDocsHint.vue";
 import { RETICULUM_MANUAL_INTERFACES_OVERVIEW_REL } from "../../js/reticulumDocsEntryUrl.js";
+import { brand } from "../../js/brand.js";
 import AndroidBridge from "../../js/rnode/AndroidBridge";
 import { useRNodeInterfaceForm } from "../../js/interfaces/useRNodeInterfaceForm.js";
 
@@ -2406,6 +2407,7 @@ export default {
     },
     data() {
         return {
+            brand,
             rawConfigInput: "",
             detectedConfigs: [],
             isSaving: false,
@@ -2580,6 +2582,13 @@ export default {
         };
     },
     computed: {
+        brandHost() {
+            try {
+                return new URL(this.brand.homepage).hostname;
+            } catch {
+                return this.brand.homepage;
+            }
+        },
         communityTypeFilterOptions() {
             return COMMUNITY_FILTER_OPTIONS;
         },

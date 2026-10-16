@@ -4,4 +4,4 @@
 // and olc from github.com/Quad4-Software/olc-go.
 module github.com/Quad4-Software/MeshChatX/geo-wasm
 
-go 1.27.1
+go 1.27.2

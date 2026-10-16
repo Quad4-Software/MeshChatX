@@ -8,7 +8,6 @@ Fork di [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) d
 - Sorgente: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 - Changelog: [CHANGELOG.md](../CHANGELOG.md)
-- Donazioni: [donate.md](../donate.md)
 - LXMF: `f489752fbef161c64d65e385a4e9fc74`
 
 ## Installazione
@@ -39,6 +38,5 @@ Dettagli: [`docs/en/installation.md`](../docs/en/installation.md).
 
 ## Sicurezza, licenza, crediti
 
-- [SECURITY.md](../SECURITY.md) · [LEGAL.md](../LEGAL.md) · [donate.md](../donate.md)
 - Codice del progetto: 0BSD. Porzioni upstream MeshChat: MIT. Testo completo: [LICENSE](../LICENSE).
 - Crediti: [Liam Cottle](https://github.com/liamcottle), [RFnexus](https://github.com/RFnexus), [markqvist](https://github.com/markqvist).

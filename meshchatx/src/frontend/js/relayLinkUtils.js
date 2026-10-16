@@ -170,7 +170,7 @@ export async function applyRelayShareLink(parsed, { api = typeof window !== "und
         throw new Error("invalid relay share");
     }
     const hubHash = parsed.hub;
-    let hubs = [];
+    let hubs;
     try {
         const list = await api.get(apiPath("/rrc/hubs"));
         hubs = list.data?.hubs || [];

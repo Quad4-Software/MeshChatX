@@ -2967,7 +2967,7 @@ export default {
             return this.normalizedLocaleCode(this.config?.language || this.$i18n.locale) || "en";
         },
         _readSavedTranslateTargetLang() {
-            let v = null;
+            let v;
             try {
                 v =
                     localStorage.getItem(STORAGE_KEYS.TRANSLATE_TARGET_LANG) ||
@@ -4266,7 +4266,7 @@ export default {
             const outboundTicketExpiry = stampInfo.outbound_ticket_expiry;
 
             // determine estimated time to generate a stamp
-            var estimatedTimeForStamp = "";
+            var estimatedTimeForStamp;
             if (stampCost >= 24) {
                 estimatedTimeForStamp = "several hours";
             } else if (stampCost >= 20) {
@@ -5110,7 +5110,7 @@ export default {
                 return null;
             }
             const raw = (img.image_type || "png").toLowerCase().replace(/^image\//, "");
-            let mime = "image/png";
+            let mime;
             if (raw === "jpg" || raw === "jpeg") {
                 mime = "image/jpeg";
             } else if (raw === "png" || raw === "gif" || raw === "webp" || raw === "bmp") {

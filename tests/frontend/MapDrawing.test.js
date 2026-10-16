@@ -408,13 +408,12 @@ describe("MapPage.vue - Drawing and Measurement Tools", () => {
     });
 
     it("bearing from here sets GPS anchor when geolocation succeeds", async () => {
-        const origNav = global.navigator;
         try {
-            global.navigator = {
+            vi.stubGlobal("navigator", {
                 geolocation: {
                     getCurrentPosition: vi.fn((success) => success({ coords: { longitude: -0.1, latitude: 51.5 } })),
                 },
-            };
+            });
             const wrapper = mountMapPage();
             await wrapper.vm.$nextTick();
             await new Promise((resolve) => setTimeout(resolve, 50));
@@ -430,7 +429,7 @@ describe("MapPage.vue - Drawing and Measurement Tools", () => {
             expect(wrapper.vm.bearingFromGps).toBe(true);
             expect(wrapper.vm.bearingGpsMapCoord).toEqual([-0.1, 51.5]);
         } finally {
-            global.navigator = origNav;
+            vi.unstubAllGlobals();
         }
     });
 });

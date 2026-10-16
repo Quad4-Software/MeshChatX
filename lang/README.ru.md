@@ -8,7 +8,6 @@
 - Исходники: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 - Changelog: [CHANGELOG.md](../CHANGELOG.md)
-- Донаты: [donate.md](../donate.md)
 - LXMF: `f489752fbef161c64d65e385a4e9fc74`
 
 ## Установка
@@ -39,6 +38,5 @@ make install && make build && make run
 
 ## Безопасность, лицензия, благодарности
 
-- [SECURITY.md](../SECURITY.md) · [LEGAL.md](../LEGAL.md) · [donate.md](../donate.md)
 - Собственный код: 0BSD. Части upstream MeshChat: MIT. Полный текст: [LICENSE](../LICENSE).
 - Credits: [Liam Cottle](https://github.com/liamcottle), [RFnexus](https://github.com/RFnexus), [markqvist](https://github.com/markqvist).

@@ -154,12 +154,13 @@ discover_release_wheels() {
         err "curl is required (RSS and downloads)."
         return 1
     fi
-    MESHCHATX_RELEASES_RSS="${MESHCHATX_RELEASES_RSS:-https://github.com/Quad4-Software/MeshChatX/releases.rss}"
+    MESHCHATX_REPO="${MESHCHATX_REPO:-${GITHUB_REPOSITORY:-$(python3 "$(dirname "$0")/../brand.py" repository 2>/dev/null || echo Quad4-Software/MeshChatX)}}"
+    MESHCHATX_RELEASES_RSS="${MESHCHATX_RELEASES_RSS:-https://github.com/${MESHCHATX_REPO}/releases.rss}"
     repo_base="${MESHCHATX_REPO_BASE:-}"
     rss="$MESHCHATX_RELEASES_RSS"
     [[ -n "$repo_base" ]] || repo_base="$(repo_base_from_rss "$rss")"
     if ! raw="$(
-        curl -fsSL -m 90 -H "User-Agent: MeshChatX-rpi-installer/1 (+https://github.com/Quad4-Software/MeshChatX)" \
+        curl -fsSL -m 90 -H "User-Agent: MeshChatX-rpi-installer/1 (+https://github.com/${MESHCHATX_REPO})" \
             "$rss" 2>/dev/null
     )"; then
         return 1
@@ -498,7 +499,7 @@ try_verify_and_localize_wheel() {
     local src_url="${1:-}"
     local bundle_url="${src_url}.cosign.bundle"
     local code cbin kf wf bf
-    MESHCHATX_COSIGN_PUB_URL="${MESHCHATX_COSIGN_PUB_URL:-https://github.com/Quad4-Software/MeshChatX/raw/branch/master/cosign.pub}"
+    MESHCHATX_COSIGN_PUB_URL="${MESHCHATX_COSIGN_PUB_URL:-https://github.com/${MESHCHATX_REPO}/raw/branch/master/cosign.pub}"
     if ! code="$(curl -fsS -o /dev/null -w '%{http_code}' -I -L -m 30 "$bundle_url" 2>/dev/null)"; then
         code="000"
     fi

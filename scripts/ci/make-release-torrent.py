@@ -3,12 +3,11 @@
 """Build a BitTorrent v1 torrent with HTTP webseeds (BEP 19).
 
 The torrent name is the release tag so directory webseeds map to
-https://cdn.quad4.io/<track>/<tag>/<file> and GitHub
-.../releases/download/<tag>/<file>.
+GitHub .../releases/download/<tag>/<file>.
 
 Usage:
     python3 scripts/ci/make-release-torrent.py --dir upload --tag v4.9.3 --track release
-    python3 scripts/ci/make-release-torrent.py --from-release v4.9.3 --track release --cdn-only
+    python3 scripts/ci/make-release-torrent.py --from-release v4.9.3 --track release
 """
 
 from __future__ import annotations
@@ -16,6 +15,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 import time
 import urllib.error
@@ -25,9 +25,26 @@ from pathlib import Path
 
 PIECE_LENGTH = 2 * 1024 * 1024
 USER_AGENT = "meshchatx-torrent/1.0"
-GITHUB_API = "https://api.github.com/repos/Quad4-Software/MeshChatX/releases/tags/"
-GITHUB_WS = "https://github.com/Quad4-Software/MeshChatX/releases/download/"
-CDN_BASE = "https://cdn.quad4.io"
+
+
+def _repository() -> str:
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    if repo:
+        return repo
+    try:
+        import json as _json
+        from pathlib import Path as _P
+
+        return _json.loads(
+            (_P(__file__).resolve().parents[2] / "brand.json").read_text()
+        )["repository"]
+    except Exception:
+        return "Quad4-Software/MeshChatX"
+
+
+REPOSITORY = _repository()
+GITHUB_API = f"https://api.github.com/repos/{REPOSITORY}/releases/tags/"
+GITHUB_WS = f"https://github.com/{REPOSITORY}/releases/download/"
 TRACKERS = (
     "udp://tracker.opentrackr.org:1337/announce",
     "udp://open.stealth.si:80/announce",
@@ -94,10 +111,6 @@ def include_name(name: str) -> bool:
     if lower.endswith(".torrent"):
         return False
     return any(lower.endswith(s) for s in KEEP_SUFFIXES)
-
-
-def cdn_url(track: str, tag: str, name: str) -> str:
-    return f"{CDN_BASE}/{track}/{urllib.parse.quote(tag)}/{urllib.parse.quote(name)}"
 
 
 def github_url(tag: str, name: str) -> str:
@@ -217,13 +230,12 @@ def build_torrent(
     payload = {
         "announce": TRACKERS[0],
         "announce-list": [[t] for t in TRACKERS],
-        "comment": f"MeshChatX {tag} webseeded from {CDN_BASE}/{track}/",
+        "comment": f"MeshChatX {tag} webseeded from GitHub releases",
         "created by": "MeshChatX",
         "creation date": int(time.time()),
         "encoding": "UTF-8",
         "info": info,
         "url-list": [
-            f"{CDN_BASE}/{track}/",
             GITHUB_WS,
         ],
     }
@@ -237,14 +249,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     src = p.add_mutually_exclusive_group(required=True)
     src.add_argument("--dir", type=Path, help="local directory of release assets")
-    src.add_argument(
-        "--from-release", metavar="TAG", help="hash assets from GitHub and CDN"
-    )
+    src.add_argument("--from-release", metavar="TAG", help="hash assets from GitHub")
     p.add_argument("--tag", help="release tag, default from --from-release")
     p.add_argument("--track", choices=("release", "beta", "testing"), default="release")
-    p.add_argument(
-        "--cdn-only", action="store_true", help="keep files that exist on the CDN"
-    )
     p.add_argument("--out", type=Path, help="torrent output path")
     p.add_argument(
         "--meta", type=Path, help="optional json sidecar with magnet and infohash"
@@ -264,8 +271,6 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.dir is not None:
         rows = local_files(args.dir)
-        if args.cdn_only:
-            rows = [r for r in rows if head_ok(cdn_url(track, tag, r[0]))]
         if not rows:
             print("no installer files found", file=sys.stderr)
             return 1
@@ -277,12 +282,7 @@ def main(argv: list[str] | None = None) -> int:
         rows_gh = github_assets(tag)
         selected: list[tuple[str, int, str]] = []
         for name, size, gh_url in rows_gh:
-            mirror = cdn_url(track, tag, name)
-            on_cdn = head_ok(mirror)
-            if args.cdn_only and not on_cdn:
-                print(f"skip {name} (not on CDN)", file=sys.stderr)
-                continue
-            selected.append((name, size, mirror if on_cdn else gh_url))
+            selected.append((name, size, gh_url))
         if not selected:
             print("no installer files found", file=sys.stderr)
             return 1
@@ -312,7 +312,7 @@ def main(argv: list[str] | None = None) -> int:
         "magnet": magnet,
         "pieceLength": PIECE_LENGTH,
         "files": [{"name": n, "size": s} for n, s in listed],
-        "webseeds": [f"{CDN_BASE}/{track}/", GITHUB_WS],
+        "webseeds": [GITHUB_WS],
         "torrent": out.name,
     }
     meta_path = args.meta or out.with_suffix(".json")

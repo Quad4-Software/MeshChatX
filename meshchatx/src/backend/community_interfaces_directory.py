@@ -8,10 +8,16 @@ import re
 from typing import Any
 from urllib.parse import urlparse
 
+from meshchatx.src.backend import brand
+
 DESCRIPTION = "meshchatx.com/interfaces"
 
-DEFAULT_DIRECTORY_URL = "https://meshchatx.com/api/mcx-interfaces"
-ALLOWED_FETCH_HOST = "meshchatx.com"
+DEFAULT_DIRECTORY_URL = (
+    brand.get("homepage", "https://meshchatx.com").rstrip("/") + "/api/mcx-interfaces"
+)
+ALLOWED_FETCH_HOST = (
+    urlparse(brand.get("homepage", "https://meshchatx.com")).hostname or "meshchatx.com"
+)
 
 _RE_REMOTE = re.compile(r"^\s*remote\s*=\s*(\S+)", re.MULTILINE | re.IGNORECASE)
 _RE_TARGET_HOST = re.compile(

@@ -8,7 +8,6 @@
 - 源码: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 - Changelog: [CHANGELOG.md](../CHANGELOG.md)
-- 捐赠: [donate.md](../donate.md)
 - LXMF: `f489752fbef161c64d65e385a4e9fc74`
 
 ## 安装
@@ -39,6 +38,5 @@ make install && make build && make run
 
 ## 安全、许可与致谢
 
-- [SECURITY.md](../SECURITY.md) · [LEGAL.md](../LEGAL.md) · [donate.md](../donate.md)
 - 本项目自有代码：0BSD。上游 MeshChat 部分：MIT。全文：[LICENSE](../LICENSE)。
 - 致谢：[Liam Cottle](https://github.com/liamcottle)、[RFnexus](https://github.com/RFnexus)、[markqvist](https://github.com/markqvist)。

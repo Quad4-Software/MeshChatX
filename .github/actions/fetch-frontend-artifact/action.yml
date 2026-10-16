@@ -1,5 +1,5 @@
 # Pinned actions (bump tag and SHA together when upgrading):
-#   actions/download-artifact@v5.0.0  634f93cb2916e3fdff6788551b99b062d0335ce0
+#   actions/download-artifact@v5.0.0  9000827ccba6bdab643e8b6fd33ac0654aef8333
 name: Fetch frontend artifact
 description: Download a prebuilt meshchatx/public artifact and verify required paths
 
@@ -16,7 +16,7 @@ runs:
     using: composite
     steps:
         - name: Download frontend artifact
-          uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+          uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
           with:
               name: ${{ inputs.artifact-name }}
               path: ${{ inputs.path }}

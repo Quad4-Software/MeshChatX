@@ -46,7 +46,6 @@ from meshchatx.src.backend.http.routes.stickers import register_stickers_routes
 from meshchatx.src.backend.http.routes.telemetry import register_telemetry_routes
 from meshchatx.src.backend.http.routes.telephone import register_telephone_routes
 from meshchatx.src.backend.http.routes.translation import register_translation_routes
-from meshchatx.src.backend.http.routes.update import register_update_routes
 from meshchatx.src.backend.http.routes.websocket_upgrade import (
     register_websocket_upgrade_routes,
 )
@@ -91,7 +90,6 @@ _REGISTER_ORDER = (
     register_gifs_routes,
     register_translation_routes,
     register_telemetry_routes,
-    register_update_routes,
 )
 
 

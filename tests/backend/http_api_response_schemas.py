@@ -1121,4 +1121,3 @@ TELEPHONE_CALL_SCHEMA: dict = {
     "type": "object",
     "additionalProperties": True,
 }
-

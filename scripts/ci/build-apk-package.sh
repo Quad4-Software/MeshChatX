@@ -62,7 +62,7 @@ APK_PRODUCT="${APK_PRODUCT:-$(pkg_json build.productName)}"
 APK_RELEASE="${APK_RELEASE:-r0}"
 APK_ARCH="${APK_ARCH:-x86_64}"
 APK_DESCRIPTION="${APK_DESCRIPTION:-$(pkg_json description)}"
-APK_URL="${APK_URL:-https://github.com/Quad4-Software/MeshChatX}"
+APK_URL="${APK_URL:-https://github.com/${GITHUB_REPOSITORY:-$(python3 "$(dirname "$0")/../brand.py" repository 2>/dev/null || echo Quad4-Software/MeshChatX)}}"
 APK_MAINTAINER="${APK_MAINTAINER:-Quad4}"
 APK_LICENSE="${APK_LICENSE:-$(pkg_json license)}"
 

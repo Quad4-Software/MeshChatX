@@ -7,12 +7,8 @@
 # downloaded by downstream jobs instead of rebuilding on every runner.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
-#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
-#   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
-#   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
-#   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
-#   actions/setup-go@v7.0.0            b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
-#   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
+#   actions/checkout@v6.0.1            3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1        5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0     cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2   9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2            b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+#   actions/cache@v4.2.0               55cc8345863c7cc4c66a329aec7e433d2d1c52a9
 
 name: CI
 
@@ -78,8 +74,6 @@ env:
         dl-cdn.alpinelinux.org:443
         *.alpinelinux.org:443
         *.r2.cloudflarestorage.com:443
-        *.storage.bunnycdn.com:443
-        cdn.quad4.io:443
         dl.flathub.org:443
         flathub.org:443
         api.securityscorecards.dev:443
@@ -95,10 +89,10 @@ env:
     NODE_OPTIONS: --max-old-space-size=8192
     PYTHON_VERSION: "3.14"
     NODE_VERSION: "24"
-    UV_VERSION: "0.11.15"
-    PNPM_VERSION: "12.7.0"
+    UV_VERSION: "0.13.0"
+    PNPM_VERSION: "12.11.2"
     GO_VERSION: "1.27.x"
-    TINYGO_VERSION: "0.42.0"
+    TINYGO_VERSION: "0.43.0"
     RNS_REQUIRED_SIGNER: e46112d44649266d71fe2193e00a4710
 
 jobs:
@@ -139,12 +133,12 @@ jobs:
 
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -164,13 +158,7 @@ jobs:
                   case "${{ matrix.task.id }}" in
                     lint)
                       task lint
-                      if [ "${{ github.event_name }}" = "pull_request" ]; then
-                        git fetch --unshallow
-                        git fetch origin "+refs/heads/${PR_BASE_REF}:refs/remotes/origin/${PR_BASE_REF}"
-                        export COMMITLINT_FROM="origin/${PR_BASE_REF}"
-                        export COMMITLINT_TO="HEAD^2"
-                        task check:commits
-                      fi
+                      pnpm run brand:check
                       ;;
                     frontend-tests)
                       task test:frontend
@@ -205,12 +193,12 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -225,7 +213,7 @@ jobs:
             - name: Setup Task
               env:
                   GITHUB_TOKEN: ${{ github.token }}
-              run: sh scripts/ci/setup-task.sh 3.49.1
+              run: sh scripts/ci/setup-task.sh 3.54.0
 
             - name: Run visualiser-wasm tests
               run: task test:visualiser-wasm
@@ -255,12 +243,12 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -275,7 +263,7 @@ jobs:
             - name: Setup Task
               env:
                   GITHUB_TOKEN: ${{ github.token }}
-              run: sh scripts/ci/setup-task.sh 3.49.1
+              run: sh scripts/ci/setup-task.sh 3.54.0
 
             - name: Run geo-wasm tests
               run: task test:geo-wasm
@@ -309,12 +297,12 @@ jobs:
                 shard: [0, 1, 2, 3]
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -345,12 +333,12 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -397,12 +385,12 @@ jobs:
             UV_PYTHON: "3.15"
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -432,12 +420,12 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
                   fetch-depth: 0
@@ -463,7 +451,7 @@ jobs:
 
             - name: Upload mutation report
               if: always()
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: mutation-pr-report
                   path: mutmut-cicd-stats.json
@@ -477,12 +465,12 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -505,12 +493,12 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -543,12 +531,12 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -577,12 +565,12 @@ jobs:
             MESHCHATX_FRONTEND_PREBUILT: "1"
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -630,7 +618,7 @@ jobs:
               uses: $/.github/actions/verify-workspace-clean
 
             - name: Upload Linux build-check artifacts
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: meshchatx-linux-build-check-${{ github.run_id }}
                   path: |
@@ -647,17 +635,17 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
             - name: Download Linux build-check artifact
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: meshchatx-linux-build-check-${{ github.run_id }}
                   path: .artifacts/linux-build-check
@@ -691,12 +679,12 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -709,7 +697,7 @@ jobs:
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Cache Playwright browsers
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -719,7 +707,7 @@ jobs:
 
             - name: Upload Playwright junit results
               if: always()
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: e2e-junit
                   path: test-results/junit/
@@ -733,12 +721,12 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -751,7 +739,7 @@ jobs:
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Cache Playwright browsers
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -767,7 +755,7 @@ jobs:
 
             - name: Upload Playwright junit results
               if: always()
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: e2e-junit-exploratory
                   path: test-results/junit/
@@ -786,12 +774,12 @@ jobs:
             MESHCHAT_LH_SKIP_BUILD: "1"
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -804,7 +792,7 @@ jobs:
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Cache Playwright browsers
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -819,7 +807,7 @@ jobs:
 
             - name: Upload Lighthouse reports
               if: always()
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: lighthouse-reports
                   path: |
@@ -842,12 +830,12 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 

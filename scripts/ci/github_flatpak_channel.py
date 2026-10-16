@@ -13,8 +13,8 @@ VALID_BRANCHES = frozenset({"testing", "beta", "stable"})
 def flatpak_branch_from_ref_name(ref_name: str) -> str:
     """Return Flatpak branch for a release tag name.
 
-    Matches Bunny track selection in build-release.yml except the product
-    branch name is ``stable`` (Bunny binary track remains ``release``).
+    Matches the release track selection in build-release.yml except the
+    product branch name is ``stable`` (the binary track stays ``release``).
     """
     name = (ref_name or "").strip()
     if name.startswith(("nightly-", "testing-")):

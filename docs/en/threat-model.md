@@ -7,7 +7,7 @@ mesh fabric itself (peer honesty, network availability) and OS-level
 compromise of the host account.
 
 This document is the reviewable artifact behind the controls referenced in
-`identity-and-security.md` and `.agents/conventions/path-jail.md`.
+`identity-and-security.md`.
 
 ## Trust boundaries
 
@@ -74,7 +74,7 @@ This document is the reviewable artifact behind the controls referenced in
 - SQLite storage is per-identity; backups/restores never write outside the
   storage root.
 - `MESHCHAT_LANDLOCK` further narrows the process filesystem view; SQLite
-  runs `temp_store=MEMORY` under Landlock (`.agents` Landlock trap note).
+  runs `temp_store=MEMORY` under Landlock.
 
 ### 5. Release supply chain
 

@@ -161,8 +161,10 @@ def slope_oracle(csv_path, warmup_frac, eps):
     rows = list(csv.DictReader(csv_path.open()))
     if len(rows) < 10:
         return True, [
-            f"only {len(rows)} samples collected; a hung or dead backend "
-            "produces too few rows for a verdict and must not pass"
+            (
+                f"only {len(rows)} samples collected; a hung or dead backend "
+                "produces too few rows for a verdict and must not pass"
+            )
         ]
     start = int(len(rows) * warmup_frac)
     rows = rows[start:]

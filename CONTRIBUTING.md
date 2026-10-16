@@ -24,9 +24,7 @@ Two paths: **GitHub pull requests** (full dev workflow below) and **LXMF patches
     task test:quick
     ```
 
-4. Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages (feat:, fix:, chore:, etc.). Details: .agents/conventions/commits.md.
-
-5. Open a pull request against master or dev. CI runs task lint, frontend tests, and localization checks.
+4. Open a pull request against master or dev. CI runs task lint, frontend tests, and localization checks.
 
 ### Code style
 
@@ -35,7 +33,7 @@ Two paths: **GitHub pull requests** (full dev workflow below) and **LXMF patches
 | Python   | Ruff                            | task format:backend, task lint:backend   |
 | Frontend | Prettier, ESLint, vue-tsc, knip | task format:frontend, task lint:frontend |
 
-Editor baseline: .editorconfig. Agent conventions: .agents/conventions/.
+Editor baseline: .editorconfig.
 
 ### Commit signing
 
@@ -67,13 +65,6 @@ Your Name <you@example.com> <your-identity-hash>
 Verify locally with `git log --show-signature`. `git log --format=%G?` reports `G` for a verified rngcs signature, `E` when rngcs is not installed, and `N` for unsigned commits. GitHub cannot parse the RSG payload, so commits show no verified badge there and hash-authored commits do not link to a GitHub account. That is the accepted trade-off for offline-verifiable, identity-bound signatures over `rns://` remotes.
 
 Unsigned or GPG-signed pull requests from outside contributors are still accepted.
-
-### AI provenance
-
-Commits written with AI assistance carry `Harness`, `Model`, and `Method`
-trailers plus a git note on `refs/notes/ai-provenance`. See [AI.md](AI.md)
-for the convention and hook setup (`sh scripts/ci/install-git-hooks.sh`
-plus `git config ai.harness/ai.model/ai.method`).
 
 ---
 
@@ -124,11 +115,11 @@ Automation in .github/workflows handles routine issue housekeeping:
 - A push to master, dev, or next comments on open issues whose number appears
   in a commit subject (#123), once per commit sha.
 - Maintainers can comment slash commands on an issue:
-  - `/fixed` or `/fixed vX.Y.Z` labels the issue `fixed pending release` and
-    asks the reporter to retest. Issues with that label and no activity for
-    14 days are closed as completed by a daily sweep.
-  - `/needs-info` labels the issue `needs info` and asks for logs or repro
-    steps.
+    - `/fixed` or `/fixed vX.Y.Z` labels the issue `fixed pending release` and
+      asks the reporter to retest. Issues with that label and no activity for
+      14 days are closed as completed by a daily sweep.
+    - `/needs-info` labels the issue `needs info` and asks for logs or repro
+      steps.
 - Stale issues are marked after 60 days and closed 14 days later.
 
 ## Patch guidelines (LXMF)

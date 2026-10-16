@@ -1397,7 +1397,7 @@ export default {
             }
         },
         sampleClientHeapMemory() {
-            let memoryInfo = null;
+            let memoryInfo;
             try {
                 memoryInfo = performance?.memory ?? null;
             } catch {

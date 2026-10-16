@@ -558,8 +558,6 @@
                             </div>
                         </section>
 
-                        <UpdatesSettingsSection :visible="showSection('updates')" />
-
                         <PluginsSettingsSection :visible="showSection('plugins')" />
 
                         <TelephonySettingsSection
@@ -3042,7 +3040,6 @@ import VisualiserSettingsSection from "./sections/VisualiserSettingsSection.vue"
 import BlockedSettingsSection from "./sections/BlockedSettingsSection.vue";
 import AndroidSettingsSection from "./sections/AndroidSettingsSection.vue";
 import ArchiverSettingsSection from "./sections/ArchiverSettingsSection.vue";
-import UpdatesSettingsSection from "./sections/UpdatesSettingsSection.vue";
 import SettingsNav from "./SettingsNav.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import ElectronUtils from "../../js/ElectronUtils";
@@ -3129,7 +3126,6 @@ export default {
         BlockedSettingsSection,
         AndroidSettingsSection,
         ArchiverSettingsSection,
-        UpdatesSettingsSection,
         MicronWasmUpdateModal,
         NotificationSoundSettings,
     },

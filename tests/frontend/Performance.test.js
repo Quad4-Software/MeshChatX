@@ -59,7 +59,7 @@ const localStorageMock = {
     setItem: vi.fn(),
     clear: vi.fn(),
 };
-global.localStorage = localStorageMock;
+Object.defineProperty(globalThis, "localStorage", { value: localStorageMock, configurable: true });
 
 // Mock MaterialDesignIcon
 const MaterialDesignIcon = {

@@ -4,10 +4,8 @@
 # ratio alerts on sub-ms SQLite ops are useless on shared runners.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
-#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
-#   actions/cache@v5.0.4               668228422ae6a00e4ad889ee87cd7109ec5666a7
-#   benchmark-action/github-action-benchmark@v1.22.0
-#                                      a60cea5bc7b49e15c1f58f411161f99e0df48372
+#   actions/checkout@v6.0.1            3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1               55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+#                                      7ee5534da414fc77bddfd3887ff0564480e088d8
 
 name: Benchmarks
 
@@ -80,8 +78,6 @@ env:
         dl-cdn.alpinelinux.org:443
         *.alpinelinux.org:443
         *.r2.cloudflarestorage.com:443
-        *.storage.bunnycdn.com:443
-        cdn.quad4.io:443
         dl.flathub.org:443
         flathub.org:443
         api.securityscorecards.dev:443
@@ -95,7 +91,7 @@ env:
         *.stepsecurity.io:443
     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     PYTHON_VERSION: "3.14"
-    UV_VERSION: "0.11.15"
+    UV_VERSION: "0.13.0"
 
 jobs:
     bench:
@@ -106,12 +102,12 @@ jobs:
             pull-requests: write
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
@@ -123,7 +119,7 @@ jobs:
                   install-node: "false"
 
             - name: Restore benchmark baseline cache
-              uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: ./cache
                   key: ${{ runner.os }}-bench-baseline-v2-${{ github.ref_name }}
@@ -175,7 +171,7 @@ jobs:
             - name: Publish benchmark chart (informational)
               if: success()
               continue-on-error: true
-              uses: benchmark-action/github-action-benchmark@a60cea5bc7b49e15c1f58f411161f99e0df48372
+              uses: benchmark-action/github-action-benchmark@7ee5534da414fc77bddfd3887ff0564480e088d8
               with:
                   name: MeshChatX Backend Benchmarks
                   tool: customSmallerIsBetter
