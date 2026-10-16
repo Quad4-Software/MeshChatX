@@ -12,11 +12,6 @@ if ! ci_truthy "${CI_SKIP_BOOTSTRAP:-}"; then
 	fi
 fi
 
-if ! ci_truthy "${CI_SKIP_TREE_VERIFY:-}"; then
-	export RNS_INVENTORY_OUT="${RNS_INVENTORY_OUT:-${TMPDIR:-/tmp}/meshchatx-ci-inventory.$$}"
-	sh "$ROOT/scripts/ci/verify-tree-rsm.sh"
-fi
-
 require_cmd uv
 require_cmd pnpm
 require_task

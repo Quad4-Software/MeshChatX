@@ -149,7 +149,14 @@ mapfile -t files < <(find "$STAGE" -type f)
     echo "<details>"
     echo "<summary><strong>Changelog</strong></summary>"
     echo
-    bash "$ROOT/scripts/ci/github-release-changelog.sh" "$TAG"
+    if [[ "$NOTES_ONLY" != "1" ]] && command -v gh >/dev/null 2>&1 && [ -n "${GH_TOKEN:-}" ]; then
+        prev_tag="$(gh api "repos/{owner}/{repo}/releases/latest" --jq .tag_name 2>/dev/null || true)"
+        gen_args=(-f "tag_name=${TAG}")
+        if [ -n "$prev_tag" ] && [ "$prev_tag" != "$TAG" ]; then
+            gen_args+=(-f "previous_tag_name=${prev_tag}")
+        fi
+        gh api repos/{owner}/{repo}/releases/generate-notes "${gen_args[@]}" --jq .body 2>/dev/null || echo "_Changelog unavailable._"
+    fi
     echo "</details>"
     echo
 

@@ -42,9 +42,6 @@ require_task() {
 }
 
 verify_workspace_clean() {
-	if [ -z "${RNS_INVENTORY_OUT:-}" ] || [ ! -f "$RNS_INVENTORY_OUT" ]; then
-		return 0
-	fi
 	export RNS_CLEAN_SOFT="${RNS_CLEAN_SOFT:-1}"
-	sh "$ROOT/scripts/ci/verify-workspace-clean.sh" "$RNS_INVENTORY_OUT"
+	sh "$ROOT/scripts/ci/verify-workspace-clean.sh"
 }

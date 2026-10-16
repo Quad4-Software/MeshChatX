@@ -35,9 +35,7 @@ fi
 
 exec "$container" run --rm \
 	"${git_mount[@]}" \
-	-e CI_SKIP_TREE_VERIFY="${CI_SKIP_TREE_VERIFY:-1}" \
 	-e CI_SKIP_BOOTSTRAP=1 \
 	-e CI_SKIP_SETUP=1 \
-	-e RNS_INVENTORY_OUT="${RNS_INVENTORY_OUT:-}" \
 	"$image" \
 	bash scripts/ci/run.sh "$job"

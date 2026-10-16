@@ -26,7 +26,6 @@ KNOWN_CLEARNET_FETCH_FILES = frozenset(
         "oidc.py",
         "repository_server_manager.py",
         "translation_catalog.py",
-        "update_manager.py",
     },
 )
 

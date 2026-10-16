@@ -4,7 +4,7 @@
     <div class="relative w-full shrink-0" :style="{ height: totalSize + 'px' }">
         <div
             v-for="v in virtualItems"
-            :key="entryKey(entries[v.index], v.index)"
+            :key="v.key"
             :ref="measureElement"
             :data-index="v.index"
             class="absolute left-0 top-0 w-full box-border px-0 [overflow-anchor:none]"
@@ -19,7 +19,11 @@
 import { computed } from "vue";
 import { useVirtualizer } from "@tanstack/vue-virtual";
 import RelayMessageEntry from "./RelayMessageEntry.vue";
-import { estimateRelayEntryHeight, findRelayEntryIndexForMessageKey } from "./relayMessageListVirtual.js";
+import {
+    estimateRelayEntryHeight,
+    findRelayEntryIndexForMessageKey,
+    relayVirtualEntryKey,
+} from "./relayMessageListVirtual.js";
 
 const props = defineProps({
     entries: {
@@ -36,10 +40,15 @@ const props = defineProps({
     },
 });
 
+// Index-keyed measurements (the default) attach row heights to positions, so
+// a prepend shifts every cached size onto the wrong entry and the scroll
+// anchor computed from scrollHeight deltas lands far off. Stable content keys
+// keep each measurement and DOM node on its entry.
 const virtualizer = useVirtualizer(
     computed(() => ({
         count: props.entries.length,
         getScrollElement: () => props.getScrollElement() ?? null,
+        getItemKey: (index) => relayVirtualEntryKey(props.entries[index], props.page.messageKey) || index,
         estimateSize: (index) => estimateRelayEntryHeight(props.entries[index]),
         overscan: 12,
     }))
@@ -47,20 +56,6 @@ const virtualizer = useVirtualizer(
 
 const virtualItems = computed(() => virtualizer.value.getVirtualItems());
 const totalSize = computed(() => virtualizer.value.getTotalSize());
-
-function entryKey(entry, index) {
-    if (!entry) {
-        return `idx-${index}`;
-    }
-    if (entry.type === "dateDivider") {
-        return `date-${entry.dayKey}-${index}`;
-    }
-    if (entry.type === "presenceGroup") {
-        return `presence-${entry.id}-${index}`;
-    }
-    const msgKey = props.page.messageKey(entry.msg);
-    return msgKey ? `${msgKey}-${index}` : `idx-${index}`;
-}
 
 function measureElement(el) {
     if (el) {

@@ -13,8 +13,6 @@
 #
 # Env:
 #   CI_SKIP_SETUP=1        Skip setup.sh
-#   CI_SKIP_TREE_VERIFY=1  Skip meshchatx.rsm verify
-#   RNS_INVENTORY_OUT      End-of-job workspace clean check
 set -euo pipefail
 
 . "$(dirname "$0")/env.sh"

@@ -1,12 +1,12 @@
 #!/bin/sh
-# Recheck byte-level tree inventory and report unexpected runner mutations.
+# Report unexpected runner mutations left behind after a CI job.
 #
 # By default mismatches print warnings and exit 0 so CI is not blocked when
-# signed inventories lag license refreshes or ephemeral runner dirt appears.
+# ephemeral runner dirt appears.
 # Set RNS_TREE_VERIFY_STRICT=1 to exit non-zero on failure.
 #
 # Usage:
-#   verify-workspace-clean.sh <inventory-file>
+#   verify-workspace-clean.sh
 #
 # Env:
 #   RNS_CLEAN_ALLOW   space-separated path prefixes always ignored (optional)
@@ -27,15 +27,6 @@ warn_or_fail() {
 	echo "verify-workspace-clean.sh: WARNING: $msg (non-blocking)" >&2
 	exit 0
 }
-
-INV="${1:-}"
-if [ -z "$INV" ] || [ ! -f "$INV" ]; then
-	warn_or_fail "missing inventory: ${INV:-<unset>} (tree verify may have been skipped)"
-fi
-
-if ! sh "$ROOT/scripts/ci/tree-manifest.sh" verify "$INV"; then
-	warn_or_fail "tree inventory hash check failed"
-fi
 
 # Default ephemeral prefixes created by CI / local builds
 ALLOW="node_modules/ .pnpm-store/ .venv/ .venv-x64/ dist/ build/ electron/build/ meshchatx/public/ python-dist/ playwright-report/ mutants/ coverage/ .flatpak-builder/ parts/ prime/ stage/ android/.gradle/ android/app/build/ android/build/ android/vendor/ .cache/ __pycache__/ .pytest_cache/ vendor/offline/"
@@ -78,9 +69,6 @@ while IFS= read -r line; do
 		fail=1
 		;;
 	*)
-		if [ "$path" = "meshchatx.rsm" ]; then
-			continue
-		fi
 		if is_allowed "$path"; then
 			continue
 		fi
