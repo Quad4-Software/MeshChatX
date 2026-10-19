@@ -1,4 +1,4 @@
-## [5.0.0] - 2026-10-19 [unreleased]
+## [5.0.0] - 2026-12-12 [unreleased]
 
 ### Changed
 
