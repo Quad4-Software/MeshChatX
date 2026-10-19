@@ -1,4 +1,4 @@
-# Benchmarks and integrity checks (path-filtered push to main branches and workflow_dispatch).
+# Benchmarks and integrity checks (workflow_dispatch only).
 # The suite runs 3 times. Reported values are median-of-medians. A smart gate
 # (noise floor + absolute delta + adaptive ratio) decides regressions — flat
 # ratio alerts on sub-ms SQLite ops are useless on shared runners.
@@ -11,19 +11,6 @@ name: Benchmarks
 
 on:
     workflow_dispatch:
-    push:
-        branches:
-            - master
-        paths:
-            - "meshchatx/**"
-            - "tests/backend/**"
-            - "uv.lock"
-            - "pyproject.toml"
-            - "Taskfile.yml"
-            - "scripts/ci/**"
-            - ".github/workflows/bench.yml"
-            - ".github/actions/setup-dev-environment/**"
-            - ".github/actions/setup-python-uv/**"
 
 concurrency:
     group: bench-${{ github.workflow }}-${{ github.ref }}

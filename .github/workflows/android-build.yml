@@ -1,4 +1,4 @@
-# Android APK build (debug + optional release) for master, PRs, and manual runs.
+# Android APK build (debug + optional release), manual runs only.
 # Tagged APKs attached to GitHub Releases are built in build-release.yml (android-apk-tag.yml).
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
@@ -7,20 +7,6 @@
 name: Android build
 
 on:
-    pull_request:
-        branches:
-            - master
-        paths-ignore:
-            - "docs/**"
-            - ".cursor/**"
-            - "**/*.md"
-    push:
-        branches:
-            - master
-        paths-ignore:
-            - "docs/**"
-            - ".cursor/**"
-            - "**/*.md"
     workflow_dispatch:
         inputs:
             build_release:

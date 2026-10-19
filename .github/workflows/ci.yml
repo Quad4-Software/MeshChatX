@@ -1,5 +1,5 @@
 # Primary CI: lint, tests, localization, Linux build check, E2E (master).
-# Native Windows/macOS Electron builds always run via native-build-dev.yml on master.
+# Native Windows/macOS Electron builds run on demand via native-build-dev.yml.
 # Verify matrix steps delegate to Taskfile.yml (task lint, test:frontend, test:lang).
 # Live LXMF local-TCP suite: task test:lxmf:live (MESHCHAT_LIVE_RETICULUM=1).
 #
@@ -16,9 +16,17 @@ on:
     push:
         branches:
             - master
+        paths-ignore:
+            - "docs/**"
+            - ".cursor/**"
+            - "**/*.md"
     pull_request:
         branches:
             - master
+        paths-ignore:
+            - "docs/**"
+            - ".cursor/**"
+            - "**/*.md"
     workflow_dispatch:
 
 permissions:

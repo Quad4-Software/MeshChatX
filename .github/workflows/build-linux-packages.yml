@@ -1,4 +1,4 @@
-# Linux packaging build test: AppImage, deb, rpm, Flatpak (branches and PRs).
+# Linux packaging build test: AppImage, deb, rpm, Flatpak (manual runs only).
 # Tagged release assets run in build-release.yml with draft.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
@@ -7,30 +7,6 @@
 name: Build Linux packages
 
 on:
-    push:
-        branches:
-            - master
-        paths:
-            - "package.json"
-            - "scripts/ensure-flatpak-flathub-remote.sh"
-            - "scripts/ci/github-build-linux-*.sh"
-            - "scripts/ci/github-warm-appimage-tools.sh"
-            - ".github/workflows/build-linux-packages.yml"
-            - ".github/workflows/build-release.yml"
-            - ".github/workflows/frontend-build.yml"
-            - ".github/actions/**"
-    pull_request:
-        branches:
-            - master
-        paths:
-            - "package.json"
-            - "scripts/ensure-flatpak-flathub-remote.sh"
-            - "scripts/ci/github-build-linux-*.sh"
-            - "scripts/ci/github-warm-appimage-tools.sh"
-            - ".github/workflows/build-linux-packages.yml"
-            - ".github/workflows/build-release.yml"
-            - ".github/workflows/frontend-build.yml"
-            - ".github/actions/**"
     workflow_dispatch:
 
 permissions:

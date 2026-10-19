@@ -116,7 +116,7 @@ For rngit releases, scripts/rngit_release.py builds the wheel and pyz into pytho
 
 | Channel | Tags                       | How to cut                                                           |
 | ------- | -------------------------- | -------------------------------------------------------------------- |
-| Testing | nightly-* (also testing-*) | Daily cron / Testing Release workflow from dev                       |
+| Testing | nightly-* (also testing-*) | Push a nightly-* tag on dev, or dispatch Build release               |
 | Beta    | beta-* (also preview-*)    | Beta Release workflow_dispatch (CI must be green on that SHA)        |
 | Stable  | vX.Y.Z                     | Promote Release to Stable, or tag vX.Y.Z on the same SHA Beta tested |
 | Local   | (none)                     | Source checkout / unset bake                                         |
@@ -126,7 +126,7 @@ Before a Testing or Beta cut, edit release/channel_prompt.json (focus_areas, not
 ### Release ops checklist
 
 1. Edit release/channel_prompt.json if you want focus areas for testers.
-2. Cut Testing (automatic) or Beta (Beta Release / Promote Release).
+2. Cut Testing (manual tag or Build release dispatch) or Beta (Beta Release / Promote Release).
 3. For Stable, promote the **same SHA** that shipped as Beta (rebuild is required so channel bake flips to stable. Do not copy Beta assets onto a Stable release).
 4. Review the Stable **draft** GitHub release (assets, SLSA, cosign), then publish. Immutable releases cannot gain assets after publish.
 5. Rollback: publish a new Stable from a known-good prior SHA. Do not rewrite a published release.

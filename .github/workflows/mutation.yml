@@ -20,8 +20,6 @@ on:
                 description: Minimum mutation score percentage (0 to skip gate)
                 type: string
                 default: "50"
-    schedule:
-        - cron: "0 6 * * 0"
 
 permissions:
     contents: read

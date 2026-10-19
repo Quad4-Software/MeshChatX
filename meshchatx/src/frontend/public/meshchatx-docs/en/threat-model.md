@@ -79,9 +79,7 @@ This document is the reviewable artifact behind the controls referenced in
 ### 5. Release supply chain
 
 - SLSA3 provenance for release binaries, cosign attestations, CycloneDX
-  SBOM per release, Rekor log monitoring (`rekor-monitor.yml`), OpenSSF
-  Scorecard, weekly SBOM re-scan for post-release CVEs, OpenVEX triage
-  document shipped with releases.
+  SBOM per release, OpenVEX triage document shipped with releases.
 - CI itself: SHA-pinned actions, minimal job permissions, harden-runner
   egress audit, zizmor workflow self-analysis, gitleaks history + diff
   scanning.
