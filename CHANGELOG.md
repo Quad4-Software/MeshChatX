@@ -1,3 +1,15 @@
+## [5.0.0] - 2026-10-19 [unreleased]
+
+### Changed
+
+- CI: cut GitHub Actions down to what a fork needs. Pushes and PRs to master run CI (lint, tests, localization, Linux build check, E2E) and the Security workflow. Every other workflow is manual (workflow_dispatch) or tag driven: Android build, Native build, Build Linux packages, Docker (tags only), Benchmarks, Mutation testing, QA endurance.
+- CI: removed the issue housekeeping bots (issue triage, issue commands, commit references, stale sweeps), the daily Testing release chain (nightly.yml), the daily Android emulator smoke run, and the scheduled DAST, SBOM re-scan, Rekor monitor, and OpenSSF Scorecard jobs. Tagging nightly-* still produces a Testing prerelease through build-release.yml.
+
+### Breaking
+
+- Forks that relied on the removed scheduled workflows need to dispatch runs manually or keep the files from the 4.10.x tree.
+- Android versionCode for 5.0.0 computes as 50000, below the 50007 shipped with 4.10.7. Devices on 4.10.7 cannot upgrade to the 5.0.0 APK in place; uninstall first or bump versionCode before shipping.
+
 ## [4.10.7] - 2026-10-11 [released]
 
 ### Added
