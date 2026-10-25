@@ -4,8 +4,8 @@ const fs = require("fs");
 const path = require("path");
 const { E2E_BACKEND_ORIGIN, e2ePost, prepareE2eSession, seedE2eLongConversationThread } = require("./helpers");
 
-// Scripted persona crawl: three deterministic strategies over the route list,
-// no LLM in the loop. Each persona stresses a different failure mode and all
+// Scripted persona crawl: three deterministic strategies over the route list.
+// Each persona stresses a different failure mode and all
 // share the same oracle: uncaught pageerror, console error, HTTP 5xx, or a
 // blank rendered body fails the test.
 

@@ -4,7 +4,7 @@
 
 ## Project status
 
-Development and releases end on the 1st of January 2027. The repository will be archived read-only after the final release. v5.0.0 will be the last release and at that point will be fork/rebranding ready if anyone wants to take over the project.
+After the v5.0 release, MeshChatX will be in maintenance only mode for the next 12 months. End of life is the 1st of January 2028.
 
 ## About
 
