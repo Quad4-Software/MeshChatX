@@ -37,6 +37,7 @@ export default [
             "**/temp-tests/**",
             "**/.pnpm-store/**",
             "**/packaging/**",
+            "**/.tools/**",
         ],
     },
     {

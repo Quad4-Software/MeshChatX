@@ -108,7 +108,7 @@ function rotateLogFileIfNeeded(logPath, deps = {}) {
     const renameSync = deps.renameSync || fs.renameSync.bind(fs);
     const unlinkSync = deps.unlinkSync || fs.unlinkSync.bind(fs);
     const maxBytes = deps.maxBytes ?? ELECTRON_LOG_MAX_BYTES;
-    let size = 0;
+    let size;
     try {
         size = statSync(logPath).size;
     } catch (err) {

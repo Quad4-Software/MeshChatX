@@ -904,7 +904,7 @@ function getMainWindowPageKind() {
         return "none";
     }
     const url = mainWindow.webContents.getURL();
-    let pathname = "";
+    let pathname;
     try {
         pathname = new URL(url).pathname || "";
     } catch {
