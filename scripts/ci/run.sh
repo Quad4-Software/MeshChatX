@@ -6,6 +6,8 @@
 #
 # Jobs:
 #   pr         lint + backend + frontend + lang tests (verify matrix subset)
+#   fast       lint + frontend + lang tests (no backend suite)
+#   backend    task test:backend (set PYTEST_ARGS="-n 2" on thread-limited hosts)
 #   lint       task lint
 #   test       task test
 #   check      task check (format, lint, test)
@@ -31,6 +33,22 @@ job_pr() {
 	task test:backend
 	task test:frontend
 	task test:lang
+	verify_workspace_clean
+}
+
+job_fast() {
+	run_setup
+	require_task
+	task lint
+	task test:frontend
+	task test:lang
+	verify_workspace_clean
+}
+
+job_backend() {
+	run_setup
+	require_task
+	task test:backend
 	verify_workspace_clean
 }
 
@@ -62,9 +80,11 @@ usage() {
 job="${1:-pr}"
 case "$job" in
 list)
-	echo "pr lint test check"
+	echo "pr fast backend lint test check"
 	;;
 pr) job_pr ;;
+fast) job_fast ;;
+backend) job_backend ;;
 lint) job_lint ;;
 test) job_test ;;
 check) job_check ;;

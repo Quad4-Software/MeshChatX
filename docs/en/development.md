@@ -72,17 +72,20 @@ PR gate without GitHub Marketplace actions:
 | `bash scripts/ci/bootstrap-toolchain.sh install`  | Pinned uv, Python, Node, pnpm, Task                           |
 | `CI_SKIP_TREE_VERIFY=1 bash scripts/ci/run.sh pr` | Lint plus backend, frontend, and lang tests                   |
 | `bash scripts/ci/run-docker.sh pr`                | Same jobs in `scripts/ci/Dockerfile.ci` (Podman if available) |
+| `bash scripts/ci/run.sh fast`                     | Lint plus frontend and lang tests (no backend suite)          |
 | `task ci:pr` / `make ci-pr`                       | Wrappers for `run.sh pr`                                      |
 | `task ci:docker` / `make ci-docker`               | Wrapper for `run-docker.sh pr`                                |
 
 Forgejo and Gitea: `.gitea/workflows/ci.yml` and `.forgejo/workflows/ci.yml`.
 
-Crow CI (codefloe.com): `.crow/` holds container pipelines that run the same
-portable runner on a pinned ubuntu:24.04 image. `ci.yaml` runs `run.sh pr` on
-push to master or dev, on pull requests, and on manual runs. `lint.yaml`,
-`test.yaml`, and `check.yaml` are manual-only and map to `run.sh lint`,
-`run.sh test`, and `run.sh check`. Trigger a manual pipeline from the Crow UI
-via the repository's manual-run button; only workflows that list
+Crow CI: `.crow/` holds container pipelines that run the same portable runner
+on a pinned ubuntu:24.04 image. `ci.yaml` runs `run.sh fast` (lint, frontend,
+and lang tests) on push to master or dev, on pull requests, and on manual runs.
+`backend.yaml`, `lint.yaml`, `test.yaml`, and `check.yaml` are manual-only and
+map to `run.sh backend`, `run.sh lint`, `run.sh test`, and `run.sh check`.
+`backend.yaml` limits pytest to two workers because the backend suite needs
+more threads than many container runtimes allow. Trigger a manual pipeline from
+the Crow UI via the repository's manual-run button. Only workflows that list
 `event: manual` appear there.
 
 Pinned versions: `scripts/ci/versions.env`.

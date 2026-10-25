@@ -22,4 +22,4 @@ steps:
           git config --global --add safe.directory '*'
           export PATH="/opt/ci-toolchain/bin:/opt/ci-toolchain/node/bin:$PATH"
           bash scripts/ci/bootstrap-toolchain.sh install
-          bash scripts/ci/run.sh pr
+          bash scripts/ci/run.sh fast
