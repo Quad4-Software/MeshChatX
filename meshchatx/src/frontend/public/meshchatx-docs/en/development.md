@@ -77,6 +77,14 @@ PR gate without GitHub Marketplace actions:
 
 Forgejo and Gitea: `.gitea/workflows/ci.yml` and `.forgejo/workflows/ci.yml`.
 
+Crow CI (codefloe.com): `.crow/` holds container pipelines that run the same
+portable runner on a pinned ubuntu:24.04 image. `ci.yaml` runs `run.sh pr` on
+push to master or dev, on pull requests, and on manual runs. `lint.yaml`,
+`test.yaml`, and `check.yaml` are manual-only and map to `run.sh lint`,
+`run.sh test`, and `run.sh check`. Trigger a manual pipeline from the Crow UI
+via the repository's manual-run button; only workflows that list
+`event: manual` appear there.
+
 Pinned versions: `scripts/ci/versions.env`.
 
 ## Lockfiles and install scripts
