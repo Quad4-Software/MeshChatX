@@ -50,7 +50,13 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
         # pycodec2 and bleak's winrt extensions have no Windows wheels for
         # the newest CPython and their sdists do not build on the hosted
         # runners. Both are optional at runtime (codec2-optional patch below,
-        # bleak is a lazy import in rns_rnode_patch.py).
+        # bleak is a lazy import in rns_rnode_patch.py). uv run resyncs the
+        # environment back to the full lockfile, so stop it syncing for the
+        # rest of the job or it rebuilds the skipped sdists.
+        export UV_NO_SYNC=1
+        if [[ -n "${GITHUB_ENV:-}" ]]; then
+            echo "UV_NO_SYNC=1" >> "$GITHUB_ENV"
+        fi
         uv sync --group dev \
             --no-install-package pycodec2 \
             --no-install-package bleak \
