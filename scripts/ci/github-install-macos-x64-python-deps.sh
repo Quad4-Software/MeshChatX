@@ -30,7 +30,7 @@ if [[ "$_ready" == "true" ]]; then
     exit 0
 fi
 
-PY_X64="${PY_X64:?PY_X64 must point at an x86_64 Python 3.14 interpreter}"
+PY_X64="${PY_X64:?PY_X64 must point at an x86_64 Python 3.15 interpreter}"
 
 # cryptography 49+ ships arm64-only macOS wheels, so the x64 slice builds from
 # sdist and needs a usable x86_64 OpenSSL. brew --prefix can still resolve when
@@ -89,7 +89,7 @@ export CFLAGS="${CFLAGS:--arch x86_64}"
 _PY="${UV_PROJECT_ENVIRONMENT}/bin/python"
 
 # Host is arm64. Without --python-platform uv still resolves macOS wheels for aarch64.
-# pycodec2 has no cp314 macOS x86_64 wheel, and its sdist needs an undeclared
+# pycodec2 has no cp315 macOS x86_64 wheel, and its sdist needs an undeclared
 # Cython build. The ctypes binding in meshchatx/pycodec2_ctypes.py covers
 # the Codec2 API LXST uses, so this slice skips the extension and ships the
 # Homebrew libcodec2 for the binding to dlopen.

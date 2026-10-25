@@ -7,17 +7,17 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
 echo "==> Installing pnpm"
-npm install -g pnpm@12.7.0
+npm install -g pnpm@12.15.0
 
 echo "==> Installing uv"
 curl -fsSL https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
 
 echo "==> Installing Task"
-sh scripts/ci/setup-task.sh 3.49.1 || sudo sh scripts/ci/setup-task.sh 3.49.1
+sh scripts/ci/setup-task.sh 3.54.0 || sudo sh scripts/ci/setup-task.sh 3.54.0
 
 echo "==> Installing TinyGo"
-TINYGO_VERSION=0.42.0
+TINYGO_VERSION=0.43.0
 curl -fsSL -o /tmp/tinygo.tar.gz \
     "https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo${TINYGO_VERSION}.linux-amd64.tar.gz"
 sudo tar -C /usr/local -xzf /tmp/tinygo.tar.gz

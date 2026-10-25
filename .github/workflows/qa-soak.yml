@@ -81,10 +81,10 @@ env:
         storage.googleapis.com:443
         *.stepsecurity.io:443
     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-    PYTHON_VERSION: "3.14"
+    PYTHON_VERSION: "3.15"
     NODE_VERSION: "24"
-    UV_VERSION: "0.13.0"
-    PNPM_VERSION: "12.11.2"
+    UV_VERSION: "0.13.5"
+    PNPM_VERSION: "12.15.0"
 
 jobs:
     soak:
@@ -95,7 +95,7 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+              uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
@@ -132,7 +132,7 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+              uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
@@ -174,7 +174,7 @@ jobs:
             contents: read
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+              uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}

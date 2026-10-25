@@ -6,7 +6,7 @@ set -euo pipefail
 # shellcheck source=priv.sh disable=SC1091
 . "$(dirname "$0")/priv.sh"
 
-UV_VERSION="${UV_VERSION:-0.11.15}"
+UV_VERSION="${UV_VERSION:-0.13.5}"
 UV_INSTALL_DIR="${UV_INSTALL_DIR:-/usr/local/bin}"
 
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"

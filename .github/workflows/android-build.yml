@@ -88,7 +88,7 @@ env:
     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     NODE_OPTIONS: --max-old-space-size=8192
     NODE_VERSION: "24"
-    PNPM_VERSION: "12.11.2"
+    PNPM_VERSION: "12.15.0"
     PYTHON_VERSION: "3.11"
     JAVA_VERSION: "17"
     CHAQUOPY_REF: "9f563f45108a873d7feb363e1f754c0173f1114e"
@@ -120,7 +120,7 @@ jobs:
             FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+              uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
@@ -166,7 +166,7 @@ jobs:
                   exit 1
 
             - name: Set up Java
-              uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
               with:
                   distribution: temurin
                   java-version: ${{ env.JAVA_VERSION }}
@@ -177,7 +177,7 @@ jobs:
                       android/app/build.gradle
 
             - name: Set up Python
-              uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+              uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
 

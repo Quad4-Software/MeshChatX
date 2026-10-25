@@ -16,7 +16,7 @@
 #   docker cp "$cid":/artifacts ./meshchatx-artifacts
 #   docker rm "$cid"
 
-ARG PYTHON_IMAGE=python:3.14.8-slim-trixie
+ARG PYTHON_IMAGE=python:3.15.0-slim-trixie
 ARG PYTHON_HASH=sha256:89fb7d3da20043c370643435258bdd7ab755d326d359001d02988ed15ae5219e
 FROM ${PYTHON_IMAGE}@${PYTHON_HASH}
 

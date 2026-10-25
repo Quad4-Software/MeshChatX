@@ -19,7 +19,7 @@ export PATH="$bindir:$PATH"
 export GOPATH="$gopath"
 export GOCACHE="${GOCACHE:-$toolchain/gocache}"
 
-go_want="${GO_VERSION:-1.27.1}"
+go_want="${GO_VERSION:-1.27.3}"
 node_want="${NODE_VERSION}"
 pnpm_want="${PNPM_VERSION}"
 task_want="${TASK_VERSION}"

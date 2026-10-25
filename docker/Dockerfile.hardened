@@ -13,7 +13,7 @@ ARG PYTHON_RUNTIME_HASH=sha256:85c70fe9ec4313b5c8b1adcb4f0e7fa45d171ae203d2c64c6
 FROM --platform=linux/amd64 ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 USER root
 WORKDIR /src
-ARG TINYGO_VERSION=0.42.0
+ARG TINYGO_VERSION=0.43.0
 RUN apk add --no-cache git python3 go \
     && wget -qO /tmp/tinygo.tar.gz "https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo${TINYGO_VERSION}.linux-amd64.tar.gz" \
     && tar -C /usr/local -xzf /tmp/tinygo.tar.gz \
@@ -61,7 +61,7 @@ COPY scripts/docker/builder-apk-chainguard.sh scripts/docker/builder-apk-chaingu
 COPY scripts/ci/github-install-uv.sh scripts/ci/priv.sh /tmp/ci/
 RUN sh scripts/docker/builder-apk-chainguard.sh \
     && apk add --no-cache curl ca-certificates \
-    && UV_VERSION=0.11.15 sh /tmp/ci/github-install-uv.sh \
+    && UV_VERSION=0.13.5 sh /tmp/ci/github-install-uv.sh \
     && rm -rf /tmp/ci
 RUN uv venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"

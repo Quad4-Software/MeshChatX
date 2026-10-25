@@ -130,7 +130,7 @@ jobs:
                       oci_licenses: "MIT AND 0BSD AND BSD-3-Clause AND LGPL-3.0-only"
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+              uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}

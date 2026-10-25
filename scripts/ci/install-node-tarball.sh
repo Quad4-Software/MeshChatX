@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Install Node.js from nodejs.org official tarball with SHASUMS256 verification.
-# Env: NODE_VERSION (default 24.11.1), NODE_INSTALL_DIR (default /usr/local).
+# Env: NODE_VERSION (default 24.22.1), NODE_INSTALL_DIR (default /usr/local).
 set -euo pipefail
 
 # shellcheck source=priv.sh disable=SC1091
 . "$(dirname "$0")/priv.sh"
 
-NODE_VERSION="${NODE_VERSION:-24.11.1}"
+NODE_VERSION="${NODE_VERSION:-24.22.1}"
 NODE_VERSION="${NODE_VERSION#v}"
 NODE_INSTALL_DIR="${NODE_INSTALL_DIR:-/usr/local}"
 

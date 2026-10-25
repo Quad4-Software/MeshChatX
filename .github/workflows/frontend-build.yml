@@ -32,12 +32,12 @@ on:
                 description: pnpm version activated through corepack.
                 required: false
                 type: string
-                default: "12.11.2"
+                default: "12.15.0"
             python_version:
                 description: Python version used by the docs bundler.
                 required: false
                 type: string
-                default: "3.14"
+                default: "3.15"
         outputs:
             artifact_name:
                 description: Name of the uploaded frontend artifact.
@@ -118,7 +118,7 @@ jobs:
             artifact_name: ${{ steps.resolve.outputs.artifact_name }}
         steps:
             - name: Harden runner
-              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+              uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
               with:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
@@ -141,7 +141,7 @@ jobs:
                   echo "artifact_name=${name}" >> "${GITHUB_OUTPUT}"
 
             - name: Set up Python (for docs bundler)
-              uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+              uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
               with:
                   python-version: ${{ inputs.python_version }}
 

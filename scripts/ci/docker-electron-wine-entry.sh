@@ -12,8 +12,8 @@ cd /project
 export WINEDEBUG=-all
 export WINEARCH="${WINEARCH:-win64}"
 export WINEPREFIX="${WINEPREFIX:-$HOME/.wine}"
-export UV_VERSION="${UV_VERSION:-0.11.15}"
-export PNPM_VERSION="${PNPM_VERSION:-11.1.2}"
+export UV_VERSION="${UV_VERSION:-0.13.5}"
+export PNPM_VERSION="${PNPM_VERSION:-12.15.0}"
 export ELECTRON_CACHE="${ELECTRON_CACHE:-/root/.cache/electron}"
 export ELECTRON_BUILDER_CACHE="${ELECTRON_BUILDER_CACHE:-/root/.cache/electron-builder}"
 
@@ -52,7 +52,7 @@ ensure_host_tools() {
     corepack prepare "pnpm@${PNPM_VERSION}" --activate
 
     if ! command -v task >/dev/null 2>&1; then
-        sh scripts/ci/setup-task.sh "${TASK_VERSION:-3.49.1}"
+        sh scripts/ci/setup-task.sh "${TASK_VERSION:-3.54.0}"
     fi
 
     if ! command -v uv >/dev/null 2>&1; then
@@ -85,7 +85,7 @@ install_wine_python_deps() {
     uv export --no-dev --no-hashes -o "$req_tmp"
     python3 scripts/ci/filter-requirements-platform.py \
         --sys-platform win32 \
-        --python-version 3.14.4 \
+        --python-version 3.15.0 \
         --input "$req_tmp" \
         --output "$req_win"
 
@@ -93,13 +93,13 @@ install_wine_python_deps() {
     # markers. cx_Freeze + freeze-core (and freeze-core's win deps) are fetched
     # explicitly with --no-deps so host pip does not pull Linux-only patchelf.
     python3 -m pip download --no-deps -r "$req_win" \
-        --python-version 3.14 \
+        --python-version 3.15 \
         --platform win_amd64 \
         --only-binary=:all: \
         -d "$wheels_dir"
     python3 -m pip download --no-deps \
         cx_Freeze freeze-core filelock cabarchive striprtf setuptools wheel \
-        --python-version 3.14 \
+        --python-version 3.15 \
         --platform win_amd64 \
         --only-binary=:all: \
         -d "$wheels_dir"

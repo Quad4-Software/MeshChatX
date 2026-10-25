@@ -19,9 +19,9 @@ export WINEARCH="${WINEARCH:-win64}"
 export WINEPREFIX="${WINEPREFIX:-$HOME/.wine}"
 export WINEDLLOVERRIDES="${WINEDLLOVERRIDES:-winemenubuilder.exe=d}"
 
-PYTHON_VERSION="${MESHCHATX_WINE_PYTHON_VERSION:-3.14.4}"
+PYTHON_VERSION="${MESHCHATX_WINE_PYTHON_VERSION:-3.15.0}"
 PYTHON_MAJOR_MINOR="$(printf '%s' "$PYTHON_VERSION" | cut -d. -f1-2 | tr -d '.')"
-# python3.14 -> tag used in embed _pth filename is python314._pth
+# python3.15 -> tag used in embed _pth filename is python315._pth
 PYTHON_PTH="python${PYTHON_MAJOR_MINOR}._pth"
 
 PYTHON_EXE="python-${PYTHON_VERSION}-amd64.exe"

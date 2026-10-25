@@ -49,7 +49,7 @@ uv lock --check
 
 PY_X64="${PY_X64:-$(command -v python3 || true)}"
 if [[ -z "$PY_X64" || ! -x "$PY_X64" ]]; then
-    echo "PY_X64 must point at an x86_64 Python 3.14 interpreter" >&2
+    echo "PY_X64 must point at an x86_64 Python 3.15 interpreter" >&2
     exit 1
 fi
 

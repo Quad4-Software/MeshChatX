@@ -129,7 +129,7 @@ if [ "${SKIP_PYZ:-0}" != 1 ]; then
     if [ "$NATIVE_ARCH" = "x64" ]; then
         _skip_wheel=1
     fi
-    for _py in 3.11 3.14; do
+    for _py in 3.11 3.15; do
         build_pyz "$_py" "$_skip_wheel"
         _skip_wheel=1
     done

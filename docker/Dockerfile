@@ -5,7 +5,7 @@
 
 ARG NODE_IMAGE=node:24-alpine
 ARG NODE_HASH=sha256:429bdfbc204b4eabc6438e6d34e4e9d8dd2ca1df8289bcd78cdd3c5db387b7a5
-ARG PYTHON_IMAGE=python:3.14.8-alpine3.24
+ARG PYTHON_IMAGE=python:3.15.0-alpine3.24
 ARG PYTHON_HASH=sha256:f6a589d43c42b9e7f7dc67a12d37132491f362859a5d750607710cc56da3bc72
 ARG VARIANT=standard
 ARG OCI_DESCRIPTION="MeshChatX is an all-in-one Reticulum client."
@@ -13,7 +13,7 @@ ARG OCI_LICENSES="MIT AND 0BSD"
 
 FROM --platform=linux/amd64 ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
-ARG TINYGO_VERSION=0.42.0
+ARG TINYGO_VERSION=0.43.0
 RUN apk add --no-cache git python3 go gcompat \
     && wget -qO /tmp/tinygo.tar.gz "https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo${TINYGO_VERSION}.linux-amd64.tar.gz" \
     && tar -C /usr/local -xzf /tmp/tinygo.tar.gz \
@@ -59,7 +59,7 @@ WORKDIR /build
 COPY scripts/docker/builder-apk-alpine.sh scripts/docker/builder-apk-alpine.sh
 COPY scripts/ci/github-install-uv.sh scripts/ci/priv.sh /tmp/ci/
 RUN sh scripts/docker/builder-apk-alpine.sh \
-    && UV_VERSION=0.11.15 sh /tmp/ci/github-install-uv.sh \
+    && UV_VERSION=0.13.5 sh /tmp/ci/github-install-uv.sh \
     && rm -rf /tmp/ci
 RUN uv venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"

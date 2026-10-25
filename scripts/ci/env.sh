@@ -10,7 +10,7 @@ fi
 
 export PNPM_CONFIG_STRICT_DEP_BUILDS="${PNPM_CONFIG_STRICT_DEP_BUILDS:-false}"
 export RNS_REQUIRED_SIGNER="${RNS_REQUIRED_SIGNER:-e46112d44649266d71fe2193e00a4710}"
-export UV_PYTHON="${UV_PYTHON:-python${PYTHON_VERSION:-3.14}}"
+export UV_PYTHON="${UV_PYTHON:-python${PYTHON_VERSION:-3.15}}"
 
 _ci_toolchain="${CI_TOOLCHAIN_ROOT:-$ROOT/.cache/ci-toolchain}"
 if [ -d "$_ci_toolchain/bin" ]; then

@@ -7,7 +7,7 @@ set -eu
 # shellcheck source=priv.sh disable=SC1091
 . "$(dirname "$0")/priv.sh"
 
-TASK_VERSION="${1:-3.49.1}"
+TASK_VERSION="${1:-3.54.0}"
 
 ARCH="$(uname -m)"
 case "$ARCH" in

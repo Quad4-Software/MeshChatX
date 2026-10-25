@@ -6,8 +6,8 @@ set -euo pipefail
 
 cd /src
 
-export UV_VERSION="${UV_VERSION:-0.11.15}"
-export PNPM_VERSION="${PNPM_VERSION:-11.1.2}"
+export UV_VERSION="${UV_VERSION:-0.13.5}"
+export PNPM_VERSION="${PNPM_VERSION:-12.15.0}"
 
 apt-get update -y
 apt-get install -y --no-install-recommends \
@@ -25,7 +25,7 @@ if ! command -v node >/dev/null 2>&1; then
     bash scripts/ci/install-node-tarball.sh
 fi
 
-sh scripts/ci/setup-task.sh "${TASK_VERSION:-3.49.1}"
+sh scripts/ci/setup-task.sh "${TASK_VERSION:-3.54.0}"
 
 corepack enable
 corepack prepare "pnpm@${PNPM_VERSION}" --activate

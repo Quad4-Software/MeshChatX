@@ -1,7 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: 0BSD
 # Install TinyGo into /usr/local so `tinygo` lands on PATH for WASM builds.
-# Usage: sh scripts/ci/setup-tinygo.sh <version>  (e.g. 0.42.0)
+# Usage: sh scripts/ci/setup-tinygo.sh <version>  (e.g. 0.43.0)
 
 set -eu
 

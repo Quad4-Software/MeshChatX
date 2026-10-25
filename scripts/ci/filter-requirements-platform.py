@@ -20,7 +20,7 @@ from packaging.requirements import InvalidRequirement, Requirement
 def target_environment(sys_platform: str, python_version: str) -> dict[str, str]:
     env = default_environment().copy()
     env["sys_platform"] = sys_platform
-    # packaging expects "3.14" and a full version like "3.14.0".
+    # packaging expects "3.15" and a full version like "3.15.0".
     parts = python_version.split(".")
     major_minor = ".".join(parts[:2]) if len(parts) >= 2 else python_version
     full = python_version if len(parts) >= 3 else f"{major_minor}.0"
@@ -63,8 +63,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--python-version",
-        default="3.14.4",
-        help="Target Python version for marker evaluation (default: 3.14.4)",
+        default="3.15.0",
+        help="Target Python version for marker evaluation (default: 3.15.0)",
     )
     parser.add_argument(
         "--input", "-i", help="Input requirements path (default: stdin)"
