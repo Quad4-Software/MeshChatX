@@ -2,8 +2,10 @@
 
 import importlib.util
 import os
+import shutil
 import sys
 import sysconfig
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -59,10 +61,13 @@ if bin_dir.exists() and bin_dir.is_dir():
     include_files.append(("bin", "bin"))
 
 # aiohttp pulls stdlib email at runtime. Ship the full tree in lib/ because
-# freeze tracing drops stdlib packages that only live in library.zip.
+# freeze tracing drops stdlib packages that only live in library.zip. Stage a
+# copy without __pycache__ dirs so the packaged tree has sources only.
 stdlib_email = Path(sysconfig.get_path("stdlib")) / "email"
 if stdlib_email.is_dir():
-    include_files.append((str(stdlib_email), "lib/email"))
+    email_stage = Path(tempfile.mkdtemp(prefix="cx-email-")) / "email"
+    shutil.copytree(stdlib_email, email_stage, ignore=shutil.ignore_patterns("__pycache__"))
+    include_files.append((str(email_stage), "lib/email"))
 
 # macOS slices skip the pycodec2 extension and ship libcodec2 at the
 # site-packages root for meshchatx/pycodec2_ctypes.py to dlopen. When the
