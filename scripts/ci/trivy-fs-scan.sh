@@ -9,5 +9,5 @@ set -eu
 exec trivy fs --exit-code 1 --severity HIGH,CRITICAL \
     --vex openvex.json \
     --skip-dirs .pnpm-store,.venv,temp-tests \
-    --skip-files vendor/lxmfy/poetry.lock,vendor/lxmfy/docs/poetry.lock \
+    --skip-files vendor/lxmfy/poetry.lock,vendor/lxmfy/docs/poetry.lock,vendor/rns_over_http/poetry.lock \
     .

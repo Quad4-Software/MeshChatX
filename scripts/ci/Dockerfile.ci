@@ -6,7 +6,7 @@ RUN apt-get update \
 	&& DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 		bash ca-certificates curl git xz-utils \
 		build-essential pkg-config \
-		ffmpeg libopus0 libogg0 libsodium-dev \
+		ffmpeg libopus0 libogg0 libsodium-dev libcodec2-dev \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV CI_TOOLCHAIN_ROOT=/opt/ci-toolchain

@@ -46,6 +46,23 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
         # Codec2 API LXST uses, so macOS slices skip the pycodec2
         # extension and ship the Homebrew libcodec2 for it to dlopen.
         uv sync --group dev --no-install-package pycodec2
+    elif [[ "$(uname -s)" == MINGW* || "$(uname -s)" == MSYS* || "$(uname -s)" == CYGWIN* ]]; then
+        # pycodec2 and bleak's winrt extensions have no Windows wheels for
+        # the newest CPython and their sdists do not build on the hosted
+        # runners. Both are optional at runtime (codec2-optional patch below,
+        # bleak is a lazy import in rns_rnode_patch.py).
+        uv sync --group dev \
+            --no-install-package pycodec2 \
+            --no-install-package bleak \
+            --no-install-package winrt-runtime \
+            --no-install-package winrt-windows-devices-bluetooth \
+            --no-install-package winrt-windows-devices-bluetooth-advertisement \
+            --no-install-package winrt-windows-devices-bluetooth-genericattributeprofile \
+            --no-install-package winrt-windows-devices-enumeration \
+            --no-install-package winrt-windows-devices-radios \
+            --no-install-package winrt-windows-foundation \
+            --no-install-package winrt-windows-foundation-collections \
+            --no-install-package winrt-windows-storage-streams
     else
         uv sync --group dev
     fi
