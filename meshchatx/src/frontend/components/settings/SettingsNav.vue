@@ -33,7 +33,6 @@
             }"
             :aria-current="tab.id === activeTab ? 'page' : undefined"
             :title="$t(tab.labelKey)"
-            :aria-label="$t(tab.labelKey)"
             :disabled="isSearchEmpty(tab.id)"
             @click="onTabClick(tab.id)"
         >

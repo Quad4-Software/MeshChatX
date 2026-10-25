@@ -62,7 +62,7 @@
                             type="button"
                             class="flex w-full min-w-0 items-center gap-1 bg-transparent text-left text-xs font-bold focus:outline-hidden focus-visible:ring-1 focus-visible:ring-sem-info/50 rounded"
                             :class="engineSelectClass"
-                            :aria-label="$t('visualiser.engine')"
+                            :aria-label="`${$t('visualiser.engine')}: ${engineTriggerLabel}`"
                             :aria-expanded="engineMenuOpen ? 'true' : 'false'"
                             aria-haspopup="listbox"
                             @click.stop="toggleEngineMenu"

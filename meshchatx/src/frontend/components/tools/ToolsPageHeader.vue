@@ -7,7 +7,7 @@
         <RouterLink
             :to="backTo"
             class="inline-flex items-center justify-center gap-0.5 sm:gap-1 rounded-lg pl-0 pr-1.5 sm:pr-2 py-1.5 min-h-8 min-w-8 sm:min-w-0 text-sm font-medium text-sem-fg-muted hover:bg-sem-surface-muted transition-colors shrink-0 order-first"
-            :aria-label="$t('tools.back_to_tools')"
+            :aria-label="`${$t('tools.back_to_tools')}: ${resolvedBackLabel}`"
         >
             <MaterialDesignIcon icon-name="chevron-left" class="size-5 shrink-0" />
             <span class="hidden sm:inline truncate max-w-[8rem]">{{ resolvedBackLabel }}</span>
