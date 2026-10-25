@@ -30,6 +30,3 @@ def test_smoke_script_requires_apk_arg():
     )
     assert proc.returncode == 2
     assert "usage:" in (proc.stderr + proc.stdout)
-
-
-

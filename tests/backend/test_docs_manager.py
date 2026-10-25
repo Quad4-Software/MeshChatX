@@ -358,6 +358,7 @@ def test_populate_meshchatx_docs_generates_index_html(tmp_path):
     assert "en/intro.html" in content
     assert "Intro" in content
 
+
 def test_get_meshchatx_docs_list_with_manifest(tmp_path):
     public_dir = tmp_path / "public"
     public_dir.mkdir()
