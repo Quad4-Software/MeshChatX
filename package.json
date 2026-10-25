@@ -109,7 +109,7 @@
         "cross-env": "^10.1.0",
         "dayjs": "^1.11.23",
         "dompurify": "^3.4.16",
-        "electron": "44.9.0",
+        "electron": "44.9.1",
         "electron-builder": "^26.17.0",
         "electron-builder-squirrel-windows": "^26.17.0",
         "emoji-picker-element": "^1.29.1",
