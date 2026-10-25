@@ -8,7 +8,10 @@ set -eu
 VENV="${MESHCHATX_DOCKER_VENV:-/opt/venv}"
 VENV_DEPS="${MESHCHATX_DOCKER_VENV_DEPS:-/opt/venv-deps}"
 
-uv sync --no-group dev --no-install-project --inexact
+# pycodec2 ships no musl wheels for the newest CPython and codec2 headers
+# are unavailable on Alpine. The codec2-optional patch below keeps LXST
+# working without the extension.
+uv sync --no-group dev --no-install-project --inexact --no-install-package pycodec2
 rm -rf /root/.cache/pip /root/.cache/uv
 uv pip install --no-cache --upgrade "setuptools" "jaraco.context>=6.1.0"
 

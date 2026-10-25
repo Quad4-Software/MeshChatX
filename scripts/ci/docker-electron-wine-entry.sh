@@ -89,6 +89,12 @@ install_wine_python_deps() {
         --input "$req_tmp" \
         --output "$req_win"
 
+    # pycodec2 and bleak's winrt extensions ship no win_amd64 wheels for the
+    # newest CPython. Both are optional at runtime so drop them from the
+    # Wine wheel set before the wheel-only download below.
+    grep -v -E '^(pycodec2|bleak|winrt)' "$req_win" > "$req_win.f"
+    mv "$req_win.f" "$req_win"
+
     # Project deps are pre-filtered for win32. Download without resolving foreign
     # markers. cx_Freeze + freeze-core (and freeze-core's win deps) are fetched
     # explicitly with --no-deps so host pip does not pull Linux-only patchelf.
