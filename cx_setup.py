@@ -58,6 +58,12 @@ bin_dir = ROOT / "bin"
 if bin_dir.exists() and bin_dir.is_dir():
     include_files.append(("bin", "bin"))
 
+# aiohttp pulls stdlib email at runtime. Ship the full tree in lib/ because
+# freeze tracing drops stdlib packages that only live in library.zip.
+stdlib_email = Path(sysconfig.get_path("stdlib")) / "email"
+if stdlib_email.is_dir():
+    include_files.append((str(stdlib_email), "lib/email"))
+
 # macOS slices skip the pycodec2 extension and ship libcodec2 at the
 # site-packages root for meshchatx/pycodec2_ctypes.py to dlopen. When the
 # extension is installed (Linux, Windows) the package is traced normally;
