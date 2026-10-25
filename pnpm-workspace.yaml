@@ -20,6 +20,7 @@ allowBuilds:
 
 overrides:
     "@electron/get": "3.1.0"
+    "lighthouse>puppeteer-core": "25.3.0"
     eslint>ajv: "6.14.0"
     "@eslint/eslintrc>ajv": "6.14.0"
     app-builder-lib>ajv: ^8.18.0
@@ -89,6 +90,6 @@ peerDependencyRules:
         vis-data>uuid: ">=14.0.0"
         vis-network>uuid: ">=14.0.0"
 patchedDependencies:
-    "@maplibre/maplibre-gl-style-spec@26.4.1": patches/@maplibre__maplibre-gl-style-spec@26.4.1.patch
-    ol-mapbox-style@13.5.1: patches/ol-mapbox-style@13.5.1.patch
+    "@maplibre/maplibre-gl-style-spec@26.4.4": patches/@maplibre__maplibre-gl-style-spec@26.4.4.patch
+    ol-mapbox-style@13.8.0: patches/ol-mapbox-style@13.8.0.patch
     ol@10.11.0: patches/ol@10.11.0.patch
