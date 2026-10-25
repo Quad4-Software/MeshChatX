@@ -42,7 +42,8 @@ export function wasmImportFieldNames(wasmBuf) {
         pos = countEnd;
         for (let i = 0; i < count && pos < end; i += 1) {
             [, pos] = readName(wasmBuf, pos); // module
-            [, pos] = readName(wasmBuf, pos); // field
+            let fieldName;
+            [fieldName, pos] = readName(wasmBuf, pos); // field
             const kind = wasmBuf[pos];
             pos += 1;
             if (kind === 0) {
@@ -65,8 +66,8 @@ export function wasmImportFieldNames(wasmBuf) {
             } else if (kind === 3) {
                 pos += 2; // global: valtype + mutability
             }
-            if (name) {
-                fields.push(name);
+            if (fieldName) {
+                fields.push(fieldName);
             }
         }
         break;
