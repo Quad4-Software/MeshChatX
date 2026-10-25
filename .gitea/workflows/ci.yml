@@ -8,6 +8,7 @@ on:
       - master
       - dev
   pull_request:
+  workflow_dispatch:
 
 env:
   PNPM_CONFIG_STRICT_DEP_BUILDS: "false"

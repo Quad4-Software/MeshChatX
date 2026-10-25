@@ -1,0 +1,22 @@
+when:
+    - event: manual
+
+steps:
+    - name: check
+      image: ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac
+      environment:
+          CI_TOOLCHAIN_ROOT: /opt/ci-toolchain
+          GOPATH: /opt/ci-toolchain/gopath
+          GOCACHE: /opt/ci-toolchain/gocache
+          RNS_REQUIRED_SIGNER: e46112d44649266d71fe2193e00a4710
+          PNPM_CONFIG_STRICT_DEP_BUILDS: "false"
+      commands: |
+          set -e
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+              bash ca-certificates curl git xz-utils build-essential pkg-config \
+              ffmpeg libopus0 libogg0 libsodium-dev libcodec2-dev
+          git config --global --add safe.directory '*'
+          export PATH="/opt/ci-toolchain/bin:/opt/ci-toolchain/node/bin:$PATH"
+          bash scripts/ci/bootstrap-toolchain.sh install
+          bash scripts/ci/run.sh check

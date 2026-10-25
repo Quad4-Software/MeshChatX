@@ -9,6 +9,35 @@
 name: Frontend build
 
 on:
+    workflow_dispatch:
+        inputs:
+            artifact_name:
+                description: >-
+                    Name of the artifact uploaded to this workflow run.
+                    Defaults to meshchatx-frontend-<run_id>-<run_attempt>.
+                required: false
+                type: string
+                default: ""
+            retention_days:
+                description: Artifact retention in days.
+                required: false
+                type: number
+                default: 1
+            node_version:
+                description: Node.js major version used for the build.
+                required: false
+                type: string
+                default: "24"
+            pnpm_version:
+                description: pnpm version activated through corepack.
+                required: false
+                type: string
+                default: "12.15.0"
+            python_version:
+                description: Python version used by the docs bundler.
+                required: false
+                type: string
+                default: "3.15"
     workflow_call:
         inputs:
             artifact_name:
