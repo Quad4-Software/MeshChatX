@@ -1,4 +1,4 @@
-## [5.0.0] - 2026-12-12 [unreleased]
+## [4.11.0] - 2026-11-01 [unreleased]
 
 ### Changed
 
@@ -8,7 +8,10 @@
 ### Breaking
 
 - Forks that relied on the removed scheduled workflows need to dispatch runs manually or keep the files from the 4.10.x tree.
-- Android versionCode for 5.0.0 computes as 50000, below the 50007 shipped with 4.10.7. Devices on 4.10.7 cannot upgrade to the 5.0.0 APK in place; uninstall first or bump versionCode before shipping.
+
+### Fixed
+
+- Android versionCode for 4.11.0 computes as 51000, above the 50007 shipped with 4.10.7, so devices can upgrade in place.
 
 ## [4.10.7] - 2026-10-11 [released]
 
