@@ -66,7 +66,9 @@ if bin_dir.exists() and bin_dir.is_dir():
 stdlib_email = Path(sysconfig.get_path("stdlib")) / "email"
 if stdlib_email.is_dir():
     email_stage = Path(tempfile.mkdtemp(prefix="cx-email-")) / "email"
-    shutil.copytree(stdlib_email, email_stage, ignore=shutil.ignore_patterns("__pycache__"))
+    shutil.copytree(
+        stdlib_email, email_stage, ignore=shutil.ignore_patterns("__pycache__")
+    )
     include_files.append((str(email_stage), "lib/email"))
 
 # macOS slices skip the pycodec2 extension and ship libcodec2 at the
