@@ -408,7 +408,7 @@ chaquopy {
             install "bcrypt==3.1.7"
             install "aiohttp-session>=2.12.1,<3.0.0"
             install "cryptography==50.0.2"
-            install "pycparser>=3.11"
+            install "pycparser>=3.12"
             install "pyserial>=3.5"
             install "usbserial4a==0.4.0"
             install "ply>=3.11,<4.0"
