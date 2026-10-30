@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import os
 import tempfile
 import threading
@@ -901,14 +902,10 @@ class FileSyncService:
             return
         try:
             safe = normalize_relpath(str(filepath))
-            create_empty_file(self.sync_directory, safe)
-            full = resolve_under_root(self.sync_directory, safe)
-            actual = hash_file(full)
-            if expected_hash and actual != expected_hash:
-                with contextlib.suppress(OSError):
-                    os.remove(full)
+            if expected_hash and expected_hash != hashlib.sha256(b"").hexdigest():
                 RNS.log(f"Empty file hash mismatch for {safe}", RNS.LOG_WARNING)
                 return
+            create_empty_file(self.sync_directory, safe)
             info = self.inventory.update_from_path(safe)
             self.inventory.save()
             self._emit(self.on_file_updated, {"path": safe, "info": info})

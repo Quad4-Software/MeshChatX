@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import tempfile
 from typing import BinaryIO
 
@@ -69,6 +70,24 @@ def apply_delta_blocks(
     """
     dest = resolve_under_root(root, relpath)
     ensure_parent_dir(dest)
+    return _apply_delta_blocks_to_file(
+        dest,
+        block_nums,
+        data_stream,
+        expected_size=expected_size,
+        block_size=block_size,
+    )
+
+
+def _apply_delta_blocks_to_file(
+    dest: str,
+    block_nums: list[int],
+    data_stream: BinaryIO,
+    *,
+    expected_size: int | None = None,
+    block_size: int = BLOCK_SIZE,
+) -> str:
+    """Apply validated delta blocks to an already resolved path."""
     for block_num in block_nums:
         if not isinstance(block_num, int) or isinstance(block_num, bool):
             raise PathJailError("invalid block number")
@@ -134,31 +153,53 @@ def commit_received_file(
     """Commit a received Resource payload into the sync root."""
     if require_hash and not expected_hash:
         raise ValueError(f"missing content hash for {relpath}")
-
-    if mode == "delta":
-        if block_nums is None:
-            raise ValueError("delta mode requires block_nums")
-        resource_data.seek(0)
-        dest = apply_delta_blocks(
-            root,
-            relpath,
-            block_nums,
-            resource_data,
-            expected_size=expected_size,
-        )
-    else:
-        source_name = getattr(resource_data, "name", None)
-        if source_name and os.path.isfile(source_name):
-            dest = atomic_replace_file(root, relpath, source_name)
-        else:
+    dest = resolve_under_root(root, relpath)
+    ensure_parent_dir(dest)
+    fd, staged = tempfile.mkstemp(
+        prefix=".rns-xfer-commit-",
+        suffix=".tmp",
+        dir=os.path.dirname(dest) or root,
+    )
+    os.close(fd)
+    try:
+        if mode == "delta":
+            if block_nums is None:
+                raise ValueError("delta mode requires block_nums")
             resource_data.seek(0)
-            dest = write_bytes_atomic(root, relpath, resource_data.read())
+            if os.path.isfile(dest):
+                shutil.copyfile(dest, staged)
+                os.chmod(staged, os.stat(dest).st_mode & 0o7777)
+            _apply_delta_blocks_to_file(
+                staged,
+                block_nums,
+                resource_data,
+                expected_size=expected_size,
+            )
+        else:
+            source_name = getattr(resource_data, "name", None)
+            if source_name and os.path.isfile(source_name):
+                shutil.copy2(source_name, staged)
+            else:
+                resource_data.seek(0)
+                with open(staged, "wb") as handle:
+                    shutil.copyfileobj(resource_data, handle)
+                    handle.flush()
 
-    if require_hash or expected_hash:
-        if not verify_file_hash(dest, expected_hash):
-            try:
-                os.remove(dest)
-            except OSError:
-                pass
+        with open(staged, "r+b") as handle:
+            handle.flush()
+            os.fsync(handle.fileno())
+
+        if expected_size is not None and os.path.getsize(staged) != expected_size:
+            raise ValueError(f"size mismatch for {relpath}")
+        if (require_hash or expected_hash) and not verify_file_hash(
+            staged, expected_hash
+        ):
             raise ValueError(f"hash mismatch for {relpath}")
-    return dest
+        os.replace(staged, dest)
+        return dest
+    except Exception:
+        try:
+            os.unlink(staged)
+        except OSError:
+            pass
+        raise

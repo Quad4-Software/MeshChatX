@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import threading
 from types import SimpleNamespace
 
 import pytest
-
 from rns_filesync import protocol
 from rns_filesync.paths import PathJailError, normalize_relpath, resolve_under_root
 from rns_filesync.permissions import PermissionStore
@@ -125,6 +125,22 @@ def test_delete_requires_delete_perm(tmp_path):
     assert (sync / "secret.txt").exists()
 
 
+def test_write_only_peer_bad_empty_file_hash_preserves_existing_file(tmp_path):
+    writer = b"\x06" * 16
+    svc, sync = _service_with_acl(tmp_path, [f"w:{writer.hex()}"])
+    link = _FakeLink(writer)
+    expected_hash = hashlib.sha256(b"not-empty").hexdigest()
+
+    svc._handle_empty_file(
+        {"path": "secret.txt", "hash": expected_hash},
+        link,
+    )
+
+    assert (sync / "secret.txt").read_text() == "top-secret"
+    assert svc._require_perm(link, "write")
+    assert not svc._require_perm(link, "delete")
+
+
 def test_path_traversal_payloads_rejected():
     payloads = [
         "../etc/passwd",
@@ -188,6 +204,62 @@ def test_commit_rejects_hash_mismatch_and_removes(tmp_path):
             require_hash=True,
         )
     assert not (root / "x.bin").exists()
+
+
+def test_commit_rejects_hash_mismatch_without_replacing_existing_file(tmp_path):
+    root = tmp_path / "sync"
+    root.mkdir()
+    (root / "x.bin").write_bytes(b"original contents")
+    with pytest.raises(ValueError, match="hash mismatch"):
+        commit_received_file(
+            str(root),
+            "x.bin",
+            mode="full",
+            resource_data=io.BytesIO(b"untrusted replacement"),
+            expected_hash="0" * 64,
+            require_hash=True,
+        )
+    assert (root / "x.bin").read_bytes() == b"original contents"
+
+
+def test_resource_file_hash_mismatch_preserves_existing_file(tmp_path):
+    root = tmp_path / "sync"
+    root.mkdir()
+    (root / "x.bin").write_bytes(b"original contents")
+    incoming = tmp_path / "incoming.bin"
+    incoming.write_bytes(b"untrusted replacement")
+    with incoming.open("rb") as resource_data:
+        with pytest.raises(ValueError, match="hash mismatch"):
+            commit_received_file(
+                str(root),
+                "x.bin",
+                mode="full",
+                resource_data=resource_data,
+                expected_hash="0" * 64,
+                require_hash=True,
+            )
+    assert incoming.read_bytes() == b"untrusted replacement"
+    assert (root / "x.bin").read_bytes() == b"original contents"
+
+
+def test_delta_hash_mismatch_preserves_existing_file(tmp_path):
+    root = tmp_path / "sync"
+    root.mkdir()
+    (root / "x.bin").write_bytes(b"original contents")
+    resource_data = io.BytesIO(b"replacement")
+    resource_data.seek(5)
+    with pytest.raises(ValueError, match="hash mismatch"):
+        commit_received_file(
+            str(root),
+            "x.bin",
+            mode="delta",
+            block_nums=[0],
+            resource_data=resource_data,
+            expected_hash="0" * 64,
+            expected_size=len(b"replacement"),
+            require_hash=True,
+        )
+    assert (root / "x.bin").read_bytes() == b"original contents"
 
 
 def test_delta_block_num_cap(tmp_path):
