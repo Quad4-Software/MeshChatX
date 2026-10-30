@@ -224,6 +224,19 @@ describe("RnsFilesyncPage.vue", () => {
         delete window.MeshChatXAndroid;
     });
 
+    it("does not claim Android 10 can grant shared-folder access", async () => {
+        window.MeshChatXAndroid = {
+            hasAllFilesAccess: vi.fn(() => false),
+            requestAllFilesAccess: vi.fn(() => false),
+        };
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
+        await wrapper.vm.useSharedFolder();
+        expect(window.MeshChatXAndroid.requestAllFilesAccess).toHaveBeenCalled();
+        expect(ToastUtils.info).not.toHaveBeenCalledWith("rns_filesync.shared_folder_permission_needed");
+        delete window.MeshChatXAndroid;
+    });
+
     it("warns when browsing while syncing", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));

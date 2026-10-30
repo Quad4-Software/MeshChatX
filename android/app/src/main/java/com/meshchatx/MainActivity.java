@@ -1868,19 +1868,47 @@ public class MainActivity extends AppCompatActivity {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 return Environment.isExternalStorageManager();
             }
-            return true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Scoped storage applies on Android 10 for this app's target SDK.
+                return false;
+            }
+            return ContextCompat.checkSelfPermission(
+                    activity,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                )
+                == PackageManager.PERMISSION_GRANTED;
         }
 
         @JavascriptInterface
-        public void requestAllFilesAccess() {
-            activity.runOnUiThread(
-                () -> {
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+        public boolean requestAllFilesAccess() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                && Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                activity.runOnUiThread(
+                    () ->
                         Toast.makeText(
                             activity,
-                            "Shared storage is already available on this Android version.",
-                            Toast.LENGTH_SHORT
-                        ).show();
+                            "Android 10 does not allow direct access to shared Documents. Use an app-private sync folder.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                );
+                return false;
+            }
+            activity.runOnUiThread(
+                () -> {
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                        if (hasAllFilesAccess()) {
+                            Toast.makeText(
+                                activity,
+                                "Shared storage is already available.",
+                                Toast.LENGTH_SHORT
+                            ).show();
+                            return;
+                        }
+                        ActivityCompat.requestPermissions(
+                            activity,
+                            new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                            RUNTIME_PERMISSIONS_REQUEST_CODE
+                        );
                         return;
                     }
                     if (Environment.isExternalStorageManager()) {
@@ -1909,6 +1937,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             );
+            return true;
         }
 
         @JavascriptInterface

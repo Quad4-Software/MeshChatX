@@ -591,8 +591,10 @@ export default {
                     hasAccess = false;
                 }
                 if (!hasAccess && typeof bridge.requestAllFilesAccess === "function") {
-                    bridge.requestAllFilesAccess();
-                    ToastUtils.info(this.$t("rns_filesync.shared_folder_permission_needed"));
+                    const requestStarted = bridge.requestAllFilesAccess();
+                    if (requestStarted !== false) {
+                        ToastUtils.info(this.$t("rns_filesync.shared_folder_permission_needed"));
+                    }
                     return;
                 }
             }
