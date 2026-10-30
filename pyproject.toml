@@ -80,8 +80,6 @@ meshchatx = ["public/**/*", "public/*", "src/backend/data/community_interfaces.j
 meshchatx = [
   "public/repository-server-bundled/**",
   # Belt-and-suspenders if a dirty public/ tree is present at pack time.
-  "public/**/*NerdFont*",
-  "public/**/*RobotoMonoNerdFont*",
   "public/**/tailwind-v3.4.3-forms-v0.5.7.js",
 ]
 

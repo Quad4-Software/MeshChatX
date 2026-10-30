@@ -51,6 +51,14 @@ def test_bundled_nerd_font_is_allowed(chk, tmp_path: Path):
     assert chk.check_tree(public) == []
 
 
+def test_packaging_rules_do_not_exclude_bundled_nerd_font():
+    manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8")
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+
+    assert "NerdFont" not in manifest
+    assert "NerdFont" not in pyproject
+
+
 def test_leftover_tailwind_fails(chk, tmp_path: Path):
     public = tmp_path / "public"
     assets = public / "assets" / "js" / "tailwindcss"
