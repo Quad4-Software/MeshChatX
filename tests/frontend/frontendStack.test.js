@@ -41,6 +41,8 @@ describe("frontend stack migration reference", () => {
         expect(vite).toContain("rolldownOptions");
         expect(vite).toContain("chunkImportMap: false");
         expect(vite).toContain("LEFTOVER_PUBLIC_PATTERNS");
+        expect(vite).toContain("restrictPluginWorkerNetwork");
+        expect(vite).toContain("connect-src 'none'");
         expect(vite).toContain("RobotoMonoNerdFont");
         expect(vite).toMatch(/tailwind-v3.*forms-v0/);
         // emptyOutDir stays false so non-Vite trees under public survive, but
@@ -49,10 +51,10 @@ describe("frontend stack migration reference", () => {
         expect(vite).toMatch(/rmSync\(assetsDir/);
 
         const manifest = readRepo("MANIFEST.in");
-        expect(manifest).toMatch(/NerdFont/);
+        expect(manifest).not.toMatch(/NerdFont/);
         expect(manifest).toMatch(/tailwind-v3\.4\.3-forms-v0\.5\.7\.js/);
         const pyproject = readRepo("pyproject.toml");
-        expect(pyproject).toMatch(/NerdFont/);
+        expect(pyproject).not.toMatch(/NerdFont/);
         expect(pyproject).toMatch(/tailwind-v3\.4\.3-forms-v0\.5\.7\.js/);
         const checkScript = readRepo("scripts/ci/check-public-packaging.py");
         expect(checkScript).toContain("MAX_HASHES_PER_STEM");

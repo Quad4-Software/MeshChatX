@@ -8,6 +8,10 @@ vi.mock("@/js/Utils", () => ({
     default: {
         formatTimeAgo: vi.fn(() => "1h ago"),
         formatDestinationHash: (h) => (h && h.length >= 8 ? h.slice(0, 8) + "…" : h),
+        normalizeMeshchatHashHex: (value) =>
+            String(value || "")
+                .toLowerCase()
+                .replace(/[^0-9a-f]/g, ""),
     },
 }));
 
