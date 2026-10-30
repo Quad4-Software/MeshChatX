@@ -11,6 +11,7 @@ from meshchatx.src.backend.plugin_permissions import (
     collect_network_endpoints,
     declared_permission_ids,
     extract_urls_from_text,
+    granted_allows_python_backend,
     normalize_granted_permissions,
     requires_network_fetch,
     validate_declared_permissions,
@@ -49,6 +50,18 @@ def test_normalize_granted_subset():
         ["network:fetch", "hooks:announce.received", "network:fetch", "x"],
     )
     assert granted == ["network:fetch", "hooks:announce.received"]
+
+
+def test_python_backend_permission_is_default_denied():
+    manifest = {"backend": {"type": "python", "entry": "backend/main.py"}}
+    declared = declared_permission_ids(manifest)
+    assert declared == ["backend:python"]
+    assert normalize_granted_permissions(declared, None) == []
+    assert not granted_allows_python_backend(None)
+    assert not granted_allows_python_backend([])
+    granted = normalize_granted_permissions(declared, ["backend:python"])
+    assert granted == ["backend:python"]
+    assert granted_allows_python_backend(granted)
 
 
 def test_extract_and_collect_network_endpoints(tmp_path):

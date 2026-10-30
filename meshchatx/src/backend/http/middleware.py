@@ -72,6 +72,26 @@ def is_opaque_frame_cors_resource(path: str) -> bool:
     return False
 
 
+def is_plugin_worker_resource(path: str) -> bool:
+    """Identify the plugin worker so it can receive a network-denying CSP."""
+    basename = path.rsplit("/", 1)[-1]
+    if path.startswith("/assets/"):
+        return bool(re.fullmatch(r"pluginWorker(?:-[A-Za-z0-9_-]{8,})?\.js", basename))
+    return path.endswith("/src/frontend/js/plugins/pluginWorker.js")
+
+
+def build_plugin_worker_csp() -> str:
+    """Deny direct network access from plugin code running in the worker."""
+    return (
+        "default-src 'none'; "
+        "script-src 'self' blob:; "
+        "connect-src 'none'; "
+        "worker-src 'none'; "
+        "object-src 'none'; "
+        "base-uri 'none'"
+    )
+
+
 # Tokens we deliberately omit from Permissions-Policy (defaults keep them working
 # on same-origin top-level documents):
 # - bluetooth, serial, usb, hid: default allowlist is self (MDN / Web Bluetooth,
@@ -495,6 +515,10 @@ def create_security_middleware(app):
             response.headers["Content-Security-Policy"] = build_nomad_crash_tab_csp(
                 request.host
             )
+            return response
+
+        if is_plugin_worker_resource(path):
+            response.headers["Content-Security-Policy"] = build_plugin_worker_csp()
             return response
 
         # IPv6 loopback with a port wildcard is not a valid CSP source

@@ -1115,6 +1115,9 @@
             },
             "network": {
                 "fetch": "Make outbound internet HTTP requests"
+            },
+            "backend": {
+                "python": "Run Python code in the application process with full access to this user's files, processes, and network"
             }
         },
         "install_dialog": {

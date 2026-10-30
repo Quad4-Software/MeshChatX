@@ -1115,6 +1115,9 @@
             },
             "network": {
                 "fetch": "发起出站互联网HTTP请求"
+            },
+            "backend": {
+                "python": "在应用进程中运行 Python 代码，可完全访问此用户的文件、进程和网络"
             }
         },
         "install_dialog": {

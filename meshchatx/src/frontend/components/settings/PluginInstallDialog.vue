@@ -212,7 +212,7 @@ export default {
         resetGrants() {
             const next = {};
             for (const perm of this.preview?.permissions || []) {
-                next[perm] = true;
+                next[perm] = perm !== "backend:python";
             }
             this.grantedMap = next;
             this.trustPublisher = false;

@@ -46,9 +46,13 @@ This document is the reviewable artifact behind the controls referenced in
 - Information disclosure: storage is namespaced per plugin
   (`storage: isolated`); `debugLog.read` returns redacted logs only.
 - DoS: frontend runs in a Worker with a JSON uiDescriptor (no arbitrary
-  DOM); backend Python plugins run with declared capabilities only.
+  DOM); direct worker network access is blocked by CSP.
+- Python plugins require the explicit `backend:python` grant but execute
+  in-process with the app user's OS privileges. Treat them as trusted code;
+  declared host capabilities do not sandbox arbitrary Python imports or I/O.
 - Elevation: `permissions.managers` allowlist maps to `KNOWN_MANAGERS`;
-  unknown capabilities fail closed. `network: none` blocks fetch entirely.
+  unknown capabilities fail closed for host calls. `network: none` denies the
+  host network flag but does not constrain a granted Python backend.
   `ui: sandboxed-html` is the only escape hatch and is itself a grant.
 
 ### 3. LXMF / RNS ingress

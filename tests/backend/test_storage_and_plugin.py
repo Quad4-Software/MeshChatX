@@ -197,7 +197,11 @@ def test_dispatch_hook_skips_when_plugins_disabled(tmp_path):
     manager = PluginManager(str(tmp_path / "storage"), app=EnabledApp())
     installed = manager.install_from_directory(
         str(source),
-        granted_permissions=["hooks:announce.received", "storage:isolated"],
+        granted_permissions=[
+            "backend:python",
+            "hooks:announce.received",
+            "storage:isolated",
+        ],
     )
     plugin_id = installed["id"]
     manager.enable(plugin_id)
@@ -236,7 +240,7 @@ def test_python_runtime_purges_nested_pycache(tmp_path):
     manager = PluginManager(str(tmp_path / "storage"), app=FakeApp())
     manager.install_from_directory(
         str(source),
-        granted_permissions=["storage:isolated"],
+        granted_permissions=["backend:python", "storage:isolated"],
     )
     nested = (
         tmp_path

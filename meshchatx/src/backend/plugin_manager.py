@@ -35,6 +35,7 @@ from meshchatx.src.backend.plugin_permissions import (
     granted_allows_hook,
     granted_allows_manager,
     granted_allows_network_fetch,
+    granted_allows_python_backend,
     granted_allows_storage,
     normalize_granted_permissions,
     normalize_network_mode,
@@ -217,10 +218,26 @@ class PluginManager:
                     tampered,
                 ) = self._read_plugin_state(manifest["id"])
                 declared = declared_permission_ids(manifest)
-                if granted is None:
-                    granted = list(declared)
-                else:
-                    granted = normalize_granted_permissions(declared, granted)
+                granted = normalize_granted_permissions(declared, granted)
+                backend = manifest.get("backend") or {}
+                if (
+                    enabled
+                    and isinstance(backend, dict)
+                    and (backend.get("type") or "wasm") == "python"
+                    and not granted_allows_python_backend(granted)
+                ):
+                    enabled = False
+                    auto_disabled_reason = (
+                        "Python backend execution permission not granted"
+                    )
+                    self._write_plugin_state(
+                        manifest["id"],
+                        enabled,
+                        auto_disabled_reason,
+                        granted_permissions=granted,
+                        integrity_hash=integrity_hash,
+                        tampered=tampered,
+                    )
                 signature = enrich_signature_with_trust(
                     verify_dir_signature(plugin_dir),
                     self._lookup_trusted,
@@ -371,7 +388,7 @@ class PluginManager:
         declared = declared_permission_ids(manifest)
         granted = record.granted_permissions
         if granted is None:
-            granted = list(declared)
+            granted = normalize_granted_permissions(declared, None)
         endpoints = collect_network_endpoints(manifest, record.install_path)
         backend = manifest.get("backend") or {}
         backend_type = None
@@ -531,6 +548,7 @@ class PluginManager:
         plugin_id = manifest["id"]
         declared = declared_permission_ids(manifest)
         granted = normalize_granted_permissions(declared, granted_permissions)
+        backend = manifest.get("backend") or {}
         reject_symlinks_in_tree(source_dir)
         target_dir = os.path.join(self.installed_dir, plugin_id)
         if os.path.exists(target_dir):
@@ -548,6 +566,22 @@ class PluginManager:
                 _old_hash,
                 _old_tampered,
             ) = self._read_plugin_state(plugin_id)
+            if (
+                isinstance(backend, dict)
+                and (backend.get("type") or "wasm") == "python"
+                and not granted_allows_python_backend(granted)
+            ):
+                auto_disabled_reason = "Python backend execution permission not granted"
+                enabled = False
+            elif (
+                isinstance(backend, dict)
+                and (backend.get("type") or "wasm") == "python"
+                and granted_allows_python_backend(granted)
+                and auto_disabled_reason
+                == "Python backend execution permission not granted"
+            ):
+                enabled = True
+                auto_disabled_reason = None
             self._write_plugin_state(
                 plugin_id,
                 enabled,
@@ -569,6 +603,8 @@ class PluginManager:
                 tampered=False,
                 signature=signature.to_dict(),
             )
+            if enabled:
+                return self.enable(plugin_id)
             return self._public_plugin_view(self._plugins[plugin_id])
 
     def install_from_zip_bytes(
@@ -1387,6 +1423,10 @@ class PluginManager:
         backend_type = self._backend_type(record)
         try:
             if backend_type == "python":
+                if not granted_allows_python_backend(record.granted_permissions):
+                    raise PermissionError(
+                        "Python backend execution permission not granted"
+                    )
                 return self._python_runtime.invoke(
                     record.id,
                     self._python_entry_path(record),
@@ -1495,6 +1535,8 @@ class PluginManager:
             if record.manifest.get("backend"):
                 backend_type = self._backend_type(record)
                 if backend_type == "python":
+                    if not granted_allows_python_backend(record.granted_permissions):
+                        return
                     self._python_runtime.on_hook(
                         record.id,
                         self._python_entry_path(record),
@@ -1532,6 +1574,8 @@ class PluginManager:
             raise ValueError("plugin backend entry is missing")
         backend_type = self._backend_type(record)
         if backend_type == "python":
+            if not granted_allows_python_backend(record.granted_permissions):
+                raise PermissionError("Python backend execution permission not granted")
             path = self._python_entry_path(record)
             size = os.path.getsize(path)
             if size <= 0 or size > 1_000_000:
@@ -1748,6 +1792,12 @@ class PluginManager:
         existing = self._plugins.get(plugin_id)
         if existing is None:
             return True
+        if self._backend_type(
+            existing
+        ) == "python" and not granted_allows_python_backend(
+            existing.granted_permissions
+        ):
+            return True
         if existing.tampered:
             return True
         if existing.version != manifest.get("version"):
@@ -1802,7 +1852,10 @@ class PluginManager:
             if not self._bundled_needs_reinstall(source, manifest):
                 continue
             try:
-                self.install_from_directory(source)
+                self.install_from_directory(
+                    source,
+                    granted_permissions=declared_permission_ids(manifest),
+                )
             except Exception as exc:
                 print(
                     f"Bundled plugin sync failed for {manifest.get('id', name)}: {exc}",

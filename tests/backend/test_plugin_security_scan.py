@@ -26,6 +26,21 @@ def test_findings_for_unsigned_network_and_eval(tmp_path):
     assert assessment.risk_level in {"medium", "high"}
 
 
+def test_python_backend_is_high_risk():
+    assessment = assess_plugin(
+        {
+            "id": "com.example.python",
+            "backend": {"type": "python", "entry": "backend/main.py"},
+        },
+        signature=SignatureInfo(),
+    )
+    finding = next(
+        item for item in assessment.findings if item.id == "python-full-access"
+    )
+    assert finding.severity == "high"
+    assert assessment.risk_level == "high"
+
+
 def test_sideband_findings():
     assessment = assess_sideband_script(
         "demo.py",

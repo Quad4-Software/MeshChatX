@@ -13,7 +13,9 @@ function handleWorkerMessage(event, post) {
     if (message.type === "init") {
         const state = {
             pluginId: message.pluginId,
-            permissions: message.permissions || {},
+            permissions: Array.isArray(message.grantedPermissions)
+                ? message.grantedPermissions.filter((permission) => typeof permission === "string")
+                : [],
             labels: message.labels || {},
             theme: message.theme || null,
             allowHtmlFrame: Boolean(message.allowHtmlFrame),
@@ -50,6 +52,9 @@ function handleWorkerMessage(event, post) {
         const api = {
             t(key) {
                 return state.labels[key] || key;
+            },
+            hasPermission(permissionId) {
+                return state.permissions.includes(String(permissionId));
             },
             async invoke(method, args = {}) {
                 if (method === "readPaths") {

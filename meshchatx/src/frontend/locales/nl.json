@@ -1115,6 +1115,9 @@
             },
             "network": {
                 "fetch": "Uitgaande internet-HTTP-verzoeken doen"
+            },
+            "backend": {
+                "python": "Voer Python-code uit in het toepassingsproces met volledige toegang tot de bestanden, processen en het netwerk van deze gebruiker"
             }
         },
         "install_dialog": {

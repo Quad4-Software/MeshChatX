@@ -1115,6 +1115,9 @@
             },
             "network": {
                 "fetch": "Giden internet HTTP istekleri yap"
+            },
+            "backend": {
+                "python": "Bu kullanıcının dosyalarına, süreçlerine ve ağına tam erişimle uygulama sürecinde Python kodu çalıştır"
             }
         },
         "install_dialog": {

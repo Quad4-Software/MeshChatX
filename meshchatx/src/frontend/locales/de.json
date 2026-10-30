@@ -1115,6 +1115,9 @@
             },
             "network": {
                 "fetch": "Ausgehende Internet-HTTP-Anfragen stellen"
+            },
+            "backend": {
+                "python": "Python-Code im Anwendungsprozess mit vollem Zugriff auf Dateien, Prozesse und Netzwerk dieses Benutzers ausführen"
             }
         },
         "install_dialog": {

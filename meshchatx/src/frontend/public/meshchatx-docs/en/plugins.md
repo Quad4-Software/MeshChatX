@@ -17,9 +17,9 @@ MESHCHAT_DISABLE_PLUGINS=true
 - React to mesh events (announces, RNS link traffic)
 - Call narrowly declared backend managers (path table, debug log, bug reports, RNS links)
 - Keep a private key-value store (storage: isolated)
-- Optionally fetch clearnet HTTP (network: fetch), still subject to **Privacy mode**
+- Optionally request clearnet HTTP (network: fetch), still subject to **Privacy mode**
 
-Plugins cannot rewrite core MeshChatX. They do not get open-ended filesystem or process control unless you opt into Sideband Python plugins (see below).
+WASM backends run in a metered runtime. Python backends run inside MeshChatX and can access files, processes, and network available to the app user. Grant `backend:python` only to code you trust. Sideband Python plugins are separate flat-file plugins with their own danger switch.
 
 ## Runtimes
 
@@ -27,7 +27,7 @@ Plugins cannot rewrite core MeshChatX. They do not get open-ended filesystem or 
 | -------------- | ------------------------- | ----------------------------------------------- |
 | Frontend JS    | Browser Web Worker        | Medium. Sandboxed worker, capability grants     |
 | Backend WASM   | wasmtime on the server    | Medium. Fuel-metered, capability-gated host     |
-| Backend Python | In-process with MeshChatX | High. Permission-checked in-process host        |
+| Backend Python | In-process with MeshChatX | Full app-user privileges; explicit grant required |
 | Sideband *.py  | In-process, flat files    | Highest. Opt-in danger switch, full host access |
 
 A packaged plugin can ship frontend only, backend only, or both.
@@ -57,7 +57,7 @@ After install, MeshChatX hashes the on-disk tree. If files change outside the ap
 
 ## Bundled example: Hello Example
 
-com.meshchatx.mcx-hello ships with MeshChatX. It is a minimal reference plugin: it activates a Python backend, keeps a counter in isolated plugin storage, and renders a small page through api.setUi. It requests no manager permissions and no network access.
+com.meshchatx.mcx-hello ships with MeshChatX. It is a minimal reference plugin: it activates a Python backend, keeps a counter in isolated plugin storage, and renders a small page through api.setUi. Its bundled manifest declares `backend:python`; enabling it runs that code in-process. It requests no manager permissions or network access.
 
 ## Plugin UI (uiDescriptor v1)
 
@@ -65,7 +65,7 @@ Frontend plugins push a JSON tree through api.setUi(descriptor). The host render
 
 Styling uses host semantic theme tokens. Plugins choose variants such as primary, secondary, danger, or text variants. They cannot pass arbitrary CSS classes.
 
-Worker helpers: api.callManager(capability, args), api.clipboardWrite(text), api.getTheme(), api.onThemeChange(handler).
+Worker helpers: api.callManager(capability, args), api.clipboardWrite(text), api.getTheme(), api.hasPermission(permissionId), api.onThemeChange(handler). `api.hasPermission` is true only for a permission declared by the manifest and granted at install time. Direct network connections from frontend workers are blocked; use a Python backend for approved network access.
 
 Layout:
 
@@ -170,10 +170,12 @@ Call managers from a plugin with POST /api/v1/plugins/{id}/invoke and method: "c
 | ----------------- | --------------------------------------------------------------------- |
 | storage: isolated | Private key-value store in the MeshChatX database                     |
 | storage: none     | No plugin storage                                                     |
-| network: fetch    | Outbound HTTP allowed (still blocked by Privacy mode when that is on) |
+| network: fetch    | Enables the Python host's outbound HTTP permission check |
 | network: none     | No clearnet fetch                                                     |
+| backend: python   | Runs Python code in-process with the app user's full local privileges |
 
 Install preview also scans plugin files for external http:// / https:// URLs and shows them before you grant network access.
+`network: fetch` is not a sandbox for Python code. Once `backend:python` is granted, Python code can use the process's network access directly.
 
 ## How a frontend plugin runs
 

@@ -47,7 +47,32 @@ export function declaredPermissionIds(manifest) {
     if (ui === "sandboxed-html" || (Array.isArray(ui) && ui.includes("sandboxed-html"))) {
         ids.push("ui:sandboxed-html");
     }
+    if (manifest?.backend?.type === "python") {
+        ids.push("backend:python");
+    }
     return [...new Set(ids)];
+}
+
+/**
+ * @param {Record<string, unknown> | null | undefined} plugin
+ * @returns {string[]}
+ */
+export function grantedPluginPermissions(plugin) {
+    const declared = new Set(declaredPermissionIds(plugin?.manifest));
+    const granted = plugin?.granted_permissions;
+    if (!Array.isArray(granted)) {
+        return [];
+    }
+    return [...new Set(granted.filter((id) => typeof id === "string" && declared.has(id)))];
+}
+
+/**
+ * @param {Record<string, unknown> | null | undefined} plugin
+ * @param {string} permissionId
+ * @returns {boolean}
+ */
+export function hasGrantedPluginPermission(plugin, permissionId) {
+    return grantedPluginPermissions(plugin).includes(permissionId);
 }
 
 /**

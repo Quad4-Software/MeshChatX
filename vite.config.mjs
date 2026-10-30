@@ -35,6 +35,8 @@ const idbChunkGroups = [
 const assetsDir = path.join(import.meta.dirname, "meshchatx", "public", "assets");
 const publicOutDir = path.join(import.meta.dirname, "meshchatx", "public");
 const LEFTOVER_PUBLIC_PATTERNS = [/RobotoMonoNerdFont/i, /NerdFont/i, /tailwind-v3\.4\.3-forms-v0\.5\.7\.js$/i];
+const PLUGIN_WORKER_CSP =
+    "default-src 'none'; script-src 'self' blob:; connect-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'";
 
 const e2eBackendPort = process.env.E2E_BACKEND_PORT || "8000";
 
@@ -283,6 +285,21 @@ function skipVueDevToolsInCrashTab() {
     };
 }
 
+function restrictPluginWorkerNetwork() {
+    return {
+        name: "meshchatx-plugin-worker-network-csp",
+        configureServer(server) {
+            server.middlewares.use((req, res, next) => {
+                const pathname = (req.url || "").split("?", 1)[0];
+                if (pathname.endsWith("/js/plugins/pluginWorker.js")) {
+                    res.setHeader("Content-Security-Policy", PLUGIN_WORKER_CSP);
+                }
+                next();
+            });
+        },
+    };
+}
+
 export default defineConfig(({ command }) => {
     const bundledDev = envBool(process.env.MESHCHAT_VITE_BUNDLED_DEV);
     const vueDevToolsOn = isVueDevToolsEnabled({ command });
@@ -341,6 +358,7 @@ export default defineConfig(({ command }) => {
             __GEO_WASM_SRI_EXEC__: JSON.stringify(geoWasmIntegrity?.wasmExec || ""),
         },
         plugins: [
+            restrictPluginWorkerNetwork(),
             tailwindcss(),
             ...(vueDevToolsOn
                 ? [

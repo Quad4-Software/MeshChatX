@@ -5,7 +5,12 @@ import {
     validatePluginManifest,
     manifestPermissionSummary,
 } from "../../meshchatx/src/frontend/js/plugins/pluginManifest.js";
-import { declaredPermissionIds, permissionLabel } from "../../meshchatx/src/frontend/js/plugins/pluginPermissions.js";
+import {
+    declaredPermissionIds,
+    grantedPluginPermissions,
+    hasGrantedPluginPermission,
+    permissionLabel,
+} from "../../meshchatx/src/frontend/js/plugins/pluginPermissions.js";
 
 describe("pluginManifest", () => {
     it("validates a minimal manifest", () => {
@@ -55,6 +60,30 @@ describe("pluginManifest", () => {
         expect(ids).toContain("network:fetch");
     });
 
+    it("requires both declaration and user grant for plugin permissions", () => {
+        const plugin = {
+            manifest: { permissions: { ui: "sandboxed-html" } },
+            granted_permissions: [],
+        };
+        expect(grantedPluginPermissions(plugin)).toEqual([]);
+        expect(hasGrantedPluginPermission(plugin, "ui:sandboxed-html")).toBe(false);
+
+        plugin.granted_permissions = ["ui:sandboxed-html"];
+        expect(grantedPluginPermissions(plugin)).toEqual(["ui:sandboxed-html"]);
+        expect(hasGrantedPluginPermission(plugin, "ui:sandboxed-html")).toBe(true);
+        expect(hasGrantedPluginPermission(plugin, "network:fetch")).toBe(false);
+        expect(grantedPluginPermissions({ manifest: plugin.manifest })).toEqual([]);
+    });
+
+    it("filters grants to permissions declared by the manifest", () => {
+        expect(
+            grantedPluginPermissions({
+                manifest: { permissions: { network: "fetch" } },
+                granted_permissions: ["network:fetch", "managers:identity.export", 1],
+            })
+        ).toEqual(["network:fetch"]);
+    });
+
     it("labels unknown permissions with the raw id", () => {
         expect(permissionLabel("custom:thing", (key) => key)).toBe("custom:thing");
     });
@@ -67,5 +96,6 @@ describe("pluginManifest", () => {
             backend: { entry: "backend/main.py", type: "python" },
         });
         expect(manifest.backend.type).toBe("python");
+        expect(declaredPermissionIds(manifest)).toContain("backend:python");
     });
 });

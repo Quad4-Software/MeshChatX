@@ -1115,6 +1115,9 @@
             },
             "network": {
                 "fetch": "Tee ulospäin suuntautuvia internet-HTTP-pyyntöjä"
+            },
+            "backend": {
+                "python": "Suorita Python-koodia sovellusprosessissa käyttäjän kaikkien tiedostojen, prosessien ja verkon käyttöoikeuksilla"
             }
         },
         "install_dialog": {

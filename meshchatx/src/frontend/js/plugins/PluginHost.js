@@ -5,6 +5,7 @@ import { loadPluginLabelMap, resolvePluginUiString } from "./pluginLabels.js";
 import { setPluginUiLabels, clearPluginUiLabels } from "./pluginUiRegistry.js";
 import { validateUiDescriptor } from "./pluginUiDescriptor.js";
 import { isKnownHostWidget } from "./pluginHostWidgets.js";
+import { grantedPluginPermissions, hasGrantedPluginPermission } from "./pluginPermissions.js";
 import { registerNavItem, unregisterNavItem } from "../registries/navRegistry.js";
 import { registerTool, unregisterTool } from "../registries/toolsRegistry";
 import { onWsEvent, offWsEvent } from "../registries/wsEventRegistry.js";
@@ -110,11 +111,8 @@ export class PluginHost {
 
         const ui = manifest.ui || {};
         const declaredWidgets = Array.isArray(ui.widgets) ? ui.widgets.filter((w) => isKnownHostWidget(w)) : [];
-        const allowHtmlFrame = Boolean(
-            manifest.permissions?.ui === "sandboxed-html" ||
-            (Array.isArray(manifest.permissions?.ui) && manifest.permissions.ui.includes("sandboxed-html")) ||
-            manifest.permissions?.["ui:sandboxed-html"] === true
-        );
+        const grantedPermissions = grantedPluginPermissions(plugin);
+        const allowHtmlFrame = hasGrantedPluginPermission(plugin, "ui:sandboxed-html");
 
         worker.onmessage = (event) => {
             this.handleWorkerMessage(pluginId, event.data, apiClient);
@@ -133,7 +131,7 @@ export class PluginHost {
         worker.postMessage({
             type: "init",
             pluginId,
-            permissions: manifest.permissions || {},
+            grantedPermissions,
             source,
             labels,
             theme,

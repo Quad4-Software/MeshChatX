@@ -32,6 +32,7 @@ KNOWN_MANAGERS = frozenset(
 KNOWN_STORAGE = frozenset({"isolated", "none"})
 KNOWN_NETWORK = frozenset({"none", "fetch"})
 KNOWN_UI = frozenset({"none", "sandboxed-html"})
+PYTHON_BACKEND_PERMISSION = "backend:python"
 
 _URL_IN_TEXT_RE = re.compile(r"""https?://[^\s"'<>\\)]+""")
 _SCAN_EXTENSIONS = frozenset(
@@ -111,6 +112,9 @@ def declared_permission_ids(manifest: dict[str, Any]) -> list[str]:
         permission_id_for_ui(ui_mode)
         for ui_mode in normalize_ui_modes(permissions.get("ui"))
     )
+    backend = manifest.get("backend")
+    if isinstance(backend, dict) and backend.get("type") == "python":
+        ids.append(PYTHON_BACKEND_PERMISSION)
     # Deduplicate while preserving order.
     seen: set[str] = set()
     ordered: list[str] = []
@@ -163,7 +167,7 @@ def normalize_granted_permissions(
 ) -> list[str]:
     declared_set = set(declared)
     if granted is None:
-        return list(declared)
+        return [item for item in declared if item != PYTHON_BACKEND_PERMISSION]
     selected: list[str] = []
     seen: set[str] = set()
     for item in granted:
@@ -198,6 +202,10 @@ def granted_allows_storage(granted: list[str] | None) -> bool:
     if granted is None:
         return True
     return permission_id_for_storage("isolated") in granted
+
+
+def granted_allows_python_backend(granted: list[str] | None) -> bool:
+    return bool(granted and PYTHON_BACKEND_PERMISSION in granted)
 
 
 def _normalize_endpoint(value: str) -> str:

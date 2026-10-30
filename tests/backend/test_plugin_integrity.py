@@ -100,7 +100,11 @@ def _install_python(manager, tmp_path):
     (backend / "main.py").write_text(PYTHON_BACKEND, encoding="utf-8")
     return manager.install_from_directory(
         str(source),
-        granted_permissions=["hooks:announce.received", "storage:isolated"],
+        granted_permissions=[
+            "backend:python",
+            "hooks:announce.received",
+            "storage:isolated",
+        ],
     )
 
 

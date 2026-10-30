@@ -8,7 +8,12 @@ import RNS
 from aiohttp import web
 
 from meshchatx.meshchat import ReticulumMeshChat
-from meshchatx.src.backend.http.middleware import is_opaque_frame_cors_resource
+from meshchatx.src.backend.http.middleware import (
+    build_plugin_worker_csp,
+    create_security_middleware,
+    is_opaque_frame_cors_resource,
+    is_plugin_worker_resource,
+)
 from tests.backend.http_request_stubs import JsonContent
 
 
@@ -41,6 +46,16 @@ def test_opaque_frame_cors_covers_shared_vite_asset_chunks():
     assert is_opaque_frame_cors_resource("/vendor/micron-parser-go/x.wasm") is True
     assert is_opaque_frame_cors_resource("/api/v1/status") is False
     assert is_opaque_frame_cors_resource("/") is False
+
+
+def test_plugin_worker_csp_blocks_direct_network_and_nested_workers():
+    assert is_plugin_worker_resource("/assets/pluginWorker-D_v6TUAd.js") is True
+    assert is_plugin_worker_resource("/assets/app-CdvRvASA.js") is False
+    assert is_plugin_worker_resource("/src/frontend/js/plugins/pluginWorker.js") is True
+    csp = build_plugin_worker_csp()
+    assert "connect-src 'none'" in csp
+    assert "worker-src 'none'" in csp
+    assert "script-src 'self' blob:" in csp
 
 
 @pytest.mark.asyncio
@@ -481,6 +496,27 @@ async def test_main_app_csp_rejects_inline_scripts(mock_rns_minimal, tmp_path):
             assert "'self'" in script_src
             assert "blob:" in script_src
             assert "wasm-unsafe-eval" in script_src
+
+
+@pytest.mark.asyncio
+async def test_plugin_worker_response_denies_network_connections():
+    app = MagicMock()
+    app.demo_mode = False
+    app.config = None
+    app.current_context = None
+    middleware = create_security_middleware(app)
+    request = MagicMock(spec=web.Request)
+    request.path = "/assets/pluginWorker-D_v6TUAd.js"
+    request.app = {}
+
+    async def mock_handler(_request):
+        return web.Response(text="worker")
+
+    response = await middleware(request, mock_handler)
+    csp = response.headers["Content-Security-Policy"]
+    assert "connect-src 'none'" in csp
+    assert "worker-src 'none'" in csp
+    assert "connect-src 'self'" not in csp
 
 
 @pytest.mark.asyncio

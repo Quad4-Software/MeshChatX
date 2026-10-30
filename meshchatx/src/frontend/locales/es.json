@@ -1115,6 +1115,9 @@
             },
             "network": {
                 "fetch": "Realizar solicitudes HTTP salientes a Internet"
+            },
+            "backend": {
+                "python": "Ejecutar código Python en el proceso de la aplicación con acceso completo a los archivos, procesos y red de este usuario"
             }
         },
         "install_dialog": {

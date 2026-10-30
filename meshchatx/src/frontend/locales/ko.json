@@ -1115,6 +1115,9 @@
             },
             "network": {
                 "fetch": "아웃바운드 인터넷 HTTP 요청 수행"
+            },
+            "backend": {
+                "python": "현재 사용자의 파일, 프로세스, 네트워크에 모두 접근할 수 있는 애플리케이션 프로세스에서 Python 코드 실행"
             }
         },
         "install_dialog": {

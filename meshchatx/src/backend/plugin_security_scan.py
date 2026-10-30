@@ -101,8 +101,8 @@ def assess_plugin(
         add(
             "python-full-access",
             "high",
-            "Python backend plugins run in-process with full host access",
-            40,
+            "Python backend plugins run in-process with full app-user access",
+            50,
         )
     endpoints = collect_network_endpoints(manifest, directory) if directory else []
     if embedded:
