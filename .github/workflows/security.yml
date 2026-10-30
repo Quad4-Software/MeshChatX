@@ -28,6 +28,7 @@ env:
         api.github.com:443
         codeload.github.com:443
         uploads.github.com:443
+        release-assets.githubusercontent.com:443
         *.githubusercontent.com:443
         *.actions.githubusercontent.com:443
         *.githubapp.com:443
