@@ -237,7 +237,9 @@ def test_legacy_enabled_python_backend_is_disabled_without_explicit_grant(tmp_pa
     )
     backend = source / "backend"
     backend.mkdir()
-    (backend / "main.py").write_text("def activate(host):\n    pass\n", encoding="utf-8")
+    (backend / "main.py").write_text(
+        "def activate(host):\n    pass\n", encoding="utf-8"
+    )
 
     class FakeApp:
         reticulum = object()
