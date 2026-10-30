@@ -17,6 +17,7 @@ from meshchatx.src.backend.http.db_availability import (
 )
 from meshchatx.src.backend.http.routes.blocklist import register_blocklist_routes
 from meshchatx.src.backend.http.routes.favourites import register_favourites_routes
+from meshchatx.src.backend.http.routes.lxmf import register_lxmf_routes
 
 
 def test_require_database():
@@ -83,3 +84,52 @@ async def test_blocked_destinations_get_returns_503_when_database_missing():
     handlers = _capture_gets(register_blocklist_routes, SimpleNamespace(database=None))
     response = await handlers["/api/v1/blocked-destinations"](MagicMock())
     assert response.status == 503
+
+
+@pytest.mark.asyncio
+async def test_lxmf_conversations_returns_503_if_identity_switches_during_load(
+    monkeypatch,
+):
+    import meshchatx.src.backend.http.routes.lxmf as lxmf_routes
+
+    telemetry = SimpleNamespace(get_tracking_states=MagicMock())
+    messages = SimpleNamespace(
+        get_notification_last_viewed_at_map=MagicMock(),
+        notification_viewed_covers=MagicMock(return_value=False),
+    )
+    database = SimpleNamespace(telemetry=telemetry, messages=messages)
+    message_handler = SimpleNamespace(
+        clamp_conversations_limit=lambda limit: limit,
+        get_conversations=MagicMock(return_value=[]),
+    )
+    context = SimpleNamespace(
+        database=database,
+        message_handler=message_handler,
+        local_lxmf_destination=SimpleNamespace(hexhash="local"),
+        running=True,
+    )
+    app = SimpleNamespace(
+        current_context=context,
+        database=database,
+        message_handler=message_handler,
+        local_lxmf_destination=context.local_lxmf_destination,
+        _require_identity_context_ready=lambda: None,
+        _lxmf_sieve_hides_peer=lambda *_args, **_kwargs: False,
+    )
+    handlers = _capture_gets(register_lxmf_routes, app)
+
+    async def switch_identity_during_query(function, *args, **kwargs):
+        result = function(*args, **kwargs)
+        app.current_context = None
+        app.database = None
+        app.message_handler = None
+        return result
+
+    monkeypatch.setattr(lxmf_routes.asyncio, "to_thread", switch_identity_during_query)
+    request = MagicMock()
+    request.query = {}
+
+    response = await handlers["/api/v1/lxmf/conversations"](request)
+
+    assert response.status == 503
+    telemetry.get_tracking_states.assert_not_called()

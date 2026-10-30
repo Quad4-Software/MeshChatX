@@ -1226,6 +1226,21 @@ def register_lxmf_routes(routes, app):
         not_ready = app._require_identity_context_ready()
         if not_ready is not None:
             return not_ready
+        identity_context = app.current_context
+        message_handler = getattr(identity_context, "message_handler", None)
+        database = getattr(identity_context, "database", None)
+        local_destination = getattr(identity_context, "local_lxmf_destination", None)
+        if identity_context is None or message_handler is None or database is None:
+            return http_unavailable(
+                "Identity database temporarily unavailable. Retry shortly."
+            )
+
+        def identity_context_is_current():
+            return (
+                app.current_context is identity_context
+                and getattr(identity_context, "running", False)
+                and getattr(identity_context, "database", None) is database
+            )
 
         # get query params
         search_query = request.query.get("search", request.query.get("q", None))
@@ -1260,7 +1275,7 @@ def register_lxmf_routes(routes, app):
             limit = int(limit) if limit is not None else None
         except ValueError:
             limit = None
-        limit = app.message_handler.clamp_conversations_limit(limit)
+        limit = message_handler.clamp_conversations_limit(limit)
 
         try:
             offset = request.query.get("offset")
@@ -1269,10 +1284,14 @@ def register_lxmf_routes(routes, app):
             offset = 0
 
         try:
-            local_hash = app.local_lxmf_destination.hexhash
+            if local_destination is None:
+                return http_unavailable(
+                    "Identity database temporarily unavailable. Retry shortly."
+                )
+            local_hash = local_destination.hexhash
 
             db_conversations = await asyncio.to_thread(
-                app.message_handler.get_conversations,
+                message_handler.get_conversations,
                 local_hash,
                 search=search_query,
                 filter_unread=filter_unread,
@@ -1282,6 +1301,10 @@ def register_lxmf_routes(routes, app):
                 limit=limit,
                 offset=offset,
             )
+            if not identity_context_is_current():
+                return http_unavailable(
+                    "Identity changed while loading conversations. Retry shortly."
+                )
 
             row_dicts = []
             peer_hashes = []
@@ -1299,15 +1322,23 @@ def register_lxmf_routes(routes, app):
                 peer_hashes.append(other_user_hash)
 
             tracking_states = await asyncio.to_thread(
-                app.database.telemetry.get_tracking_states,
+                database.telemetry.get_tracking_states,
                 peer_hashes,
             )
+            if not identity_context_is_current():
+                return http_unavailable(
+                    "Identity changed while loading conversations. Retry shortly."
+                )
             viewed_map = {}
             if filter_unread:
                 viewed_map = await asyncio.to_thread(
-                    app.database.messages.get_notification_last_viewed_at_map,
+                    database.messages.get_notification_last_viewed_at_map,
                     peer_hashes,
                 )
+                if not identity_context_is_current():
+                    return http_unavailable(
+                        "Identity changed while loading conversations. Retry shortly."
+                    )
 
             conversations = []
             for row in row_dicts:
@@ -1345,7 +1376,7 @@ def register_lxmf_routes(routes, app):
 
                 # Add extra check for notification viewed state if unread
                 if is_unread and filter_unread:
-                    if app.database.messages.notification_viewed_covers(
+                    if database.messages.notification_viewed_covers(
                         viewed_map.get(other_user_hash),
                         lxmf_row_arrival_timestamp(row) or row["timestamp"],
                     ):
@@ -1387,6 +1418,10 @@ def register_lxmf_routes(routes, app):
                     },
                 )
 
+            if not identity_context_is_current():
+                return http_unavailable(
+                    "Identity changed while loading conversations. Retry shortly."
+                )
             return web.json_response(
                 {
                     "conversations": conversations,
@@ -1394,6 +1429,10 @@ def register_lxmf_routes(routes, app):
             )
         except Exception as e:
             RNS.log(f"Error in lxmf_conversations_get: {e}", RNS.LOG_ERROR)
+            if not identity_context_is_current():
+                return http_unavailable(
+                    "Identity changed while loading conversations. Retry shortly."
+                )
             status = 503 if sqlite_error_is_retryable(e) else 500
             return http_error(
                 status,

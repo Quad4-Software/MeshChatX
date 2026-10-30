@@ -194,16 +194,29 @@ def test_reset_password_no_op_when_no_hash(mock_app):
 @pytest.mark.usefixtures("require_loopback_tcp")
 async def test_reset_password_exposes_setup_screen(mock_app):
     mock_app.config.auth_enabled.set(True)
-    h = bcrypt.hashpw(b"old-password", bcrypt.gensalt()).decode("utf-8")
+    password = b"old-password"
+    h = bcrypt.hashpw(password, bcrypt.gensalt()).decode("utf-8")
     mock_app.config.auth_password_hash.set(h)
-    assert mock_app.reset_password() is True
 
     aio_app = _make_aio_app(mock_app, use_https=False)
     async with TestClient(TestServer(aio_app)) as client:
+        headers = await fetch_api_csrf_headers(client)
+        login = await client.post(
+            "/api/v1/auth/login",
+            json={"password": password.decode("utf-8")},
+            headers=headers,
+        )
+        assert login.status == 200
+        status_before_reset = await (await client.get("/api/v1/auth/status")).json()
+        assert status_before_reset["authenticated"] is True
+
+        assert mock_app.reset_password() is True
         status = await client.get("/api/v1/auth/status")
         assert status.status == 200
         body = await status.json()
         assert body["password_set"] is False
+        assert body["authenticated"] is False
+        assert (await client.get("/api/v1/database/backups")).status == 401
 
 
 @pytest.mark.asyncio

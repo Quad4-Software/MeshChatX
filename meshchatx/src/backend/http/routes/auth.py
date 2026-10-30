@@ -128,8 +128,10 @@ def register_auth_routes(routes, app):
             session_identity = session.get("identity_hash")
 
             # Verify that authentication is for the CURRENT active identity
-            actually_authenticated = is_authenticated and (
-                session_identity == app.identity.hash.hex()
+            actually_authenticated = (
+                is_authenticated
+                and (session_identity == app.identity.hash.hex())
+                and app._auth_session_epoch_valid(session)
             )
 
             oidc_settings = app._oidc_settings()
