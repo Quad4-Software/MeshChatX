@@ -6,9 +6,9 @@
 ARG NODE_IMAGE=cgr.dev/chainguard/node:latest-dev
 ARG NODE_HASH=sha256:d42d4728b773969f5f6e612d1d8a7c6b195cbd9ac2a5b1e6d2ff3177431d29bd
 ARG PYTHON_BUILD_IMAGE=cgr.dev/chainguard/python:latest-dev
-ARG PYTHON_BUILD_HASH=sha256:85c70fe9ec4313b5c8b1adcb4f0e7fa45d171ae203d2c64c69c4ea3eb96fb7dc
+ARG PYTHON_BUILD_HASH=sha256:95d8cc85fad8acc8ebad357e1972f2a975c498a65406cd9b00bb2233371a94a2
 ARG PYTHON_RUNTIME_IMAGE=cgr.dev/chainguard/python:latest-dev
-ARG PYTHON_RUNTIME_HASH=sha256:85c70fe9ec4313b5c8b1adcb4f0e7fa45d171ae203d2c64c69c4ea3eb96fb7dc
+ARG PYTHON_RUNTIME_HASH=sha256:95d8cc85fad8acc8ebad357e1972f2a975c498a65406cd9b00bb2233371a94a2
 
 FROM --platform=linux/amd64 ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 USER root
