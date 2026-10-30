@@ -7,7 +7,10 @@ set -eu
 VENV="${MESHCHATX_DOCKER_VENV:-/opt/venv}"
 OUT="${MESHCHATX_DOCKER_APP_OVERLAY:-/opt/app-overlay}"
 
-uv pip install --no-cache .
+# prepare-venv.sh syncs the locked runtime dependencies and excludes pycodec2,
+# whose native Codec2 headers are unavailable in these image build stages.
+# LXST has an Opus fallback when the Codec2 extension is absent.
+uv pip install --no-cache --no-deps .
 
 PYVER="$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
 SP="${VENV}/lib/python${PYVER}/site-packages"
