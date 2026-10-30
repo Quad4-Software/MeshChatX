@@ -21,6 +21,7 @@ RUN apk add --no-cache git python3 go gcompat \
     && /usr/local/tinygo/bin/tinygo version
 ENV PATH="/usr/local/tinygo/bin:${PATH}"
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml vite.config.mjs ./
+COPY brand.json ./
 COPY patches ./patches
 COPY scripts/fetch-micron-wasm.mjs scripts/fetch-micron-wasm.mjs
 COPY scripts/micron-wasm-resolve-bundled.mjs scripts/micron-wasm-resolve-bundled.mjs
