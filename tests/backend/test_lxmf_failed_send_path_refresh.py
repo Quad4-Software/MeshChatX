@@ -111,3 +111,67 @@ def test_local_destination_is_not_refreshed(mock_app):
         ReticulumMeshChat.on_lxmf_sending_failed(mock_app, msg)
     mock_app.reticulum.drop_path.assert_not_called()
     request_path.assert_not_called()
+
+
+def _telemetry_msg_via_fields():
+    msg = _failed_msg()
+    msg.fields = {LXMF.FIELD_TELEMETRY: b"telemetry"}
+    return msg
+
+
+def _telemetry_msg_via_commands():
+    from meshchatx.src.backend.sideband_commands import SidebandCommands
+
+    msg = _failed_msg()
+    msg.fields = {
+        LXMF.FIELD_COMMANDS: [{SidebandCommands.TELEMETRY_REQUEST: 0}],
+    }
+    return msg
+
+
+def test_telemetry_field_does_not_refresh(mock_app):
+    with patch.object(RNS.Transport, "request_path") as request_path:
+        ReticulumMeshChat.on_lxmf_sending_failed(mock_app, _telemetry_msg_via_fields())
+    mock_app.reticulum.drop_path.assert_not_called()
+    request_path.assert_not_called()
+
+
+def test_telemetry_command_does_not_refresh(mock_app):
+    with patch.object(RNS.Transport, "request_path") as request_path:
+        ReticulumMeshChat.on_lxmf_sending_failed(
+            mock_app, _telemetry_msg_via_commands()
+        )
+    mock_app.reticulum.drop_path.assert_not_called()
+    request_path.assert_not_called()
+
+
+def test_unrelated_fields_still_refresh(mock_app):
+    msg = _failed_msg()
+    msg.fields = {0x05: b"some other field"}
+    with patch.object(RNS.Transport, "request_path") as request_path:
+        ReticulumMeshChat.on_lxmf_sending_failed(mock_app, msg)
+    mock_app.reticulum.drop_path.assert_called_once_with(DEST)
+    request_path.assert_called_once_with(DEST)
+
+
+def test_global_cap_skips_eleventh_destination(mock_app):
+    dests = [bytes([i]) * 16 for i in range(1, 12)]
+    with patch.object(RNS.Transport, "request_path") as request_path:
+        for dest in dests:
+            msg = _failed_msg()
+            msg.destination_hash = dest
+            ReticulumMeshChat.on_lxmf_sending_failed(mock_app, msg)
+        assert request_path.call_count == 10
+        assert mock_app.reticulum.drop_path.call_count == 10
+        # The skipped destination is not put on per destination cooldown.
+        assert dests[-1] not in mock_app._path_refresh_after_failed_send_at
+        # After the window slides it refreshes.
+        stale = time.time() - 61.0
+        recent = mock_app._path_refresh_after_failed_send_recent
+        while recent:
+            recent.popleft()
+        recent.extend([stale] * 10)
+        skipped = _failed_msg()
+        skipped.destination_hash = dests[-1]
+        ReticulumMeshChat.on_lxmf_sending_failed(mock_app, skipped)
+        assert request_path.call_count == 11

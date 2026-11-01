@@ -28,6 +28,7 @@ import threading
 import time
 import traceback
 import webbrowser
+from collections import deque
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
@@ -289,6 +290,10 @@ logger = logging.getLogger("meshchatx")
 
 _INTERFACE_STATS_RPC_TIMEOUT_S = 5.0
 _INTERFACE_STATS_CACHE_S = 2.0
+
+_FAILED_PATH_REFRESH_COOLDOWN_S = 60.0
+_FAILED_PATH_REFRESH_WINDOW_S = 60.0
+_FAILED_PATH_REFRESH_MAX_PER_WINDOW = 10
 
 
 def _parse_rns_loglevel_value(raw: str | None) -> int | None:
@@ -10621,6 +10626,7 @@ class ReticulumMeshChat:
             lxmf_message.state == LXMF.LXMessage.FAILED
             and getattr(lxmf_message, "desired_method", None)
             != LXMF.LXMessage.PROPAGATED
+            and not self._lxmf_message_is_telemetry(lxmf_message)
         )
         # check if this failed message should fall back to sending via a propagation node
         if (
@@ -10640,6 +10646,42 @@ class ReticulumMeshChat:
                     context=ctx,
                 )
 
+    # telemetry pings are ephemeral location updates, not a sign the
+    # recipient moved, so they must not churn the path table
+    @staticmethod
+    def _lxmf_message_is_telemetry(lxmf_message) -> bool:
+        try:
+            fields = getattr(lxmf_message, "fields", None)
+            if not isinstance(fields, dict):
+                return False
+            if LXMF.FIELD_TELEMETRY in fields:
+                return True
+            stream_field = getattr(LXMF, "FIELD_TELEMETRY_STREAM", None)
+            if stream_field is not None and stream_field in fields:
+                return True
+            for command in extract_sideband_command_entries(
+                fields.get(LXMF.FIELD_COMMANDS),
+            ):
+                if (
+                    (
+                        isinstance(command, dict)
+                        and (
+                            SidebandCommands.TELEMETRY_REQUEST in command
+                            or str(SidebandCommands.TELEMETRY_REQUEST) in command
+                            or f"0x{SidebandCommands.TELEMETRY_REQUEST:02x}" in command
+                        )
+                    )
+                    or (
+                        isinstance(command, (list, tuple))
+                        and SidebandCommands.TELEMETRY_REQUEST in command
+                    )
+                    or command == SidebandCommands.TELEMETRY_REQUEST
+                ):
+                    return True
+            return False
+        except Exception:
+            return False
+
     # a failed direct send may be stuck on a stale path table entry, so drop
     # it and let rediscovery find the peer at its new location
     def _refresh_stale_path_after_failed_send(self, destination_hash, context=None):
@@ -10654,11 +10696,20 @@ class ReticulumMeshChat:
         if cooldowns is None:
             cooldowns = self._path_refresh_after_failed_send_at = {}
         last = cooldowns.get(bytes(destination_hash), float("-inf"))
-        if time.time() - last < 60.0:
+        now = time.time()
+        if now - last < _FAILED_PATH_REFRESH_COOLDOWN_S:
+            return
+        recent = getattr(self, "_path_refresh_after_failed_send_recent", None)
+        if recent is None:
+            recent = self._path_refresh_after_failed_send_recent = deque()
+        while recent and now - recent[0] >= _FAILED_PATH_REFRESH_WINDOW_S:
+            recent.popleft()
+        if len(recent) >= _FAILED_PATH_REFRESH_MAX_PER_WINDOW:
             return
         if len(cooldowns) > 512:
             cooldowns.clear()
-        cooldowns[bytes(destination_hash)] = time.time()
+        cooldowns[bytes(destination_hash)] = now
+        recent.append(now)
         logger.debug(
             "Failed send to %s, dropping stale path and requesting a fresh one",
             RNS.prettyhexrep(destination_hash),
