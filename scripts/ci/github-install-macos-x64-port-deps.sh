@@ -96,6 +96,16 @@ bash "$(dirname "$0")/macos-normalize-pyogg-dylibs.sh" "$_PY"
 "$_PY" scripts/patch_lxst_pyogg_ogg_ctypes.py
 "$_PY" scripts/patch_lxst_codec2_optional.py
 
+# LXST ships prebuilt filterlib blobs only for released CPython ABIs. The
+# frozen build prunes to the one matching this interpreter and fails when it
+# is missing, so build it here the same way github-install-deps.sh does.
+"$_PY" scripts/build-lxst-filterlib.py || rc=$?
+if [[ "${rc:-0}" == "2" ]]; then
+    echo "::warning::no C compiler for LXST filterlib; cffi runtime fallback will compile it"
+elif [[ "${rc:-0}" != "0" ]]; then
+    exit "${rc}"
+fi
+
 "$_PY" -c "
 import numpy
 from numpy._core._multiarray_umath import _ARRAY_API
