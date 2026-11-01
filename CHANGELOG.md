@@ -1,4 +1,4 @@
-## [4.11.0] - 2026-11-01 [unreleased]
+## [4.11.0] - 2026-11-01 [released]
 
 ### Changed
 
@@ -12,6 +12,8 @@
 ### Fixed
 
 - Android versionCode for 4.11.0 computes as 51000, above the 50007 shipped with 4.10.7, so devices can upgrade in place.
+- Relay chat: restarting no longer drops older messages. The per room history cap was applied to raw log records before system rows and delivery updates were filtered out, so busy rooms reloaded only about a day of real messages. The cap now applies after filtering and defaults to 5000 messages per room.
+- Android: RNode over Bluetooth now lists paired devices. The patched RNS RNodeInterface converts the Java bonded device set to a list before iterating it.
 
 ## [4.10.7] - 2026-10-11 [released]
 
