@@ -87,7 +87,17 @@ export default {
             this.dropdownPosition = null;
             this.caretStyle = null;
         },
-        onClickOutsideMenu() {
+        onClickOutsideMenu(event) {
+            // The panel is teleported to body, so it is not a descendant of
+            // the element the click-outside directive watches. Touches on
+            // menu items must not count as outside.
+            const panel = this.$refs.dropdownPanel;
+            if (event && panel) {
+                const path = typeof event.composedPath === "function" ? event.composedPath() : null;
+                if ((path && path.includes(panel)) || panel.contains(event.target)) {
+                    return;
+                }
+            }
             if (this.isShowingMenu) {
                 this.hideMenu();
             }

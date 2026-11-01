@@ -15,6 +15,7 @@
 - Relay chat: restarting no longer drops older messages. The per room history cap was applied to raw log records before system rows and delivery updates were filtered out, so busy rooms reloaded only about a day of real messages. The cap now applies after filtering and defaults to 5000 messages per room.
 - Android: RNode over Bluetooth now lists paired devices. The patched RNS RNodeInterface converts the Java bonded device set to a list before iterating it.
 - Messages: a failed direct or opportunistic send now drops the stale path to the recipient and requests a fresh one, rate limited to once a minute per destination and capped at ten refreshes a minute overall, so a peer that moved or reconnected is rediscovered instead of every retry reusing the dead route. Telemetry sends are excluded.
+- Android: the three dot menus on conversations and NomadNet pages no longer close on touch before the tapped action runs, so ping, reload, and path finder actions work again.
 
 ## [4.10.7] - 2026-10-11 [released]
 
