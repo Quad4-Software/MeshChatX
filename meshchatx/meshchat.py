@@ -724,6 +724,8 @@ class ReticulumMeshChat:
         self._auto_resend_coordinator = AutoResendCoordinator()
         # Rate limits auto-resend budget warnings per destination.
         self._auto_resend_warned_at: dict[str, float] = {}
+        # Rate limits path refresh after a failed direct send per destination.
+        self._path_refresh_after_failed_send_at: dict[bytes, float] = {}
 
         from meshchatx.src.backend.lifecycle.signal_shutdown import (
             register_shutdown_app,
@@ -10612,6 +10614,14 @@ class ReticulumMeshChat:
     # handle delivery failed for an outbound lxmf message
     def on_lxmf_sending_failed(self, lxmf_message, context=None):
         ctx = context if context is not None else self.current_context
+        # Capture before the propagation fallback rewrites desired_method:
+        # only a direct or opportunistic failure says anything about the
+        # recipient path.
+        was_failed = (
+            lxmf_message.state == LXMF.LXMessage.FAILED
+            and getattr(lxmf_message, "desired_method", None)
+            != LXMF.LXMessage.PROPAGATED
+        )
         # check if this failed message should fall back to sending via a propagation node
         if (
             lxmf_message.state == LXMF.LXMessage.FAILED
@@ -10622,6 +10632,42 @@ class ReticulumMeshChat:
 
         # update state
         self.on_lxmf_sending_state_updated(lxmf_message, context=ctx)
+
+        if was_failed:
+            with contextlib.suppress(Exception):
+                self._refresh_stale_path_after_failed_send(
+                    lxmf_message.destination_hash,
+                    context=ctx,
+                )
+
+    # a failed direct send may be stuck on a stale path table entry, so drop
+    # it and let rediscovery find the peer at its new location
+    def _refresh_stale_path_after_failed_send(self, destination_hash, context=None):
+        if not destination_hash:
+            return
+        ctx = context if context is not None else self.current_context
+        local = getattr(ctx, "local_lxmf_destination", None) if ctx else None
+        local_hash = getattr(local, "hash", None)
+        if local_hash is not None and bytes(destination_hash) == bytes(local_hash):
+            return
+        cooldowns = getattr(self, "_path_refresh_after_failed_send_at", None)
+        if cooldowns is None:
+            cooldowns = self._path_refresh_after_failed_send_at = {}
+        last = cooldowns.get(bytes(destination_hash), float("-inf"))
+        if time.time() - last < 60.0:
+            return
+        if len(cooldowns) > 512:
+            cooldowns.clear()
+        cooldowns[bytes(destination_hash)] = time.time()
+        logger.debug(
+            "Failed send to %s, dropping stale path and requesting a fresh one",
+            RNS.prettyhexrep(destination_hash),
+        )
+        if getattr(self, "reticulum", None):
+            with contextlib.suppress(Exception):
+                self.reticulum.drop_path(destination_hash)
+        with contextlib.suppress(Exception):
+            RNS.Transport.request_path(destination_hash)
 
     # sends a previously failed message via a propagation node
     def send_failed_message_via_propagation_node(
