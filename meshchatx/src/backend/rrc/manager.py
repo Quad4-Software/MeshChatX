@@ -1429,7 +1429,7 @@ class RRCHub:
             path = self.manager._history_path(self, room)
             if not os.path.isfile(path):
                 continue
-            window = deque(maxlen=self._per_room_cap())
+            records = []
             decode_error = None
             try:
                 with open(path, "rb") as f:
@@ -1444,7 +1444,7 @@ class RRCHub:
                         decode_error = ex
                         pos = start + 1
                     else:
-                        window.append(entry)
+                        records.append(entry)
             except OSError as ex:
                 self._log(
                     "history load failed for #" + room + ": " + str(ex),
@@ -1456,7 +1456,7 @@ class RRCHub:
                     "history file for #"
                     + room
                     + " has a corrupt record, kept "
-                    + str(len(window))
+                    + str(len(records))
                     + " valid messages: "
                     + str(decode_error),
                     RNS.LOG_ERROR,
@@ -1466,7 +1466,7 @@ class RRCHub:
             # Files written before redelivery dedup exist may already hold
             # duplicate rows. Collapse them on load. The next compaction
             # then writes back a clean file.
-            for e in window:
+            for e in records:
                 m = self._msg_from_entry(room, e)
                 if m is None:
                     continue
@@ -1491,8 +1491,12 @@ class RRCHub:
                             int(getattr(existing, "dup_count", 1) or 1) + 1
                         )
                     continue
-                m.seq = self._next_seq()
                 msgs.append(m)
+            cap = self._per_room_cap()
+            if cap is not None and len(msgs) > cap:
+                msgs = msgs[len(msgs) - cap :]
+            for m in msgs:
+                m.seq = self._next_seq()
             with self._lock:
                 self.messages[room] = msgs
 
@@ -2628,7 +2632,7 @@ class RRCManager:
         storage_dir,
         get_nickname=None,
         get_name_for_identity_hash=None,
-        history_per_room_cap=500,
+        history_per_room_cap=5000,
         filter_loaded_history=True,
         ephemeral_notices=RRCHub.SYS_NOTICE_TIMEOUT,
         database=None,
