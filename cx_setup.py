@@ -83,6 +83,10 @@ if not pycodec2_installed:
             include_files.append((str(_codec2_lib), f"lib/{_codec2_name}"))
             break
 
+# Windows CI skips bleak (no winrt wheels for the newest CPython). It is a
+# lazy import at runtime, so only trace it when the build env has it.
+bleak_installed = importlib.util.find_spec("bleak") is not None
+
 packages = (
     [
         "RNS",
@@ -94,13 +98,13 @@ packages = (
         "LXST",
     ]
     + (["pycodec2"] if pycodec2_installed else [])
+    + (["bleak"] if bleak_installed else [])
     + [
         "lxmfy",
         "rns_filesync",
         "websockets",
         "pycparser",
         "cffi",
-        "bleak",
         "landlockpy",
         "seccompy",
         # aiohttp pulls stdlib email at runtime. Keep the full tree out of library.zip

@@ -41,7 +41,13 @@ if [[ -d build/exe ]]; then
     bash scripts/ci/github-verify-frozen-runtime.sh build/exe
     bash scripts/ci/github-verify-frozen-codec2.sh build/exe
     bash scripts/ci/github-verify-frozen-umsgpack.sh build/exe
-    bash scripts/ci/github-verify-frozen-bleak.sh build/exe
+    # bleak is skipped on Windows (no winrt wheels for this CPython), so the
+    # bundle check only applies when the build env installed it.
+    if ${PYTHON_CMD:-uv run python} -c "import importlib.util,sys;sys.exit(0 if importlib.util.find_spec('bleak') else 1)"; then
+        bash scripts/ci/github-verify-frozen-bleak.sh build/exe
+    else
+        echo "bleak not installed in the build environment, skipping bleak bundle check"
+    fi
 fi
 
 # Optional packaged smoke (manual / future CI job on a Windows runner):

@@ -252,6 +252,21 @@ path = Path(os.environ["BUILD_WHEEL_PY"])
 text = path.read_text()
 changed = False
 
+if "chaquopy_python_link_guard" not in text:
+    needle = '                    run(f"ln -s {filename} {reqs_lib_dir}/{link_filename}")'
+    if needle not in text:
+        print("Could not find SONAME symlink loop in build-wheel.py", file=sys.stderr)
+        sys.exit(1)
+    # Newer target zips ship both libpython3.so and libpythonX.Y.so. Both map
+    # to libpython.so, so the second ln fails. Only the real soname may link.
+    insert = (
+        '                    if link_filename == "libpython.so" and filename != f"libpython{self.python}.so":\n'
+        '                        continue  # chaquopy_python_link_guard\n'
+        + needle
+    )
+    text = text.replace(needle, insert, 1)
+    changed = True
+
 if "chaquopy_python_abi3_link" not in text:
     needle = '                    run(f"ln -s {filename} {reqs_lib_dir}/{link_filename}")'
     if needle not in text:
