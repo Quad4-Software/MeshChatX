@@ -1058,7 +1058,8 @@ get_name_replacements = [
 
 # getBondedDevices() needs BLUETOOTH_CONNECT on API 31+. A denied grant raises
 # SecurityException, which propagates out of open_port and the BLE connection
-# thread, leaving the interface offline with no retry path.
+# thread, leaving the interface offline with no retry path. It also returns a
+# java.util.Set, which pyjnius does not iterate, so convert it to a list.
 paired_devices_marker = '''    def get_paired_devices(self):
         if self.bt_enabled():
             return self.bt_adapter.getDefaultAdapter().getBondedDevices()
@@ -1066,7 +1067,8 @@ paired_devices_marker = '''    def get_paired_devices(self):
 paired_devices_new = '''    def get_paired_devices(self):
         if self.bt_enabled():
             try:
-                return self.bt_adapter.getDefaultAdapter().getBondedDevices()
+                devices = self.bt_adapter.getDefaultAdapter().getBondedDevices()
+                return list(devices.toArray())
             except Exception as e:
                 RNS.log("Could not query paired Bluetooth devices: "+str(e), RNS.LOG_ERROR)
                 return []
