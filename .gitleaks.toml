@@ -29,3 +29,7 @@ paths = [
     '''tests/.*/fixtures/.*''',
     '''\.gitleaks\.toml''',
 ]
+
+[[allowlists]]
+description = "Public Flatpak repository GPG key embedded in published flatpakref and flatpakrepo files"
+paths = ['''flatpak/.*\.flatpak(ref|repo)''']
