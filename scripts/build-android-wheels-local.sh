@@ -70,6 +70,7 @@ BLEAK_VERSION="3.0.2"
 HTTPX_VERSION="0.28.1"
 USBSERIAL4A_VERSION="0.4.0"
 PYOPENSSL_VERSION="26.4.0"
+CERTIFI_VERSION="2026.10.23"
 SERVICE_IDENTITY_VERSION="26.1.0"
 ATTRS_VERSION="26.1.0"
 RNS_VERSION="1.5.7"
@@ -419,6 +420,7 @@ vendor_aioquic_pure_python_deps() {
         "pyopenssl==${PYOPENSSL_VERSION}" \
         "service-identity==${SERVICE_IDENTITY_VERSION}" \
         "attrs==${ATTRS_VERSION}" \
+        "certifi==${CERTIFI_VERSION}" \
         --dest "${tmp_dir}" \
         --index-url https://pypi.org/simple
     for dep_wheel in "${tmp_dir}"/*.whl; do
@@ -428,7 +430,8 @@ vendor_aioquic_pure_python_deps() {
     for required_name in \
         "pyopenssl-${PYOPENSSL_VERSION}-" \
         "service_identity-${SERVICE_IDENTITY_VERSION}-" \
-        "attrs-${ATTRS_VERSION}-"
+        "attrs-${ATTRS_VERSION}-" \
+        "certifi-${CERTIFI_VERSION}-"
     do
         if ! ls "${OUT_DIR}/${required_name}"*.whl >/dev/null 2>&1; then
             echo "Expected ${required_name}*.whl in ${OUT_DIR} (aioquic runtime dep)" >&2
@@ -986,7 +989,7 @@ PY
     fi
 fi
 
-if [[ -n "${ONLY_RECIPES}" && " ${ONLY_RECIPES//,/ } " == *" aioquic-1.3 "* ]]; then
+if [[ -n "${ONLY_RECIPES}" && " ${ONLY_RECIPES//,/ } " == *" aioquic-1.7 "* ]]; then
     vendor_aioquic_pure_python_deps
 fi
 
