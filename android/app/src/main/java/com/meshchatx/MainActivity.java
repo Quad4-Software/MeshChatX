@@ -1911,7 +1911,8 @@ public class MainActivity extends AppCompatActivity {
                         );
                         return;
                     }
-                    if (Environment.isExternalStorageManager()) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                        && Environment.isExternalStorageManager()) {
                         Toast.makeText(
                             activity,
                             "All files access is already granted.",
