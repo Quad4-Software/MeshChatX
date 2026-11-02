@@ -95,10 +95,31 @@ def test_bake_skips_missing_libcodec2_on_linux(
     assert not (root / "lib" / "pycodec2" / "libcodec2.dylib").exists()
 
 
-def test_bake_fails_when_pycodec2_package_missing(tmp_path: Path) -> None:
+def test_bake_fails_when_pycodec2_package_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "meshchatx.src.backend.bake_frozen_pycodec2.sys.platform",
+        "linux",
+    )
     (tmp_path / "lib").mkdir()
     with pytest.raises(SystemExit, match="missing"):
         bake_frozen_pycodec2(tmp_path)
+
+
+def test_bake_skips_missing_pycodec2_on_windows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(
+        "meshchatx.src.backend.bake_frozen_pycodec2.sys.platform",
+        "win32",
+    )
+    (tmp_path / "lib").mkdir()
+    bake_frozen_pycodec2(tmp_path)
+    assert "skipping" in capsys.readouterr().out
 
 
 def test_bake_accepts_ctypes_layout_without_extension(tmp_path: Path) -> None:

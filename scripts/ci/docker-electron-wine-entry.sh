@@ -170,7 +170,13 @@ build_win() {
     if [[ -d build/exe ]]; then
         bash scripts/ci/github-verify-frozen-sandbox.sh build/exe
         bash scripts/ci/github-verify-frozen-runtime.sh build/exe
-        bash scripts/ci/github-verify-frozen-codec2.sh build/exe
+        # pycodec2 is stripped from the Wine wheel set, so the frozen codec2
+        # check only applies when the build env installed it.
+        if run_wine_python -c "import importlib.util,sys;sys.exit(0 if importlib.util.find_spec('pycodec2') else 1)"; then
+            bash scripts/ci/github-verify-frozen-codec2.sh build/exe
+        else
+            echo "pycodec2 not installed in the build environment, skipping frozen codec2 check"
+        fi
         bash scripts/ci/github-verify-frozen-umsgpack.sh build/exe
     fi
 }

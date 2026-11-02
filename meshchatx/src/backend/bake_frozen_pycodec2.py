@@ -178,6 +178,14 @@ def bake_frozen_pycodec2(build_dir: Path) -> None:
         if _iter_codec2_libs(lib_dir, recursive=False):
             print("bake_frozen_pycodec2: no extension, libcodec2 already bundled")
             return
+        if sys.platform == "win32":
+            # Windows CI skips pycodec2 (no wheels for this CPython) and codec2
+            # is optional at runtime, so a bake without it is not an error.
+            print(
+                "bake_frozen_pycodec2: pycodec2 not installed and no "
+                "libcodec2 bundled, skipping",
+            )
+            return
         raise SystemExit(f"bake_frozen_pycodec2: missing {pkg}")
 
     ext_so = _extension_module(pkg)
