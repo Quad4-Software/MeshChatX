@@ -18,7 +18,9 @@ This script:
 8) Builds every recipe under android/chaquopy-recipes/ for each requested
    ABI (currently: cryptography, miniaudio, aiohttp, cborx, aioquic, ...)
 9) Vendors aioquic pure-python runtime deps (pyopenssl, service-identity, attrs)
-10) Copies outputs to android/vendor
+10) Builds the usbserial4a wheel from its PyPI sdist (Chaquopy's pip no
+    longer builds sdists during cross installs)
+11) Copies outputs to android/vendor
 
 Usage:
   scripts/build-android-wheels-local.sh [options]
@@ -34,6 +36,7 @@ Options:
   --lxst-version V           LXST wheel version for metadata patch (default: 0.5.4)
   --bleak-version V          bleak pure-python wheel version to vendor (default: 3.0.2)
   --httpx-version V          httpx pure-python wheel version to vendor (default: 0.28.1)
+  --usbserial4a-version V    usbserial4a version to build from sdist (default: 0.4.0)
   --rns-version V            rns wheel version to patch (default: 1.5.7)
   --no-lxst-patch            Skip LXST metadata patch
   --no-rns-patch             Skip RNS Android RNodeInterface patch
@@ -65,6 +68,7 @@ NUMPY_VERSION="1.26.2"
 LXST_VERSION="0.5.4"
 BLEAK_VERSION="3.0.2"
 HTTPX_VERSION="0.28.1"
+USBSERIAL4A_VERSION="0.4.0"
 PYOPENSSL_VERSION="26.4.0"
 SERVICE_IDENTITY_VERSION="26.1.0"
 ATTRS_VERSION="26.1.0"
@@ -115,6 +119,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --httpx-version)
             HTTPX_VERSION="${2:?missing value for --httpx-version}"
+            shift 2
+            ;;
+        --usbserial4a-version)
+            USBSERIAL4A_VERSION="${2:?missing value for --usbserial4a-version}"
             shift 2
             ;;
         --rns-version)
@@ -961,6 +969,21 @@ PY
     done
 
     vendor_aioquic_pure_python_deps
+
+    echo "Building usbserial4a ${USBSERIAL4A_VERSION} wheel from sdist"
+    # usbserial4a ships an sdist only and Chaquopy's pip no longer builds
+    # sdists during the cross install, so a prebuilt wheel must be vendored.
+    "${VENV_DIR}/bin/pip" wheel \
+        --no-deps \
+        --no-binary usbserial4a \
+        "usbserial4a==${USBSERIAL4A_VERSION}" \
+        --wheel-dir "${OUT_DIR}" \
+        --index-url https://pypi.org/simple
+
+    if ! ls "${OUT_DIR}/usbserial4a-${USBSERIAL4A_VERSION}-py3-none-any.whl" >/dev/null 2>&1; then
+        echo "Expected usbserial4a-${USBSERIAL4A_VERSION}-py3-none-any.whl in ${OUT_DIR}" >&2
+        exit 1
+    fi
 fi
 
 if [[ -n "${ONLY_RECIPES}" && " ${ONLY_RECIPES//,/ } " == *" aioquic-1.3 "* ]]; then

@@ -274,6 +274,7 @@ jobs:
                       "pyopenssl-26.4.0-py3-none-any.whl"
                       "service_identity-26.1.0-py3-none-any.whl"
                       "attrs-26.1.0-py3-none-any.whl"
+                      "usbserial4a-*-py3-none-any.whl"
                   )
                   missing=0
                   for pattern in "${required[@]}"; do
