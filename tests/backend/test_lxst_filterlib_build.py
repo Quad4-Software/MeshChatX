@@ -67,3 +67,8 @@ def test_builds_loadable_library(tmp_path, monkeypatch):
         ffi.new("float[]", 1),
     )
     assert out[0] > 0.0
+
+
+def test_cc_env_with_arguments_is_split(monkeypatch):
+    monkeypatch.setenv("CC", "clang -arch x86_64")
+    assert mod._pick_compiler() == ["clang", "-arch", "x86_64"]

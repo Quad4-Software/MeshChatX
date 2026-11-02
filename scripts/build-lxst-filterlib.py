@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -44,12 +45,10 @@ def _artifact_name() -> str:
 
 
 def _pick_compiler() -> list[str] | None:
-    cc = (
-        os.environ.get("CC")
-        or shutil.which("cc")
-        or shutil.which("gcc")
-        or shutil.which("clang")
-    )
+    env_cc = os.environ.get("CC", "").strip()
+    if env_cc:
+        return shlex.split(env_cc)
+    cc = shutil.which("cc") or shutil.which("gcc") or shutil.which("clang")
     return [cc] if cc else None
 
 
