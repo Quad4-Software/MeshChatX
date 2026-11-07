@@ -152,6 +152,14 @@ def _enqueue_persist(destination_hash: bytes, ratchet: bytes) -> None:
 def _patched_remember_ratchet(destination_hash: Any, ratchet: Any) -> None:
     import RNS
 
+    if (
+        _ORIGINAL_REMEMBER is not None
+        and getattr(RNS.Identity, "known_destinations_store", None) is not None
+    ):
+        # RNS 1.6+ SQLite store persists ratchets itself without a thread per write.
+        _ORIGINAL_REMEMBER(destination_hash, ratchet)
+        return
+
     try:
         if (
             destination_hash in RNS.Identity.known_ratchets

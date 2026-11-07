@@ -47,9 +47,9 @@ def _path_table_entry_is_expired_by_reticulum_rules(entry) -> bool:
         elif attached.mode == iface.MODE_ROAMING:
             dest_exp = ts + RNS.Transport.ROAMING_PATH_TIME
         else:
-            dest_exp = ts + RNS.Transport.DESTINATION_TIMEOUT
+            dest_exp = ts + RNS.Transport.PATH_TIMEOUT
     else:
-        dest_exp = ts + RNS.Transport.DESTINATION_TIMEOUT
+        dest_exp = ts + RNS.Transport.PATH_TIMEOUT
     return time.time() > dest_exp
 
 

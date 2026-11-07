@@ -24,6 +24,12 @@ from meshchatx.src.backend.lxmf_utils import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _no_live_reticulum_ratchets(monkeypatch):
+    # RNS 1.6 get_ratchet() consults Transport.owner, which needs a live Reticulum.
+    monkeypatch.setattr(RNS.Identity, "get_ratchet", staticmethod(lambda *a, **k: None))
+
+
 def _destinations():
     src_identity = RNS.Identity()
     dst_identity = RNS.Identity()

@@ -2615,7 +2615,16 @@ class ReticulumMeshChat:
         RNS.Transport.tunnels = {}
         RNS.Transport.path_requests = {}
         RNS.Transport.path_states = {}
-        RNS.Transport.announce_rate_table = {}
+        rate_table_cls = getattr(
+            getattr(RNS, "Storage", None), "AnnounceRateTable", None
+        )
+        RNS.Transport.announce_rate_table = (
+            rate_table_cls(
+                max_timestamps=getattr(RNS.Transport, "MAX_RATE_TIMESTAMPS", 16)
+            )
+            if rate_table_cls is not None
+            else {}
+        )
         RNS.Transport.control_destinations = []
         RNS.Transport.control_hashes = []
         RNS.Transport.mgmt_destinations = []
@@ -2867,6 +2876,11 @@ class ReticulumMeshChat:
                 # Clear Identity globals
                 RNS.Identity.known_destinations = {}
                 RNS.Identity.known_ratchets = {}
+                stale_store = getattr(RNS.Identity, "known_destinations_store", None)
+                if stale_store is not None:
+                    with contextlib.suppress(Exception):
+                        stale_store.close()
+                    RNS.Identity.known_destinations_store = None
 
                 # Unregister old exit handlers from atexit if possible
                 try:
@@ -8437,7 +8451,9 @@ class ReticulumMeshChat:
             "lxmf_propagation_transfer_limit_in_bytes": ctx.config.lxmf_propagation_transfer_limit_in_bytes.get(),
             "lxmf_propagation_sync_limit_in_bytes": ctx.config.lxmf_propagation_sync_limit_in_bytes.get(),
             "lxmf_local_propagation_node_enabled": ctx.config.lxmf_local_propagation_node_enabled.get(),
-            "lxmf_local_propagation_node_address_hash": ctx.message_router.propagation_destination.hexhash,
+            "lxmf_local_propagation_node_address_hash": getattr(
+                ctx.message_router.propagation_destination, "hexhash", None
+            ),
             "lxmf_preferred_propagation_node_destination_hash": ctx.config.lxmf_preferred_propagation_node_destination_hash.get(),
             "lxmf_preferred_propagation_node_auto_select": ctx.config.lxmf_preferred_propagation_node_auto_select.get(),
             "lxmf_preferred_propagation_node_auto_sync_interval_seconds": ctx.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get(),

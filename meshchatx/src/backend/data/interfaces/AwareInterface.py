@@ -146,8 +146,7 @@ class AwareInterface(Interface):
             "announce_rate_grace",
             "announce_rate_penalty",
         ):
-            if hasattr(self, attr):
-                setattr(spawned, attr, getattr(self, attr))
+            setattr(spawned, attr, getattr(self, attr, None))
         spawned.mode = self.mode
         spawned.gravity = self.gravity
         spawned.bitrate = self.bitrate
