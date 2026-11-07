@@ -90,6 +90,6 @@ peerDependencyRules:
         vis-data>uuid: ">=14.0.0"
         vis-network>uuid: ">=14.0.0"
 patchedDependencies:
-    "@maplibre/maplibre-gl-style-spec@26.4.4": patches/@maplibre__maplibre-gl-style-spec@26.4.4.patch
+    '@maplibre/maplibre-gl-style-spec@26.5.0': patches/@maplibre__maplibre-gl-style-spec@26.5.0.patch
     ol-mapbox-style@13.8.0: patches/ol-mapbox-style@13.8.0.patch
     ol@10.11.0: patches/ol@10.11.0.patch

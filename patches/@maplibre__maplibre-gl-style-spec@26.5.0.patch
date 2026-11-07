@@ -1,5 +1,5 @@
 diff --git a/dist/expression/definitions/distance.mjs b/dist/expression/definitions/distance.mjs
-index cfe3d3d0445445ef052bb3ee7c73ebf78496068d..e3c915ddd3596b6972915084d63f32e471b6b987 100644
+index 82ee1edac3f92a99406ea3115560067e40df4044..5ef676f75b54d235a596558756b702e83d3793c9 100644
 --- a/dist/expression/definitions/distance.mjs
 +++ b/dist/expression/definitions/distance.mjs
 @@ -1,7 +1,7 @@
@@ -10,9 +10,9 @@ index cfe3d3d0445445ef052bb3ee7c73ebf78496068d..e3c915ddd3596b6972915084d63f32e4
 +import TinyQueue from "tinyqueue";
  import { classifyRings } from "../../util/classify_rings.mjs";
  import { CheapRuler } from "../../util/cheap_ruler.mjs";
- //#region src/expression/definitions/distance.ts
+ // src/expression/definitions/distance.ts
 diff --git a/dist/expression/definitions/interpolate.mjs b/dist/expression/definitions/interpolate.mjs
-index 92a2650967b976a477e257a9ff0e1b84d2e8f232..f02e37f0465b3c3da240f4ca366a3e885fdbfcea 100644
+index 53315fddbc738e3579c93f34ff342816c06e5573..c3297b8b58538516d7049dfbc7a3a998d3fc4564 100644
 --- a/dist/expression/definitions/interpolate.mjs
 +++ b/dist/expression/definitions/interpolate.mjs
 @@ -7,7 +7,7 @@ import { ColorArray } from "../types/color_array.mjs";
@@ -21,27 +21,27 @@ index 92a2650967b976a477e257a9ff0e1b84d2e8f232..f02e37f0465b3c3da240f4ca366a3e88
  import { findStopLessThanOrEqualTo } from "../stops.mjs";
 -import unitBezier from "../../node_modules/@mapbox/unitbezier/index.mjs";
 +import unitBezier from "@mapbox/unitbezier";
- //#region src/expression/definitions/interpolate.ts
+ // src/expression/definitions/interpolate.ts
  var Interpolate = class Interpolate {
  	constructor(type, operator, interpolation, input, stops, key) {
 diff --git a/dist/format.mjs b/dist/format.mjs
-index 7e11078f60f44f7e33038863cc038c6c7af74ec2..8f41032635dbc105c1a4702b2f37d4cb9a723306 100644
+index e5734993acb9d1b27274cfcf7a5b978af1cd58ea..21d9e1cea21bd2ad8fa9f653d7271b95f9008c9b 100644
 --- a/dist/format.mjs
 +++ b/dist/format.mjs
 @@ -1,5 +1,5 @@
  import { latest } from "./reference/latest.mjs";
 -import stringify from "./node_modules/json-stringify-pretty-compact/index.mjs";
 +import stringify from "json-stringify-pretty-compact";
- //#region src/format.ts
+ // src/format.ts
  function sortKeysBy(obj, reference) {
  	const result = {};
 diff --git a/dist/util/classify_rings.mjs b/dist/util/classify_rings.mjs
-index 2a228f98ab9543990c1bba5c8c7825d516424052..839913f6cab5a1819af3196585af9181704600a4 100644
+index 98e929d5d1710558e0101f51d7c7c602e9f409c1..9562eda3d4fcafe0ee070d6582c2c8d119780443 100644
 --- a/dist/util/classify_rings.mjs
 +++ b/dist/util/classify_rings.mjs
 @@ -1,4 +1,4 @@
 -import quickselect from "../node_modules/quickselect/index.mjs";
 +import quickselect from "quickselect";
- //#region src/util/classify_rings.ts
+ // src/util/classify_rings.ts
  /**
  * Classifies an array of rings into polygons with outer rings and holes
