@@ -135,11 +135,16 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
             && [[ -x "${dest}/usr/bin/gcc" ]] || return 1
         link_syslib_bins
         export GCC_EXEC_PREFIX="${gcclib}"
+        # COMPILER_PATH covers as/ld/cc1 lookups so the user-space
+        # binutils from ensure_build_tools resolve even though they are
+        # not under GCC_EXEC_PREFIX.
+        export COMPILER_PATH="${dest}/usr/bin:${COMPILER_PATH:-}"
         export LD_LIBRARY_PATH="${dest}/usr/lib:${LD_LIBRARY_PATH:-}"
         export LIBRARY_PATH="${dest}/usr/lib:${LIBRARY_PATH:-}"
         if [[ -n "${GITHUB_ENV:-}" ]]; then
             {
                 echo "GCC_EXEC_PREFIX=${GCC_EXEC_PREFIX}"
+                echo "COMPILER_PATH=${COMPILER_PATH}"
                 echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
                 echo "LIBRARY_PATH=${LIBRARY_PATH}"
             } >> "$GITHUB_ENV"
