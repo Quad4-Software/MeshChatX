@@ -98,32 +98,16 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
     }
 
     # User-space codec2 for Linux runners that cannot install packages
-    # (self-hosted without sudo). Builds once under $HOME so later jobs on the
-    # same runner reuse it. Requires only a C toolchain.
-    build_user_codec2() {
-        local prefix="$HOME/.local/meshchatx-ci/codec2"
-        [ -f "${prefix}/lib/libcodec2.so" ] && return 0
-        command -v gcc >/dev/null 2>&1 || return 1
-        command -v make >/dev/null 2>&1 || return 1
-        local tmp url src
-        tmp="$(mktemp -d)"
-        url="$(curl -fsSL https://api.github.com/repos/drowe67/codec2/releases/latest \
-            | grep -o 'https://[^"]*codec2-[0-9][^"]*\.tar\.gz' | head -n1)"
-        [ -n "${url}" ] || { rm -rf "${tmp}"; return 1; }
-        curl -fsSL -o "${tmp}/codec2.tar.gz" "${url}" || { rm -rf "${tmp}"; return 1; }
-        tar -xzf "${tmp}/codec2.tar.gz" -C "${tmp}" || { rm -rf "${tmp}"; return 1; }
-        src="$(find "${tmp}" -maxdepth 1 -type d -name 'codec2-*' | head -n1)"
-        [ -n "${src}" ] || { rm -rf "${tmp}"; return 1; }
-        if (cd "${src}" && ./configure --prefix="${prefix}" >"${tmp}/build.log" 2>&1 \
-            && make -j"$(nproc)" >>"${tmp}/build.log" 2>&1 \
-            && make install >>"${tmp}/build.log" 2>&1); then
-            rm -rf "${tmp}"
-            return 0
-        fi
-        echo "::warning::user-space codec2 build failed; tail of build log:"
-        tail -n 40 "${tmp}/build.log" 2>/dev/null || true
-        rm -rf "${tmp}"
-        return 1
+    # (self-hosted without sudo). Fetches the distro codec2 package into
+    # syslibs — it ships libcodec2, headers and codec2.pc — and points the
+    # compiler/pkg-config flags at it. Reused across jobs via $HOME.
+    provide_user_codec2() {
+        local dest="$HOME/.local/meshchatx-ci/syslibs"
+        compgen -G "${dest}/usr/lib/libcodec2.so*" >/dev/null \
+            && [[ -d "${dest}/usr/include/codec2" ]] && return 0
+        fetch_arch_pkg codec2 || return 1
+        compgen -G "${dest}/usr/lib/libcodec2.so*" >/dev/null \
+            && [[ -d "${dest}/usr/include/codec2" ]]
     }
 
     # Some sdists (miniaudio, pycodec2) need a C++ compiler. Point CXX at
@@ -225,9 +209,9 @@ WRAPPER
             fi
         fi
         if [[ -z "${MESHCHATX_LINUX_CODEC2}" ]]; then
-            if build_user_codec2; then
+            if provide_user_codec2; then
                 MESHCHATX_LINUX_CODEC2="user"
-                _c2p="$HOME/.local/meshchatx-ci/codec2"
+                _c2p="$HOME/.local/meshchatx-ci/syslibs/usr"
                 export CPPFLAGS="${CPPFLAGS:-} -I${_c2p}/include"
                 export LDFLAGS="${LDFLAGS:-} -L${_c2p}/lib"
                 export PKG_CONFIG_PATH="${_c2p}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
