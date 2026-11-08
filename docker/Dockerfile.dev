@@ -17,12 +17,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl git xz-utils sudo \
     build-essential pkg-config \
-    ffmpeg libopus0 libogg0 libsodium-dev \
+    ffmpeg libopus0 libogg0 libsodium-dev libcodec2-dev \
+    && apt-get purge -y --auto-remove openssh-client openssh-server \
     && rm -rf /var/lib/apt/lists/*
 
 # Node.js from the official tarball.
-ARG NODE_SHA256_X64=59b8af617dccd7f9f68cc8451b2aee1e86d6bd5cb92cd51dd6216a31b707efd7
-ARG NODE_SHA256_ARM64=d40ec7ffe0b82b02dce94208c84351424099bd70fa3a42b65c46d95322305040
+ARG NODE_SHA256_X64=6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6
+ARG NODE_SHA256_ARM64=dbabf7a1cbf947e6059ffad2c27b80041db97dea1e553b62afdee7f13fca336e
 RUN arch="$(dpkg --print-architecture)" \
     && case "$arch" in \
         amd64) node_arch=x64; node_sha="${NODE_SHA256_X64}" ;; \

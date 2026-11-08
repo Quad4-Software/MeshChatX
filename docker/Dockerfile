@@ -4,9 +4,9 @@
 # LXST musl filterlib bake runs in scripts/docker/prepare-venv.sh.
 
 ARG NODE_IMAGE=node:24-alpine
-ARG NODE_HASH=sha256:429bdfbc204b4eabc6438e6d34e4e9d8dd2ca1df8289bcd78cdd3c5db387b7a5
+ARG NODE_HASH=sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8
 ARG PYTHON_IMAGE=python:3.15.0-alpine3.24
-ARG PYTHON_HASH=sha256:f6a589d43c42b9e7f7dc67a12d37132491f362859a5d750607710cc56da3bc72
+ARG PYTHON_HASH=sha256:2699b90f4d562a22e2dd076c82f964032f64814204bff36d271a54ba4cc2c7e2
 ARG VARIANT=standard
 ARG OCI_DESCRIPTION="MeshChatX is an all-in-one Reticulum client."
 ARG OCI_LICENSES="MIT AND 0BSD"

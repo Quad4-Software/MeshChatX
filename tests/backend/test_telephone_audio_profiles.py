@@ -121,6 +121,8 @@ def test_pycodec2_encode_decode_for_lxst_codec2_profiles():
     import numpy as np
     from LXST.Codecs import Codec2
 
+    if not TelephoneManager.codec2_available():
+        pytest.skip("pycodec2/libcodec2 not available on this host")
     assert TelephoneManager.codec2_available() is True
     for pid in (
         Profiles.BANDWIDTH_ULTRA_LOW,

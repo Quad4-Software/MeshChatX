@@ -50,6 +50,7 @@ WORKDIR /project
 # curl + xvfb for Wine GUI-less installs and NSIS. Base image already has wine/node.
 RUN apt-get update -y \
     && apt-get install -y --no-install-recommends ca-certificates curl xvfb unzip python3 python3-pip python3-packaging \
+    && apt-get install -y --only-upgrade openssh-client openssh-server \
     && rm -rf /var/lib/apt/lists/*
 
 # Host-side uv downloads Windows wheels (Wine SSL to PyPI is flaky in this image).
