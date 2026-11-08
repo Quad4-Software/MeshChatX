@@ -67,7 +67,20 @@ if [ -z "$EXPECTED" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
 fi
 echo "SHA256 verified: ${ACTUAL}"
 
-run_priv tar -xzf /tmp/task.tar.gz -C /usr/local/bin task
+# /usr/local/bin is not writable on all self-hosted runners (and sudo may be
+# unavailable). Fall back to a per-job writable dir exported via GITHUB_PATH.
+TASK_DEST="/usr/local/bin"
+if [ ! -w "${TASK_DEST}" ] && [ "$(id -u)" -ne 0 ] && ! sudo -n true 2>/dev/null; then
+    TASK_DEST="${RUNNER_TEMP:-${HOME}/.local}/bin"
+    mkdir -p "${TASK_DEST}"
+    tar -xzf /tmp/task.tar.gz -C "${TASK_DEST}" task
+    if [ -n "${GITHUB_PATH:-}" ]; then
+        echo "${TASK_DEST}" >> "${GITHUB_PATH}"
+    fi
+    export PATH="${TASK_DEST}:${PATH}"
+else
+    run_priv tar -xzf /tmp/task.tar.gz -C /usr/local/bin task
+fi
 rm -f /tmp/task.tar.gz /tmp/task-checksums.txt
 
 task --version

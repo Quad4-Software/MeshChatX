@@ -35,16 +35,71 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
     # LXST/pyogg loads libopus (and libogg for Ogg muxing) at runtime. GitHub-hosted
     # Linux runners do not ship these by default, so backend Opus encode tests fail
     # with PyOggError until the shared libraries are present.
-    if [[ "$(uname -s)" == "Linux" ]] && command -v apt-get >/dev/null 2>&1; then
-        run_priv apt-get update -y
-        run_priv apt-get install -y libopus0 libogg0 libcodec2-dev
-    elif [[ "$(uname -s)" == "Linux" ]] && command -v pacman >/dev/null 2>&1; then
-        # Arch-based self-hosted runners: codec2/opus/ogg headers for the
-        # pycodec2 and LXST pyogg source builds during uv sync, plus a C
-        # toolchain in case the runner image is minimal. Skip entirely when
-        # the runner already provides them so no sudo is required.
-        if ! { pacman -Q codec2 opus libogg >/dev/null 2>&1 && command -v gcc >/dev/null 2>&1; }; then
-            run_priv pacman -Sy --needed --noconfirm codec2 opus libogg gcc make pkgconf
+    have_priv() { [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; }
+
+    # User-space codec2 for Linux runners that cannot install packages
+    # (self-hosted without sudo). Builds once under $HOME so later jobs on the
+    # same runner reuse it. Requires only a C toolchain.
+    build_user_codec2() {
+        local prefix="$HOME/.local/meshchatx-ci/codec2"
+        [ -f "${prefix}/lib/libcodec2.so" ] && return 0
+        command -v gcc >/dev/null 2>&1 || return 1
+        command -v make >/dev/null 2>&1 || return 1
+        local tmp url src
+        tmp="$(mktemp -d)"
+        url="$(curl -fsSL https://api.github.com/repos/drowe67/codec2/releases/latest \
+            | grep -o 'https://[^"]*codec2-[0-9][^"]*\.tar\.gz' | head -n1)"
+        [ -n "${url}" ] || { rm -rf "${tmp}"; return 1; }
+        curl -fsSL -o "${tmp}/codec2.tar.gz" "${url}" || { rm -rf "${tmp}"; return 1; }
+        tar -xzf "${tmp}/codec2.tar.gz" -C "${tmp}" || { rm -rf "${tmp}"; return 1; }
+        src="$(find "${tmp}" -maxdepth 1 -type d -name 'codec2-*' | head -n1)"
+        [ -n "${src}" ] || { rm -rf "${tmp}"; return 1; }
+        if (cd "${src}" && ./configure --prefix="${prefix}" >/dev/null \
+            && make -j"$(nproc)" >/dev/null && make install >/dev/null); then
+            rm -rf "${tmp}"
+            return 0
+        fi
+        rm -rf "${tmp}"
+        return 1
+    }
+
+    MESHCHATX_LINUX_CODEC2=""
+    if [[ "$(uname -s)" == "Linux" ]]; then
+        if command -v apt-get >/dev/null 2>&1 && have_priv; then
+            run_priv apt-get update -y
+            run_priv apt-get install -y libopus0 libogg0 libcodec2-dev
+            MESHCHATX_LINUX_CODEC2="system"
+        elif command -v pacman >/dev/null 2>&1; then
+            # Arch-based self-hosted runners: codec2/opus/ogg headers for the
+            # pycodec2 and LXST pyogg source builds during uv sync. Skip when
+            # the runner already provides them so no sudo is required.
+            if pacman -Q codec2 opus libogg >/dev/null 2>&1 && command -v gcc >/dev/null 2>&1; then
+                MESHCHATX_LINUX_CODEC2="system"
+            elif have_priv; then
+                run_priv pacman -Sy --needed --noconfirm codec2 opus libogg gcc make pkgconf
+                MESHCHATX_LINUX_CODEC2="system"
+            fi
+        fi
+        if [[ -z "${MESHCHATX_LINUX_CODEC2}" ]]; then
+            if build_user_codec2; then
+                MESHCHATX_LINUX_CODEC2="user"
+                _c2p="$HOME/.local/meshchatx-ci/codec2"
+                export CPPFLAGS="${CPPFLAGS:-} -I${_c2p}/include"
+                export LDFLAGS="${LDFLAGS:-} -L${_c2p}/lib"
+                export PKG_CONFIG_PATH="${_c2p}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+                export LD_LIBRARY_PATH="${_c2p}/lib:${LD_LIBRARY_PATH:-}"
+                if [[ -n "${GITHUB_ENV:-}" ]]; then
+                    {
+                        echo "CPPFLAGS=${CPPFLAGS}"
+                        echo "LDFLAGS=${LDFLAGS}"
+                        echo "PKG_CONFIG_PATH=${PKG_CONFIG_PATH}"
+                        echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
+                    } >> "$GITHUB_ENV"
+                fi
+            else
+                MESHCHATX_LINUX_CODEC2="none"
+                echo "::warning::no codec2 available; pycodec2 will be skipped (optional at runtime)"
+            fi
         fi
     fi
 
@@ -77,6 +132,15 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
             --no-install-package winrt-windows-foundation \
             --no-install-package winrt-windows-foundation-collections \
             --no-install-package winrt-windows-storage-streams
+    elif [[ "$(uname -s)" == "Linux" && "${MESHCHATX_LINUX_CODEC2:-system}" == "none" ]]; then
+        # Same optional-at-runtime situation as macOS/Windows: no codec2
+        # anywhere on this host, so skip the pycodec2 sdist. uv run would
+        # otherwise try to resync it back on every invocation.
+        export UV_NO_SYNC=1
+        if [[ -n "${GITHUB_ENV:-}" ]]; then
+            echo "UV_NO_SYNC=1" >> "$GITHUB_ENV"
+        fi
+        uv sync --group dev --no-install-package pycodec2
     else
         uv sync --group dev
     fi
