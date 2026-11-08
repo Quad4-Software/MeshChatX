@@ -11,6 +11,8 @@ cd "$ROOT"
 
 # shellcheck source=scripts/ci/priv.sh
 . "$(dirname "$0")/priv.sh"
+# shellcheck source=scripts/ci/user-space-pkgs.sh
+. "$(dirname "$0")/user-space-pkgs.sh"
 
 export GIT_TERMINAL_PROMPT=0
 
@@ -63,61 +65,6 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
         fi
     fi
 
-    # fetch_arch_pkg <pkg>: download an Arch 'extra' package without root —
-    # via pacman download-only into a writable cachedir when possible,
-    # otherwise the package API + geo mirror — and extract it fully into
-    # $HOME/.local/meshchatx-ci/syslibs.
-    fetch_arch_pkg() {
-        local pkg="$1"
-        local dest="$HOME/.local/meshchatx-ci/syslibs"
-        mkdir -p "${dest}/pkgs"
-        local f url tmp
-        if command -v pacman >/dev/null 2>&1; then
-            pacman -Sw --cachedir "${dest}/pkgs" --noconfirm "${pkg}" >/dev/null 2>&1 || true
-        fi
-        if ! compgen -G "${dest}/pkgs/${pkg}-*.pkg.tar.zst" >/dev/null; then
-            # Package search API: pick the result whose pkgname matches
-            # exactly and take its authoritative filename + repo.
-            local row fname rep
-            row="$(curl -fsSL --max-time 30 \
-                "https://archlinux.org/packages/search/json/?name=${pkg}" 2>/dev/null \
-                | grep -o '{[^{}]*"pkgname"[^{}]*}' \
-                | grep -F "\"pkgname\": \"${pkg}\"" \
-                | head -n1)"
-            fname="$(printf '%s' "${row}" | grep -o '"filename": *"[^"]*"' | head -n1 | sed 's/.*"\([^"]*\)"$/\1/')"
-            rep="$(printf '%s' "${row}" | grep -o '"repo": *"[^"]*"' | head -n1 | sed 's/.*"\([^"]*\)"$/\1/')"
-            [[ -n "${fname}" && -n "${rep}" ]] || return 1
-            url="https://geo.mirror.pkgbuild.com/${rep}/os/x86_64/${fname}"
-            tmp="$(mktemp -d)"
-            curl -fsSL --max-time 120 -o "${tmp}/p.pkg.tar.zst" "${url}" 2>/dev/null \
-                || { rm -rf "${tmp}"; return 1; }
-            mv "${tmp}/p.pkg.tar.zst" "${dest}/pkgs/${fname}"
-            rm -rf "${tmp}"
-        fi
-        local extracted=0
-        for f in "${dest}/pkgs/${pkg}-"*.pkg.tar.zst; do
-            [[ -e "${f}" ]] || continue
-            tar -xf "${f}" -C "${dest}" 2>/dev/null && extracted=1
-        done
-        [[ ${extracted} -eq 1 ]]
-    }
-
-    # Link user-space binaries fetched into syslibs/usr/bin onto PATH.
-    link_syslib_bins() {
-        local dest="$HOME/.local/meshchatx-ci/syslibs"
-        [[ -d "${dest}/usr/bin" ]] || return 0
-        mkdir -p "${HOME}/.local/bin"
-        local b
-        for b in "${dest}/usr/bin"/*; do
-            [[ -f "${b}" ]] || continue
-            ln -sf "${b}" "${HOME}/.local/bin/$(basename "${b}")"
-        done
-        export PATH="${HOME}/.local/bin:${PATH}"
-        if [[ -n "${GITHUB_PATH:-}" ]]; then
-            echo "${HOME}/.local/bin" >> "$GITHUB_PATH"
-        fi
-    }
-
     # GNU make, binutils and pkg-config for source builds (codec2, sdists)
     # on runners with no root. Fetched as Arch packages into $HOME.
     ensure_build_tools() {
@@ -167,11 +114,14 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
         tar -xzf "${tmp}/codec2.tar.gz" -C "${tmp}" || { rm -rf "${tmp}"; return 1; }
         src="$(find "${tmp}" -maxdepth 1 -type d -name 'codec2-*' | head -n1)"
         [ -n "${src}" ] || { rm -rf "${tmp}"; return 1; }
-        if (cd "${src}" && ./configure --prefix="${prefix}" >/dev/null \
-            && make -j"$(nproc)" >/dev/null && make install >/dev/null); then
+        if (cd "${src}" && ./configure --prefix="${prefix}" >"${tmp}/build.log" 2>&1 \
+            && make -j"$(nproc)" >>"${tmp}/build.log" 2>&1 \
+            && make install >>"${tmp}/build.log" 2>&1); then
             rm -rf "${tmp}"
             return 0
         fi
+        echo "::warning::user-space codec2 build failed; tail of build log:"
+        tail -n 40 "${tmp}/build.log" 2>/dev/null || true
         rm -rf "${tmp}"
         return 1
     }

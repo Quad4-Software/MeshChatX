@@ -35,6 +35,9 @@ env:
         *.ubuntu.com:443
         dl.flathub.org:443
         flathub.org:443
+        archlinux.org:443
+        geo.mirror.pkgbuild.com:443
+        ziglang.org:443
 
 jobs:
     flatpak-pages:

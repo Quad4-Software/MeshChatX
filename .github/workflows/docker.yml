@@ -103,6 +103,9 @@ env:
         *.mozilla.com:443
         storage.googleapis.com:443
         *.stepsecurity.io:443
+        archlinux.org:443
+        geo.mirror.pkgbuild.com:443
+        ziglang.org:443
     REGISTRY: ghcr.io
     # Official .deb from aquasecurity/trivy releases. Scripts/ci/setup-trivy.sh verifies
     # checksums.txt (sigstore) + .deb SHA256 + .deb (sigstore). Bump with upstream tags.
