@@ -350,6 +350,7 @@ jobs:
               uses: useblacksmith/checkout@2b9fe87d796feea153b455ec2f3125b471a7b0e7 # v1.8.2
               with:
                   persist-credentials: false
+                  fetch-depth: 0
 
             - name: Set up development environment
               uses: $/.github/actions/setup-dev-environment
@@ -371,59 +372,12 @@ jobs:
                   BASE_REF: ${{ github.base_ref }}
               run: |
                   set -euo pipefail
-                  git fetch origin "$BASE_REF" --depth=50
+                  git fetch origin "$BASE_REF"
                   uv run diff-cover coverage.xml \
                       --compare-branch="origin/$BASE_REF" \
                       --fail-under=80 \
                       --markdown-report diff-cover-report.md
                   cat diff-cover-report.md >> "$GITHUB_STEP_SUMMARY"
-
-    mutation-changed:
-        name: Mutation (changed backend modules, advisory)
-        if: github.event_name == 'pull_request'
-        runs-on: blacksmith-4vcpu-ubuntu-2404
-        timeout-minutes: 120
-        continue-on-error: true
-        permissions:
-            contents: read
-        steps:
-            - name: Harden runner
-              uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
-              with:
-                  egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
-                  allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
-            - name: Checkout
-              uses: useblacksmith/checkout@2b9fe87d796feea153b455ec2f3125b471a7b0e7 # v1.8.2
-              with:
-                  persist-credentials: false
-                  fetch-depth: 0
-
-            - name: Set up development environment
-              uses: $/.github/actions/setup-dev-environment
-              with:
-                  python-version: ${{ env.PYTHON_VERSION }}
-                  uv-version: ${{ env.UV_VERSION }}
-                  install-node: "false"
-
-            - name: Fetch base ref for diff
-              env:
-                  PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
-              run: git fetch origin "+refs/heads/${PR_BASE_REF}:refs/remotes/origin/${PR_BASE_REF}"
-
-            - name: Mutate changed backend modules
-              env:
-                  MUTMUT_BASE_REF: origin/${{ github.event.pull_request.base.ref }}
-                  MUTMUT_MAX_MODULES: "3"
-                  MUTMUT_MIN_SCORE: "50"
-              run: bash scripts/ci/mutation-changed.sh
-
-            - name: Upload mutation report
-              if: always()
-              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-              with:
-                  name: mutation-pr-report
-                  path: mutmut-cicd-stats.json
-                  if-no-files-found: ignore
 
     zizmor:
         name: Workflow audit (zizmor)
@@ -454,6 +408,7 @@ jobs:
 
     quarantined-tests:
         name: Quarantined backend tests (non-gating)
+        if: github.event_name != 'pull_request'
         runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 20
         continue-on-error: true
@@ -683,6 +638,7 @@ jobs:
 
     e2e-crawl:
         name: E2E exploratory
+        if: github.event_name != 'pull_request'
         runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 60
         permissions:
@@ -731,6 +687,7 @@ jobs:
 
     ui-lighthouse:
         name: UI Lighthouse (core pages)
+        if: github.event_name != 'pull_request'
         needs: frontend
         runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 45
@@ -793,7 +750,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: [blacksmith-4vcpu-ubuntu-2404, blacksmith-6vcpu-macos-15, blacksmith-4vcpu-windows-2025]
+                os: ${{ fromJSON(github.event_name == 'pull_request' && '["blacksmith-4vcpu-ubuntu-2404"]' || '["blacksmith-4vcpu-ubuntu-2404","blacksmith-6vcpu-macos-15","blacksmith-4vcpu-windows-2025"]') }}
         permissions:
             contents: read
         steps:

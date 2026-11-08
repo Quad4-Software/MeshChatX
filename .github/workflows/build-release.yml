@@ -154,7 +154,7 @@ jobs:
                       runner: blacksmith-4vcpu-ubuntu-2404-arm
                       setup_trivy: false
         runs-on: ${{ matrix.runner }}
-        timeout-minutes: 120
+        timeout-minutes: 90
         permissions:
             contents: read
         env:
@@ -251,6 +251,7 @@ jobs:
         needs: [linux-release]
         if: startsWith(github.ref, 'refs/tags/')
         runs-on: blacksmith-4vcpu-ubuntu-2404
+        timeout-minutes: 20
         outputs:
             hashes: ${{ steps.hash.outputs.hashes }}
         permissions:
@@ -424,7 +425,7 @@ jobs:
         # release: GitHub, PyPI, and rngit assets are already complete and
         # the publish can be retried via the flatpak-pages workflow.
         continue-on-error: true
-        timeout-minutes: 120
+        timeout-minutes: 90
         concurrency:
             group: flatpak-pages
             cancel-in-progress: false
@@ -642,6 +643,7 @@ jobs:
             startsWith(github.ref, 'refs/tags/') &&
             (needs.build-release.result == 'success' || needs.build-release.result == 'failure')
         runs-on: blacksmith-4vcpu-ubuntu-2404
+        timeout-minutes: 20
         outputs:
             hashes: ${{ steps.hash.outputs.hashes }}
         steps:
@@ -717,6 +719,7 @@ jobs:
             (needs.android-release.result == 'success' || needs.android-release.result == 'skipped') &&
             (needs.flatpak.result == 'success' || needs.flatpak.result == 'failure')
         runs-on: blacksmith-4vcpu-ubuntu-2404
+        timeout-minutes: 20
         outputs:
             hashes: ${{ steps.hash.outputs.hashes }}
             has_subjects: ${{ steps.hash.outputs.has_subjects }}
@@ -927,6 +930,7 @@ jobs:
             - build-release
             - draft-github-release
         runs-on: blacksmith-4vcpu-ubuntu-2404
+        timeout-minutes: 20
         steps:
             - name: Harden runner
               uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2

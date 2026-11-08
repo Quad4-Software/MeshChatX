@@ -181,6 +181,7 @@ jobs:
 
     frontend:
         name: Build frontend artifact (CodeQL)
+        if: github.event_name != 'pull_request'
         uses: $/.github/workflows/frontend-build.yml
         permissions:
             contents: read
@@ -190,8 +191,9 @@ jobs:
 
     codeql:
         name: CodeQL (${{ matrix.language }})
+        if: github.event_name != 'pull_request'
         runs-on: blacksmith-4vcpu-ubuntu-2404
-        timeout-minutes: 360
+        timeout-minutes: 60
         permissions:
             security-events: write
             packages: read
@@ -233,9 +235,10 @@ jobs:
 
     codeql-javascript:
         name: CodeQL (javascript-typescript)
+        if: github.event_name != 'pull_request'
         runs-on: blacksmith-4vcpu-ubuntu-2404
         needs: [frontend]
-        timeout-minutes: 360
+        timeout-minutes: 60
         permissions:
             security-events: write
             packages: read

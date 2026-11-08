@@ -41,7 +41,7 @@ jobs:
         name: Flatpak OSTree (GitHub Pages)
         runs-on: blacksmith-4vcpu-ubuntu-2404
         environment: release
-        timeout-minutes: 120
+        timeout-minutes: 90
         permissions:
             contents: write
         steps:

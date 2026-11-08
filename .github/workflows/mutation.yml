@@ -97,7 +97,7 @@ jobs:
         runs-on: blacksmith-4vcpu-ubuntu-2404
         # Stats collection runs the whole backend suite serially under a
         # coverage-tracking plugin, which takes well over an hour on its own.
-        timeout-minutes: 360
+        timeout-minutes: 120
         steps:
             - name: Harden runner
               uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2

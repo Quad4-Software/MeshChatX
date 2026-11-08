@@ -170,7 +170,7 @@ jobs:
         name: Mutmut on hot modules
         if: github.event_name == 'schedule' || github.event.inputs.run_mutation == 'true'
         runs-on: blacksmith-4vcpu-ubuntu-2404
-        timeout-minutes: 180
+        timeout-minutes: 120
         permissions:
             contents: read
         steps:

@@ -97,6 +97,7 @@ jobs:
     promote:
         name: Tag and dispatch build-release
         runs-on: blacksmith-4vcpu-ubuntu-2404
+        timeout-minutes: 15
         permissions:
             contents: write
             actions: write
