@@ -41,8 +41,11 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
     elif [[ "$(uname -s)" == "Linux" ]] && command -v pacman >/dev/null 2>&1; then
         # Arch-based self-hosted runners: codec2/opus/ogg headers for the
         # pycodec2 and LXST pyogg source builds during uv sync, plus a C
-        # toolchain in case the runner image is minimal.
-        run_priv pacman -Sy --needed --noconfirm codec2 opus libogg gcc make pkgconf
+        # toolchain in case the runner image is minimal. Skip entirely when
+        # the runner already provides them so no sudo is required.
+        if ! { pacman -Q codec2 opus libogg >/dev/null 2>&1 && command -v gcc >/dev/null 2>&1; }; then
+            run_priv pacman -Sy --needed --noconfirm codec2 opus libogg gcc make pkgconf
+        fi
     fi
 
     uv lock --check
