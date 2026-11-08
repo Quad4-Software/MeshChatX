@@ -150,6 +150,13 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
         # sysconfig LDFLAGS inject into every extension link. Verified
         # unsupported on zig 0.15.2: --exclude-libs, -z separate-code,
         # -z unique. The wrapper drops them; everything else passes through.
+        # Meson's linker probe runs 'cc -Wl,--version'; zig answers
+        # 'zig ld ...' which trips a broken 'zig ld' branch in some
+        # vendored meson releases (numpy 2.1.3 ships meson 1.5.2 whose
+        # detect.py calls a nonexistent ZigCCDynamicLinker). zig's ld is
+        # lld-derived, so answer LLD for linker probes instead.
+        local zig_ver
+        zig_ver="$("${zdir}/zig" version 2>/dev/null || echo 0.15.2)"
         for tool in cc c++ gcc g++; do
             case "${tool}" in
                 cc|gcc) mode="cc" ;;
@@ -157,6 +164,11 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
             esac
             cat > "${zdir}/bin/${tool}" <<WRAPPER
 #!/usr/bin/env bash
+for a in "\$@"; do
+    case "\$a" in
+        -Wl,--version|-Wl,-v) printf 'LLD ${zig_ver}\\n'; exit 0 ;;
+    esac
+done
 args=()
 for a in "\$@"; do
     case "\$a" in

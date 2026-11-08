@@ -64,6 +64,12 @@ constraint-dependencies = [
 ]
 override-dependencies = [
   "setuptools>=84.0.0",
+  # pycodec2 pins numpy==2.1.* in build-system.requires; 2.1.x has no
+  # cp315 wheels so it builds from sdist and its vendored meson 1.5.2
+  # crashes on zig-cc toolchains. numpy 2.x is ABI-stable, so let the
+  # build env use the same numpy line as the runtime env.
+  "numpy>=2.5,<2.6; python_version >= '3.12'",
+  "numpy>=2.4.6,<2.5; python_version < '3.12'",
 ]
 
 [tool.setuptools.packages.find]
