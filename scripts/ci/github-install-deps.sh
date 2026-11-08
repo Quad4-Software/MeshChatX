@@ -134,13 +134,26 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
         compgen -G "${gcclib}/*/*/cc1" >/dev/null 2>&1 \
             && [[ -x "${dest}/usr/bin/gcc" ]] || return 1
         link_syslib_bins
-        export GCC_EXEC_PREFIX="${gcclib}"
+        # GCC_EXEC_PREFIX must end in '/': without it gcc concatenates the
+        # target triple onto the prefix and cc1 is never found.
+        export GCC_EXEC_PREFIX="${gcclib}/"
         # COMPILER_PATH covers as/ld/cc1 lookups so the user-space
         # binutils from ensure_build_tools resolve even though they are
         # not under GCC_EXEC_PREFIX.
         export COMPILER_PATH="${dest}/usr/bin:${COMPILER_PATH:-}"
         export LD_LIBRARY_PATH="${dest}/usr/lib:${LD_LIBRARY_PATH:-}"
         export LIBRARY_PATH="${dest}/usr/lib:${LIBRARY_PATH:-}"
+        # Self-verify with a real compile: partial extractions (e.g. a
+        # full disk mid-tar) can leave gcc present but cc1 missing, and
+        # env propagation issues only show up at compile time. Fall
+        # through to zig when the toolchain cannot actually build.
+        if ! printf 'int main(void){return 0;}\n' \
+            | "${dest}/usr/bin/gcc" -x c - -o "${TMPDIR:-/tmp}/.meshchatx-cc-test" \
+                >/dev/null 2>&1; then
+            echo "::warning::user-space gcc failed self-test; falling back to zig"
+            return 1
+        fi
+        rm -f "${TMPDIR:-/tmp}/.meshchatx-cc-test"
         if [[ -n "${GITHUB_ENV:-}" ]]; then
             {
                 echo "GCC_EXEC_PREFIX=${GCC_EXEC_PREFIX}"
@@ -232,14 +245,14 @@ WRAPPER
     }
 
     if [[ "$(uname -s)" == "Linux" ]]; then
-        # Bootstrap the toolchain before codec2/sdist decisions: zig provides
-        # cc/c++/gcc/g++ when no C++ compiler exists, and user-space GNU
-        # make/binutils/pkg-config cover minimal self-hosted images.
-        if ! ensure_cpp; then
-            echo "::warning::no C++ compiler found; sdist builds may fail"
-        fi
+        # Bootstrap the toolchain before codec2/sdist decisions: user-space
+        # GNU make/binutils/pkg-config cover minimal self-hosted images and
+        # must exist before ensure_cpp's gcc self-test can link.
         if ! ensure_build_tools; then
             echo "::warning::no make/binutils/pkg-config found; source builds may fail"
+        fi
+        if ! ensure_cpp; then
+            echo "::warning::no C++ compiler found; sdist builds may fail"
         fi
         if [[ -n "${GITHUB_ENV:-}" ]]; then
             echo "PATH=${PATH}" >> "$GITHUB_ENV"
