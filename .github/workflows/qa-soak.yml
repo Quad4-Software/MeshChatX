@@ -90,7 +90,7 @@ env:
 jobs:
     soak:
         name: Soak run + slope oracle
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 90
         permissions:
             contents: read
@@ -101,7 +101,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -127,7 +127,7 @@ jobs:
 
     live-backend:
         name: Opt-in live backend tests
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 60
         permissions:
             contents: read
@@ -138,7 +138,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -169,7 +169,7 @@ jobs:
     mutation:
         name: Mutmut on hot modules
         if: github.event_name == 'schedule' || github.event.inputs.run_mutation == 'true'
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 180
         permissions:
             contents: read
@@ -180,7 +180,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 

@@ -116,7 +116,7 @@ jobs:
 
     verify:
         name: ${{ matrix.task.name }}
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: ${{ matrix.task.timeout }}
         permissions:
             contents: read
@@ -147,7 +147,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -196,7 +196,7 @@ jobs:
 
     visualiser-wasm:
         name: Visualiser WASM (Go)
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 15
         permissions:
             contents: read
@@ -207,7 +207,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -246,7 +246,7 @@ jobs:
 
     geo-wasm:
         name: Geo WASM (Go)
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 15
         permissions:
             contents: read
@@ -257,7 +257,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -296,7 +296,7 @@ jobs:
 
     backend-tests:
         name: Backend tests (Python 3.15) - Shard ${{ matrix.shard }} / 4
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 20
         permissions:
             contents: read
@@ -311,7 +311,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -336,7 +336,7 @@ jobs:
 
     backend-coverage:
         name: Backend coverage floor
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 30
         permissions:
             contents: read
@@ -347,7 +347,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -381,7 +381,7 @@ jobs:
     mutation-changed:
         name: Mutation (changed backend modules, advisory)
         if: github.event_name == 'pull_request'
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 120
         continue-on-error: true
         permissions:
@@ -393,7 +393,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
                   fetch-depth: 0
@@ -427,7 +427,7 @@ jobs:
 
     zizmor:
         name: Workflow audit (zizmor)
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 10
         permissions:
             contents: read
@@ -438,7 +438,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -454,7 +454,7 @@ jobs:
 
     quarantined-tests:
         name: Quarantined backend tests (non-gating)
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 20
         continue-on-error: true
         permissions:
@@ -466,7 +466,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -493,7 +493,7 @@ jobs:
 
     lxmf-live-local:
         name: Live LXMF (local TCP + pack/reject)
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 15
         permissions:
             contents: read
@@ -504,7 +504,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -523,7 +523,7 @@ jobs:
 
     build-check:
         name: Linux build check
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         needs: frontend
         timeout-minutes: 60
         permissions:
@@ -538,7 +538,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -596,7 +596,7 @@ jobs:
 
     validate-build-artifact:
         name: Validate Linux build artifact
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 15
         needs: build-check
         permissions:
@@ -608,7 +608,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -641,7 +641,7 @@ jobs:
 
     e2e:
         name: E2E smoke
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 25
         permissions:
             contents: read
@@ -652,7 +652,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -683,7 +683,7 @@ jobs:
 
     e2e-crawl:
         name: E2E exploratory
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 60
         permissions:
             contents: read
@@ -694,7 +694,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -732,7 +732,7 @@ jobs:
     ui-lighthouse:
         name: UI Lighthouse (core pages)
         needs: frontend
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 45
         permissions:
             contents: read
@@ -747,7 +747,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -793,7 +793,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: [ubuntu-latest, macos-latest, windows-latest]
+                os: [blacksmith-4vcpu-ubuntu-2404, blacksmith-6vcpu-macos-15, blacksmith-4vcpu-windows-2025]
         permissions:
             contents: read
         steps:

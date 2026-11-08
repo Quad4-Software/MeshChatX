@@ -115,7 +115,7 @@ jobs:
     build:
         name: Build Python distributions
         needs: frontend
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 30
         outputs:
             hashes: ${{ steps.slsa-hashes.outputs.hashes }}
@@ -131,7 +131,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -250,7 +250,7 @@ jobs:
         needs:
             - build
             - slsa-provenance-pypi
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 15
         environment:
             name: pypi

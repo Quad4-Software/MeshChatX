@@ -100,9 +100,9 @@ jobs:
             matrix:
                 include:
                     - arch: x64
-                      runner: ubuntu-latest
+                      runner: blacksmith-4vcpu-ubuntu-2404
                     - arch: arm64
-                      runner: ubuntu-24.04-arm
+                      runner: blacksmith-4vcpu-ubuntu-2404-arm
         runs-on: ${{ matrix.runner }}
         timeout-minutes: 120
         permissions:
@@ -117,7 +117,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 
@@ -173,7 +173,7 @@ jobs:
     flatpak:
         name: Flatpak (electron-builder)
         needs: frontend
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 90
         permissions:
             contents: read
@@ -187,7 +187,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   persist-credentials: false
 

@@ -101,15 +101,15 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    - os: windows-latest
+                    - os: blacksmith-4vcpu-windows-2025
                       label: windows
                       timeout: 120
                       build_script: scripts/ci/github-build-windows.sh
-                    - os: macos-latest
+                    - os: blacksmith-6vcpu-macos-15
                       label: macos
                       timeout: 180
                       build_script: scripts/ci/github-build-macos.sh
-                    - os: macos-15-intel
+                    - os: blacksmith-6vcpu-macos-15
                       label: macos-x64
                       timeout: 240
                       build_script: scripts/ci/github-build-macos-x64.sh

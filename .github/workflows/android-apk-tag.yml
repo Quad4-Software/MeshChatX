@@ -101,7 +101,7 @@ env:
 jobs:
     android:
         name: Android APK (tag)
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 90
         defaults:
             run:
@@ -115,7 +115,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              uses: useblacksmith/checkout@v1
               with:
                   fetch-depth: 0
                   persist-credentials: false
