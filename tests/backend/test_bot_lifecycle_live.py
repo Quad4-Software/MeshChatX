@@ -16,12 +16,34 @@ import meshchatx.src.backend.bot_process as bot_process_mod
 from meshchatx.src.backend.bot_handler import BotHandler
 
 
+def _seed_reticulum_config(rns_dir):
+    """Write a minimal RNS config so the bot does not get RNS's default.
+
+    With no config file RNS writes a default enabling an AutoInterface,
+    which panics on hosts without IPv6 link-local (EAFNOSUPPORT). An
+    empty [interfaces] section starts transport with zero interfaces,
+    which is all these lifecycle tests need.
+    """
+    (rns_dir / "config").write_text(
+        "[reticulum]\n"
+        "enable_transport = Yes\n"
+        "share_instance = No\n"
+        "\n"
+        "[logging]\n"
+        "loglevel = 4\n"
+        "\n"
+        "[interfaces]\n",
+        encoding="utf-8",
+    )
+
+
 @pytest.fixture
 def bot_lifecycle_dirs(tmp_path, monkeypatch):
     identity_dir = tmp_path / "identity"
     rns_dir = tmp_path / "reticulum"
     identity_dir.mkdir()
     rns_dir.mkdir()
+    _seed_reticulum_config(rns_dir)
     monkeypatch.setenv("MESHCHAT_BOT_RETICULUM_CONFIG_DIR", str(rns_dir))
     return identity_dir, rns_dir
 
@@ -92,6 +114,7 @@ def _spawn_watched_bot(tmp_path, parent_pid):
     rns_dir = tmp_path / "watchdog-rns"
     storage.mkdir()
     rns_dir.mkdir()
+    _seed_reticulum_config(rns_dir)
     log_f = open(storage / "subprocess.log", "w", encoding="utf-8")
     cmd = [
         sys.executable,
@@ -140,6 +163,7 @@ def test_bot_process_exits_when_watched_parent_dies(tmp_path):
     rns_dir = tmp_path / "watchdog-rns"
     storage.mkdir()
     rns_dir.mkdir()
+    _seed_reticulum_config(rns_dir)
     log_path = storage / "subprocess.log"
     runner = os.path.abspath(bot_process_mod.__file__)
     helper_src = (
