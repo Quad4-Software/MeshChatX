@@ -17,7 +17,14 @@ export MESHCHAT_LH_SKIP_BUILD="${MESHCHAT_LH_SKIP_BUILD:-0}"
 export E2E_BACKEND_PORT="${E2E_BACKEND_PORT:-18079}"
 export LH_DEBUG_PORT="${LH_DEBUG_PORT:-9222}"
 
-pnpm exec playwright install chromium --with-deps
+# --with-deps assumes an apt-based runner image; self-hosted runners may be
+# other distros (e.g. Arch) where it fails. Browser shared libraries are
+# expected to already exist on those hosts.
+if command -v apt-get >/dev/null 2>&1; then
+    pnpm exec playwright install chromium --with-deps
+else
+    pnpm exec playwright install chromium
+fi
 
 pnpm exec playwright test --config playwright.ui.config.js tests/ui/pages.smoke.spec.js
 pnpm exec playwright test --config playwright.ui.config.js tests/ui/perf.spec.js

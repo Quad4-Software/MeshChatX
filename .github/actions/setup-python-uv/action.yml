@@ -19,7 +19,13 @@ inputs:
 runs:
     using: composite
     steps:
+        # setup-python filters manifest files by platform_version, which only
+        # exists on Ubuntu/Debian releases - on other distros (e.g. the Arch
+        # self-hosted runner) the version lookup always fails. continue-on-error
+        # lets the uv-managed fallback below take over on those hosts.
         - name: Set up Python
+          id: setup-python
+          continue-on-error: true
           uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
           with:
               python-version: ${{ inputs.python-version }}
@@ -30,6 +36,18 @@ runs:
           env:
               UV_VERSION: ${{ inputs.uv-version }}
           run: bash scripts/ci/github-install-uv.sh
+
+        - name: Fallback to uv-managed Python
+          if: steps.setup-python.outcome == 'failure'
+          shell: bash
+          env:
+              UV_PYTHON_VERSION: ${{ inputs.python-version }}
+          run: |
+              set -euo pipefail
+              uv python install "${UV_PYTHON_VERSION}"
+              PYBIN="$(uv python find "${UV_PYTHON_VERSION}")"
+              echo "$(dirname "${PYBIN}")" >> "${GITHUB_PATH}"
+              "${PYBIN}" --version
 
         - name: Cache UV downloads
           uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9

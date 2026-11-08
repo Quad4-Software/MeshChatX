@@ -11,7 +11,14 @@ export E2E_BACKEND_PORT="${E2E_BACKEND_PORT:-18079}"
 export E2E_VITE_HOST="${E2E_VITE_HOST:-127.0.0.1}"
 export E2E_VITE_PORT="${E2E_VITE_PORT:-5173}"
 
-pnpm exec playwright install chromium --with-deps
+# --with-deps assumes an apt-based runner image; self-hosted runners may be
+# other distros (e.g. Arch) where it fails. Browser shared libraries are
+# expected to already exist on those hosts.
+if command -v apt-get >/dev/null 2>&1; then
+    pnpm exec playwright install chromium --with-deps
+else
+    pnpm exec playwright install chromium
+fi
 
 if [[ $# -gt 0 ]]; then
     pnpm exec playwright test "$@"
