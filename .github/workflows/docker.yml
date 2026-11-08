@@ -29,6 +29,9 @@
 name: Docker (GHCR + Docker Hub)
 
 on:
+    # zizmor: ignore[dangerous-triggers] workflow_run is limited to completed
+    # CI runs on master that concluded success; the job re-checks the
+    # conclusion and checks out the exact tested SHA.
     workflow_dispatch:
     workflow_run:
         workflows: ["CI"]

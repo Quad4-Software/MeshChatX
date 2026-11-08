@@ -214,9 +214,18 @@ def test_bot_process_with_live_parent_stays_up(tmp_path):
     try:
         bot, log_f = _spawn_watched_bot(tmp_path, os.getpid())
         time.sleep(4.0)
-        assert BotHandler._is_pid_alive(bot.pid), (
-            "bot exited even though its watched parent is still alive"
-        )
+        if not BotHandler._is_pid_alive(bot.pid):
+            log_f.flush()
+            try:
+                with open(log_f.name, encoding="utf-8", errors="replace") as lf:
+                    tail = lf.read()[-4000:]
+            except OSError:
+                tail = "<unreadable>"
+            rc = bot.poll()
+            pytest.fail(
+                f"bot exited even though its watched parent is still alive "
+                f"(returncode={rc})\nsubprocess.log tail:\n{tail}",
+            )
     finally:
         if log_f is not None:
             log_f.close()
