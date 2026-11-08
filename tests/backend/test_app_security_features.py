@@ -47,6 +47,11 @@ def test_ip_allowlist_empty_allows_all():
     assert client_ip_allowed("203.0.113.1", "")
 
 
+def test_ip_allowlist_malformed_entries_fail_closed():
+    assert not client_ip_allowed("127.0.0.1", "not-a-cidr")
+    assert not client_ip_allowed("127.0.0.1", "10.0.0.1/32, bogus")
+
+
 def test_app_security_settings_roundtrip(tmp_path):
     saved = save_app_security_settings(
         str(tmp_path),

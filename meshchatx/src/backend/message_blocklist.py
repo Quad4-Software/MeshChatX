@@ -204,8 +204,13 @@ def parse_import_document(
         return None
 
     version = document.get("version")
-    if version is not None and int(version) != EXPORT_VERSION:
-        return None
+    if version is not None:
+        try:
+            version_ok = int(version) == EXPORT_VERSION
+        except (TypeError, ValueError):
+            return None
+        if not version_ok:
+            return None
 
     imported = normalize_message_blocklist(
         {

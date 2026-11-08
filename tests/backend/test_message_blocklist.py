@@ -127,3 +127,10 @@ def test_import_merge_dedupes():
 
 def test_import_rejects_bad_schema():
     assert parse_import_document({"schema": "other"}, merge=False) is None
+
+
+def test_import_rejects_malformed_version():
+    assert parse_import_document({"version": "abc"}, merge=False) is None
+    assert parse_import_document({"version": "1.5"}, merge=False) is None
+    assert parse_import_document({"version": {"v": 1}}, merge=False) is None
+    assert parse_import_document({"version": [1]}, merge=False) is None

@@ -49,7 +49,13 @@ def client_ip_allowed(client_ip: str, allowlist_text: str | None) -> bool:
         addr = ipaddress.ip_address(client_ip.strip())
     except ValueError:
         return False
-    for network in parse_allowlist_networks(allowlist_text):
+    try:
+        networks = parse_allowlist_networks(allowlist_text)
+    except ValueError:
+        # Malformed entries (hand-edited settings file or unvalidated env
+        # proxy CIDRs) must fail closed, not crash every request with a 500.
+        return False
+    for network in networks:
         if addr in network:
             return True
     return False
