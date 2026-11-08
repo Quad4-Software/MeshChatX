@@ -362,7 +362,8 @@ def _path_table_stats() -> dict[str, Any] | None:
     if not callable(path_pool_counts):
         return None
     try:
-        total, unused = path_pool_counts()
+        counts: Any = path_pool_counts()
+        total, unused = counts
     except Exception:
         return None
     return {"total": total, "unused": unused}
