@@ -1,3 +1,20 @@
+## [4.12.0] - 2026-11-08 [unreleased]
+
+### Changed
+
+- Dependencies: Electron 45, RNS 1.6.0, LXMF 1.3.0, and a refresh of frontend and backend packages. RNS now keeps known destinations and announces in SQLite storage, and MeshChatX writes ratchets through that store instead of a thread per write. The local propagation node address resolves lazily, and path expiry follows RNS's PATH_TIMEOUT.
+- CI: workflows migrated to Blacksmith runners.
+- CI: cut PR cost. The advisory mutation job, quarantined tests, exploratory E2E, Lighthouse, and the custom CodeQL jobs now run on master pushes only (mutation remains available via manual dispatch), Self-Check runs its full OS matrix on master and Ubuntu only on PRs, and every job has a timeout. The coverage job fetches full history so diff-cover finds a merge base again.
+- Docker: refreshed pinned digests for the node:24-alpine, python:3.15.0-alpine3.24, python:3.15.0-slim-trixie, and Chainguard node/python latest-dev base images.
+
+### Fixed
+
+- Integrity check: the stat fast path trusted size and mtime alone, so a file changed within the same timestamp tick as the manifest write could pass verification on stale metadata. It now only trusts files last modified before the manifest.
+- Database wedge recovery: the reset cooldown used 0.0 as its never-reset sentinel, but monotonic time can sit below the cooldown right after boot, so a wedge on a fresh boot could go unrecovered. The sentinel is now None.
+- Codec2: the two live encode/decode tests skip when pycodec2 or libcodec2 is absent instead of failing on hosts without it.
+- Docker dev image: openssh is purged entirely (bookworm ships openssh-client 9.2p1 with a CRITICAL fix-deferred CVE), stale Node 24.22.1 tarball sha256 pins that made the image unbuildable are fixed, and libcodec2-dev is installed so pycodec2 builds on Python 3.15. The electron-wine image upgrades openssh to 8.9p1-3ubuntu0.18 for upstream CVE fixes.
+- Releases: the PyPI sdist builds with build 1.6.1 so it runs on Python 3.15, and the public Flatpak GPG key is allowlisted for the release-secret scan.
+
 ## [4.11.0] - 2026-11-01 [released]
 
 ### Changed
