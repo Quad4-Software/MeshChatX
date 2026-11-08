@@ -30,6 +30,10 @@ name: Docker (GHCR + Docker Hub)
 
 on:
     workflow_dispatch:
+    workflow_run:
+        workflows: ["CI"]
+        types: [completed]
+        branches: [master]
     push:
         tags:
             - "*"
@@ -106,6 +110,10 @@ env:
 
 jobs:
     build:
+        # workflow_run fires for every CI completion on master; only build
+        # images when the run actually passed. Tag pushes and manual
+        # dispatches are unaffected.
+        if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
         runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 90
         permissions:
@@ -178,6 +186,9 @@ jobs:
               uses: useblacksmith/checkout@2b9fe87d796feea153b455ec2f3125b471a7b0e7 # v1.8.2
               with:
                   persist-credentials: false
+                  # workflow_run events check out the exact commit CI tested,
+                  # which may differ from master HEAD if it moved since.
+                  ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.ref }}
 
             - name: OCI label timestamps and version
               id: oci
@@ -285,7 +296,7 @@ jobs:
                   outputs: type=image,push=true,compression=zstd,force-compression=true,oci-mediatypes=true
                   tags: ${{ steps.tags.outputs.tags }}
                   build-args: |
-                      OCI_REVISION=${{ github.sha }}
+                      OCI_REVISION=${{ github.event.workflow_run.head_sha || github.sha }}
                       OCI_VERSION=${{ steps.oci.outputs.version }}
                       OCI_CREATED=${{ steps.oci.outputs.created }}
                       VARIANT=${{ matrix.build_variant }}
@@ -304,7 +315,7 @@ jobs:
                   provenance: mode=max
                   tags: ${{ steps.dh_tags.outputs.tags }}
                   build-args: |
-                      OCI_REVISION=${{ github.sha }}
+                      OCI_REVISION=${{ github.event.workflow_run.head_sha || github.sha }}
                       OCI_VERSION=${{ steps.oci.outputs.version }}
                       OCI_CREATED=${{ steps.oci.outputs.created }}
                       VARIANT=${{ matrix.build_variant }}
