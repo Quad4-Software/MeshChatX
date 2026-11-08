@@ -77,13 +77,16 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
         local zig_sha="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239"
         if [ ! -x "${zdir}/zig" ]; then
             command -v curl >/dev/null 2>&1 || return 1
+            mkdir -p "$HOME/.local/meshchatx-ci"
             tmp="$(mktemp -d)"
             curl -fsSL -o "${tmp}/zig.tar.xz" "${zig_url}" || { rm -rf "${tmp}"; return 1; }
             echo "${zig_sha}  ${tmp}/zig.tar.xz" | sha256sum -c - >/dev/null \
                 || { rm -rf "${tmp}"; return 1; }
             mkdir -p "${tmp}/extract" && tar -xJf "${tmp}/zig.tar.xz" -C "${tmp}/extract" \
                 || { rm -rf "${tmp}"; return 1; }
-            mv "${tmp}/extract"/zig-* "${zdir}" && rm -rf "${tmp}"
+            rm -rf "${zdir}"
+            mv "${tmp}/extract"/zig-* "${zdir}" && rm -rf "${tmp}" \
+                || { rm -rf "${tmp}"; return 1; }
         fi
         [ -x "${zdir}/zig" ] || return 1
         mkdir -p "${zdir}/bin"
