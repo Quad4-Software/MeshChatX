@@ -37,6 +37,67 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
     # with PyOggError until the shared libraries are present.
     have_priv() { [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; }
 
+    # Minimal self-hosted images can ship a trimmed PATH (the runner invokes
+    # bash by absolute path so steps still work, but tests that subprocess
+    # `bash`/`node` by name fail). Make sure the standard dirs are present.
+    for _std_dir in /usr/local/bin /usr/bin /bin; do
+        case ":${PATH}:" in
+            *":${_std_dir}:"*) ;;
+            *) PATH="${PATH}:${_std_dir}" ;;
+        esac
+    done
+    export PATH
+    if [[ -n "${GITHUB_ENV:-}" ]]; then
+        echo "PATH=${PATH}" >> "$GITHUB_ENV"
+    fi
+
+    # If bash still does not resolve (nonstandard layouts), link the first
+    # real bash found into ~/.local/bin which is on PATH.
+    if ! command -v bash >/dev/null 2>&1; then
+        _bash_bin="$(find /bin /usr/bin /usr/local/bin /opt -maxdepth 3 -name bash -type f 2>/dev/null | head -n1)"
+        if [[ -n "${_bash_bin}" ]]; then
+            mkdir -p "${HOME}/.local/bin"
+            ln -sf "${_bash_bin}" "${HOME}/.local/bin/bash"
+            export PATH="${HOME}/.local/bin:${PATH}"
+            [[ -n "${GITHUB_ENV:-}" ]] && echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+        fi
+    fi
+
+    # User-space audio libs for runners where package install is impossible.
+    # pyogg dlopens libogg/libopus (& friends) at runtime; fetch the Arch
+    # packages and unpack just usr/lib into $HOME, then point the dynamic
+    # loader at it. find_library() honours LD_LIBRARY_PATH on CPython 3.15.
+    install_user_audio_libs() {
+        local dest="$HOME/.local/meshchatx-ci/syslibs"
+        mkdir -p "${dest}/pkgs"
+        [[ -f "${dest}/usr/lib/libopus.so.0" && -f "${dest}/usr/lib/libogg.so.0" ]] && return 0
+
+        local pkg ver url tmp f
+        for pkg in opus libogg opusfile libvorbis flac speex opus-tools; do
+            # 1) pacman download-only into a writable cachedir (no root).
+            if command -v pacman >/dev/null 2>&1 \
+                && pacman -Sw --cachedir "${dest}/pkgs" --noconfirm "${pkg}" >/dev/null 2>&1; then
+                for f in "${dest}/pkgs"/*.pkg.tar.zst; do
+                    [[ -e "${f}" ]] || continue
+                    tar -xf "${f}" -C "${dest}" usr/lib 2>/dev/null || true
+                done
+                continue
+            fi
+            # 2) Arch package API + geo mirror fallback.
+            ver="$(curl -fsSL "https://archlinux.org/packages/search/json/?name=${pkg}&repo=extra" 2>/dev/null \
+                | grep -o '"pkgver":"[^"]*"' | head -n1 | cut -d'"' -f4)"
+            [[ -n "${ver}" ]] || continue
+            url="https://geo.mirror.pkgbuild.com/extra/os/x86_64/${pkg}-${ver}-x86_64.pkg.tar.zst"
+            tmp="$(mktemp -d)"
+            if curl -fsSL -o "${tmp}/p.pkg.tar.zst" "${url}" 2>/dev/null; then
+                tar -xf "${tmp}/p.pkg.tar.zst" -C "${dest}" usr/lib 2>/dev/null || true
+            fi
+            rm -rf "${tmp}"
+        done
+
+        [[ -f "${dest}/usr/lib/libopus.so.0" && -f "${dest}/usr/lib/libogg.so.0" ]]
+    }
+
     # User-space codec2 for Linux runners that cannot install packages
     # (self-hosted without sudo). Builds once under $HOME so later jobs on the
     # same runner reuse it. Requires only a C toolchain.
@@ -163,6 +224,19 @@ WRAPPER
             else
                 MESHCHATX_LINUX_CODEC2="none"
                 echo "::warning::no codec2 available; pycodec2 will be skipped (optional at runtime)"
+            fi
+        fi
+        # pyogg needs libogg/libopus at runtime regardless of codec2. When the
+        # system package route was unavailable, fetch the shared libs into
+        # $HOME and export LD_LIBRARY_PATH for later steps.
+        if [[ "${MESHCHATX_LINUX_CODEC2:-}" != "system" ]]; then
+            if install_user_audio_libs; then
+                export LD_LIBRARY_PATH="${HOME}/.local/meshchatx-ci/syslibs/usr/lib:${LD_LIBRARY_PATH:-}"
+                if [[ -n "${GITHUB_ENV:-}" ]]; then
+                    echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
+                fi
+            else
+                echo "::warning::could not provide libogg/libopus; Opus audio tests may fail"
             fi
         fi
     fi

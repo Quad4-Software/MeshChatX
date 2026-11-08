@@ -211,6 +211,11 @@ jobs:
               with:
                   go-version: ${{ env.GO_VERSION }}
 
+            - name: Set up Node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+              with:
+                  node-version: "24"
+
             - name: Install TinyGo
               run: sh scripts/ci/setup-tinygo.sh ${{ env.TINYGO_VERSION }}
 
@@ -260,6 +265,11 @@ jobs:
               uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
               with:
                   go-version: ${{ env.GO_VERSION }}
+
+            - name: Set up Node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+              with:
+                  node-version: "24"
 
             - name: Install TinyGo
               run: sh scripts/ci/setup-tinygo.sh ${{ env.TINYGO_VERSION }}
@@ -311,6 +321,11 @@ jobs:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
                   install-node: "false"
+
+            - name: Set up Node (backend tests invoke node scripts)
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+              with:
+                  node-version: "24"
 
             - name: Run backend tests
               env:
