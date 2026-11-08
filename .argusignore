@@ -66,3 +66,20 @@ AST-GO-001 geo-wasm/mgrs/geolib_test.go
 AST-GO-001 geo-wasm/mgrs/proj_test.go
 AST-GO-001 geo-wasm/mgrs/ups_proj_test.go
 AST-GO-001 scripts/license_scope_mapper.go
+
+# Wails desktop shell (desktop/): reviewed intentional process/TLS use.
+# GO-001 sites are loopback-only (annotated in source); exec.Command sites
+# spawn the backend binary, platform helpers (explorer/open/pmset/taskkill),
+# or test fixtures - all argument-array form, no shell interpolation.
+GO-001 desktop/internal/appserver/appserver.go
+GO-001 desktop/internal/bridge/bridge.go
+AST-GO-001 desktop/internal/backendproc/backendproc.go
+AST-GO-001 desktop/internal/backendproc/backendproc_test.go
+AST-GO-001 desktop/internal/backendproc/kill_orphan_windows.go
+AST-GO-001 desktop/internal/backendproc/kill_windows.go
+AST-GO-001 desktop/internal/serial/serial_test.go
+AST-GO-001 desktop/internal/system/power_darwin.go
+AST-GO-001 desktop/internal/system/powerstate_darwin.go
+AST-GO-001 desktop/main.go
+GO-002 desktop/internal/backendproc/backendproc_test.go
+JS-003 scripts/build-desktop-shell-css.mjs
