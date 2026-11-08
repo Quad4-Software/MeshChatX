@@ -120,7 +120,9 @@ jobs:
                   uv run pip-audit
 
             - name: Apt update (for Trivy .deb)
-              run: sh scripts/ci/exec-priv.sh apt-get update -qq
+              # Only relevant on Debian-family runners; setup-trivy.sh falls
+              # back to a verified static tarball elsewhere (e.g. Arch).
+              run: command -v apt-get >/dev/null 2>&1 && sh scripts/ci/exec-priv.sh apt-get update -qq || true
 
             - name: Setup Trivy
               run: sh scripts/ci/setup-trivy.sh
