@@ -16,7 +16,7 @@
 - Docker dev image: openssh is purged entirely (bookworm ships openssh-client 9.2p1 with a CRITICAL fix-deferred CVE), stale Node 24.22.1 tarball sha256 pins that made the image unbuildable are fixed, and libcodec2-dev is installed so pycodec2 builds on Python 3.15. The electron-wine image upgrades openssh to 8.9p1-3ubuntu0.18 for upstream CVE fixes.
 - Releases: the PyPI sdist builds with build 1.6.1 so it runs on Python 3.15, and the public Flatpak GPG key is allowlisted for the release-secret scan.
 
-## [4.11.0] - 2026-11-01 [released]
+## [4.11.0] - 2026-11-01 [skipped]
 
 ### Changed
 
