@@ -155,7 +155,9 @@ class TestFailureCleanup:
         root = _fresh_dir(tmp_path)
         target = root / "state.bin"
         target.write_bytes(b"original")
-        real_fdopen = os.fdopen
+        import builtins
+
+        real_builtins_open = builtins.open
 
         class _WriteBomb:
             """Proxy whose write always fails, like a full disk."""
@@ -176,10 +178,14 @@ class TestFailureCleanup:
                 self._inner.close()
                 return False
 
-        def flaky_fdopen(fd, mode="rb", *args, **kwargs):
-            return _WriteBomb(real_fdopen(fd, mode, *args, **kwargs))
+        def flaky_open(file, mode="r", *args, **kwargs):
+            # atomic_write_bytes wraps the mkstemp fd via open(fd, "wb");
+            # only intercept fd-based opens so path opens still work.
+            if isinstance(file, int):
+                return _WriteBomb(real_builtins_open(file, mode, *args, **kwargs))
+            return real_builtins_open(file, mode, *args, **kwargs)
 
-        monkeypatch.setattr(os, "fdopen", flaky_fdopen)
+        monkeypatch.setattr("builtins.open", flaky_open)
         with pytest.raises(OSError, match="write failure"):
             atomic_write_bytes(target, b"new-payload")
 

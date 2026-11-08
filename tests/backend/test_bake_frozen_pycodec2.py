@@ -307,31 +307,26 @@ def test_ci_wires_codec2_freeze_guards() -> None:
     x64 = Path("scripts/ci/github-install-macos-x64-python-deps.sh").read_text(
         encoding="utf-8",
     )
-    universal = Path("scripts/build-macos-universal.sh").read_text(encoding="utf-8")
     backend_js = Path("scripts/build-backend.js").read_text(encoding="utf-8")
     probe = Path("meshchatx/src/backend/frozen_freeze_probe.py").read_text(
         encoding="utf-8",
     )
-    unify = Path("scripts/unify-backend-plain-files.sh").read_text(encoding="utf-8")
     macos_ci = Path("scripts/ci/github-build-macos.sh").read_text(encoding="utf-8")
+    macos_x64_ci = Path("scripts/ci/github-build-macos-x64.sh").read_text(
+        encoding="utf-8",
+    )
     windows_ci = Path("scripts/ci/github-build-windows.sh").read_text(encoding="utf-8")
     ci_yml = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
     assert "patch_lxst_codec2_optional.py" in deps
-    assert "unify-backend may drop it later" not in deps
     assert "patch_lxst_codec2_optional.py" in x64
-    assert "unify-backend may drop it later" not in x64
     assert "bake_frozen_pycodec2" in backend_js
-    assert "github-verify-frozen-codec2.sh" in universal
-    assert "github-verify-frozen-runtime.sh" in universal
-    assert "github-verify-frozen-umsgpack.sh" in universal
     assert "github-verify-frozen-codec2.sh" in macos_ci
+    assert "github-verify-frozen-codec2.sh" in macos_x64_ci
     assert "github-verify-frozen-codec2.sh" in windows_ci
     assert "github-verify-frozen-codec2.sh" in ci_yml
+    assert "github-verify-frozen-runtime.sh" in macos_ci
+    assert "github-verify-frozen-umsgpack.sh" in macos_ci
     assert "import LXST" in probe
     assert "import pycodec2" in probe
     assert "import RNS.vendor.umsgpack as umsgpack" in probe
-    assert "required native" in unify
-    assert "libcodec2" in unify
-    assert "libscipy_openblas" in unify
-    assert "MESHCHATX_UNIFY_ARM64_DIR" in unify

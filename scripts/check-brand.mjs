@@ -26,7 +26,7 @@ export function checkBrand(brand, brandPath = path.join(root, "brand.json")) {
     };
 
     const checks = [
-        ["package.json", brand.app_id, "app_id"],
+        ["desktop/build/config.yml", brand.app_id, "app_id"],
         ["package.json", brand.name, "name"],
         ["packaging/flatpak/com.meshchatx.app.metainfo.xml", brand.app_id, "app_id"],
         ["packaging/flatpak/com.meshchatx.app.desktop", brand.slug, "slug"],

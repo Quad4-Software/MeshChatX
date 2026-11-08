@@ -56,10 +56,7 @@ _REPLACEMENTS: list[tuple[str, str]] = [
         ),
     ),
     (
-        (
-            "        assert name is not None\n"
-            "        return name\n"
-        ),
+        ("        assert name is not None\n        return name\n"),
         (
             "        if name is None:\n"
             '            raise RuntimeError("pulseaudio client info callback did not fire")\n'
@@ -67,10 +64,7 @@ _REPLACEMENTS: list[tuple[str, str]] = [
         ),
     ),
     (
-        (
-            "        assert rv is not None\n"
-            "        if rv == 0:\n"
-        ),
+        ("        assert rv is not None\n        if rv == 0:\n"),
         (
             "        if rv is None:\n"
             '            raise RuntimeError("pulseaudio set_name callback did not fire")\n'
@@ -103,9 +97,7 @@ def main() -> int:
 
     text = soundcard.read_text(encoding="utf-8")
     if _MARKER in text:
-        print(
-            f"patch_lxst_pulseaudio_hardened: already patched ({soundcard})"
-        )
+        print(f"patch_lxst_pulseaudio_hardened: already patched ({soundcard})")
         return 0
 
     patched = text
@@ -130,10 +122,7 @@ def main() -> int:
         return 1
 
     soundcard.write_text(patched, encoding="utf-8")
-    print(
-        f"patch_lxst_pulseaudio_hardened: applied {applied} fix(es) "
-        f"({soundcard})"
-    )
+    print(f"patch_lxst_pulseaudio_hardened: applied {applied} fix(es) ({soundcard})")
     return 0
 
 

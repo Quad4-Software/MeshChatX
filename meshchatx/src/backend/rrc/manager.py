@@ -1611,9 +1611,7 @@ class RRCHub:
         # dict; bound the total so a crafted store file cannot grow it
         # without limit either.
         while len(self.messages) > MAX_ROOM_KEYS:
-            victim = next(
-                (r for r in self.messages if r not in self.rooms), None
-            )
+            victim = next((r for r in self.messages if r not in self.rooms), None)
             if victim is None:
                 break
             self._ephemeral_rooms.pop(victim, None)
@@ -2198,9 +2196,7 @@ class RRCHub:
                 self.hub_name = self._wire_text(hub_name, MAX_WIRE_HUB_STR_BYTES)
             ver = body.get(proto.B_WELCOME_VER)
             if isinstance(ver, str):
-                self.hub_version = self._wire_text(
-                    ver, MAX_WIRE_HUB_STR_BYTES
-                )
+                self.hub_version = self._wire_text(ver, MAX_WIRE_HUB_STR_BYTES)
             limits = body.get(proto.B_WELCOME_LIMITS)
         with self._lock:
             was_reconnect = self._had_session
@@ -2390,11 +2386,7 @@ class RRCHub:
         mid_b = self._wire_bytes(mid)
         nick_safe = self._wire_text(nick, MAX_WIRE_NICK_BYTES)
         own_hash = self._own_hash()
-        is_own = (
-            src_b is not None
-            and own_hash is not None
-            and src_b == own_hash
-        )
+        is_own = src_b is not None and own_hash is not None and src_b == own_hash
         own_echo = False
         if is_own and mid_b is not None:
             with self._lock:
@@ -3362,8 +3354,7 @@ class RRCManager:
             for r in rooms[:MAX_ROOM_KEYS]:
                 if (
                     isinstance(r, str)
-                    and len(r.encode("utf-8", errors="replace"))
-                    <= MAX_WIRE_ROOM_BYTES
+                    and len(r.encode("utf-8", errors="replace")) <= MAX_WIRE_ROOM_BYTES
                 ):
                     with contextlib.suppress(Exception):
                         hub.add_room(r)
@@ -3372,8 +3363,7 @@ class RRCManager:
             for r in parted[:MAX_ROOM_KEYS]:
                 if (
                     isinstance(r, str)
-                    and len(r.encode("utf-8", errors="replace"))
-                    <= MAX_WIRE_ROOM_BYTES
+                    and len(r.encode("utf-8", errors="replace")) <= MAX_WIRE_ROOM_BYTES
                 ):
                     with contextlib.suppress(Exception):
                         rn = proto.normalize_room(r)

@@ -14,6 +14,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const ALLOWLIST_PATH = path.join(ROOT, "scripts", "deps-allowlist.json");
 const PACKAGE_JSON_PATH = path.join(ROOT, "package.json");
+const FLATPAK_MANIFEST_PATH = path.join(ROOT, "packaging", "flatpak", "manifest.json");
 const LOCKFILE_PATH = path.join(ROOT, "pnpm-lock.yaml");
 const FETCH_MICRON_WASM_PATH = path.join(ROOT, "scripts", "fetch-micron-wasm.mjs");
 
@@ -221,12 +222,25 @@ function main() {
     const allowGitSources = allowlist.git_sources || [];
     /** @type {object[]} */
     const declaredGitSources = [];
-    for (const mod of flatpakModules) {
-        for (const source of mod.sources || []) {
+    const collectGitSources = (sources) => {
+        for (const source of sources || []) {
             if (source && source.type === "git" && source.url) {
                 declaredGitSources.push(source);
             }
         }
+    };
+    for (const mod of flatpakModules) {
+        collectGitSources(mod.sources);
+    }
+    // The Wails flatpak build uses packaging/flatpak/manifest.json (flatpak-builder
+    // format) instead of electron-builder's package.json#build.flatpak.modules.
+    // Git sources can appear both inside modules and at the manifest top level.
+    if (fs.existsSync(FLATPAK_MANIFEST_PATH)) {
+        const manifest = JSON.parse(fs.readFileSync(FLATPAK_MANIFEST_PATH, "utf8"));
+        for (const mod of manifest.modules || []) {
+            collectGitSources(mod.sources);
+        }
+        collectGitSources(manifest.sources);
     }
 
     for (const source of declaredGitSources) {

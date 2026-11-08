@@ -291,6 +291,10 @@ flatpak update
 
 Swap in `meshchatx-beta.flatpakref` or `meshchatx-testing.flatpakref` for those channels. Beta and testing refs exist only after a `beta-*` or `nightly-*`/`testing-*` tag has published a build. Until then the install fails with "No such ref" and stable is the only channel. The app ID is `com.meshchatx.app`. If a leftover GitHub Pages remote is still named `meshchatx`, run `flatpak remote-delete meshchatx` first.
 
+## Desktop deep links
+
+The desktop shells register `lxmf://` and `rns://` URL handlers. Opening such a link launches the app (or focuses the running instance) and forwards the URL to the app page once it is ready; links arriving during startup are queued, not dropped. On macOS, launching a second copy via a URL scheme is an OS-level limitation — the URL reaches the already-running instance only when the system delivers `open-url` to it; cold `open -a` with a URL argument works.
+
 ## Linux desktop emoji fonts
 
 The emoji picker uses system fonts through the platform webview. Empty squares mean a color emoji package is missing. Install one and restart the app.

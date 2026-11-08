@@ -42,9 +42,20 @@ def test_safe_path_under_dir_rejects_symlink_escape(tmp_path):
 
 
 def test_atomic_write_bytes_keeps_destination_if_tmp_write_fails(tmp_path):
+    import builtins
+
     dest = tmp_path / "meta.json"
     dest.write_bytes(b"OLD")
-    with patch("os.fdopen", side_effect=OSError("disk full")):
+    real_open = builtins.open
+
+    def flaky_open(file, *args, **kwargs):
+        # atomic_write_bytes wraps the mkstemp fd via open(fd, "wb");
+        # fail only fd-based opens so path opens still work.
+        if isinstance(file, int):
+            raise OSError("disk full")
+        return real_open(file, *args, **kwargs)
+
+    with patch("builtins.open", flaky_open):
         with pytest.raises(OSError, match="disk full"):
             atomic_write_bytes(str(dest), b"NEW")
     assert dest.read_bytes() == b"OLD"

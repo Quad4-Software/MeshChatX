@@ -1684,7 +1684,9 @@ class ReticulumMeshChat:
                     )
                 else:
                     os.makedirs(os.path.dirname(main_identity_file), exist_ok=True)
-                    _atomic_copy_identity_file(identity_storage_file, main_identity_file)
+                    _atomic_copy_identity_file(
+                        identity_storage_file, main_identity_file
+                    )
             final_db_path = db_path
             if restored_identity_hash:
                 final_db_path = self._relocate_restored_identity_dir(
@@ -3417,7 +3419,9 @@ class ReticulumMeshChat:
 
                     if emergency_id:
                         # Copy to main identity file
-                        _atomic_copy_identity_file(emergency_identity_file, main_identity_file)
+                        _atomic_copy_identity_file(
+                            emergency_identity_file, main_identity_file
+                        )
                         self.running = True
                         self.setup_identity(emergency_id)
                         print(f"Emergency identity created and loaded: {new_id_hash}")
@@ -9688,7 +9692,9 @@ class ReticulumMeshChat:
                     use_blackhole = bool(cfg.blackhole_integration_enabled.get())
                 except Exception:
                     use_blackhole = True
-            if use_blackhole and hasattr(getattr(self, "reticulum", None), "blackhole_identity"):
+            if use_blackhole and hasattr(
+                getattr(self, "reticulum", None), "blackhole_identity"
+            ):
                 reason = (
                     f"Blocked in MeshChatX (from {destination_hash})"
                     if identity_hash
@@ -10196,10 +10202,8 @@ class ReticulumMeshChat:
             flood_owner = self._lxmf_flood_state_owner(ctx)
             with self._lxmf_flood_lock:
                 flood_owner._lxmf_incoming_timestamps.append(time.time())
-                flood_owner._lxmf_incoming_timestamps = (
-                    prune_lxmf_incoming_timestamps(
-                        flood_owner._lxmf_incoming_timestamps,
-                    )
+                flood_owner._lxmf_incoming_timestamps = prune_lxmf_incoming_timestamps(
+                    flood_owner._lxmf_incoming_timestamps,
                 )
             self._check_lxmf_flood_protection(context=ctx)
 

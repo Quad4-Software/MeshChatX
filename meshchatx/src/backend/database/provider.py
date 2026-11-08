@@ -573,9 +573,7 @@ class DatabaseProvider:
                 k: (v.isoformat() if isinstance(v, datetime) else v)
                 for k, v in params.items()
             }
-        return tuple(
-            (p.isoformat() if isinstance(p, datetime) else p) for p in params
-        )
+        return tuple((p.isoformat() if isinstance(p, datetime) else p) for p in params)
 
     def _run_statement(self, conn, query, params, commit=None):
         """Execute query on conn and return the cursor.

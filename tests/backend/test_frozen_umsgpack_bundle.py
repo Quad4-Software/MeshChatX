@@ -29,10 +29,12 @@ def test_ci_wires_umsgpack_freeze_guard() -> None:
 
     ci_yml = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     macos_ci = Path("scripts/ci/github-build-macos.sh").read_text(encoding="utf-8")
+    macos_x64_ci = Path("scripts/ci/github-build-macos-x64.sh").read_text(
+        encoding="utf-8",
+    )
     windows_ci = Path("scripts/ci/github-build-windows.sh").read_text(encoding="utf-8")
-    universal = Path("scripts/build-macos-universal.sh").read_text(encoding="utf-8")
 
     assert "github-verify-frozen-umsgpack.sh" in ci_yml
     assert "github-verify-frozen-umsgpack.sh" in macos_ci
+    assert "github-verify-frozen-umsgpack.sh" in macos_x64_ci
     assert "github-verify-frozen-umsgpack.sh" in windows_ci
-    assert "github-verify-frozen-umsgpack.sh" in universal

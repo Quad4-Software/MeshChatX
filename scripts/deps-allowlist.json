@@ -11,15 +11,7 @@
             "repository": "https://github.com/RFnexus/micron-parser-js"
         }
     ],
-    "git_sources": [
-        {
-            "name": "zypak",
-            "url": "https://github.com/refi64/zypak",
-            "tag": "v2025.09",
-            "commit": "693a71c5ffa80ec9c9ce2ae03b1ccc493c698e53",
-            "declared_in": "package.json#build.flatpak.modules"
-        }
-    ],
+    "git_sources": [],
     "download_urls": [
         {
             "name": "micron-parser-go-wasm",
