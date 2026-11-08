@@ -63,6 +63,43 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
         return 1
     }
 
+    # Some sdists (miniaudio, pycodec2) need a C++ compiler. Point CXX at
+    # whatever exists; on minimal self-hosted runners bootstrap zig's
+    # bundled clang as a portable cc/c++ toolchain under $HOME.
+    ensure_cpp() {
+        command -v c++ >/dev/null 2>&1 && return 0
+        command -v g++ >/dev/null 2>&1 && { export CXX=g++; return 0; }
+        command -v clang++ >/dev/null 2>&1 && { export CXX=clang++; return 0; }
+        local zdir tmp url mode
+        zdir="$HOME/.local/meshchatx-ci/zig"
+        if [ ! -x "${zdir}/zig" ]; then
+            command -v curl >/dev/null 2>&1 || return 1
+            url="$(curl -fsSL https://ziglang.org/download/index.json \
+                | grep -o '"tarball":"[^"]*x86_64-linux[^"]*\.tar\.xz"' \
+                | head -n1 | cut -d'"' -f4)"
+            [ -n "${url}" ] || return 1
+            tmp="$(mktemp -d)"
+            curl -fsSL -o "${tmp}/zig.tar.xz" "${url}" || { rm -rf "${tmp}"; return 1; }
+            mkdir -p "${tmp}/extract" && tar -xJf "${tmp}/zig.tar.xz" -C "${tmp}/extract" \
+                || { rm -rf "${tmp}"; return 1; }
+            mv "${tmp}/extract"/zig-* "${zdir}" && rm -rf "${tmp}"
+        fi
+        [ -x "${zdir}/zig" ] || return 1
+        mkdir -p "${zdir}/bin"
+        for tool in cc c++ gcc g++; do
+            case "${tool}" in
+                cc|gcc) mode="cc" ;;
+                *) mode="c++" ;;
+            esac
+            printf '#!/bin/sh\nexec "%s/zig" %s "$@"\n' "${zdir}" "${mode}" \
+                > "${zdir}/bin/${tool}"
+            chmod +x "${zdir}/bin/${tool}"
+        done
+        export PATH="${zdir}/bin:${PATH}"
+        export CC=cc CXX=c++
+        return 0
+    }
+
     MESHCHATX_LINUX_CODEC2=""
     if [[ "$(uname -s)" == "Linux" ]]; then
         if command -v apt-get >/dev/null 2>&1 && have_priv; then
@@ -100,6 +137,18 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
                 MESHCHATX_LINUX_CODEC2="none"
                 echo "::warning::no codec2 available; pycodec2 will be skipped (optional at runtime)"
             fi
+        fi
+    fi
+
+    if [[ "$(uname -s)" == "Linux" ]]; then
+        if ensure_cpp; then
+            if [[ -n "${GITHUB_ENV:-}" ]]; then
+                echo "PATH=${PATH}" >> "$GITHUB_ENV"
+                if [ -n "${CC:-}" ]; then echo "CC=${CC}" >> "$GITHUB_ENV"; fi
+                if [ -n "${CXX:-}" ]; then echo "CXX=${CXX}" >> "$GITHUB_ENV"; fi
+            fi
+        else
+            echo "::warning::no C++ compiler found; sdist builds may fail"
         fi
     fi
 
