@@ -1177,7 +1177,7 @@ iframe {
 }
 
 .docs-prose {
-    color: var(--mc-fg, var(--mc-text-secondary));
+    color: var(--mc-text-secondary);
     font-size: 0.9375rem;
     line-height: 1.7;
 }

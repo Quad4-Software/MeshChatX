@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync, statSync } from "fs";
+import { join } from "path";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
     injectMeshchatThemeVariables,
@@ -5,6 +7,7 @@ import {
     MESHCHAT_THEME_VARIABLES_DARK,
     tailwindSemanticColorExtend,
 } from "../../meshchatx/src/frontend/theme/designTokens.js";
+import { THEME_PRESETS } from "../../meshchatx/src/frontend/theme/themeEngine.js";
 
 describe("design tokens", () => {
     it("light and dark variable maps define the same keys", () => {
@@ -67,5 +70,56 @@ describe("injectMeshchatThemeVariables", () => {
         injectMeshchatThemeVariables(document);
         injectMeshchatThemeVariables(document);
         expect(document.querySelectorAll("#meshchat-design-tokens").length).toBe(1);
+    });
+});
+
+describe("design token references", () => {
+    const FRONTEND = join(process.cwd(), "meshchatx/src/frontend");
+    const VAR_REF_RE = /var\((--mc-[a-z0-9-]+)/g;
+
+    function definedTokenNames() {
+        const names = new Set([
+            ...Object.keys(MESHCHAT_THEME_VARIABLES_LIGHT),
+            ...Object.keys(MESHCHAT_THEME_VARIABLES_DARK),
+        ]);
+        for (const preset of Object.values(THEME_PRESETS)) {
+            for (const mode of ["light", "dark"]) {
+                for (const key of Object.keys(preset[mode] || {})) {
+                    names.add(key);
+                }
+            }
+        }
+        return names;
+    }
+
+    function walkSources(dir, out = []) {
+        for (const name of readdirSync(dir)) {
+            if (name === "node_modules" || name === "public" || name === "fonts") {
+                continue;
+            }
+            const full = join(dir, name);
+            if (statSync(full).isDirectory()) {
+                walkSources(full, out);
+                continue;
+            }
+            if (/\.(css|vue|js|html)$/.test(name)) {
+                out.push(full);
+            }
+        }
+        return out;
+    }
+
+    it("every var(--mc-*) reference resolves to a defined token", () => {
+        const defined = definedTokenNames();
+        const missing = [];
+        for (const file of walkSources(FRONTEND)) {
+            const source = readFileSync(file, "utf8");
+            for (const match of source.matchAll(VAR_REF_RE)) {
+                if (!defined.has(match[1])) {
+                    missing.push(`${file}: ${match[1]}`);
+                }
+            }
+        }
+        expect([...new Set(missing)]).toEqual([]);
     });
 });

@@ -17,6 +17,7 @@
 - Releases: the PyPI sdist builds with build 1.6.1 so it runs on Python 3.15, and the public Flatpak GPG key is allowlisted for the release-secret scan.
 - Message blocklist: importing a shared document whose version field is not an integer crashed the request with a server error. Malformed documents are now rejected cleanly.
 - Web UI access: a malformed entry in the IP allowlist file or in the trusted proxy CIDRs environment variable turned every request into a server error. Access checks now fail closed instead.
+- NomadNet browser: the renderer engine toggle and toolbar icon buttons now pick up the themed hover color. They referenced a design token that does not exist, so the inactive toggle rendered without a background and icon hovers stayed dark even in light mode.
 
 ## [4.11.0] - 2026-11-01 [skipped]
 

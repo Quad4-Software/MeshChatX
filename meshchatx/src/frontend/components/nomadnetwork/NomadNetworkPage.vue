@@ -169,7 +169,7 @@
                                             :class="
                                                 (configStore.config.nomad_micron_default_engine || 'js') === 'js'
                                                     ? 'bg-sem-action-primary text-sem-action-primary-text dark:bg-sem-info'
-                                                    : 'bg-[var(--mc-surface-hover)] text-[var(--mc-text-secondary)] hover:bg-[var(--mc-border-strong)]'
+                                                    : 'bg-[var(--mc-context-hover)] text-[var(--mc-text-secondary)] hover:bg-[var(--mc-border-strong)]'
                                             "
                                             :disabled="!configStore.config.nomad_micron_wasm_enabled"
                                             @click.stop="
@@ -185,7 +185,7 @@
                                             :class="
                                                 (configStore.config.nomad_micron_default_engine || 'js') === 'wasm'
                                                     ? 'bg-sem-action-primary text-sem-action-primary-text dark:bg-sem-info'
-                                                    : 'bg-[var(--mc-surface-hover)] text-[var(--mc-text-secondary)] hover:bg-[var(--mc-border-strong)]'
+                                                    : 'bg-[var(--mc-context-hover)] text-[var(--mc-text-secondary)] hover:bg-[var(--mc-border-strong)]'
                                             "
                                             :disabled="!configStore.config.nomad_micron_wasm_enabled"
                                             @click.stop="
@@ -4834,7 +4834,7 @@ export default {
 }
 
 .nomad-icon-btn:hover {
-    background: color-mix(in srgb, var(--mc-surface-hover, #27272a) 65%, transparent) !important;
+    background: color-mix(in srgb, var(--mc-context-hover) 65%, transparent) !important;
 }
 
 .nomad-url-input {
