@@ -71,19 +71,27 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
         local pkg="$1"
         local dest="$HOME/.local/meshchatx-ci/syslibs"
         mkdir -p "${dest}/pkgs"
-        local f ver url tmp
+        local f url tmp
         if command -v pacman >/dev/null 2>&1; then
             pacman -Sw --cachedir "${dest}/pkgs" --noconfirm "${pkg}" >/dev/null 2>&1 || true
         fi
         if ! compgen -G "${dest}/pkgs/${pkg}-*.pkg.tar.zst" >/dev/null; then
-            ver="$(curl -fsSL "https://archlinux.org/packages/search/json/?name=${pkg}&repo=extra" 2>/dev/null \
-                | grep -o '"pkgver":"[^"]*"' | head -n1 | cut -d'"' -f4)"
-            [[ -n "${ver}" ]] || return 1
-            url="https://geo.mirror.pkgbuild.com/extra/os/x86_64/${pkg}-${ver}-x86_64.pkg.tar.zst"
+            # Package search API: pick the result whose pkgname matches
+            # exactly and take its authoritative filename + repo.
+            local row fname rep
+            row="$(curl -fsSL --max-time 30 \
+                "https://archlinux.org/packages/search/json/?name=${pkg}" 2>/dev/null \
+                | grep -o '{[^{}]*"pkgname"[^{}]*}' \
+                | grep -F "\"pkgname\": \"${pkg}\"" \
+                | head -n1)"
+            fname="$(printf '%s' "${row}" | grep -o '"filename": *"[^"]*"' | head -n1 | sed 's/.*"\([^"]*\)"$/\1/')"
+            rep="$(printf '%s' "${row}" | grep -o '"repo": *"[^"]*"' | head -n1 | sed 's/.*"\([^"]*\)"$/\1/')"
+            [[ -n "${fname}" && -n "${rep}" ]] || return 1
+            url="https://geo.mirror.pkgbuild.com/${rep}/os/x86_64/${fname}"
             tmp="$(mktemp -d)"
-            curl -fsSL -o "${tmp}/p.pkg.tar.zst" "${url}" 2>/dev/null \
+            curl -fsSL --max-time 120 -o "${tmp}/p.pkg.tar.zst" "${url}" 2>/dev/null \
                 || { rm -rf "${tmp}"; return 1; }
-            mv "${tmp}/p.pkg.tar.zst" "${dest}/pkgs/${pkg}-${ver}-x86_64.pkg.tar.zst"
+            mv "${tmp}/p.pkg.tar.zst" "${dest}/pkgs/${fname}"
             rm -rf "${tmp}"
         fi
         local extracted=0
