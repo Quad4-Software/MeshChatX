@@ -106,7 +106,7 @@ env:
 
 jobs:
     build:
-        runs-on: ubuntu-latest
+        runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 120
         permissions:
             contents: read
@@ -175,7 +175,7 @@ jobs:
                   check sigstore/cosign-installer v3.10.1 7e8b541eb2e61bf99390e1afd4be13a184e9ebc5
 
             - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              uses: useblacksmith/checkout@2b9fe87d796feea153b455ec2f3125b471a7b0e7 # v1.8.2
               with:
                   persist-credentials: false
 
@@ -200,8 +200,8 @@ jobs:
             - name: Set up QEMU
               uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
 
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+            - name: Setup Blacksmith Builder
+              uses: useblacksmith/setup-docker-builder@8fbda8108100092be0ef3320da0a93fbb8f47d7f # v1.14.0
 
             - name: Log in to GHCR
               uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
@@ -275,7 +275,7 @@ jobs:
             # image exporter options in `outputs`.
             - name: Build and push (GHCR, zstd layers)
               id: build
-              uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+              uses: useblacksmith/build-push-action@9b0579bbec7a6cad2f171596c57e7ac1e7658850 # v2.3.0
               with:
                   context: .
                   file: ${{ matrix.dockerfile }}
@@ -284,8 +284,6 @@ jobs:
                   provenance: mode=max
                   outputs: type=image,push=true,compression=zstd,force-compression=true,oci-mediatypes=true
                   tags: ${{ steps.tags.outputs.tags }}
-                  cache-from: type=gha,scope=${{ matrix.variant }}
-                  cache-to: type=gha,mode=max,scope=${{ matrix.variant }}
                   build-args: |
                       OCI_REVISION=${{ github.sha }}
                       OCI_VERSION=${{ steps.oci.outputs.version }}
@@ -296,7 +294,7 @@ jobs:
 
             - name: Build and push (Docker Hub, gzip layers)
               if: ${{ steps.dockerhub.outputs.configured == 'true' }}
-              uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+              uses: useblacksmith/build-push-action@9b0579bbec7a6cad2f171596c57e7ac1e7658850 # v2.3.0
               with:
                   context: .
                   file: ${{ matrix.dockerfile }}
@@ -305,7 +303,6 @@ jobs:
                   sbom: true
                   provenance: mode=max
                   tags: ${{ steps.dh_tags.outputs.tags }}
-                  cache-from: type=gha,scope=${{ matrix.variant }}
                   build-args: |
                       OCI_REVISION=${{ github.sha }}
                       OCI_VERSION=${{ steps.oci.outputs.version }}

@@ -66,7 +66,7 @@ class DatabaseProvider:
         self._closed = False
         self._persistent_failure_started = None
         self._persistent_failures = 0
-        self._wedge_reset_at = 0.0
+        self._wedge_reset_at = None
         self._unrecoverable_notified = False
         # Per-connection default. Worker threads opened via asyncio.to_thread
         # never see Database._tune_sqlite_pragmas(), so this must be set here.
@@ -339,7 +339,7 @@ class DatabaseProvider:
             return
         self._closed = False
         self._wedge_suppressed = False
-        self._wedge_reset_at = 0.0
+        self._wedge_reset_at = None
         self._unrecoverable_notified = False
         self._persistent_failure_started = None
         self._persistent_failures = 0
@@ -457,9 +457,14 @@ class DatabaseProvider:
                 or self._persistent_failures < _WEDGE_MIN_FAILURES
             ):
                 return
-            reset_due = now - self._wedge_reset_at >= _WEDGE_RESET_COOLDOWN
+            # None until the first reset. time.monotonic() can be smaller
+            # than the cooldown shortly after boot, so 0 is not a safe sentinel.
+            reset_due = (
+                self._wedge_reset_at is None
+                or now - self._wedge_reset_at >= _WEDGE_RESET_COOLDOWN
+            )
             escalate = (
-                self._wedge_reset_at > 0
+                self._wedge_reset_at is not None
                 and now - self._wedge_reset_at >= _WEDGE_ESCALATE_DELAY
                 and not self._unrecoverable_notified
             )
