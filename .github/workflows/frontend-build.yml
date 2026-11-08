@@ -171,7 +171,7 @@ jobs:
                   echo "artifact_name=${name}" >> "${GITHUB_OUTPUT}"
 
             - name: Set up Python (for docs bundler)
-              uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+              uses: $/.github/actions/setup-python-uv
               with:
                   python-version: ${{ inputs.python_version }}
 

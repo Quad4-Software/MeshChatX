@@ -90,13 +90,36 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
         fi
         [ -x "${zdir}/zig" ] || return 1
         mkdir -p "${zdir}/bin"
+        # Pin a gnu target so -dumpmachine and autoconfs report linux-gnu
+        # (bare `zig cc` reports musl). Unknown arches fall back to native.
+        local ztarget
+        case "$(uname -m)" in
+            x86_64) ztarget="x86_64-linux-gnu" ;;
+            aarch64|arm64) ztarget="aarch64-linux-gnu" ;;
+            armv7l) ztarget="arm-linux-gnueabihf" ;;
+            *) ztarget="native" ;;
+        esac
+        # zig's linker rejects a few GNU-ld-only args that CPython's
+        # sysconfig LDFLAGS inject into every extension link. Verified
+        # unsupported on zig 0.15.2: --exclude-libs, -z separate-code,
+        # -z unique. The wrapper drops them; everything else passes through.
         for tool in cc c++ gcc g++; do
             case "${tool}" in
                 cc|gcc) mode="cc" ;;
                 *) mode="c++" ;;
             esac
-            printf '#!/bin/sh\nexec "%s/zig" %s "$@"\n' "${zdir}" "${mode}" \
-                > "${zdir}/bin/${tool}"
+            cat > "${zdir}/bin/${tool}" <<WRAPPER
+#!/usr/bin/env bash
+args=()
+for a in "\$@"; do
+    case "\$a" in
+        -Wl,--exclude-libs|-Wl,--exclude-libs,*|-Wl,--exclude-libs=*) ;;
+        -Wl,-z,separate-code|-Wl,-z,separate-code=*|-Wl,-z,unique|-Wl,-z,unique=*) ;;
+        *) args+=("\$a") ;;
+    esac
+done
+exec "${zdir}/zig" ${mode} -target ${ztarget} "\${args[@]}"
+WRAPPER
             chmod +x "${zdir}/bin/${tool}"
         done
         export PATH="${zdir}/bin:${PATH}"
