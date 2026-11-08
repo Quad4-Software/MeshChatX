@@ -17,7 +17,7 @@ echo "==> Installing Task"
 sh scripts/ci/setup-task.sh 3.54.0 || sudo sh scripts/ci/setup-task.sh 3.54.0
 
 echo "==> Installing TinyGo"
-TINYGO_VERSION=0.43.0
+TINYGO_VERSION=0.44.0
 curl -fsSL -o /tmp/tinygo.tar.gz \
     "https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo${TINYGO_VERSION}.linux-amd64.tar.gz"
 sudo tar -C /usr/local -xzf /tmp/tinygo.tar.gz

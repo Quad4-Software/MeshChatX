@@ -13,7 +13,7 @@ ARG OCI_LICENSES="MIT AND 0BSD"
 
 FROM --platform=linux/amd64 ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
-ARG TINYGO_VERSION=0.43.0
+ARG TINYGO_VERSION=0.44.0
 RUN apk add --no-cache git python3 go gcompat \
     && wget -qO /tmp/tinygo.tar.gz "https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo${TINYGO_VERSION}.linux-amd64.tar.gz" \
     && tar -C /usr/local -xzf /tmp/tinygo.tar.gz \

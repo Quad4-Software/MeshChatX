@@ -32,7 +32,7 @@ concurrency:
     cancel-in-progress: true
 
 env:
-    TINYGO_VERSION: "0.43.0"
+    TINYGO_VERSION: "0.44.0"
     HARDEN_ENDPOINTS: >
         github.com:443
         api.github.com:443
