@@ -114,7 +114,7 @@ jobs:
         # images when the run actually passed. Tag pushes and manual
         # dispatches are unaffected.
         if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
-        runs-on: blacksmith-4vcpu-ubuntu-2404
+        runs-on: self-hosted
         timeout-minutes: 90
         permissions:
             contents: read
@@ -183,7 +183,7 @@ jobs:
                   check sigstore/cosign-installer v3.10.1 7e8b541eb2e61bf99390e1afd4be13a184e9ebc5
 
             - name: Checkout
-              uses: useblacksmith/checkout@2b9fe87d796feea153b455ec2f3125b471a7b0e7 # v1.8.2
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
                   persist-credentials: false
                   # workflow_run events check out the exact commit CI tested,
@@ -211,8 +211,8 @@ jobs:
             - name: Set up QEMU
               uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
 
-            - name: Setup Blacksmith Builder
-              uses: useblacksmith/setup-docker-builder@8fbda8108100092be0ef3320da0a93fbb8f47d7f # v1.14.0
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
             - name: Log in to GHCR
               uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
@@ -286,7 +286,7 @@ jobs:
             # image exporter options in `outputs`.
             - name: Build and push (GHCR, zstd layers)
               id: build
-              uses: useblacksmith/build-push-action@9b0579bbec7a6cad2f171596c57e7ac1e7658850 # v2.3.0
+              uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
               with:
                   context: .
                   file: ${{ matrix.dockerfile }}
@@ -305,7 +305,7 @@ jobs:
 
             - name: Build and push (Docker Hub, gzip layers)
               if: ${{ steps.dockerhub.outputs.configured == 'true' }}
-              uses: useblacksmith/build-push-action@9b0579bbec7a6cad2f171596c57e7ac1e7658850 # v2.3.0
+              uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
               with:
                   context: .
                   file: ${{ matrix.dockerfile }}
@@ -333,7 +333,7 @@ jobs:
                   bash scripts/ci/verify-package-contents.sh docker "$img"
 
             - name: Apt update (for Trivy .deb)
-              run: sh scripts/ci/exec-priv.sh apt-get update -qq
+              run: command -v apt-get >/dev/null 2>&1 && sh scripts/ci/exec-priv.sh apt-get update -qq || true
 
             - name: Setup Trivy
               run: sh scripts/ci/setup-trivy.sh
