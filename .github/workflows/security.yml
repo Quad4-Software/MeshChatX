@@ -80,12 +80,16 @@ env:
         *.mozilla.com:443
         storage.googleapis.com:443
         *.stepsecurity.io:443
+        archlinux.org:443
+        geo.mirror.pkgbuild.com:443
+        ziglang.org:443
     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     NODE_OPTIONS: --max-old-space-size=8192
     PYTHON_VERSION: "3.15"
     NODE_VERSION: "24"
     UV_VERSION: "0.13.5"
     PNPM_VERSION: "12.15.0"
+    GO_VERSION: "1.27.x"
     TRIVY_VERSION: "0.76.0"
 
 jobs:
@@ -116,7 +120,7 @@ jobs:
 
             - name: pip-audit
               run: |
-                  uv run pip install --upgrade "pip>=26.1" pip-audit
+                  uv pip install pip-audit
                   uv run pip-audit
 
             - name: Apt update (for Trivy .deb)
@@ -223,6 +227,24 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
                   persist-credentials: false
+
+            - name: Ensure basic CLI tools
+              # CodeQL autobuild helpers shell out to `which`; minimal
+              # self-hosted images may not ship it.
+              run: bash scripts/ci/ensure-user-tools.sh which
+
+            - name: Set up Go
+              if: matrix.language == 'go'
+              uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+
+            - name: Set up Python
+              if: matrix.language == 'python'
+              uses: $/.github/actions/setup-python-uv
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
 
             - name: Initialize CodeQL
               uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370
