@@ -459,6 +459,7 @@ class IntegrityManager:
         try:
             with open(self.manifest_path) as f:
                 manifest = json.load(f)
+                manifest_mtime_ns = os.fstat(f.fileno()).st_mtime_ns
         except Exception as e:
             self.issues = [f"Integrity check failed: {e!s}"]
             return False, self.issues
@@ -501,7 +502,9 @@ class IntegrityManager:
             if critical_only:
                 self._check_critical_files(manifest_files, issues)
             else:
-                self._check_tree(manifest_files, manifest_metadata, issues)
+                self._check_tree(
+                    manifest_files, manifest_metadata, issues, manifest_mtime_ns
+                )
 
             if issues:
                 m_date = manifest.get("date", "Unknown")
@@ -613,7 +616,7 @@ class IntegrityManager:
         except ValueError:
             return str(self.database_path.name)
 
-    def _check_tree(self, manifest_files, manifest_metadata, issues):
+    def _check_tree(self, manifest_files, manifest_metadata, issues, manifest_mtime_ns):
         for root, dirs, files_in_dir in os.walk(self.storage_dir):
             dirs[:] = [
                 d
@@ -650,9 +653,13 @@ class IntegrityManager:
                 sig = self._stat_signature(full_path)
                 if sig is None:
                     continue  # vanished mid-scan. The missing pass reports it
+                # A file modified within the same timestamp tick as the
+                # manifest write can keep its size and mtime, so the stat
+                # fast path only trusts files that predate the manifest.
                 if (
                     saved_meta.get("size") == sig["size"]
                     and saved_meta.get("mtime_ns") == sig["mtime_ns"]
+                    and sig["mtime_ns"] < manifest_mtime_ns
                 ):
                     continue
 
