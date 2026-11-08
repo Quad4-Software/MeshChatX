@@ -37,7 +37,11 @@ def register_database_routes(routes, app):
         try:
             data = await read_json_limited(request)
             name = data.get("name", f"snapshot-{int(time.time())}")
-            result = app.database.create_snapshot(app.storage_path, name)
+            result = await asyncio.to_thread(
+                app.database.create_snapshot,
+                app.storage_path,
+                name,
+            )
             return web.json_response({"status": "success", "result": result})
         except PayloadTooLargeError:
             return http_payload_too_large(
@@ -61,7 +65,10 @@ def register_database_routes(routes, app):
                 return http_bad_request(
                     "limit and offset must be non-negative integers",
                 )
-            snapshots = app.database.list_snapshots(app.storage_path)
+            snapshots = await asyncio.to_thread(
+                app.database.list_snapshots,
+                app.storage_path,
+            )
             total = len(snapshots)
             paginated_snapshots = snapshots[offset : offset + limit]
             return web.json_response(
@@ -86,7 +93,8 @@ def register_database_routes(routes, app):
             filename = request.match_info.get("filename")
             if not filename.endswith(".zip"):
                 filename += ".zip"
-            app.database.delete_snapshot_or_backup(
+            await asyncio.to_thread(
+                app.database.delete_snapshot_or_backup,
                 app.storage_path,
                 filename,
                 is_backup=False,
@@ -194,7 +202,10 @@ def register_database_routes(routes, app):
                 )
             storage_path = app.storage_path
             if app.database is not None:
-                sorted_backups = app.database.list_auto_backups(storage_path)
+                sorted_backups = await asyncio.to_thread(
+                    app.database.list_auto_backups,
+                    storage_path,
+                )
             else:
                 from meshchatx.src.backend.database import Database
 
@@ -202,7 +213,10 @@ def register_database_routes(routes, app):
                 if not db_path:
                     sorted_backups = []
                 else:
-                    sorted_backups = Database(db_path).list_auto_backups(storage_path)
+                    sorted_backups = await asyncio.to_thread(
+                        Database(db_path).list_auto_backups,
+                        storage_path,
+                    )
             total = len(sorted_backups)
             paginated_backups = sorted_backups[offset : offset + limit]
             return web.json_response(
@@ -227,7 +241,8 @@ def register_database_routes(routes, app):
             filename = request.match_info.get("filename")
             if not filename.endswith(".zip"):
                 filename += ".zip"
-            app.database.delete_snapshot_or_backup(
+            await asyncio.to_thread(
+                app.database.delete_snapshot_or_backup,
                 app.storage_path,
                 filename,
                 is_backup=True,
@@ -304,7 +319,9 @@ def register_database_routes(routes, app):
         try:
             return web.json_response(
                 {
-                    "database": app.database.get_database_health_snapshot(),
+                    "database": await asyncio.to_thread(
+                        app.database.get_database_health_snapshot,
+                    ),
                 },
             )
         except Exception as e:
@@ -313,7 +330,7 @@ def register_database_routes(routes, app):
     @routes.post(API_V1_PREFIX + "/database/vacuum")
     async def database_vacuum(request):
         try:
-            result = app.database.run_database_vacuum()
+            result = await asyncio.to_thread(app.database.run_database_vacuum)
             return web.json_response(
                 {
                     "message": "Database vacuum completed",
@@ -326,7 +343,7 @@ def register_database_routes(routes, app):
     @routes.post(API_V1_PREFIX + "/database/recover")
     async def database_recover(request):
         try:
-            result = app.database.run_database_recovery()
+            result = await asyncio.to_thread(app.database.run_database_recovery)
             return web.json_response(
                 {
                     "message": "Database recovery routine completed",
@@ -351,7 +368,10 @@ def register_database_routes(routes, app):
             if not isinstance(data, dict):
                 data = {}
             relaunch = bool(data.get("relaunch", True))
-            result = app.auto_recover_database(relaunch=relaunch)
+            result = await asyncio.to_thread(
+                app.auto_recover_database,
+                relaunch=relaunch,
+            )
             status = 200 if result.get("strategy") != "none" else 500
             return web.json_response(
                 {
@@ -376,7 +396,10 @@ def register_database_routes(routes, app):
     @routes.post(API_V1_PREFIX + "/database/backup")
     async def database_backup(request):
         try:
-            result = app.database.backup_database(app.storage_path)
+            result = await asyncio.to_thread(
+                app.database.backup_database,
+                app.storage_path,
+            )
             return web.json_response(
                 {
                     "message": "Database backup created",
@@ -390,7 +413,10 @@ def register_database_routes(routes, app):
     async def database_backup_download(request):
         # POST so CSRF middleware applies. Creating a zip is state-changing.
         try:
-            backup_info = app.database.backup_database(app.storage_path)
+            backup_info = await asyncio.to_thread(
+                app.database.backup_database,
+                app.storage_path,
+            )
             file_path = backup_info["path"]
             return file_response(
                 path=file_path,

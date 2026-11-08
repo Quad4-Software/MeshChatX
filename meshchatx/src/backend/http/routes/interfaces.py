@@ -419,7 +419,7 @@ def register_interfaces_routes(routes, app):
             return http_payload_too_large()
         interface_name = data.get("name")
 
-        if interface_name is None or interface_name == "":
+        if not isinstance(interface_name, str) or interface_name == "":
             return http_error(422, "Interface name is required")
 
         # enable interface
@@ -474,7 +474,7 @@ def register_interfaces_routes(routes, app):
             return http_payload_too_large()
         interface_name = data.get("name")
 
-        if interface_name is None or interface_name == "":
+        if not isinstance(interface_name, str) or interface_name == "":
             return http_error(422, "Interface name is required")
 
         # disable interface
@@ -521,7 +521,7 @@ def register_interfaces_routes(routes, app):
             return http_payload_too_large()
         interface_name = data.get("name")
 
-        if interface_name is None or interface_name == "":
+        if not isinstance(interface_name, str) or interface_name == "":
             return http_error(422, "Interface name is required")
 
         app._sync_interfaces_from_disk()
@@ -685,7 +685,7 @@ def register_interfaces_routes(routes, app):
         allow_overwriting_interface = data.get("allow_overwriting_interface", False)
 
         # ensure name is provided
-        if interface_name is None or interface_name == "":
+        if not isinstance(interface_name, str) or interface_name == "":
             return http_error(422, "Name is required")
 
         # ensure type name provided
@@ -1663,6 +1663,8 @@ def register_interfaces_routes(routes, app):
             # get request data
             data = await read_json_limited(request)
             config = data.get("config")
+            if not isinstance(config, str) or not config.strip():
+                return http_bad_request("config must be a non-empty string")
 
             # parse interfaces from config
             interfaces = InterfaceConfigParser.parse(config)
@@ -1693,7 +1695,13 @@ def register_interfaces_routes(routes, app):
             # get request data
             data = await read_json_limited(request)
             config = data.get("config")
+            if not isinstance(config, str) or not config.strip():
+                return http_bad_request("config must be a non-empty string")
             selected_interface_names = data.get("selected_interface_names")
+            if selected_interface_names is not None and not isinstance(
+                selected_interface_names, list
+            ):
+                return http_bad_request("selected_interface_names must be a list")
 
             # parse interfaces from config
             interfaces = InterfaceConfigParser.parse(config)

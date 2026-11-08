@@ -20,6 +20,7 @@ class MicrophoneRecorder {
         this.channels = 1;
         this._workletBlobUrl = null;
         this._scriptProcessorCapture = false;
+        this._startPromise = null;
     }
 
     cleanupMediaStream() {
@@ -167,7 +168,21 @@ class MicrophoneRecorder {
         return true;
     }
 
-    async start() {
+    /**
+     * Re-entrancy guard: concurrent callers share the same in-flight start
+     * instead of racing a second getUserMedia/audio graph into existence.
+     * @returns {Promise<boolean>}
+     */
+    start() {
+        if (!this._startPromise) {
+            this._startPromise = this._start().finally(() => {
+                this._startPromise = null;
+            });
+        }
+        return this._startPromise;
+    }
+
+    async _start() {
         try {
             this.pcmChunks = [];
             this._scriptProcessorCapture = false;

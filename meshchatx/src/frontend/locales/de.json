@@ -1133,6 +1133,9 @@
             "network": {
                 "fetch": "Ausgehende Internet-HTTP-Anfragen stellen"
             },
+            "clipboard": {
+                "write": "In die System-Zwischenablage schreiben"
+            },
             "backend": {
                 "python": "Python-Code im Anwendungsprozess mit vollem Zugriff auf Dateien, Prozesse und Netzwerk dieses Benutzers ausführen"
             }
@@ -1583,7 +1586,10 @@
         },
         "top_memory_consumer": "Top-Speicher",
         "top_cpu_consumer": "Top-CPU",
-        "sandbox_abi": "Kernel-ABI v{abi}"
+        "sandbox_abi": "Kernel-ABI v{abi}",
+        "shell_runtime": "Desktop-Shell",
+        "webview_runtime": "WebView",
+        "platform_runtime": "Plattform"
     },
     "interfaces": {
         "title": "Schnittstellen",

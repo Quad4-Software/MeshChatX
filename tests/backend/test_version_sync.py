@@ -21,8 +21,8 @@ def _text(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
-def test_electron_app_version_json_matches_package():
-    data = json.loads(_text("electron/app-version.json"))
+def test_desktop_app_version_json_matches_package():
+    data = json.loads(_text("desktop/app-version.json"))
     assert data["version"] == _package_version()
 
 

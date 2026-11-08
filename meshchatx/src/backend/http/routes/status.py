@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import traceback
 
@@ -52,7 +53,6 @@ def register_status_routes(routes, app):
             )
 
         config_path = app._reticulum_config_file_path()
-        actions: list[str] = []
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
@@ -64,55 +64,75 @@ def register_status_routes(routes, app):
 
         disable_all = bool(data.get("disable_all_interfaces"))
         named = data.get("disable_interfaces")
-        if isinstance(named, list) and named:
-            from meshchatx.src.backend.rns_startup_recovery import (
-                disable_named_interfaces_in_config,
-            )
 
-            disabled = disable_named_interfaces_in_config(
-                config_path,
-                [str(n) for n in named],
-            )
-            actions.extend(disabled)
-        elif disable_all:
-            from meshchatx.src.backend.rns_startup_recovery import (
-                disable_named_interfaces_in_config,
-                list_enabled_interface_names,
-            )
-
-            names = list_enabled_interface_names(config_path)
-            disabled = disable_named_interfaces_in_config(config_path, names)
-            actions.extend(disabled)
-        else:
-            from meshchatx.src.backend.rns_startup_recovery import (
-                apply_startup_recovery_step,
-            )
-
-            for attempt in range(4):
-                disabled = apply_startup_recovery_step(
-                    config_path,
-                    app._startup_error or "manual recover",
-                    attempt=attempt,
+        def _apply_recovery_steps() -> list[str]:
+            """Config-file recovery edits; runs off the event loop."""
+            steps: list[str] = []
+            if isinstance(named, list) and named:
+                from meshchatx.src.backend.rns_startup_recovery import (
+                    disable_named_interfaces_in_config,
                 )
-                actions.extend(disabled)
-                if disabled:
-                    break
 
-        app._rns_recovery_actions = actions
-        app._startup_error = None
-        app._startup_stage = "starting"
-        app._network_degraded = False
-        app._ui_ready = True
-        app._network_ready = False
-        app._reticulum_secondary_started = False
-        if hasattr(app, "reticulum"):
-            with contextlib.suppress(Exception):
-                delattr(app, "reticulum")
+                disabled = disable_named_interfaces_in_config(
+                    config_path,
+                    [str(n) for n in named],
+                )
+                steps.extend(disabled)
+            elif disable_all:
+                from meshchatx.src.backend.rns_startup_recovery import (
+                    disable_named_interfaces_in_config,
+                    list_enabled_interface_names,
+                )
 
-        try:
-            app.setup_identity(identity)
+                names = list_enabled_interface_names(config_path)
+                disabled = disable_named_interfaces_in_config(config_path, names)
+                steps.extend(disabled)
+            else:
+                from meshchatx.src.backend.rns_startup_recovery import (
+                    apply_startup_recovery_step,
+                )
+
+                for attempt in range(4):
+                    disabled = apply_startup_recovery_step(
+                        config_path,
+                        app._startup_error or "manual recover",
+                        attempt=attempt,
+                    )
+                    steps.extend(disabled)
+                    if disabled:
+                        break
+            return steps
+
+        async def _recover() -> list[str]:
+            actions = await asyncio.to_thread(_apply_recovery_steps)
+            app._rns_recovery_actions = actions
+            app._startup_error = None
+            app._startup_stage = "starting"
+            app._network_degraded = False
+            app._ui_ready = True
+            app._network_ready = False
+            app._reticulum_secondary_started = False
+            if hasattr(app, "reticulum"):
+                with contextlib.suppress(Exception):
+                    delattr(app, "reticulum")
+
+            # setup_identity rebuilds the whole identity context and RNS
+            # stack; it is heavy synchronous work, so keep it off the loop.
+            await asyncio.to_thread(app.setup_identity, identity)
             app._mark_network_ready()
             app._finish_deferred_startup_services()
+            return actions
+
+        # Serialize against reload_reticulum/hotswap_identity: recovery
+        # tears down and rebuilds the same Reticulum stack, so it must not
+        # interleave with an in-flight lifecycle operation.
+        lifecycle_lock = getattr(app, "_reticulum_reload_lock", None)
+        try:
+            if lifecycle_lock is None:
+                actions = await _recover()
+            else:
+                async with lifecycle_lock:
+                    actions = await _recover()
             return web.json_response(
                 {
                     "message": "Network stack recovered",
@@ -127,7 +147,7 @@ def register_status_routes(routes, app):
                 exc,
                 fallback_status=503,
                 extra={
-                    "disabled_interfaces": actions,
+                    "disabled_interfaces": getattr(app, "_rns_recovery_actions", []),
                     "status": app._startup_status_payload(),
                 },
             )

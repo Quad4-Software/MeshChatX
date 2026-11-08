@@ -89,13 +89,13 @@ export default {
         },
     },
     async mounted() {
-        if (window.electron && window.electron.getIntegrityStatus) {
-            this.integrity = await window.electron.getIntegrityStatus();
+        if (window.desktop && window.desktop.getIntegrityStatus) {
+            this.integrity = await window.desktop.getIntegrityStatus();
 
             const isOk = this.integrity.backend.ok && this.integrity.data.ok;
             if (!isOk) {
                 const dismissed = localStorage.getItem(STORAGE_KEYS.INTEGRITY_WARNING_DISMISSED);
-                const appVersion = await window.electron.appVersion();
+                const appVersion = await window.desktop.appVersion();
 
                 if (dismissed !== appVersion) {
                     this.visible = true;
@@ -105,8 +105,8 @@ export default {
     },
     methods: {
         async close() {
-            if (this.dontShowAgain && window.electron) {
-                const appVersion = await window.electron.appVersion();
+            if (this.dontShowAgain && window.desktop) {
+                const appVersion = await window.desktop.appVersion();
                 localStorage.setItem(STORAGE_KEYS.INTEGRITY_WARNING_DISMISSED, appVersion);
             }
             this.visible = false;

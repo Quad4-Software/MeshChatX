@@ -90,13 +90,21 @@ class MapManager:
         """
         from meshchatx.src.backend.map_starter_mbtiles import (
             STARTER_FILENAME,
+            STARTER_VERSION,
             ensure_bundled_starter_file,
+            mbtiles_starter_version,
         )
 
         with self._starter_lock:
             existing = self.get_offline_path()
             if existing and os.path.exists(existing) and not force_restore:
-                return existing
+                is_stale_starter = (
+                    os.path.basename(existing) == STARTER_FILENAME
+                    and mbtiles_starter_version(existing) != STARTER_VERSION
+                )
+                if not is_stale_starter:
+                    return existing
+                force_restore = True
 
             try:
                 src = ensure_bundled_starter_file()

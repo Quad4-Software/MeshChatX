@@ -84,9 +84,9 @@ def test_write_starter_contains_land_fill(tmp_path):
     finally:
         conn.close()
     pixels = _png_pixels(tile)
-    assert bytes([30, 41, 59, 255]) in pixels  # land fill
-    assert bytes([100, 116, 139, 255]) in pixels  # coastline
-    assert bytes([15, 23, 42, 255]) in pixels  # ocean background
+    assert bytes([242, 239, 233, 255]) in pixels  # land fill
+    assert bytes([181, 170, 160, 255]) in pixels  # coastline
+    assert bytes([170, 211, 223, 255]) in pixels  # ocean background
 
 
 def test_write_starter_default_zoom_covers_z0_to_z4(tmp_path):

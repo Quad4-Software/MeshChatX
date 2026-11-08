@@ -60,7 +60,7 @@ _REQUIRED_REPO_PATHS = [
     ".github/workflows/native-build-dev.yml",
     "android/app/build.gradle",
     "android/app/src/main/java/org/able/BLE.java",
-    "electron/app-version.json",
+    "desktop/app-version.json",
     "packaging/arch/PKGBUILD",
     "packaging/arch/.SRCINFO",
     "packaging/arch/reticulum-meshchatx.desktop",

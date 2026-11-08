@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import ElectronUtils from "../ElectronUtils.js";
+import DesktopUtils from "../DesktopUtils.js";
 
 /**
  * Core post-install / existing-user prompts.
@@ -20,11 +20,11 @@ export const CORE_POST_INSTALL_PROMPT_ENTRIES = [
         primaryLabelKey: "post_install.windows_screen_security_enable",
         secondaryLabelKey: "post_install.windows_screen_security_later",
         async shouldShow() {
-            if (typeof ElectronUtils.isWindowsElectron !== "function" || !ElectronUtils.isWindowsElectron()) {
+            if (typeof DesktopUtils.isWindowsDesktop !== "function" || !DesktopUtils.isWindowsDesktop()) {
                 return false;
             }
             try {
-                const settings = await ElectronUtils.getScreenSecuritySettings();
+                const settings = await DesktopUtils.getScreenSecuritySettings();
                 if (!settings?.available) {
                     return false;
                 }
@@ -35,7 +35,7 @@ export const CORE_POST_INSTALL_PROMPT_ENTRIES = [
         },
         async onPrimary() {
             try {
-                await ElectronUtils.setScreenSecurityEnabled(true);
+                await DesktopUtils.setScreenSecurityEnabled(true);
                 return true;
             } catch (e) {
                 console.error("Failed to enable Windows screen security:", e);

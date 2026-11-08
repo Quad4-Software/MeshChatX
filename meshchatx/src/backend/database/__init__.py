@@ -145,6 +145,7 @@ def _pre_migrate_backup_keep() -> int:
 
 class Database:
     def __init__(self, db_path):
+        self._provider = None
         self.provider = DatabaseProvider.get_instance(db_path)
         self.schema = DatabaseSchema(self.provider)
         self.config = ConfigDAO(self.provider)
@@ -693,7 +694,10 @@ class Database:
 
     def _checkpoint_wal(self, mode: str = "TRUNCATE"):
         safe_mode = _sanitize_wal_checkpoint_mode(mode)
-        return self.execute_sql(f"PRAGMA wal_checkpoint({safe_mode})").fetchall()
+        rows = self.execute_sql(f"PRAGMA wal_checkpoint({safe_mode})").fetchall()
+        # sqlite3.Row is not JSON-serializable; the recovery endpoint embeds
+        # this result in a JSON response.
+        return [dict(row) for row in rows]
 
     def run_database_vacuum(self):
         try:
@@ -794,12 +798,35 @@ class Database:
         except Exception as e:
             print(f"Failed to close database during durable shutdown: {e}")
 
+    @property
+    def provider(self):
+        provider = self._provider
+        # A closed provider refuses new connections on purpose, but a
+        # Database object may legitimately outlive close_all() (tests and
+        # long-lived app handles reuse it). Re-resolve through the
+        # registry: get_instance() revives a closed-but-registered
+        # provider in place — keeping DAO references valid — or returns
+        # its registered replacement after close_all_instances().
+        # `is True` keeps Mock providers (truthy auto-attrs) untouched.
+        if (
+            provider is not None
+            and getattr(provider, "_closed", False) is True
+            and getattr(provider, "db_path", None)
+        ):
+            self._provider = DatabaseProvider.get_instance(provider.db_path)
+            provider = self._provider
+        return provider
+
+    @provider.setter
+    def provider(self, value):
+        self._provider = value
+
     def close(self):
         self.close_all()
 
     def close_all(self):
-        if hasattr(self, "provider"):
-            self.provider.close_all()
+        if hasattr(self, "_provider") and self._provider is not None:
+            self._provider.close_all()
 
     def _identity_storage_dir(self) -> str:
         db_path = self.provider.db_path

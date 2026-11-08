@@ -3209,7 +3209,7 @@ import AndroidSettingsSection from "./sections/AndroidSettingsSection.vue";
 import ArchiverSettingsSection from "./sections/ArchiverSettingsSection.vue";
 import SettingsNav from "./SettingsNav.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
-import ElectronUtils from "../../js/ElectronUtils";
+import DesktopUtils from "../../js/DesktopUtils";
 import AndroidBridge from "../../js/rnode/AndroidBridge";
 import {
     numOrNull,
@@ -3316,7 +3316,7 @@ export default {
     },
     data() {
         return {
-            ElectronUtils,
+            DesktopUtils,
             KeyboardShortcuts,
             shortcutsExpanded: typeof window !== "undefined" ? window.innerWidth >= 1024 : true,
             config: {
@@ -3842,11 +3842,11 @@ export default {
             this.updateConfig({ webtransport_sidecar_enabled: enabled }, "webtransport_sidecar_enabled");
         },
         async loadDesktopCloseSettings() {
-            if (!ElectronUtils.isElectron()) {
+            if (!DesktopUtils.isDesktop()) {
                 return;
             }
             try {
-                const settings = await ElectronUtils.getCloseSettings();
+                const settings = await DesktopUtils.getCloseSettings();
                 if (settings && typeof settings === "object") {
                     this.desktopCloseSettings = {
                         closeBehavior: settings.closeBehavior || "ask",
@@ -3859,12 +3859,12 @@ export default {
         },
         async loadScreenSecuritySettings() {
             this.showWindowsScreenSecurity =
-                typeof ElectronUtils.isWindowsElectron === "function" && ElectronUtils.isWindowsElectron();
+                typeof DesktopUtils.isWindowsDesktop === "function" && DesktopUtils.isWindowsDesktop();
             if (!this.showWindowsScreenSecurity) {
                 return;
             }
             try {
-                const settings = await ElectronUtils.getScreenSecuritySettings();
+                const settings = await DesktopUtils.getScreenSecuritySettings();
                 this.screenSecurityEnabled = settings?.enabled === true;
             } catch (e) {
                 console.log(e);
@@ -3884,7 +3884,7 @@ export default {
                         return;
                     }
                 }
-                const settings = await ElectronUtils.setScreenSecurityEnabled(enabled);
+                const settings = await DesktopUtils.setScreenSecurityEnabled(enabled);
                 this.screenSecurityEnabled = settings?.enabled === true;
                 ToastUtils.success(
                     this.screenSecurityEnabled
@@ -3902,7 +3902,7 @@ export default {
         async onDesktopTrayEnabledChange(value) {
             this.desktopCloseSettings.trayEnabled = value === true;
             try {
-                const settings = await ElectronUtils.setCloseSettings({
+                const settings = await DesktopUtils.setCloseSettings({
                     trayEnabled: this.desktopCloseSettings.trayEnabled,
                 });
                 if (settings && typeof settings === "object") {
@@ -3921,7 +3921,7 @@ export default {
                 this.desktopCloseSettings.closeBehavior = value;
             }
             try {
-                const settings = await ElectronUtils.setCloseSettings({
+                const settings = await DesktopUtils.setCloseSettings({
                     closeBehavior: this.desktopCloseSettings.closeBehavior,
                 });
                 if (settings && typeof settings === "object") {
@@ -6087,7 +6087,7 @@ export default {
     @apply rounded-2xl border border-sem-info dark:border-sem-info bg-sem-info/15 dark:bg-sem-info/15 px-3 py-3 text-blue-900 dark:text-blue-100;
 }
 :deep(.monospace-field) {
-    font-family: "Roboto Mono", monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Roboto Mono", monospace;
 }
 :deep(.address-card) {
     @apply relative border border-sem-border py-3 px-3 sm:rounded-xl sm:bg-sem-surface-muted/40 space-y-2;

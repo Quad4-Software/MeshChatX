@@ -483,28 +483,38 @@ def register_path_probe_routes(routes, app):
 
         # get number of hops to destination and back from destination
         hops_there = RNS.Transport.hops_to(destination_hash)
-        hops_back = receipt.proof_packet.hops
+        proof = receipt.proof_packet
+        hops_back = proof.hops if proof is not None else None
 
         # get rssi
-        rssi = receipt.proof_packet.rssi
-        if rssi is None and hasattr(app, "reticulum") and app.reticulum:
-            rssi = await app._reticulum_rpc(
-                "get_packet_rssi", receipt.proof_packet.packet_hash
-            )
+        rssi = proof.rssi if proof is not None else None
+        if (
+            rssi is None
+            and proof is not None
+            and hasattr(app, "reticulum")
+            and app.reticulum
+        ):
+            rssi = await app._reticulum_rpc("get_packet_rssi", proof.packet_hash)
 
         # get snr
-        snr = receipt.proof_packet.snr
-        if snr is None and hasattr(app, "reticulum") and app.reticulum:
-            snr = await app._reticulum_rpc(
-                "get_packet_snr", receipt.proof_packet.packet_hash
-            )
+        snr = proof.snr if proof is not None else None
+        if (
+            snr is None
+            and proof is not None
+            and hasattr(app, "reticulum")
+            and app.reticulum
+        ):
+            snr = await app._reticulum_rpc("get_packet_snr", proof.packet_hash)
 
         # get signal quality
-        quality = receipt.proof_packet.q
-        if quality is None and hasattr(app, "reticulum") and app.reticulum:
-            quality = await app._reticulum_rpc(
-                "get_packet_q", receipt.proof_packet.packet_hash
-            )
+        quality = proof.q if proof is not None else None
+        if (
+            quality is None
+            and proof is not None
+            and hasattr(app, "reticulum")
+            and app.reticulum
+        ):
+            quality = await app._reticulum_rpc("get_packet_q", proof.packet_hash)
 
         # get and format round trip time
         rtt = receipt.get_rtt()
@@ -523,8 +533,8 @@ def register_path_probe_routes(routes, app):
                     "rssi": rssi,
                     "snr": snr,
                     "quality": quality,
-                    "receiving_interface": str(
-                        receipt.proof_packet.receiving_interface,
+                    "receiving_interface": (
+                        str(proof.receiving_interface) if proof is not None else None
                     ),
                 },
             },
@@ -574,8 +584,16 @@ def register_path_probe_routes(routes, app):
 
         path_table = []
         for path in paginated_paths:
-            path["hash"] = path["hash"].hex()
-            path["via"] = path["via"].hex()
+            # Entries from get_path_table are expected to carry bytes keys,
+            # but guard rather than 500 the whole endpoint on a malformed row.
+            path_hash = path.get("hash")
+            path_via = path.get("via")
+            if path_hash is None or path_via is None:
+                continue
+            path["hash"] = (
+                path_hash.hex() if hasattr(path_hash, "hex") else str(path_hash)
+            )
+            path["via"] = path_via.hex() if hasattr(path_via, "hex") else str(path_via)
             path_table.append(path)
 
         return web.json_response(

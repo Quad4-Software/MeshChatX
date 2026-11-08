@@ -2658,8 +2658,8 @@ export default {
             try {
                 await window.api.post(apiPath("/setup/storage-migration"), { action: "migrate" });
                 ToastUtils.success(this.$t("tutorial.migration_done_restart"));
-                if (window.electron && typeof window.electron.relaunch === "function") {
-                    await window.electron.relaunch();
+                if (window.desktop && typeof window.desktop.relaunch === "function") {
+                    await window.desktop.relaunch();
                 }
             } catch (e) {
                 ToastUtils.error(e.response?.data?.error || this.$t("tutorial.migration_failed"));
@@ -2674,8 +2674,8 @@ export default {
             try {
                 await window.api.post(apiPath("/setup/storage-migration"), { action: "fresh" });
                 ToastUtils.success(this.$t("tutorial.migration_done_restart"));
-                if (window.electron && typeof window.electron.relaunch === "function") {
-                    await window.electron.relaunch();
+                if (window.desktop && typeof window.desktop.relaunch === "function") {
+                    await window.desktop.relaunch();
                 }
             } catch (e) {
                 ToastUtils.error(e.response?.data?.error || this.$t("tutorial.migration_failed"));

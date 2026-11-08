@@ -437,7 +437,7 @@
 
 <script>
 import DialogUtils from "../../js/DialogUtils";
-import ElectronUtils from "../../js/ElectronUtils";
+import DesktopUtils from "../../js/DesktopUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
@@ -573,21 +573,21 @@ export default {
         notifyRncp(title, body) {
             const text = body || title;
             ToastUtils.success(text);
-            if (ElectronUtils.isElectron()) {
-                ElectronUtils.showNotification(title, body || "");
+            if (DesktopUtils.isDesktop()) {
+                DesktopUtils.showNotification(title, body || "");
             }
         },
         notifyRncpError(title, body) {
             ToastUtils.error(body || title);
-            if (ElectronUtils.isElectron()) {
-                ElectronUtils.showNotification(title, body || "", true);
+            if (DesktopUtils.isDesktop()) {
+                DesktopUtils.showNotification(title, body || "", true);
             }
         },
         async openPathInOs(filePath) {
             if (!filePath) {
                 return;
             }
-            const ok = await ElectronUtils.revealPathInFolderOrCopy(filePath, () =>
+            const ok = await DesktopUtils.revealPathInFolderOrCopy(filePath, () =>
                 ToastUtils.success(this.$t("common.copied"))
             );
             if (!ok) {
@@ -601,7 +601,7 @@ export default {
             if (!this.receiveDirectory) {
                 return;
             }
-            const ok = await ElectronUtils.openDirectoryOrCopy(this.receiveDirectory, () =>
+            const ok = await DesktopUtils.openDirectoryOrCopy(this.receiveDirectory, () =>
                 ToastUtils.success(this.$t("common.copied"))
             );
             if (!ok) {
@@ -609,7 +609,7 @@ export default {
             }
         },
         async pickSendFile() {
-            const p = await ElectronUtils.pickFile();
+            const p = await DesktopUtils.pickFile();
             if (p) {
                 this.sendFilePath = p;
                 return;
@@ -625,12 +625,12 @@ export default {
             DialogUtils.alert(this.$t("rncp.web_path_hint"));
         },
         async pickFetchSaveDirectory() {
-            const p = await ElectronUtils.pickDirectory();
+            const p = await DesktopUtils.pickDirectory();
             if (p) {
                 this.fetchSavePath = p;
                 return;
             }
-            if (ElectronUtils.isElectron()) {
+            if (DesktopUtils.isDesktop()) {
                 return;
             }
             const entered = await DialogUtils.prompt(this.$t("rncp.web_save_path_prompt"));

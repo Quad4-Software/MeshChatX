@@ -209,7 +209,7 @@
                                     >
                                         <MaterialDesignIcon
                                             icon-name="arrow-left-bold"
-                                            class="size-10 text-gray-200 dark:text-sem-fg animate-bounce-left"
+                                            class="size-10 text-gray-200 dark:text-sem-fg animate-pulse"
                                         />
                                         <p class="text-sm text-sem-fg-muted dark:text-sem-fg-secondary mt-2">
                                             Select an interface type to configure connection settings.

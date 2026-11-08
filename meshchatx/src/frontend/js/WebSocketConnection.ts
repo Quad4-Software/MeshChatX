@@ -75,13 +75,15 @@ class WebSocketConnection {
                     continue;
                 }
                 try {
-                    if (typeof bridge.sendQueued === "function") {
-                        bridge.sendQueued(item.message);
-                    } else {
-                        bridge.send(item.message);
+                    const sent =
+                        typeof bridge.sendQueued === "function"
+                            ? bridge.sendQueued(item.message)
+                            : bridge.send(item.message);
+                    if (sent === false) {
+                        this.emit("queue_expired", { request_id: item.requestId });
                     }
                 } catch {
-                    // drop
+                    this.emit("queue_expired", { request_id: item.requestId });
                 }
             }
         }
@@ -446,7 +448,7 @@ class WebSocketConnection {
             try {
                 this.ws!.send(item.message);
             } catch {
-                // drop
+                this.emit("queue_expired", { request_id: item.requestId });
             }
         }
     }

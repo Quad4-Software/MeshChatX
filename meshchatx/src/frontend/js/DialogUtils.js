@@ -17,8 +17,8 @@ function hostListenerCount(event) {
 
 class DialogUtils {
     static alert(message, type = "info") {
-        if (window.electron) {
-            window.electron.alert(message);
+        if (window.desktop) {
+            window.desktop.alert(message);
         }
 
         GlobalEmitter.emit(EMITTER_EVENTS.TOAST, { message, type });

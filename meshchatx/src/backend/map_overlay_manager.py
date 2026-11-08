@@ -74,6 +74,10 @@ CONFIG_CLAMPS = {
 }
 
 MAX_FINISHED_JOBS = 32
+# Cap on queued+running jobs so spamming refresh/create cannot grow the job
+# registry and task list without bound (each job eventually performs a remote
+# fetch). Generous relative to the concurrency semaphore.
+MAX_ACTIVE_JOBS = 128
 FINISHED_JOB_STATUSES = frozenset({"success", "error", "cancelled"})
 
 
@@ -472,6 +476,10 @@ class MapOverlayManager:
             paths=[row["path_or_repo_path"]],
             refresh_interval_seconds=int(row.get("refresh_interval_seconds") or 0),
         )
+        # NOTE: do not dedup against an in-flight job here — refresh must bump
+        # the generation so the newer fetch supersedes the older one (stale
+        # results are discarded by the generation check in _run_job). The
+        # MAX_ACTIVE_JOBS cap in _start_job_for_ids bounds registry growth.
         job_id = await self._start_job_for_ids(identity_hash, [overlay_id], [spec])
         return {
             "job_id": job_id,
@@ -485,6 +493,13 @@ class MapOverlayManager:
         overlay_ids: list[int],
         specs: list[OverlaySourceSpec],
     ) -> str:
+        active = sum(
+            1
+            for j in self._jobs.values()
+            if j.get("status") not in FINISHED_JOB_STATUSES
+        )
+        if active >= MAX_ACTIVE_JOBS:
+            raise RuntimeError("too many active overlay jobs")
         job_id = uuid.uuid4().hex
         generations: dict[int, int] = {}
         for oid in overlay_ids:

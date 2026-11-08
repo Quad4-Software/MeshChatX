@@ -139,6 +139,13 @@ export default class RNode {
                         }
                         inFrame = !inFrame;
                     } else if (inFrame) {
+                        // KISS frames are tiny; a runaway stream without FEND
+                        // must not grow this buffer without bound.
+                        if (buffer.length >= 4096) {
+                            buffer = [];
+                            inFrame = false;
+                            continue;
+                        }
                         buffer.push(byte);
                     }
                 }
@@ -216,11 +223,26 @@ export default class RNode {
 
     async sendCommand(command, data) {
         return new Promise((resolve, reject) => {
-            this.callbacks[command] = (response) => {
+            const timer = setTimeout(() => {
+                if (this.callbacks[command] === onResponse) {
+                    delete this.callbacks[command];
+                }
+                reject(new Error(`RNode command 0x${command.toString(16)} timed out`));
+            }, 5000);
+            const onResponse = (response) => {
+                clearTimeout(timer);
+                if (this.callbacks[command] === onResponse) {
+                    delete this.callbacks[command];
+                }
                 resolve(response);
             };
+            this.callbacks[command] = onResponse;
 
             this.sendKissCommand([command, ...data]).catch((e) => {
+                clearTimeout(timer);
+                if (this.callbacks[command] === onResponse) {
+                    delete this.callbacks[command];
+                }
                 reject(e);
             });
         });

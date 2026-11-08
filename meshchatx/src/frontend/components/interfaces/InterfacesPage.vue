@@ -16,7 +16,7 @@
                         </div>
                     </div>
                     <button
-                        v-if="isElectron"
+                        v-if="isDesktop"
                         type="button"
                         class="ml-auto inline-flex items-center gap-2 rounded-full bg-sem-surface px-4 py-1.5 text-sm font-bold text-sem-warning hover:bg-sem-surface transition shadow-xs"
                         @click="relaunch"
@@ -901,7 +901,7 @@
 import { useNetworkStore } from "../../js/stores/networkStore";
 import { useInterfaceChangesStore } from "../../js/stores/interfaceChangesStore.js";
 import DialogUtils from "../../js/DialogUtils";
-import ElectronUtils from "../../js/ElectronUtils";
+import DesktopUtils from "../../js/DesktopUtils";
 import Interface from "./Interface.vue";
 import { getCurrentInstance } from "vue";
 import Utils from "../../js/Utils";
@@ -987,8 +987,8 @@ export default {
         modifiedInterfaceNames() {
             return useInterfaceChangesStore().modifiedInterfaceNames;
         },
-        isElectron() {
-            return ElectronUtils.isElectron();
+        isDesktop() {
+            return DesktopUtils.isDesktop();
         },
         discoveredInterfacesCap() {
             const value = Number(this.discoveryConfig?.discovered_interfaces_max_return);
@@ -1213,7 +1213,7 @@ export default {
             }, discoveryMs);
         },
         relaunch() {
-            ElectronUtils.relaunch();
+            DesktopUtils.relaunch();
         },
         trackInterfaceChange(interfaceName = null) {
             useInterfaceChangesStore().hasPendingInterfaceChanges = true;

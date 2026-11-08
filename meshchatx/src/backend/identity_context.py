@@ -49,6 +49,7 @@ from meshchatx.src.backend.rnx_manager import RNXManager
 from meshchatx.src.backend.rrc import RRCManager, RRCServerManager
 from meshchatx.src.backend.telephone_manager import TelephoneManager
 from meshchatx.src.backend.voicemail_manager import VoicemailManager
+from meshchatx.src.path_utils import atomic_write_bytes
 
 
 class IdentityContext:
@@ -70,15 +71,21 @@ class IdentityContext:
         self.database_path = os.path.join(self.storage_path, "database.db")
         self.lxmf_router_path = os.path.join(self.storage_path, "lxmf_router")
 
-        # Identity backup
+        # Identity backup. A zero-length file is treated as missing: it
+        # self-heals from the live identity's private key instead of
+        # leaving a permanently broken backup behind.
         identity_backup_file = os.path.join(self.storage_path, "identity")
-        if not os.path.exists(identity_backup_file):
+        try:
+            backup_size = os.path.getsize(identity_backup_file)
+        except OSError:
+            backup_size = -1
+        backup_missing = backup_size <= 0
+        if backup_missing:
             private_key = identity.get_private_key()
             if not private_key:
                 msg = "identity has no private key"
                 raise ValueError(msg)
-            with open(identity_backup_file, "wb") as f:
-                f.write(private_key)
+            atomic_write_bytes(identity_backup_file, private_key, mode=0o600)
 
         # Session ID for this specific context instance
         if not hasattr(app, "_identity_session_id_counter"):
@@ -139,6 +146,15 @@ class IdentityContext:
         self._deferred_setup_in_progress = False
         self._deferred_setup_finished = threading.Event()
         self._deferred_setup_finished.set()
+
+        # LXMF flood-protection state is per identity: inbound timestamps
+        # and the negotiated stamp-cost bookkeeping must not bleed across
+        # an identity hotswap or reload into a different identity's
+        # router. The app falls back to its own attributes for contexts
+        # that predate this field (test doubles).
+        self._lxmf_incoming_timestamps = []
+        self._flood_protection_current_cost = None
+        self._flood_protection_last_bump_time = 0
 
     def _rrc_name_for_identity_hash(self, identity_hash):
         try:

@@ -586,7 +586,7 @@
                     <!-- reply snippet -->
                     <div
                         v-if="chatItem.lxmf_message.reply_to_hash"
-                        class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-sem-surface/5 border-l-2 border-sem-accent/50 cursor-pointer hover:bg-black/10 dark:hover:bg-sem-canvas/10 transition-colors"
+                        class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-sem-surface/5 border border-sem-border/60 cursor-pointer hover:bg-black/10 dark:hover:bg-sem-canvas/10 transition-colors"
                         @click.stop="cv.scrollToMessage(chatItem.lxmf_message.reply_to_hash)"
                     >
                         <div

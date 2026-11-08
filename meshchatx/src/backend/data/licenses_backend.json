@@ -19,7 +19,7 @@
   },
   {
     "name": "aioquic",
-    "version": "1.7.0",
+    "version": "1.7.2",
     "author": "Jeremy Lainé <jeremy.laine@m4x.org>",
     "license": "BSD-3-Clause"
   },
@@ -31,7 +31,7 @@
   },
   {
     "name": "anyio",
-    "version": "4.15.1",
+    "version": "4.16.0",
     "author": "Alex Grönholm <alex.gronholm@nextday.fi>",
     "license": "MIT"
   },
@@ -61,13 +61,13 @@
   },
   {
     "name": "cborx",
-    "version": "0.2.5",
+    "version": "0.2.6",
     "author": "Quad4",
     "license": "0BSD"
   },
   {
     "name": "certifi",
-    "version": "2026.10.19",
+    "version": "2026.10.23",
     "author": "Kenneth Reitz",
     "license": "MPL-2.0"
   },
@@ -121,13 +121,13 @@
   },
   {
     "name": "landlockpy",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "author": "Quad4",
     "license": "0BSD"
   },
   {
     "name": "lxmf",
-    "version": "1.2.1",
+    "version": "1.3.0",
     "author": "Mark Qvist",
     "license": "Reticulum License"
   },
@@ -151,7 +151,7 @@
   },
   {
     "name": "multidict",
-    "version": "7.1.0",
+    "version": "7.2.1",
     "author": "Andrew Svetlov <andrew.svetlov@gmail.com>",
     "license": "Apache-2.0"
   },
@@ -178,12 +178,6 @@
     "version": "7.2.2",
     "author": "Giampaolo Rodola",
     "license": "BSD-3-Clause"
-  },
-  {
-    "name": "pycodec2",
-    "version": "4.1.1",
-    "author": "Grzegorz Milka",
-    "license": "OSI Approved :: BSD License"
   },
   {
     "name": "pycparser",
@@ -217,7 +211,7 @@
   },
   {
     "name": "rns",
-    "version": "1.5.7",
+    "version": "1.6.0",
     "author": "Mark Qvist",
     "license": "Reticulum License"
   },
@@ -247,7 +241,7 @@
   },
   {
     "name": "websockets",
-    "version": "17.3",
+    "version": "17.4",
     "author": "Aymeric Augustin <aymeric.augustin@m4x.org>",
     "license": "BSD-3-Clause"
   },

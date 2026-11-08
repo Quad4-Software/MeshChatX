@@ -38,7 +38,7 @@ export function pluginRoutePath(pluginId) {
 
 export class PluginHost {
     constructor() {
-        /** @type {Map<string, { worker: Worker, cleanup: Array<() => void>, manifest: PluginManifest, lastDescriptor: object | null, lastUiError: string, apiClient: ReturnType<import('../apiClient.js').createApiClient> | null, allowHtmlFrame: boolean, allowedWidgets: string[], routeName: string | null }>} */
+        /** @type {Map<string, { worker: Worker, cleanup: Array<() => void>, manifest: PluginManifest, lastDescriptor: object | null, lastUiError: string, apiClient: ReturnType<import('../apiClient.js').createApiClient> | null, allowHtmlFrame: boolean, canWriteClipboard: boolean, allowedWidgets: string[], routeName: string | null }>} */
         this.instances = new Map();
         /** @type {import('vue-router').Router | null} */
         this.router = null;
@@ -77,7 +77,12 @@ export class PluginHost {
             if (!plugin.enabled) {
                 continue;
             }
-            await this.loadPlugin(plugin, apiClient, locale);
+            // One bad plugin must not prevent every later plugin loading.
+            try {
+                await this.loadPlugin(plugin, apiClient, locale);
+            } catch (err) {
+                console.warn(`Plugin ${plugin.id || "?"} failed to load:`, err);
+            }
         }
     }
 
@@ -113,6 +118,7 @@ export class PluginHost {
         const declaredWidgets = Array.isArray(ui.widgets) ? ui.widgets.filter((w) => isKnownHostWidget(w)) : [];
         const grantedPermissions = grantedPluginPermissions(plugin);
         const allowHtmlFrame = hasGrantedPluginPermission(plugin, "ui:sandboxed-html");
+        const canWriteClipboard = hasGrantedPluginPermission(plugin, "clipboard:write");
 
         worker.onmessage = (event) => {
             this.handleWorkerMessage(pluginId, event.data, apiClient);
@@ -180,6 +186,9 @@ export class PluginHost {
                     });
                     result = response.data?.result;
                 } else if (message.kind === "clipboard") {
+                    if (!canWriteClipboard) {
+                        throw new Error("clipboard:write permission not granted");
+                    }
                     const text = String(message.payload?.text || "");
                     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
                         await navigator.clipboard.writeText(text);
@@ -210,6 +219,7 @@ export class PluginHost {
             lastUiError: "",
             apiClient,
             allowHtmlFrame,
+            canWriteClipboard,
             allowedWidgets: declaredWidgets,
             routeName,
         });

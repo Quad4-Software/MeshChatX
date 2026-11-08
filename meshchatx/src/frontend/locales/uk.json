@@ -1133,6 +1133,9 @@
             "network": {
                 "fetch": "Здійснювати вихідні інтернет-запити HTTP"
             },
+            "clipboard": {
+                "write": "Запис у системний буфер обміну"
+            },
             "backend": {
                 "python": "Запускати код Python у процесі застосунку з повним доступом до файлів, процесів і мережі цього користувача"
             }
@@ -1583,7 +1586,10 @@
         },
         "top_memory_consumer": "Найбільше пам'яті",
         "top_cpu_consumer": "Найбільше ЦП",
-        "sandbox_abi": "ABI ядра v{abi}"
+        "sandbox_abi": "ABI ядра v{abi}",
+        "shell_runtime": "Оболонка робочого столу",
+        "webview_runtime": "WebView",
+        "platform_runtime": "Платформа"
     },
     "interfaces": {
         "title": "Інтерфейси",

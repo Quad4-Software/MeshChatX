@@ -659,6 +659,7 @@ export default {
         await Promise.all([this.loadP2pStatus(), this.loadAwareStatus(), this.loadNfcStatus()]);
     },
     beforeUnmount() {
+        this.isScannerDialogOpen = false;
         this.stopScanner();
         this.stopJoinPolling();
         this.stopAwarePolling();

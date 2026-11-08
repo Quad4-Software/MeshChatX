@@ -113,7 +113,10 @@ def register_plugins_routes(routes, app):
         if not app.plugins_enabled:
             return http_forbidden("Plugins are disabled")
         try:
-            granted_permissions = None
+            # Deny by default: an install request that omits
+            # granted_permissions must not silently receive every declared
+            # permission.
+            granted_permissions = []
             payload = b""
             if request.content_type and "multipart" in request.content_type:
                 reader = await request.multipart()

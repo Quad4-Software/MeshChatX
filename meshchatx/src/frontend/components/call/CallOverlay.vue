@@ -446,6 +446,22 @@ export default {
         if (this.elapsedTimeInterval) {
             clearInterval(this.elapsedTimeInterval);
         }
+        if (this._micMuteResetTimeout) {
+            clearTimeout(this._micMuteResetTimeout);
+            this._micMuteResetTimeout = null;
+        }
+        if (this._speakerMuteResetTimeout) {
+            clearTimeout(this._speakerMuteResetTimeout);
+            this._speakerMuteResetTimeout = null;
+        }
+        if (this.audioPlayer) {
+            try {
+                this.audioPlayer.pause();
+            } catch {
+                // ignore
+            }
+            this.audioPlayer = null;
+        }
     },
     methods: {
         goToPhonePage() {
@@ -506,7 +522,8 @@ export default {
                     : apiPath("/telephone/mute-transmit");
                 await window.api.post(endpoint);
 
-                setTimeout(() => {
+                this._micMuteResetTimeout = setTimeout(() => {
+                    this._micMuteResetTimeout = null;
                     this.isMicMuting = false;
                 }, 500);
             } catch {
@@ -530,7 +547,8 @@ export default {
                     : apiPath("/telephone/mute-receive");
                 await window.api.post(endpoint);
 
-                setTimeout(() => {
+                this._speakerMuteResetTimeout = setTimeout(() => {
+                    this._speakerMuteResetTimeout = null;
                     this.isSpeakerMuting = false;
                 }, 500);
             } catch {

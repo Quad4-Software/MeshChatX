@@ -221,11 +221,20 @@ def normalize_room(room):
 
 # greedy .+ intentionally captures nicks containing parens like
 # nick followed by paren suffix like user (alt) (deadbeefcafe)
+# The nick capture is bounded: nicks are <=32 bytes on the wire, and an
+# unbounded lazy .+? degrades to O(n^2) backtracking on hostile bodies.
 _WHO_ENTRY_RE = re.compile(
     r"(?:^|,\s)"
-    r"(?:(?P<bh>[0-9a-fA-F]{32})|(?P<nick>.+?)\s\((?P<np>[0-9a-fA-F]{12})\))"
+    r"(?:(?P<bh>[0-9a-fA-F]{32})|(?P<nick>[\s\S]{1,64}?)\s\((?P<np>[0-9a-fA-F]{12})\))"
     r"(?=,\s|$)",
 )
+
+# A /who body listing members is small; cap it so a hostile hub cannot feed
+# an unbounded notice into the parser.
+_WHO_BODY_MAX = 256 * 1024
+# Bound the parsed entry count as well: the byte cap alone still allows
+# tens of thousands of tiny entries per notice.
+_WHO_ENTRIES_MAX = 512
 
 
 def parse_who_notice(text):
@@ -248,8 +257,12 @@ def parse_who_notice(text):
         return None
     body = text[sep_idx + 2 :].strip()
     entries = []
+    if len(body) > _WHO_BODY_MAX:
+        body = body[:_WHO_BODY_MAX]
     if body and body != "(none)":
         for m in _WHO_ENTRY_RE.finditer(body):
+            if len(entries) >= _WHO_ENTRIES_MAX:
+                break
             if m.group("nick") is not None:
                 entries.append((m.group("nick").strip(), m.group("np").lower()))
             elif m.group("bh") is not None:
@@ -259,6 +272,13 @@ def parse_who_notice(text):
 
 # Optional [+k] after the room name in /list. The actual key is never listed.
 _LIST_KEYED_SUFFIX_RE = re.compile(r"^(?P<name>.*?)\s*\[\+k\]\s*$", re.IGNORECASE)
+
+# A /list reply is hub-controlled: bound the room count and the length of
+# each name/topic so a hostile hub cannot make the client allocate
+# unbounded state from one notice.
+_ROOM_LIST_MAX_ROOMS = 4096
+_ROOM_LIST_NAME_MAX = 1024
+_ROOM_LIST_TOPIC_MAX = 1024
 
 
 def _split_list_room_name(name_part, *, strip_hash):
@@ -292,6 +312,8 @@ def parse_room_list_notice_details(text):
         return None
     rooms = {}
     for line in lines[1:]:
+        if len(rooms) >= _ROOM_LIST_MAX_ROOMS:
+            break
         s = line.strip()
         if not s:
             continue
@@ -299,14 +321,14 @@ def parse_room_list_notice_details(text):
         strip_hash = True
         if " - " in s:
             name_part, topic_part = s.split(" - ", 1)
-            topic = topic_part.strip() or None
+            topic = topic_part.strip()[:_ROOM_LIST_TOPIC_MAX] or None
             strip_hash = False
         elif s.endswith(" -"):
             name_part = s[:-2]
         else:
             name_part = s
         name, has_key = _split_list_room_name(name_part, strip_hash=strip_hash)
-        if not name:
+        if not name or len(name) > _ROOM_LIST_NAME_MAX:
             continue
         rooms[name] = {"topic": topic, "has_key": has_key}
     return rooms

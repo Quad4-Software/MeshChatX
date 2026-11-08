@@ -43,6 +43,9 @@ export function declaredPermissionIds(manifest) {
     if (network && network !== "none") {
         ids.push("network:fetch");
     }
+    if (permissions.clipboard === "write") {
+        ids.push("clipboard:write");
+    }
     const ui = permissions.ui;
     if (ui === "sandboxed-html" || (Array.isArray(ui) && ui.includes("sandboxed-html"))) {
         ids.push("ui:sandboxed-html");

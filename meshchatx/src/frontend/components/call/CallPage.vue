@@ -697,8 +697,8 @@
                                                                 Browser mic and speaker are used for calls.
                                                             </template>
                                                             <template v-else>
-                                                                Web audio bridge allows web/electron to hook into LXST
-                                                                backend for passing microphone and audio streams to
+                                                                Web audio bridge allows web/desktop-shell to hook into
+                                                                LXST backend for passing microphone and audio streams to
                                                                 active telephone calls.
                                                             </template>
                                                         </div>
@@ -1824,7 +1824,7 @@ export default {
                 lxmf_address: "",
                 lxst_address: "",
             },
-            searchDebounceTimeout: null,
+            searchDebounceTimers: {},
             selectedSuggestionIndex: -1,
             isCallInputFocused: false,
             recordings: [],
@@ -1854,6 +1854,7 @@ export default {
             webAudioMicReady: false,
             webAudioStartInFlight: false,
             remoteAudioEl: null,
+            remoteAudioDest: null,
             useAndroidNativeTelephone: false,
             androidNativeTelephoneListener: null,
             localAudioLevel: 0,
@@ -2035,7 +2036,10 @@ export default {
         if (this.historyInterval) clearInterval(this.historyInterval);
         if (this.elapsedTimeInterval) clearInterval(this.elapsedTimeInterval);
         if (this.endedTimeout) clearTimeout(this.endedTimeout);
-        if (this.searchDebounceTimeout) clearTimeout(this.searchDebounceTimeout);
+        for (const timer of Object.values(this.searchDebounceTimers)) {
+            clearTimeout(timer);
+        }
+        this.searchDebounceTimers = {};
         window.removeEventListener("keydown", this.onPttKeyDown);
         window.removeEventListener("keyup", this.onPttKeyUp);
         window.removeEventListener("blur", this.onPttWindowBlur);
@@ -2104,7 +2108,9 @@ export default {
         extractInt16Samples(payload) {
             if (!payload) return null;
             if (payload instanceof ArrayBuffer) {
-                return new Int16Array(payload);
+                // Int16Array throws on an odd byteLength; drop the trailing
+                // byte instead of crashing the frame handler.
+                return new Int16Array(payload, 0, payload.byteLength >> 1);
             }
             if (ArrayBuffer.isView(payload)) {
                 const byteLengthEven = Math.floor(payload.byteLength / 2) * 2;
@@ -2361,6 +2367,13 @@ export default {
             this.stopWebAudio();
             await this.startWebAudio();
         },
+        // A startWebAudio() attempt goes stale once stopWebAudio() ran while
+        // an await was in flight (call ended, bridge disabled, device
+        // restart, or unmount) or the call went away. stopWebAudio() bumps
+        // _webAudioStartGen to invalidate the in-flight attempt.
+        _isWebAudioStartStale(startGen) {
+            return startGen !== (this._webAudioStartGen || 0) || !this.activeCall;
+        },
         async startWebAudio() {
             if (!this.activeCall) {
                 return;
@@ -2430,6 +2443,7 @@ export default {
                 return;
             }
             this.webAudioStartInFlight = true;
+            const startGen = this._webAudioStartGen || 0;
             try {
                 if (typeof window !== "undefined" && window.isSecureContext === false) {
                     this.webAudioStartBlocked = true;
@@ -2454,10 +2468,26 @@ export default {
                 // permission can lock onto Brave farbling ids and skip the prompt.
                 this.selectedAudioInputId = "__meshchat_default_in__";
                 const stream = await this.getUserMediaWithMicFallback(mediaDevices);
+                if (this._isWebAudioStartStale(startGen)) {
+                    // Call ended, web audio stopped, or the page unmounted
+                    // while the permission prompt was open — do not
+                    // resurrect the mic pipeline.
+                    try {
+                        stream.getTracks().forEach((track) => track.stop());
+                    } catch {
+                        // ignore
+                    }
+                    this.stopWebAudio();
+                    return;
+                }
                 this.audioStream = stream;
                 this.webAudioMicReady = true;
                 this.webAudioStartBlocked = false;
                 await this.refreshAudioDevices();
+                if (this._isWebAudioStartStale(startGen)) {
+                    this.stopWebAudio();
+                    return;
+                }
 
                 if (!this.audioCtx) {
                     const AudioContextCtor = this.getAudioContextConstructor();
@@ -2477,6 +2507,10 @@ export default {
                     } catch {
                         // ignore
                     }
+                }
+                if (this._isWebAudioStartStale(startGen)) {
+                    this.stopWebAudio();
+                    return;
                 }
 
                 const source = this.audioCtx.createMediaStreamSource(stream);
@@ -2519,6 +2553,12 @@ export default {
                     if (!this.audioWs || this.audioWs.readyState !== WebSocket.OPEN) {
                         return;
                     }
+                    // Real-time audio cannot usefully queue deep; on a stalled
+                    // network drop frames rather than grow bufferedAmount
+                    // without bound (~96 KB/s at 48 kHz/16-bit).
+                    if (this.audioWs.bufferedAmount > 256 * 1024) {
+                        return;
+                    }
                     if (arrayBuffer && arrayBuffer.byteLength > 0) {
                         this.audioWs.send(arrayBuffer);
                     }
@@ -2542,6 +2582,10 @@ export default {
                 ) {
                     try {
                         await this.audioCtx.audioWorklet.addModule(telephonePcmCaptureWorkletUrl);
+                        if (this._isWebAudioStartStale(startGen)) {
+                            this.stopWebAudio();
+                            return;
+                        }
                         const processor = new AudioWorkletNode(this.audioCtx, "telephone-pcm-capture", {
                             numberOfInputs: 1,
                             numberOfOutputs: 1,
@@ -2629,6 +2673,13 @@ export default {
                                     typeof msg.message === "string" &&
                                     msg.message.includes("No active call")
                                 ) {
+                                    // Cap attach retries — an ended call whose
+                                    // ws stayed open would otherwise retry at
+                                    // ~6.6 req/sec forever.
+                                    this._audioAttachRetries = (this._audioAttachRetries || 0) + 1;
+                                    if (this._audioAttachRetries > 100) {
+                                        return;
+                                    }
                                     window.setTimeout(() => {
                                         try {
                                             if (this.audioWs && this.audioWs.readyState === WebSocket.OPEN) {
@@ -2638,6 +2689,8 @@ export default {
                                             // ignore
                                         }
                                     }, 150);
+                                } else {
+                                    this._audioAttachRetries = 0;
                                 }
                             }
                         } catch {
@@ -2755,11 +2808,21 @@ export default {
                     this.remoteAudioEl = new Audio();
                     this.remoteAudioEl.autoplay = true;
                 }
-                const dest = this.audioCtx.createMediaStreamDestination();
-                bufferSource.connect(dest);
+                // Reuse one MediaStreamAudioDestinationNode for the element.
+                // Building a fresh node and re-pointing srcObject on every
+                // PCM frame (~16/s) makes the output crackle.
+                if (!this.remoteAudioDest || this._remoteAudioDestCtx !== this.audioCtx) {
+                    this.remoteAudioDest = this.audioCtx.createMediaStreamDestination();
+                    this._remoteAudioDestCtx = this.audioCtx;
+                    this.remoteAudioEl.srcObject = this.remoteAudioDest.stream;
+                    this._remoteAudioSinkId = null;
+                }
+                if (this._remoteAudioSinkId !== sinkId) {
+                    this._remoteAudioSinkId = sinkId;
+                    this.remoteAudioEl.setSinkId(sinkId).catch((err) => console.warn("setSinkId failed", err));
+                }
+                bufferSource.connect(this.remoteAudioDest);
                 bufferSource.start();
-                this.remoteAudioEl.srcObject = dest.stream;
-                this.remoteAudioEl.setSinkId(sinkId).catch((err) => console.warn("setSinkId failed", err));
             } else {
                 bufferSource.connect(this.audioCtx.destination);
                 bufferSource.start();
@@ -2789,6 +2852,10 @@ export default {
             }
         },
         stopWebAudio() {
+            // Invalidate any in-flight startWebAudio() so it cannot rebuild
+            // the mic/WS pipeline after teardown (call end, unmount, restart).
+            this._webAudioStartGen = (this._webAudioStartGen || 0) + 1;
+            this._audioAttachRetries = 0;
             if (this.useAndroidNativeTelephone) {
                 this._unbindAndroidNativeTelephone();
                 this.useAndroidNativeTelephone = false;
@@ -2866,6 +2933,9 @@ export default {
                 this.remoteAudioEl.srcObject = null;
                 this.remoteAudioEl = null;
             }
+            this.remoteAudioDest = null;
+            this._remoteAudioDestCtx = null;
+            this._remoteAudioSinkId = null;
             if (this.audioSilentGain) {
                 try {
                     this.audioSilentGain.disconnect();
@@ -3068,11 +3138,17 @@ export default {
             this.callHistoryOffset += this.callHistoryLimit;
             await this.getHistory(true);
         },
+        // Each search box gets its own timer so typing in one input cannot
+        // cancel another input's pending search.
+        debounceSearch(key, fn, delayMs) {
+            clearTimeout(this.searchDebounceTimers[key]);
+            this.searchDebounceTimers[key] = setTimeout(() => {
+                delete this.searchDebounceTimers[key];
+                fn();
+            }, delayMs);
+        },
         onCallHistorySearchInput() {
-            if (this.searchDebounceTimeout) clearTimeout(this.searchDebounceTimeout);
-            this.searchDebounceTimeout = setTimeout(() => {
-                this.getHistory();
-            }, 500);
+            this.debounceSearch("callHistory", () => this.getHistory(), 500);
         },
         async getDiscovery(loadMore = false) {
             try {
@@ -3108,10 +3184,7 @@ export default {
             await this.getDiscovery(true);
         },
         onDiscoverySearchInput() {
-            if (this.searchDebounceTimeout) clearTimeout(this.searchDebounceTimeout);
-            this.searchDebounceTimeout = setTimeout(() => {
-                this.getDiscovery();
-            }, 500);
+            this.debounceSearch("discovery", () => this.getDiscovery(), 500);
         },
         async toggleDoNotDisturb(value) {
             try {
@@ -3342,10 +3415,7 @@ export default {
             }
         },
         onVoicemailSearchInput() {
-            if (this.searchDebounceTimeout) clearTimeout(this.searchDebounceTimeout);
-            this.searchDebounceTimeout = setTimeout(() => {
-                this.getVoicemails();
-            }, 300);
+            this.debounceSearch("voicemail", () => this.getVoicemails(), 300);
         },
         onVoicemailPatchConfig(patch) {
             if (!this.config || !patch) return;
@@ -3377,10 +3447,7 @@ export default {
             }
         },
         onContactsSearchInput() {
-            if (this.searchDebounceTimeout) clearTimeout(this.searchDebounceTimeout);
-            this.searchDebounceTimeout = setTimeout(() => {
-                this.getContacts();
-            }, 300);
+            this.debounceSearch("contacts", () => this.getContacts(), 300);
         },
         hydrateContactVisuals() {
             const map = {};
@@ -3640,10 +3707,7 @@ export default {
             }
         },
         onRecordingSearchInput() {
-            if (this.searchDebounceTimeout) clearTimeout(this.searchDebounceTimeout);
-            this.searchDebounceTimeout = setTimeout(() => {
-                this.getRecordings();
-            }, 500);
+            this.debounceSearch("recordings", () => this.getRecordings(), 500);
         },
         async playRecording(recording, side) {
             if (this.playingRecordingId === recording.id && this.playingSide === side) {

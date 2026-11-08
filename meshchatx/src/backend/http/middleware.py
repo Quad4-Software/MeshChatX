@@ -248,7 +248,7 @@ def create_auth_middleware(app):
     async def auth_middleware(request, handler):
         path = request.path
 
-        # Health check for startup probes (Electron loading page, monitors).
+        # Health check for startup probes (desktop loading page, monitors).
         if path == API_V1_PREFIX + "/status":
             return await handler(request)
 
@@ -443,7 +443,7 @@ def create_cache_control_middleware(app):
     """Freshness policy for non-API responses.
 
     add_static only sends ETag + Last-Modified, which lets browsers and the
-    Electron disk cache heuristically cache non-hashed subdocuments (for
+    The webview disk cache heuristically caches non-hashed subdocuments (for
     example /nomad-crash-tab.html) for days past an update. The stale HTML
     then references deleted hashed bundles and the frame dies silently.
     Hashed bundles are immutable, everything else must revalidate. Routes

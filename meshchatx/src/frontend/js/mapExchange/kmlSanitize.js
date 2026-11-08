@@ -20,8 +20,32 @@ export class KmlSanitizeError extends Error {
     }
 }
 
+// Strip leading/trailing chars <= U+0020 (C0 controls + space) — the WHATWG
+// URL edge rule. Done via char codes to avoid a control-char regex.
+function stripEdgeC0(s) {
+    let a = 0;
+    let b = s.length;
+    while (a < b && s.charCodeAt(a) <= 0x20) {
+        a++;
+    }
+    while (b > a && s.charCodeAt(b - 1) <= 0x20) {
+        b--;
+    }
+    return s.slice(a, b);
+}
+
 export function isRemoteHref(href) {
-    const h = String(href || "").trim();
+    // Browsers treat backslashes as path separators in special schemes, so
+    // "\\evil.com\x" and "/\evil.com/x" resolve to https://evil.com/x —
+    // normalize before classification or they slip past the checks below.
+    // WHATWG URL parsing removes tab/LF/CR anywhere in the input and strips
+    // leading/trailing C0 controls + space — "htt\tps://evil" and
+    // "\x00https://evil" both resolve remotely. Normalize the same way.
+    const h = stripEdgeC0(
+        String(href || "")
+            .replace(/[\t\n\r]/g, "")
+            .replace(/\\/g, "/")
+    ).trim();
     if (!h) {
         return false;
     }
@@ -43,9 +67,9 @@ export function isAllowedDataImageHref(href) {
 }
 
 function looksLikeDtd(text) {
-    const head = String(text || "")
-        .slice(0, 4096)
-        .toUpperCase();
+    // Iterate code points (not UTF-16 units) so the 4096-char window matches
+    // the Python sanitizer — astral padding must not push <!DOCTYPE past it.
+    const head = [...String(text || "")].slice(0, 4096).join("").toUpperCase();
     return head.includes("<!DOCTYPE") || head.includes("<!ENTITY");
 }
 
@@ -74,12 +98,34 @@ export function unwrapCdataText(inner) {
     return m ? m[1].trim() : trimmed;
 }
 
+const XML_ENTITY_MAP = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+
+// Decode the entities an XML parser would resolve so checks cannot be
+// bypassed with encoded forms like &#106;avascript:.
+function decodeXmlEntities(value) {
+    return String(value).replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (full, entity) => {
+        if (entity[0] === "#") {
+            const isHex = entity[1] === "x" || entity[1] === "X";
+            const code = isHex ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
+            if (!Number.isFinite(code) || code < 0 || code > 0x10ffff) {
+                return full;
+            }
+            try {
+                return String.fromCodePoint(code);
+            } catch {
+                return full;
+            }
+        }
+        return XML_ENTITY_MAP[entity] ?? full;
+    });
+}
+
 function rewriteHrefs(text, { zipLocalOk }) {
     const stripped = [];
     const out = String(text).replace(KML_HREF_TAG_RE, (full, inner) => {
-        const raw = unwrapCdataText(inner);
+        const raw = decodeXmlEntities(unwrapCdataText(inner));
         if (isAllowedDataImageHref(raw)) {
-            return `<href>${raw}</href>`;
+            return full;
         }
         if (
             isRemoteHref(raw) ||
@@ -105,7 +151,7 @@ function rewriteHrefs(text, { zipLocalOk }) {
 function rewriteHrefAttrs(text, { zipLocalOk }) {
     const stripped = [];
     const out = String(text).replace(/(\s(?:xlink:)?href\s*=\s*)(["'])([^"']+)\2/gi, (full, _prefix, _quote, inner) => {
-        const raw = String(inner).trim();
+        const raw = decodeXmlEntities(String(inner).trim());
         if (isAllowedDataImageHref(raw)) {
             return full;
         }
@@ -182,7 +228,7 @@ export function sanitizeKmlText(text, opts = {}) {
     ];
     for (const blockRe of overlayBlocks) {
         out = out.replace(blockRe, (block) => {
-            const hrefs = [...block.matchAll(KML_HREF_TAG_RE)].map((m) => unwrapCdataText(m[1]));
+            const hrefs = [...block.matchAll(KML_HREF_TAG_RE)].map((m) => decodeXmlEntities(unwrapCdataText(m[1])));
             const remote = hrefs.some(
                 (h) => isRemoteHref(h) || (h.toLowerCase().startsWith("data:") && !isAllowedDataImageHref(h))
             );

@@ -652,6 +652,7 @@ export default {
         GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         clearTimeout(this.lxmaImportTimeout);
 
+        this.isScannerDialogOpen = false;
         this.stopScanner();
         if (this.searchDebounceTimeout) {
             clearTimeout(this.searchDebounceTimeout);

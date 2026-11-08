@@ -1133,6 +1133,9 @@
             "network": {
                 "fetch": "Giden internet HTTP istekleri yap"
             },
+            "clipboard": {
+                "write": "Sistem panosuna yazma"
+            },
             "backend": {
                 "python": "Bu kullanıcının dosyalarına, süreçlerine ve ağına tam erişimle uygulama sürecinde Python kodu çalıştır"
             }
@@ -1583,7 +1586,10 @@
         },
         "top_memory_consumer": "En yüksek bellek",
         "top_cpu_consumer": "En yüksek CPU",
-        "sandbox_abi": "Çekirdek ABI'si v{abi}"
+        "sandbox_abi": "Çekirdek ABI'si v{abi}",
+        "shell_runtime": "Masaüstü kabuğu",
+        "webview_runtime": "WebView",
+        "platform_runtime": "Platform"
     },
     "interfaces": {
         "title": "Arayüzler",

@@ -14,7 +14,7 @@ export const TRANSPORT_BLUETOOTH = "bluetooth";
 export const TRANSPORT_WIFI = "wifi";
 
 const ANDROID_RE = /android/i;
-const ELECTRON_RE = /electron/i;
+const SHELL_UA_RE = /electron|wails/i;
 
 function pickGlobal(provided) {
     if (provided) {
@@ -32,12 +32,12 @@ function pickGlobal(provided) {
 function detectPlatform(env) {
     const ua = env.navigator?.userAgent ?? "";
     const isAndroid = ANDROID_RE.test(ua);
-    const isElectron = ELECTRON_RE.test(ua) || Boolean(env.electron);
+    const isDesktop = SHELL_UA_RE.test(ua) || Boolean(env.electron) || Boolean(env.desktop);
     const hasMeshChatXAndroid = Boolean(env.MeshChatXAndroid);
     const isBrave = /Brave/i.test(ua) || Boolean(env.navigator?.brave) || Boolean(env.brave);
     return {
         isAndroid,
-        isElectron,
+        isDesktop,
         hasMeshChatXAndroid,
         isBrave,
         isSecureContext: Boolean(env.isSecureContext),

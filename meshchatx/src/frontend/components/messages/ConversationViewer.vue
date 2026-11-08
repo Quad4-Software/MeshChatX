@@ -2232,7 +2232,9 @@ export default {
             if (!this.contactsSearch) return this.contacts;
             const s = this.contactsSearch.toLowerCase();
             return this.contacts.filter(
-                (c) => c.name.toLowerCase().includes(s) || c.remote_identity_hash.toLowerCase().includes(s)
+                (c) =>
+                    (c?.name || "").toLowerCase().includes(s) ||
+                    (c?.remote_identity_hash || "").toLowerCase().includes(s)
             );
         },
         isMobile() {
@@ -2250,34 +2252,41 @@ export default {
 
             // 1. Check contacts
             this.contacts.forEach((c) => {
-                const hash = c.remote_identity_hash;
-                if (!seenHashes.has(hash)) {
-                    if (!search || c.name.toLowerCase().includes(search) || hash.toLowerCase().includes(search)) {
-                        suggestions.push({
-                            name: c.name,
-                            hash: hash,
-                            type: "contact",
-                            icon: "account",
-                        });
-                        seenHashes.add(hash);
-                    }
+                const hash = c?.remote_identity_hash;
+                if (!hash || seenHashes.has(hash)) {
+                    return;
+                }
+                const name = c?.name || "";
+                if (!search || name.toLowerCase().includes(search) || String(hash).toLowerCase().includes(search)) {
+                    suggestions.push({
+                        name: name,
+                        hash: hash,
+                        type: "contact",
+                        icon: "account",
+                    });
+                    seenHashes.add(hash);
                 }
             });
 
             // 2. Check recent conversations
             this.conversations.forEach((c) => {
-                const hash = c.destination_hash;
-                if (!seenHashes.has(hash)) {
-                    const name = c.custom_display_name ?? c.display_name;
-                    if (!search || name.toLowerCase().includes(search) || hash.toLowerCase().includes(search)) {
-                        suggestions.push({
-                            name: name,
-                            hash: hash,
-                            type: "recent",
-                            icon: "history",
-                        });
-                        seenHashes.add(hash);
-                    }
+                const hash = c?.destination_hash;
+                if (!hash || seenHashes.has(hash)) {
+                    return;
+                }
+                const name = c?.custom_display_name ?? c?.display_name ?? "";
+                if (
+                    !search ||
+                    String(name).toLowerCase().includes(search) ||
+                    String(hash).toLowerCase().includes(search)
+                ) {
+                    suggestions.push({
+                        name: name,
+                        hash: hash,
+                        type: "recent",
+                        icon: "history",
+                    });
+                    seenHashes.add(hash);
                 }
             });
 
@@ -4216,17 +4225,22 @@ export default {
             await this.refreshPeerPath({ warm: false });
         },
         async getPeerLxmfStampInfo() {
-            if (this.selectedPeer) {
+            const peerHash = this.selectedPeer?.destination_hash;
+            if (peerHash) {
                 try {
                     // get lxmf stamp info
-                    const response = await window.api.get(
-                        apiPath(`/destination/${this.selectedPeer.destination_hash}/lxmf-stamp-info`)
-                    );
+                    const response = await window.api.get(apiPath(`/destination/${peerHash}/lxmf-stamp-info`));
+                    if (this.selectedPeer?.destination_hash !== peerHash) {
+                        return;
+                    }
 
                     // update ui
                     this.selectedPeerLxmfStampInfo = response.data.lxmf_stamp_info;
                 } catch (e) {
                     console.log(e);
+                    if (this.selectedPeer?.destination_hash !== peerHash) {
+                        return;
+                    }
 
                     // clear previous stamp info
                     this.selectedPeerLxmfStampInfo = null;
@@ -4234,17 +4248,22 @@ export default {
             }
         },
         async getPeerSignalMetrics() {
-            if (this.selectedPeer) {
+            const peerHash = this.selectedPeer?.destination_hash;
+            if (peerHash) {
                 try {
                     // get signal metrics
-                    const response = await window.api.get(
-                        apiPath(`/destination/${this.selectedPeer.destination_hash}/signal-metrics`)
-                    );
+                    const response = await window.api.get(apiPath(`/destination/${peerHash}/signal-metrics`));
+                    if (this.selectedPeer?.destination_hash !== peerHash) {
+                        return;
+                    }
 
                     // update ui
                     this.selectedPeerSignalMetrics = response.data.signal_metrics;
                 } catch (e) {
                     console.log(e);
+                    if (this.selectedPeer?.destination_hash !== peerHash) {
+                        return;
+                    }
 
                     // clear previous signal metrics
                     this.selectedPeerSignalMetrics = null;
@@ -4458,12 +4477,14 @@ export default {
             return this.chatItems.findIndex((chatItem) => this._hexEqual(chatItem.lxmf_message?.hash, hash)) !== -1;
         },
         async getCustomDisplayName() {
-            if (this.selectedPeer) {
+            const peerHash = this.selectedPeer?.destination_hash;
+            if (peerHash) {
                 try {
                     // get custom display name
-                    const response = await window.api.get(
-                        apiPath(`/destination/${this.selectedPeer.destination_hash}/custom-display-name`)
-                    );
+                    const response = await window.api.get(apiPath(`/destination/${peerHash}/custom-display-name`));
+                    if (this.selectedPeer?.destination_hash !== peerHash) {
+                        return;
+                    }
 
                     // update ui
                     this.$emit("update:selectedPeer", {
@@ -7742,11 +7763,22 @@ export default {
             if (lxmfMessage.fields?.file_attachments) {
                 let filesLength = 0;
                 const fileAttachments = lxmfMessage.fields.file_attachments;
-                for (const fileAttachment of fileAttachments) {
-                    const fileBytesLength =
-                        fileAttachment.file_size ??
-                        (fileAttachment.file_bytes ? atob(fileAttachment.file_bytes).length : 0);
-                    filesLength += fileBytesLength;
+                if (Array.isArray(fileAttachments)) {
+                    for (const fileAttachment of fileAttachments) {
+                        let fileBytesLength = fileAttachment?.file_size ?? null;
+                        if (fileBytesLength == null) {
+                            fileBytesLength = 0;
+                            if (fileAttachment?.file_bytes) {
+                                try {
+                                    fileBytesLength = atob(fileAttachment.file_bytes).length;
+                                } catch {
+                                    fileBytesLength = 0;
+                                }
+                            }
+                        }
+                        const size = Number(fileBytesLength);
+                        filesLength += Number.isFinite(size) ? size : 0;
+                    }
                 }
                 if (filesLength > 0) lines.push(`File Attachments: ${this.formatBytes(filesLength)}`);
             }

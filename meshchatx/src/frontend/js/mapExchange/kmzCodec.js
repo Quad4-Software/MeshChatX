@@ -12,6 +12,11 @@ import {
     unwrapCdataText,
 } from "./kmlSanitize.js";
 
+// Decompression caps guarding against zip bombs in imported or remotely
+// fetched KMZ archives. Generous for legitimate map content.
+const MAX_KMZ_KML_BYTES = 32 * 1024 * 1024;
+const MAX_KMZ_ENTRY_BYTES = 64 * 1024 * 1024;
+
 /**
  * @param {Uint8Array} u8
  * @returns {string}
@@ -169,6 +174,12 @@ async function rewriteKmlLocalHrefsToDataUrls(zip, kmlText, kmlEntryName) {
         if (!kmzEntryAllowed(zipPath)) {
             continue;
         }
+        // Zip-bomb guard: refuse to decompress entries whose declared
+        // uncompressed size exceeds the cap (remote KMZ content included).
+        const declaredSize = entry?._data?.uncompressedSize;
+        if (typeof declaredSize === "number" && declaredSize > MAX_KMZ_ENTRY_BYTES) {
+            continue;
+        }
         const ab = await entry.async("arraybuffer");
         const mime = guessMimeFromPath(zipPath);
         if (!mime.startsWith("image/") || mime.includes("svg")) {
@@ -212,6 +223,10 @@ export async function readKmzToFeatures(arrayBuffer, featureProjection) {
     const entry = zip.file(kmlName);
     if (!entry) {
         throw new KmlSanitizeError("kmz_missing_kml");
+    }
+    const kmlDeclaredSize = entry?._data?.uncompressedSize;
+    if (typeof kmlDeclaredSize === "number" && kmlDeclaredSize > MAX_KMZ_KML_BYTES) {
+        throw new KmlSanitizeError("kmz_entry_too_large");
     }
     let kmlText = await entry.async("string");
     const sanitized = sanitizeKmlText(kmlText, { zipLocalOk: true });

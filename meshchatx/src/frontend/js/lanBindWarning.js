@@ -24,7 +24,7 @@ export function dismissLanBindNoAuthBanner() {
 }
 
 export function shouldShowLanBindNoAuthBanner({
-    isElectron = false,
+    isDesktop = false,
     isAndroid = false,
     authEnabled = false,
     isLoopbackBind = true,
@@ -34,7 +34,7 @@ export function shouldShowLanBindNoAuthBanner({
     if (dismissed || isLanBindNoAuthBannerDismissed()) {
         return false;
     }
-    if (isElectron || isAndroid) {
+    if (isDesktop || isAndroid) {
         return false;
     }
     if (routeName === "auth") {

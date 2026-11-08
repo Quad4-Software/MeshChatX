@@ -49,7 +49,10 @@ def register_page_nodes_routes(routes, app):
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
-        name = data.get("name", "").strip()
+        name = data.get("name", "")
+        if not isinstance(name, str):
+            return http_bad_request("Name must be a string")
+        name = name.strip()
         if not name:
             return http_bad_request("Name is required")
         announce_enabled = _json_bool(data.get("announce_enabled"), True)
@@ -124,7 +127,10 @@ def register_page_nodes_routes(routes, app):
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
-        new_name = data.get("name", "").strip()
+        new_name = data.get("name", "")
+        if not isinstance(new_name, str):
+            return http_bad_request("Name must be a string")
+        new_name = new_name.strip()
         if not new_name:
             return http_bad_request("Name is required")
         try:

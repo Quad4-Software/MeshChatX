@@ -71,7 +71,7 @@ def evaluate_startup_memory(emergency: bool = False) -> dict:
 
 
 def format_memory_log_line(result: dict) -> str:
-    """Emit a single machine-readable startup memory line for Electron logs."""
+    """Emit a single machine-readable startup memory line for desktop shell logs."""
     return (
         f"{MEMORY_LOG_PREFIX} total_mb={result['total_mb']:.1f} "
         f"available_mb={result['available_mb']:.1f} "

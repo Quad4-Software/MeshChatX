@@ -14,8 +14,8 @@ class TestBackendIntegrity(unittest.TestCase):
         self.test_dir = Path(tempfile.mkdtemp())
         self.build_dir = self.test_dir / "build" / "exe"
         self.build_dir.mkdir(parents=True)
-        self.electron_dir = self.test_dir / "electron"
-        self.electron_dir.mkdir()
+        self.app_dir = self.test_dir / "desktop"
+        self.app_dir.mkdir()
 
         # Create some files in build/exe
         self.files = {
@@ -49,7 +49,7 @@ class TestBackendIntegrity(unittest.TestCase):
                     digest = hashlib.sha256(f.read()).hexdigest()
                 manifest["files"][rel_path] = digest
 
-        manifest_path = self.electron_dir / "backend-manifest.json"
+        manifest_path = self.app_dir / "backend-manifest.json"
         with open(manifest_path, "w") as f:
             json.dump(manifest, f)
         return manifest_path

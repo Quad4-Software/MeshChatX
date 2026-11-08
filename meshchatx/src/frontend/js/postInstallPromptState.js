@@ -9,14 +9,31 @@
 export const POST_INSTALL_PROMPTS_STORAGE_KEY = "meshchatx.post_install_prompts_seen";
 
 /**
+ * localStorage access itself can throw (privacy modes, disabled storage),
+ * so resolve it defensively once per call.
+ * @returns {Storage | null}
+ */
+function getSafeLocalStorage() {
+    try {
+        if (typeof window === "undefined") {
+            return null;
+        }
+        return window.localStorage || null;
+    } catch {
+        return null;
+    }
+}
+
+/**
  * @returns {Record<string, number>}
  */
 export function readSeenMap() {
-    if (typeof window === "undefined" || !window.localStorage) {
+    const storage = getSafeLocalStorage();
+    if (!storage) {
         return {};
     }
     try {
-        const raw = window.localStorage.getItem(POST_INSTALL_PROMPTS_STORAGE_KEY);
+        const raw = storage.getItem(POST_INSTALL_PROMPTS_STORAGE_KEY);
         if (!raw) {
             return {};
         }
@@ -42,10 +59,15 @@ export function readSeenMap() {
  * @param {Record<string, number>} map
  */
 export function writeSeenMap(map) {
-    if (typeof window === "undefined" || !window.localStorage) {
+    const storage = getSafeLocalStorage();
+    if (!storage) {
         return;
     }
-    window.localStorage.setItem(POST_INSTALL_PROMPTS_STORAGE_KEY, JSON.stringify(map || {}));
+    try {
+        storage.setItem(POST_INSTALL_PROMPTS_STORAGE_KEY, JSON.stringify(map || {}));
+    } catch {
+        // Storage may be unavailable or full — prompts simply re-appear.
+    }
 }
 
 /**
@@ -96,8 +118,13 @@ export function shouldShowPrompt(id, revision) {
  * Test helper.
  */
 export function clearPromptSeenState() {
-    if (typeof window === "undefined" || !window.localStorage) {
+    const storage = getSafeLocalStorage();
+    if (!storage) {
         return;
     }
-    window.localStorage.removeItem(POST_INSTALL_PROMPTS_STORAGE_KEY);
+    try {
+        storage.removeItem(POST_INSTALL_PROMPTS_STORAGE_KEY);
+    } catch {
+        // ignore
+    }
 }

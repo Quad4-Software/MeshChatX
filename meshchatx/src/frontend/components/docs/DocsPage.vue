@@ -537,7 +537,7 @@
                         <div class="absolute inset-0 flex items-center justify-center">
                             <MaterialDesignIcon
                                 icon-name="folder-zip-outline"
-                                class="w-10 h-10 text-sem-info animate-bounce"
+                                class="w-10 h-10 text-sem-info animate-pulse"
                             />
                         </div>
                     </div>

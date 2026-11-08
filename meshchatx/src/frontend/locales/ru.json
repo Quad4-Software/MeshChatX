@@ -1133,6 +1133,9 @@
             "network": {
                 "fetch": "Выполнять исходящие HTTP-запросы в интернет"
             },
+            "clipboard": {
+                "write": "Запись в системный буфер обмена"
+            },
             "backend": {
                 "python": "Выполнять код Python в процессе приложения с полным доступом к файлам, процессам и сети этого пользователя"
             }
@@ -1583,7 +1586,10 @@
         },
         "top_memory_consumer": "Лидер по памяти",
         "top_cpu_consumer": "Лидер по ЦП",
-        "sandbox_abi": "ABI ядра v{abi}"
+        "sandbox_abi": "ABI ядра v{abi}",
+        "shell_runtime": "Оболочка рабочего стола",
+        "webview_runtime": "WebView",
+        "platform_runtime": "Платформа"
     },
     "interfaces": {
         "title": "Интерфейсы",

@@ -167,7 +167,9 @@ export function installWsLiveSync(options) {
         lastSeq = nextLastSeqFromPayload(payload, lastSeq);
         persist();
         if (typeof options.onMessagePayload === "function") {
-            options.onMessagePayload(payload);
+            Promise.resolve()
+                .then(() => options.onMessagePayload(payload))
+                .catch(() => {});
         }
     }
 
@@ -221,7 +223,12 @@ export function installWsLiveSync(options) {
         if (!syncSubscribeRequiresResync(payload)) {
             return;
         }
-        await onNeedsResync();
+        try {
+            await onNeedsResync();
+        } catch {
+            // A failed resync must not surface as an unhandled rejection;
+            // the next subscribe or watchdog will retry gap recovery.
+        }
         if (typeof payload?.current_seq === "number") {
             lastSeq = Math.max(lastSeq, Math.floor(payload.current_seq));
             persist();

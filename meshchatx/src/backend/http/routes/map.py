@@ -164,6 +164,12 @@ def register_map_routes(routes, app):
             return http_payload_too_large()
         name = data.get("name")
         drawing_data = data.get("data")
+        if name is not None and not isinstance(name, str):
+            return http_bad_request("name must be a string")
+        if drawing_data is None:
+            return http_bad_request("data is required")
+        if not isinstance(drawing_data, str):
+            drawing_data = json.dumps(drawing_data)
         app.database.map_drawings.upsert_drawing(identity_hash, name, drawing_data)
         return web.json_response({"message": "Drawing saved successfully"})
 
@@ -189,6 +195,10 @@ def register_map_routes(routes, app):
             return http_payload_too_large()
         name = data.get("name")
         drawing_data = data.get("data")
+        if name is not None and not isinstance(name, str):
+            return http_bad_request("name must be a string")
+        if drawing_data is not None and not isinstance(drawing_data, str):
+            drawing_data = json.dumps(drawing_data)
         updated = app.database.map_drawings.update_drawing(
             drawing_id,
             identity_hash,

@@ -44,8 +44,8 @@ class NotificationUtils {
     }
 
     static showIncomingCallNotification(callerName) {
-        if (window.electron) {
-            window.electron.showNotification(
+        if (window.desktop) {
+            window.desktop.showNotification(
                 "Incoming Call",
                 callerName ? `${callerName} is calling you.` : "Someone is calling you."
             );
@@ -66,8 +66,8 @@ class NotificationUtils {
     }
 
     static showMissedCallNotification(from) {
-        if (window.electron) {
-            window.electron.showNotification("Missed Call", `You missed a call from ${from}.`);
+        if (window.desktop) {
+            window.desktop.showNotification("Missed Call", `You missed a call from ${from}.`);
             return;
         }
         if (NotificationUtils._isAndroid()) {
@@ -85,8 +85,8 @@ class NotificationUtils {
     }
 
     static showNewVoicemailNotification(from) {
-        if (window.electron) {
-            window.electron.showNotification("New Voicemail", `You have a new voicemail from ${from}.`);
+        if (window.desktop) {
+            window.desktop.showNotification("New Voicemail", `You have a new voicemail from ${from}.`);
             return;
         }
         if (NotificationUtils._isAndroid()) {
@@ -116,9 +116,9 @@ class NotificationUtils {
         const body = from ? `${from}: ${content || "Sent a message."}` : "Someone sent you a message.";
         const hash = NotificationUtils._normalizeHash(destinationHash);
 
-        if (window.electron) {
-            if (typeof window.electron.showNotification === "function") {
-                window.electron.showNotification("New Message", body, silent, hash || null);
+        if (window.desktop) {
+            if (typeof window.desktop.showNotification === "function") {
+                window.desktop.showNotification("New Message", body, silent, hash || null);
             }
             return;
         }
@@ -157,8 +157,8 @@ class NotificationUtils {
     static clearMessageNotifications(destinationHash) {
         const hash = NotificationUtils._normalizeHash(destinationHash);
 
-        if (window.electron && typeof window.electron.closeMessageNotifications === "function") {
-            window.electron.closeMessageNotifications(hash || null);
+        if (window.desktop && typeof window.desktop.closeMessageNotifications === "function") {
+            window.desktop.closeMessageNotifications(hash || null);
         }
 
         if (NotificationUtils._isAndroid()) {

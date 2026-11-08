@@ -3,20 +3,20 @@
 /**
  * Host device battery probe for laptops and mobile shells.
  *
- * Order: Android bridge, then Electron IPC.
+ * Order: Android bridge, then desktop bridge IPC.
  * The Chromium Battery Status API is opt-in only. Headless and Docker
  * Chromium builds often report a fake "charging 100%" reading.
  */
 
 import AndroidBridge from "./rnode/AndroidBridge.js";
-import ElectronUtils from "./ElectronUtils.js";
+import DesktopUtils from "./DesktopUtils.js";
 
 /**
  * @typedef {object} DeviceBatteryStatus
  * @property {boolean} supported
  * @property {number|null} level Percent 0-100, or null when unknown
  * @property {boolean|null} charging
- * @property {"android"|"electron"|"web"|null} source
+ * @property {"android"|"wails"|"web"|null} source
  */
 
 /**
@@ -52,7 +52,7 @@ export function normalizeBatteryPercent(value, options = {}) {
 
 /**
  * @param {unknown} raw
- * @param {"android"|"electron"|"web"|null} source
+ * @param {"android"|"wails"|"web"|null} source
  * @returns {DeviceBatteryStatus|null}
  */
 export function normalizeBatteryStatus(raw, source = null) {
@@ -124,13 +124,13 @@ async function probeAndroidBattery() {
 /**
  * @returns {Promise<DeviceBatteryStatus|null>}
  */
-async function probeElectronBattery() {
-    if (!ElectronUtils.isElectron()) {
+async function probeDesktopBattery() {
+    if (!DesktopUtils.isDesktop()) {
         return null;
     }
     try {
-        const raw = await ElectronUtils.getBatteryStatus();
-        return normalizeBatteryStatus(raw, "electron");
+        const raw = await DesktopUtils.getBatteryStatus();
+        return normalizeBatteryStatus(raw, "wails");
     } catch {
         return null;
     }
@@ -175,9 +175,9 @@ export async function getDeviceBatteryStatus(options = {}) {
     if (androidStatus) {
         return androidStatus;
     }
-    const electronStatus = await probeElectronBattery();
-    if (electronStatus) {
-        return electronStatus;
+    const desktopStatus = await probeDesktopBattery();
+    if (desktopStatus) {
+        return desktopStatus;
     }
     if (allowWeb) {
         return probeWebBattery();
@@ -221,7 +221,7 @@ export function batteryStatusIconName(status) {
  * @returns {boolean}
  */
 export function isNativeBatteryStatus(status) {
-    return Boolean(status && status.supported && (status.source === "android" || status.source === "electron"));
+    return Boolean(status && status.supported && (status.source === "android" || status.source === "wails"));
 }
 
 /**

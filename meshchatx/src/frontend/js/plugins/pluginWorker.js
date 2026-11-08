@@ -69,6 +69,9 @@ function handleWorkerMessage(event, post) {
                 return postRequest("manager", { capability, args });
             },
             async clipboardWrite(text) {
+                if (!state.permissions.includes("clipboard:write")) {
+                    throw new Error("clipboard:write permission not granted");
+                }
                 return postRequest("clipboard", { text: String(text ?? "") });
             },
             getTheme() {

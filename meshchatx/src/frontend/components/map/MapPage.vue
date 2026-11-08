@@ -1798,6 +1798,7 @@ export default {
         document.addEventListener("visibilitychange", this._onVisibilityFlush);
     },
     beforeUnmount() {
+        this._unmounted = true;
         GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         if (this.map && this.map.getViewport()) {
             this.map.getViewport().removeEventListener("contextmenu", this.onContextMenu);
@@ -2047,7 +2048,13 @@ export default {
                 return;
             }
             this._mapBooted = true;
-            await this.initMap();
+            try {
+                await this.initMap();
+            } catch (e) {
+                this._mapBooted = false;
+                console.error("Map initialization failed", e);
+                return;
+            }
             if (this.telemetryList.length > 0) {
                 this.updateMarkers();
             }
@@ -2458,6 +2465,9 @@ export default {
 
             this.map.addInteraction(this.dragBox);
             await this.$nextTick();
+            if (this._unmounted || !this.map || !this.$refs.mapContainer) {
+                return;
+            }
             if (this.$refs.scaleLineMount) {
                 this.map.addControl(
                     new ScaleLine({
@@ -2693,8 +2703,12 @@ export default {
             const url = (this.tileServerUrl || DEFAULT_OSM_RASTER).trim();
             if (!this.offlineEnabled && !this.cachingEnabled && this.isOpenFreeMapStyleUrl(url)) {
                 const group = new LayerGroup();
-                await applyMapboxStyle(group, url);
-                return group;
+                try {
+                    await applyMapboxStyle(group, url);
+                    return group;
+                } catch (e) {
+                    console.warn("Mapbox style failed to load, using raster fallback", e);
+                }
             }
             if (this.cachingEnabled && this.usesOfflineMbtilesRaster()) {
                 return new LayerGroup({
@@ -3188,24 +3202,29 @@ export default {
         },
         async updateMapSource() {
             if (!this.map) return;
-            // Build the replacement while the old base layer stays visible so
-            // toggling online/offline does not flash an empty canvas.
-            const newBaseLayer = await this.buildBaseMapLayer();
-            const layers = this.map.getLayers();
-            const arr = typeof layers.getArray === "function" ? layers.getArray() : layers;
-            const oldBaseLayer = arr?.[0];
-            if (typeof layers.insertAt === "function") {
-                layers.insertAt(0, newBaseLayer);
-            } else if (Array.isArray(arr)) {
-                arr.unshift(newBaseLayer);
-            }
-            if (oldBaseLayer && oldBaseLayer !== newBaseLayer) {
-                if (typeof layers.remove === "function") {
-                    layers.remove(oldBaseLayer);
+            try {
+                // Build the replacement while the old base layer stays visible so
+                // toggling online/offline does not flash an empty canvas.
+                const newBaseLayer = await this.buildBaseMapLayer();
+                if (!this.map) return;
+                const layers = this.map.getLayers();
+                const arr = typeof layers.getArray === "function" ? layers.getArray() : layers;
+                const oldBaseLayer = arr?.[0];
+                if (typeof layers.insertAt === "function") {
+                    layers.insertAt(0, newBaseLayer);
                 } else if (Array.isArray(arr)) {
-                    const idx = arr.indexOf(oldBaseLayer);
-                    if (idx > 0) arr.splice(idx, 1);
+                    arr.unshift(newBaseLayer);
                 }
+                if (oldBaseLayer && oldBaseLayer !== newBaseLayer) {
+                    if (typeof layers.remove === "function") {
+                        layers.remove(oldBaseLayer);
+                    } else if (Array.isArray(arr)) {
+                        const idx = arr.indexOf(oldBaseLayer);
+                        if (idx > 0) arr.splice(idx, 1);
+                    }
+                }
+            } catch (e) {
+                console.warn("updateMapSource failed", e);
             }
         },
         async toggleOffline(enabled) {
@@ -5919,6 +5938,9 @@ export default {
             }
         },
         onLxmfTelemetry(json) {
+            if (!json || typeof json.destination_hash !== "string" || !json.destination_hash) {
+                return;
+            }
             // Find and update or add to telemetryList
             const index = this.telemetryList.findIndex((t) => t.destination_hash === json.destination_hash);
             const oldEntry = index !== -1 ? this.telemetryList[index] : null;
@@ -5945,11 +5967,11 @@ export default {
                 const isTracked = this.telemetryList.find(
                     (t) => t.destination_hash === json.destination_hash
                 )?.is_tracking;
+                const lat = Number(entry.telemetry.location?.latitude);
+                const lon = Number(entry.telemetry.location?.longitude);
 
-                if (isTracked) {
-                    ToastUtils.info(
-                        `Live update: ${name} is at ${entry.telemetry.location.latitude.toFixed(4)}, ${entry.telemetry.location.longitude.toFixed(4)}`
-                    );
+                if (isTracked && Number.isFinite(lat) && Number.isFinite(lon)) {
+                    ToastUtils.info(`Live update: ${name} is at ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
                 }
 
                 // Update trail if this marker is currently selected

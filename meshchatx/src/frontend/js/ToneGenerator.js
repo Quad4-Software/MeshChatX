@@ -95,16 +95,22 @@ export default class ToneGenerator {
                 if (Array.isArray(this.oscillator) && this.oscillator.includes(osc1)) {
                     gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.5);
                     setTimeout(() => {
-                        osc1.stop();
-                        osc2.stop();
-                        sub.stop();
-                        osc1.disconnect();
-                        osc2.disconnect();
-                        sub.disconnect();
-                        subGain.disconnect();
-                        panner1.disconnect();
-                        panner2.disconnect();
-                        gain.disconnect();
+                        // stop() may have run during the fade window; the
+                        // nodes are then already stopped/disconnected.
+                        try {
+                            osc1.stop();
+                            osc2.stop();
+                            sub.stop();
+                            osc1.disconnect();
+                            osc2.disconnect();
+                            sub.disconnect();
+                            subGain.disconnect();
+                            panner1.disconnect();
+                            panner2.disconnect();
+                            gain.disconnect();
+                        } catch {
+                            // Ignore errors if nodes are already stopped
+                        }
                     }, 500);
                 }
             }, 2000);
@@ -155,12 +161,18 @@ export default class ToneGenerator {
                 if (Array.isArray(this.oscillator) && this.oscillator.includes(osc)) {
                     gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.1);
                     setTimeout(() => {
-                        osc.stop();
-                        sub.stop();
-                        osc.disconnect();
-                        sub.disconnect();
-                        subGain.disconnect();
-                        gain.disconnect();
+                        // stop() may have run during the fade window; the
+                        // nodes are then already stopped/disconnected.
+                        try {
+                            osc.stop();
+                            sub.stop();
+                            osc.disconnect();
+                            sub.disconnect();
+                            subGain.disconnect();
+                            gain.disconnect();
+                        } catch {
+                            // Ignore errors if nodes are already stopped
+                        }
                     }, 100);
                 }
             }, 500);

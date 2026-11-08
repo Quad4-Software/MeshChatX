@@ -176,39 +176,47 @@ function dropScriptLikePlainText(text) {
  * @param {string} html
  * @returns {string}
  */
+// The table/cell/script regexes use lazy [\s\S]*? scans that degrade to
+// O(n^2) on tag-soup input. Past this size skip structured extraction and use
+// the linear tag-strip fallback — crafted map imports could otherwise freeze
+// the UI for tens of seconds.
+const FLATTEN_STRUCTURED_MAX = 8 * 1024;
+
 export function flattenHtmlDescription(html) {
     let s = String(html || "");
     if (!s.trim()) {
         return "";
     }
-    s = dropScriptAndStyle(s);
-    const rows = [];
-    s.replace(TABLE_ROW_RE, (_full, rowInner) => {
-        const cells = [];
-        String(rowInner).replace(CELL_RE, (_c, cellInner) => {
-            const plain = cellPlain(cellInner);
-            if (plain) {
-                cells.push(plain);
+    if (s.length <= FLATTEN_STRUCTURED_MAX) {
+        s = dropScriptAndStyle(s);
+        const rows = [];
+        s.replace(TABLE_ROW_RE, (_full, rowInner) => {
+            const cells = [];
+            String(rowInner).replace(CELL_RE, (_c, cellInner) => {
+                const plain = cellPlain(cellInner);
+                if (plain) {
+                    cells.push(plain);
+                }
+                return "";
+            });
+            if (cells.length >= 2) {
+                const key = cells[0];
+                const val = cells.slice(1).join(" ");
+                if (key && !isNullishMapValue(val)) {
+                    rows.push(`${key}: ${val}`);
+                }
+            } else if (cells.length === 1 && !isNullishMapValue(cells[0])) {
+                rows.push(cells[0]);
             }
             return "";
         });
-        if (cells.length >= 2) {
-            const key = cells[0];
-            const val = cells.slice(1).join(" ");
-            if (key && !isNullishMapValue(val)) {
-                rows.push(`${key}: ${val}`);
-            }
-        } else if (cells.length === 1 && !isNullishMapValue(cells[0])) {
-            rows.push(cells[0]);
+        if (rows.length) {
+            return dropScriptLikePlainText(rows.join("\n"));
         }
-        return "";
-    });
-    if (rows.length) {
-        return dropScriptLikePlainText(rows.join("\n"));
-    }
-    const fontRows = extractFontFields(s);
-    if (fontRows.length) {
-        return dropScriptLikePlainText(fontRows.join("\n"));
+        const fontRows = extractFontFields(s);
+        if (fontRows.length) {
+            return dropScriptLikePlainText(fontRows.join("\n"));
+        }
     }
     s = s.replace(BR_RE, "\n").replace(BLOCK_BREAK_RE, "\n");
     s = decodeBasicEntities(s.replace(TAG_RE, " "));

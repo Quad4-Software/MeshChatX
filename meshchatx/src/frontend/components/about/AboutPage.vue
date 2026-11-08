@@ -74,7 +74,7 @@
                                 <span class="truncate">{{ $t("about.third_party_licenses") }}</span>
                             </router-link>
                             <button
-                                v-if="isElectron"
+                                v-if="isDesktop"
                                 type="button"
                                 class="about-action-btn primary-chip"
                                 @click="relaunch"
@@ -583,7 +583,7 @@
                                     {{ appInfo.reticulum_config_path || $t("about.path_unknown") }}
                                 </div>
                                 <button
-                                    v-if="isElectron"
+                                    v-if="isDesktop"
                                     type="button"
                                     class="secondary-chip mt-3 px-3! py-1! text-[10px]!"
                                     @click="showReticulumConfigFile"
@@ -602,7 +602,7 @@
                                     {{ appInfo.database_path || $t("about.path_unknown") }}
                                 </div>
                                 <button
-                                    v-if="isElectron"
+                                    v-if="isDesktop"
                                     type="button"
                                     class="secondary-chip mt-3 px-3! py-1! text-[10px]!"
                                     @click="showDatabaseFile"
@@ -894,7 +894,7 @@
 
                             <div class="space-y-8 min-w-0">
                                 <div
-                                    v-if="electronVersion || chromeVersion || nodeVersion"
+                                    v-if="runtimeInfo"
                                     class="py-4 sm:p-5 border-t border-sem-border/60 sm:border sm:rounded-2xl sm:bg-black/2 dark:sm:bg-white/2 min-w-0"
                                 >
                                     <div
@@ -903,34 +903,34 @@
                                         {{ $t("about.core_runtime") }}
                                     </div>
                                     <div class="grid grid-cols-2 gap-x-6 gap-y-4">
-                                        <div v-if="electronVersion" class="flex flex-col">
+                                        <div v-if="runtimeInfo.shell" class="flex flex-col">
                                             <span
                                                 class="text-[9px] font-black text-black dark:text-white uppercase leading-none"
-                                                >{{ $t("about.electron_runtime") }}</span
+                                                >{{ $t("about.shell_runtime") }}</span
                                             >
                                             <span
                                                 class="text-[11px] font-mono font-bold mt-1.5 text-black dark:text-white tracking-tight"
-                                                >v{{ electronVersion }}</span
+                                                >{{ runtimeInfo.shell }} v{{ runtimeInfo.wailsVersion }}</span
                                             >
                                         </div>
-                                        <div v-if="chromeVersion" class="flex flex-col">
+                                        <div v-if="runtimeInfo.webview" class="flex flex-col">
                                             <span
                                                 class="text-[9px] font-black text-black dark:text-white uppercase leading-none"
-                                                >{{ $t("about.chrome_runtime") }}</span
+                                                >{{ $t("about.webview_runtime") }}</span
                                             >
                                             <span
                                                 class="text-[11px] font-mono font-bold mt-1.5 text-black dark:text-white tracking-tight"
-                                                >v{{ chromeVersion }}</span
+                                                >{{ runtimeInfo.webview }}</span
                                             >
                                         </div>
-                                        <div v-if="nodeVersion" class="flex flex-col">
+                                        <div v-if="runtimeInfo.os" class="flex flex-col">
                                             <span
                                                 class="text-[9px] font-black text-black dark:text-white uppercase leading-none"
-                                                >{{ $t("about.nodejs_runtime") }}</span
+                                                >{{ $t("about.platform_runtime") }}</span
                                             >
                                             <span
                                                 class="text-[11px] font-mono font-bold mt-1.5 text-black dark:text-white tracking-tight"
-                                                >v{{ nodeVersion }}</span
+                                                >{{ runtimeInfo.os }}/{{ runtimeInfo.arch }}</span
                                             >
                                         </div>
                                     </div>
@@ -1338,7 +1338,7 @@
 <script>
 import { getCurrentInstance } from "vue";
 import Utils from "../../js/Utils";
-import ElectronUtils from "../../js/ElectronUtils";
+import DesktopUtils from "../../js/DesktopUtils";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
@@ -1403,7 +1403,7 @@ export default {
             databaseActionError: "",
             databaseActionInProgress: false,
             healthLoading: false,
-            electronMemoryUsage: null,
+            desktopMemoryUsage: null,
             batteryStatus: null,
             batterySaverPrefs: loadBatterySaverPrefs(),
             backupInProgress: false,
@@ -1415,9 +1415,7 @@ export default {
             restoreFileName: "",
             restoreFile: null,
             reloadingRns: false,
-            electronVersion: null,
-            chromeVersion: null,
-            nodeVersion: null,
+            runtimeInfo: null,
             showContactSupport: false,
             developerLxmfPrimary: "f489752fbef161c64d65e385a4e9fc74",
             developerLxmfAlternate: "43d3309adf27fc446556121b553b56a6",
@@ -1429,8 +1427,8 @@ export default {
         };
     },
     computed: {
-        isElectron() {
-            return ElectronUtils.isElectron();
+        isDesktop() {
+            return DesktopUtils.isDesktop();
         },
         aboutDisplayVersion() {
             const info = this.appInfo || {};
@@ -1516,7 +1514,7 @@ export default {
             return activeBatterySaverMeasures(this.batterySaverPrefs);
         },
         resourceBreakdownRows() {
-            return mergeResourceBreakdown(this.appInfo?.resource_breakdown, this.electronMemoryUsage);
+            return mergeResourceBreakdown(this.appInfo?.resource_breakdown, this.desktopMemoryUsage);
         },
         topMemoryConsumerLabel() {
             const top = topResourceByRss(this.resourceBreakdownRows);
@@ -1713,8 +1711,8 @@ export default {
             }
         },
         scheduleRestoreRelaunch() {
-            if (this.isElectron) {
-                setTimeout(() => ElectronUtils.relaunch(), 2000);
+            if (this.isDesktop) {
+                setTimeout(() => DesktopUtils.relaunch(), 2000);
                 return;
             }
             setTimeout(() => {
@@ -1729,11 +1727,11 @@ export default {
                     ...(response?.data?.app_info || {}),
                 };
 
-                if (this.isElectron) {
-                    this.electronMemoryUsage = await ElectronUtils.getMemoryUsage();
-                    this.electronVersion = window.electron.electronVersion();
-                    this.chromeVersion = window.electron.chromeVersion();
-                    this.nodeVersion = window.electron.nodeVersion();
+                if (this.isDesktop) {
+                    this.desktopMemoryUsage = await DesktopUtils.getMemoryUsage();
+                    if (typeof window.desktop?.runtimeInfo === "function") {
+                        this.runtimeInfo = await window.desktop.runtimeInfo();
+                    }
                 }
                 await this.refreshBatteryStatus();
             } catch (e) {
@@ -1964,7 +1962,7 @@ export default {
             }
         },
         relaunch() {
-            ElectronUtils.relaunch();
+            DesktopUtils.relaunch();
         },
         async restartRns() {
             if (this.reloadingRns) return;
@@ -1990,8 +1988,8 @@ export default {
                     // ignore errors if backend is already stopping
                 }
 
-                if (this.isElectron) {
-                    ElectronUtils.shutdown();
+                if (this.isDesktop) {
+                    DesktopUtils.shutdown();
                 } else if (typeof window !== "undefined" && window.MeshChatXAndroid?.exitApp) {
                     try {
                         window.MeshChatXAndroid.exitApp();
@@ -2033,7 +2031,7 @@ export default {
             if (!reticulumConfigPath) {
                 return;
             }
-            const ok = await ElectronUtils.revealPathInFolderOrCopy(reticulumConfigPath, () =>
+            const ok = await DesktopUtils.revealPathInFolderOrCopy(reticulumConfigPath, () =>
                 ToastUtils.success(this.$t("common.copied"))
             );
             if (!ok) {
@@ -2045,7 +2043,7 @@ export default {
             if (!databasePath) {
                 return;
             }
-            const ok = await ElectronUtils.revealPathInFolderOrCopy(databasePath, () =>
+            const ok = await DesktopUtils.revealPathInFolderOrCopy(databasePath, () =>
                 ToastUtils.success(this.$t("common.copied"))
             );
             if (!ok) {

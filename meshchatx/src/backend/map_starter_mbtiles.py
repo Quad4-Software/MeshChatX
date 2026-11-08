@@ -19,6 +19,7 @@ STARTER_ATTRIBUTION = (
     "Generated low-zoom basemap. Replace with OSM or other MBTiles for detail."
 )
 STARTER_MAX_ZOOM = 4
+STARTER_VERSION = "2.0.0"
 
 # Package-data directory relative to this file: backend/data/map/
 _DATA_DIR = Path(__file__).resolve().parent / "data" / "map"
@@ -29,11 +30,9 @@ _land_rings_loaded = False
 
 _MAX_LAT = 85.05112878
 
-_BG = bytes([15, 23, 42, 255])
-_LAND = bytes([30, 41, 59, 255])
-_COAST = bytes([100, 116, 139, 255])
-_GRID = bytes([51, 65, 85, 255])
-_PRIME = bytes([56, 189, 248, 255])
+_BG = bytes([170, 211, 223, 255])
+_LAND = bytes([242, 239, 233, 255])
+_COAST = bytes([181, 170, 160, 255])
 
 
 def bundled_starter_path() -> Path:
@@ -194,15 +193,8 @@ def _basemap_tile_png(
     height: int = 256,
 ) -> bytes:
     bg = _BG
-    grid = _GRID
-    prime = _PRIME
-    n = 1 << z
     px0 = x * width
     py0 = y * height
-    west = x / n * 360.0 - 180.0
-    east = (x + 1) / n * 360.0 - 180.0
-    north = _mercator_lat(y / n)
-    south = _mercator_lat((y + 1) / n)
 
     pixels = bytearray(bg * (width * height))
 
@@ -221,26 +213,6 @@ def _basemap_tile_png(
                 start = (row * width + lo) * 4
                 pixels[start : start + (hi - lo) * 4] = _LAND * (hi - lo)
 
-    # Graticule lines at 30 degree intervals.
-    for lon in range(-180, 181, 30):
-        if lon < west or lon > east:
-            continue
-        col = round((lon - west) / (east - west) * (width - 1))
-        col = max(0, min(width - 1, col))
-        color = prime if lon == 0 else grid
-        for row in range(height):
-            idx = (row * width + col) * 4
-            pixels[idx : idx + 4] = color
-
-    for lat in range(-90, 91, 30):
-        if lat < south or lat > north:
-            continue
-        row = round((north - lat) / (north - south) * (height - 1))
-        row = max(0, min(height - 1, row))
-        color = prime if lat == 0 else grid
-        row_start = row * width * 4
-        pixels[row_start : row_start + width * 4] = color * width
-
     # Coastline stroke: rasterize edges intersecting this tile.
     tile_edges = set()
     for r in range(py0, py0 + height):
@@ -258,19 +230,6 @@ def _basemap_tile_png(
             round(y2 - py0),
             _COAST,
         )
-
-    if 0 >= west and 0 <= east and 0 >= south and 0 <= north:
-        col = round((0 - west) / (east - west) * (width - 1))
-        row = round((north - 0) / (north - south) * (height - 1))
-        col = max(0, min(width - 1, col))
-        row = max(0, min(height - 1, row))
-        for dc in range(-2, 3):
-            for dr in range(-2, 3):
-                cc = col + dc
-                rr = row + dr
-                if 0 <= cc < width and 0 <= rr < height:
-                    idx = (rr * width + cc) * 4
-                    pixels[idx : idx + 4] = prime
 
     return _png_rgba_raster(pixels, width, height)
 
@@ -300,7 +259,7 @@ def write_starter_mbtiles(dest: str | Path, max_zoom: int = STARTER_MAX_ZOOM) ->
                 "name": STARTER_NAME,
                 "format": "png",
                 "type": "baselayer",
-                "version": "1.0.0",
+                "version": STARTER_VERSION,
                 "description": STARTER_ATTRIBUTION,
                 "attribution": STARTER_ATTRIBUTION,
                 "minzoom": "0",
@@ -363,3 +322,18 @@ def ensure_bundled_starter_file() -> Path:
         if path.is_file() and path.stat().st_size > 1024:
             return path
         return write_starter_mbtiles(path)
+
+
+def mbtiles_starter_version(path: str | Path) -> str | None:
+    """Return the metadata version of an MBTiles file, or None if unreadable."""
+    try:
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            row = conn.execute(
+                "SELECT value FROM metadata WHERE name = 'version'"
+            ).fetchone()
+        finally:
+            conn.close()
+        return row[0] if row else None
+    except Exception:
+        return None

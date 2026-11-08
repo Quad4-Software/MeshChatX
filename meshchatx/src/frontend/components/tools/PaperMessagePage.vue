@@ -314,6 +314,7 @@ export default {
     beforeUnmount() {
         offWsEvent(WS_EVENTS.LXM_GENERATE_PAPER_URI_RESULT, this.onGeneratePaperUriResult);
         offWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onIngestUriResult);
+        this.isIngestScannerModalOpen = false;
         this.stopIngestScanner();
         clearTimeout(this.generateTimeout);
     },

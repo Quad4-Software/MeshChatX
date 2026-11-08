@@ -1133,6 +1133,9 @@
             "network": {
                 "fetch": "Fazer solicitações HTTP de saída à internet"
             },
+            "clipboard": {
+                "write": "Escrever na área de transferência do sistema"
+            },
             "backend": {
                 "python": "Executar código Python no processo do aplicativo com acesso total aos arquivos, processos e à rede deste usuário"
             }
@@ -1583,7 +1586,10 @@
         },
         "top_memory_consumer": "Maior memória",
         "top_cpu_consumer": "Maior CPU",
-        "sandbox_abi": "ABI do kernel v{abi}"
+        "sandbox_abi": "ABI do kernel v{abi}",
+        "shell_runtime": "Shell para desktop",
+        "webview_runtime": "WebView",
+        "platform_runtime": "Plataforma"
     },
     "interfaces": {
         "title": "Interfaces",

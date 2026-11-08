@@ -399,7 +399,7 @@ import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import FilesyncDirectoryBrowserModal from "./FilesyncDirectoryBrowserModal.vue";
 import FilesyncFileManager from "./FilesyncFileManager.vue";
-import ElectronUtils from "../../js/ElectronUtils";
+import DesktopUtils from "../../js/DesktopUtils";
 import Utils from "../../js/Utils";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
 import GlobalEmitter from "../../js/GlobalEmitter";
@@ -627,7 +627,7 @@ export default {
             if (!path) {
                 return;
             }
-            const ok = await ElectronUtils.openDirectoryOrCopy(path, () =>
+            const ok = await DesktopUtils.openDirectoryOrCopy(path, () =>
                 ToastUtils.success(this.$t("rns_filesync.path_copied"))
             );
             if (!ok) {

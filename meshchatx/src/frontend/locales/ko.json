@@ -1133,6 +1133,9 @@
             "network": {
                 "fetch": "아웃바운드 인터넷 HTTP 요청 수행"
             },
+            "clipboard": {
+                "write": "시스템 클립보드에 쓰기"
+            },
             "backend": {
                 "python": "현재 사용자의 파일, 프로세스, 네트워크에 모두 접근할 수 있는 애플리케이션 프로세스에서 Python 코드 실행"
             }
@@ -1583,7 +1586,10 @@
         },
         "top_memory_consumer": "메모리 최다 사용",
         "top_cpu_consumer": "CPU 최다 사용",
-        "sandbox_abi": "커널 ABI v{abi}"
+        "sandbox_abi": "커널 ABI v{abi}",
+        "shell_runtime": "데스크톱 셸",
+        "webview_runtime": "WebView",
+        "platform_runtime": "플랫폼"
     },
     "interfaces": {
         "title": "인터페이스",

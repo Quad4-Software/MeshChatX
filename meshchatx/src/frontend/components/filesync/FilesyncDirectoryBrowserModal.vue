@@ -150,12 +150,16 @@ export default {
     },
     methods: {
         async load(path) {
+            const requestId = (this._loadSeq = (this._loadSeq || 0) + 1);
             this.busy = true;
             try {
                 const url = path
                     ? apiPath(`/filesync/directories?path=${encodeURIComponent(path)}`)
                     : apiPath("/filesync/directories");
                 const response = await window.api.get(url);
+                if (requestId !== this._loadSeq) {
+                    return false;
+                }
                 const data = response?.data || {};
                 this.root = data.root || "";
                 this.current = data.current || "";
@@ -163,10 +167,14 @@ export default {
                 this.directories = Array.isArray(data.directories) ? data.directories : [];
                 return true;
             } catch (err) {
-                ToastUtils.error(err?.message || this.$t("rns_filesync.error"));
+                if (requestId === this._loadSeq) {
+                    ToastUtils.error(err?.message || this.$t("rns_filesync.error"));
+                }
                 return false;
             } finally {
-                this.busy = false;
+                if (requestId === this._loadSeq) {
+                    this.busy = false;
+                }
             }
         },
         async enterDirectory(path) {

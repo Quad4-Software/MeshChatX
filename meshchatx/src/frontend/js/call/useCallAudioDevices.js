@@ -33,12 +33,12 @@ export function useCallAudioDevices() {
 
     function logWebAudioFailure(stage, error) {
         const appImage = Boolean(
-            window.electron && typeof navigator?.userAgent === "string" && navigator.userAgent.includes("AppImage")
+            window.desktop && typeof navigator?.userAgent === "string" && navigator.userAgent.includes("AppImage")
         );
         console.error(
             `[CallPage:web-audio] ${stage}`,
             {
-                isElectron: Boolean(window.electron),
+                isDesktop: Boolean(window.desktop),
                 isAppImage: appImage,
                 userAgent: navigator?.userAgent || "unknown",
             },

@@ -496,6 +496,7 @@ export default {
         }
         this.conversationsAbortController?.abort();
         this.announcesAbortController?.abort();
+        this.isIngestScannerModalOpen = false;
         this.stopIngestScanner();
         this.teardownPaneViewportWatchers();
         this.teardownPaneResize();

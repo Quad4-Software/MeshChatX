@@ -58,8 +58,8 @@ export async function copyTextToClipboard(text) {
             // fall through to execCommand
         }
     }
+    const ta = document.createElement("textarea");
     try {
-        const ta = document.createElement("textarea");
         ta.value = s;
         ta.setAttribute("readonly", "");
         ta.setAttribute("aria-hidden", "true");
@@ -69,11 +69,13 @@ export async function copyTextToClipboard(text) {
         document.body.appendChild(ta);
         ta.focus();
         ta.select();
-        const ok = document.execCommand("copy");
-        document.body.removeChild(ta);
-        return ok;
+        return document.execCommand("copy");
     } catch {
         return false;
+    } finally {
+        // execCommand may throw after the textarea was appended; never
+        // leave it behind in the DOM.
+        ta.remove();
     }
 }
 

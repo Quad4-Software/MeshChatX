@@ -1133,6 +1133,9 @@
             "network": {
                 "fetch": "Effettua richieste HTTP internet in uscita"
             },
+            "clipboard": {
+                "write": "Scrivere negli appunti di sistema"
+            },
             "backend": {
                 "python": "Esegui codice Python nel processo dell'applicazione con accesso completo ai file, ai processi e alla rete di questo utente"
             }
@@ -1583,7 +1586,10 @@
         },
         "top_memory_consumer": "Top memoria",
         "top_cpu_consumer": "Maggior consumatore di CPU",
-        "sandbox_abi": "ABI del kernel v{abi}"
+        "sandbox_abi": "ABI del kernel v{abi}",
+        "shell_runtime": "Shell desktop",
+        "webview_runtime": "WebView",
+        "platform_runtime": "Piattaforma"
     },
     "interfaces": {
         "title": "Interfacce",

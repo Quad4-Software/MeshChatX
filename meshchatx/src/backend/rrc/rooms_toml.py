@@ -88,7 +88,26 @@ def load_rooms_registry(path):
 
 
 def _toml_escape_string(s):
-    return '"' + str(s).replace("\\", "\\\\").replace('"', '\\"') + '"'
+    # TOML basic strings forbid literal control characters; escape them or a
+    # crafted room name/topic makes the whole file unparseable.
+    out = []
+    for ch in str(s):
+        code = ord(ch)
+        if ch == "\\":
+            out.append("\\\\")
+        elif ch == '"':
+            out.append('\\"')
+        elif ch == "\n":
+            out.append("\\n")
+        elif ch == "\r":
+            out.append("\\r")
+        elif ch == "\t":
+            out.append("\\t")
+        elif code < 0x20 or code == 0x7F:
+            out.append(f"\\u{code:04X}")
+        else:
+            out.append(ch)
+    return '"' + "".join(out) + '"'
 
 
 def _dump_hash_list(values):

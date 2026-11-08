@@ -85,6 +85,64 @@ JOIN_FATAL_MARKERS = ("banned from", "bad key", "invite-only")
 HISTORY_DIR_NAME = "rrc_history"
 HISTORY_FILENAME_SANITIZE_RE = re.compile(r"[^a-z0-9._-]+")
 
+# Wire-driven room state is untrusted: a hostile hub or peer can mint
+# arbitrary room names in NOTICE/MSG/PARTED envelopes. Rooms the client
+# never joined are tracked as ephemeral and capped oldest-first so
+# messages, members, unread counters, and nicks cannot grow without
+# bound. Joined rooms (self.rooms) are never evicted by this cap.
+MAX_EPHEMERAL_ROOMS = 256
+# Hard ceiling on total per-room message buffers, including persisted
+# parted rooms loaded from disk.
+MAX_ROOM_KEYS = 4096
+# Largest room name accepted from the wire, in UTF-8 bytes. Legitimate
+# hubs advertise far smaller limits (rrcd defaults to 64).
+MAX_WIRE_ROOM_BYTES = 1024
+# Peer nick table is keyed by identity hash and fed by every inbound
+# envelope; cap it so a flood of distinct sources cannot grow it forever.
+MAX_TRACKED_NICKS = 8192
+# A /list reply can arrive as a burst of NOTICE chunks. Bound both the
+# chunk count and the total buffered bytes so a hostile hub cannot make
+# the client accumulate an unbounded reply.
+MAX_ROOM_LIST_CHUNKS = 128
+MAX_ROOM_LIST_CHUNK_BYTES = 512 * 1024
+
+# Inbound field caps. The WELCOME-advertised limits describe what the hub
+# accepts from us; a hostile hub can advertise huge values and then send
+# oversized fields, so ingest uses independent hard caps.
+# Identity hashes and envelope ids are ~16 bytes; 64 leaves slack.
+MAX_WIRE_ID_BYTES = 64
+# Chat bodies are small text; the default advertised limit is 350 bytes.
+# 256 KiB is generous headroom while keeping per-room memory bounded.
+MAX_WIRE_BODY_BYTES = 256 * 1024
+# Notices carry room lists and MOTD text; matches the chunk total cap.
+MAX_WIRE_NOTICE_BYTES = 512 * 1024
+# Nicks are display strings; the negotiated max is clamped to 1024.
+MAX_WIRE_NICK_BYTES = 1024
+# Member hash entries in JOINED/PARTED bodies (real hashes are 16 bytes).
+MAX_WIRE_HASH_BYTES = 32
+# Members listed in one JOINED body; real rooms are far smaller.
+MAX_ROOM_MEMBERS = 2048
+# Hub name/version strings shown in the UI.
+MAX_WIRE_HUB_STR_BYTES = 256
+# Hub entries restored from the store file; real setups have a handful.
+MAX_HUB_ENTRIES = 256
+# Largest single wire packet accepted for CBOR decode. Legitimate RRC
+# envelopes are small (messages <=256 KiB, chunked notices <=512 KiB
+# total); anything bigger is hostile or corrupt and must not reach the
+# decoder.
+MAX_PACKET_BYTES = 1024 * 1024
+
+# Advertised WELCOME limits are clamped to sane ranges: a hostile or
+# buggy hub must not zero out send limits (which would reject every
+# outgoing message) or advertise absurd values.
+LIMIT_FIELDS = (
+    (proto.L_MAX_NICK_BYTES, "max_nick_bytes", 1, 1024),
+    (proto.L_MAX_ROOM_NAME_BYTES, "max_room_name_bytes", 1, 4096),
+    (proto.L_MAX_MSG_BODY_BYTES, "max_msg_body_bytes", 1, 4 * 1024 * 1024),
+    (proto.L_MAX_ROOMS_PER_SESSION, "max_rooms_per_session", 1, 4096),
+    (proto.L_RATE_LIMIT_MSGS_PER_MINUTE, "rate_limit_msgs_per_minute", 1, 100000),
+)
+
 H_KIND = "k"
 H_SRC = "s"
 H_NICK = "n"
@@ -179,6 +237,7 @@ class RRCHub:
         self._lock = threading.RLock()
         self._resource_expectations = {}
         self._sent_ids = deque(maxlen=256)
+        self._connect_epoch = 0
         # Hubs redeliver held envelopes on reconnect. Envelope ids seen this
         # session let _handle_chat drop replays before they reach the room
         # buffer. The content key check in _record_message catches replays
@@ -219,6 +278,10 @@ class RRCHub:
         self._room_list_chunks = None
         self._room_list_chunk_src = None
         self._room_list_chunk_timer = None
+        self._room_list_chunk_bytes = 0
+        # Messages keys created by wire input for rooms we never joined.
+        # Ordered dict used as a FIFO set; capped by MAX_EPHEMERAL_ROOMS.
+        self._ephemeral_rooms = {}
 
         self.nick_override = None
         self._pending_joins = set()
@@ -242,8 +305,8 @@ class RRCHub:
         room_n = proto.normalize_room(room)
         with self._lock:
             self.rooms.add(room_n)
-            if room_n not in self.messages:
-                self.messages[room_n] = []
+            self._ephemeral_rooms.pop(room_n, None)
+            self._messages_buf(room_n)
         self.manager.save()
         self.manager._notify_change(self)
         return room_n
@@ -403,7 +466,7 @@ class RRCHub:
                 text = "Reconnecting (attempt " + str(self._reconnect_attempts) + ")"
             else:
                 text = "Connecting"
-            self._connect_epoch = getattr(self, "_connect_epoch", 0) + 1
+            self._connect_epoch += 1
             epoch = self._connect_epoch
             self._set_status(RRCHub.STATUS_CONNECTING, text)
 
@@ -436,14 +499,42 @@ class RRCHub:
         if reschedule:
             self._schedule_reconnect()
 
-    def _connect_loopback(self, server):
+    def _connect_attempt_stale(self, epoch):
+        """True when disconnect() or a newer connect() superseded this attempt.
+
+        epoch=None marks a worker started without connect() (tests drive
+        _connect_worker directly); only the manual-disconnect flag can
+        stale those.
+        """
+        with self._lock:
+            return self._manual_disconnect or (
+                epoch is not None and epoch != self._connect_epoch
+            )
+
+    def _connect_loopback(self, server, epoch=None):
+        if self._connect_attempt_stale(epoch):
+            return
         self._stop_hello.clear()
         link = _LoopbackEndpoint(self, server)
         server._attach_loopback(link, self.manager.identity)
         with self._lock:
-            self._hub_identity_hash = server.identity.hash
-            self._expected_closed_link = None
-            self.link = link
+            if self._connect_attempt_stale(epoch):
+                stale = True
+            else:
+                self._hub_identity_hash = server.identity.hash
+                self._expected_closed_link = None
+                self.link = link
+                stale = False
+        if stale:
+            # disconnect() or a newer connect() landed while the endpoint
+            # was being attached: tear it down instead of resurrecting a
+            # session the caller already cancelled. Mark the close as
+            # expected so _on_closed does not schedule a spurious retry.
+            with self._lock:
+                self._expected_closed_link = link
+            with contextlib.suppress(Exception):
+                link.teardown()
+            return
         self._set_status(RRCHub.STATUS_CONNECTING, "Connected locally, sending HELLO")
         self._hello_thread = threading.Thread(
             target=self._hello_loop, daemon=True, name="mcx-rrc"
@@ -454,7 +545,7 @@ class RRCHub:
         try:
             server = self.manager.find_local_server(self.hub_hash)
             if server is not None:
-                self._connect_loopback(server)
+                self._connect_loopback(server, epoch)
                 return
 
             timeout_s = 20.0
@@ -508,14 +599,17 @@ class RRCHub:
                 if gate is not None:
                     gate.release()
 
-            if self._manual_disconnect:
-                # disconnect() ran during the path/identity wait window:
-                # do not create the link the user already asked to cancel.
-                self._set_status(RRCHub.STATUS_DISCONNECTED, "Disconnected")
+            if self._connect_attempt_stale(epoch):
+                # disconnect() or a newer connect() ran during the
+                # path/identity wait window: do not create the link the
+                # caller already asked to cancel.
+                if self._manual_disconnect:
+                    self._set_status(RRCHub.STATUS_DISCONNECTED, "Disconnected")
                 return
             if hub_identity is None:
-                self._set_status(RRCHub.STATUS_FAILED, "Hub identity unknown")
-                self._maybe_schedule_reconnect_after_failed_connect()
+                if not self._connect_attempt_stale(epoch):
+                    self._set_status(RRCHub.STATUS_FAILED, "Hub identity unknown")
+                    self._maybe_schedule_reconnect_after_failed_connect()
                 return
 
             app_name, aspects = RNS.Destination.app_and_aspects_from_name(
@@ -530,27 +624,36 @@ class RRCHub:
             )
 
             if hub_dest.hash != self.hub_hash:
-                self._set_status(
-                    RRCHub.STATUS_FAILED,
-                    "Hash/destination name mismatch",
-                )
-                self._maybe_schedule_reconnect_after_failed_connect()
+                if not self._connect_attempt_stale(epoch):
+                    self._set_status(
+                        RRCHub.STATUS_FAILED,
+                        "Hash/destination name mismatch",
+                    )
+                    self._maybe_schedule_reconnect_after_failed_connect()
                 return
 
+            if self._connect_attempt_stale(epoch):
+                # disconnect() landed during identity/destination setup:
+                # bail before the link request goes out on the wire.
+                return
             with self._lock:
                 self._hub_identity_hash = hub_identity.hash
 
             self._stop_hello.clear()
             link = RNS.Link(
                 hub_dest,
-                established_callback=self._on_established,
+                established_callback=lambda lnk: self._on_established(lnk, epoch),
                 closed_callback=self._on_closed,
             )
             link.set_packet_callback(lambda data, pkt: self._on_packet(data))
             with self._lock:
-                if epoch is not None and epoch != self._connect_epoch:
-                    # A newer connect() already owns the session: drop this
-                    # attempt's link instead of racing two live links.
+                if self._connect_attempt_stale(epoch):
+                    # disconnect() or a newer connect() owns the session
+                    # now: drop this attempt's link instead of racing two
+                    # live links or resurrecting a cancelled connection.
+                    # Mark the close as expected so _on_closed does not
+                    # schedule a spurious reconnect for the stale link.
+                    self._expected_closed_link = link
                     with contextlib.suppress(Exception):
                         link.teardown()
                     return
@@ -593,8 +696,9 @@ class RRCHub:
             )
             watchdog.start()
         except Exception as e:
-            self._set_status(RRCHub.STATUS_FAILED, "Connect error: " + str(e))
-            self._maybe_schedule_reconnect_after_failed_connect()
+            if not self._connect_attempt_stale(epoch):
+                self._set_status(RRCHub.STATUS_FAILED, "Connect error: " + str(e))
+                self._maybe_schedule_reconnect_after_failed_connect()
 
     def _maybe_schedule_reconnect_after_failed_connect(self):
         with self._lock:
@@ -625,7 +729,17 @@ class RRCHub:
             self._path_request_tokens -= 1.0
             return True
 
-    def _on_established(self, link):
+    def _on_established(self, link, epoch=None):
+        if self._connect_attempt_stale(epoch):
+            # disconnect() or a newer connect() landed while the link was
+            # handshaking: do not start HELLO on a session the caller
+            # already cancelled or superseded. Mark the close expected so
+            # its callback cannot schedule a spurious reconnect.
+            with self._lock:
+                self._expected_closed_link = link
+            with contextlib.suppress(Exception):
+                link.teardown()
+            return
         with contextlib.suppress(Exception):
             link.set_resource_strategy(RNS.Link.ACCEPT_APP)
             link.set_resource_callback(self._resource_advertised)
@@ -702,7 +816,6 @@ class RRCHub:
         self._raw_send(link, payload)
 
     def _on_closed(self, link):
-        self._stop_hello.set()
         with self._lock:
             if getattr(self, "_last_closed_link", None) is link:
                 # Same dead link delivered twice (watchdog teardown after
@@ -711,8 +824,10 @@ class RRCHub:
                 return
             if self.link is not None and link is not self.link:
                 # A stale teardown callback (late watchdog close or a racing
-                # reconnect) must not tear down the current live session.
+                # reconnect) must not tear down the current live session,
+                # and must not stop its HELLO loop either.
                 return
+            self._stop_hello.set()
             self._last_closed_link = link
             was_welcomed = self.welcomed
             rooms = list(self.rooms)
@@ -733,6 +848,7 @@ class RRCHub:
             self._room_list_chunks = None
             self._room_list_chunk_src = None
             self._room_list_chunk_timer = None
+            self._room_list_chunk_bytes = 0
             retry_timer = self._rejoin_retry_timer
             self._rejoin_retry_timer = None
             self._rejoin_retry_rooms.clear()
@@ -790,6 +906,9 @@ class RRCHub:
         self._stop_hello.set()
         with self._lock:
             self._manual_disconnect = True
+            # Invalidate any in-flight connect worker so a link created
+            # after this point cannot resurrect the cancelled session.
+            self._connect_epoch += 1
             self._reconnect_attempts = 0
             if self._reconnect_timer is not None:
                 self._reconnect_timer.cancel()
@@ -1001,6 +1120,10 @@ class RRCHub:
             env[proto.K_NICK] = nick
         with self._lock:
             self._pending_joins.add(r)
+            # A fresh JOIN supersedes any stale pending-PART for this room;
+            # otherwise a later PARTED (even for another member) would be
+            # mistaken for our own part-echo and eject us.
+            self._pending_parts.discard(r)
             if silent:
                 self._silent_joins.add(r)
         try:
@@ -1012,7 +1135,7 @@ class RRCHub:
             raise
         with self._lock:
             if r not in self.messages:
-                self.messages[r] = []
+                self._messages_buf(r)
         self.manager._notify_change(self)
 
     def send_command(self, text, room=None, record_local=True):
@@ -1362,22 +1485,30 @@ class RRCHub:
     def _msg_from_entry(self, room, entry):
         if not isinstance(entry, dict):
             return None
+        # History files are our own writes, but a corrupt or hand-edited
+        # file must not re-inflate the same unbounded fields the wire caps
+        # guard against.
+        kind = entry.get(H_KIND)
+        kind = self._wire_text(kind, 32) if isinstance(kind, str) else None
+        nick = entry.get(H_NICK)
+        nick = self._wire_text(nick, MAX_WIRE_NICK_BYTES)
+        text = entry.get(H_TEXT)
+        text = self._wire_text(text, MAX_WIRE_BODY_BYTES)
         m = proto.RRCMessage(
-            entry.get(H_KIND) if isinstance(entry.get(H_KIND), str) else "msg",
+            kind if kind else "msg",
             room,
-            entry.get(H_SRC)
-            if isinstance(entry.get(H_SRC), (bytes, bytearray))
-            else None,
-            entry.get(H_NICK) if isinstance(entry.get(H_NICK), str) else None,
-            entry.get(H_TEXT) if isinstance(entry.get(H_TEXT), str) else "",
+            self._wire_bytes(entry.get(H_SRC)),
+            nick,
+            text if text is not None else "",
             entry.get(H_TS) if isinstance(entry.get(H_TS), int) else 0,
         )
         m.mention = bool(entry.get(H_MENTION, False))
         event = entry.get(H_EVENT)
-        m.event = event if isinstance(event, str) and event else None
-        mid = entry.get(H_MID)
-        if isinstance(mid, (bytes, bytearray)):
-            m.mid = bytes(mid)
+        event = self._wire_text(event, 64) if isinstance(event, str) else None
+        m.event = event if event else None
+        mid = self._wire_bytes(entry.get(H_MID))
+        if mid is not None:
+            m.mid = mid
         delivery = entry.get(H_DELIVERY)
         if delivery in ("sent", "failed"):
             m.delivery = delivery
@@ -1394,9 +1525,148 @@ class RRCHub:
     def _persistable_room(self, room):
         return isinstance(room, str) and room and room != "*"
 
+    def _sanitize_wire_room(self, room):
+        """Canonicalize a room name received from the wire.
+
+        Returns the normalized name, or None when the value is missing,
+        empty, or too large to be a legitimate room. Wire rooms are
+        untrusted: without a bound a hostile hub could mint megabyte-long
+        room keys.
+        """
+        if not isinstance(room, str):
+            return None
+        r = room.strip().lower()
+        if not r:
+            # Preserve legacy semantics: a blank room field normalized to
+            # "" (distinct from a missing room, which stays None).
+            return ""
+        if len(r.encode("utf-8", errors="replace")) > MAX_WIRE_ROOM_BYTES:
+            return None
+        return r
+
+    @staticmethod
+    def _wire_bytes(value, limit=MAX_WIRE_ID_BYTES):
+        """bytes-like wire field → bytes, or None when oversized/invalid.
+
+        Identity hashes and envelope ids are tiny; without a bound a
+        hostile hub could attach megabyte blobs to every envelope.
+        """
+        if not isinstance(value, (bytes, bytearray)):
+            return None
+        if len(value) > limit:
+            return None
+        return bytes(value)
+
+    @staticmethod
+    def _wire_text(value, limit):
+        """Str wire field → str capped at limit UTF-8 bytes.
+
+        Returns None for non-str input. Oversized text is truncated rather
+        than dropped so a slightly-over message still renders; the stored
+        copy is what the cap protects.
+        """
+        if not isinstance(value, str):
+            return None
+        try:
+            encoded = value.encode("utf-8")
+        except UnicodeEncodeError:
+            encoded = value.encode("utf-8", errors="replace")
+        if len(encoded) <= limit:
+            return value
+        return encoded[:limit].decode("utf-8", errors="ignore")
+
+    def _wire_member_hashes(self, body):
+        """Bounded list of member hash bytes from a JOINED/PARTED body."""
+        if not isinstance(body, list):
+            return []
+        out = []
+        for e in body[:MAX_ROOM_MEMBERS]:
+            if not isinstance(e, (bytes, bytearray)) or len(e) > MAX_WIRE_HASH_BYTES:
+                continue
+            out.append(bytes(e))
+        return out
+
+    def _register_room_key(self, room):
+        """Track a newly created messages key, enforcing room caps.
+
+        Caller must hold self._lock. Keys for joined rooms are always
+        allowed; keys minted by wire input for rooms we never joined are
+        ephemeral and capped oldest-first.
+        """
+        if not room or room == "*" or room in self.rooms:
+            return
+        self._ephemeral_rooms[room] = None
+        while len(self._ephemeral_rooms) > MAX_EPHEMERAL_ROOMS:
+            victim = next(iter(self._ephemeral_rooms), None)
+            if victim is None:
+                break
+            self._ephemeral_rooms.pop(victim, None)
+            self.messages.pop(victim, None)
+            self.members.pop(victim, None)
+            self.unread_rooms.discard(victim)
+            self.unread_counts.pop(victim, None)
+            self.mention_rooms.discard(victim)
+            self._delete_history(victim)
+        # Persisted parted rooms and wire-minted rooms share the messages
+        # dict; bound the total so a crafted store file cannot grow it
+        # without limit either.
+        while len(self.messages) > MAX_ROOM_KEYS:
+            victim = next(
+                (r for r in self.messages if r not in self.rooms), None
+            )
+            if victim is None:
+                break
+            self._ephemeral_rooms.pop(victim, None)
+            self.messages.pop(victim, None)
+            self.members.pop(victim, None)
+            self.unread_rooms.discard(victim)
+            self.unread_counts.pop(victim, None)
+            self.mention_rooms.discard(victim)
+
+    def _messages_buf(self, room):
+        """Return the room's message buffer, creating the key if needed.
+
+        Caller must hold self._lock. New keys go through the ephemeral
+        room cap so wire input cannot grow self.messages without bound.
+        """
+        buf = self.messages.get(room)
+        if buf is None:
+            self._register_room_key(room)
+            buf = self.messages.setdefault(room, [])
+        return buf
+
+    def _note_nick(self, peer_hash, nick):
+        """Record a peer nick, bounded so floods cannot grow the table."""
+        if (
+            not isinstance(peer_hash, (bytes, bytearray))
+            or not nick
+            or len(peer_hash) > MAX_WIRE_ID_BYTES
+        ):
+            return
+        if not isinstance(nick, str):
+            return
+        nick = self._wire_text(nick, MAX_WIRE_NICK_BYTES)
+        if not nick:
+            return
+        ph = bytes(peer_hash)
+        with self._lock:
+            if ph in self.nicks:
+                self.nicks[ph] = nick
+                return
+            if len(self.nicks) >= MAX_TRACKED_NICKS:
+                # dicts preserve insertion order: evict the oldest entry.
+                self.nicks.pop(next(iter(self.nicks)), None)
+            self.nicks[ph] = nick
+
     def _append_history(self, room, msg):
         if not self._persistable_room(room):
             return
+        with self._lock:
+            if room in self._ephemeral_rooms:
+                # Wire-minted rooms that were never joined get no history
+                # file: this is what bounds on-disk growth under hostile
+                # room names.
+                return
         try:
             self.manager._ensure_history_dir(self)
             path = self.manager._history_path(self, room)
@@ -1433,7 +1703,10 @@ class RRCHub:
             decode_error = None
             try:
                 with open(path, "rb") as f:
-                    data = f.read()
+                    # Compaction keeps files under HISTORY_FILE_MAX_BYTES;
+                    # read a bounded prefix so a corrupt oversized file
+                    # cannot balloon memory on load.
+                    data = f.read(self.HISTORY_FILE_MAX_BYTES + 1024 * 1024)
                 pos = 0
                 size = len(data)
                 while pos < size:
@@ -1659,7 +1932,7 @@ class RRCHub:
         cap = self._per_room_cap()
         bumped = None
         with self._lock:
-            buf = self.messages.setdefault(msg.room or "*", [])
+            buf = self._messages_buf(msg.room or "*")
             if not local:
                 existing = self._find_duplicate(buf, msg)
                 if existing is not None:
@@ -1695,7 +1968,7 @@ class RRCHub:
         cap = self._per_room_cap()
         with self._lock:
             msg.seq = self._next_seq()
-            buf = self.messages.setdefault(room, [])
+            buf = self._messages_buf(room)
             buf.append(msg)
             if cap is not None and len(buf) > cap:
                 del buf[: len(buf) - cap]
@@ -1726,7 +1999,7 @@ class RRCHub:
             if len(self.notices) > 200:
                 del self.notices[: len(self.notices) - 200]
             if target_room:
-                buf = self.messages.setdefault(target_room, [])
+                buf = self._messages_buf(target_room)
                 buf.append(msg)
                 if cap is not None and len(buf) > cap:
                     del buf[: len(buf) - cap]
@@ -1748,6 +2021,8 @@ class RRCHub:
             return list(self.messages.get(room, []))
 
     def _on_packet(self, data):
+        if not isinstance(data, (bytes, bytearray)) or len(data) > MAX_PACKET_BYTES:
+            return
         if not isinstance(self.link, _LoopbackEndpoint):
             traffic_stats.get_meter().record(
                 traffic_stats.COMPONENT_RRC, rx=len(data), peer=self._peer_label()
@@ -1793,9 +2068,9 @@ class RRCHub:
         r = room.strip().lower() if isinstance(room, str) and room.strip() else None
         resolved = 0
         for raw in body[: proto.SYNC_MAX_MIDS]:
-            if not isinstance(raw, (bytes, bytearray)):
+            mid = self._wire_bytes(raw)
+            if mid is None:
                 continue
-            mid = bytes(raw)
             if self._confirm_delivery(mid):
                 resolved += 1
             elif self._restore_failed_delivery(mid, r) is not None:
@@ -1916,16 +2191,17 @@ class RRCHub:
     def _handle_welcome(self, env):
         self.welcomed = True
         body = env.get(proto.K_BODY)
+        limits = None
         if isinstance(body, dict):
             hub_name = body.get(proto.B_WELCOME_HUB)
             if isinstance(hub_name, str):
-                self.hub_name = hub_name
+                self.hub_name = self._wire_text(hub_name, MAX_WIRE_HUB_STR_BYTES)
             ver = body.get(proto.B_WELCOME_VER)
             if isinstance(ver, str):
-                self.hub_version = ver
+                self.hub_version = self._wire_text(
+                    ver, MAX_WIRE_HUB_STR_BYTES
+                )
             limits = body.get(proto.B_WELCOME_LIMITS)
-            if isinstance(limits, dict):
-                self._apply_limits(limits)
         with self._lock:
             was_reconnect = self._had_session
             self._reconnect_attempts = 0
@@ -1934,23 +2210,34 @@ class RRCHub:
         self._set_status(RRCHub.STATUS_CONNECTED, "Connected")
         if was_reconnect and rooms:
             self._record_connection_event("Reconnected to hub", rooms=rooms)
+        # Advertised limits only tune send-side budgets. Apply them after
+        # the session is marked CONNECTED and _apply_limits validates each
+        # value independently, so a malformed limit can never strand the
+        # hub in CONNECTING or skip the welcome callbacks.
+        if isinstance(limits, dict):
+            self._apply_limits(limits)
         self.manager._on_welcome(self)
         if self.auto_list:
             self._request_room_list()
 
     def _apply_limits(self, limits):
-        if proto.L_MAX_NICK_BYTES in limits:
-            self.max_nick_bytes = int(limits[proto.L_MAX_NICK_BYTES])
-        if proto.L_MAX_ROOM_NAME_BYTES in limits:
-            self.max_room_name_bytes = int(limits[proto.L_MAX_ROOM_NAME_BYTES])
-        if proto.L_MAX_MSG_BODY_BYTES in limits:
-            self.max_msg_body_bytes = int(limits[proto.L_MAX_MSG_BODY_BYTES])
-        if proto.L_MAX_ROOMS_PER_SESSION in limits:
-            self.max_rooms_per_session = int(limits[proto.L_MAX_ROOMS_PER_SESSION])
-        if proto.L_RATE_LIMIT_MSGS_PER_MINUTE in limits:
-            self.rate_limit_msgs_per_minute = int(
-                limits[proto.L_RATE_LIMIT_MSGS_PER_MINUTE],
-            )
+        rate_updated = False
+        for key, attr, lo, hi in LIMIT_FIELDS:
+            if key not in limits:
+                continue
+            raw = limits[key]
+            if isinstance(raw, bool):
+                # CBOR true/false decode to bool; int(True) would silently
+                # become a 1-byte/1-per-minute limit.
+                continue
+            try:
+                value = int(raw)
+            except (TypeError, ValueError, OverflowError):
+                continue
+            setattr(self, attr, max(lo, min(hi, value)))
+            if key == proto.L_RATE_LIMIT_MSGS_PER_MINUTE:
+                rate_updated = True
+        if rate_updated:
             # A fresh session starts with a full budget for the new limit.
             with self._lock:
                 self._send_budget_tokens = self._send_budget_capacity()
@@ -1963,14 +2250,14 @@ class RRCHub:
         room = env.get(proto.K_ROOM)
         if not (isinstance(room, str) and room):
             return
-        r = room.strip().lower()
+        r = self._sanitize_wire_room(room)
+        if not r:
+            return
         body = env.get(proto.K_BODY)
         joiner_nick = env.get(proto.K_NICK)
         own_hash = self._own_hash()
 
-        body_hashes = []
-        if isinstance(body, list):
-            body_hashes = [bytes(e) for e in body if isinstance(e, (bytes, bytearray))]
+        body_hashes = self._wire_member_hashes(body)
 
         with self._lock:
             self_join = r in self._pending_joins
@@ -1985,8 +2272,8 @@ class RRCHub:
             member = self_join or r in self.rooms
             if member:
                 self.rooms.add(r)
-                if r not in self.messages:
-                    self.messages[r] = []
+                self._ephemeral_rooms.pop(r, None)
+                self._messages_buf(r)
                 members = self.members.setdefault(r, set())
                 for h in body_hashes:
                     members.add(h)
@@ -2002,7 +2289,7 @@ class RRCHub:
             ):
                 jh = body_hashes[0]
                 if own_hash is None or jh != own_hash:
-                    self.nicks[jh] = joiner_nick
+                    self._note_nick(jh, joiner_nick)
 
         if self_join:
             if silent:
@@ -2043,14 +2330,14 @@ class RRCHub:
         room = env.get(proto.K_ROOM)
         if not (isinstance(room, str) and room):
             return
-        r = room.strip().lower()
+        r = self._sanitize_wire_room(room)
+        if not r:
+            return
         body = env.get(proto.K_BODY)
         parter_nick = env.get(proto.K_NICK)
         own_hash = self._own_hash()
 
-        body_hashes = []
-        if isinstance(body, list):
-            body_hashes = [bytes(e) for e in body if isinstance(e, (bytes, bytearray))]
+        body_hashes = self._wire_member_hashes(body)
 
         with self._lock:
             self_part = r in self._pending_parts
@@ -2065,7 +2352,7 @@ class RRCHub:
             ):
                 ph = body_hashes[0]
                 if own_hash is None or ph != own_hash:
-                    self.nicks[ph] = parter_nick
+                    self._note_nick(ph, parter_nick)
 
             members = self.members.get(r)
             if members is not None:
@@ -2096,43 +2383,49 @@ class RRCHub:
         nick = env.get(proto.K_NICK)
         mid = env.get(proto.K_ID)
         ts = env.get(proto.K_TS)
+        # Ingest caps: envelope ids, identity hashes, and nicks are tiny on
+        # the wire; bodies are bounded so one hostile packet cannot mint a
+        # multi-megabyte stored message.
+        src_b = self._wire_bytes(src)
+        mid_b = self._wire_bytes(mid)
+        nick_safe = self._wire_text(nick, MAX_WIRE_NICK_BYTES)
         own_hash = self._own_hash()
         is_own = (
-            isinstance(src, (bytes, bytearray))
+            src_b is not None
             and own_hash is not None
-            and bytes(src) == own_hash
+            and src_b == own_hash
         )
         own_echo = False
-        if is_own and isinstance(mid, (bytes, bytearray)):
+        if is_own and mid_b is not None:
             with self._lock:
-                own_echo = bytes(mid) in self._sent_ids
+                own_echo = mid_b in self._sent_ids
         if own_echo:
-            confirmed = self._confirm_delivery(bytes(mid))
+            confirmed = self._confirm_delivery(mid_b)
             with self._lock:
-                self._seen_envelope_ids.append(bytes(mid))
+                self._seen_envelope_ids.append(mid_b)
             if not confirmed:
                 # An echo arriving after the row already failed is still
                 # proof of delivery and restores it. Only when the row was
                 # already sent is this a genuine extra copy to count.
-                if self._restore_failed_delivery(bytes(mid), room) is None:
-                    self._bump_duplicate_by_mid(bytes(mid), room)
+                if self._restore_failed_delivery(mid_b, room) is None:
+                    self._bump_duplicate_by_mid(mid_b, room)
             return
-        if isinstance(mid, (bytes, bytearray)):
+        if mid_b is not None:
             stale = False
             with self._lock:
-                if bytes(mid) in self._seen_envelope_ids:
+                if mid_b in self._seen_envelope_ids:
                     stale = True
                 else:
-                    self._seen_envelope_ids.append(bytes(mid))
+                    self._seen_envelope_ids.append(mid_b)
             if stale:
                 # Redelivery of an already recorded envelope. Fold it
                 # into the original row as a repeat count.
-                self._bump_duplicate_by_mid(bytes(mid), room)
+                self._bump_duplicate_by_mid(mid_b, room)
                 return
-        if isinstance(src, (bytes, bytearray)) and isinstance(nick, str) and nick:
-            with self._lock:
-                self.nicks[bytes(src)] = nick
-        if not isinstance(body, str):
+        if src_b is not None and nick_safe:
+            self._note_nick(src_b, nick_safe)
+        body_safe = self._wire_text(body, MAX_WIRE_BODY_BYTES)
+        if body_safe is None:
             return
         msg_ts = (
             ts
@@ -2141,15 +2434,15 @@ class RRCHub:
         )
         msg = proto.RRCMessage(
             kind,
-            room.strip().lower() if isinstance(room, str) else None,
-            bytes(src) if isinstance(src, (bytes, bytearray)) else None,
-            nick if isinstance(nick, str) else None,
-            body,
+            self._sanitize_wire_room(room),
+            src_b,
+            nick_safe,
+            body_safe,
             msg_ts,
         )
-        if isinstance(mid, (bytes, bytearray)):
-            msg.mid = bytes(mid)
-        if not is_own and proto.text_mentions(body, self.get_effective_nick()):
+        if mid_b is not None:
+            msg.mid = mid_b
+        if not is_own and proto.text_mentions(body_safe, self.get_effective_nick()):
             msg.mention = True
         self._record_message(msg)
 
@@ -2163,8 +2456,14 @@ class RRCHub:
         body = env.get(proto.K_BODY)
         room = env.get(proto.K_ROOM)
         src = env.get(proto.K_SRC)
-        if not isinstance(body, str):
+        mid = env.get(proto.K_ID)
+        ts = env.get(proto.K_TS)
+        body_safe = self._wire_text(body, MAX_WIRE_NOTICE_BYTES)
+        if body_safe is None:
             return
+        body = body_safe
+        src_b = self._wire_bytes(src)
+        mid_b = self._wire_bytes(mid)
 
         # Only the hub may drive protocol state via NOTICE. Peer NOTICEs are
         # fanned out to room members with src rewritten to the peer's hash, so
@@ -2174,13 +2473,13 @@ class RRCHub:
         # and the hub destination hash: foreign server implementations may
         # stamp either one, and both belong to the endpoint we linked to.
         is_hub_src = src is None or (
-            isinstance(src, (bytes, bytearray))
+            src_b is not None
             and (
                 (
                     self._hub_identity_hash is not None
-                    and bytes(src) == bytes(self._hub_identity_hash)
+                    and src_b == bytes(self._hub_identity_hash)
                 )
-                or bytes(src) == bytes(self.hub_hash)
+                or src_b == bytes(self.hub_hash)
             )
         )
 
@@ -2191,13 +2490,18 @@ class RRCHub:
                     if (
                         body.startswith("  ")
                         and time.monotonic() < self._room_list_chunk_deadline
+                        and len(self._room_list_chunks) < MAX_ROOM_LIST_CHUNKS
+                        and self._room_list_chunk_bytes + len(body)
+                        <= MAX_ROOM_LIST_CHUNK_BYTES
                     ):
                         self._room_list_chunks.append(body)
+                        self._room_list_chunk_bytes += len(body)
                         return
                     flushed = True
                 elif body.strip() == "Registered public rooms:":
                     self._room_list_chunks = [body.strip()]
-                    self._room_list_chunk_src = src
+                    self._room_list_chunk_src = src_b
+                    self._room_list_chunk_bytes = len(body)
                     self._room_list_chunk_deadline = time.monotonic() + 1.5
                     timer = threading.Timer(1.6, self._flush_room_list_chunks)
                     timer.daemon = True
@@ -2236,19 +2540,27 @@ class RRCHub:
         if parsed_who is not None and is_hub_src:
             who_room, who_entries = parsed_who
             with self._lock:
-                members = self.members.setdefault(who_room, set())
-                for nick, hash_hex in who_entries:
-                    try:
-                        hash_bytes = bytes.fromhex(hash_hex)
-                    except Exception:
-                        continue
-                    if nick is None:
-                        members.add(hash_bytes)
-                        continue
-                    for ph in members:
-                        if ph.startswith(hash_bytes):
-                            self.nicks[ph] = nick
-                            break
+                # A /who reply for a room we do not track must not mint a
+                # new members table: the room name is hub-controlled.
+                tracked = (
+                    who_room in self.members
+                    or who_room in self.rooms
+                    or who_room in self.messages
+                )
+                if tracked:
+                    members = self.members.setdefault(who_room, set())
+                    for nick, hash_hex in who_entries:
+                        try:
+                            hash_bytes = bytes.fromhex(hash_hex)
+                        except Exception:
+                            continue
+                        if nick is None:
+                            members.add(hash_bytes)
+                            continue
+                        for ph in members:
+                            if ph.startswith(hash_bytes):
+                                self._note_nick(ph, nick)
+                                break
                 # A stale silent marker must not swallow a manual /who reply.
                 stale = [
                     k
@@ -2266,15 +2578,13 @@ class RRCHub:
             if silent_who:
                 return
 
-        mid = env.get(proto.K_ID)
-        ts = env.get(proto.K_TS)
-        if isinstance(mid, (bytes, bytearray)):
+        if mid_b is not None:
             with self._lock:
-                if bytes(mid) in self._seen_envelope_ids:
+                if mid_b in self._seen_envelope_ids:
                     return
-                self._seen_envelope_ids.append(bytes(mid))
-        room_n = room.strip().lower() if isinstance(room, str) else None
-        if room_n is None and isinstance(body, str) and body.strip() and is_hub_src:
+                self._seen_envelope_ids.append(mid_b)
+        room_n = self._sanitize_wire_room(room)
+        if room_n is None and body.strip() and is_hub_src:
             with self._lock:
                 self.motd = body
             self.manager._notify_change(self)
@@ -2286,13 +2596,13 @@ class RRCHub:
         msg = proto.RRCMessage(
             "notice",
             room_n,
-            bytes(src) if isinstance(src, (bytes, bytearray)) else None,
+            src_b,
             None,
             body,
             msg_ts,
         )
-        if isinstance(mid, (bytes, bytearray)):
-            msg.mid = bytes(mid)
+        if mid_b is not None:
+            msg.mid = mid_b
         self._record_notice(msg)
 
     def _flush_room_list_chunks(self):
@@ -2303,6 +2613,7 @@ class RRCHub:
             self._room_list_chunks = None
             self._room_list_chunk_src = None
             self._room_list_chunk_timer = None
+            self._room_list_chunk_bytes = 0
         if timer is not None:
             with contextlib.suppress(Exception):
                 timer.cancel()
@@ -2322,8 +2633,16 @@ class RRCHub:
     def _handle_error(self, env):
         body = env.get(proto.K_BODY)
         room = env.get(proto.K_ROOM)
-        text = body if isinstance(body, str) else "(error)"
-        r = room.strip().lower() if isinstance(room, str) else None
+        text = (
+            self._wire_text(body, MAX_WIRE_NOTICE_BYTES)
+            if isinstance(body, str)
+            else "(error)"
+        )
+        r = self._sanitize_wire_room(room)
+        if isinstance(room, str) and room.strip() and r is None:
+            # A present but unusable room name must not fall into the
+            # room-less forced-leave path below, which drops every room.
+            return
         rollback_join = False
         leave_rooms = []
         with self._lock:
@@ -2390,11 +2709,18 @@ class RRCHub:
             size = body.get(proto.B_RES_SIZE)
             sha256 = body.get(proto.B_RES_SHA256)
             encoding = body.get(proto.B_RES_ENCODING)
-            if not isinstance(rid, (bytes, bytearray)):
+            rid_b = self._wire_bytes(rid)
+            sha256_b = (
+                self._wire_bytes(sha256, limit=128)
+                if isinstance(sha256, (bytes, bytearray))
+                else None
+            )
+            if rid_b is None:
                 return
-            if not isinstance(kind, str):
+            kind_safe = self._wire_text(kind, MAX_WIRE_HUB_STR_BYTES)
+            if kind_safe is None:
                 return
-            if not isinstance(size, int) or size <= 0:
+            if not isinstance(size, int) or isinstance(size, bool) or size <= 0:
                 return
             room = env.get(proto.K_ROOM)
             with self._lock:
@@ -2410,14 +2736,16 @@ class RRCHub:
                     self._resource_expectations.pop(k, None)
                 if len(self._resource_expectations) >= 256:
                     return
-                self._resource_expectations[bytes(rid)] = {
-                    "kind": kind,
+                self._resource_expectations[rid_b] = {
+                    "kind": kind_safe,
                     "size": size,
-                    "sha256": bytes(sha256)
-                    if isinstance(sha256, (bytes, bytearray))
-                    else None,
-                    "encoding": encoding if isinstance(encoding, str) else "utf-8",
-                    "room": room.strip().lower() if isinstance(room, str) else None,
+                    "sha256": sha256_b,
+                    "encoding": (
+                        self._wire_text(encoding, 64)
+                        if isinstance(encoding, str)
+                        else "utf-8"
+                    ),
+                    "room": self._sanitize_wire_room(room),
                     "expires": time.monotonic() + 30.0,
                 }
 
@@ -2954,7 +3282,7 @@ class RRCManager:
             entries = obj.get("hubs")
             if not isinstance(entries, list):
                 return
-            for e in entries:
+            for e in entries[:MAX_HUB_ENTRIES]:
                 self._load_hub_entry(e)
         except Exception as e:
             RNS.log("Failed to load RRC hubs: " + str(e), RNS.LOG_ERROR)
@@ -3031,17 +3359,30 @@ class RRCManager:
         )
         rooms = e.get("rooms")
         if isinstance(rooms, list):
-            for r in rooms:
-                if isinstance(r, str):
-                    hub.add_room(r)
+            for r in rooms[:MAX_ROOM_KEYS]:
+                if (
+                    isinstance(r, str)
+                    and len(r.encode("utf-8", errors="replace"))
+                    <= MAX_WIRE_ROOM_BYTES
+                ):
+                    with contextlib.suppress(Exception):
+                        hub.add_room(r)
         parted = e.get("parted_rooms")
         if isinstance(parted, list):
-            for r in parted:
-                if isinstance(r, str):
+            for r in parted[:MAX_ROOM_KEYS]:
+                if (
+                    isinstance(r, str)
+                    and len(r.encode("utf-8", errors="replace"))
+                    <= MAX_WIRE_ROOM_BYTES
+                ):
                     with contextlib.suppress(Exception):
                         rn = proto.normalize_room(r)
                         with hub._lock:
-                            hub.messages.setdefault(rn, [])
+                            if (
+                                rn not in hub.messages
+                                and len(hub.messages) < MAX_ROOM_KEYS
+                            ):
+                                hub.messages[rn] = []
         cn = e.get("custom_name")
         if isinstance(cn, str) and cn.strip():
             hub.custom_name = cn.strip()
@@ -3052,7 +3393,7 @@ class RRCManager:
         ro = e.get("room_order")
         if isinstance(ro, list):
             cleaned = []
-            for r in ro:
+            for r in ro[:MAX_ROOM_KEYS]:
                 if isinstance(r, str) and r.strip():
                     with contextlib.suppress(ValueError):
                         cleaned.append(proto.normalize_room(r))

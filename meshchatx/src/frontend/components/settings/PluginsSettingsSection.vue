@@ -279,7 +279,7 @@ import SettingsSectionBlock from "./SettingsSectionBlock.vue";
 import PluginInstallDialog from "./PluginInstallDialog.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
-import ElectronUtils from "../../js/ElectronUtils";
+import DesktopUtils from "../../js/DesktopUtils";
 import AndroidBridge from "../../js/rnode/AndroidBridge";
 import { permissionLabel } from "../../js/plugins/pluginPermissions.js";
 import { pluginHost } from "../../js/plugins/PluginHost.js";
@@ -382,13 +382,13 @@ export default {
             if (!this.sidebandConfig.service_plugins_enabled) {
                 return;
             }
-            const picked = await ElectronUtils.pickDirectory();
+            const picked = await DesktopUtils.pickDirectory();
             if (picked) {
                 this.sidebandConfig.command_plugins_path = picked;
                 ToastUtils.success(this.$t("plugins.sideband.path_picked"));
                 return;
             }
-            if (ElectronUtils.isElectron()) {
+            if (DesktopUtils.isDesktop()) {
                 return;
             }
             const android = new AndroidBridge();

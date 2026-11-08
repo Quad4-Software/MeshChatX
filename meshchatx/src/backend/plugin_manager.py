@@ -1474,7 +1474,11 @@ class PluginManager:
     ) -> Any:
         wasmtime = self._load_wasmtime()
         wasm_path = self._resolve_backend_wasm_path(record)
-        engine = wasmtime.Engine()
+        # consume_fuel must be enabled on the engine config or set_fuel is a
+        # no-op and a wasm infinite loop hangs the calling thread forever.
+        config = wasmtime.Config()
+        config.consume_fuel = True
+        engine = wasmtime.Engine(config)
         if wasm_path is None:
             module = wasmtime.Module(engine, MINIMAL_PLUGIN_WAT)
         else:
@@ -1700,8 +1704,9 @@ class PluginManager:
         try:
             import RNS
 
-            if handler in RNS.Transport.announce_handlers:
-                RNS.Transport.announce_handlers.remove(handler)
+            # announce_handlers is a dict of name_hash -> [handlers]; use the
+            # proper deregistration API (a bare .remove() never ran).
+            RNS.Transport.deregister_announce_handler(handler)
             self.app._plugin_announce_handler_registered = False
             self.app._plugin_announce_handler = None
         except Exception:

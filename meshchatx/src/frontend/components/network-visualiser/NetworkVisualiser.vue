@@ -2198,7 +2198,11 @@ export default {
     font-size: 13px !important;
     font-weight: 500 !important;
     font-style: normal !important;
-    font-family: Inter, system-ui, sans-serif !important;
+    font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif !important;
     line-height: 1.5 !important;
     pointer-events: none !important;
 }

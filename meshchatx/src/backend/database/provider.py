@@ -379,8 +379,38 @@ class DatabaseProvider:
                 )
         return conn
 
+    def _revive_if_registered(self):
+        """Revive a closed provider only while it is still registered.
+
+        close()/close_all() leave the provider in ``_instances`` and tests
+        rely on ``connection`` reopening afterwards, so a registered
+        provider revives (restarting the reaper and clearing wedge
+        suppression — the part a bare reopen used to skip). A provider
+        removed by drop_instance()/close_all_instances() is torn down for
+        good: stale references must not resurrect it.
+        """
+        if not self._closed:
+            return
+        cls = type(self)
+        if self.db_path is None:
+            return
+        with cls._lock:
+            if cls._instances.get(self.db_path) is not self:
+                return
+            self._revive()
+
     @property
     def connection(self):
+        # A closed provider may reopen only through the registry: a
+        # registered provider revives (reaper + wedge state restored);
+        # a dropped one refuses so lifecycle teardown cannot be undone
+        # by a stale reference. The refusal message avoids
+        # sqlite_error_is_retryable() snippets so _call_with_reconnect
+        # does not drop-and-retry into the same refusal.
+        if self._closed:
+            self._revive_if_registered()
+            if self._closed:
+                raise sqlite3.ProgrammingError("database provider is closed")
         # In-memory databases are private to the connection.
         # If we use threading.local(), each thread gets a DIFFERENT in-memory database.
         # For :memory:, we must share the connection across threads.
@@ -419,6 +449,15 @@ class DatabaseProvider:
             ):
                 self._touch_connection(local_conn)
                 return local_conn
+            # Re-check under the lock: close_all()/close() set _closed
+            # before taking this lock to drop tracked connections, so a
+            # concurrent teardown cannot slip a fresh handle through.
+            # A registered provider may still revive; a dropped one
+            # refuses.
+            if self._closed:
+                self._revive_if_registered()
+                if self._closed:
+                    raise sqlite3.ProgrammingError("database provider is closed")
             return self._open_file_connection()
 
     def _force_connection_reset(self) -> None:
@@ -518,48 +557,103 @@ class DatabaseProvider:
         self._clear_persistent_failures()
         return result
 
+    @staticmethod
+    def _bound_params(params):
+        """Convert datetime objects in params to ISO strings.
+
+        Avoids the DeprecationWarning Python 3.12+ raises when sqlite3
+        adapts datetime objects itself.
+        """
+        if not params:
+            return None
+        from datetime import datetime
+
+        if isinstance(params, dict):
+            return {
+                k: (v.isoformat() if isinstance(v, datetime) else v)
+                for k, v in params.items()
+            }
+        return tuple(
+            (p.isoformat() if isinstance(p, datetime) else p) for p in params
+        )
+
+    def _run_statement(self, conn, query, params, commit=None):
+        """Execute query on conn and return the cursor.
+
+        Caller must hold the connection's active-count protection.
+        """
+        cursor = conn.cursor()
+        bound = self._bound_params(params)
+        if bound:
+            cursor.execute(query, bound)
+        else:
+            cursor.execute(query)
+
+        # In autocommit mode (isolation_level=None), in_transaction is True
+        # only if we explicitly started one with BEGIN and haven't committed/rolled back.
+        if commit is True:
+            conn.commit()
+        elif commit is False:
+            pass
+        # Default behavior: if we're in a manual transaction, don't commit automatically
+        elif not conn.in_transaction:
+            # In autocommit mode, non-DML statements don't start transactions.
+            # DML statements might if they are part of a BEGIN block.
+            # Actually, in isolation_level=None, NOTHING starts a transaction unless we say BEGIN.
+            pass
+        return cursor
+
+    def _release_cursor_protection(self, conn) -> None:
+        """Balance the +1 taken for a returned cursor (see execute())."""
+        self._set_active(conn, -1)
+        self._touch_connection(conn)
+
+    def _arm_cursor_protection(self, conn, cursor) -> None:
+        """Keep the connection protected until the cursor is released.
+
+        Callers fetch rows after execute() returns; without this the
+        reaper or a lifecycle close can drop the handle between execute
+        and fetch, and the cursor then raises on a closed database.
+        weakref.finalize keeps itself alive until it fires or is
+        detached, and the callback runs when the cursor is GC'd.
+        """
+        try:
+            weakref.finalize(cursor, self._release_cursor_protection, conn)
+        except Exception:
+            # Cursor does not support weakrefs on this runtime; release
+            # immediately rather than leaking the active count forever.
+            self._release_cursor_protection(conn)
+
     def execute(self, query, params=None, commit=None):
         def _run():
             conn = self.connection
             self._set_active(conn, 1)
             try:
-                cursor = conn.cursor()
+                cursor = self._run_statement(conn, query, params, commit)
+            except Exception:
+                self._set_active(conn, -1)
+                self._touch_connection(conn)
+                raise
+            self._arm_cursor_protection(conn, cursor)
+            return cursor
 
-                # Convert any datetime objects in params to ISO strings to avoid DeprecationWarning in Python 3.12+
-                if params:
-                    from datetime import datetime
+        return self._call_with_reconnect(_run)
 
-                    if isinstance(params, dict):
-                        bound = {
-                            k: (v.isoformat() if isinstance(v, datetime) else v)
-                            for k, v in params.items()
-                        }
-                    else:
-                        bound = tuple(
-                            (p.isoformat() if isinstance(p, datetime) else p)
-                            for p in params
-                        )
-                else:
-                    bound = None
+    def _execute_and_fetch(self, query, params, consume):
+        """Run a query and consume the cursor under active protection.
 
-                if bound:
-                    cursor.execute(query, bound)
-                else:
-                    cursor.execute(query)
+        fetchone/fetchall must not fetch after execute() releases the
+        active count: the reaper or a lifecycle close can drop the
+        connection in between, and the cursor then raises
+        sqlite3.ProgrammingError on a closed database.
+        """
 
-                # In autocommit mode (isolation_level=None), in_transaction is True
-                # only if we explicitly started one with BEGIN and haven't committed/rolled back.
-                if commit is True:
-                    conn.commit()
-                elif commit is False:
-                    pass
-                # Default behavior: if we're in a manual transaction, don't commit automatically
-                elif not conn.in_transaction:
-                    # In autocommit mode, non-DML statements don't start transactions.
-                    # DML statements might if they are part of a BEGIN block.
-                    # Actually, in isolation_level=None, NOTHING starts a transaction unless we say BEGIN.
-                    pass
-                return cursor
+        def _run():
+            conn = self.connection
+            self._set_active(conn, 1)
+            try:
+                cursor = self._run_statement(conn, query, params)
+                return consume(cursor)
             finally:
                 self._set_active(conn, -1)
                 self._touch_connection(conn)
@@ -580,13 +674,43 @@ class DatabaseProvider:
 
         self._call_with_reconnect(_run)
 
+    def _transaction_connection(self):
+        """The connection commit()/rollback() would act on, or None.
+
+        Never opens a new connection: after close() the connection
+        property would silently reopen the file handle the shutdown just
+        released, and a provider with no live handle has nothing to
+        commit anyway.
+        """
+        if self.db_path == ":memory:":
+            return self._memory_connection
+        return getattr(self._local, "connection", None)
+
     def commit(self):
-        if self.connection.in_transaction:
-            self.connection.commit()
+        if self._closed:
+            return
+        conn = self._transaction_connection()
+        if conn is None:
+            return
+        try:
+            if conn.in_transaction:
+                conn.commit()
+        except sqlite3.ProgrammingError:
+            # The tracked handle was closed out from under us; there is
+            # nothing safe to commit on it.
+            pass
 
     def rollback(self):
-        if self.connection.in_transaction:
-            self.connection.rollback()
+        if self._closed:
+            return
+        conn = self._transaction_connection()
+        if conn is None:
+            return
+        try:
+            if conn.in_transaction:
+                conn.rollback()
+        except sqlite3.ProgrammingError:
+            pass
 
     def __enter__(self):
         self.begin()
@@ -605,24 +729,40 @@ class DatabaseProvider:
             try:
                 cursor = conn.cursor()
                 cursor.executemany(query, params_seq)
-                return cursor
-            finally:
+            except Exception:
                 self._set_active(conn, -1)
                 self._touch_connection(conn)
+                raise
+            self._arm_cursor_protection(conn, cursor)
+            return cursor
 
         return self._call_with_reconnect(_run)
 
     def fetchone(self, query, params=None):
-        cursor = self.execute(query, params)
-        row = cursor.fetchone()
-        return dict(row) if row else None
+        def _consume(cursor):
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+        return self._execute_and_fetch(query, params, _consume)
 
     def fetchall(self, query, params=None):
-        cursor = self.execute(query, params)
-        rows = cursor.fetchall()
-        return [dict(row) for row in rows]
+        def _consume(cursor):
+            return [dict(row) for row in cursor.fetchall()]
+
+        return self._execute_and_fetch(query, params, _consume)
 
     def close(self):
+        # Commit this thread's open transaction before marking the
+        # provider closed: commit() refuses to run once _closed is set.
+        if hasattr(self._local, "connection"):
+            conn = self._local.connection
+            try:
+                self.commit()
+            except Exception:
+                pass
+            with self._lock:
+                self._close_tracked_connection(conn)
+            del self._local.connection
         self._closed = True
         self._stop_reaper()
         # A provider being torn down must not escalate stale-handle errors
@@ -635,16 +775,6 @@ class DatabaseProvider:
             except Exception:
                 pass
             self._memory_connection = None
-
-        if hasattr(self._local, "connection"):
-            conn = self._local.connection
-            try:
-                self.commit()
-            except Exception:
-                pass
-            with self._lock:
-                self._close_tracked_connection(conn)
-            del self._local.connection
 
     def close_all(self):
         self._closed = True
@@ -668,6 +798,10 @@ class DatabaseProvider:
                 del self._local.connection
 
     def vacuum(self):
+        if self._closed:
+            # VACUUM on a closed provider would reopen the database file
+            # through the connection property after teardown released it.
+            return
         # VACUUM cannot run inside a transaction
         self.commit()
         self.connection.execute("VACUUM")

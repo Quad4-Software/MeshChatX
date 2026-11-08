@@ -303,7 +303,7 @@
                     v-if="i2pInterfaces.length > 0"
                     class="rounded-xl border border-sem-info dark:border-sem-info bg-sem-info/15 dark:bg-sem-info/15 p-4 space-y-3"
                 >
-                    <h2 class="text-sm font-semibold text-violet-950 dark:text-sem-info">
+                    <h2 class="text-sm font-semibold text-neutral-900 dark:text-sem-info">
                         {{ $t("rnstatus.i2p_address") }}
                     </h2>
                     <div v-for="iface in i2pInterfaces" :key="'i2p-' + iface.name" class="space-y-2">

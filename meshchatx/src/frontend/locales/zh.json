@@ -1133,6 +1133,9 @@
             "network": {
                 "fetch": "发起出站互联网HTTP请求"
             },
+            "clipboard": {
+                "write": "写入系统剪贴板"
+            },
             "backend": {
                 "python": "在应用进程中运行 Python 代码，可完全访问此用户的文件、进程和网络"
             }
@@ -1583,7 +1586,10 @@
         },
         "top_memory_consumer": "内存占用最高",
         "top_cpu_consumer": "CPU 占用最高",
-        "sandbox_abi": "内核 ABI v{abi}"
+        "sandbox_abi": "内核 ABI v{abi}",
+        "shell_runtime": "桌面外壳",
+        "webview_runtime": "WebView",
+        "platform_runtime": "平台"
     },
     "interfaces": {
         "title": "接口",

@@ -1133,6 +1133,9 @@
             "network": {
                 "fetch": "Wykonywanie wychodzących żądań HTTP do internetu"
             },
+            "clipboard": {
+                "write": "Zapisywanie do schowka systemowego"
+            },
             "backend": {
                 "python": "Uruchom kod Pythona w procesie aplikacji z pełnym dostępem do plików, procesów i sieci tego użytkownika"
             }
@@ -1583,7 +1586,10 @@
         },
         "top_memory_consumer": "Najwięcej pamięci",
         "top_cpu_consumer": "Najwięcej CPU",
-        "sandbox_abi": "ABI jądra v{abi}"
+        "sandbox_abi": "ABI jądra v{abi}",
+        "shell_runtime": "Powłoka pulpitu",
+        "webview_runtime": "WebView",
+        "platform_runtime": "Platforma"
     },
     "interfaces": {
         "title": "Interfejsy",

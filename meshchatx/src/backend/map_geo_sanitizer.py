@@ -68,7 +68,14 @@ def _looks_like_dtd(text: str) -> bool:
 
 
 def is_remote_href(href: str) -> bool:
-    h = (href or "").strip()
+    # WHATWG URL parsing removes tab/LF/CR anywhere and strips leading C0
+    # controls + space, and treats backslashes as path separators — normalize
+    # the same way or "htt\tps://evil" classifies local while fetching remote.
+    h = (href or "").replace("\t", "").replace("\n", "").replace("\r", "")
+    # Strip leading/trailing C0 controls + space (WHATWG edge rule); .strip()
+    # alone misses \x00-\x08 and \x10-\x1f.
+    h = h.strip().strip("".join(chr(c) for c in range(0x21)))
+    h = h.replace("\\", "/")
     if not h:
         return False
     lower = h.lower()
@@ -155,19 +162,28 @@ def _cell_plain(cell_html: str) -> str:
     return _WS_RE.sub(" ", text).strip()
 
 
+# The script/style and table regexes use lazy [\s\S]*? scans that degrade to
+# O(n^2) on tag-soup input (many opening tags, few closers). Past this size we
+# skip them and use the linear tag-strip fallback — a hostile peer could
+# otherwise stall the whole event loop for minutes on an 8 MB description.
+_FLATTEN_STRUCTURED_MAX = 8 * 1024
+
+
 def _flatten_html_text(text: str) -> str:
-    s = _SCRIPT_STYLE_RE.sub("", text or "")
+    s = text or ""
     rows: list[str] = []
-    for match in _TABLE_ROW_RE.finditer(s):
-        cells = [_cell_plain(c) for c in _CELL_RE.findall(match.group(1))]
-        cells = [c for c in cells if c]
-        if len(cells) >= 2:
-            key = cells[0]
-            val = " ".join(cells[1:])
-            if key and not _is_nullish_value(val):
-                rows.append(f"{key}: {val}")
-        elif len(cells) == 1 and not _is_nullish_value(cells[0]):
-            rows.append(cells[0])
+    if len(s) <= _FLATTEN_STRUCTURED_MAX:
+        s = _SCRIPT_STYLE_RE.sub("", s)
+        for match in _TABLE_ROW_RE.finditer(s):
+            cells = [_cell_plain(c) for c in _CELL_RE.findall(match.group(1))]
+            cells = [c for c in cells if c]
+            if len(cells) >= 2:
+                key = cells[0]
+                val = " ".join(cells[1:])
+                if key and not _is_nullish_value(val):
+                    rows.append(f"{key}: {val}")
+            elif len(cells) == 1 and not _is_nullish_value(cells[0]):
+                rows.append(cells[0])
     if rows:
         return "\n".join(rows)
     s = _BR_RE.sub("\n", s)

@@ -79,7 +79,7 @@
                     <!-- error state -->
                     <div
                         v-else-if="error"
-                        class="rounded-lg border border-sem-border border-l-4 border-l-red-500 p-4 sm:p-6 bg-sem-danger/15 dark:bg-sem-danger/15"
+                        class="rounded-lg border border-sem-danger/60 bg-sem-danger/10 p-4 sm:p-6 bg-sem-danger/15 dark:bg-sem-danger/15"
                     >
                         <div class="flex items-start gap-3 text-sem-danger">
                             <MaterialDesignIcon icon-name="alert-circle" class="size-5 md:size-6 shrink-0 mt-0.5" />

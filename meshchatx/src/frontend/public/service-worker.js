@@ -293,7 +293,9 @@ function createShellRuntime(options) {
         const networkPromise = fetchFn(request)
             .then((response) => {
                 if (response && response.ok && request.method === "GET") {
-                    void cache.put(request, response.clone());
+                    // Cache writes are best-effort; a quota/eviction failure
+                    // must not surface as an unhandled rejection.
+                    void cache.put(request, response.clone()).catch(() => {});
                 }
                 return response;
             })

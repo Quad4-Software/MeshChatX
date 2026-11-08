@@ -139,7 +139,7 @@
                     <div
                         v-for="path in pathTable"
                         :key="path.hash"
-                        class="rounded-lg border border-sem-border bg-sem-surface p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-l-4"
+                        class="rounded-lg border border-sem-border bg-sem-surface p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                         :class="[
                             path.state === 2
                                 ? 'border-l-green-500'

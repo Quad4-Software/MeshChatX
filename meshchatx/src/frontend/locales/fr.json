@@ -1133,6 +1133,9 @@
             "network": {
                 "fetch": "Effectuer des requêtes HTTP sortantes sur Internet"
             },
+            "clipboard": {
+                "write": "Écrire dans le presse-papiers du système"
+            },
             "backend": {
                 "python": "Exécuter du code Python dans le processus de l’application avec un accès complet aux fichiers, processus et réseau de cet utilisateur"
             }
@@ -1583,7 +1586,10 @@
         },
         "top_memory_consumer": "Top mémoire",
         "top_cpu_consumer": "Top CPU",
-        "sandbox_abi": "ABI du noyau v{abi}"
+        "sandbox_abi": "ABI du noyau v{abi}",
+        "shell_runtime": "Shell de bureau",
+        "webview_runtime": "WebView",
+        "platform_runtime": "Plateforme"
     },
     "interfaces": {
         "title": "Interfaces",

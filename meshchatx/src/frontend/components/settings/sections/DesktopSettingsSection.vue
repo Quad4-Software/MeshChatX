@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <section v-if="isElectron" v-show="visible" class="settings-section break-inside-avoid">
+    <section v-if="isDesktop" v-show="visible" class="settings-section break-inside-avoid">
         <header class="settings-section__header">
             <div>
                 <div class="settings-section__eyebrow">Desktop</div>
@@ -65,7 +65,7 @@
 <script>
 import Toggle from "../../forms/Toggle.vue";
 import SegmentedControl from "../../forms/SegmentedControl.vue";
-import ElectronUtils from "../../../js/ElectronUtils";
+import DesktopUtils from "../../../js/DesktopUtils";
 
 export default {
     name: "DesktopSettingsSection",
@@ -102,8 +102,8 @@ export default {
                 },
             ];
         },
-        isElectron() {
-            return ElectronUtils.isElectron();
+        isDesktop() {
+            return DesktopUtils.isDesktop();
         },
     },
 };

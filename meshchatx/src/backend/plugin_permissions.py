@@ -31,6 +31,7 @@ KNOWN_MANAGERS = frozenset(
 
 KNOWN_STORAGE = frozenset({"isolated", "none"})
 KNOWN_NETWORK = frozenset({"none", "fetch"})
+KNOWN_CLIPBOARD = frozenset({"none", "write"})
 KNOWN_UI = frozenset({"none", "sandboxed-html"})
 PYTHON_BACKEND_PERMISSION = "backend:python"
 
@@ -64,6 +65,10 @@ def permission_id_for_network(network: str) -> str:
     return f"network:{network}"
 
 
+def permission_id_for_clipboard(clipboard: str) -> str:
+    return f"clipboard:{clipboard}"
+
+
 def permission_id_for_ui(ui: str) -> str:
     return f"ui:{ui}"
 
@@ -75,6 +80,15 @@ def normalize_network_mode(value: Any) -> str:
         return "fetch"
     # Unknown modes must not silently grant fetch access.
     raise ValueError(f"unknown network permission: {value!r}")
+
+
+def normalize_clipboard_mode(value: Any) -> str:
+    if value is None or value == "" or value == "none":
+        return "none"
+    if isinstance(value, str) and value == "write":
+        return "write"
+    # Unknown modes must not silently grant clipboard access.
+    raise ValueError(f"unknown clipboard permission: {value!r}")
 
 
 def normalize_ui_modes(value: Any) -> list[str]:
@@ -108,6 +122,9 @@ def declared_permission_ids(manifest: dict[str, Any]) -> list[str]:
     network = normalize_network_mode(permissions.get("network"))
     if network != "none":
         ids.append(permission_id_for_network(network))
+    clipboard = normalize_clipboard_mode(permissions.get("clipboard"))
+    if clipboard != "none":
+        ids.append(permission_id_for_clipboard(clipboard))
     ids.extend(
         permission_id_for_ui(ui_mode)
         for ui_mode in normalize_ui_modes(permissions.get("ui"))
@@ -144,6 +161,12 @@ def validate_declared_permissions(manifest: dict[str, Any]) -> None:
     network = permissions.get("network", "none")
     if network is not None and normalize_network_mode(network) not in KNOWN_NETWORK:
         raise ValueError(f"unknown network permission: {network!r}")
+    clipboard = permissions.get("clipboard", "none")
+    if (
+        clipboard is not None
+        and normalize_clipboard_mode(clipboard) not in KNOWN_CLIPBOARD
+    ):
+        raise ValueError(f"unknown clipboard permission: {clipboard!r}")
     ui = permissions.get("ui", "none")
     if ui is not None and ui != "none":
         modes = normalize_ui_modes(ui)

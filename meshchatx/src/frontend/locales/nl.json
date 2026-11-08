@@ -1133,6 +1133,9 @@
             "network": {
                 "fetch": "Uitgaande internet-HTTP-verzoeken doen"
             },
+            "clipboard": {
+                "write": "Schrijven naar het klembord van het systeem"
+            },
             "backend": {
                 "python": "Voer Python-code uit in het toepassingsproces met volledige toegang tot de bestanden, processen en het netwerk van deze gebruiker"
             }
@@ -1583,7 +1586,10 @@
         },
         "top_memory_consumer": "Hoogste geheugenverbruik",
         "top_cpu_consumer": "Hoogste CPU-verbruik",
-        "sandbox_abi": "Kernel-ABI v{abi}"
+        "sandbox_abi": "Kernel-ABI v{abi}",
+        "shell_runtime": "Bureaubladshell",
+        "webview_runtime": "WebView",
+        "platform_runtime": "Platform"
     },
     "interfaces": {
         "title": "Interfaces",

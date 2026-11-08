@@ -1133,6 +1133,9 @@
             "network": {
                 "fetch": "Make outbound internet HTTP requests"
             },
+            "clipboard": {
+                "write": "Write to the system clipboard"
+            },
             "backend": {
                 "python": "Run Python code in the application process with full access to this user's files, processes, and network"
             }
@@ -1583,7 +1586,10 @@
         },
         "top_memory_consumer": "Top memory",
         "top_cpu_consumer": "Top CPU",
-        "sandbox_abi": "Kernel ABI v{abi}"
+        "sandbox_abi": "Kernel ABI v{abi}",
+        "shell_runtime": "Desktop shell",
+        "webview_runtime": "WebView",
+        "platform_runtime": "Platform"
     },
     "interfaces": {
         "title": "Interfaces",
@@ -5034,7 +5040,7 @@
         "web_audio_bridge": "Web Audio Bridge",
         "android_audio_bridge_description": "Always on for Android calls. Audio goes through the phone's native mic and speaker (AudioRecord and AudioTrack), never the WebView's browser microphone API.",
         "web_audio_bridge_required_description": "Required on this host (no LXST host audio device). Browser mic and speaker are used for calls.",
-        "web_audio_bridge_description": "Web audio bridge allows web/electron to hook into LXST backend for passing microphone and audio streams to active telephone calls.",
+        "web_audio_bridge_description": "Web audio bridge allows web/desktop-shell to hook into LXST backend for passing microphone and audio streams to active telephone calls.",
         "microphone": "Microphone",
         "speaker": "Speaker",
         "refresh_devices": "Refresh Devices",

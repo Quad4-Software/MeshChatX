@@ -405,7 +405,7 @@
                 (activeCall || isCallEnded || wasDeclined || initiationStatus) &&
                 !$route.meta.isPopout &&
                 (!['call', 'call-popout'].includes($route.name) || activeCallTab !== 'phone') &&
-                (!config?.desktop_open_calls_in_separate_window || !ElectronUtils.isElectron())
+                (!config?.desktop_open_calls_in_separate_window || !DesktopUtils.isDesktop())
             "
             :active-call="activeCall || lastCall"
             :is-ended="isCallEnded"
@@ -554,7 +554,7 @@ import AppSidebarClassicFooter from "./layout/AppSidebarClassicFooter.vue";
 import FatalErrorPage from "./FatalErrorPage.vue";
 import fatalErrorState from "../js/fatalErrorState.js";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
-import ElectronUtils from "../js/ElectronUtils";
+import DesktopUtils from "../js/DesktopUtils";
 import {
     shouldShowLanBindNoAuthBanner,
     dismissLanBindNoAuthBanner,
@@ -649,7 +649,7 @@ export default {
     data() {
         return {
             logoUrl,
-            ElectronUtils,
+            DesktopUtils,
             reloadInterval: null,
             appInfoInterval: null,
             unreadCountInterval: null,
@@ -894,8 +894,8 @@ export default {
             return (
                 this.showWsDisconnectedBanner &&
                 this.backendProcessExited &&
-                ElectronUtils.isElectron() &&
-                typeof window.electron?.restartBackend === "function"
+                DesktopUtils.isDesktop() &&
+                typeof window.desktop?.restartBackend === "function"
             );
         },
         showNetworkDegradedBanner() {
@@ -912,7 +912,7 @@ export default {
         showLanBindNoAuthBanner() {
             return shouldShowLanBindNoAuthBanner({
                 dismissed: this.lanBindNoAuthBannerDismissed,
-                isElectron: ElectronUtils.isElectron(),
+                isDesktop: DesktopUtils.isDesktop(),
                 isAndroid: isMeshChatXAndroid(),
                 authEnabled: useAuthStore().authEnabled,
                 isLoopbackBind: useAuthStore().isLoopbackBind,
@@ -1069,13 +1069,13 @@ export default {
             }
         });
         this.applyShellAppearance();
-        if (ElectronUtils.isElectron()) {
-            if (typeof window.electron.onBackendProcessExited === "function") {
-                window.electron.onBackendProcessExited((payload) => {
+        if (DesktopUtils.isDesktop()) {
+            if (typeof window.desktop.onBackendProcessExited === "function") {
+                window.desktop.onBackendProcessExited((payload) => {
                     this.onBackendProcessExited(payload);
                 });
             }
-            window.electron.onProtocolLink((url) => {
+            window.desktop.onProtocolLink((url) => {
                 this.handleProtocolLink(url);
             });
         }
@@ -1451,12 +1451,12 @@ export default {
             LiveTransport.destroy();
         },
         async onRestartBackend() {
-            if (!window.electron?.restartBackend) {
+            if (!window.desktop?.restartBackend) {
                 return;
             }
             this.backendRestarting = true;
             try {
-                const result = await window.electron.restartBackend();
+                const result = await window.desktop.restartBackend();
                 if (!result?.ok) {
                     ToastUtils.error(result?.error || this.$t("app.restart_backend_failed"));
                     return;
@@ -1557,11 +1557,11 @@ export default {
             }
         },
         async onViewBackendCrashReport() {
-            if (!window.electron?.openBackendCrashReport) {
+            if (!window.desktop?.openBackendCrashReport) {
                 return;
             }
             try {
-                const result = await window.electron.openBackendCrashReport();
+                const result = await window.desktop.openBackendCrashReport();
                 if (!result?.ok) {
                     ToastUtils.error(result?.error || this.$t("app.view_backend_logs_failed"));
                 }
@@ -2039,8 +2039,8 @@ export default {
                                 : json.error || json.status || "";
                         if (json.status === "completed") {
                             ToastUtils.success(`${this.$t("rncp.received_file")}${detail ? ": " + detail : ""}`);
-                            if (ElectronUtils.isElectron()) {
-                                ElectronUtils.showNotification(this.$t("rncp.received_file"), detail || "");
+                            if (DesktopUtils.isDesktop()) {
+                                DesktopUtils.showNotification(this.$t("rncp.received_file"), detail || "");
                             }
                         } else {
                             ToastUtils.error(`${this.$t("rncp.receive_failed")}${detail ? ": " + detail : ""}`);
@@ -2691,11 +2691,11 @@ export default {
                 }
 
                 // Handle power management for calls
-                if (ElectronUtils.isElectron()) {
+                if (DesktopUtils.isDesktop()) {
                     if (this.activeCall) {
-                        window.electron.setPowerSaveBlocker(true);
+                        window.desktop.setPowerSaveBlocker(true);
                     } else if (!this.initiationStatus) {
-                        window.electron.setPowerSaveBlocker(false);
+                        window.desktop.setPowerSaveBlocker(false);
                     }
                 }
 
@@ -2703,7 +2703,7 @@ export default {
                 if (
                     (this.activeCall || this.initiationStatus) &&
                     this.config?.desktop_open_calls_in_separate_window &&
-                    ElectronUtils.isElectron()
+                    DesktopUtils.isDesktop()
                 ) {
                     if (!this.isCallWindowOpen && !this.$route.meta.isPopout) {
                         this.isCallWindowOpen = true;

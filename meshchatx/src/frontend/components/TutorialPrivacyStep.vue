@@ -75,7 +75,7 @@
 <script>
 import { useAuthStore } from "../js/stores/authStore";
 
-import ElectronUtils from "../js/ElectronUtils.js";
+import DesktopUtils from "../js/DesktopUtils.js";
 import AndroidBridge from "../js/rnode/AndroidBridge.js";
 import ToastUtils from "../js/ToastUtils";
 import { apiPath } from "../js/constants";
@@ -113,7 +113,7 @@ export default {
     methods: {
         async loadPrivacyOptions() {
             this.showWindowsScreenSecurity =
-                typeof ElectronUtils.isWindowsElectron === "function" && ElectronUtils.isWindowsElectron();
+                typeof DesktopUtils.isWindowsDesktop === "function" && DesktopUtils.isWindowsDesktop();
             this.showAndroidScreenshotBlock =
                 typeof window !== "undefined" &&
                 window.MeshChatXAndroid &&
@@ -122,7 +122,7 @@ export default {
 
             if (this.showWindowsScreenSecurity) {
                 try {
-                    const settings = await ElectronUtils.getScreenSecuritySettings();
+                    const settings = await DesktopUtils.getScreenSecuritySettings();
                     this.screenSecurityEnabled = settings?.enabled === true;
                 } catch {
                     this.screenSecurityEnabled = false;
@@ -157,7 +157,7 @@ export default {
             }
             this.screenSecuritySaving = true;
             try {
-                const settings = await ElectronUtils.setScreenSecurityEnabled(value === true);
+                const settings = await DesktopUtils.setScreenSecurityEnabled(value === true);
                 this.screenSecurityEnabled = settings?.enabled === true;
                 ToastUtils.success(
                     this.screenSecurityEnabled

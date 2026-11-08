@@ -1133,6 +1133,9 @@
             "network": {
                 "fetch": "Tee ulospäin suuntautuvia internet-HTTP-pyyntöjä"
             },
+            "clipboard": {
+                "write": "Kirjoita järjestelmän leikepöydälle"
+            },
             "backend": {
                 "python": "Suorita Python-koodia sovellusprosessissa käyttäjän kaikkien tiedostojen, prosessien ja verkon käyttöoikeuksilla"
             }
@@ -1583,7 +1586,10 @@
         },
         "top_memory_consumer": "Suurin muistinkäyttäjä",
         "top_cpu_consumer": "Suurin CPU-käyttäjä",
-        "sandbox_abi": "Ytimen ABI v{abi}"
+        "sandbox_abi": "Ytimen ABI v{abi}",
+        "shell_runtime": "Työpöytäshelli",
+        "webview_runtime": "WebView",
+        "platform_runtime": "Alusta"
     },
     "interfaces": {
         "title": "Sovittimet",

@@ -386,7 +386,7 @@ class HubCommandHandler:
                 "must be present in the room to register it",
             )
             return True
-        st = server.rooms.ensure_state(r, founder=peer)
+        st = server.rooms.ensure_state(r)
         founder = st.get("founder")
         if founder is not None and peer is not None and bytes(founder) != bytes(peer):
             if not server.rooms.is_room_op(r, peer):
@@ -394,6 +394,17 @@ class HubCommandHandler:
                     outgoing,
                     link,
                     "only the room founder can register",
+                    room=r,
+                )
+                return True
+        elif founder is None and st.get("registered") and peer is not None:
+            # An already-registered room with no founder (e.g. created via the
+            # API) must not be claimed by the first member to send /register.
+            if not server.policy.is_server_op(peer):
+                server._queue_error(
+                    outgoing,
+                    link,
+                    "registered room has no founder; only hub operators can claim it",
                     room=r,
                 )
                 return True
@@ -432,6 +443,15 @@ class HubCommandHandler:
                     outgoing,
                     link,
                     "only the room founder can unregister",
+                    room=r,
+                )
+                return True
+        elif founder is None and st.get("registered") and peer is not None:
+            if not server.policy.is_server_op(peer):
+                server._queue_error(
+                    outgoing,
+                    link,
+                    "registered room has no founder; only hub operators can unregister it",
                     room=r,
                 )
                 return True

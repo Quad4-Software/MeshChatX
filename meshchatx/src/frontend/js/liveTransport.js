@@ -160,7 +160,10 @@ class WebTransportLiveSession {
             line = encodeWtJsonLine(message);
         }
         const bytes = new TextEncoder().encode(line);
-        void this._writer.write(bytes);
+        // A dying stream rejects the write; the read loop / disconnect path
+        // surfaces the failure, so swallow it here to avoid an unhandled
+        // rejection.
+        void this._writer.write(bytes).catch(() => {});
         return true;
     }
 
@@ -254,10 +257,14 @@ class LiveTransport {
 
     async connect() {
         // A concurrent or repeated connect abandons any in-flight session,
-        // regardless of which transport this call ends up choosing.
-        this._clearForwards(this._connectingWt);
-        this._connectingWt?.destroy();
-        this._connectingWt = null;
+        // regardless of which transport this call ends up choosing. Only
+        // clear forwards when a session actually exists — _clearForwards(null)
+        // would wipe the WebSocket forwards too and leave us deaf.
+        if (this._connectingWt) {
+            this._clearForwards(this._connectingWt);
+            this._connectingWt.destroy();
+            this._connectingWt = null;
+        }
         if (this._usingWt) {
             this._clearForwards(this._wt);
             this._wt?.destroy();
@@ -384,9 +391,13 @@ class LiveTransport {
     }
 
     reconnect() {
-        this._clearForwards(this._connectingWt);
-        this._connectingWt?.destroy();
-        this._connectingWt = null;
+        // Same guard as connect(): _clearForwards(null) would wipe every
+        // forward, including the WebSocket ones, and leave the channel deaf.
+        if (this._connectingWt) {
+            this._clearForwards(this._connectingWt);
+            this._connectingWt.destroy();
+            this._connectingWt = null;
+        }
         if (this._usingWt) {
             this._clearForwards(this._wt);
             this._wt?.destroy();
@@ -394,6 +405,12 @@ class LiveTransport {
             this._usingWt = false;
             this._active = WebSocketConnection;
             setWsLiveSendBridge(null);
+            this._forwardFrom(WebSocketConnection);
+            this._boundWs = true;
+        }
+        // Covers reconnect() after destroy() or any path that dropped the
+        // WebSocket forwards without going through the WT branch above.
+        if (!this._boundWs) {
             this._forwardFrom(WebSocketConnection);
             this._boundWs = true;
         }

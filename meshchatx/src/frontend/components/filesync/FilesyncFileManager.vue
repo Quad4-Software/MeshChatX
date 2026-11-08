@@ -175,6 +175,7 @@ export default {
             return `${left}/${right}`;
         },
         async refresh() {
+            const requestId = (this._refreshSeq = (this._refreshSeq || 0) + 1);
             this.busy = true;
             try {
                 const params = {};
@@ -182,15 +183,23 @@ export default {
                     params.path = this.currentPath;
                 }
                 const response = await filesyncApi.getTree({ params });
+                if (requestId !== this._refreshSeq) {
+                    return;
+                }
                 const data = response?.data || {};
                 this.entries = Array.isArray(data.entries) ? data.entries : [];
                 this.currentPath = data.current != null ? String(data.current) : "";
                 this.parentPath = data.parent === undefined ? null : data.parent;
             } catch (err) {
+                if (requestId !== this._refreshSeq) {
+                    return;
+                }
                 this.entries = [];
                 ToastUtils.error(err?.response?.data?.message || err?.message || this.$t("rns_filesync.error"));
             } finally {
-                this.busy = false;
+                if (requestId === this._refreshSeq) {
+                    this.busy = false;
+                }
             }
         },
         enterDir(path) {

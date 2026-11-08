@@ -12,6 +12,7 @@ import gc
 import hashlib
 import importlib
 import importlib.metadata
+import io
 import json
 import logging
 import math
@@ -236,6 +237,8 @@ from meshchatx.src.env_config import MeshchatEnv
 from meshchatx.src.env_utils import env_bool, env_int, env_set, env_str
 from meshchatx.src.path_utils import (
     PathJailError,
+    atomic_write_bytes,
+    atomic_write_text,
     get_file_path,
     is_loopback_bind_host,
     is_path_within_dir,
@@ -264,6 +267,18 @@ def __getattr__(name: str):
 def _truncated_hash32_hex_ok(value: str | None) -> bool:
     """32 lowercase hex chars (Reticulum truncated hash) without relying on live RNS constants."""
     return bool(normalize_identity_storage_hash(value))
+
+
+def _atomic_copy_identity_file(src: str, dst: str) -> None:
+    """Copy an identity file atomically (tmp + fsync + rename).
+
+    shutil.copy2 truncates the destination in place, so a crash mid-copy
+    leaves a torn identity file. Identity files carry private keys, so
+    they are written with private 0o600 permissions.
+    """
+    with open(src, "rb") as handle:
+        data = handle.read()
+    atomic_write_bytes(dst, data, mode=0o600)
 
 
 # Global log handler (singleton lives in persistent_log_handler)
@@ -661,10 +676,14 @@ class ReticulumMeshChat:
         from meshchatx.src.backend.webtransport_sidecar import WebTransportSidecarState
 
         self.webtransport_state = WebTransportSidecarState()
-        self._identity_hotswap_lock = asyncio.Lock()
-        # Serializes reload_reticulum: concurrent admin requests would
-        # otherwise interleave teardown and rebuild of the RNS stack.
-        self._reticulum_reload_lock = asyncio.Lock()
+        # ONE lock serializes every operation that tears down or rebuilds
+        # the Reticulum stack: reload, identity hotswap/delete, interface
+        # management, and manual recovery. Separate locks let teardown and
+        # setup interleave and corrupt the shared RNS state. The two
+        # historical names remain as aliases for existing callers/tests.
+        self._reticulum_lifecycle_lock = asyncio.Lock()
+        self._identity_hotswap_lock = self._reticulum_lifecycle_lock
+        self._reticulum_reload_lock = self._reticulum_lifecycle_lock
         self.listen_host: str | None = None
         self.listen_port: int | None = None
         self.use_https: bool = True
@@ -782,7 +801,7 @@ class ReticulumMeshChat:
 
         Chaquopy Android has no usable LXST LineSource path. Docker/Alpine images
         typically lack PulseAudio. Do not key this off --headless alone: frozen
-        Electron also uses headless (no auto browser) while still having host audio.
+        desktop shell also uses headless (no auto browser) while still having host audio.
 
         MESHCHAT_FORCE_WEB_AUDIO=1 forces the bridge for debugging or custom hosts.
         """
@@ -1665,7 +1684,7 @@ class ReticulumMeshChat:
                     )
                 else:
                     os.makedirs(os.path.dirname(main_identity_file), exist_ok=True)
-                    shutil.copy2(identity_storage_file, main_identity_file)
+                    _atomic_copy_identity_file(identity_storage_file, main_identity_file)
             final_db_path = db_path
             if restored_identity_hash:
                 final_db_path = self._relocate_restored_identity_dir(
@@ -2607,7 +2626,7 @@ class ReticulumMeshChat:
             RNS.Transport.destinations_map = {}
         RNS.Transport.active_links = []
         RNS.Transport.pending_links = []
-        RNS.Transport.announce_handlers = []
+        RNS.Transport.announce_handlers = {}
         RNS.Transport.announce_table = {}
         RNS.Transport.path_table = {}
         RNS.Transport.reverse_table = {}
@@ -2711,8 +2730,11 @@ class ReticulumMeshChat:
         if not cp.has_section("reticulum"):
             cp.add_section("reticulum")
         cp.set("reticulum", "instance_name", instance_name)
-        with open(config_path, "w", encoding="utf-8") as f:
-            cp.write(f)
+        # Write through a sibling tmp + rename: the live Reticulum config
+        # must never be left half-written if the process dies mid-save.
+        buf = io.StringIO()
+        cp.write(buf)
+        atomic_write_text(config_path, buf.getvalue())
 
     async def reload_reticulum(self):
         async with self._reticulum_reload_lock:
@@ -3312,7 +3334,7 @@ class ReticulumMeshChat:
 
             # 1. Backup current identity file
             if os.path.exists(main_identity_file):
-                shutil.copy2(main_identity_file, backup_identity_file)
+                _atomic_copy_identity_file(main_identity_file, backup_identity_file)
                 backup_created = True
 
             # 2. teardown old identity if not keeping alive
@@ -3328,7 +3350,7 @@ class ReticulumMeshChat:
                 self._clear_mesh_link_caches()
 
             # 3. update main identity file
-            shutil.copy2(identity_file, main_identity_file)
+            _atomic_copy_identity_file(identity_file, main_identity_file)
 
             # 4. setup new identity
             self.running = True
@@ -3364,7 +3386,7 @@ class ReticulumMeshChat:
             try:
                 print("Attempting to restore previous identity...")
                 if backup_created and os.path.exists(backup_identity_file):
-                    shutil.copy2(backup_identity_file, main_identity_file)
+                    _atomic_copy_identity_file(backup_identity_file, main_identity_file)
                     os.remove(backup_identity_file)
 
                 self.running = True
@@ -3395,7 +3417,7 @@ class ReticulumMeshChat:
 
                     if emergency_id:
                         # Copy to main identity file
-                        shutil.copy2(emergency_identity_file, main_identity_file)
+                        _atomic_copy_identity_file(emergency_identity_file, main_identity_file)
                         self.running = True
                         self.setup_identity(emergency_id)
                         print(f"Emergency identity created and loaded: {new_id_hash}")
@@ -7662,7 +7684,7 @@ class ReticulumMeshChat:
             enabled = self._parse_bool(data["desktop_hardware_acceleration_enabled"])
             self.config.desktop_hardware_acceleration_enabled.set(enabled)
 
-            # write flag for electron to read on next launch
+            # write flag for the desktop shell to read on next launch
             def _update_gpu_flag():
                 disable_gpu_file = os.path.join(self.storage_dir, "disable-gpu")
                 if not enabled:
@@ -9666,7 +9688,7 @@ class ReticulumMeshChat:
                     use_blackhole = bool(cfg.blackhole_integration_enabled.get())
                 except Exception:
                     use_blackhole = True
-            if use_blackhole and hasattr(self.reticulum, "blackhole_identity"):
+            if use_blackhole and hasattr(getattr(self, "reticulum", None), "blackhole_identity"):
                 reason = (
                     f"Blocked in MeshChatX (from {destination_hash})"
                     if identity_hash
@@ -9792,7 +9814,7 @@ class ReticulumMeshChat:
             if (
                 hasattr(self, "reticulum")
                 and self.reticulum
-                and hasattr(self.reticulum, "unblackhole_identity")
+                and hasattr(getattr(self, "reticulum", None), "unblackhole_identity")
             ):
                 seen = set()
                 for peer_hash in hashes:
@@ -9844,6 +9866,23 @@ class ReticulumMeshChat:
         except Exception as e:
             print(f"_apply_lxmf_flood_stamp_cost: re-announce failed: {e}")
 
+    def _lxmf_flood_state_owner(self, ctx):
+        """Object holding flood-protection state for ctx.
+
+        Real IdentityContext objects carry their own copy so an identity
+        hotswap or reload cannot inherit another identity's flood
+        bookkeeping. Test doubles and legacy contexts without a real
+        timestamp list share the application-level fields; the isinstance
+        check keeps MagicMock contexts (which auto-vivify any attribute)
+        on the app-level path.
+        """
+        if ctx is not None and isinstance(
+            getattr(ctx, "_lxmf_incoming_timestamps", None),
+            list,
+        ):
+            return ctx
+        return self
+
     def _check_lxmf_flood_protection(self, context=None) -> None:
         """Check incoming LXMF message rate and auto-adjust stamp cost if flooding."""
         ctx = context or self.current_context
@@ -9855,14 +9894,15 @@ class ReticulumMeshChat:
         if ctx.config.block_all_from_strangers.get():
             return
 
+        owner = self._lxmf_flood_state_owner(ctx)
         with self._lxmf_flood_lock:
             now = time.time()
-            self._lxmf_incoming_timestamps = prune_lxmf_incoming_timestamps(
-                self._lxmf_incoming_timestamps,
+            owner._lxmf_incoming_timestamps = prune_lxmf_incoming_timestamps(
+                owner._lxmf_incoming_timestamps,
                 now=now,
             )
             msgs_per_minute = len(
-                [t for t in self._lxmf_incoming_timestamps if now - t <= 60.0],
+                [t for t in owner._lxmf_incoming_timestamps if now - t <= 60.0],
             )
 
             threshold = ctx.config.lxmf_flood_threshold_per_minute.get()
@@ -9871,8 +9911,8 @@ class ReticulumMeshChat:
             current_cost = max(current_cost, 0)
 
             # Determine base cost (the normal non-flood cost)
-            if self._flood_protection_current_cost is not None:
-                base_cost = self._flood_protection_current_cost
+            if owner._flood_protection_current_cost is not None:
+                base_cost = owner._flood_protection_current_cost
             else:
                 base_cost = current_cost
 
@@ -9885,13 +9925,13 @@ class ReticulumMeshChat:
                         f"(threshold {threshold}). Raising stamp cost from "
                         f"{current_cost} to {new_cost}.",
                     )
-                    if self._flood_protection_current_cost is None:
-                        self._flood_protection_current_cost = base_cost
-                    self._flood_protection_last_bump_time = now
+                    if owner._flood_protection_current_cost is None:
+                        owner._flood_protection_current_cost = base_cost
+                    owner._flood_protection_last_bump_time = now
                     self._apply_lxmf_flood_stamp_cost(new_cost, context=ctx)
             elif current_cost > base_cost:
                 cooldown = ctx.config.lxmf_flood_cooldown_seconds.get()
-                if now - self._flood_protection_last_bump_time > cooldown:
+                if now - owner._flood_protection_last_bump_time > cooldown:
                     # Step down by 1 toward base cost
                     new_cost = max(current_cost - 1, base_cost)
                     if new_cost != current_cost:
@@ -9901,8 +9941,8 @@ class ReticulumMeshChat:
                         )
                         self._apply_lxmf_flood_stamp_cost(new_cost, context=ctx)
                     if new_cost == base_cost:
-                        self._flood_protection_current_cost = None
-                        self._flood_protection_last_bump_time = 0
+                        owner._flood_protection_current_cost = None
+                        owner._flood_protection_last_bump_time = 0
 
     async def lxmf_flood_protection_cooldown_loop(self, session_id, context=None):
         """Background loop to step down flood protection stamp cost during quiet periods."""
@@ -10153,10 +10193,13 @@ class ReticulumMeshChat:
                 return
 
             # track incoming message timestamps for flood protection
+            flood_owner = self._lxmf_flood_state_owner(ctx)
             with self._lxmf_flood_lock:
-                self._lxmf_incoming_timestamps.append(time.time())
-                self._lxmf_incoming_timestamps = prune_lxmf_incoming_timestamps(
-                    self._lxmf_incoming_timestamps,
+                flood_owner._lxmf_incoming_timestamps.append(time.time())
+                flood_owner._lxmf_incoming_timestamps = (
+                    prune_lxmf_incoming_timestamps(
+                        flood_owner._lxmf_incoming_timestamps,
+                    )
                 )
             self._check_lxmf_flood_protection(context=ctx)
 
@@ -10493,7 +10536,7 @@ class ReticulumMeshChat:
             msg_dict = convert_lxmf_message_to_dict(
                 lxmf_message,
                 include_attachments=False,
-                reticulum=self.reticulum,
+                reticulum=getattr(self, "reticulum", None),
             )
             self._merge_stored_path_fields_from_db(
                 ctx,
@@ -10715,14 +10758,15 @@ class ReticulumMeshChat:
         if not RNS.Transport.has_path(destination_hash):
             return None, None
         hops = RNS.Transport.hops_to(destination_hash)
+        reticulum = getattr(self, "reticulum", None)
         next_hop_bytes = None
-        if hasattr(self, "reticulum") and self.reticulum:
-            next_hop_bytes = self.reticulum.get_next_hop(destination_hash)
+        if reticulum is not None:
+            next_hop_bytes = reticulum.get_next_hop(destination_hash)
         if next_hop_bytes is None:
             return None, None
         iface = (
-            self.reticulum.get_next_hop_if_name(destination_hash)
-            if hasattr(self, "reticulum") and self.reticulum
+            reticulum.get_next_hop_if_name(destination_hash)
+            if reticulum is not None
             else None
         )
         return hops, iface
@@ -10753,45 +10797,56 @@ class ReticulumMeshChat:
 
     def on_lxmf_sending_state_updated(self, lxmf_message, context=None):
         ctx = context or self.current_context
-        if not ctx or not ctx.database:
+        # Router callbacks can fire during/after identity teardown: a
+        # stopped context must not write through its closed provider.
+        if not ctx or not getattr(ctx, "running", True) or not ctx.database:
             return
+        # self.reticulum is deleted and recreated by reload/recovery; a
+        # callback holding an old context must not dereference the mutable
+        # attribute after it is gone.
+        reticulum = getattr(self, "reticulum", None)
 
         progress_pct = round(lxmf_message.progress * 100, 2)
         rssi = lxmf_message.rssi
         snr = lxmf_message.snr
         quality = lxmf_message.q
-        if self.reticulum:
+        if reticulum is not None:
             with contextlib.suppress(Exception):
                 # The deadlined shared RPC can raise TimeoutError; missing
                 # signal metrics must never skip the state update below.
                 if rssi is None:
-                    rssi = self.reticulum.get_packet_rssi(lxmf_message.hash)
+                    rssi = reticulum.get_packet_rssi(lxmf_message.hash)
                 if snr is None:
-                    snr = self.reticulum.get_packet_snr(lxmf_message.hash)
+                    snr = reticulum.get_packet_snr(lxmf_message.hash)
                 if quality is None:
-                    quality = self.reticulum.get_packet_q(lxmf_message.hash)
+                    quality = reticulum.get_packet_q(lxmf_message.hash)
 
-        ctx.database.messages.update_lxmf_message_state(
-            message_hash=lxmf_message.hash.hex(),
-            state=convert_lxmf_state_to_string(lxmf_message),
-            progress=progress_pct,
-            delivery_attempts=lxmf_message.delivery_attempts,
-            next_delivery_attempt_at=getattr(
-                lxmf_message,
-                "next_delivery_attempt",
-                None,
-            ),
-            rssi=rssi,
-            snr=snr,
-            quality=quality,
-            method=convert_lxmf_method_to_string(lxmf_message),
-        )
+        try:
+            ctx.database.messages.update_lxmf_message_state(
+                message_hash=lxmf_message.hash.hex(),
+                state=convert_lxmf_state_to_string(lxmf_message),
+                progress=progress_pct,
+                delivery_attempts=lxmf_message.delivery_attempts,
+                next_delivery_attempt_at=getattr(
+                    lxmf_message,
+                    "next_delivery_attempt",
+                    None,
+                ),
+                rssi=rssi,
+                snr=snr,
+                quality=quality,
+                method=convert_lxmf_method_to_string(lxmf_message),
+            )
+        except Exception:
+            if not getattr(ctx, "running", True):
+                return
+            raise
         self._maybe_store_path_at_send_for_lxmf(ctx, lxmf_message)
 
         msg_dict = convert_lxmf_message_to_dict(
             lxmf_message,
             include_attachments=False,
-            reticulum=self.reticulum,
+            reticulum=reticulum,
             message_router=ctx.message_router,
         )
         self._merge_stored_path_fields_from_db(ctx, lxmf_message.hash.hex(), msg_dict)
@@ -10918,7 +10973,7 @@ class ReticulumMeshChat:
         context=None,
     ):
         ctx = context or self.current_context
-        if not ctx:
+        if not ctx or not getattr(ctx, "running", True):
             return
 
         # reset internal message state
@@ -10939,6 +10994,9 @@ class ReticulumMeshChat:
         # Nothing to propagate to. handle_outbound raises IOError for a
         # propagated message with no configured node.
         if router is None or router.get_outbound_propagation_node() is None:
+            # Clear the fallback flag so a failed send becomes terminal;
+            # otherwise the progress poller loops forever at 1 Hz.
+            lxmf_message.try_propagation_on_fail = False
             return
 
         # this message should now be sent via a propagation node
@@ -10989,7 +11047,7 @@ class ReticulumMeshChat:
         # convert lxmf message to dict
         lxmf_message_dict = convert_lxmf_message_to_dict(
             lxmf_message,
-            reticulum=self.reticulum,
+            reticulum=getattr(self, "reticulum", None),
             message_router=ctx.message_router,
         )
         if state_override is not None:
@@ -11354,7 +11412,7 @@ class ReticulumMeshChat:
                 ws_payload = convert_lxmf_message_to_dict(
                     lxmf_message,
                     include_attachments=False,
-                    reticulum=self.reticulum,
+                    reticulum=getattr(self, "reticulum", None),
                     message_router=ctx.message_router,
                 )
                 ws_payload["state"] = "delivered"
@@ -11418,7 +11476,7 @@ class ReticulumMeshChat:
                             "lxmf_message": convert_lxmf_message_to_dict(
                                 lxmf_message,
                                 include_attachments=False,
-                                reticulum=self.reticulum,
+                                reticulum=getattr(self, "reticulum", None),
                                 message_router=ctx.message_router,
                             ),
                         },
@@ -11482,7 +11540,7 @@ class ReticulumMeshChat:
                         "lxmf_message": convert_lxmf_message_to_dict(
                             lxmf_message,
                             include_attachments=False,
-                            reticulum=self.reticulum,
+                            reticulum=getattr(self, "reticulum", None),
                             message_router=ctx.message_router,
                         ),
                     },
@@ -11565,7 +11623,7 @@ class ReticulumMeshChat:
                 # physical link info
                 def _packet_metric(name):
                     try:
-                        fn = getattr(self.reticulum, name, None)
+                        fn = getattr(getattr(self, "reticulum", None), name, None)
                         return fn(lxmf_message.hash) if fn else None
                     except Exception:
                         return None
@@ -11661,41 +11719,56 @@ class ReticulumMeshChat:
 
         should_update_message = True
         while should_update_message:
-            progress_pct = round(lxmf_message.progress * 100, 2)
-            ctx.database.messages.update_lxmf_message_state(
-                message_hash=lxmf_message.hash.hex(),
-                state=convert_lxmf_state_to_string(lxmf_message),
-                progress=progress_pct,
-                delivery_attempts=lxmf_message.delivery_attempts,
-                next_delivery_attempt_at=getattr(
+            # The loop can outlive its identity: teardown closes the
+            # context database and reload/recover can delete
+            # getattr(self, "reticulum", None), so re-check liveness each iteration and
+            # snapshot the instance instead of dereferencing the mutable
+            # attribute mid-callback.
+            if not ctx.running:
+                break
+            reticulum = getattr(self, "reticulum", None)
+            try:
+                progress_pct = round(lxmf_message.progress * 100, 2)
+                ctx.database.messages.update_lxmf_message_state(
+                    message_hash=lxmf_message.hash.hex(),
+                    state=convert_lxmf_state_to_string(lxmf_message),
+                    progress=progress_pct,
+                    delivery_attempts=lxmf_message.delivery_attempts,
+                    next_delivery_attempt_at=getattr(
+                        lxmf_message,
+                        "next_delivery_attempt",
+                        None,
+                    ),
+                    method=convert_lxmf_method_to_string(lxmf_message),
+                )
+                self._maybe_store_path_at_send_for_lxmf(ctx, lxmf_message)
+
+                msg_dict = convert_lxmf_message_to_dict(
                     lxmf_message,
-                    "next_delivery_attempt",
-                    None,
-                ),
-                method=convert_lxmf_method_to_string(lxmf_message),
-            )
-            self._maybe_store_path_at_send_for_lxmf(ctx, lxmf_message)
+                    include_attachments=False,
+                    reticulum=reticulum,
+                    message_router=ctx.message_router,
+                )
+                self._merge_stored_path_fields_from_db(
+                    ctx,
+                    lxmf_message.hash.hex(),
+                    msg_dict,
+                )
 
-            msg_dict = convert_lxmf_message_to_dict(
-                lxmf_message,
-                include_attachments=False,
-                reticulum=self.reticulum,
-                message_router=ctx.message_router,
-            )
-            self._merge_stored_path_fields_from_db(
-                ctx,
-                lxmf_message.hash.hex(),
-                msg_dict,
-            )
-
-            await self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "lxmf_message_state_updated",
-                        "lxmf_message": msg_dict,
-                    },
-                ),
-            )
+                await self.websocket_broadcast(
+                    json.dumps(
+                        {
+                            "type": "lxmf_message_state_updated",
+                            "lxmf_message": msg_dict,
+                        },
+                    ),
+                )
+            except Exception:
+                # A torn-down context raises through the closed provider;
+                # only keep polling while the identity is still live.
+                if not ctx.running:
+                    break
+                raise
 
             # check if we should stop updating
             if is_lxmf_outbound_progress_terminal(lxmf_message):
@@ -11734,8 +11807,9 @@ class ReticulumMeshChat:
                 "Dropping telephone announce from blocked source: %s",
                 identity_hash,
             )
-            if hasattr(self, "reticulum") and self.reticulum:
-                self.reticulum.drop_path(destination_hash)
+            _rns = getattr(self, "reticulum", None)
+            if _rns is not None:
+                _rns.drop_path(destination_hash)
             return
 
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
@@ -11751,7 +11825,7 @@ class ReticulumMeshChat:
 
         if verdict == "background":
             ctx.announce_manager.upsert_announce(
-                self.reticulum,
+                getattr(self, "reticulum", None),
                 announced_identity,
                 destination_hash,
                 aspect,
@@ -11772,7 +11846,7 @@ class ReticulumMeshChat:
 
         # upsert announce to database
         ctx.announce_manager.upsert_announce(
-            self.reticulum,
+            getattr(self, "reticulum", None),
             announced_identity,
             destination_hash,
             aspect,
@@ -11830,8 +11904,9 @@ class ReticulumMeshChat:
                 "Dropping announce from blocked source: %s",
                 identity_hash,
             )
-            if hasattr(self, "reticulum") and self.reticulum:
-                self.reticulum.drop_path(destination_hash)
+            _rns = getattr(self, "reticulum", None)
+            if _rns is not None:
+                _rns.drop_path(destination_hash)
             return
 
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
@@ -11847,7 +11922,7 @@ class ReticulumMeshChat:
 
         if verdict == "background":
             ctx.announce_manager.upsert_announce(
-                self.reticulum,
+                getattr(self, "reticulum", None),
                 announced_identity,
                 destination_hash,
                 aspect,
@@ -11868,7 +11943,7 @@ class ReticulumMeshChat:
 
         # upsert announce to database
         ctx.announce_manager.upsert_announce(
-            self.reticulum,
+            getattr(self, "reticulum", None),
             announced_identity,
             destination_hash,
             aspect,
@@ -11926,8 +12001,9 @@ class ReticulumMeshChat:
             getattr(announced_identity, "hash", None),
         )
         if verdict == "blocked":
-            if hasattr(self, "reticulum") and self.reticulum:
-                self.reticulum.drop_path(destination_hash)
+            _rns = getattr(self, "reticulum", None)
+            if _rns is not None:
+                _rns.drop_path(destination_hash)
             return
 
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
@@ -11943,7 +12019,7 @@ class ReticulumMeshChat:
 
         if verdict == "background":
             ctx.announce_manager.upsert_announce(
-                self.reticulum,
+                getattr(self, "reticulum", None),
                 announced_identity,
                 destination_hash,
                 aspect,
@@ -11964,7 +12040,7 @@ class ReticulumMeshChat:
 
         # upsert announce to database
         ctx.announce_manager.upsert_announce(
-            self.reticulum,
+            getattr(self, "reticulum", None),
             announced_identity,
             destination_hash,
             aspect,
@@ -12225,8 +12301,9 @@ class ReticulumMeshChat:
                 "Dropping rrc.hub announce from blocked source: %s",
                 identity_hash,
             )
-            if hasattr(self, "reticulum") and self.reticulum:
-                self.reticulum.drop_path(destination_hash)
+            _rns = getattr(self, "reticulum", None)
+            if _rns is not None:
+                _rns.drop_path(destination_hash)
             return
 
         # A fresh announce proves the hub is still on the network. Let a
@@ -12251,7 +12328,7 @@ class ReticulumMeshChat:
 
         if verdict == "background":
             ctx.announce_manager.upsert_announce(
-                self.reticulum,
+                getattr(self, "reticulum", None),
                 announced_identity,
                 destination_hash,
                 aspect,
@@ -12271,7 +12348,7 @@ class ReticulumMeshChat:
             return
 
         ctx.announce_manager.upsert_announce(
-            self.reticulum,
+            getattr(self, "reticulum", None),
             announced_identity,
             destination_hash,
             aspect,
@@ -12319,8 +12396,9 @@ class ReticulumMeshChat:
                 "Dropping announce from blocked source: %s",
                 identity_hash,
             )
-            if hasattr(self, "reticulum") and self.reticulum:
-                self.reticulum.drop_path(destination_hash)
+            _rns = getattr(self, "reticulum", None)
+            if _rns is not None:
+                _rns.drop_path(destination_hash)
             return
 
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
@@ -12336,7 +12414,7 @@ class ReticulumMeshChat:
 
         if verdict == "background":
             ctx.announce_manager.upsert_announce(
-                self.reticulum,
+                getattr(self, "reticulum", None),
                 announced_identity,
                 destination_hash,
                 aspect,
@@ -12361,7 +12439,7 @@ class ReticulumMeshChat:
 
         # upsert announce to database
         ctx.announce_manager.upsert_announce(
-            self.reticulum,
+            getattr(self, "reticulum", None),
             announced_identity,
             destination_hash,
             aspect,
@@ -12412,8 +12490,9 @@ class ReticulumMeshChat:
             identity_hash,
         )
         if verdict == "blocked":
-            if hasattr(self, "reticulum") and self.reticulum:
-                self.reticulum.drop_path(destination_hash)
+            _rns = getattr(self, "reticulum", None)
+            if _rns is not None:
+                _rns.drop_path(destination_hash)
             return
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
@@ -12424,7 +12503,7 @@ class ReticulumMeshChat:
         self._note_announce_timestamp()
         if verdict == "background":
             ctx.announce_manager.upsert_announce(
-                self.reticulum,
+                getattr(self, "reticulum", None),
                 announced_identity,
                 destination_hash,
                 aspect,
@@ -12443,7 +12522,7 @@ class ReticulumMeshChat:
             )
             return
         ctx.announce_manager.upsert_announce(
-            self.reticulum,
+            getattr(self, "reticulum", None),
             announced_identity,
             destination_hash,
             aspect,
@@ -12687,7 +12766,7 @@ class ReticulumMeshChat:
         aspect = "nomadnetwork.node"
         app_data = node.name.encode("utf-8")
         ctx.announce_manager.upsert_announce(
-            self.reticulum,
+            getattr(self, "reticulum", None),
             node.identity,
             destination_hash,
             aspect,
@@ -12811,7 +12890,7 @@ def main():
         return
 
     # Windows: mirror Linux Landlock by supervising the real process in an
-    # AppContainer when requested. Electron already enters via the launcher
+    # AppContainer when requested. The desktop shell already enters via the launcher
     # module. Skip when already inside the container or when this process is
     # the launcher supervisor (MESHCHAT_APPCONTAINER_LAUNCHER=1).
     # One-shot CLI diagnostics and backup tools run in-process so CI and
@@ -13021,7 +13100,7 @@ def main():
     parser.add_argument(
         "--test-exception-message",
         type=str,
-        help="Throws an exception. Used for testing the electron error dialog",
+        help="Throws an exception. Used for testing the desktop error dialog",
     )
     parser.add_argument(
         "args",
@@ -13132,8 +13211,11 @@ def main():
 
         # generate a new identity and save to provided file path
         identity = RNS.Identity(create_keys=True)
-        with open(args.generate_identity_file, "wb") as file:
-            file.write(identity.get_private_key())
+        atomic_write_bytes(
+            args.generate_identity_file,
+            identity.get_private_key(),
+            mode=0o600,
+        )
 
         print(
             f"A new Reticulum Identity has been saved to: {args.generate_identity_file}",
@@ -13172,8 +13254,11 @@ def main():
         os.makedirs(base_storage_dir, exist_ok=True)
         default_identity_file = os.path.join(base_storage_dir, "identity")
         if not os.path.exists(default_identity_file):
-            with open(default_identity_file, "wb") as file:
-                file.write(identity.get_private_key())
+            atomic_write_bytes(
+                default_identity_file,
+                identity.get_private_key(),
+                mode=0o600,
+            )
         identity_file_path = default_identity_file
         print(
             f"Reticulum Identity <{identity.hash.hex()}> has been loaded from provided key.",
@@ -13189,8 +13274,11 @@ def main():
         # if default identity file does not exist, generate a new identity and save it
         if not os.path.exists(default_identity_file):
             identity = RNS.Identity(create_keys=True)
-            with open(default_identity_file, "wb") as file:
-                file.write(identity.get_private_key())
+            atomic_write_bytes(
+                default_identity_file,
+                identity.get_private_key(),
+                mode=0o600,
+            )
             print(
                 f"Reticulum Identity <{identity.hash.hex()}> has been randomly generated and saved to {default_identity_file}.",
             )

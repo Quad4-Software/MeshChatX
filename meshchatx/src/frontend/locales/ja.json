@@ -1133,6 +1133,9 @@
             "network": {
                 "fetch": "外向きのインターネット HTTP 要求を実行"
             },
+            "clipboard": {
+                "write": "システムクリップボードに書き込む"
+            },
             "backend": {
                 "python": "このユーザーのファイル、プロセス、ネットワークに完全にアクセスできるアプリケーションプロセス内でPythonコードを実行"
             }
@@ -1583,7 +1586,10 @@
         },
         "top_memory_consumer": "メモリ上位",
         "top_cpu_consumer": "CPU 上位",
-        "sandbox_abi": "カーネル ABI v{abi}"
+        "sandbox_abi": "カーネル ABI v{abi}",
+        "shell_runtime": "デスクトップシェル",
+        "webview_runtime": "WebView",
+        "platform_runtime": "プラットフォーム"
     },
     "interfaces": {
         "title": "インターフェース",

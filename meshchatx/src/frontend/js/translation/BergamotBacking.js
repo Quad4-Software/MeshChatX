@@ -42,10 +42,15 @@ export class BergamotBacking extends TranslatorBacking {
         const worker = new Worker(this.workerUrl, { type: "classic" });
 
         let serial = 0;
+        let workerDead = false;
         const pending = new Map();
 
         const call = (name, ...args) =>
             new Promise((accept, reject) => {
+                if (workerDead) {
+                    reject(new Error("Bergamot worker is not running"));
+                    return;
+                }
                 const id = ++serial;
                 pending.set(id, {
                     accept,
@@ -57,6 +62,19 @@ export class BergamotBacking extends TranslatorBacking {
                 });
                 worker.postMessage({ id, name, args });
             });
+
+        const failAllPending = (err) => {
+            workerDead = true;
+            const error = err instanceof Error ? err : new Error(String(err?.message || err));
+            for (const { reject, callsite } of pending.values()) {
+                reject(
+                    Object.assign(new Error(), error, {
+                        message: `${error.message} (worker died during ${callsite?.message ?? "call"})`,
+                    })
+                );
+            }
+            pending.clear();
+        };
 
         worker.addEventListener("message", ({ data }) => {
             const { id, result, error } = data;
@@ -78,7 +96,11 @@ export class BergamotBacking extends TranslatorBacking {
             }
         });
 
-        worker.addEventListener("error", (err) => this.onerror(err));
+        worker.addEventListener("error", (err) => {
+            failAllPending(err);
+            this.onerror(err);
+        });
+        worker.addEventListener("messageerror", (err) => failAllPending(err));
 
         await call("initialize", this.options);
 
