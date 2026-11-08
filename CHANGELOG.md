@@ -6,6 +6,7 @@
 - CI: workflows migrated to Blacksmith runners.
 - CI: cut PR cost. The advisory mutation job, quarantined tests, Lighthouse, and the custom CodeQL jobs now run on master pushes only (mutation remains available via manual dispatch), the headless Self-Check matrix job and the exploratory E2E job are removed, and every job has a timeout. The coverage job fetches full history so diff-cover finds a merge base again.
 - CI: backend coverage is now collected inside the four test shards and merged by the coverage job, which no longer re-runs the whole suite. The coverage floor and the diff-cover gate are unchanged.
+- CI: removed the weekly Dependabot version-update schedule; it opened no PRs (limit 0) and only produced failing runs. Dependabot alerts are unaffected.
 - Docker: refreshed pinned digests for the node:24-alpine, python:3.15.0-alpine3.24, python:3.15.0-slim-trixie, and Chainguard node/python latest-dev base images.
 - Go: TinyGo 0.43.0 to 0.44.0 and the go directive to 1.27.3 across the visualiser-wasm and geo-wasm modules, with the WASM artifacts rebuilt and their SRI manifests refreshed.
 
