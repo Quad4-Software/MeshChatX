@@ -120,8 +120,8 @@ jobs:
 
             - name: pip-audit
               run: |
-                  uv pip install pip-audit
-                  uv run pip-audit
+                  uv pip install --python .venv/bin/python pip-audit
+                  .venv/bin/pip-audit
 
             - name: Apt update (for Trivy .deb)
               # Only relevant on Debian-family runners; setup-trivy.sh falls
