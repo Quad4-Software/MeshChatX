@@ -1,0 +1,51 @@
+# nfpm configuration for MeshChatX desktop shell (deb/rpm/arch).
+# Backend payload is staged into staging/backend before packaging; see
+# build/linux/Taskfile.yml stage:backend task.
+
+name: "meshchatx-desktop"
+arch: ${GOARCH}
+platform: "linux"
+version: "4.12.0"
+section: "default"
+priority: "extra"
+maintainer: "Quad4 <quad4@proton.me>"
+description: "A simple mesh network communications app powered by the Reticulum Network Stack"
+vendor: "Quad4"
+homepage: "https://github.com/Quad4-Software/MeshChatX"
+license: "GPL-3.0-or-later"
+release: "1"
+
+contents:
+  - src: "./bin/meshchatx-desktop"
+    dst: "/usr/local/bin/meshchatx-desktop"
+  - src: "./build/appicon.png"
+    dst: "/usr/share/icons/hicolor/128x128/apps/meshchatx.png"
+  - src: "./build/linux/meshchatx-desktop.desktop"
+    dst: "/usr/share/applications/meshchatx-desktop.desktop"
+  # Frozen Python backend resolved via <exe>/../lib/reticulum-meshchatx/backend
+  - src: "./bin/backend"
+    dst: "/usr/local/lib/reticulum-meshchatx/backend"
+    packager: "tree"
+
+depends:
+  - libgtk-4-1
+  - libwebkitgtk-6.0-4
+  - libsoup-3.0-0
+  - gstreamer1.0-plugins-base
+  - gstreamer1.0-plugins-good
+
+overrides:
+  rpm:
+    depends:
+      - gtk4
+      - webkitgtk6.0
+      - libsoup3
+      - gstreamer1-plugins-base
+      - gstreamer1-plugins-good
+  archlinux:
+    depends:
+      - gtk4
+      - webkitgtk-6.0
+      - libsoup3
+      - gst-plugins-base
+      - gst-plugins-good

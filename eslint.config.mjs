@@ -17,7 +17,6 @@ export default [
             "**/reticulum_meshchatx.egg-info/**",
             "**/meshchat-config/**",
             "**/screenshots/**",
-            "**/electron/assets/**",
             "**/meshchatx/public/**",
             "**/meshchatx/src/frontend/public/**",
             "**/storage/**",

@@ -3,13 +3,13 @@ import NotificationUtils from "../../meshchatx/src/frontend/js/NotificationUtils
 
 describe("NotificationUtils", () => {
     let originalNotification;
-    let electronMock;
+    let desktopMock;
     let androidMock;
 
     beforeEach(() => {
         originalNotification = globalThis.Notification;
         NotificationUtils._webMessageNotifications.clear();
-        electronMock = {
+        desktopMock = {
             showNotification: vi.fn(),
             closeMessageNotifications: vi.fn(),
         };
@@ -35,47 +35,44 @@ describe("NotificationUtils", () => {
 
     afterEach(() => {
         globalThis.Notification = originalNotification;
-        delete globalThis.electron;
+        delete globalThis.desktop;
         delete globalThis.MeshChatXAndroid;
         vi.restoreAllMocks();
     });
 
-    describe("Electron", () => {
+    describe("Desktop", () => {
         beforeEach(() => {
-            globalThis.electron = electronMock;
+            globalThis.desktop = desktopMock;
         });
 
-        it("showNewMessageNotification delegates to electron with destination hash", () => {
+        it("showNewMessageNotification delegates to desktop with destination hash", () => {
             NotificationUtils.showNewMessageNotification("Alice", "hello", false, "abcd");
-            expect(electronMock.showNotification).toHaveBeenCalledWith("New Message", "Alice: hello", false, "abcd");
+            expect(desktopMock.showNotification).toHaveBeenCalledWith("New Message", "Alice: hello", false, "abcd");
         });
 
-        it("showNewMessageNotification passes silent flag to electron", () => {
+        it("showNewMessageNotification passes silent flag to desktop", () => {
             NotificationUtils.showNewMessageNotification("Alice", "hello", true, "abcd");
-            expect(electronMock.showNotification).toHaveBeenCalledWith("New Message", "Alice: hello", true, "abcd");
+            expect(desktopMock.showNotification).toHaveBeenCalledWith("New Message", "Alice: hello", true, "abcd");
         });
 
-        it("clearMessageNotifications delegates to electron", () => {
+        it("clearMessageNotifications delegates to desktop", () => {
             NotificationUtils.clearMessageNotifications("abcd");
-            expect(electronMock.closeMessageNotifications).toHaveBeenCalledWith("abcd");
+            expect(desktopMock.closeMessageNotifications).toHaveBeenCalledWith("abcd");
         });
 
-        it("showIncomingCallNotification delegates to electron", () => {
+        it("showIncomingCallNotification delegates to desktop", () => {
             NotificationUtils.showIncomingCallNotification("Bob");
-            expect(electronMock.showNotification).toHaveBeenCalledWith("Incoming Call", "Bob is calling you.");
+            expect(desktopMock.showNotification).toHaveBeenCalledWith("Incoming Call", "Bob is calling you.");
         });
 
-        it("showMissedCallNotification delegates to electron", () => {
+        it("showMissedCallNotification delegates to desktop", () => {
             NotificationUtils.showMissedCallNotification("Charlie");
-            expect(electronMock.showNotification).toHaveBeenCalledWith(
-                "Missed Call",
-                "You missed a call from Charlie."
-            );
+            expect(desktopMock.showNotification).toHaveBeenCalledWith("Missed Call", "You missed a call from Charlie.");
         });
 
-        it("showNewVoicemailNotification delegates to electron", () => {
+        it("showNewVoicemailNotification delegates to desktop", () => {
             NotificationUtils.showNewVoicemailNotification("Dave");
-            expect(electronMock.showNotification).toHaveBeenCalledWith(
+            expect(desktopMock.showNotification).toHaveBeenCalledWith(
                 "New Voicemail",
                 "You have a new voicemail from Dave."
             );

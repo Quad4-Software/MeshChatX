@@ -29,7 +29,7 @@ warn_or_fail() {
 }
 
 # Default ephemeral prefixes created by CI / local builds
-ALLOW="node_modules/ .pnpm-store/ .venv/ .venv-x64/ dist/ build/ electron/build/ meshchatx/public/ python-dist/ playwright-report/ mutants/ coverage/ .flatpak-builder/ parts/ prime/ stage/ android/.gradle/ android/app/build/ android/build/ android/vendor/ .cache/ __pycache__/ .pytest_cache/ vendor/offline/"
+ALLOW="node_modules/ .pnpm-store/ .venv/ .venv-x64/ dist/ build/ desktop/bin/ meshchatx/public/ python-dist/ playwright-report/ mutants/ coverage/ .flatpak-builder/ parts/ prime/ stage/ android/.gradle/ android/app/build/ android/build/ android/vendor/ .cache/ __pycache__/ .pytest_cache/ vendor/offline/"
 ALLOW="$ALLOW ${RNS_CLEAN_ALLOW:-}"
 
 is_allowed() {

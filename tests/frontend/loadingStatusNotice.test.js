@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const { classifyConnectionIssue, classifyFetchError } = require("../../electron/loadingStatusNotice.js");
+const { classifyConnectionIssue, classifyFetchError } = require("../../desktop/shell/loadingStatusNotice.js");
 
 describe("loadingStatusNotice", () => {
     it("classifies backend exits before connection succeeds", () => {

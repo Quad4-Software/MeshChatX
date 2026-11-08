@@ -2,6 +2,7 @@
 
 ### Changed
 
+- Desktop shell: the desktop app is now a Go/Wails v3 shell instead of Electron. IPC channel names are unchanged, the Python backend is untouched, and the shell cross-compiles to Windows and macOS from Linux. The app now serves the UI through a loopback app server so the loading and app pages share one web process, which reduces memory use on software-rendered systems.
 - Dependencies: Electron 45, RNS 1.6.0, LXMF 1.3.0, and a refresh of frontend and backend packages. RNS now keeps known destinations and announces in SQLite storage, and MeshChatX writes ratchets through that store instead of a thread per write. The local propagation node address resolves lazily, and path expiry follows RNS's PATH_TIMEOUT.
 - Reticulum 1.6: the Settings transport section gains a "Reticulum 1.6 tuning" group exposing the new `[filter]` options (required announces only, hop limiter) and `[stamps]` options (destination/path/link-request stamping, cost/value, timeouts, enforcement), all optional and off by default. The RNStatus page now shows path-table pool counts and which storage backend is active, and the RNPath table surfaces per-path stamp value, usage and link-request cost.
 - CI: workflows migrated to Blacksmith runners.

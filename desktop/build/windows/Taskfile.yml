@@ -1,0 +1,86 @@
+version: '3'
+
+includes:
+  common: ../Taskfile.yml
+
+tasks:
+  build:
+    summary: Builds the application for Windows
+    deps:
+      - task: common:go:mod:tidy
+      - task: common:generate:icons
+    cmds:
+      - task: generate:syso
+      - go build {{.BUILD_FLAGS}} -o {{.BIN_DIR}}/{{.APP_NAME}}.exe
+      - cmd: powershell Remove-item *.syso
+        platforms: [windows]
+      - cmd: rm -f *.syso
+        platforms: [linux, darwin]
+      - task: common:bundle:backend
+        vars:
+          OS: windows
+          ARCH: '{{.ARCH | default ARCH}}'
+    vars:
+      BUILD_FLAGS: '{{if eq .PRODUCTION "true"}}-tags production -trimpath -buildvcs=false -ldflags="-w -s -H windowsgui"{{else}}-buildvcs=false -gcflags=all="-l"{{end}}'
+    env:
+      GOOS: windows
+      CGO_ENABLED: 0
+      GOARCH: '{{.ARCH | default ARCH}}'
+      PRODUCTION: '{{.PRODUCTION | default "false"}}'
+
+  package:
+    summary: Packages a production build of the application for Windows
+    cmds:
+      - task: create:nsis:installer
+      - task: create:zip
+
+  generate:syso:
+    summary: Generates Windows `.syso` file
+    dir: build
+    cmds:
+      - wails3 generate syso -arch {{.ARCH}} -icon windows/icon.ico -manifest windows/wails.exe.manifest -info windows/info.json -out ../wails_windows_{{.ARCH}}.syso
+    vars:
+      ARCH: '{{.ARCH | default ARCH}}'
+
+  create:nsis:installer:
+    summary: Creates an NSIS installer (registers lxmf/rns protocol handlers)
+    dir: build/windows/nsis
+    deps:
+      - task: build
+        vars:
+          PRODUCTION: "true"
+    cmds:
+      - wails3 generate webview2bootstrapper -dir "{{.ROOT_DIR}}/build/windows/nsis"
+      - makensis -DARG_WAILS_{{.ARG_FLAG}}_BINARY="{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe" project.nsi
+    vars:
+      ARCH: '{{.ARCH | default ARCH}}'
+      ARG_FLAG: '{{if eq .ARCH "amd64"}}AMD64{{else}}ARM64{{end}}'
+      ROOT_DIR: '{{.ROOT_DIR}}'
+      BIN_DIR: '{{.BIN_DIR}}'
+      APP_NAME: '{{.APP_NAME}}'
+
+  create:zip:
+    summary: Creates a portable zip (shell + backend/, PORTABLE_EXECUTABLE_DIR aware)
+    deps:
+      - task: build
+        vars:
+          PRODUCTION: "true"
+    cmds:
+      - |
+        set -e
+        STAGE=/tmp/{{.APP_NAME}}-portable
+        rm -rf "$STAGE" && mkdir -p "$STAGE/backend"
+        cp {{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe "$STAGE/"
+        if [ -d "{{.ROOT_DIR}}/bin/backend" ]; then
+          cp -r {{.ROOT_DIR}}/bin/backend/. "$STAGE/backend/"
+        fi
+        cd /tmp && zip -qr "{{.ROOT_DIR}}/{{.BIN_DIR}}/ReticulumMeshChat-v{{.VERSION}}-win32-{{.ARCH}}.zip" {{.APP_NAME}}-portable
+        rm -rf "$STAGE"
+    vars:
+      VERSION:
+        sh: grep -o '"version"[^,}]*' {{.ROOT_DIR}}/app-version.json | grep -o '[0-9][0-9.]*' | head -1
+      ARCH: '{{.ARCH | default ARCH}}'
+
+  run:
+    cmds:
+      - '{{.BIN_DIR}}/{{.APP_NAME}}.exe'

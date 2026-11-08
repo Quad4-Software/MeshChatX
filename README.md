@@ -10,7 +10,7 @@ After the v5.0 release, MeshChatX will be in maintenance only mode for the next 
 
 Initially MeshChatX was a fork of Reticulum MeshChat by Liam Cottle. It has evolved to be very much different and focused on modern software development principles. It may be buggy due to many changes and adapted to make it more maintainable and end goal of improving stability.
 
-There are many changes from MeshChat: LXST, [RRC](https://rrc.kc1awv.net/0) relay chat, a dedicated Map that is offline ready, raw SQL instead of an ORM, native fetch instead of Axios, latest stable Electron, wheels with bundled frontend, i18n, pnpm 12+ with supply chain security.
+There are many changes from MeshChat: LXST, [RRC](https://rrc.kc1awv.net/0) relay chat, a dedicated Map that is offline ready, raw SQL instead of an ORM, native fetch instead of Axios, Wails v3 desktop shell, wheels with bundled frontend, i18n, pnpm 12+ with supply chain security.
 
 MeshChatX is also focused on security and privacy, including usage of native OS sandboxing like AppContainer for windows and Landlock for linux.
 
@@ -94,7 +94,7 @@ pnpm run build-frontend
 uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
-AppImage, deb, rpm, Flatpak, Electron, and Android: [Installation](docs/en/installation.md) and [Building](docs/en/building.md).
+AppImage, deb, rpm, Flatpak, desktop (Wails), and Android: [Installation](docs/en/installation.md) and [Building](docs/en/building.md).
 
 ## Docs
 

@@ -65,7 +65,7 @@ Frontend plugins push a JSON tree through api.setUi(descriptor). The host render
 
 Styling uses host semantic theme tokens. Plugins choose variants such as primary, secondary, danger, or text variants. They cannot pass arbitrary CSS classes.
 
-Worker helpers: api.callManager(capability, args), api.clipboardWrite(text), api.getTheme(), api.hasPermission(permissionId), api.onThemeChange(handler). `api.hasPermission` is true only for a permission declared by the manifest and granted at install time. Direct network connections from frontend workers are blocked; use a Python backend for approved network access.
+Worker helpers: api.callManager(capability, args), api.clipboardWrite(text), api.getTheme(), api.hasPermission(permissionId), api.onThemeChange(handler). `api.hasPermission` is true only for a permission declared by the manifest and granted at install time. `api.clipboardWrite` requires the `clipboard: write` permission. Direct network connections from frontend workers are blocked; use a Python backend for approved network access.
 
 Layout:
 
@@ -172,6 +172,7 @@ Call managers from a plugin with POST /api/v1/plugins/{id}/invoke and method: "c
 | storage: none     | No plugin storage                                                     |
 | network: fetch    | Enables the Python host's outbound HTTP permission check |
 | network: none     | No clearnet fetch                                                     |
+| clipboard: write  | Lets the plugin write text to the system clipboard                    |
 | backend: python   | Runs Python code in-process with the app user's full local privileges |
 
 Install preview also scans plugin files for external http:// / https:// URLs and shows them before you grant network access.

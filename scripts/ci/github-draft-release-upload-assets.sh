@@ -2,7 +2,7 @@
 # Create the GitHub release as a draft if missing, upload every file in DIR, then
 # publish nightly/preview tags as prereleases. Draft-first is required when the
 # repository has immutable releases enabled (assets cannot be added after publish).
-# Skips electron-builder builder-debug.yml (and cosign bundles), including collision-renamed
+# Skips packaging builder-debug.yml (and cosign bundles), including collision-renamed
 # copies (e.g. win__builder-debug.yml). Requires: gh, GH_TOKEN. TAG from TAG or GITHUB_REF_NAME.
 #
 # Notes-only dry run (no gh upload):
@@ -91,7 +91,7 @@ done
 all=("${filtered[@]}")
 
 if [ "${#all[@]}" -eq 0 ]; then
-    echo "No files under ${DIR} (after excluding electron-builder debug YAML)" >&2
+    echo "No files under ${DIR} (after excluding packaging debug YAML)" >&2
     exit 1
 fi
 

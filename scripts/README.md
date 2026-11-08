@@ -28,7 +28,7 @@ Build, CI, packaging, and development tooling for MeshChatX.
 | `build-lxst-filterlib.py` | Cross-compile LXST filterlib for Linux/macOS |
 | `build-pyz.sh` | Package the app as a Python .pyz |
 | `build_community_interfaces_json.py` | Generate community interfaces index JSON |
-| `build-electron-shell-css.mjs` | Compile Electron shell CSS |
+| `build-desktop-shell-css.mjs` | Compile desktop shell CSS |
 | `build-macos-universal.sh` | macOS universal binary packaging |
 | `check-format-tokens.mjs` | Validate locale format tokens |
 | `check-git-deps.mjs` | Check for git-sourced deps in lockfiles |
@@ -50,10 +50,8 @@ Build, CI, packaging, and development tooling for MeshChatX.
 | `move_wheels.py` | Stage wheels into vendor/ for packaging |
 | `patch_lxst_codec2_optional.py` | Make codec2 optional in vendored LXST |
 | `patch_lxst_pyogg_ogg_ctypes.py` | Patch pyogg ctypes loading for PyInstaller |
-| `patch-electron-builder-fs.cjs` | Patch electron-builder fs behavior |
-| `patch-electron-installer-common.cjs` | Patch electron installer common module |
 | `pip_rns_remotes.py` | Manage pip remotes for RNS deps |
-| `setup_wine_env.sh` | Wine env for Windows Electron builds |
+| `setup_wine_env.sh` | Wine env for Windows backend cross-builds |
 | `sign-android-apks.sh` | Sign Android APKs with release keystore |
 | `sign-plugin.py` | Sign a MeshChatX plugin bundle |
 | `sync-meshchatx-docs.js` | Sync docs into the frontend bundle |

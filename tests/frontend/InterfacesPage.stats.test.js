@@ -18,11 +18,11 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     },
 }));
 
-vi.mock("../../meshchatx/src/frontend/js/ElectronUtils", () => ({
+vi.mock("../../meshchatx/src/frontend/js/DesktopUtils", () => ({
     default: {
         relaunch: vi.fn(),
-        isElectron: () => false,
-        isWindowsElectron: () => false,
+        isDesktop: () => false,
+        isWindowsDesktop: () => false,
     },
 }));
 

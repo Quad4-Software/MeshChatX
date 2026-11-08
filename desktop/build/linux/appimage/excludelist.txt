@@ -1,0 +1,87 @@
+# AppImage excludelist for MeshChatX.
+# Libraries matching these patterns are NOT copied into the bundle: they are
+# assumed present on the host. Based on the AppImage/pkg2appimage reference
+# excludelist (https://github.com/AppImage/pkg2appimage/blob/master/excludelist)
+# plus WebKitGTK-specific entries. One pattern per line; '#' starts a comment.
+
+# --- C runtime / loader: never bundle (AppImage runs on the host glibc) ---
+ld-linux*.so*
+ld64*.so*
+libanl.so*
+libBrokenLocale.so*
+libc.so*
+libcidn.so*
+libdl.so*
+libm.so*
+libmvec.so*
+libnsl.so*
+libnss_*.so*
+libpthread.so*
+libresolv.so*
+librt.so*
+libthread_db.so*
+libutil.so*
+
+# --- GPU/GL driver stack: must come from the host driver (DRI/NVIDIA/Mesa) ---
+libEGL.so*
+libEGL_*.so*
+libGL.so*
+libGLX.so*
+libGLX_*.so*
+libGLdispatch.so*
+libGLESv1_CM.so*
+libGLESv2.so*
+libOpenGL.so*
+libdrm.so*
+libdrm_*.so*
+libgbm.so*
+libglapi.so*
+libvulkan*.so*
+libVkLayer*.so*
+libwayland-egl.so*
+libnvidia-*.so*
+libcuda.so*
+libnvidia-ml.so*
+
+# --- X11/Wayland client libs: excluded per pkg2appimage reference (historical
+# symbol-versioning hazards when bundled); the shell forces GDK_BACKEND=x11
+# via the GTK plugin hook, so an X11 stack is required anyway ---
+libX11.so*
+libX11-xcb.so*
+libxcb*.so*
+libXext.so*
+libXrender.so*
+libXrandr.so*
+libXi.so*
+libXcursor.so*
+libXinerama.so*
+libXcomposite.so*
+libXdamage.so*
+libXfixes.so*
+libXft.so*
+libXau.so*
+libXdmcp.so*
+libXss.so*
+libXxf86vm.so*
+libwayland-client.so*
+
+# --- Font stack: excluded per reference + task policy; host fontconfig is used ---
+libfontconfig.so*
+libfreetype.so*
+libharfbuzz.so*
+
+# --- Audio server client libs: must match the host audio server ABI ---
+libasound.so*
+libjack.so*
+libpipewire-*.so*
+
+# --- Assumed-present base-system libraries (pkg2appimage reference) ---
+libcom_err.so*
+libexpat.so*
+libgpg-error.so*
+libgmp.so*
+libICE.so*
+libSM.so*
+libusb-*.so*
+libuuid.so*
+libz.so*

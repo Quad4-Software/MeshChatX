@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Build wheel, Python PYZ, Linux AppImage/deb (x64 + arm64), optional RPM/APK, frontend zip, and SBOM under ./release-assets/.
-# Expects repo root as cwd, dependencies installed (task install / pnpm), and meshchatx/public populated when building Electron.
-# Optional: SKIP_WHEEL=1, SKIP_PYZ=1, SKIP_ELECTRON=1, TRIVY_SBOM=0
-# Optional: MESHCHATX_LINUX_FORMATS = comma list of appimage,deb,rpm,apk (default: all four)
+# Expects repo root as cwd, dependencies installed (task install / pnpm), and meshchatx/public populated when building the desktop shell.
+# Optional: SKIP_WHEEL=1, SKIP_PYZ=1, SKIP_DESKTOP=1, TRIVY_SBOM=0
+# Optional: MESHCHATX_LINUX_FORMATS = comma list of appimage,deb,rpm (default: all four)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -36,7 +36,7 @@ esac
 
 LINUX_FORMATS="${MESHCHATX_LINUX_FORMATS:-all}"
 if [ "$LINUX_FORMATS" = "all" ]; then
-    LINUX_FORMATS="appimage,deb,rpm,apk"
+    LINUX_FORMATS="appimage,deb,rpm"
 fi
 
 has_format() {
@@ -48,9 +48,9 @@ has_format() {
 
 for _fmt in ${LINUX_FORMATS//,/ }; do
     case "$_fmt" in
-        appimage|deb|rpm|apk) ;;
+        appimage|deb|rpm) ;;
         *)
-            echo "Unknown Linux package format '$_fmt' in MESHCHATX_LINUX_FORMATS (expected appimage, deb, rpm, apk, or all)" >&2
+            echo "Unknown Linux package format '$_fmt' in MESHCHATX_LINUX_FORMATS (expected appimage, deb, rpm, or all)" >&2
             exit 1
             ;;
     esac
@@ -65,16 +65,15 @@ if [ -n "${GITHUB_TOKEN:-}" ] && [ -z "${GH_TOKEN:-}" ]; then
     export GH_TOKEN="$GITHUB_TOKEN"
 fi
 
-# Retry electron-builder when GitHub CDN drops the TLS stream (ECONNRESET).
-# Freeze already finished. This only re-runs packaging.
-run_electron_builder() {
-    _max="${ELECTRON_BUILDER_RETRIES:-5}"
+# Retry desktop packaging when the network drops (Go module/tool downloads).
+run_desktop_package() {
+    _max="${DESKTOP_PACKAGE_RETRIES:-5}"
     _n=1
     _delay=8
     while true; do
         _log="$(mktemp)"
         set +e
-        pnpm exec electron-builder "$@" 2>&1 | tee "$_log"
+        ( cd desktop && task "$@" ) 2>&1 | tee "$_log"
         _status="${PIPESTATUS[0]}"
         set -e
         if [ "$_status" -eq 0 ]; then
@@ -82,15 +81,15 @@ run_electron_builder() {
             return 0
         fi
         if [ "$_n" -ge "$_max" ]; then
-            echo "electron-builder failed after ${_n} attempt(s)" >&2
+            echo "desktop packaging failed after ${_n} attempt(s)" >&2
             rm -f "$_log"
             return "$_status"
         fi
-        if ! grep -Eqi 'ECONNRESET|ETIMEDOUT|ECONNREFUSED|ENOTFOUND|EPIPE|socket hang up|RequestError' "$_log"; then
+        if ! grep -Eqi 'ECONNRESET|ETIMEDOUT|ECONNREFUSED|ENOTFOUND|EPIPE|socket hang up|RequestError|i/o timeout' "$_log"; then
             rm -f "$_log"
             return "$_status"
         fi
-        echo "electron-builder hit a transient network error (attempt ${_n}/${_max}). Retrying in ${_delay}s." >&2
+        echo "desktop packaging hit a transient network error (attempt ${_n}/${_max}). Retrying in ${_delay}s." >&2
         rm -f "$_log"
         sleep "$_delay"
         _n=$((_n + 1))
@@ -137,92 +136,53 @@ else
     echo "Skipping Python PYZ (SKIP_PYZ=1)."
 fi
 
-if [ "${SKIP_ELECTRON:-0}" != 1 ]; then
+if [ "${SKIP_DESKTOP:-0}" != 1 ]; then
     if [ -n "$appimage_deb_targets" ]; then
-        if has_format appimage; then
-            bash scripts/ci/github-warm-appimage-tools.sh
-        fi
-        pnpm run electron-postinstall
         if [ "${MESHCHATX_FRONTEND_PREBUILT:-0}" = "1" ]; then
             if [[ ! -f "meshchatx/public/index.html" ]]; then
                 echo "MESHCHATX_FRONTEND_PREBUILT=1 but meshchatx/public/index.html is missing." >&2
                 exit 1
             fi
             echo "Reusing prebuilt frontend assets in meshchatx/public/."
-            _electron_backend() {
+            _desktop_backend() {
                 PLATFORM=linux ARCH="$1" pnpm run build-backend
             }
         else
-            _electron_backend() {
+            _desktop_backend() {
                 PLATFORM=linux ARCH="$1" pnpm run build
             }
         fi
-        if [ "$NATIVE_ARCH" = "x64" ]; then
-            echo "Electron linux x64 ($appimage_deb_targets)..."
-            _electron_backend x64
+        _goarch="${NATIVE_ARCH/x64/amd64}"
+        _tasks=""
+        has_format appimage && _tasks="$_tasks linux:create:appimage"
+        has_format deb && _tasks="$_tasks linux:create:deb linux:create:rpm"
+        if [ -n "$_tasks" ]; then
+            echo "Desktop linux ${NATIVE_ARCH} (${_tasks})..."
+            _desktop_backend "${NATIVE_ARCH/x64/amd64}"
             # shellcheck disable=SC2086
-            run_electron_builder --linux $appimage_deb_targets --x64 --publish=never
-        elif [ "$NATIVE_ARCH" = "arm64" ]; then
-            echo "Electron linux arm64 ($appimage_deb_targets)..."
-            _electron_backend arm64
-            # shellcheck disable=SC2086
-            run_electron_builder --linux $appimage_deb_targets --arm64 --publish=never
+            run_desktop_package $_tasks ARCH="$_goarch"
         fi
-        # Catch extraResources dropping manifest-hashed files before the
-        # unpacked staging tree is cleaned up by the caller or a later step.
-        for _unpacked in dist/linux-unpacked dist/linux-*-unpacked; do
-            if [[ -d "$_unpacked" ]]; then
-                node scripts/ci/github-verify-backend-manifest.mjs "$_unpacked"
-            fi
-        done
+        if [[ -d "desktop/bin/backend" ]]; then
+            node scripts/ci/github-verify-backend-manifest.mjs desktop/bin/backend
+        fi
     else
         echo "Skipping AppImage/deb (not selected in MESHCHATX_LINUX_FORMATS)."
     fi
 
     if [ "$NATIVE_ARCH" = "x64" ]; then
-        if has_format rpm; then
-            echo "RPM (best-effort)..."
-            if ! task dist:fe:rpm; then
-                echo "::warning::RPM build failed or skipped; continuing without it." >&2
-            fi
-        fi
-        if has_format apk; then
-            echo "APK (best-effort)..."
-            if ! task dist:fe:apk; then
-                echo "::warning::APK build failed or skipped; continuing without it." >&2
-            fi
-        fi
-        _apk_file="$(find dist -maxdepth 1 -type f -name '*-alpine-*.apk' -print -quit 2>/dev/null || true)"
-        if [ -n "$_apk_file" ]; then
-            _ctr=""
-            if command -v docker >/dev/null 2>&1; then
-                _ctr="docker"
-            elif command -v podman >/dev/null 2>&1; then
-                _ctr="podman"
-            fi
-            if [ -n "$_ctr" ]; then
-                # Release gate: apk-tools must accept the package. fpm-built
-                # apks were rejected by apk 2.x and 3.x alike. This catches
-                # format regressions before publish.
-                echo "Verifying apk installs under apk-tools..."
-                "$_ctr" run --rm -v "$PWD/dist:/p:ro" alpine:3.20 \
-                    apk add --allow-untrusted --no-cache "/p/$(basename "$_apk_file")"
-            else
-                echo "docker/podman unavailable; skipping apk install gate." >&2
-            fi
-        fi
-    elif has_format rpm || has_format apk; then
-        echo "Skipping RPM/APK on $NATIVE_ARCH runner (built on x64 only)." >&2
+        : # deb+rpm produced by linux:package above
+    elif has_format rpm; then
+        echo "Skipping RPM on $NATIVE_ARCH runner (built on x64 only)." >&2
     fi
 else
-    echo "Skipping Electron packages (SKIP_ELECTRON=1)."
+    echo "Skipping desktop packages (SKIP_DESKTOP=1)."
 fi
 
 echo "Collecting release files..."
-find dist -maxdepth 1 -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" -o -name "*-linux*.rpm" -o -name "*-linux*.apk" \) -exec cp -f {} release-assets/ \; 2>/dev/null || true
+find desktop/bin -maxdepth 1 -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" -o -name "*.zip" \) -exec cp -f {} release-assets/ \; 2>/dev/null || true
 find python-dist -maxdepth 1 -type f -name "*.whl" -exec cp -f {} release-assets/ \; 2>/dev/null || true
 
-if [ -d meshchatx/public ] && [ "${SKIP_ELECTRON:-0}" != 1 ]; then
+if [ -d meshchatx/public ] && [ "${SKIP_DESKTOP:-0}" != 1 ]; then
     ( cd meshchatx/public && zip -qr "${ROOT}/release-assets/meshchatx-frontend.zip" . )
 fi
 

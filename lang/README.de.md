@@ -2,7 +2,7 @@
 
 [English](../README.md) | [Русский](README.ru.md) | [Italiano](README.it.md) | [中文](README.zh.md) | [日本語](README.ja.md)
 
-Umfassend modifizierter Fork von [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) von Liam Cottle. MeshChatX ergaenzt LXST-Anrufe, RRC Relay Chat, Nomad-Kartenoverlay, Plugins, rohes SQLite (ohne Peewee) und Electron-41-Desktopbuilds. Unabhaengig vom Upstream. Keine Zugehörigkeit.
+Umfassend modifizierter Fork von [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) von Liam Cottle. MeshChatX ergaenzt LXST-Anrufe, RRC Relay Chat, Nomad-Kartenoverlay, Plugins, rohes SQLite (ohne Peewee) und Wails-41-Desktopbuilds. Unabhaengig vom Upstream. Keine Zugehörigkeit.
 
 - Website: [meshchatx.com](https://meshchatx.com)
 - Quellcode: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)

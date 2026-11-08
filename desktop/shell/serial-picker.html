@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Select serial port</title>
+        <script>
+            (function () {
+                try {
+                    var theme = new URLSearchParams(window.location.search).get("theme");
+                    if (theme === "system") {
+                        theme =
+                            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                                ? "dark"
+                                : "light";
+                    }
+                    if (theme !== "light" && theme !== "dark") {
+                        theme =
+                            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                                ? "dark"
+                                : "light";
+                    }
+                    if (theme === "dark") {
+                        document.documentElement.classList.add("dark");
+                    }
+                } catch (e) {}
+            })();
+        </script>
+        <style>
+            html {
+                background-color: #f8fafc;
+                color-scheme: light;
+            }
+            html.dark {
+                background-color: #18181b;
+                color-scheme: dark;
+            }
+            body {
+                margin: 0;
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    "Segoe UI",
+                    sans-serif;
+                background: inherit;
+                color: #1e293b;
+            }
+            html.dark body {
+                color: #e4e4e7;
+            }
+            .wrap {
+                padding: 20px 22px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                height: 100vh;
+                box-sizing: border-box;
+            }
+            h1 {
+                font-size: 16px;
+                font-weight: 600;
+                margin: 0;
+            }
+            p {
+                font-size: 13px;
+                line-height: 1.45;
+                margin: 0;
+                color: #475569;
+            }
+            html.dark p {
+                color: #a1a1aa;
+            }
+            ul {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+            li button {
+                width: 100%;
+                text-align: left;
+                font: inherit;
+                font-size: 13px;
+                padding: 9px 12px;
+                border-radius: 8px;
+                border: 1px solid #cbd5e1;
+                background: #fff;
+                color: inherit;
+                cursor: pointer;
+            }
+            html.dark li button {
+                background: #27272a;
+                border-color: #3f3f46;
+            }
+            li button .sub {
+                display: block;
+                font-size: 11px;
+                color: #64748b;
+                margin-top: 2px;
+            }
+            html.dark li button .sub {
+                color: #71717a;
+            }
+            .empty {
+                font-size: 13px;
+                color: #64748b;
+                padding: 12px 0;
+            }
+            .actions {
+                margin-top: auto;
+                display: flex;
+                justify-content: flex-end;
+                gap: 8px;
+            }
+            button {
+                font: inherit;
+                font-size: 13px;
+                padding: 7px 14px;
+                border-radius: 8px;
+                border: 1px solid #cbd5e1;
+                background: #fff;
+                color: inherit;
+                cursor: pointer;
+            }
+            html.dark button {
+                background: #27272a;
+                border-color: #3f3f46;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap">
+            <h1>Select a serial port</h1>
+            <p>Choose the device to connect to.</p>
+            <ul id="ports"></ul>
+            <p id="empty" class="empty" hidden>No serial ports found.</p>
+            <div class="actions">
+                <button id="btn-cancel" type="button">Cancel</button>
+            </div>
+        </div>
+        <script src="./desktop-bridge.js"></script>
+        <script>
+            (function () {
+                function finish(result) {
+                    if (window.desktop && window.desktop.windowResult) {
+                        window.desktop.windowResult("serial-picker", result);
+                    }
+                }
+                document.getElementById("btn-cancel").addEventListener("click", function () {
+                    finish({ cancelled: true });
+                });
+
+                function matchesFilters(port, filters) {
+                    if (!filters || !filters.length) {
+                        return true;
+                    }
+                    return filters.some(function (f) {
+                        if (f.usbVendorId != null && port.usbVendorId !== f.usbVendorId) {
+                            return false;
+                        }
+                        if (f.usbProductId != null && port.usbProductId !== f.usbProductId) {
+                            return false;
+                        }
+                        return true;
+                    });
+                }
+
+                var filters = [];
+                try {
+                    var raw = new URLSearchParams(window.location.search).get("filters");
+                    if (raw) {
+                        filters = (JSON.parse(decodeURIComponent(raw)) || {}).filters || [];
+                    }
+                } catch (e) {}
+
+                var list = document.getElementById("ports");
+                var empty = document.getElementById("empty");
+                if (!window.desktop || !window.desktop.serialListPorts) {
+                    empty.hidden = false;
+                    empty.textContent = "Serial bridge unavailable.";
+                    return;
+                }
+                window.desktop
+                    .serialListPorts()
+                    .then(function (res) {
+                        var ports = (res && res.ports) || [];
+                        var shown = 0;
+                        ports.forEach(function (p) {
+                            if (!matchesFilters(p, filters)) {
+                                return;
+                            }
+                            shown++;
+                            var li = document.createElement("li");
+                            var btn = document.createElement("button");
+                            btn.type = "button";
+                            var label = document.createElement("span");
+                            label.textContent = p.label || p.path;
+                            btn.appendChild(label);
+                            var sub = document.createElement("span");
+                            sub.className = "sub";
+                            var bits = [p.path];
+                            if (p.usbVendorId != null) {
+                                bits.push("VID " + p.usbVendorId.toString(16).toUpperCase());
+                            }
+                            if (p.usbProductId != null) {
+                                bits.push("PID " + p.usbProductId.toString(16).toUpperCase());
+                            }
+                            if (p.serialNumber) {
+                                bits.push(p.serialNumber);
+                            }
+                            sub.textContent = bits.join(" · ");
+                            btn.appendChild(sub);
+                            btn.addEventListener("click", function () {
+                                finish({ path: p.path });
+                            });
+                            li.appendChild(btn);
+                            list.appendChild(li);
+                        });
+                        if (!shown) {
+                            empty.hidden = false;
+                        }
+                    })
+                    .catch(function () {
+                        empty.hidden = false;
+                        empty.textContent = "Failed to list serial ports.";
+                    });
+            })();
+        </script>
+    </body>
+</html>

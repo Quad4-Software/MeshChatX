@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# Build a Flatpak via electron-builder (same stack as AppImage/deb/macOS/Windows CI).
+# Build a Flatpak of the Wails desktop shell + frozen backend.
 #
 # Expects meshchatx/public/ to already contain a prebuilt frontend bundle
 # (downloaded from the reusable Frontend build workflow), so this script only
-# rebuilds the cx_Freeze backend before running electron-builder.
+# rebuilds the cx_Freeze backend before invoking flatpak-builder.
 #
 # Required system packages (installed by the workflow):
 #   - flatpak, flatpak-builder, elfutils (for eu-strip)
 #   - org.freedesktop.Platform/Sdk//25.08
-#   - org.electronjs.Electron2.BaseApp//25.08
+# A Flatpak manifest covering the Go shell + backend must exist under
+# packaging/flatpak/ (manifest.json); packaging files live there.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -22,9 +23,6 @@ fi
 export PLATFORM=linux
 export MESHCHATX_FRONTEND_PREBUILT=1
 
-# Flatpak commit ref-binding must match the OSTree branch we publish
-# (testing / beta / stable). electron-builder defaults to "master", which
-# makes flatpak install --from …-testing.flatpakref fail on pull.
 if [[ -n "${FLATPAK_BRANCH:-}" ]]; then
     branch="${FLATPAK_BRANCH}"
 elif [[ -n "${GITHUB_REF_NAME:-}" ]]; then
@@ -43,11 +41,14 @@ echo "Building Flatpak with branch=${branch}"
 
 bash scripts/ensure-flatpak-flathub-remote.sh
 
-pnpm run electron-postinstall
 pnpm run version:sync
 pnpm run build-backend
 
-DEBUG="${DEBUG:-@malept/flatpak-bundler*}" \
-    pnpm exec electron-builder --linux flatpak --x64 --publish=never -c.flatpak.branch="${branch}"
+manifest="packaging/flatpak/manifest.json"
+if [[ ! -f "$manifest" ]]; then
+    echo "packaging/flatpak/manifest.json is missing; the Wails flatpak manifest has not been authored yet." >&2
+    exit 1
+fi
 
-bash scripts/ci/github-verify-electron-dist.sh flatpak
+flatpak-builder --repo=repo --force-clean build-dir "$manifest"
+flatpak build-bundle repo "reticulum-meshchatx-${branch}.flatpak" com.meshchatx.app

@@ -1041,9 +1041,9 @@ export function applyAppearanceTheme(config, options = {}) {
     }
 
     try {
-        const electronBridge = windowObj?.electron;
-        if (electronBridge && typeof electronBridge.setUiTheme === "function") {
-            void electronBridge.setUiTheme(persistMode);
+        const desktopBridge = windowObj?.desktop;
+        if (desktopBridge && typeof desktopBridge.setUiTheme === "function") {
+            void desktopBridge.setUiTheme(persistMode);
         }
     } catch {
         // ignore missing bridge

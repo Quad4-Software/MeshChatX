@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=meshchatx-desktop
+Exec=meshchatx-desktop
+Icon=meshchatx
+Categories=Network;
+MimeType=x-scheme-handler/lxmf;x-scheme-handler/rns;
+Terminal=false
+Keywords=wails
+Version=1.0
+StartupNotify=false

@@ -1,0 +1,73 @@
+version: '3'
+
+includes:
+  common: ./build/Taskfile.yml
+  windows: ./build/windows/Taskfile.yml
+  darwin: ./build/darwin/Taskfile.yml
+  linux: ./build/linux/Taskfile.yml
+
+vars:
+  APP_NAME: "meshchatx-desktop"
+  BIN_DIR: "bin"
+  # Backend bundle root produced by `task build-backend` at the repo root
+  # (build/exe/<platform>-<arch>/ReticulumMeshChatX[.exe]).
+  BACKEND_SRC: "../build/exe"
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  build:
+    summary: Builds the desktop shell for the host OS
+    cmds:
+      - task: "{{OS}}:build"
+
+  package:
+    summary: Packages a production build for the host OS
+    cmds:
+      - task: "{{OS}}:package"
+
+  run:
+    summary: Runs the development build
+    cmds:
+      - task: "{{OS}}:run"
+
+  dev:
+    summary: Runs the application in Wails dev mode
+    cmds:
+      - wails3 dev -config ./build/config.yml
+
+  # Copies the frozen Python backend next to a built shell binary so packaged
+  # layouts resolve it via internal/paths.FindBackendExecutable.
+  bundle:backend:
+    summary: Copies the frozen backend into bin/backend (dev/portable layout)
+    vars:
+      PLATFORM_FOLDER:
+        sh: |
+          case "{{OS}}" in
+            windows) echo win32 ;;
+            darwin) echo darwin ;;
+            *) echo linux ;;
+          esac
+      ARCH_SEG:
+        sh: |
+          case "$(go env GOARCH)" in
+            amd64) echo x64 ;;
+            arm64) echo arm64 ;;
+            386) echo ia32 ;;
+            arm) echo armv7l ;;
+            *) echo "$(go env GOARCH)" ;;
+          esac
+    cmds:
+      - |
+        set -e
+        SRC="{{.BACKEND_SRC}}/{{.PLATFORM_FOLDER}}-{{.ARCH_SEG}}/ReticulumMeshChatX"
+        [ "{{OS}}" = "windows" ] && SRC="${SRC}.exe"
+        mkdir -p bin/backend
+        if [ -f "$SRC" ]; then
+          cp "$SRC" bin/backend/
+          echo "bundled backend from $SRC"
+        else
+          echo "warning: backend not found at $SRC (build it with 'task build-backend' at repo root)" >&2
+        fi

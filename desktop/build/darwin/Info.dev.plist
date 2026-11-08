@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>CFBundlePackageType</key>
+        <string>APPL</string>
+        <key>CFBundleName</key>
+        <string>Reticulum MeshChatX</string>
+        <key>CFBundleExecutable</key>
+        <string>meshchatx-desktop</string>
+        <key>CFBundleIdentifier</key>
+        <string>com.meshchatx.app</string>
+        <key>CFBundleVersion</key>
+        <string>4.12.0</string>
+        <key>CFBundleGetInfoString</key>
+        <string>Mesh networking chat client</string>
+        <key>CFBundleShortVersionString</key>
+        <string>4.12.0</string>
+        <key>CFBundleIconFile</key>
+        <string>icons</string>
+        <key>LSMinimumSystemVersion</key>
+        <string>12.0.0</string>
+        <key>NSHighResolutionCapable</key>
+        <string>true</string>
+        <key>NSHumanReadableCopyright</key>
+        <string>(c) 2025, Quad4</string>
+        <key>NSMicrophoneUsageDescription</key>
+        <string>Microphone access is only needed for audio calls and voice messages</string>
+        <key>NSSpeechRecognitionUsageDescription</key>
+        <string>Speech recognition is used for voice message transcription</string>
+        <key>NSBluetoothAlwaysUsageDescription</key>
+        <string>Bluetooth is used to connect to Reticulum MeshChatX nodes</string>
+        <key>CFBundleURLTypes</key>
+        <array>
+            <dict>
+                <key>CFBundleURLName</key>
+                <string>com.meshchatx.app.lxmf</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                    <string>lxmf</string>
+                </array>
+            </dict>
+            <dict>
+                <key>CFBundleURLName</key>
+                <string>com.meshchatx.app.rns</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                    <string>rns</string>
+                </array>
+            </dict>
+        </array>
+    </dict>
+</plist>

@@ -193,7 +193,6 @@ also_copy = [
     "Taskfile.yml",
     ".github/",
     "android/",
-    "electron/",
     "packaging/",
     "scripts/",
     "typings/",

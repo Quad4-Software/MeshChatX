@@ -17,7 +17,7 @@ import {
 describe("deviceBattery", () => {
     beforeEach(() => {
         vi.restoreAllMocks();
-        delete window.electron;
+        delete window.desktop;
         delete window.MeshChatXAndroid;
         if (Object.prototype.hasOwnProperty.call(navigator, "getBattery")) {
             try {
@@ -70,12 +70,12 @@ describe("deviceBattery", () => {
             expect(normalizeBatteryStatus(null)).toBe(null);
         });
 
-        it("accepts charging-only electron payloads without level", () => {
-            expect(normalizeBatteryStatus({ on_battery: true }, "electron")).toEqual({
+        it("accepts charging-only wails payloads without level", () => {
+            expect(normalizeBatteryStatus({ on_battery: true }, "wails")).toEqual({
                 supported: true,
                 level: null,
                 charging: false,
-                source: "electron",
+                source: "wails",
             });
         });
 
@@ -125,11 +125,11 @@ describe("deviceBattery", () => {
         expect(batteryStatusIconName({ supported: true, charging: false, level: 55 })).toBe("battery-medium");
     });
 
-    it("marks only android and electron as native battery sources", () => {
+    it("marks only android and wails as native battery sources", () => {
         expect(isNativeBatteryStatus(null)).toBe(false);
         expect(isNativeBatteryStatus({ supported: true, source: "web", level: 100 })).toBe(false);
         expect(isNativeBatteryStatus({ supported: true, source: "android", level: 50 })).toBe(true);
-        expect(isNativeBatteryStatus({ supported: true, source: "electron", level: 12 })).toBe(true);
+        expect(isNativeBatteryStatus({ supported: true, source: "wails", level: 12 })).toBe(true);
     });
 
     it("formats process uptime from create_time", () => {
@@ -212,8 +212,8 @@ describe("deviceBattery", () => {
             });
         });
 
-        it("uses electron before web and survives electron rejection", async () => {
-            window.electron = {
+        it("uses wails before web and survives wails rejection", async () => {
+            window.desktop = {
                 getBatteryStatus: vi.fn().mockResolvedValue({
                     level: 12,
                     charging: false,
@@ -225,11 +225,11 @@ describe("deviceBattery", () => {
                 supported: true,
                 level: 12,
                 charging: false,
-                source: "electron",
+                source: "wails",
             });
             expect(navigator.getBattery).not.toHaveBeenCalled();
 
-            window.electron.getBatteryStatus = vi.fn().mockRejectedValue(new Error("ipc fail"));
+            window.desktop.getBatteryStatus = vi.fn().mockRejectedValue(new Error("ipc fail"));
             await expect(getDeviceBatteryStatus()).resolves.toBe(null);
             await expect(getDeviceBatteryStatus({ allowWeb: true })).resolves.toEqual({
                 supported: true,

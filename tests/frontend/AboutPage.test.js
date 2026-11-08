@@ -1,7 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import AboutPage from "@/components/about/AboutPage.vue";
-import ElectronUtils from "@/js/ElectronUtils";
+import DesktopUtils from "@/js/DesktopUtils";
 import DialogUtils from "@/js/DialogUtils";
 import ToastUtils from "@/js/ToastUtils";
 import { dispatchWsEvent } from "@/js/registries/wsEventRegistry";
@@ -31,11 +31,15 @@ describe("AboutPage.vue", () => {
         window.URL.revokeObjectURL = vi.fn();
 
         // Default electron mock
-        window.electron = {
+        window.desktop = {
             getMemoryUsage: vi.fn().mockResolvedValue(null),
-            electronVersion: vi.fn().mockReturnValue("1.0.0"),
-            chromeVersion: vi.fn().mockReturnValue("1.0.0"),
-            nodeVersion: vi.fn().mockReturnValue("1.0.0"),
+            runtimeInfo: vi.fn().mockResolvedValue({
+                shell: "wails",
+                wailsVersion: "3.1.0",
+                webview: "webkitgtk-6.0",
+                os: "linux",
+                arch: "amd64",
+            }),
             appVersion: vi.fn().mockResolvedValue("1.0.0"),
         };
     });
@@ -43,7 +47,7 @@ describe("AboutPage.vue", () => {
     afterEach(() => {
         vi.useRealTimers();
         delete window.api;
-        delete window.electron;
+        delete window.desktop;
     });
 
     const mountAboutPage = () => {
@@ -153,8 +157,8 @@ describe("AboutPage.vue", () => {
     });
 
     it("displays Electron memory usage when running in Electron", async () => {
-        vi.spyOn(ElectronUtils, "isElectron").mockReturnValue(true);
-        const getMemoryUsageSpy = vi.spyOn(ElectronUtils, "getMemoryUsage").mockResolvedValue({
+        vi.spyOn(DesktopUtils, "isDesktop").mockReturnValue(true);
+        const getMemoryUsageSpy = vi.spyOn(DesktopUtils, "getMemoryUsage").mockResolvedValue({
             private: 1000,
             residentSet: 2000,
         });
@@ -186,8 +190,8 @@ describe("AboutPage.vue", () => {
     it("handles shutdown action", async () => {
         const confirmSpy = vi.spyOn(DialogUtils, "confirm").mockResolvedValue(true);
         const axiosPostSpy = axiosMock.post.mockResolvedValue({ data: { message: "Shutting down..." } });
-        const shutdownSpy = vi.spyOn(ElectronUtils, "shutdown").mockImplementation(() => {});
-        vi.spyOn(ElectronUtils, "isElectron").mockReturnValue(true);
+        const shutdownSpy = vi.spyOn(DesktopUtils, "shutdown").mockImplementation(() => {});
+        vi.spyOn(DesktopUtils, "isDesktop").mockReturnValue(true);
 
         const wrapper = mountAboutPage();
         wrapper.vm.appInfo = { version: "1.0.0" };

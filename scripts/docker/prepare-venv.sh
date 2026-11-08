@@ -17,6 +17,7 @@ uv pip install --no-cache --upgrade "setuptools" "jaraco.context>=6.1.0"
 
 python scripts/patch_lxst_pyogg_ogg_ctypes.py
 python scripts/patch_lxst_codec2_optional.py
+python scripts/patch_lxst_pulseaudio_hardened.py
 
 if [ "${MESHCHATX_DOCKER_SKIP_MUSL_FILTERLIB:-0}" != "1" ]; then
 	python scripts/docker-bake-lxst-filterlib-musl.py

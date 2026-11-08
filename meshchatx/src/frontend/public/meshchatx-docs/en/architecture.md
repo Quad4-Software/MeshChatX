@@ -31,7 +31,7 @@ ReticulumMeshChat (meshchat.py)
     +-- Shared Reticulum instance (~/.reticulum by default)
 ```
 
-Optional **Electron** wraps the same backend binary and loads the UI from the local HTTPS server.
+Optional **Wails** wraps the same backend binary and loads the UI from the local HTTPS server.
 
 ## Application shell
 
@@ -76,7 +76,7 @@ meshchat.py should stay focused on transport and lifecycle. Business rules belon
 - **Engine:** SQLite with explicit SQL and migrations (no ORM).
 - **Schema:** Versioned migrations run during startup and identity setup.
 - **Backups:** Automatic and manual database backups under database-backups/.
-- **Recovery:** --auto-recover, emergency mode, and Electron crash UI can restore from backups.
+- **Recovery:** --auto-recover, emergency mode, and desktop crash UI can restore from backups.
 
 ## HTTP API
 
@@ -124,14 +124,14 @@ One source tree produces:
 - Development runs via uv run python -m meshchatx.meshchat
 - Python wheels with bundled public/ assets
 - Container images (Alpine Dockerfile with standard/extra VARIANT, plus hardened Chainguard)
-- Electron builds for Windows, macOS, and Linux
+- Desktop builds for Windows, macOS, and Linux
 - Android APK via Chaquopy
 
 Frontend build output always lands in meshchatx/public/ so runtime behaviour matches across targets.
 
 ## Reliability features
 
-- Crash recovery integration in Electron and backend startup checks
+- Crash recovery integration in the desktop shell and backend startup checks
 - Database integrity verification
 - Backup, restore, and snapshot APIs
 - Explicit teardown when switching identities or shutting down forwarding resources

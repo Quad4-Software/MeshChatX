@@ -5,7 +5,7 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { createI18n } from "vue-i18n";
 import TutorialPrivacyStep from "../../meshchatx/src/frontend/components/TutorialPrivacyStep.vue";
 import en from "../../meshchatx/src/frontend/locales/en.json";
-import ElectronUtils from "../../meshchatx/src/frontend/js/ElectronUtils.js";
+import DesktopUtils from "../../meshchatx/src/frontend/js/DesktopUtils.js";
 import { CORE_POST_INSTALL_PROMPT_ENTRIES } from "../../meshchatx/src/frontend/js/registries/corePostInstallPromptEntries.js";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
 
@@ -60,13 +60,13 @@ describe("TutorialPrivacyStep", () => {
             }),
             patch: vi.fn(async () => ({ data: {} })),
         };
-        vi.spyOn(ElectronUtils, "isWindowsElectron").mockReturnValue(false);
+        vi.spyOn(DesktopUtils, "isWindowsDesktop").mockReturnValue(false);
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
         delete window.api;
-        delete window.electron;
+        delete window.desktop;
     });
 
     it("loads privacy toggles and patches obfuscate hops", async () => {
@@ -85,14 +85,14 @@ describe("TutorialPrivacyStep", () => {
     });
 
     it("shows Windows DRM screen security when on Windows Electron", async () => {
-        ElectronUtils.isWindowsElectron.mockReturnValue(true);
-        vi.spyOn(ElectronUtils, "getScreenSecuritySettings").mockResolvedValue({
+        DesktopUtils.isWindowsDesktop.mockReturnValue(true);
+        vi.spyOn(DesktopUtils, "getScreenSecuritySettings").mockResolvedValue({
             platform: "win32",
             available: true,
             windowsDrm: true,
             enabled: false,
         });
-        vi.spyOn(ElectronUtils, "setScreenSecurityEnabled").mockResolvedValue({
+        vi.spyOn(DesktopUtils, "setScreenSecurityEnabled").mockResolvedValue({
             platform: "win32",
             available: true,
             windowsDrm: true,
@@ -105,7 +105,7 @@ describe("TutorialPrivacyStep", () => {
         expect(wrapper.text()).toContain("Windows DRM");
 
         await wrapper.vm.onScreenSecurityChange(true);
-        expect(ElectronUtils.setScreenSecurityEnabled).toHaveBeenCalledWith(true);
+        expect(DesktopUtils.setScreenSecurityEnabled).toHaveBeenCalledWith(true);
         expect(ToastUtils.success).toHaveBeenCalled();
         expect(wrapper.vm.screenSecurityEnabled).toBe(true);
     });
@@ -137,13 +137,13 @@ describe("TutorialPrivacyStep", () => {
     });
 
     it("dedupes concurrent screen-security toggles (race)", async () => {
-        ElectronUtils.isWindowsElectron.mockReturnValue(true);
-        vi.spyOn(ElectronUtils, "getScreenSecuritySettings").mockResolvedValue({
+        DesktopUtils.isWindowsDesktop.mockReturnValue(true);
+        vi.spyOn(DesktopUtils, "getScreenSecuritySettings").mockResolvedValue({
             enabled: false,
             available: true,
         });
         let resolveSet;
-        const setSpy = vi.spyOn(ElectronUtils, "setScreenSecurityEnabled").mockImplementation(
+        const setSpy = vi.spyOn(DesktopUtils, "setScreenSecurityEnabled").mockImplementation(
             () =>
                 new Promise((resolve) => {
                     resolveSet = resolve;
@@ -210,9 +210,9 @@ describe("TutorialPrivacyStep", () => {
     });
 
     it("rolls back screen security when set fails", async () => {
-        ElectronUtils.isWindowsElectron.mockReturnValue(true);
-        vi.spyOn(ElectronUtils, "getScreenSecuritySettings").mockResolvedValue({ enabled: false });
-        vi.spyOn(ElectronUtils, "setScreenSecurityEnabled").mockRejectedValue(new Error("ipc down"));
+        DesktopUtils.isWindowsDesktop.mockReturnValue(true);
+        vi.spyOn(DesktopUtils, "getScreenSecuritySettings").mockResolvedValue({ enabled: false });
+        vi.spyOn(DesktopUtils, "setScreenSecurityEnabled").mockRejectedValue(new Error("ipc down"));
         const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
         const wrapper = mountPrivacyStep();
@@ -240,14 +240,14 @@ describe("windows_screen_security post-install prompt", () => {
 
     it("shouldShow is false off Windows Electron", async () => {
         const entry = CORE_POST_INSTALL_PROMPT_ENTRIES.find((e) => e.id === "windows_screen_security");
-        vi.spyOn(ElectronUtils, "isWindowsElectron").mockReturnValue(false);
+        vi.spyOn(DesktopUtils, "isWindowsDesktop").mockReturnValue(false);
         await expect(entry.shouldShow()).resolves.toBe(false);
     });
 
     it("shouldShow is true when Windows Electron and disabled", async () => {
         const entry = CORE_POST_INSTALL_PROMPT_ENTRIES.find((e) => e.id === "windows_screen_security");
-        vi.spyOn(ElectronUtils, "isWindowsElectron").mockReturnValue(true);
-        vi.spyOn(ElectronUtils, "getScreenSecuritySettings").mockResolvedValue({
+        vi.spyOn(DesktopUtils, "isWindowsDesktop").mockReturnValue(true);
+        vi.spyOn(DesktopUtils, "getScreenSecuritySettings").mockResolvedValue({
             available: true,
             enabled: false,
         });
@@ -256,14 +256,14 @@ describe("windows_screen_security post-install prompt", () => {
 
     it("shouldShow is false when already enabled or unavailable", async () => {
         const entry = CORE_POST_INSTALL_PROMPT_ENTRIES.find((e) => e.id === "windows_screen_security");
-        vi.spyOn(ElectronUtils, "isWindowsElectron").mockReturnValue(true);
-        vi.spyOn(ElectronUtils, "getScreenSecuritySettings").mockResolvedValue({
+        vi.spyOn(DesktopUtils, "isWindowsDesktop").mockReturnValue(true);
+        vi.spyOn(DesktopUtils, "getScreenSecuritySettings").mockResolvedValue({
             available: true,
             enabled: true,
         });
         await expect(entry.shouldShow()).resolves.toBe(false);
 
-        ElectronUtils.getScreenSecuritySettings.mockResolvedValue({
+        DesktopUtils.getScreenSecuritySettings.mockResolvedValue({
             available: false,
             enabled: false,
         });
@@ -272,33 +272,33 @@ describe("windows_screen_security post-install prompt", () => {
 
     it("shouldShow is false when settings lookup throws", async () => {
         const entry = CORE_POST_INSTALL_PROMPT_ENTRIES.find((e) => e.id === "windows_screen_security");
-        vi.spyOn(ElectronUtils, "isWindowsElectron").mockReturnValue(true);
-        vi.spyOn(ElectronUtils, "getScreenSecuritySettings").mockRejectedValue(new Error("boom"));
+        vi.spyOn(DesktopUtils, "isWindowsDesktop").mockReturnValue(true);
+        vi.spyOn(DesktopUtils, "getScreenSecuritySettings").mockRejectedValue(new Error("boom"));
         await expect(entry.shouldShow()).resolves.toBe(false);
     });
 
     it("onPrimary enables screen security", async () => {
         const entry = CORE_POST_INSTALL_PROMPT_ENTRIES.find((e) => e.id === "windows_screen_security");
-        const setSpy = vi.spyOn(ElectronUtils, "setScreenSecurityEnabled").mockResolvedValue({ enabled: true });
+        const setSpy = vi.spyOn(DesktopUtils, "setScreenSecurityEnabled").mockResolvedValue({ enabled: true });
         await expect(entry.onPrimary()).resolves.toBe(true);
         expect(setSpy).toHaveBeenCalledWith(true);
     });
 
     it("onPrimary returns false when enable fails", async () => {
         const entry = CORE_POST_INSTALL_PROMPT_ENTRIES.find((e) => e.id === "windows_screen_security");
-        vi.spyOn(ElectronUtils, "setScreenSecurityEnabled").mockRejectedValue(new Error("fail"));
+        vi.spyOn(DesktopUtils, "setScreenSecurityEnabled").mockRejectedValue(new Error("fail"));
         const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
         await expect(entry.onPrimary()).resolves.toBe(false);
         errSpy.mockRestore();
     });
 
-    it("shouldShow tolerates missing isWindowsElectron helper", async () => {
+    it("shouldShow tolerates missing isWindowsDesktop helper", async () => {
         const entry = CORE_POST_INSTALL_PROMPT_ENTRIES.find((e) => e.id === "windows_screen_security");
-        const original = ElectronUtils.isWindowsElectron;
-        // Simulate partial ElectronUtils mock used in other tests.
+        const original = DesktopUtils.isWindowsDesktop;
+        // Simulate partial DesktopUtils mock used in other tests.
         // @ts-ignore
-        ElectronUtils.isWindowsElectron = undefined;
+        DesktopUtils.isWindowsDesktop = undefined;
         await expect(entry.shouldShow()).resolves.toBe(false);
-        ElectronUtils.isWindowsElectron = original;
+        DesktopUtils.isWindowsDesktop = original;
     });
 });

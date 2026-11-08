@@ -1,0 +1,14 @@
+/*! impeccable-disable gray-on-color: compiled Tailwind utilities; class co-occurrence in the bundle is not applied styling */
+/* SPDX-License-Identifier: 0BSD */
+
+@import "tailwindcss" source(none);
+
+@plugin '@tailwindcss/forms';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@source "../../loading.html";
+@source "../../desktop-bridge.js";
+@source "../../loadingStatusNotice.js";
+@source "../../crash.html";
+@source "../../../../meshchatx/src/frontend/public/rnode-flasher/index.html";

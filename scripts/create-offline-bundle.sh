@@ -13,7 +13,7 @@ Usage:
   bash scripts/create-offline-bundle.sh [options]
 
 Options:
-  --warm-packaging         Pre-download electron-builder packaging tools
+  --warm-packaging         Pre-download Wails/Go packaging tools (wails3, nfpm, linuxdeploy)
                            (appimagetool, app-builder, etc.) by running a
                            dummy Linux build. Increases bundle size.
   --out-dir PATH           Output directory (default: vendor/offline)
@@ -28,7 +28,7 @@ Prerequisites on the online machine:
 The bundle includes:
   - node_modules/ (fully resolved, with all postinstall artifacts)
   - uv cache (all Python wheels)
-  - electron-builder cache (app-builder and related tools)
+  - Go module cache + wails3 CLI + nfpm/linuxdeploy packaging tools
   - Verification that all vendored assets are present
 
 On the air-gapped machine:
@@ -108,8 +108,8 @@ echo "==> [3/7] Installing Node.js dependencies..."
 pnpm install --frozen-lockfile
 
 echo "==> [4/7] Running postinstall hooks..."
-mkdir -p "${BUNDLE_DIR}/electron-builder-cache"
-ELECTRON_BUILDER_CACHE="${BUNDLE_DIR}/electron-builder-cache" pnpm run electron-postinstall
+mkdir -p "${BUNDLE_DIR}/go-mod-cache" "${BUNDLE_DIR}/go-build-cache"
+GOMODCACHE="${BUNDLE_DIR}/go-mod-cache" GOCACHE="${BUNDLE_DIR}/go-build-cache" (cd desktop && go mod download && go install github.com/wailsapp/wails/v3/cmd/wails3@v3.1.0) || true
 
 echo "==> [5/7] Bundling node_modules..."
 if tar --help 2>/dev/null | grep -q -- '--hard-dereference'; then
@@ -127,9 +127,9 @@ UV_CACHE_DIR="${BUNDLE_DIR}/uv-cache" uv sync --group dev
 
 echo "==> [7/7] Finalizing..."
 if [[ "${WARM_PACKAGING}" == "1" ]]; then
-    echo "    Pre-downloading electron-builder packaging tools..."
-    ELECTRON_BUILDER_CACHE="${BUNDLE_DIR}/electron-builder-cache" \
-        npx electron-builder --linux dir --publish=never >/dev/null 2>&1 || true
+    echo "    Pre-downloading Wails packaging tools (nfpm/linuxdeploy via go install)..."
+    GOMODCACHE="${BUNDLE_DIR}/go-mod-cache" GOCACHE="${BUNDLE_DIR}/go-build-cache" \
+        bash -c 'go install github.com/wailsapp/wails/v3/cmd/wails3@v3.1.0 || true' >/dev/null 2>&1 || true
 fi
 
 cat > "${BUNDLE_DIR}/.bundle-manifest.json" <<EOF

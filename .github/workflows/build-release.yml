@@ -183,13 +183,13 @@ jobs:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
-            - name: Cache electron-builder toolsets
+            - name: Cache Wails/Go packaging toolsets
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
-                  path: ~/.cache/electron-builder
-                  key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+                  path: ~/.cache/wails
+                  key: wails-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
                   restore-keys: |
-                      electron-builder-${{ runner.os }}-${{ runner.arch }}-
+                      wails-${{ runner.os }}-${{ runner.arch }}-
                   lookup-only: true
 
             - name: Linux packaging APT dependencies
@@ -311,7 +311,7 @@ jobs:
                   rm -f /tmp/cosign.key
 
     flatpak:
-        name: Flatpak (electron-builder)
+        name: Flatpak (Wails shell)
         needs: frontend
         runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 90
@@ -359,7 +359,6 @@ jobs:
                   flatpak --user install -y --noninteractive flathub \
                       org.freedesktop.Platform//25.08 \
                       org.freedesktop.Sdk//25.08 \
-                      org.electronjs.Electron2.BaseApp//25.08
 
             - name: Set up Python and UV
               uses: $/.github/actions/setup-python-uv
@@ -373,13 +372,13 @@ jobs:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
-            - name: Cache electron-builder toolsets
+            - name: Cache Wails/Go packaging toolsets
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
-                  path: ~/.cache/electron-builder
-                  key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+                  path: ~/.cache/wails
+                  key: wails-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
                   restore-keys: |
-                      electron-builder-${{ runner.os }}-${{ runner.arch }}-
+                      wails-${{ runner.os }}-${{ runner.arch }}-
                   lookup-only: true
 
             - name: Install dependencies
@@ -559,15 +558,13 @@ jobs:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
-            - name: Cache electron downloads and builder toolsets
+            - name: Cache Wails CLI and Go module downloads
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: |
-                      ~/.cache/electron
-                      ~/.cache/electron-builder
-                      ~/Library/Caches/electron
-                      ~/Library/Caches/electron-builder
-                  key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+                                            ~/.cache/wails
+                                            ~/Library/Caches/wails
+                  key: wails-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
                   lookup-only: true
 
             - name: Cache Cargo registry (macOS x64 rustc slices)

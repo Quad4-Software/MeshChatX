@@ -27,7 +27,7 @@ Typical first-day workflow:
 MeshChatX ships as one Python service that serves both the API and the built frontend assets.
 
 ```
-Browser or Electron window
+Browser or desktop window
     |
     v
 Vue 3 frontend (hash routes such as #/messages)
@@ -42,9 +42,9 @@ meshchatx/meshchat.py (aiohttp server)
     +--> Reticulum stack (interfaces, paths, announces)
 ```
 
-The same backend code powers Docker images, Python wheels, Linux packages, Electron desktop builds, and the Android APK. Packaging differs. Behaviour is intended to stay consistent.
+The same backend code powers Docker images, Python wheels, Linux packages, desktop (Wails) builds, and the Android APK. Packaging differs. Behaviour is intended to stay consistent.
 
-In a regular browser (including headless or LAN installs), MeshChatX may register a service worker that caches hashed UI assets and the app shell so repeat loads are faster and a hard refresh can still show the boot splash while the local backend restarts. Mesh messaging, identity, and API data still require the Python backend. Electron does not use this service worker path.
+In a regular browser (including headless or LAN installs), MeshChatX may register a service worker that caches hashed UI assets and the app shell so repeat loads are faster and a hard refresh can still show the boot splash while the local backend restarts. Mesh messaging, identity, and API data still require the Python backend. The Wails desktop shell does not use this service worker path.
 
 ## Main areas of the UI
 
@@ -85,7 +85,7 @@ Use the search bar to query both sets at once. MeshChatX guide text is currently
 | MeshChatX app data    | ./storage (or --storage-dir / MESHCHAT_STORAGE_DIR)                                        |
 | Reticulum config      | ~/.reticulum (or --reticulum-config-dir / MESHCHAT_RETICULUM_CONFIG_DIR)                   |
 | Portable bundle       | `<data-dir>/storage` and `<data-dir>/.reticulum` when using --data-dir / MESHCHAT_DATA_DIR |
-| Desktop Electron data | ~/.reticulum-meshchatx and ~/.reticulum unless overridden at launch                        |
+| Desktop data | ~/.reticulum-meshchatx and ~/.reticulum unless overridden at launch                        |
 | Per-identity database | `<storage>/identities/<identity_hash>/database.db`                                         |
 | Docker volume         | meshchatx-config mounted at /config                                                        |
 

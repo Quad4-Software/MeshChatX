@@ -32,7 +32,7 @@ const DEFAULT_PROMPT = {
         "Include version, channel, and git commit from About",
         "Describe steps to reproduce and expected vs actual",
         "Attach logs and screenshots if needed",
-        "Note platform: Electron, Android, or self-host",
+        "Note platform: Desktop (Wails), Android, or self-host",
     ],
     focus_areas: [],
     notes: "",

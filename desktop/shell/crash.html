@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <!-- impeccable-disable nested-cards: diagnostic sections grouped inside one dialog card; padding already applied -->
+        <!-- impeccable-disable cramped-padding: diagnostic sections grouped inside one dialog card; padding already applied -->
+        <meta charset="UTF-8" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+        />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <meta name="color-scheme" content="light dark" />
+        <title>MeshChatX - Crash Report</title>
+        <style>
+            html {
+                background-color: #f8fafc;
+                color-scheme: light;
+            }
+            html.dark {
+                background-color: #09090b;
+                color-scheme: dark;
+            }
+            body {
+                background-color: inherit;
+            }
+        </style>
+        <script>
+            (function () {
+                try {
+                    var theme = null;
+                    try {
+                        theme = new URLSearchParams(window.location.search).get("theme");
+                    } catch (e) {}
+                    if (!theme) {
+                        theme =
+                            localStorage.getItem("meshchatx_ui_theme") ||
+                            localStorage.getItem("meshchat.theme") ||
+                            localStorage.getItem("meshchatx.theme");
+                    }
+                    if (theme === "system") {
+                        theme =
+                            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                                ? "dark"
+                                : "light";
+                    }
+                    if (theme !== "light" && theme !== "dark") {
+                        theme =
+                            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                                ? "dark"
+                                : "light";
+                    }
+                    if (theme === "dark") {
+                        document.documentElement.classList.add("dark");
+                        document.documentElement.style.colorScheme = "dark";
+                    } else {
+                        document.documentElement.classList.remove("dark");
+                        document.documentElement.style.colorScheme = "light";
+                    }
+                } catch (e) {}
+            })();
+        </script>
+        <link rel="stylesheet" href="./assets/css/desktop-shell.css" />
+    </head>
+    <body
+        class="min-h-screen antialiased bg-gradient-to-b from-slate-100 to-slate-200 text-slate-800 dark:from-zinc-950 dark:to-zinc-900 dark:text-zinc-100 transition-colors"
+    >
+        <main class="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
+            <div class="w-full max-w-4xl">
+                <div
+                    class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 p-4 sm:p-6 shadow-lg shadow-slate-200/50 backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-black/40"
+                >
+                    <div class="p-5 sm:p-6 space-y-5">
+                        <div
+                            class="flex flex-col sm:flex-row items-center sm:items-start gap-3 text-center sm:text-left"
+                        >
+                            <div
+                                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-100 ring-1 ring-red-200 dark:bg-red-950/40 dark:ring-red-900/60"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-7 w-7 text-red-700 dark:text-red-400"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                    />
+                                </svg>
+                            </div>
+                            <div class="space-y-0.5">
+                                <div class="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">
+                                    MeshChatX Crashed
+                                </div>
+                                <div class="text-xs text-slate-600 dark:text-zinc-400">
+                                    The backend process exited unexpectedly.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            <div
+                                class="rounded-xl border border-red-200/80 bg-red-50/70 p-4 dark:border-red-900/50 dark:bg-red-950/30 transition-colors"
+                            >
+                                <div
+                                    class="text-xs uppercase tracking-wide text-red-700 dark:text-red-400 font-semibold"
+                                >
+                                    Exit Code
+                                </div>
+                                <div
+                                    class="mt-0.5 text-base font-mono font-bold text-red-800 dark:text-red-300"
+                                    id="exit-code"
+                                >
+                                    --
+                                </div>
+                            </div>
+                            <div
+                                class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 text-center sm:text-right dark:border-zinc-700/70 dark:bg-zinc-950/40 transition-colors"
+                            >
+                                <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-zinc-400">
+                                    Status
+                                </div>
+                                <div class="mt-0.5 text-base font-semibold text-red-700 dark:text-red-400">
+                                    Backend unavailable
+                                </div>
+                            </div>
+                        </div>
+
+                        <p id="saved-log-path" class="break-all text-xs text-slate-600 dark:text-zinc-400 px-1"></p>
+
+                        <div
+                            id="recovery-panel"
+                            class="hidden rounded-xl border border-amber-200/80 bg-amber-50/70 p-5 sm:p-5 space-y-3 dark:border-amber-900/50 dark:bg-amber-950/20"
+                        >
+                            <div>
+                                <div
+                                    class="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-300"
+                                >
+                                    Recovery
+                                </div>
+                                <p
+                                    id="recovery-summary"
+                                    class="mt-1 text-sm leading-relaxed text-amber-950 dark:text-amber-100"
+                                ></p>
+                                <ul
+                                    id="recovery-hints"
+                                    class="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed text-amber-900 dark:text-amber-200"
+                                ></ul>
+                            </div>
+                            <div id="backup-list" class="space-y-2"></div>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    id="btn-restore-latest"
+                                    type="button"
+                                    class="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
+                                >
+                                    Restore latest backup
+                                </button>
+                                <button
+                                    id="btn-restore-picked"
+                                    type="button"
+                                    class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                                >
+                                    Choose backup file
+                                </button>
+                                <button
+                                    id="btn-auto-repair"
+                                    type="button"
+                                    class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                                >
+                                    Try auto-repair
+                                </button>
+                                <button
+                                    id="btn-emergency-mode"
+                                    type="button"
+                                    class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                                >
+                                    Emergency mode
+                                </button>
+                                <button
+                                    id="btn-open-backups"
+                                    type="button"
+                                    class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                                >
+                                    Open backups folder
+                                </button>
+                                <button
+                                    id="btn-copy-reset-guide"
+                                    type="button"
+                                    class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                                >
+                                    Copy reset instructions
+                                </button>
+                                <button
+                                    id="btn-open-bug-reports"
+                                    type="button"
+                                    class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                                >
+                                    Open Bug Reports after relaunch
+                                </button>
+                            </div>
+                            <p id="recovery-status" class="text-xs text-amber-900 dark:text-amber-200"></p>
+                            <details
+                                class="mt-3 border-t border-amber-200/70 pt-3 dark:border-amber-900/40"
+                            >
+                                <summary
+                                    class="cursor-pointer text-xs font-semibold text-amber-900 dark:text-amber-100"
+                                >
+                                    Complete data removal guide
+                                </summary>
+                                <pre
+                                    id="cleanup-guide"
+                                    class="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-xs leading-relaxed text-slate-700 dark:text-zinc-300"
+                                ></pre>
+                            </details>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="flex flex-col sm:flex-row items-center justify-between gap-2 px-1">
+                                <h3
+                                    class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400"
+                                >
+                                    Diagnostic Logs
+                                </h3>
+                                <button
+                                    onclick="copyLogs(event)"
+                                    class="w-full sm:w-auto text-xs font-medium text-blue-700 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 bg-blue-50 dark:bg-blue-950/40 px-3 py-1 rounded-lg transition-colors"
+                                >
+                                    Copy all logs
+                                </button>
+                            </div>
+
+                            <div class="space-y-1">
+                                <div class="text-xs font-medium text-slate-500 dark:text-zinc-400 px-1">
+                                    Standard Output (stdout)
+                                </div>
+                                <div class="relative group">
+                                    <pre
+                                        id="stdout"
+                                        class="h-52 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs text-slate-700 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 select-text"
+                                    ></pre>
+                                </div>
+                            </div>
+
+                            <div class="space-y-1">
+                                <div class="text-xs font-medium text-slate-500 dark:text-zinc-400 px-1">
+                                    Standard Error (stderr)
+                                </div>
+                                <div class="relative group">
+                                    <pre
+                                        id="stderr"
+                                        class="h-64 overflow-auto rounded-xl border border-red-200/70 bg-red-50/60 p-4 font-mono text-xs text-red-800 dark:border-red-900/40 dark:bg-zinc-950 dark:text-red-300 select-text"
+                                    ></pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-2">
+                            <button
+                                onclick="window.desktop.relaunch()"
+                                class="w-full sm:w-40 rounded-xl bg-blue-700 px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900 transition-colors"
+                            >
+                                Relaunch
+                            </button>
+                            <button
+                                onclick="window.desktop.shutdown()"
+                                class="w-full sm:w-24 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
+                            >
+                                Exit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <script src="./desktop-bridge.js"></script>
+        <script>
+            // Get data from URL parameters
+            const params = new URLSearchParams(window.location.search);
+            document.getElementById("exit-code").innerText = params.get("code") || "Unknown";
+            const savedLogPath = document.getElementById("saved-log-path");
+            const logPath = params.get("logPath") || "";
+            const crashReportPath = params.get("crashReportPath") || "";
+            if (savedLogPath) {
+                const parts = [];
+                if (logPath) {
+                    parts.push(`meshchatx.log: ${logPath}`);
+                }
+                if (crashReportPath) {
+                    parts.push(`last-backend-crash.json: ${crashReportPath}`);
+                }
+                savedLogPath.textContent = parts.join(" | ");
+            }
+
+            // Decoded from base64 to handle complex characters safely
+            try {
+                const stdoutBase64 = params.get("stdout") || "";
+                const stderrBase64 = params.get("stderr") || "";
+
+                document.getElementById("stdout").innerText = stdoutBase64 ? atob(stdoutBase64) : "No output recorded.";
+                document.getElementById("stderr").innerText = stderrBase64
+                    ? atob(stderrBase64)
+                    : "No error output recorded.";
+            } catch (e) {
+                document.getElementById("stdout").innerText = "Error decoding logs.";
+                document.getElementById("stderr").innerText = "Error decoding logs.";
+            }
+
+            function copyLogs(event) {
+                const stdout = document.getElementById("stdout").innerText;
+                const stderr = document.getElementById("stderr").innerText;
+                const exitCode = document.getElementById("exit-code").innerText;
+
+                const fullReport = `MeshChatX Crash Report\nExit Code: ${exitCode}\nLog file: ${logPath}\nCrash report: ${crashReportPath}\n\n--- STDOUT ---\n${stdout}\n\n--- STDERR ---\n${stderr}`;
+
+                navigator.clipboard.writeText(fullReport).then(() => {
+                    const btn = event && event.currentTarget ? event.currentTarget : null;
+                    if (!btn) {
+                        return;
+                    }
+                    const originalText = btn.innerText;
+                    btn.innerText = "Copied!";
+                    btn.classList.replace("text-blue-600", "text-emerald-600");
+                    btn.classList.replace("dark:text-blue-400", "dark:text-emerald-400");
+
+                    setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.classList.replace("text-emerald-600", "text-blue-600");
+                        btn.classList.replace("dark:text-emerald-400", "dark:text-blue-400");
+                    }, 2000);
+                });
+            }
+
+            function detectPreferredTheme() {
+                try {
+                    const queryTheme = new URLSearchParams(window.location.search).get("theme");
+                    if (queryTheme === "dark" || queryTheme === "light") {
+                        return queryTheme;
+                    }
+                    const storedTheme =
+                        localStorage.getItem("meshchatx_ui_theme") ||
+                        localStorage.getItem("meshchat.theme") ||
+                        localStorage.getItem("meshchatx.theme");
+                    if (storedTheme === "system") {
+                        return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                            ? "dark"
+                            : "light";
+                    }
+                    if (storedTheme === "dark" || storedTheme === "light") {
+                        return storedTheme;
+                    }
+                } catch (e) {}
+                return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                    ? "dark"
+                    : "light";
+            }
+
+            function applyTheme(theme) {
+                const isDark = theme === "dark";
+                document.documentElement.classList.toggle("dark", isDark);
+                document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+                document.body.dataset.theme = isDark ? "dark" : "light";
+            }
+
+            function listenForSystemThemeChanges() {
+                if (!window.matchMedia) {
+                    return;
+                }
+                const media = window.matchMedia("(prefers-color-scheme: dark)");
+                media.addEventListener("change", (event) => {
+                    let stored = null;
+                    try {
+                        stored =
+                            localStorage.getItem("meshchatx_ui_theme") ||
+                            localStorage.getItem("meshchat.theme") ||
+                            localStorage.getItem("meshchatx.theme");
+                    } catch (e) {}
+                    if (stored && stored !== "system") {
+                        return;
+                    }
+                    applyTheme(event.matches ? "dark" : "light");
+                });
+            }
+
+            function setRecoveryStatus(message, isError = false) {
+                const el = document.getElementById("recovery-status");
+                if (!el) {
+                    return;
+                }
+                el.textContent = message || "";
+                el.classList.toggle("text-red-700", isError);
+                el.classList.toggle("dark:text-red-300", isError);
+            }
+
+            function formatBytes(size) {
+                if (!Number.isFinite(size) || size <= 0) {
+                    return "0 B";
+                }
+                const units = ["B", "KB", "MB", "GB"];
+                let value = size;
+                let unit = 0;
+                while (value >= 1024 && unit < units.length - 1) {
+                    value /= 1024;
+                    unit += 1;
+                }
+                return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+            }
+
+            function renderBackupList(backups) {
+                const list = document.getElementById("backup-list");
+                const restoreLatest = document.getElementById("btn-restore-latest");
+                if (!list || !restoreLatest) {
+                    return;
+                }
+                list.innerHTML = "";
+                if (!Array.isArray(backups) || backups.length === 0) {
+                    list.innerHTML =
+                        '<p class="text-xs text-amber-900 dark:text-amber-200">No automatic backups were found in database-backups/ or snapshots/.</p>';
+                    restoreLatest.disabled = true;
+                    return;
+                }
+                restoreLatest.disabled = false;
+                const preview = backups.slice(0, 5);
+                for (const entry of preview) {
+                    const row = document.createElement("div");
+                    row.className =
+                        "rounded-lg border border-amber-200/70 bg-white/80 px-3 py-2 text-xs text-amber-950 dark:border-amber-900/40 dark:bg-zinc-950/50 dark:text-amber-100";
+                    const label = entry.suspicious ? `${entry.name} (suspicious)` : entry.name;
+                    row.textContent = `${label} - ${formatBytes(entry.size)} - ${entry.kind}`;
+                    list.appendChild(row);
+                }
+            }
+
+            async function restoreBackupPath(backupPath) {
+                if (!window.desktop?.restoreDatabaseBackup) {
+                    setRecoveryStatus("Restore is only available in the desktop app.", true);
+                    return;
+                }
+                setRecoveryStatus("Restoring database backup. This can take a minute...");
+                const result = await window.desktop.restoreDatabaseBackup(backupPath);
+                if (!result?.ok) {
+                    const detail = result?.stderr || result?.error || "Restore failed.";
+                    setRecoveryStatus(detail, true);
+                    return;
+                }
+                setRecoveryStatus("Database restored. Relaunching...");
+                setTimeout(() => {
+                    window.desktop.relaunch();
+                }, 800);
+            }
+
+            async function initRecoveryPanel() {
+                if (!window.desktop?.getCrashRecoveryInfo) {
+                    return;
+                }
+                const info = await window.desktop.getCrashRecoveryInfo();
+                if (!info) {
+                    return;
+                }
+
+                const panel = document.getElementById("recovery-panel");
+                const summary = document.getElementById("recovery-summary");
+                const hints = document.getElementById("recovery-hints");
+                const cleanupGuide = document.getElementById("cleanup-guide");
+                const restoreLatest = document.getElementById("btn-restore-latest");
+                const restorePicked = document.getElementById("btn-restore-picked");
+                const autoRepair = document.getElementById("btn-auto-repair");
+                const emergencyMode = document.getElementById("btn-emergency-mode");
+                const openBackups = document.getElementById("btn-open-backups");
+                const copyResetGuide = document.getElementById("btn-copy-reset-guide");
+                const openBugReports = document.getElementById("btn-open-bug-reports");
+
+                if (cleanupGuide && info.cleanupGuide) {
+                    cleanupGuide.textContent = info.cleanupGuide;
+                }
+
+                const diagnosis = info.diagnosis || {};
+                const showRecovery =
+                    diagnosis.category === "database" ||
+                    diagnosis.category === "python-crash" ||
+                    (Array.isArray(info.backups) && info.backups.length > 0);
+
+                if (!panel || !showRecovery) {
+                    return;
+                }
+
+                panel.classList.remove("hidden");
+                if (summary) {
+                    summary.textContent = diagnosis.summary || "The backend failed during startup.";
+                }
+                if (hints) {
+                    hints.innerHTML = "";
+                    for (const hint of diagnosis.hints || []) {
+                        const item = document.createElement("li");
+                        item.textContent = hint;
+                        hints.appendChild(item);
+                    }
+                }
+
+                renderBackupList(info.backups || []);
+                let preferredBackup = info.preferredBackup || null;
+
+                if (restoreLatest) {
+                    restoreLatest.addEventListener("click", async () => {
+                        if (!preferredBackup?.path) {
+                            setRecoveryStatus("No backup is available to restore.", true);
+                            return;
+                        }
+                        await restoreBackupPath(preferredBackup.path);
+                    });
+                }
+
+                if (restorePicked) {
+                    restorePicked.addEventListener("click", async () => {
+                        const picked = await window.desktop.pickDatabaseBackup();
+                        if (!picked) {
+                            return;
+                        }
+                        await restoreBackupPath(picked);
+                    });
+                }
+
+                if (autoRepair) {
+                    autoRepair.addEventListener("click", async () => {
+                        if (!window.desktop?.relaunchAutoRecover) {
+                            return;
+                        }
+                        setRecoveryStatus("Relaunching with auto-repair enabled...");
+                        await window.desktop.relaunchAutoRecover();
+                    });
+                }
+
+                if (emergencyMode) {
+                    emergencyMode.addEventListener("click", async () => {
+                        if (!window.desktop?.relaunchEmergency) {
+                            return;
+                        }
+                        setRecoveryStatus("Relaunching in emergency mode...");
+                        await window.desktop.relaunchEmergency();
+                    });
+                }
+
+                if (openBackups && info.paths?.backupsDir) {
+                    openBackups.addEventListener("click", async () => {
+                        if (window.desktop?.openPath) {
+                            await window.desktop.openPath(info.paths.backupsDir);
+                        }
+                    });
+                }
+
+                if (copyResetGuide) {
+                    copyResetGuide.addEventListener("click", async () => {
+                        if (!info.cleanupGuide) {
+                            return;
+                        }
+                        await navigator.clipboard.writeText(info.cleanupGuide);
+                        setRecoveryStatus("Reset instructions copied to clipboard.");
+                    });
+                }
+
+                if (openBugReports) {
+                    openBugReports.addEventListener("click", () => {
+                        try {
+                            localStorage.setItem("meshchatx_open_after_relaunch", "#/plugins/com.meshchatx.mcx-bugs");
+                        } catch (e) {}
+                        setRecoveryStatus("Bug Reports will open after relaunch. Click Relaunch when ready.");
+                    });
+                }
+            }
+
+            applyTheme(detectPreferredTheme());
+            listenForSystemThemeChanges();
+            initRecoveryPanel();
+        </script>
+    </body>
+</html>

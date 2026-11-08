@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
-# Build macOS arm64 DMG via electron-builder. Unsigned CI build. Signing is disabled.
+# Build macOS arm64 .app + dmg via the Wails desktop Taskfile. Unsigned CI
+# build; signing/notarization are separate release steps.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
-export CSC_IDENTITY_AUTO_DISCOVERY=false
 export MESHCHATX_SKIP_BACKEND_MANIFEST=1
 
-pnpm run electron-postinstall
 pnpm run version:sync
 
-# Skip frontend rebuild when CI provides a prebuilt meshchatx/public artifact
-# via the reusable Frontend build workflow.
 if [[ "${MESHCHATX_FRONTEND_PREBUILT:-0}" != "1" ]]; then
     pnpm run build-frontend
     pnpm run build-docs
@@ -32,7 +29,4 @@ bash scripts/ci/github-verify-frozen-umsgpack.sh "$ROOT/build/exe/darwin-arm64"
 bash scripts/ci/github-verify-frozen-runtime.sh "$ROOT/build/exe/darwin-arm64"
 bash scripts/ci/github-verify-frozen-bleak.sh "$ROOT/build/exe/darwin-arm64"
 
-pnpm exec electron-builder --mac --arm64 --config scripts/ci/electron-builder-mac.config.js --publish=never
-
-bash scripts/ci/github-prune-electron-dist-staging.sh
-bash scripts/ci/github-verify-electron-dist.sh mac
+cd desktop && task darwin:package

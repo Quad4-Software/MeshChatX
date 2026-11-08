@@ -27,7 +27,7 @@ While connected, the Call screen shows link stats (packets, bytes, approximate b
 
 ## Audio path
 
-The frontend loads Codec2 assets for voice encoding (Codec2Loader.js). Browser and Electron builds use a Web Audio bridge at /ws/telephone/audio. Packaged desktop builds bundle the backend that negotiates LXST sessions.
+The frontend loads Codec2 assets for voice encoding (Codec2Loader.js). Browser and desktop builds use a Web Audio bridge at /ws/telephone/audio. Packaged desktop builds bundle the backend that negotiates LXST sessions.
 
 ## Voicemail
 
@@ -81,9 +81,9 @@ LXST Telephone session over Reticulum
 Callee UI: ring, answer, or decline
 ```
 
-## Windows microphone (Electron, Windows 10 / 11)
+## Windows microphone (the desktop shell, Windows 10 / 11)
 
-Calls and voice attachments use the mic through Chromium. If the UI has no access or `getUserMedia` fails, check Windows privacy first. That is a common miss for Win32 apps, Electron included.
+Calls and voice attachments use the mic through Chromium. If the UI has no access or `getUserMedia` fails, check Windows privacy first. That is a common miss for Win32 apps, the desktop shell included.
 
 1. Win+R, paste ms-settings:privacy-microphone, Enter.
 2. Turn Microphone access on.
@@ -96,7 +96,7 @@ Also check Settings, System, Sound so the app is not muted and a working input d
 
 - Verify **Interfaces** and paths before troubleshooting audio quality. Packet loss on the mesh affects voice.
 - Use headphones on mobile and Quest builds to prevent echo.
-- Review microphone permissions in Electron or the Android system settings if the UI shows no input level.
+- Review microphone permissions in the desktop shell or Android system settings if the UI shows no input level.
 - Keep LXST and Reticulum versions aligned with MeshChatX release notes when upgrading.
 - **Docker / headless web**: containers have no PulseAudio host devices. MeshChatX forces the web audio bridge (MESHCHAT_FORCE_WEB_AUDIO=1) and installs hostless LXST backends so calls can use the browser mic/speaker. Enable telephone in settings, then place a call from the web UI over HTTPS.
 - **Android Codec2**: native `libcodec2.so` must be preloaded before pycodec2. If Codec2 profiles are hidden, check /api/v1/telephone/codec2/status and rebuild with vendor wheels that bundle pycodec2/libcodec2.so.

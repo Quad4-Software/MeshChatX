@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>MeshChatX</title>
+        <script>
+            (function () {
+                try {
+                    var theme = new URLSearchParams(window.location.search).get("theme");
+                    if (theme !== "light" && theme !== "dark") {
+                        theme =
+                            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                                ? "dark"
+                                : "light";
+                    }
+                    if (theme === "dark") {
+                        document.documentElement.classList.add("dark");
+                    }
+                } catch (e) {}
+            })();
+        </script>
+        <style>
+            html {
+                background-color: #f8fafc;
+                color-scheme: light;
+            }
+            html.dark {
+                background-color: #18181b;
+                color-scheme: dark;
+            }
+            body {
+                margin: 0;
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    "Segoe UI",
+                    sans-serif;
+                background: inherit;
+                color: #1e293b;
+            }
+            html.dark body {
+                color: #e4e4e7;
+            }
+            .wrap {
+                padding: 18px 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                height: 100vh;
+                box-sizing: border-box;
+            }
+            .msg {
+                font-size: 13px;
+                line-height: 1.45;
+                margin: 0;
+                color: #475569;
+                white-space: pre-wrap;
+            }
+            html.dark .msg {
+                color: #a1a1aa;
+            }
+            input[type="text"] {
+                font: inherit;
+                font-size: 13px;
+                padding: 8px 10px;
+                border-radius: 8px;
+                border: 1px solid #cbd5e1;
+                background: #fff;
+                color: inherit;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            html.dark input[type="text"] {
+                background: #27272a;
+                border-color: #3f3f46;
+            }
+            .actions {
+                margin-top: auto;
+                display: flex;
+                justify-content: flex-end;
+                gap: 8px;
+            }
+            button {
+                font: inherit;
+                font-size: 13px;
+                padding: 7px 14px;
+                border-radius: 8px;
+                border: 1px solid #cbd5e1;
+                background: #fff;
+                color: inherit;
+                cursor: pointer;
+            }
+            html.dark button {
+                background: #27272a;
+                border-color: #3f3f46;
+            }
+            button.primary {
+                background: #2563eb;
+                border-color: #2563eb;
+                color: #fff;
+            }
+            html.dark button.primary {
+                background: #3b82f6;
+                border-color: #3b82f6;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap">
+            <p class="msg" id="message"></p>
+            <input type="text" id="value" />
+            <div class="actions">
+                <button id="btn-cancel" type="button">Cancel</button>
+                <button id="btn-ok" class="primary" type="button">OK</button>
+            </div>
+        </div>
+        <script src="./desktop-bridge.js"></script>
+        <script>
+            (function () {
+                var params = new URLSearchParams(window.location.search);
+                var messageEl = document.getElementById("message");
+                var input = document.getElementById("value");
+                messageEl.textContent = params.get("message") || "";
+                input.value = params.get("default") || "";
+                function finish(value) {
+                    if (window.desktop && window.desktop.windowResult) {
+                        window.desktop.windowResult("prompt-dialog", { value: value });
+                    }
+                }
+                document.getElementById("btn-cancel").addEventListener("click", function () {
+                    finish(null);
+                });
+                document.getElementById("btn-ok").addEventListener("click", function () {
+                    finish(input.value);
+                });
+                input.addEventListener("keydown", function (e) {
+                    if (e.key === "Enter") {
+                        finish(input.value);
+                    } else if (e.key === "Escape") {
+                        finish(null);
+                    }
+                });
+                input.focus();
+                input.select();
+            })();
+        </script>
+    </body>
+</html>

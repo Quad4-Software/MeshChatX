@@ -455,10 +455,15 @@ def atomic_write_bytes(
     try:
         if hasattr(os, "fchmod"):
             os.fchmod(fd, mode)
-        with os.fdopen(fd, "wb") as handle:
+        # open() on the mkstemp fd (not os.fdopen) keeps the write on the
+        # already-exclusive handle while remaining visible to callers and
+        # tests that patch builtins.open.
+        with open(fd, "wb") as handle:
             handle.write(data)
             handle.flush()
-            os.fsync(handle.fileno())
+            fileno = handle.fileno()
+            if isinstance(fileno, int):
+                os.fsync(fileno)
         os.replace(tmp, path)
     except Exception:
         with contextlib.suppress(OSError):

@@ -16,7 +16,6 @@ const vendorChunkGroups = [
     { test: /[/\\]node_modules[/\\]compressorjs/, name: "vendor-compressor", priority: 70 },
     { test: /[/\\]node_modules[/\\]micron-parser/, name: "vendor-micron", priority: 55 },
     { test: /MicronParser\.js/, name: "vendor-micron", priority: 55 },
-    { test: /[/\\]node_modules[/\\]electron-prompt/, name: "vendor-electron-prompt", priority: 50 },
     { test: /[/\\]node_modules[/\\].*vue/, name: "vendor-vue", priority: 45 },
     { test: /[/\\]node_modules[/\\]/, name: "vendor-other", priority: 10 },
 ];

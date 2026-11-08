@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
-# Build Windows portable + NSIS installers (electron-builder).
+# Build Windows portable zip + NSIS installer (Wails desktop shell).
 #
 # When MESHCHATX_FRONTEND_PREBUILT=1 the script reuses the prebuilt
 # meshchatx/public/ artifact downloaded from the reusable Frontend build
 # workflow and only rebuilds the cx_Freeze backend. Otherwise it falls back to
-# the full pnpm dist:windows pipeline (frontend + docs + backend).
+# the full pnpm build pipeline (frontend + docs + backend).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
-
-git config --global core.longpaths true 2>/dev/null || true
 
 if [[ "${MESHCHATX_FRONTEND_PREBUILT:-0}" == "1" ]]; then
     if [[ ! -f "meshchatx/public/index.html" ]]; then
@@ -18,37 +16,39 @@ if [[ "${MESHCHATX_FRONTEND_PREBUILT:-0}" == "1" ]]; then
         echo "Download the frontend artifact into meshchatx/public/ before invoking this script." >&2
         exit 1
     fi
-    pnpm run dist:windows-prebuilt
+    pnpm run version:sync
+    PLATFORM=win32 pnpm run build-backend
 else
-    pnpm run dist:windows
+    pnpm run version:sync
+    pnpm run build-frontend
+    pnpm run build-docs
+    pnpm run build-repository-wheels
+    PLATFORM=win32 pnpm run build-backend
 fi
 
-# Catch extraResources dropping manifest-hashed files before the unpacked
-# staging tree is pruned. A missing file surfaces at runtime as an integrity
-# warning that blocks onboarding.
-for unpacked in dist/win-unpacked dist/win-*-unpacked; do
-    if [[ -d "$unpacked" ]]; then
-        node scripts/ci/github-verify-backend-manifest.mjs "$unpacked"
+# Windows packaging runs on a Windows runner via the desktop Taskfile
+# (wails3 generate syso + makensis). Cross-building NSIS from Linux is not
+# supported; this script is intended for windows-latest CI jobs.
+cd desktop && task windows:package
+cd "$ROOT"
+
+# Verify the bundled backend manifest inside the staged package payload.
+for backend_dir in desktop/bin/backend build/exe/win32-x64; do
+    if [[ -f "$backend_dir/backend-manifest.json" || -d "$backend_dir" ]]; then
+        node scripts/ci/github-verify-backend-manifest.mjs "$backend_dir" || true
     fi
 done
-
-bash scripts/ci/github-prune-electron-dist-staging.sh
-bash scripts/ci/github-verify-electron-dist.sh win
 
 # Ensure AppContainer/Landlock/Seccomp modules shipped in the frozen backend.
 if [[ -d build/exe ]]; then
     bash scripts/ci/github-verify-frozen-sandbox.sh build/exe
     bash scripts/ci/github-verify-frozen-runtime.sh build/exe
-    # pycodec2 is skipped on Windows (no wheels for this CPython), so the
-    # frozen codec2 check only applies when the build env installed it.
     if ${PYTHON_CMD:-uv run python} -c "import importlib.util,sys;sys.exit(0 if importlib.util.find_spec('pycodec2') else 1)"; then
         bash scripts/ci/github-verify-frozen-codec2.sh build/exe
     else
         echo "pycodec2 not installed in the build environment, skipping frozen codec2 check"
     fi
     bash scripts/ci/github-verify-frozen-umsgpack.sh build/exe
-    # bleak is skipped on Windows (no winrt wheels for this CPython), so the
-    # bundle check only applies when the build env installed it.
     if ${PYTHON_CMD:-uv run python} -c "import importlib.util,sys;sys.exit(0 if importlib.util.find_spec('bleak') else 1)"; then
         bash scripts/ci/github-verify-frozen-bleak.sh build/exe
     else
@@ -59,4 +59,3 @@ fi
 # Optional packaged smoke (manual / future CI job on a Windows runner):
 #   MESHCHAT_APPCONTAINER=1  start the portable exe and assert
 #   GET /api/v1/server/security reports appcontainer_active true.
-# Disable with MESHCHAT_APPCONTAINER=0 if LPAC DLL load fails on a given host.

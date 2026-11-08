@@ -197,25 +197,15 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
             expect(src).toContain("handleRichHtmlLinkClick");
         });
 
-        it("electron main attaches in-window navigation and popout guards", () => {
-            const main = readSource("electron/main.js");
-            expect(main).toContain("web-contents-created");
-            expect(main).toContain("attachInWindowNavigationGuard");
-            expect(main).toContain("will-navigate");
-            expect(main).toContain("will-redirect");
-            expect(main).toContain("will-frame-navigate");
-            expect(main).toContain("will-attach-webview");
-            expect(main).toContain("setWindowOpenHandler");
-            const preload = readSource("electron/preload.js");
-            expect(preload).toContain("isTrustedShellOrigin");
-            expect(preload).toContain("invokeTrusted");
-            const origin = readSource("electron/shellOrigin.js");
-            expect(origin).not.toMatch(/startsWith\(\s*["']https?:\/\/127/);
-            expect(origin).toContain("parsed.username");
-            expect(origin).toContain("isTrustedIpcEvent");
-            expect(main).toContain("function trustedIpcHandle");
-            expect(main).toContain("isTrustedIpcEvent");
-            expect(main).not.toMatch(/ipcMain\.handle\("/);
+        it("desktop shell guards navigation, popouts and bridge origin", () => {
+            const bridge = readSource("desktop/internal/bridge/bridge.go");
+            expect(bridge).toContain("IsTrustedShellOrigin");
+            const security = readSource("desktop/internal/security/security.go");
+            expect(security).not.toMatch(/HasPrefix\([^)]*"https?:\/\/127/);
+            expect(security).toContain("ShouldAllowInWindowNavigation");
+            expect(security).toContain("Username");
+            const js = readSource("desktop/shell/desktop-bridge.js");
+            expect(js).toContain("open-window");
         });
 
         it("Android WebView opens external http(s) in the system browser", () => {
@@ -617,11 +607,10 @@ describe("behavior contracts: security gates", () => {
         expect(block).not.toMatch(/"localhost" in /);
     });
 
-    it("Electron ipcMain.handle is wrapped by trustedIpcHandle", () => {
-        const main = readSource("electron/main.js");
-        expect(main).toContain("function trustedIpcHandle");
-        expect(main).toContain("isTrustedIpcEvent");
-        expect(main).not.toMatch(/ipcMain\.handle\("/);
+    it("desktop bridge rejects untrusted origins before dispatch", () => {
+        const bridge = readSource("desktop/internal/bridge/bridge.go");
+        expect(bridge).toContain("originInfo == nil");
+        expect(bridge).toContain("IsTrustedShellOrigin");
     });
 
     it("v-html sites name a sanitizer and do not use a bare file-level disable", () => {
@@ -650,7 +639,7 @@ describe("behavior contracts: security gates", () => {
         expect(banners).toContain("showLanBindNoAuth");
         expect(banners).toContain("lanBindNoAuthLabel");
         const helper = readSource("meshchatx/src/frontend/js/lanBindWarning.js");
-        expect(helper).toContain("isElectron");
+        expect(helper).toContain("isDesktop");
         expect(helper).toContain("isAndroid");
         expect(helper).toContain("dismissLanBindNoAuthBanner");
         expect(helper).toContain("isLanBindNoAuthBannerDismissed");

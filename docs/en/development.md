@@ -109,13 +109,13 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 
 pnpm install --frozen-lockfile fails if pnpm-lock.yaml does not match package.json, so an unexpected upstream version cannot land silently. Store integrity is also on in pnpm-workspace.yaml. The extra pnpm config set line hardens the user-level config too.
 
-pnpm v11+ blocks lifecycle scripts by default. Only packages listed under allowBuilds in pnpm-workspace.yaml may run install scripts (electron, electron-winstaller, esbuild). uv lock --check fails if uv.lock is out of date with pyproject.toml. uv sync then installs from the lockfile only. Pin UV with pip install "uv==0.11.15" to match CI.
+pnpm v11+ blocks lifecycle scripts by default. Only packages listed under allowBuilds in pnpm-workspace.yaml may run install scripts (esbuild). uv lock --check fails if uv.lock is out of date with pyproject.toml. uv sync then installs from the lockfile only. Pin UV with pip install "uv==0.11.15" to match CI.
 
 To update dependencies on purpose, run pnpm update or uv lock in its own commit and read the lockfile diff before you push.
 
 ## Versioning
 
-Edit the version field in package.json, then run pnpm run version:sync (also the first step of pnpm run build). That copies the number into pyproject.toml, the Python version modules, Android Gradle, electron/app-version.json, Arch PKGBUILD helpers, and third-party notices. Docs, READMEs and issue templates do not carry the version.
+Edit the version field in package.json, then run pnpm run version:sync (also the first step of pnpm run build). That copies the number into pyproject.toml, the Python version modules, Android Gradle, desktop/app-version.json, Arch PKGBUILD helpers, and third-party notices. Docs, READMEs and issue templates do not carry the version.
 
 pnpm run version:sync also runs scripts/bake_build_meta.js, which writes gitignored _build_meta_baked.py with commit, product channel (testing / beta / stable / local), and release/channel_prompt.json. Override channel with MESHCHATX_BUILD_CHANNEL.
 

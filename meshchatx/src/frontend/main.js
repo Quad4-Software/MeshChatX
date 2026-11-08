@@ -31,7 +31,7 @@ import { pluginHost } from "./js/plugins/PluginHost.js";
 import { useAuthStore } from "./js/stores/authStore";
 import { useNetworkStore } from "./js/stores/networkStore";
 import { recoveryLocationForNetworkError } from "./js/networkRecovery.js";
-import ElectronUtils from "./js/ElectronUtils.js";
+import DesktopUtils from "./js/DesktopUtils.js";
 import {
     decideControllerChangeReload,
     isIgnorableServiceWorkerRegistrationError,
@@ -409,7 +409,7 @@ function registerMeshchatServiceWorker() {
     if (
         !shouldRegisterServiceWorker({
             isDev: import.meta.env.DEV,
-            isElectron: ElectronUtils.isElectron(),
+            isDesktop: DesktopUtils.isDesktop(),
         })
     ) {
         void unregisterServiceWorkersIfPresent(navigator.serviceWorker).catch(() => {});

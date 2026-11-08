@@ -44,7 +44,7 @@ Official release binaries and packages are built in **automation on GitHub**, no
 
 ### Product controls (high level)
 
-- **Desktop (Electron):** Packaging and runtime follow [Electron security guidance](https://www.electronjs.org/docs/latest/tutorial/security). ASAR integrity and hardened defaults (for example fuses that reduce risky Node integration) are part of the shipped app.
+- **Desktop (Wails):** The shell is a Go binary built with Wails v3; the UI is served by the Python backend over loopback HTTP, so there is no Node.js runtime or ASAR bundle in the desktop app. WebView hardening follows platform webview defaults (WebKitGTK/WebView2/WKWebView).
 - **Backend:** A SHA-256 manifest of the bundled Python backend is checked on startup to detect tampering with the on-disk payload.
 - **Data at rest:** The application can detect unexpected changes to sensitive files between runs (integrity monitoring around identities and database state).
 - **Web surface:** Content Security Policy is applied in depth across the stack.

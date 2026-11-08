@@ -12,15 +12,15 @@ describe("DialogUtils.confirm", () => {
         vi.mocked(GlobalEmitter.emit).mockClear();
         vi.mocked(GlobalEmitter.listenerCount).mockClear();
         vi.mocked(GlobalEmitter.listenerCount).mockReturnValue(1);
-        delete window.electron;
+        delete window.desktop;
     });
 
     it("uses the in-app confirm dialog even when electron is present", async () => {
-        window.electron = {
+        window.desktop = {
             confirm: vi.fn().mockResolvedValue(true),
         };
         const pending = DialogUtils.confirm("Delete this?");
-        expect(window.electron.confirm).not.toHaveBeenCalled();
+        expect(window.desktop.confirm).not.toHaveBeenCalled();
         expect(GlobalEmitter.emit).toHaveBeenCalledWith(
             "confirm",
             expect.objectContaining({
@@ -67,7 +67,7 @@ describe("DialogUtils.prompt", () => {
         vi.mocked(GlobalEmitter.emit).mockClear();
         vi.mocked(GlobalEmitter.listenerCount).mockClear();
         vi.mocked(GlobalEmitter.listenerCount).mockReturnValue(1);
-        delete window.electron;
+        delete window.desktop;
     });
 
     it("uses in-app prompt dialog when electron is unavailable", async () => {
@@ -86,11 +86,11 @@ describe("DialogUtils.prompt", () => {
     });
 
     it("uses the in-app prompt even when electron.prompt exists", async () => {
-        window.electron = {
+        window.desktop = {
             prompt: vi.fn().mockResolvedValue("should-not-use"),
         };
         const pending = DialogUtils.prompt("Enter version", "fallback");
-        expect(window.electron.prompt).not.toHaveBeenCalled();
+        expect(window.desktop.prompt).not.toHaveBeenCalled();
         expect(GlobalEmitter.emit).toHaveBeenCalledWith(
             "prompt",
             expect.objectContaining({
@@ -104,11 +104,11 @@ describe("DialogUtils.prompt", () => {
     });
 
     it("uses in-app password prompt and skips electron.prompt for password type", async () => {
-        window.electron = {
+        window.desktop = {
             prompt: vi.fn().mockResolvedValue("should-not-use"),
         };
         const pending = DialogUtils.prompt("Room key", "", { inputType: "password" });
-        expect(window.electron.prompt).not.toHaveBeenCalled();
+        expect(window.desktop.prompt).not.toHaveBeenCalled();
         expect(GlobalEmitter.emit).toHaveBeenCalledWith(
             "prompt",
             expect.objectContaining({

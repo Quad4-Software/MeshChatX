@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Close MeshChatX?</title>
+        <script>
+            (function () {
+                try {
+                    var theme = new URLSearchParams(window.location.search).get("theme");
+                    if (theme === "system") {
+                        theme =
+                            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                                ? "dark"
+                                : "light";
+                    }
+                    if (theme !== "light" && theme !== "dark") {
+                        theme =
+                            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                                ? "dark"
+                                : "light";
+                    }
+                    if (theme === "dark") {
+                        document.documentElement.classList.add("dark");
+                    }
+                } catch (e) {}
+            })();
+        </script>
+        <style>
+            html {
+                background-color: #f8fafc;
+                color-scheme: light;
+            }
+            html.dark {
+                background-color: #18181b;
+                color-scheme: dark;
+            }
+            body {
+                margin: 0;
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    "Segoe UI",
+                    sans-serif;
+                background: inherit;
+                color: #1e293b;
+            }
+            html.dark body {
+                color: #e4e4e7;
+            }
+            .wrap {
+                padding: 20px 22px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                height: 100vh;
+                box-sizing: border-box;
+            }
+            h1 {
+                font-size: 16px;
+                font-weight: 600;
+                margin: 0;
+            }
+            p {
+                font-size: 13px;
+                line-height: 1.45;
+                margin: 0;
+                color: #475569;
+            }
+            html.dark p {
+                color: #a1a1aa;
+            }
+            .row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 13px;
+            }
+            .actions {
+                margin-top: auto;
+                display: flex;
+                justify-content: flex-end;
+                gap: 8px;
+            }
+            button {
+                font: inherit;
+                font-size: 13px;
+                padding: 7px 14px;
+                border-radius: 8px;
+                border: 1px solid #cbd5e1;
+                background: #fff;
+                color: inherit;
+                cursor: pointer;
+            }
+            html.dark button {
+                background: #27272a;
+                border-color: #3f3f46;
+            }
+            button.primary {
+                background: #2563eb;
+                border-color: #2563eb;
+                color: #fff;
+            }
+            html.dark button.primary {
+                background: #3b82f6;
+                border-color: #3b82f6;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap">
+            <h1>Close MeshChatX?</h1>
+            <p>Choose whether to quit the application or keep it running.</p>
+            <p id="detail"></p>
+            <label class="row"
+                ><input type="checkbox" id="remember" /> <span>Remember my choice</span></label
+            >
+            <div class="actions">
+                <button id="btn-cancel" type="button">Cancel</button>
+                <button id="btn-quit" type="button">Quit application</button>
+                <button id="btn-background" class="primary" type="button">Keep running</button>
+            </div>
+        </div>
+        <script src="./desktop-bridge.js"></script>
+        <script>
+            (function () {
+                var params = new URLSearchParams(window.location.search);
+                var tray = params.get("tray") !== "0";
+                var detail = document.getElementById("detail");
+                var bgBtn = document.getElementById("btn-background");
+                if (tray) {
+                    detail.textContent = "Hide the window and keep MeshChatX in the system tray.";
+                    bgBtn.textContent = "Keep running in background";
+                } else {
+                    detail.textContent = "Minimize MeshChatX to the taskbar.";
+                    bgBtn.textContent = "Minimize to taskbar";
+                }
+                function finish(action) {
+                    var remember = document.getElementById("remember").checked === true;
+                    if (window.desktop && window.desktop.windowResult) {
+                        window.desktop.windowResult("close-dialog", { action: action, remember: remember });
+                    }
+                }
+                document.getElementById("btn-cancel").addEventListener("click", function () {
+                    finish("cancel");
+                });
+                document.getElementById("btn-quit").addEventListener("click", function () {
+                    finish("quit");
+                });
+                bgBtn.addEventListener("click", function () {
+                    finish(tray ? "background" : "minimize");
+                });
+                bgBtn.focus();
+            })();
+        </script>
+    </body>
+</html>

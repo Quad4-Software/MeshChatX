@@ -2,7 +2,7 @@
 
 [English](../README.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | [Русский](README.ru.md) | [中文](README.zh.md)
 
-[Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat)（Liam Cottle）の独立フォークです。MeshChatX は LXST 通話、RRC リレーチャット、Nomad 地図オーバーレイ、プラグイン、生の SQLite（Peewee なし）、Electron 41 デスクトップビルドを追加します。アップストリームとは無関係です。
+[Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat)（Liam Cottle）の独立フォークです。MeshChatX は LXST 通話、RRC リレーチャット、Nomad 地図オーバーレイ、プラグイン、生の SQLite（Peewee なし）、Wails 41 デスクトップビルドを追加します。アップストリームとは無関係です。
 
 - ウェブサイト: [meshchatx.com](https://meshchatx.com)
 - ソース: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)

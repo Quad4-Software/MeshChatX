@@ -137,7 +137,7 @@ else:
                     _need_rebuild=1
                     ;;
                 universal)
-                    echo "miniaudio _miniaudio.abi3.so is universal2; rebuilding as arm64-only so @electron/universal can lipo with the x64 slice." >&2
+                    echo "miniaudio _miniaudio.abi3.so is universal2; rebuilding as arm64-only so the macOS universal lipo step can merge with the x64 slice." >&2
                     _need_rebuild=1
                     ;;
                 *)

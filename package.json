@@ -1,360 +1,140 @@
 {
-    "name": "reticulum-meshchatx",
-    "version": "4.12.0",
-    "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
-    "homepage": "https://github.com/Quad4-Software/MeshChatX",
-    "desktopName": "com.meshchatx.app.desktop",
-    "author": {
-        "name": "Quad4"
-    },
-    "main": "electron/main.js",
-    "scripts": {
-        "dev": "vite dev",
-        "watch": "pnpm run build-frontend -- --watch",
-        "prebuild-frontend": "node scripts/ensure-micron-parser-package.js && node scripts/fetch-micron-wasm.mjs && node scripts/build-visualiser-wasm.mjs && node scripts/build-geo-wasm.mjs && node scripts/fetch-starter-mbtiles.mjs && node scripts/copy-bergamot-wasm.mjs && node scripts/build-electron-shell-css.mjs && node scripts/copy-font-licenses.mjs && node scripts/sync-meshchatx-docs.js",
-        "predev": "node scripts/sync-meshchatx-docs.js && node scripts/build-electron-shell-css.mjs",
-        "build-frontend": "vite build",
-        "build-backend": "node scripts/build-backend.js",
-        "build-docs": "python3 scripts/build/fetch_reticulum_manual.py",
-        "build-docs:rns": "python3 scripts/build/fetch_reticulum_manual.py --force",
-        "build-repository-wheels": "python3 scripts/build/fetch_repository_wheels.py",
-        "version:sync": "node scripts/sync_version.js",
-        "deps:sync": "python3 scripts/sync_deps.py",
-        "build-meta:bake": "node scripts/bake_build_meta.js",
-        "build": "pnpm run version:sync && pnpm run build-frontend && pnpm run build-docs && pnpm run build-repository-wheels && pnpm run build-backend",
-        "build:offline": "cross-env MESHCHATX_OFFLINE_BUILD=1 pnpm run build",
-        "bundle:offline": "bash scripts/create-offline-bundle.sh",
-        "lint": "eslint .",
-        "lint:fix": "eslint . --fix",
-        "typecheck": "vue-tsc --noEmit -p tsconfig.json",
-        "knip": "knip",
-        "format": "prettier --write .",
-        "format:check": "prettier --check .",
-        "test": "vitest run --exclude tests/frontend/LoadTimePerformance.test.js && vitest run --config vitest.electron.config.mjs",
-        "test:coverage": "vitest run --coverage --exclude tests/frontend/LoadTimePerformance.test.js && vitest run --config vitest.electron.config.mjs --coverage",
-        "test:fuzz": "vitest run -t fuzzing",
-        "test:watch": "vitest --exclude tests/frontend/LoadTimePerformance.test.js",
-        "test:i18n": "vitest run tests/frontend/i18n.test.js",
-        "test:loadtime": "vitest run tests/frontend/LoadTimePerformance.test.js",
-        "test:ui": "vitest --ui --open --exclude tests/frontend/LoadTimePerformance.test.js",
-        "pretest:e2e": "playwright install chromium",
-        "test:e2e": "playwright test",
-        "test:e2e:ui": "playwright test --ui",
-        "test:e2e:install": "playwright install chromium",
-        "pretest:ui:pages": "playwright install chromium",
-        "test:ui:pages": "playwright test --config playwright.ui.config.js tests/ui/pages.smoke.spec.js",
-        "test:ui:perf": "playwright test --config playwright.ui.config.js tests/ui/perf.spec.js",
-        "test:ui:heap": "playwright test --config playwright.ui.config.js tests/ui/heap-profile.spec.js",
-        "test:ui:screenshots": "playwright test --config playwright.screenshots.config.js",
-        "test:ui:guides": "playwright test --config playwright.guides.config.js",
-        "test:ui:lighthouse": "playwright test --config playwright.lighthouse.config.js",
-        "test:ui:lighthouse:ci": "MESHCHAT_UI_CI=1 playwright test --config playwright.lighthouse.config.js",
-        "test:ui:all": "playwright test --config playwright.ui.config.js",
-        "test:ui:selfcheck": "node scripts/ui/selfcheck.mjs",
-        "test:ui:metrics": "node scripts/ui/metrics-check.mjs",
-        "test:ui:metrics:update": "node scripts/ui/metrics-check.mjs --update",
-        "test:mutation:frontend": "node scripts/mutation/run.mjs",
-        "test:mutation:frontend:sample": "node scripts/mutation/run.mjs --source meshchatx/src/frontend/js/rnode/Capabilities.js --max-per-file 20",
-        "electron-postinstall": "electron-builder install-app-deps && node scripts/ensure-micron-parser-package.js && node scripts/patch-electron-builder-fs.cjs && node scripts/patch-electron-installer-common.cjs && node scripts/bundle-electron-preload.cjs",
-        "electron": "pnpm run electron-postinstall && pnpm run build && electron .",
-        "dist": "pnpm run electron-postinstall && pnpm run build && electron-builder --publish=never",
-        "dist:linux": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run build && electron-builder --linux AppImage deb --publish=never",
-        "dist:linux:offline": "cross-env MESHCHATX_OFFLINE_BUILD=1 pnpm run dist:linux",
-        "dist:linux-x64": "pnpm run electron-postinstall && cross-env PLATFORM=linux ARCH=x64 pnpm run build && electron-builder --linux AppImage deb --x64 --publish=never",
-        "dist:linux-x64:offline": "cross-env MESHCHATX_OFFLINE_BUILD=1 pnpm run dist:linux-x64",
-        "dist:linux-arm64": "pnpm run electron-postinstall && cross-env PLATFORM=linux ARCH=arm64 pnpm run build && electron-builder --linux AppImage deb --arm64 --publish=never",
-        "dist:linux-arm64:offline": "cross-env MESHCHATX_OFFLINE_BUILD=1 pnpm run dist:linux-arm64",
-        "dist:rpm": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run build && electron-builder --linux rpm --publish=never",
-        "dist:apk": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run build && electron-builder --linux dir --publish=never && bash scripts/ci/build-apk-package.sh --from-unpacked dist/linux-unpacked",
-        "dist:flatpak": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run build && electron-builder --linux flatpak --publish=never",
-        "dist:flatpak-prebuilt": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run version:sync && cross-env PLATFORM=linux pnpm run build-backend && electron-builder --linux flatpak --x64 --publish=never",
-        "dist:windows": "pnpm run electron-postinstall && cross-env PLATFORM=win32 pnpm run build && electron-builder --win portable nsis --publish=never",
-        "dist:win-x64": "pnpm run electron-postinstall && cross-env PLATFORM=win32 ARCH=x64 pnpm run build && electron-builder --win portable nsis --x64 --publish=never",
-        "dist:win-arm64": "pnpm run electron-postinstall && cross-env PLATFORM=win32 ARCH=arm64 pnpm run build && electron-builder --win portable nsis --arm64 --publish=never",
-        "dist:zip": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run build && electron-builder --linux zip --publish=never",
-        "dist-prebuilt": "pnpm run electron-postinstall && pnpm run build-backend && electron-builder --publish=never",
-        "dist:windows-prebuilt": "pnpm run electron-postinstall && cross-env PLATFORM=win32 pnpm run version:sync && cross-env PLATFORM=win32 pnpm run build-backend && electron-builder --win portable nsis --publish=never",
-        "dist:linux-prebuilt": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run version:sync && cross-env PLATFORM=linux pnpm run build-backend && electron-builder --linux AppImage deb --publish=never",
-        "dist:mac-arm64": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --arm64 --publish=never",
-        "dist:mac-universal": "bash scripts/build-macos-universal.sh",
-        "start": "pnpm run electron",
-        "brand:check": "node scripts/check-brand.mjs"
-    },
-    "license": "0BSD AND MIT",
-    "engines": {
-        "node": ">=24"
-    },
-    "packageManager": "pnpm@12.15.0",
-    "devDependencies": {
-        "@browsermt/bergamot-translator": "0.4.9",
-        "@electron/fuses": "^2.1.3",
-        "@eslint/js": "^10.0.1",
-        "@fontsource/ibm-plex-sans": "5.3.0",
-        "@fontsource/inter": "5.3.0",
-        "@fontsource/jetbrains-mono": "5.3.0",
-        "@fontsource/noto-sans": "^5.3.0",
-        "@fontsource/space-grotesk": "5.3.0",
-        "@mdi/js": "^7.4.47",
-        "@playwright/test": "^1.64.1",
-        "@tailwindcss/cli": "^4.3.3",
-        "@tailwindcss/forms": "^0.5.11",
-        "@tailwindcss/vite": "^4.3.3",
-        "@tanstack/vue-virtual": "^3.13.50",
-        "@vitejs/plugin-vue": "^6.0.10",
-        "@vitest/coverage-v8": "^5.0.5",
-        "@vitest/ui": "^5.0.5",
-        "@vue/test-utils": "^2.5.1",
-        "axe-core": "4.14.0",
-        "compressorjs": "^1.4.0",
-        "cross-env": "^10.1.0",
-        "dayjs": "^1.11.23",
-        "dompurify": "^3.4.17",
-        "electron": "45.2.1",
-        "electron-builder": "^26.18.0",
-        "electron-builder-squirrel-windows": "^26.18.0",
-        "emoji-picker-element": "^1.29.1",
-        "emoji-picker-element-data": "^1.8.0",
-        "eslint": "^10.14.0",
-        "eslint-config-prettier": "^10.1.8",
-        "eslint-plugin-prettier": "^5.5.7",
-        "eslint-plugin-security": "^4.2.1",
-        "eslint-plugin-vue": "^10.12.0",
-        "fake-indexeddb": "^6.2.7",
-        "globals": "^17.13.0",
-        "jsdom": "^30.1.3",
-        "jsqr": "^1.4.0",
-        "jszip": "^3.10.2",
-        "knip": "^6.44.1",
-        "lighthouse": "13.6.0",
-        "marked": "^18.1.2",
-        "micron-parser": "github:RFnexus/micron-parser-js#ce24ce44adf804230a16520a9f79cd5f183c0bb5",
-        "minimatch": ">=10.2.3",
-        "ol": "^10.11.0",
-        "ol-mapbox-style": "^13.8.0",
-        "pinia": "^4.1.0",
-        "prettier": "^3.9.10",
-        "qrcode": "^1.5.4",
-        "tailwindcss": "^4.3.3",
-        "terser": "^5.51.2",
-        "typescript": "^6.0.3",
-        "vis-data": "^8.0.6",
-        "vis-network": "^10.1.4",
-        "vis-util": "6.0.3",
-        "vite": "^8.3.5",
-        "vite-plugin-vue-devtools": "^8.2.1",
-        "vitest": "^5.0.5",
-        "vue": "^3.5.44",
-        "vue-eslint-parser": "^10.4.1",
-        "vue-i18n": "^11.4.16",
-        "vue-router": "^5.4.0",
-        "vue-tsc": "^3.3.14"
-    },
-    "build": {
-        "appId": "com.meshchatx.app",
-        "productName": "Reticulum MeshChatX",
-        "electronLanguages": [
-            "en-US"
-        ],
-        "asar": true,
-        "electronFuses": {
-            "runAsNode": false,
-            "enableCookieEncryption": true,
-            "enableNodeOptionsEnvironmentVariable": false,
-            "enableNodeCliInspectArguments": false,
-            "enableEmbeddedAsarIntegrityValidation": true,
-            "onlyLoadAppFromAsar": true
-        },
-        "toolsets": {
-            "appimage": "1.0.2"
-        },
-        "files": [
-            "package.json",
-            "electron/",
-            "electron/**"
-        ],
-        "directories": {
-            "buildResources": "electron/build"
-        },
-        "mac": {
-            "target": [
-                {
-                    "target": "dmg",
-                    "arch": [
-                        "universal"
-                    ]
-                }
-            ],
-            "identity": "-",
-            "protocols": [
-                {
-                    "name": "MeshChatX",
-                    "schemes": [
-                        "lxmf",
-                        "rns"
-                    ]
-                }
-            ],
-            "artifactName": "ReticulumMeshChatX-v${version}-mac-${arch}.${ext}",
-            "entitlements": "electron/build/entitlements.mac.plist",
-            "entitlementsInherit": "electron/build/entitlements.mac.plist",
-            "extendInfo": {
-                "NSMicrophoneUsageDescription": "Microphone access is only needed for audio calls and voice messages"
-            },
-            "x64ArchFiles": "Contents/Resources/backend{/**,/**/.*/**}",
-            "extraResources": [
-                {
-                    "from": "build/exe/darwin-${arch}",
-                    "to": "backend",
-                    "filter": [
-                        "**/*",
-                        "**/.gitkeep",
-                        "!backend-manifest.json"
-                    ]
-                }
-            ]
-        },
-        "win": {
-            "artifactName": "ReticulumMeshChat-v${version}-${os}-${arch}.${ext}",
-            "target": [
-                {
-                    "target": "portable",
-                    "arch": [
-                        "x64",
-                        "arm64"
-                    ]
-                },
-                {
-                    "target": "nsis",
-                    "arch": [
-                        "x64",
-                        "arm64"
-                    ]
-                }
-            ],
-            "extraResources": [
-                {
-                    "from": "build/exe/win32-${arch}",
-                    "to": "backend",
-                    "filter": [
-                        "**/*",
-                        "**/.gitkeep"
-                    ]
-                }
-            ]
-        },
-        "linux": {
-            "artifactName": "ReticulumMeshChatX-v${version}-${os}-${arch}.${ext}",
-            "target": [
-                {
-                    "target": "AppImage",
-                    "arch": [
-                        "x64",
-                        "arm64"
-                    ]
-                },
-                {
-                    "target": "deb",
-                    "arch": [
-                        "x64",
-                        "arm64"
-                    ]
-                }
-            ],
-            "maintainer": "Quad4",
-            "vendor": "Quad4",
-            "category": "Network",
-            "synopsis": "Mesh networking chat client",
-            "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
-            "extraResources": [
-                {
-                    "from": "build/exe/linux-${arch}",
-                    "to": "backend",
-                    "filter": [
-                        "**/*",
-                        "**/.gitkeep"
-                    ]
-                }
-            ]
-        },
-        "deb": {
-            "maintainer": "Quad4",
-            "vendor": "Quad4",
-            "packageCategory": "network",
-            "synopsis": "Mesh networking chat client",
-            "description": "A simple mesh network communications app powered by the Reticulum Network Stack"
-        },
-        "rpm": {
-            "maintainer": "Quad4",
-            "vendor": "Quad4",
-            "packageCategory": "Network",
-            "synopsis": "Mesh networking chat client",
-            "description": "A simple mesh network communications app powered by the Reticulum Network Stack"
-        },
-        "apk": {
-            "artifactName": "ReticulumMeshChatX-v${version}-${os}-alpine-${arch}.${ext}"
-        },
-        "flatpak": {
-            "runtime": "org.freedesktop.Platform",
-            "runtimeVersion": "25.08",
-            "sdk": "org.freedesktop.Sdk",
-            "base": "org.electronjs.Electron2.BaseApp",
-            "baseVersion": "25.08",
-            "branch": "stable",
-            "category": "Network",
-            "useWaylandFlags": true,
-            "modules": [
-                {
-                    "name": "zypak",
-                    "sources": [
-                        {
-                            "type": "git",
-                            "url": "https://github.com/refi64/zypak",
-                            "tag": "v2025.09",
-                            "commit": "693a71c5ffa80ec9c9ce2ae03b1ccc493c698e53"
-                        }
-                    ]
-                }
-            ],
-            "files": [
-                [
-                    "packaging/flatpak/com.meshchatx.app.metainfo.xml",
-                    "/share/metainfo/com.meshchatx.app.metainfo.xml"
-                ],
-                [
-                    "packaging/flatpak/com.meshchatx.app.png",
-                    "/share/icons/hicolor/512x512/apps/com.meshchatx.app.png"
-                ]
-            ],
-            "finishArgs": [
-                "--share=ipc",
-                "--share=network",
-                "--socket=x11",
-                "--socket=wayland",
-                "--device=dri",
-                "--allow=bluetooth",
-                "--filesystem=home",
-                "--talk-name=org.freedesktop.Notifications",
-                "--talk-name=org.freedesktop.DBus",
-                "--talk-name=org.freedesktop.portal.Desktop",
-                "--own-name=com.meshchatx.app",
-                "--env=TMPDIR=/var/tmp",
-                "--socket=pulseaudio",
-                "--filesystem=xdg-run/pipewire-0"
-            ]
-        },
-        "dmg": {
-            "writeUpdateInfo": false
-        },
-        "portable": {
-            "artifactName": "ReticulumMeshChatX-v${version}-${os}-portable.${ext}"
-        },
-        "nsis": {
-            "artifactName": "ReticulumMeshChatX-v${version}-${os}-installer.${ext}",
-            "oneClick": false,
-            "allowToChangeInstallationDirectory": true
-        }
-    },
-    "dependencies": {
-        "electron-prompt": "^1.7.0"
-    }
+  "name": "reticulum-meshchatx",
+  "version": "4.12.0",
+  "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
+  "homepage": "https://github.com/Quad4-Software/MeshChatX",
+  "author": {
+    "name": "Quad4"
+  },
+  "scripts": {
+    "dev": "vite dev",
+    "watch": "pnpm run build-frontend -- --watch",
+    "prebuild-frontend": "node scripts/ensure-micron-parser-package.js && node scripts/fetch-micron-wasm.mjs && node scripts/build-visualiser-wasm.mjs && node scripts/build-geo-wasm.mjs && node scripts/fetch-starter-mbtiles.mjs && node scripts/copy-bergamot-wasm.mjs && node scripts/build-desktop-shell-css.mjs && node scripts/sync-desktop-bridge.mjs && node scripts/copy-font-licenses.mjs && node scripts/sync-meshchatx-docs.js",
+    "predev": "node scripts/sync-meshchatx-docs.js && node scripts/build-desktop-shell-css.mjs && node scripts/sync-desktop-bridge.mjs",
+    "build-frontend": "vite build",
+    "build-backend": "node scripts/build-backend.js",
+    "desktop": "cd desktop && go run .",
+    "desktop:dev": "cd desktop && wails3 dev",
+    "desktop:build": "cd desktop && wails3 build",
+    "desktop:package": "cd desktop && wails3 package",
+    "dist": "pnpm run desktop:package",
+    "dist:linux": "cd desktop && task linux:package",
+    "dist:linux:x64": "cd desktop && task linux:package ARCH=amd64",
+    "dist:linux:arm64": "cd desktop && task linux:package ARCH=arm64",
+    "dist:rpm": "cd desktop && task linux:generate:rpm",
+    "dist:zip": "cd desktop && task linux:create:zip",
+    "dist:windows": "cd desktop && task windows:package",
+    "dist:win-x64": "cd desktop && task windows:package ARCH=amd64",
+    "dist:win-arm64": "cd desktop && task windows:package ARCH=arm64",
+    "dist:mac-arm64": "cd desktop && task darwin:package",
+    "dist:mac-universal": "cd desktop && task darwin:package",
+    "build-docs": "python3 scripts/build/fetch_reticulum_manual.py",
+    "build-docs:rns": "python3 scripts/build/fetch_reticulum_manual.py --force",
+    "build-repository-wheels": "python3 scripts/build/fetch_repository_wheels.py",
+    "version:sync": "node scripts/sync_version.js",
+    "deps:sync": "python3 scripts/sync_deps.py",
+    "build-meta:bake": "node scripts/bake_build_meta.js",
+    "build": "pnpm run version:sync && pnpm run build-frontend && pnpm run build-docs && pnpm run build-repository-wheels && pnpm run build-backend",
+    "build:offline": "cross-env MESHCHATX_OFFLINE_BUILD=1 pnpm run build",
+    "bundle:offline": "bash scripts/create-offline-bundle.sh",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json",
+    "knip": "knip",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run --exclude tests/frontend/LoadTimePerformance.test.js",
+    "test:coverage": "vitest run --coverage --exclude tests/frontend/LoadTimePerformance.test.js",
+    "test:fuzz": "vitest run -t fuzzing",
+    "test:watch": "vitest --exclude tests/frontend/LoadTimePerformance.test.js",
+    "test:i18n": "vitest run tests/frontend/i18n.test.js",
+    "test:loadtime": "vitest run tests/frontend/LoadTimePerformance.test.js",
+    "test:ui": "vitest --ui --open --exclude tests/frontend/LoadTimePerformance.test.js",
+    "pretest:e2e": "playwright install chromium",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:install": "playwright install chromium",
+    "pretest:ui:pages": "playwright install chromium",
+    "test:ui:pages": "playwright test --config playwright.ui.config.js tests/ui/pages.smoke.spec.js",
+    "test:ui:perf": "playwright test --config playwright.ui.config.js tests/ui/perf.spec.js",
+    "test:ui:heap": "playwright test --config playwright.ui.config.js tests/ui/heap-profile.spec.js",
+    "test:ui:screenshots": "playwright test --config playwright.screenshots.config.js",
+    "test:ui:guides": "playwright test --config playwright.guides.config.js",
+    "test:ui:lighthouse": "playwright test --config playwright.lighthouse.config.js",
+    "test:ui:lighthouse:ci": "MESHCHAT_UI_CI=1 playwright test --config playwright.lighthouse.config.js",
+    "test:ui:all": "playwright test --config playwright.ui.config.js",
+    "test:ui:selfcheck": "node scripts/ui/selfcheck.mjs",
+    "test:ui:metrics": "node scripts/ui/metrics-check.mjs",
+    "test:ui:metrics:update": "node scripts/ui/metrics-check.mjs --update",
+    "test:mutation:frontend": "node scripts/mutation/run.mjs",
+    "test:mutation:frontend:sample": "node scripts/mutation/run.mjs --source meshchatx/src/frontend/js/rnode/Capabilities.js --max-per-file 20",
+    "brand:check": "node scripts/check-brand.mjs",
+    "desktop:cross-check": "bash scripts/ci/check-desktop-cross-build.sh"
+  },
+  "license": "0BSD AND MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@12.15.0",
+  "devDependencies": {
+    "@browsermt/bergamot-translator": "0.4.9",
+    "@eslint/js": "^10.0.1",
+    "@fontsource/ibm-plex-sans": "5.3.0",
+    "@fontsource/inter": "5.3.0",
+    "@fontsource/jetbrains-mono": "5.3.0",
+    "@fontsource/noto-sans": "^5.3.0",
+    "@fontsource/space-grotesk": "5.3.0",
+    "@mdi/js": "^7.4.47",
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/cli": "^4.3.3",
+    "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/vue-virtual": "^3.13.50",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "@vitest/coverage-v8": "^5.0.5",
+    "@vitest/ui": "^5.0.5",
+    "@vue/test-utils": "^2.5.1",
+    "axe-core": "4.14.0",
+    "compressorjs": "^1.4.0",
+    "cross-env": "^10.1.0",
+    "dayjs": "^1.11.23",
+    "dompurify": "^3.4.17",
+    "emoji-picker-element": "^1.29.1",
+    "emoji-picker-element-data": "^1.8.0",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.7",
+    "eslint-plugin-security": "^4.2.1",
+    "eslint-plugin-vue": "^10.12.0",
+    "fake-indexeddb": "^6.2.7",
+    "globals": "^17.13.0",
+    "jsdom": "^30.1.3",
+    "jsqr": "^1.4.0",
+    "jszip": "^3.10.2",
+    "knip": "^6.44.1",
+    "lighthouse": "13.6.0",
+    "marked": "^18.1.2",
+    "micron-parser": "github:RFnexus/micron-parser-js#ce24ce44adf804230a16520a9f79cd5f183c0bb5",
+    "minimatch": ">=10.2.3",
+    "ol": "^10.11.0",
+    "ol-mapbox-style": "^13.8.0",
+    "pinia": "^4.1.0",
+    "prettier": "^3.9.10",
+    "qrcode": "^1.5.4",
+    "tailwindcss": "^4.3.3",
+    "terser": "^5.51.2",
+    "typescript": "^6.0.3",
+    "vis-data": "^8.0.6",
+    "vis-network": "^10.1.4",
+    "vis-util": "6.0.3",
+    "vite": "^8.3.5",
+    "vite-plugin-vue-devtools": "^8.2.1",
+    "vitest": "^5.0.5",
+    "vue": "^3.5.44",
+    "vue-eslint-parser": "^10.4.1",
+    "vue-i18n": "^11.4.16",
+    "vue-router": "^5.4.0",
+    "vue-tsc": "^3.3.14"
+  },
+  "dependencies": {}
 }

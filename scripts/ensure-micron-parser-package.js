@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: 0BSD
 // Git-hosted micron-parser ships without package.json. Normalize metadata so
-// electron-builder and Node resolution can find js/micron-parser.js.
+// the desktop bundler and Node resolution can find js/micron-parser.js.
 
 const fs = require("fs");
 const path = require("path");

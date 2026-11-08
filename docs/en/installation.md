@@ -25,7 +25,7 @@ MeshChatX can be installed in several ways. All release artifacts that ship the 
 | Flatpak                    | Yes               | Desktop from GitHub Pages                |
 | Debian .deb                | Yes               | Debian and Ubuntu systems                |
 | RPM package                | Yes               | Fedora, RHEL, openSUSE style systems     |
-| Electron desktop           | Yes               | Integrated desktop with bundled backend  |
+| Desktop (Wails)            | Yes               | Integrated desktop with bundled backend  |
 | Android APK                | Yes               | Phones, tablets, Meta Quest sideload     |
 | From source                | Built locally     | Development and custom builds            |
 
@@ -240,12 +240,30 @@ task run
 
 ## Linux AppImage and packages
 
+The desktop shell needs GTK 4, WebKitGTK 6.0 and libsoup 3 at runtime, plus the GStreamer base and good plugin sets so the embedded browser can play audio (voice messages, ringtones). Without the GStreamer plugins the app runs but in-page audio is silent and the log shows `GStreamer element autoaudiosink not found`.
+
+| Distribution   | Packages                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------- |
+| Debian, Ubuntu | `libgtk-4-1 libwebkitgtk-6.0-4 libsoup-3.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good` |
+| Fedora         | `gtk4 webkitgtk6.0 libsoup3 gstreamer1-plugins-base gstreamer1-plugins-good`                      |
+| Arch           | `gtk4 webkitgtk-6.0 libsoup3 gst-plugins-base gst-plugins-good`                                   |
+
+The .deb, .rpm and Arch packages pull these in automatically.
+
 **AppImage**
+
+The AppImage bundles the shell, GTK 4, WebKitGTK 6.0, GStreamer plugins and the backend, but not the C runtime: it runs against the host's glibc, libstdc++ and GPU/X11 driver stack. It is built on a recent distribution (glibc 2.44 at the time of writing), so use it on similarly recent hosts; the deb/rpm packages are the better choice for older distributions.
+
+The AppImage needs FUSE (`/dev/fuse` and `fusermount3`) to mount itself. On hosts without FUSE, extract-and-run works instead:
 
 ```bash
 chmod +x ./ReticulumMeshChatX-v*-linux-*.AppImage
 ./ReticulumMeshChatX-v*-linux-*.AppImage
+# or, without FUSE:
+./ReticulumMeshChatX-v*-linux-*.AppImage --appimage-extract-and-run
 ```
+
+WebKitGTK's bubblewrap sandbox is used as-is; the launcher never sets `WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS`. If the sandbox cannot start on your host (for example inside a container without user namespaces), in-page content that needs it may fail; setting that variable yourself disables a security boundary and is not recommended.
 
 **Debian package**
 
@@ -273,9 +291,13 @@ flatpak update
 
 Swap in `meshchatx-beta.flatpakref` or `meshchatx-testing.flatpakref` for those channels. Beta and testing refs exist only after a `beta-*` or `nightly-*`/`testing-*` tag has published a build. Until then the install fails with "No such ref" and stable is the only channel. The app ID is `com.meshchatx.app`. If a leftover GitHub Pages remote is still named `meshchatx`, run `flatpak remote-delete meshchatx` first.
 
+## Desktop deep links
+
+The desktop shells register `lxmf://` and `rns://` URL handlers. Opening such a link launches the app (or focuses the running instance) and forwards the URL to the app page once it is ready; links arriving during startup are queued, not dropped. On macOS, launching a second copy via a URL scheme is an OS-level limitation — the URL reaches the already-running instance only when the system delivers `open-url` to it; cold `open -a` with a URL argument works.
+
 ## Linux desktop emoji fonts
 
-The emoji picker uses system fonts through Electron/Chromium. Empty squares mean a color emoji package is missing. Install one and restart the app.
+The emoji picker uses system fonts through the platform webview. Empty squares mean a color emoji package is missing. Install one and restart the app.
 
 | Distro               | Install command                           |
 | -------------------- | ----------------------------------------- |
@@ -361,7 +383,7 @@ Common flags and environment variables:
 | --list-backups             |                                         | none                  | List automatic backups in storage (JSON) and exit                                      |
 | --export-backup            |                                         | none                  | Write a new backup zip to PATH, or copy backup NAME to DEST, and exit                  |
 | --restore-from-snapshot    | MESHCHAT_RESTORE_SNAPSHOT               | none                  | Restore the database from a snapshot name or path on startup                           |
-| --test-exception-message   |                                         | none                  | Throw an exception at startup (Electron error dialog testing)                          |
+| --test-exception-message   |                                         | none                  | Throw an exception at startup (desktop error dialog testing)                           |
 | (env only)                 | MESHCHAT_TRUSTED_PROXIES                | none                  | Proxy IPs/CIDRs allowed to supply X-Forwarded-* headers (see reverse proxy section)    |
 | (env only)                 | MESHCHAT_LANDLOCK                       | auto                  | Linux filesystem sandbox: 1/0 to force on or off                                       |
 | (env only)                 | MESHCHAT_SECCOMP                        | auto                  | Linux seccomp syscall filter: 1/0 to force on or off                                   |
@@ -421,7 +443,7 @@ meshchatx --headless \
   --reticulum-config-dir="$PERSIST/.reticulum"
 ```
 
-The Electron desktop app (AppImage, portable exe, macOS bundle) honors the same --data-dir / --storage-dir / --reticulum-config-dir flags (or the matching MESHCHAT_DATA_DIR / MESHCHAT_STORAGE_DIR / MESHCHAT_RETICULUM_CONFIG_DIR environment variables) on every platform, not just Windows:
+The desktop app (AppImage, portable exe, macOS bundle) honors the same --data-dir / --storage-dir / --reticulum-config-dir flags (or the matching MESHCHAT_DATA_DIR / MESHCHAT_STORAGE_DIR / MESHCHAT_RETICULUM_CONFIG_DIR environment variables) on every platform, not just Windows:
 
 ```bash
 export PERSIST="/media/amnesia/Persistent/meshchatx"

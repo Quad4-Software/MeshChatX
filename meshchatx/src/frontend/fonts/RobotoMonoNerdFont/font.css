@@ -1,3 +1,4 @@
+/* impeccable-disable overused-font: bundled icon font asset, not UI text */
 @font-face {
     font-family: "Roboto Mono Nerd Font";
     src: url("./RobotoMonoNerdFont-Regular.ttf") format("truetype");

@@ -6,7 +6,7 @@ import SettingsPage from "../../meshchatx/src/frontend/components/settings/Setti
 import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
 import DialogUtils from "../../meshchatx/src/frontend/js/DialogUtils";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
-import ElectronUtils from "../../meshchatx/src/frontend/js/ElectronUtils";
+import DesktopUtils from "../../meshchatx/src/frontend/js/DesktopUtils";
 import { buildFullServerConfig, createWindowApi } from "./fixtures/settingsPageTestApi.js";
 
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
@@ -42,10 +42,10 @@ vi.mock("../../meshchatx/src/frontend/js/KeyboardShortcuts", () => ({
     },
 }));
 
-vi.mock("../../meshchatx/src/frontend/js/ElectronUtils", () => ({
+vi.mock("../../meshchatx/src/frontend/js/DesktopUtils", () => ({
     default: {
-        isElectron: vi.fn(() => true),
-        isWindowsElectron: vi.fn(() => true),
+        isDesktop: vi.fn(() => true),
+        isWindowsDesktop: vi.fn(() => true),
         getScreenSecuritySettings: vi.fn(async () => ({
             platform: "win32",
             available: true,
@@ -93,14 +93,14 @@ async function mountSettingsPage() {
 describe("SettingsPage screen security edge and race", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        ElectronUtils.isWindowsElectron.mockReturnValue(true);
-        ElectronUtils.getScreenSecuritySettings.mockResolvedValue({
+        DesktopUtils.isWindowsDesktop.mockReturnValue(true);
+        DesktopUtils.getScreenSecuritySettings.mockResolvedValue({
             platform: "win32",
             available: true,
             windowsDrm: true,
             enabled: false,
         });
-        ElectronUtils.setScreenSecurityEnabled.mockImplementation(async (enabled) => ({
+        DesktopUtils.setScreenSecurityEnabled.mockImplementation(async (enabled) => ({
             platform: "win32",
             available: true,
             windowsDrm: true,
@@ -117,20 +117,20 @@ describe("SettingsPage screen security edge and race", () => {
         const wrapper = await mountSettingsPage();
         expect(wrapper.vm.showWindowsScreenSecurity).toBe(true);
         expect(wrapper.vm.screenSecurityEnabled).toBe(false);
-        expect(ElectronUtils.getScreenSecuritySettings).toHaveBeenCalled();
+        expect(DesktopUtils.getScreenSecuritySettings).toHaveBeenCalled();
         wrapper.unmount();
     });
 
     it("hides screen security when not Windows Electron", async () => {
-        ElectronUtils.isWindowsElectron.mockReturnValue(false);
+        DesktopUtils.isWindowsDesktop.mockReturnValue(false);
         const wrapper = await mountSettingsPage();
         expect(wrapper.vm.showWindowsScreenSecurity).toBe(false);
-        expect(ElectronUtils.getScreenSecuritySettings).not.toHaveBeenCalled();
+        expect(DesktopUtils.getScreenSecuritySettings).not.toHaveBeenCalled();
         wrapper.unmount();
     });
 
     it("tolerates getScreenSecuritySettings failures", async () => {
-        ElectronUtils.getScreenSecuritySettings.mockRejectedValue(new Error("ipc"));
+        DesktopUtils.getScreenSecuritySettings.mockRejectedValue(new Error("ipc"));
         const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
         const wrapper = await mountSettingsPage();
         expect(wrapper.vm.showWindowsScreenSecurity).toBe(true);
@@ -140,7 +140,7 @@ describe("SettingsPage screen security edge and race", () => {
     });
 
     it("cancels disable when confirm is rejected", async () => {
-        ElectronUtils.getScreenSecuritySettings.mockResolvedValue({
+        DesktopUtils.getScreenSecuritySettings.mockResolvedValue({
             enabled: true,
             available: true,
         });
@@ -150,14 +150,14 @@ describe("SettingsPage screen security edge and race", () => {
 
         await wrapper.vm.onScreenSecurityChange(false);
         expect(DialogUtils.confirm).toHaveBeenCalled();
-        expect(ElectronUtils.setScreenSecurityEnabled).not.toHaveBeenCalled();
+        expect(DesktopUtils.setScreenSecurityEnabled).not.toHaveBeenCalled();
         expect(wrapper.vm.screenSecurityEnabled).toBe(true);
         wrapper.unmount();
     });
 
     it("dedupes concurrent enable toggles (race)", async () => {
         let resolveSet;
-        ElectronUtils.setScreenSecurityEnabled.mockImplementation(
+        DesktopUtils.setScreenSecurityEnabled.mockImplementation(
             () =>
                 new Promise((resolve) => {
                     resolveSet = resolve;
@@ -167,7 +167,7 @@ describe("SettingsPage screen security edge and race", () => {
 
         const first = wrapper.vm.onScreenSecurityChange(true);
         const second = wrapper.vm.onScreenSecurityChange(true);
-        expect(ElectronUtils.setScreenSecurityEnabled).toHaveBeenCalledTimes(1);
+        expect(DesktopUtils.setScreenSecurityEnabled).toHaveBeenCalledTimes(1);
 
         resolveSet({ enabled: true, available: true, platform: "win32", windowsDrm: true });
         await Promise.all([first, second]);
@@ -184,7 +184,7 @@ describe("SettingsPage screen security edge and race", () => {
                     resolveConfirm = resolve;
                 })
         );
-        ElectronUtils.getScreenSecuritySettings.mockResolvedValue({
+        DesktopUtils.getScreenSecuritySettings.mockResolvedValue({
             enabled: true,
             available: true,
         });
@@ -197,13 +197,13 @@ describe("SettingsPage screen security edge and race", () => {
         resolveConfirm(true);
         await flushPromises();
         await Promise.all([first, second]);
-        expect(ElectronUtils.setScreenSecurityEnabled).toHaveBeenCalledTimes(1);
-        expect(ElectronUtils.setScreenSecurityEnabled).toHaveBeenCalledWith(false);
+        expect(DesktopUtils.setScreenSecurityEnabled).toHaveBeenCalledTimes(1);
+        expect(DesktopUtils.setScreenSecurityEnabled).toHaveBeenCalledWith(false);
         wrapper.unmount();
     });
 
     it("rolls back and toasts when setScreenSecurityEnabled fails", async () => {
-        ElectronUtils.setScreenSecurityEnabled.mockRejectedValue(new Error("fail"));
+        DesktopUtils.setScreenSecurityEnabled.mockRejectedValue(new Error("fail"));
         const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
         const wrapper = await mountSettingsPage();
         await wrapper.vm.onScreenSecurityChange(true);
@@ -213,13 +213,13 @@ describe("SettingsPage screen security edge and race", () => {
         wrapper.unmount();
     });
 
-    it("tolerates missing isWindowsElectron on ElectronUtils mock", async () => {
-        const original = ElectronUtils.isWindowsElectron;
+    it("tolerates missing isWindowsDesktop on DesktopUtils mock", async () => {
+        const original = DesktopUtils.isWindowsDesktop;
         // @ts-ignore
-        ElectronUtils.isWindowsElectron = undefined;
+        DesktopUtils.isWindowsDesktop = undefined;
         const wrapper = await mountSettingsPage();
         expect(wrapper.vm.showWindowsScreenSecurity).toBe(false);
-        ElectronUtils.isWindowsElectron = original;
+        DesktopUtils.isWindowsDesktop = original;
         wrapper.unmount();
     });
 });

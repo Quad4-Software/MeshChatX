@@ -144,15 +144,13 @@ jobs:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
-            - name: Cache electron downloads and builder toolsets
+            - name: Cache Wails CLI and Go module downloads
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
               with:
                   path: |
-                      ~/.cache/electron
-                      ~/.cache/electron-builder
-                      ~/Library/Caches/electron
-                      ~/Library/Caches/electron-builder
-                  key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+                                            ~/.cache/wails
+                                            ~/Library/Caches/wails
+                  key: wails-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
 
             - name: Install dependencies
               if: matrix.label != 'macos-x64'

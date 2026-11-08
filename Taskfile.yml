@@ -11,8 +11,6 @@ vars:
         sh: 'if [ "${MESHCHATX_OFFLINE_BUILD}" = "1" ]; then echo "--offline"; else echo ""; fi'
     UV_SYNC_FLAGS:
         sh: 'if [ "${MESHCHATX_OFFLINE_BUILD}" = "1" ]; then echo "--offline"; else echo ""; fi'
-    LEGACY_ELECTRON_VERSION:
-        sh: echo "${LEGACY_ELECTRON_VERSION:-30.0.8}"
     WINE_PYTHON:
         sh: echo "${WINE_PYTHON:-wine C:/Python315/python.exe}"
     DOCKER_COMPOSE_CMD:
@@ -37,14 +35,6 @@ vars:
         sh: echo "${DOCKER_BUILD_IMAGE:-reticulum-meshchatx-build:local}"
     DOCKER_BUILD_FILE:
         sh: echo "${DOCKER_BUILD_FILE:-docker/Dockerfile.build}"
-    DOCKER_ELECTRON_WINE_IMAGE:
-        sh: echo "${MESHCHATX_ELECTRON_WINE_IMAGE:-meshchatx-electron-wine:local}"
-    DOCKER_ELECTRON_WINE_FILE:
-        sh: echo "${MESHCHATX_ELECTRON_WINE_DOCKERFILE:-docker/Dockerfile.electron-wine}"
-    DOCKER_ELECTRON_WINE_TARGETS:
-        sh: echo "${MESHCHATX_ELECTRON_WINE_TARGETS:-win}"
-    DOCKER_ELECTRON_WINE_OUT:
-        sh: echo "${MESHCHATX_ELECTRON_WINE_OUT:-./meshchatx-artifacts-win}"
     ANDROID_DIR:
         sh: echo "${ANDROID_DIR:-android}"
     PYTHON_SRC_DIR:
@@ -210,19 +200,9 @@ tasks:
             - "{{.NPM}} run dev -- --host 127.0.0.1 --port 5173"
 
     start:
-        desc: Run the application via Electron Forge
+        desc: Run the desktop shell + backend (Wails dev)
         cmds:
-            - "{{.NPM}} run start"
-
-    package:
-        desc: Package the application with Electron Forge
-        cmds:
-            - "{{.NPM}} run package"
-
-    make:
-        desc: Generate distributables with Electron Forge
-        cmds:
-            - "{{.NPM}} run make"
+            - cd desktop && wails3 dev
 
     # --- Code Quality ---
 
@@ -483,10 +463,9 @@ tasks:
 
     test:frontend:
         aliases: [test:fe]
-        desc: Run frontend + Electron shell unit tests (vitest with coverage, excludes i18n, see test:lang, excludes LoadTimePerformance, use test:fe:loadtime locally)
+        desc: Run frontend unit tests (vitest with coverage, excludes i18n, see test:lang, excludes LoadTimePerformance, use test:fe:loadtime locally)
         cmds:
             - "{{.NPM}} exec vitest run --coverage --exclude tests/frontend/LoadTimePerformance.test.js --exclude tests/frontend/i18n.test.js"
-            - "{{.NPM}} exec vitest run --config vitest.electron.config.mjs --coverage"
 
     test:fe:ui:
         desc: Vitest UI runner for frontend unit tests
@@ -693,115 +672,77 @@ tasks:
         cmds:
             - bash scripts/build-pyz.sh
 
-    # --- Electron Distribution ---
+    # --- Desktop (Wails) Distribution ---
 
     dist:linux:appimage:
-        desc: Build Linux AppImage (x64 + arm64 only)
-        deps: [build:frontend]
+        desc: Build Linux AppImage
         cmds:
-            - "{{.NPM}} run electron-postinstall"
-            - "PLATFORM=linux ARCH=x64 {{.NPM}} run build-backend"
-            - "pnpm exec electron-builder --linux AppImage --x64 --publish=never"
-            - "PLATFORM=linux ARCH=arm64 {{.NPM}} run build-backend"
-            - "pnpm exec electron-builder --linux AppImage --arm64 --publish=never"
+            - cd desktop && task linux:create:appimage
 
     dist:linux:arm64:
         desc: Build Linux arm64 AppImage
-        deps: [build:frontend]
         cmds:
-            - "{{.NPM}} run electron-postinstall"
-            - "PLATFORM=linux ARCH=arm64 {{.NPM}} run build-backend"
-            - "{{.NPM}} run dist -- --linux AppImage --arm64"
+            - cd desktop && task linux:create:appimage ARCH=arm64
+
+    dist:linux:deb:
+        desc: Build Linux deb + rpm packages
+        cmds:
+            - cd desktop && task linux:package
 
     dist:win:exe:
-        desc: Build Windows portable EXE
-        deps: [build:frontend]
+        desc: Build Windows portable zip + NSIS installer
         cmds:
-            - "{{.NPM}} run electron-postinstall"
-            - "PLATFORM=win32 {{.NPM}} run build-backend"
-            - "{{.NPM}} run dist -- --win portable"
+            - cd desktop && task windows:package
 
     dist:win:arm64:
-        desc: Build Windows arm64 portable EXE
-        deps: [build:frontend]
+        desc: Build Windows arm64 portable zip + NSIS installer
         cmds:
-            - "{{.NPM}} run electron-postinstall"
-            - "PLATFORM=win32 ARCH=arm64 {{.NPM}} run build-backend"
-            - "{{.NPM}} run dist -- --win portable --arm64"
-
-    dist:win:wine:
-        desc: Build Windows EXE/Installer via Wine
-        deps: [build:frontend]
-        cmds:
-            - "{{.NPM}} run electron-postinstall"
-            - "PLATFORM=win32 PYTHON_CMD='{{.WINE_PYTHON}}' {{.NPM}} run build-backend"
-            - "npx electron-builder --win portable nsis --publish=never"
+            - cd desktop && task windows:package ARCH=arm64
 
     dist:fe:linux:
-        desc: Build Linux Electron app (prebuilt backend)
+        desc: Build Linux desktop packages (deb + AppImage)
         deps: [build:frontend]
         cmds:
-            - "{{.NPM}} run dist:linux"
+            - task: dist:linux:deb
+            - task: dist:linux:appimage
 
     dist:linux:
-        desc: Alias for dist:fe:linux (AppImage + deb)
+        desc: Alias for dist:fe:linux
         cmds:
             - task: dist:fe:linux
 
     dist:linux-x64:
-        desc: Build Linux x64 AppImage + deb
-        deps: [build:frontend]
+        desc: Build Linux x64 deb + AppImage
         cmds:
-            - "{{.NPM}} run dist:linux-x64"
-
-    dist:fe:rpm:
-        desc: Build RPM package
-        deps: [build:frontend]
-        cmds:
-            - "{{.NPM}} run dist:rpm"
-
-    dist:fe:apk:
-        desc: Build Alpine APK package
-        deps: [build:frontend]
-        cmds:
-            - "{{.NPM}} run dist:apk"
-
-    dist:fe:flatpak:
-        desc: Build Flatpak package
-        deps: [build:frontend]
-        cmds:
-            - "{{.NPM}} run dist:flatpak"
+            - task: dist:fe:linux
 
     dist:fe:win:
-        desc: Build Windows Electron apps
+        desc: Build Windows desktop packages
         deps: [build:frontend]
         cmds:
-            - "{{.NPM}} run dist:windows"
-
-    dist:fe:zip:
-        desc: Build Electron ZIP (Linux)
-        deps: [build:frontend]
-        cmds:
-            - "PLATFORM=linux {{.NPM}} run build-backend"
-            - "{{.NPM}} run dist:zip"
+            - task: dist:win:exe
 
     dist:all:
-        desc: Build all Electron apps (Linux + Win)
+        desc: Build desktop packages for the host platform
         deps: [build:frontend]
         cmds:
-            - "{{.NPM}} run electron-postinstall"
-            - "PLATFORM=linux {{.NPM}} run build-backend"
-            - "PLATFORM=win32 {{.NPM}} run build-backend"
-            - "{{.NPM}} run dist -- --linux AppImage deb --win portable nsis"
+            - task: dist:fe:linux
 
-    dist:all:wine:
-        desc: Build all Electron apps (Linux + Win via Wine)
+    dist:mac:
+        desc: Build macOS .app bundle + dmg (run on macOS)
         deps: [build:frontend]
         cmds:
-            - "{{.NPM}} run electron-postinstall"
-            - "PLATFORM=linux {{.NPM}} run build-backend"
-            - "PLATFORM=win32 PYTHON_CMD='{{.WINE_PYTHON}}' {{.NPM}} run build-backend"
-            - "npx electron-builder --linux AppImage deb --win portable nsis --publish=never"
+            - cd desktop && task darwin:package
+
+    desktop:build:
+        desc: Build the Wails desktop shell (production)
+        cmds:
+            - cd desktop && wails3 build
+
+    desktop:dev:
+        desc: Run the Wails desktop shell in dev mode
+        cmds:
+            - cd desktop && wails3 dev
 
     # --- Docker ---
 
@@ -846,21 +787,6 @@ tasks:
             - docker cp meshchat-build-temp:/app/dist/. ./dist/
             - docker cp meshchat-build-temp:/app/python-dist/. ./python-dist/
             - docker rm meshchat-build-temp
-
-    docker:dist:win:
-        desc: Optional Windows Electron build via electronuserland/builder Wine image (not a GH Actions replacement)
-        cmds:
-            - chmod +x scripts/docker/electron-wine-build.sh scripts/ci/docker-electron-wine-entry.sh scripts/setup_wine_env.sh
-            - MESHCHATX_ELECTRON_WINE_IMAGE="{{.DOCKER_ELECTRON_WINE_IMAGE}}" MESHCHATX_ELECTRON_WINE_DOCKERFILE="{{.DOCKER_ELECTRON_WINE_FILE}}" MESHCHATX_ELECTRON_WINE_TARGETS="{{.DOCKER_ELECTRON_WINE_TARGETS}}" MESHCHATX_ELECTRON_WINE_OUT="{{.DOCKER_ELECTRON_WINE_OUT}}" bash scripts/docker/electron-wine-build.sh
-
-    docker:dist:win:smoke:
-        desc: Smoke-test electron-wine Docker toolchain (node/wine/python only)
-        cmds:
-            - task: docker:dist:win
-              vars:
-                  DOCKER_ELECTRON_WINE_TARGETS: smoke
-                  DOCKER_ELECTRON_WINE_IMAGE: meshchatx-electron-wine:smoke
-                  DOCKER_ELECTRON_WINE_OUT: ./meshchatx-artifacts-win-smoke
 
     # --- Android ---
 

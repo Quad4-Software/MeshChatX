@@ -335,10 +335,10 @@ describe("swClientRegister update lifecycle reference", () => {
 
     it("reference: service worker registers only outside Vite DEV and Electron", () => {
         const cases = [
-            { isDev: false, isElectron: false, expected: true },
-            { isDev: true, isElectron: false, expected: false },
-            { isDev: false, isElectron: true, expected: false },
-            { isDev: true, isElectron: true, expected: false },
+            { isDev: false, isDesktop: false, expected: true },
+            { isDev: true, isDesktop: false, expected: false },
+            { isDev: false, isDesktop: true, expected: false },
+            { isDev: true, isDesktop: true, expected: false },
         ];
         for (const input of cases) {
             expect(shouldRegisterServiceWorker(input), JSON.stringify(input)).toBe(input.expected);

@@ -1,0 +1,15 @@
+{
+	"fixed": {
+		"file_version": "4.12.0"
+	},
+	"info": {
+		"0000": {
+			"ProductVersion": "4.12.0",
+			"CompanyName": "Quad4",
+			"FileDescription": "Reticulum MeshChatX",
+			"LegalCopyright": "(c) 2025, Quad4",
+			"ProductName": "Reticulum MeshChatX",
+			"Comments": "Mesh networking chat client"
+		}
+	}
+}

@@ -1,0 +1,44 @@
+# Wails v3 build assets configuration. Regenerate platform assets with:
+#   wails3 task common:update:build-assets
+version: '3'
+
+info:
+  companyName: "Quad4"
+  productName: "Reticulum MeshChatX"
+  productIdentifier: "com.meshchatx.app"
+  description: "A simple mesh network communications app powered by the Reticulum Network Stack"
+  copyright: "(c) 2025, Quad4"
+  comments: "Mesh networking chat client"
+  version: "4.12.0"
+
+dev_mode:
+  root_path: .
+  log_level: warn
+  debounce: 1000
+  ignore:
+    dir:
+      - .git
+      - bin
+      - build
+    file:
+      - .DS_Store
+      - .gitignore
+    watched_extension:
+      - "*.go"
+    git_ignore: true
+  executes:
+    - cmd: wails3 build DEV=true
+      type: blocking
+    - cmd: wails3 task run
+      type: primary
+      exit_policy: shutdown
+
+protocols:
+  - scheme: lxmf
+    description: MeshChatX LXMF message links
+  - scheme: rns
+    description: MeshChatX Reticulum Network Suite links
+
+other:
+  - name: Backend
+    value: "ReticulumMeshChatX (Python backend, bundled under backend/ or Contents/Resources/backend)"

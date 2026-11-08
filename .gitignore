@@ -205,3 +205,9 @@ tests/ui/baseline.json
 
 # Local toolchain downloads (TinyGo, etc.)
 .tools/
+
+# Wails desktop build outputs
+desktop/bin/
+desktop/build/bin/
+desktop/build/**/*.syso
+desktop/dist/

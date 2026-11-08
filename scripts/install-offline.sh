@@ -14,7 +14,7 @@ Usage:
 This script:
   1. Finds the offline bundle directory
   2. Extracts node_modules/ from the bundle (if not already present)
-  3. Exports cache paths for uv and electron-builder
+  3. Exports cache paths for uv, pnpm, and the Go/Wails toolchain
   4. Runs 'make install' in offline mode
 
 After install, build with:
@@ -60,7 +60,8 @@ fi
 
 export MESHCHATX_OFFLINE_BUILD=1
 export UV_CACHE_DIR="${BUNDLE}/uv-cache"
-export ELECTRON_BUILDER_CACHE="${BUNDLE}/electron-builder-cache"
+export GOMODCACHE="${BUNDLE}/go-mod-cache"
+export GOCACHE="${BUNDLE}/go-build-cache"
 
 echo ""
 echo "Running offline install..."

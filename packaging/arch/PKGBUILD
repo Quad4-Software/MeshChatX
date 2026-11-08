@@ -7,8 +7,8 @@ pkgdesc="A simple mesh network communications app powered by the Reticulum Netwo
 arch=('x86_64' 'aarch64')
 url="https://github.com/Quad4-Software/MeshChatX"
 license=('0BSD' 'MIT')
-depends=('opus' 'opusfile' 'portaudio' 'espeak-ng')
-makedepends=('git' 'nodejs' 'pnpm' 'python' 'python-pip' 'python-setuptools' 'python-wheel')
+depends=('opus' 'opusfile' 'portaudio' 'espeak-ng' 'gtk4' 'webkitgtk-6.0' 'libsoup3' 'gst-plugins-base' 'gst-plugins-good')
+makedepends=('git' 'go' 'nodejs' 'pnpm' 'python' 'python-pip' 'python-setuptools' 'python-wheel')
 provides=("$_pkgname")
 conflicts=("$_pkgname")
 source=("$_pkgname::git+https://github.com/Quad4-Software/MeshChatX.git"
@@ -44,16 +44,25 @@ build() {
   export PNPM_HOME="$srcdir/.pnpm-home"
   export PYTHON_CMD="$srcdir/$_pkgname/.build-venv/bin/python"
 
-  pnpm run electron-postinstall
-  pnpm run build
-  pnpm exec electron-builder --linux --dir
+  pnpm run build-frontend
+  pnpm run build-docs
+  pnpm run build-repository-wheels
+  export PLATFORM=linux pnpm run build-backend
+
+  # Go >= 1.27 + Wails v3 desktop shell
+  export PATH="$PATH:$(go env GOPATH)/bin"
+  (cd desktop && wails3 generate icons -input build/appicon.png -outputdir build >/dev/null 2>&1 || true)
+  (cd desktop && CGO_ENABLED=1 go build -tags production -trimpath -buildvcs=false -ldflags="-w -s" -o bin/reticulum-meshchatx .)
+  mkdir -p desktop/bin/backend
+  cp -a "build/exe/linux-x64/." desktop/bin/backend/
 }
 
 package() {
   cd "$_pkgname"
 
-  install -d "$pkgdir/usr/lib/$_pkgname"
-  cp -a dist/linux-unpacked/* "$pkgdir/usr/lib/$_pkgname/"
+  install -d "$pkgdir/usr/lib/$_pkgname/backend"
+  install -m755 "$srcdir/$_pkgname/desktop/bin/reticulum-meshchatx" "$pkgdir/usr/lib/$_pkgname/reticulum-meshchatx"
+  cp -a "$srcdir/$_pkgname/desktop/bin/backend/." "$pkgdir/usr/lib/$_pkgname/backend/"
 
   install -d "$pkgdir/usr/bin"
   ln -s "/usr/lib/$_pkgname/reticulum-meshchatx" "$pkgdir/usr/bin/$_pkgname"

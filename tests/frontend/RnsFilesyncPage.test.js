@@ -17,10 +17,10 @@ vi.mock("@/js/registries/wsEventRegistry", () => ({
     offWsEvent: vi.fn(),
 }));
 
-vi.mock("@/js/ElectronUtils", () => ({
+vi.mock("@/js/DesktopUtils", () => ({
     default: {
         openDirectoryOrCopy: vi.fn().mockResolvedValue(true),
-        isElectron: vi.fn().mockReturnValue(false),
+        isDesktop: vi.fn().mockReturnValue(false),
         pickDirectory: vi.fn().mockResolvedValue(null),
     },
 }));

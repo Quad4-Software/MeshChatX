@@ -2,7 +2,7 @@
 
 [English](../README.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | [中文](README.zh.md) | [日本語](README.ja.md)
 
-Форк [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) от Liam Cottle. MeshChatX добавляет голосовые звонки LXST, RRC relay chat, оверлеи карты Nomad, плагины, сырой SQLite (без Peewee) и десктопные сборки Electron 41. Независим от upstream. Не связан с ним.
+Форк [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) от Liam Cottle. MeshChatX добавляет голосовые звонки LXST, RRC relay chat, оверлеи карты Nomad, плагины, сырой SQLite (без Peewee) и десктопные сборки Wails 41. Независим от upstream. Не связан с ним.
 
 - Сайт: [meshchatx.com](https://meshchatx.com)
 - Исходники: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)

@@ -41,10 +41,10 @@ vi.mock("../../meshchatx/src/frontend/js/KeyboardShortcuts", () => ({
     },
 }));
 
-vi.mock("../../meshchatx/src/frontend/js/ElectronUtils", () => ({
+vi.mock("../../meshchatx/src/frontend/js/DesktopUtils", () => ({
     default: {
-        isElectron: vi.fn(() => false),
-        isWindowsElectron: vi.fn(() => false),
+        isDesktop: vi.fn(() => false),
+        isWindowsDesktop: vi.fn(() => false),
     },
 }));
 

@@ -81,7 +81,7 @@ MESHCHAT_AUTH_BYPASS=1 skips session auth for local testing only. Do not use it 
 - WebSocket upgrades require a same-authority Origin when the browser sends one. Missing Origin is allowed on loopback binds (and when password auth is enabled) so local non-browser tools keep working. On a non-loopback bind without password auth, a missing Origin is rejected.
 - /ws inbound messages are rate-limited per connection. Nomad file downloads over WS are capped (default 10 MiB) and large transfers use chunked frames. Debug counters are at GET /api/v1/debug/websocket.
 
-Electron loads the UI from the local HTTPS origin served by the embedded backend.
+The desktop shell loads the UI from the local HTTPS origin served by the embedded backend.
 
 ## IP allowlisting
 
@@ -93,7 +93,7 @@ app_security_settings can restrict which client IPs may use the web UI. Combine 
 
 Privacy mode does not disable Reticulum mesh traffic. It limits clearnet fetches from the app itself.
 
-External links are a different surface. When you open an http(s) link in the UI, the Electron and Android shells hand it to the system browser. Privacy mode does not block that hand-off. The flag governs what the app fetches, not which links you choose to open.
+External links are a different surface. When you open an http(s) link in the UI, the desktop and Android shells hand it to the system browser. Privacy mode does not block that hand-off. The flag governs what the app fetches, not which links you choose to open.
 
 ## Linux sandboxing
 
@@ -113,7 +113,7 @@ Android never enables these in-process sandboxes (the Android app seccomp policy
 
 See **Linux sandboxing** in Platform guides for optional Firejail and Bubblewrap wrappers around the host install.
 
-## Windows Electron AppContainer
+## Windows desktop AppContainer
 
 Windows desktop builds can spawn the Python backend inside an LPAC AppContainer. The sandbox is off by default. Set MESHCHAT_APPCONTAINER=1 to require it or MESHCHAT_APPCONTAINER=auto to use it with an unsandboxed fallback when setup fails. Check /api/v1/server/security for appcontainer_active when debugging sandbox-related SQLite or filesystem errors on Windows.
 
@@ -123,7 +123,7 @@ Use **Blocked** for specific destination hashes. Combine with sieve filters, mes
 
 ## Data backup
 
-Database backups land in database-backups/. Before a schema upgrade, MeshChatX writes a backup-pre-migrate-v*-to-v*.zip in that folder unless MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1. After a successful migration it runs PRAGMA quick_check and keeps the five newest pre-migrate zips (override with MESHCHAT_PRE_MIGRATE_BACKUP_KEEP, 0 disables pruning). If the stored schema version is newer than this build supports, startup refuses to migrate. Only one process should use a given identity storage directory at a time (storage lock). Roll back by restoring a backup zip and running an older MeshChatX build. Export snapshots from **About** or the API. Electron crash recovery can offer restore when integrity checks fail.
+Database backups land in database-backups/. Before a schema upgrade, MeshChatX writes a backup-pre-migrate-v*-to-v*.zip in that folder unless MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1. After a successful migration it runs PRAGMA quick_check and keeps the five newest pre-migrate zips (override with MESHCHAT_PRE_MIGRATE_BACKUP_KEEP, 0 disables pruning). If the stored schema version is newer than this build supports, startup refuses to migrate. Only one process should use a given identity storage directory at a time (storage lock). Roll back by restoring a backup zip and running an older MeshChatX build. Export snapshots from **About** or the API. desktop crash recovery can offer restore when integrity checks fail.
 
 CLI examples:
 
@@ -180,7 +180,7 @@ If you pass --storage-dir or --reticulum-config-dir, delete those directories in
 
 ## Integrity checks
 
-Startup integrity verification runs in packaged Electron builds and can be triggered from the backend. Failed checks surface recovery options instead of silently corrupting data.
+Startup integrity verification runs in packaged desktop builds and can be triggered from the backend. Failed checks surface recovery options instead of silently corrupting data.
 
 Each identity storage directory keeps a signed manifest (`integrity-manifest.json`) of SHA-256 hashes for files that should be stable at rest: the `identity` private key, `database.db`, and any unexpected top-level file. Directories the app or remote peers rewrite during normal operation (lxmf_router, docs, database-backups, filesync, map data, RRC state, media folders) are excluded, since monitoring them only produces false alarms.
 

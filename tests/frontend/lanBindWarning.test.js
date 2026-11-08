@@ -10,7 +10,7 @@ import {
 
 describe("shouldShowLanBindNoAuthBanner", () => {
     const lanNoAuth = {
-        isElectron: false,
+        isDesktop: false,
         isAndroid: false,
         authEnabled: false,
         isLoopbackBind: false,
@@ -31,7 +31,7 @@ describe("shouldShowLanBindNoAuthBanner", () => {
     });
 
     it("hides on electron, android, loopback, auth, or auth route", () => {
-        expect(shouldShowLanBindNoAuthBanner({ ...lanNoAuth, isElectron: true })).toBe(false);
+        expect(shouldShowLanBindNoAuthBanner({ ...lanNoAuth, isDesktop: true })).toBe(false);
         expect(shouldShowLanBindNoAuthBanner({ ...lanNoAuth, isAndroid: true })).toBe(false);
         expect(shouldShowLanBindNoAuthBanner({ ...lanNoAuth, isLoopbackBind: true })).toBe(false);
         expect(shouldShowLanBindNoAuthBanner({ ...lanNoAuth, authEnabled: true })).toBe(false);

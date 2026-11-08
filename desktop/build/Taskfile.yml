@@ -1,0 +1,66 @@
+version: '3'
+
+tasks:
+  go:mod:tidy:
+    summary: Runs `go mod tidy`
+    internal: true
+    run: once
+    cmds:
+      - go mod tidy
+
+  generate:icons:
+    summary: Generates Windows `.ico` and Mac `.icns` from an image
+    dir: build
+    sources:
+      - "appicon.png"
+    generates:
+      - "darwin/icons.icns"
+      - "windows/icon.ico"
+    cmds:
+      - wails3 generate icons -input appicon.png -macfilename darwin/icons.icns -windowsfilename windows/icon.ico
+
+  update:build-assets:
+    summary: Updates generated build assets (desktop files, manifests)
+    dir: build
+    cmds:
+      - wails3 update build-assets -name "{{.APP_NAME}}" -binaryname "{{.APP_NAME}}" -config config.yml -dir .
+
+  bundle:backend:
+    summary: Copies the frozen Python backend into bin/backend for packaging
+    internal: true
+    vars:
+      OS: '{{.OS | default "linux"}}'
+      ARCH: '{{.ARCH | default "amd64"}}'
+    cmds:
+      - |
+        set -e
+        case "{{.OS}}" in
+          windows) PLATFORM=win32 ;;
+          darwin)  PLATFORM=darwin ;;
+          *)       PLATFORM=linux ;;
+        esac
+        case "{{.ARCH}}" in
+          amd64|x64)   SUFFIX=x64 ;;
+          arm64|aarch64) SUFFIX=arm64 ;;
+          *)           SUFFIX="{{.ARCH}}" ;;
+        esac
+        SRC="../build/exe/${PLATFORM}-${SUFFIX}"
+        if [ -d "$SRC" ]; then
+          mkdir -p "{{.BIN_DIR}}/backend"
+          cp -a "$SRC/." "{{.BIN_DIR}}/backend/"
+          echo "bundled backend from $SRC -> {{.BIN_DIR}}/backend"
+        else
+          echo "bundle:backend: frozen backend not found at $SRC (run 'pnpm run build-backend' at repo root before packaging)" >&2
+        fi
+
+  version:sync:
+    summary: Syncs version fields from app-version.json into wails.yaml/build config
+    cmds:
+      - |
+        set -e
+        V=$(python3 -c "import json;print(json.load(open('app-version.json'))['version'])" 2>/dev/null || grep -o '"version"[^,}]*' app-version.json | head -1 | grep -o '[0-9][0-9.]*')
+        test -n "$V"
+        sed -i.bak "s/^  version: .*/  version: \"$V\"/" build/config.yml && rm -f build/config.yml.bak
+        sed -i.bak "s/\"file_version\": \"[^\"]*\"/\"file_version\": \"$V\"/; s/\"ProductVersion\": \"[^\"]*\"/\"ProductVersion\": \"$V\"/" build/windows/info.json && rm -f build/windows/info.json.bak
+        sed -i.bak "s|<string>4\.[0-9.]*</string>|<string>$V</string>|g" build/darwin/Info.plist build/windows/wails.exe.manifest 2>/dev/null || true
+        rm -f build/darwin/Info.plist.bak build/windows/wails.exe.manifest.bak

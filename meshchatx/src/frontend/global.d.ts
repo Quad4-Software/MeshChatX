@@ -4,8 +4,8 @@ declare global {
     interface Window {
         /** Shared API client instance created in main.js. */
         api: ReturnType<typeof createApiClient>;
-        /** Electron preload bridge, present only in the desktop shell. */
-        electron?: any;
+        /** Desktop shell bridge (Wails), present only in the desktop shell. */
+        desktop?: any;
         /** Android WebView bridge, present only in the Android shell. */
         MeshChatXAndroid?: any;
         /** Native wav attachment callback registry for the Android bridge. */

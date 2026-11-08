@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>MeshChatX</title>
+        <script src="./desktop-bridge.js"></script>
+    </head>
+    <body>
+        <h1>MeshChatX desktop shell</h1>
+        <p id="out">bridge: pending</p>
+        <script>
+            (async function () {
+                var el = document.getElementById("out");
+                if (!window.desktop) {
+                    el.textContent = "bridge: absent";
+                    return;
+                }
+                try {
+                    var v = await window.desktop.appVersion();
+                    el.textContent = "bridge: ok version=" + v;
+                } catch (e) {
+                    el.textContent = "bridge: error " + e.message;
+                }
+            })();
+        </script>
+    </body>
+</html>

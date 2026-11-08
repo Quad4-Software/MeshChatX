@@ -6,7 +6,7 @@
  * meshchatx/src/backend/data/THIRD_PARTY_NOTICES.txt (reticulum-meshchatx line only),
  * meshchatx/src/backend/data/licenses_backend.json (reticulum-meshchatx entry),
  * android/app/build.gradle,
- * electron/app-version.json,
+ * desktop/app-version.json,
  * packaging/arch/PKGBUILD pkgver / printf fallback,
  * then runs scripts/bake_build_meta.js (git commit / channel overlay).
  *
@@ -114,8 +114,8 @@ patchFile("helm/meshchatx/Chart.yaml", (c) => c.replace(/^appVersion: "[^"]+"/m,
 
 console.log(`Synced version ${version} from package.json`);
 
-const appVersionPath = path.join(root, "electron", "app-version.json");
-writeIfChanged(appVersionPath, `${JSON.stringify({ version }, null, 4)}\n`);
+const desktopAppVersionPath = path.join(root, "desktop", "app-version.json");
+writeIfChanged(desktopAppVersionPath, `${JSON.stringify({ version }, null, 4)}\n`);
 
 try {
     require("./bake_build_meta.js");

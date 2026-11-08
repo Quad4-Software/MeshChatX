@@ -9,7 +9,7 @@ import AboutPage from "../../meshchatx/src/frontend/components/about/AboutPage.v
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 import DialogUtils from "../../meshchatx/src/frontend/js/DialogUtils";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
-import ElectronUtils from "../../meshchatx/src/frontend/js/ElectronUtils";
+import DesktopUtils from "../../meshchatx/src/frontend/js/DesktopUtils";
 
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {
@@ -34,9 +34,9 @@ vi.mock("../../meshchatx/src/frontend/js/DownloadUtils", () => ({
     },
 }));
 
-vi.mock("../../meshchatx/src/frontend/js/ElectronUtils", () => ({
+vi.mock("../../meshchatx/src/frontend/js/DesktopUtils", () => ({
     default: {
-        isElectron: () => false,
+        isDesktop: () => false,
         relaunch: vi.fn(),
         getMemoryUsage: vi.fn(),
     },
@@ -146,7 +146,7 @@ describe("identity switch and settings UI contracts", () => {
 
         const ctx = {
             restoreInProgress: false,
-            isElectron: false,
+            isDesktop: false,
             $t: (k) => k,
             scheduleRestoreRelaunch: AboutPage.methods.scheduleRestoreRelaunch,
         };
@@ -167,7 +167,7 @@ describe("identity switch and settings UI contracts", () => {
 
         await vi.advanceTimersByTimeAsync(2000);
         expect(reloadSpy).toHaveBeenCalled();
-        expect(ElectronUtils.relaunch).not.toHaveBeenCalled();
+        expect(DesktopUtils.relaunch).not.toHaveBeenCalled();
         expect(ctx.restoreInProgress).toBe(false);
 
         Object.defineProperty(window, "location", {

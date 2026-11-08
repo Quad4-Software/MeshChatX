@@ -89,7 +89,7 @@ describe("TutorialModal getting started migration", () => {
     });
 
     afterEach(() => {
-        delete window.electron;
+        delete window.desktop;
     });
 
     it("dialog show() loads migration offer when app_info reports show_choice", async () => {
@@ -155,7 +155,7 @@ describe("TutorialModal getting started migration", () => {
             }
             return Promise.resolve({ data: {} });
         });
-        window.electron = { relaunch: vi.fn().mockResolvedValue(undefined) };
+        window.desktop = { relaunch: vi.fn().mockResolvedValue(undefined) };
 
         const router = createRouter({
             history: createWebHashHistory(),
@@ -178,7 +178,7 @@ describe("TutorialModal getting started migration", () => {
 
         expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/setup/storage-migration", { action: "migrate" });
         expect(ToastUtils.success).toHaveBeenCalledWith(en.tutorial.migration_done_restart);
-        expect(window.electron.relaunch).toHaveBeenCalled();
+        expect(window.desktop.relaunch).toHaveBeenCalled();
 
         wrapper.unmount();
     });

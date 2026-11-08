@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# AppRun for the MeshChatX AppImage.
+#
+# The bundled libwebkitgtk-6.0.so.4 has its helper-process directory
+# patched to the relative path "usr/lib/webkitgtk-6.0/" (see
+# patch-webkitgtk.py), so this script MUST cd into $APPDIR before exec —
+# WebKit resolves WebKitWebProcess/WebKitNetworkProcess/WebKitGPUProcess
+# and the injected bundle relative to the process working directory.
+#
+# $APPIMAGE is left untouched so the shell's single-instance relaunch and
+# protocol-URL forwarding keep working.
+# No `set -u`/`set -e`: plugin hooks reference optional env vars and must
+# not abort the launcher on a missing optional tool.
+
+# Resolve the directory this script lives in. When the AppImage is run,
+# $0 is <mountpoint>/AppRun and readlink -f lands inside the FUSE mount;
+# when extracted and run directly it is <dir>/squashfs-root/AppRun.
+HERE="$(dirname "$(readlink -f "${0}")")"
+export APPDIR="${APPDIR:-$HERE}"
+
+# Preserve the caller's working directory for relative path arguments,
+# then move into the AppDir for the patched WebKit helper paths.
+OWD="$(pwd)"
+export OWD
+cd "$APPDIR" || exit 1
+
+# linuxdeploy plugin hooks (GTK4 schemas/pixbuf/typelibs, GStreamer plugin
+# paths, ...). Each hook is a small env-setup snippet.
+if [ -d "$APPDIR/apprun-hooks" ]; then
+    for hook in "$APPDIR"/apprun-hooks/*.sh; do
+        [ -f "$hook" ] || continue
+        # shellcheck disable=SC1090
+        . "$hook"
+    done
+fi
+
+# Bundled libraries first. The excludelist keeps glibc, libstdc++ is allowed
+# to be bundled; system GL/driver libs are never bundled.
+export LD_LIBRARY_PATH="$APPDIR/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+# Extra GIO modules shipped in the bundle (e.g. glib-networking TLS for
+# libsoup). GIO_EXTRA_MODULES is additive to the compiled-in module dir.
+if [ -d "$APPDIR/usr/lib/gio/modules" ]; then
+    export GIO_EXTRA_MODULES="$APPDIR/usr/lib/gio/modules${GIO_EXTRA_MODULES:+:$GIO_EXTRA_MODULES}"
+fi
+
+exec "$APPDIR/usr/bin/meshchatx-desktop" "$@"

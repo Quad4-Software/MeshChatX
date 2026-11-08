@@ -3,11 +3,11 @@
 //
 // Verify a packaged Electron app tree against backend-manifest.json.
 //
-// electron-builder's extraResources can silently drop files that the build
+// The desktop packaging step can silently drop files that the build
 // manifest hashed (for example dotfile keep-markers under data/). A missing
 // entry then surfaces at runtime as a backend integrity "Missing:" warning
 // that blocks onboarding. This script replays verifyBackendIntegrity() from
-// electron/backendIntegrity.js against the unpacked staging tree so CI fails
+// the bundled backend tree so CI fails
 // on the drop instead of users.
 //
 // usage: node scripts/ci/github-verify-backend-manifest.mjs <dir>

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a macOS x86_64 DMG via electron-builder using MacPorts for native deps.
+# Build a macOS x86_64 DMG via Wails desktop packaging using MacPorts for native deps.
 # Runs on the GitHub-hosted macos-15-intel runner.
 set -euo pipefail
 
@@ -10,7 +10,6 @@ export CSC_IDENTITY_AUTO_DISCOVERY=false
 export MESHCHATX_SKIP_BACKEND_MANIFEST=1
 
 pnpm install --frozen-lockfile
-pnpm run electron-postinstall
 pnpm run version:sync
 
 # Skip frontend rebuild when CI provides a prebuilt meshchatx/public artifact
@@ -36,7 +35,5 @@ bash scripts/ci/github-verify-frozen-codec2.sh "$ROOT/build/exe/darwin-x64"
 bash scripts/ci/github-verify-frozen-umsgpack.sh "$ROOT/build/exe/darwin-x64"
 bash scripts/ci/github-verify-frozen-runtime.sh "$ROOT/build/exe/darwin-x64"
 
-pnpm exec electron-builder --mac --x64 --config scripts/ci/electron-builder-mac.config.js --publish=never
+pnpm exec Wails desktop packaging --mac --x64 --config scripts/ci/Wails desktop packaging-mac.config.js --publish=never
 
-bash scripts/ci/github-prune-electron-dist-staging.sh
-bash scripts/ci/github-verify-electron-dist.sh mac

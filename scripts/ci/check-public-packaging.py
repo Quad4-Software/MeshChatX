@@ -3,7 +3,7 @@
 """Fail if meshchatx/public is unsafe to ship in the wheel.
 
 Production Vite builds wipe assets/ and scrub known leftovers. This check
-catches a dirty tree before uv build / electron packaging:
+catches a dirty tree before uv build / desktop packaging:
 
   - leftover browser-Tailwind runtime files
   - hashed Vite chunks piled up across builds (3+ hashes for one stem)

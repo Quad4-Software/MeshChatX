@@ -73,18 +73,22 @@ describe("download wiring through DownloadUtils", () => {
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
         window.api = axiosMock;
-        window.electron = {
+        window.desktop = {
             getMemoryUsage: vi.fn().mockResolvedValue(null),
-            electronVersion: vi.fn().mockReturnValue("1.0.0"),
-            chromeVersion: vi.fn().mockReturnValue("1.0.0"),
-            nodeVersion: vi.fn().mockReturnValue("1.0.0"),
+            runtimeInfo: vi.fn().mockResolvedValue({
+                shell: "wails",
+                wailsVersion: "3.1.0",
+                webview: "webkitgtk-6.0",
+                os: "linux",
+                arch: "amd64",
+            }),
             appVersion: vi.fn().mockResolvedValue("1.0.0"),
         };
     });
 
     afterEach(() => {
         delete window.api;
-        delete window.electron;
+        delete window.desktop;
     });
 
     it("AboutPage.backupDatabase saves through DownloadUtils instead of anchor click", async () => {

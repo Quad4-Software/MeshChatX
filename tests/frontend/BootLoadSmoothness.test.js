@@ -49,7 +49,7 @@ describe("boot and load smoothness", () => {
         expect(main).toContain("requestAnimationFrame");
         expect(main).toContain("preloadCriticalRouteChunks");
         expect(main).toContain('import("./components/messages/MessagesPage.vue")');
-        expect(main).toContain("ElectronUtils.isElectron()");
+        expect(main).toContain("DesktopUtils.isDesktop()");
         expect(main).toContain("serviceWorkerRegisterOptions");
         expect(main).toContain("decideControllerChangeReload");
         expect(main).toContain("shouldRegisterServiceWorker");
