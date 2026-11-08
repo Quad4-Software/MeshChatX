@@ -9,7 +9,7 @@
 
 fetch_arch_pkg() {
     local pkg="$1"
-    local dest="$HOME/.local/meshchatx-ci/syslibs"
+    local dest="${MESHCHAT_SYSLIBS_DEST:-$HOME/.local/meshchatx-ci/syslibs}"
     mkdir -p "${dest}/pkgs"
     local f url tmp
     if command -v pacman >/dev/null 2>&1; then

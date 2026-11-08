@@ -626,6 +626,9 @@ jobs:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
 
+            - name: Provision Chromium runtime libs
+              run: bash scripts/ci/ensure-playwright-deps.sh
+
             - name: Run Playwright smoke E2E
               run: bash scripts/ci/github-e2e.sh tests/e2e/smoke.spec.js tests/e2e/live-mesh.spec.js tests/e2e/nomad-favourites-menu.spec.js
 
@@ -673,6 +676,9 @@ jobs:
               uses: $/.github/actions/fetch-frontend-artifact
               with:
                   artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
+
+            - name: Provision Chromium runtime libs
+              run: bash scripts/ci/ensure-playwright-deps.sh
 
             - name: Run UI page smoke + Lighthouse CI subset
               run: bash scripts/ci/github-lighthouse.sh
