@@ -70,16 +70,17 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
         command -v c++ >/dev/null 2>&1 && return 0
         command -v g++ >/dev/null 2>&1 && { export CXX=g++; return 0; }
         command -v clang++ >/dev/null 2>&1 && { export CXX=clang++; return 0; }
-        local zdir tmp url mode
+        local zdir tmp mode
         zdir="$HOME/.local/meshchatx-ci/zig"
+        # Pinned stable zig; shasum from ziglang.org/download/index.json.
+        local zig_url="https://ziglang.org/download/0.15.2/zig-x86_64-linux-0.15.2.tar.xz"
+        local zig_sha="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239"
         if [ ! -x "${zdir}/zig" ]; then
             command -v curl >/dev/null 2>&1 || return 1
-            url="$(curl -fsSL https://ziglang.org/download/index.json \
-                | grep -o '"tarball":"[^"]*x86_64-linux[^"]*\.tar\.xz"' \
-                | head -n1 | cut -d'"' -f4)"
-            [ -n "${url}" ] || return 1
             tmp="$(mktemp -d)"
-            curl -fsSL -o "${tmp}/zig.tar.xz" "${url}" || { rm -rf "${tmp}"; return 1; }
+            curl -fsSL -o "${tmp}/zig.tar.xz" "${zig_url}" || { rm -rf "${tmp}"; return 1; }
+            echo "${zig_sha}  ${tmp}/zig.tar.xz" | sha256sum -c - >/dev/null \
+                || { rm -rf "${tmp}"; return 1; }
             mkdir -p "${tmp}/extract" && tar -xJf "${tmp}/zig.tar.xz" -C "${tmp}/extract" \
                 || { rm -rf "${tmp}"; return 1; }
             mv "${tmp}/extract"/zig-* "${zdir}" && rm -rf "${tmp}"
