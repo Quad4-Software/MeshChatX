@@ -148,10 +148,10 @@ jobs:
             matrix:
                 include:
                     - arch: x64
-                      runner: blacksmith-4vcpu-ubuntu-2404
+                      runner: self-hosted
                       setup_trivy: true
                     - arch: arm64
-                      runner: blacksmith-4vcpu-ubuntu-2404-arm
+                      runner: ubuntu-24.04-arm
                       setup_trivy: false
         runs-on: ${{ matrix.runner }}
         timeout-minutes: 90
@@ -167,7 +167,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: useblacksmith/checkout@2b9fe87d796feea153b455ec2f3125b471a7b0e7 # v1.8.2
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
                   persist-credentials: false
 
@@ -250,7 +250,7 @@ jobs:
         name: SLSA subjects + cosign (Linux)
         needs: [linux-release]
         if: startsWith(github.ref, 'refs/tags/')
-        runs-on: blacksmith-4vcpu-ubuntu-2404
+        runs-on: self-hosted
         timeout-minutes: 20
         outputs:
             hashes: ${{ steps.hash.outputs.hashes }}
@@ -264,7 +264,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: useblacksmith/checkout@2b9fe87d796feea153b455ec2f3125b471a7b0e7 # v1.8.2
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
                   persist-credentials: false
 
@@ -313,7 +313,7 @@ jobs:
     flatpak:
         name: Flatpak (Wails shell)
         needs: frontend
-        runs-on: blacksmith-4vcpu-ubuntu-2404
+        runs-on: self-hosted
         timeout-minutes: 90
         permissions:
             contents: read
@@ -327,7 +327,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: useblacksmith/checkout@2b9fe87d796feea153b455ec2f3125b471a7b0e7 # v1.8.2
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
                   persist-credentials: false
 
@@ -418,7 +418,7 @@ jobs:
         name: Flatpak OSTree (GitHub Pages)
         needs: [flatpak]
         if: startsWith(github.ref, 'refs/tags/')
-        runs-on: blacksmith-4vcpu-ubuntu-2404
+        runs-on: self-hosted
         environment: release
         # The Pages publish is best effort. A failure here must not fail the
         # release: GitHub, PyPI, and rngit assets are already complete and
@@ -437,7 +437,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: useblacksmith/checkout@2b9fe87d796feea153b455ec2f3125b471a7b0e7 # v1.8.2
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
                   persist-credentials: false
 
@@ -512,17 +512,17 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    - os: blacksmith-4vcpu-windows-2025
+                    - os: windows-2025
                       label: windows
                       timeout: 120
                       build_script: scripts/ci/github-build-windows.sh
                       artifact_prefix: meshchatx-windows
-                    - os: blacksmith-6vcpu-macos-15
+                    - os: macos-15
                       label: macos
                       timeout: 180
                       build_script: scripts/ci/github-build-macos.sh
                       artifact_prefix: meshchatx-macos
-                    - os: blacksmith-6vcpu-macos-15
+                    - os: macos-15
                       label: macos-x64
                       timeout: 240
                       build_script: scripts/ci/github-build-macos-x64.sh
@@ -639,7 +639,7 @@ jobs:
             !cancelled() &&
             startsWith(github.ref, 'refs/tags/') &&
             (needs.build-release.result == 'success' || needs.build-release.result == 'failure')
-        runs-on: blacksmith-4vcpu-ubuntu-2404
+        runs-on: self-hosted
         timeout-minutes: 20
         outputs:
             hashes: ${{ steps.hash.outputs.hashes }}
@@ -650,7 +650,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: useblacksmith/checkout@2b9fe87d796feea153b455ec2f3125b471a7b0e7 # v1.8.2
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
                   persist-credentials: false
 
@@ -715,7 +715,7 @@ jobs:
             startsWith(github.ref, 'refs/tags/') &&
             (needs.android-release.result == 'success' || needs.android-release.result == 'skipped') &&
             (needs.flatpak.result == 'success' || needs.flatpak.result == 'failure')
-        runs-on: blacksmith-4vcpu-ubuntu-2404
+        runs-on: self-hosted
         timeout-minutes: 20
         outputs:
             hashes: ${{ steps.hash.outputs.hashes }}
@@ -727,7 +727,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: useblacksmith/checkout@2b9fe87d796feea153b455ec2f3125b471a7b0e7 # v1.8.2
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
                   persist-credentials: false
 
@@ -787,7 +787,7 @@ jobs:
             (needs.build-release.result == 'success' || needs.build-release.result == 'failure') &&
             needs.collect-desktop-slsa-subjects.result == 'success' &&
             needs.slsa-provenance-desktop.result == 'success'
-        runs-on: blacksmith-4vcpu-ubuntu-2404
+        runs-on: self-hosted
         environment: release
         timeout-minutes: 45
         permissions:
@@ -799,7 +799,7 @@ jobs:
                   egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
                   allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Checkout
-              uses: useblacksmith/checkout@2b9fe87d796feea153b455ec2f3125b471a7b0e7 # v1.8.2
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
                   persist-credentials: false
 
@@ -926,7 +926,7 @@ jobs:
             - flatpak-pages
             - build-release
             - draft-github-release
-        runs-on: blacksmith-4vcpu-ubuntu-2404
+        runs-on: self-hosted
         timeout-minutes: 20
         steps:
             - name: Harden runner
