@@ -409,12 +409,19 @@ tasks:
 
     test:be:cov:
         desc: Backend tests with coverage floor (xdist worker data merged from temp-tests/coverage)
+        cmds:
+            - rm -f .coverage temp-tests/coverage/.coverage*
+            - uv run pytest tests/backend -n auto {{.PYTEST_ARGS | default ""}} --cov=meshchatx/src/backend --cov-report=
+            - task: test:be:cov:combine
+              vars:
+                  COVERAGE_FLOOR: "{{.COVERAGE_FLOOR | default 60}}"
+
+    test:be:cov:combine:
+        desc: Merge coverage data files from temp-tests/coverage and enforce floors
         vars:
             # task env templates cannot see OS env vars; vars can
             MESHCHAT_COVERAGE_FLOOR: "{{.COVERAGE_FLOOR | default 60}}"
         cmds:
-            - rm -f .coverage temp-tests/coverage/.coverage*
-            - uv run pytest tests/backend -n auto {{.PYTEST_ARGS | default ""}} --cov=meshchatx/src/backend --cov-report=
             - uv run coverage combine temp-tests/coverage
             - uv run coverage xml -o coverage.xml
             - uv run coverage report --include="meshchatx/src/backend/*" --fail-under={{.MESHCHAT_COVERAGE_FLOOR}}

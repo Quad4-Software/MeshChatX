@@ -5,6 +5,7 @@
 - Dependencies: Electron 45, RNS 1.6.0, LXMF 1.3.0, and a refresh of frontend and backend packages. RNS now keeps known destinations and announces in SQLite storage, and MeshChatX writes ratchets through that store instead of a thread per write. The local propagation node address resolves lazily, and path expiry follows RNS's PATH_TIMEOUT.
 - CI: workflows migrated to Blacksmith runners.
 - CI: cut PR cost. The advisory mutation job, quarantined tests, Lighthouse, and the custom CodeQL jobs now run on master pushes only (mutation remains available via manual dispatch), the headless Self-Check matrix job and the exploratory E2E job are removed, and every job has a timeout. The coverage job fetches full history so diff-cover finds a merge base again.
+- CI: backend coverage is now collected inside the four test shards and merged by the coverage job, which no longer re-runs the whole suite. The coverage floor and the diff-cover gate are unchanged.
 - Docker: refreshed pinned digests for the node:24-alpine, python:3.15.0-alpine3.24, python:3.15.0-slim-trixie, and Chainguard node/python latest-dev base images.
 - Go: TinyGo 0.43.0 to 0.44.0 and the go directive to 1.27.3 across the visualiser-wasm and geo-wasm modules, with the WASM artifacts rebuilt and their SRI manifests refreshed.
 

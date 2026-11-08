@@ -328,16 +328,28 @@ jobs:
                   PYTEST_TOTAL_SHARDS: 4
                   # One retry max: absorbs single flakes without hiding real
                   # intermittency. Rerun counts surface via -rR in the log.
-                  PYTEST_ARGS: --reruns 1 -rR
+                  # Coverage data is collected per shard and merged by the
+                  # backend-coverage job instead of re-running the suite.
+                  PYTEST_ARGS: --reruns 1 -rR --cov=meshchatx/src/backend --cov-report=
               run: task test:backend
 
             - name: Verify workspace clean
               uses: $/.github/actions/verify-workspace-clean
 
+            - name: Upload shard coverage data
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+              with:
+                  name: backend-coverage-shard-${{ matrix.shard }}
+                  path: temp-tests/coverage/
+                  include-hidden-files: true
+                  if-no-files-found: error
+                  retention-days: 1
+
     backend-coverage:
         name: Backend coverage floor
         runs-on: blacksmith-4vcpu-ubuntu-2404
         timeout-minutes: 30
+        needs: backend-tests
         permissions:
             contents: read
         steps:
@@ -359,12 +371,18 @@ jobs:
                   uv-version: ${{ env.UV_VERSION }}
                   install-node: "false"
 
-            - name: Run backend tests with coverage floor
+            - name: Download shard coverage data
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+              with:
+                  pattern: backend-coverage-shard-*
+                  path: temp-tests/coverage
+                  merge-multiple: true
+
+            - name: Combine coverage and enforce floors
               env:
                   # Ratchet: raise this when measured coverage improves.
                   COVERAGE_FLOOR: "59"
-                  PYTEST_ARGS: --reruns 1 -rR
-              run: task test:be:cov
+              run: task test:be:cov:combine
 
             - name: Diff coverage gate on changed lines
               if: github.event_name == 'pull_request'
