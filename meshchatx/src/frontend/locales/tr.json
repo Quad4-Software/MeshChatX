@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Reticulum 1.6 ayarı",
+        "rns_tuning_description": "Gelişmiş Reticulum ağ filtreleri ve proof-of-work damga seçenekleri. Değişiklikler aktarımı yeniden başlatır.",
+        "rns_filter_required_only": "Yalnızca gerekli duyurular",
+        "rns_filter_required_only_description": "Bu düğümün kullandığı hedef türleri için duyuruları al (ilgisiz duyuru trafiğini atar).",
+        "rns_filter_hop_limiter": "Hop sınırlayıcı",
+        "rns_filter_hop_limiter_description": "Maksimum pathfinder hop sayısı (0-128). Boş bırakılırsa Reticulum varsayılanı korunur.",
+        "rns_stamp_destinations": "Hedefleri damgala",
+        "rns_stamp_destinations_description": "Duyurulan hedefler için proof-of-work damgaları üret (ilk duyuruda CPU yoğundur).",
+        "rns_stamp_prs": "Yol isteklerini damgala",
+        "rns_stamp_prs_description": "Giden yol isteklerine damga ekle.",
+        "rns_always_stamp_lrs": "Bağlantı isteklerini her zaman damgala",
+        "rns_always_stamp_lrs_description": "Damga gerektirmeyen hedeflere bile her bağlantı isteğini damgala.",
+        "rns_enforce_stamps": "Damgaları zorunlu kıl",
+        "rns_enforce_stamps_description": "Geçerli damgası olmayan duyuru, yol ve bağlantı isteklerini reddet. Yalnızca damgalı ağlarda etkinleştir.",
+        "rns_stamp_costs_description": "Damga maliyet/değer ve zaman aşımı değerleri. Boş alanlar Reticulum varsayılanlarını korur.",
+        "rns_identity_stamp_value": "Kimlik damga değeri",
+        "rns_identity_stamp_value_description": "Yeni oluşturulan kimlikler için proof-of-work değeri. 0 devre dışı bırakır (varsayılan); yüksek değerler anahtar üretimini yavaşlatır ama Sybil'e karşı korur."
     },
     "helptips": {
         "title_send_failed": "Denenecek şeyler",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "Otomatik bağlantı kaynağı",
         "blocked_ips": "Engellenen IP'ler",
         "burst": "Duyuru patlaması",
-        "path_burst": "Yol isteği patlaması"
+        "path_burst": "Yol isteği patlaması",
+        "network_internals": "Ağ iç detayları",
+        "path_table_detail": "{total} yol · {unused} kullanılmıyor",
+        "storage_known_destinations": "Bilinen hedefler",
+        "storage_announce_cache": "Duyuru önbelleği"
     },
     "remote_mgmt": {
         "management_identity": "Yönetim kimliği",

@@ -138,6 +138,14 @@ class ConfigManager:
             "lxmf_inbound_stamp_cost_before_block",
             -1,
         )  # prior stamp cost while block-all is on (-1 means unset)
+        # Reticulum 1.6 identity stamp value for newly created identities.
+        # 0 disables stamping (default); values above 0 make identity key
+        # generation CPU-heavy, so this stays opt-in.
+        self.rns_identity_stamp_value = self.FloatConfig(
+            self,
+            "rns_identity_stamp_value",
+            0.0,
+        )
         self.lxmf_flood_protection_enabled = self.BoolConfig(
             self,
             "lxmf_flood_protection_enabled",
@@ -903,6 +911,27 @@ class ConfigManager:
                 return self.default_value
 
         def set(self, value: int | None):
+            if value is None:
+                self.manager.db.config.delete(self.key)
+            else:
+                self.manager.db.config.set(self.key, str(value))
+
+    class FloatConfig:
+        def __init__(self, manager, key: str, default_value: float | None = 0.0):
+            self.manager = manager
+            self.key = key
+            self.default_value = default_value
+
+        def get(self) -> float | None:
+            config_value = self.manager.get(self.key, default_value=None)
+            if config_value is None:
+                return self.default_value
+            try:
+                return float(config_value)
+            except (ValueError, TypeError):
+                return self.default_value
+
+        def set(self, value: float | None):
             if value is None:
                 self.manager.db.config.delete(self.key)
             else:

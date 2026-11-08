@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Reticulum 1.6 튜닝",
+        "rns_tuning_description": "고급 Reticulum 네트워크 필터 및 proof-of-work 스탬프 옵션입니다. 변경 시 전송 계층이 재시작됩니다.",
+        "rns_filter_required_only": "필수 announce만 수신",
+        "rns_filter_required_only_description": "이 노드가 사용하는 대상 유형의 announce만 수신합니다(관련 없는 announce 트래픽을 버림).",
+        "rns_filter_hop_limiter": "홉 제한",
+        "rns_filter_hop_limiter_description": "패스파인더 최대 홉 수(0-128). 비워 두면 Reticulum 기본값 유지.",
+        "rns_stamp_destinations": "대상 스탬프",
+        "rns_stamp_destinations_description": "announce된 대상에 proof-of-work 스탬프 생성(첫 announce 시 CPU 부하가 큼).",
+        "rns_stamp_prs": "경로 요청 스탬프",
+        "rns_stamp_prs_description": "나가는 경로 요청에 스탬프를 포함합니다.",
+        "rns_always_stamp_lrs": "링크 요청 항상 스탬프",
+        "rns_always_stamp_lrs_description": "스탬프가 필요 없는 대상에도 모든 링크 요청에 스탬프를 적용합니다.",
+        "rns_enforce_stamps": "스탬프 강제",
+        "rns_enforce_stamps_description": "유효한 스탬프가 없는 announce, 경로 요청, 링크 요청을 거부합니다. 스탬프 네트워크에서만 활성화하세요.",
+        "rns_stamp_costs_description": "스탬프 비용/값 및 타임아웃 값입니다. 빈 필드는 Reticulum 기본값을 유지합니다.",
+        "rns_identity_stamp_value": "아이덴티티 스탬프 값",
+        "rns_identity_stamp_value_description": "새로 생성되는 아이덴티티의 proof-of-work 값입니다. 0은 비활성화(기본값)이며, 높은 값은 키 생성을 느리게 하지만 Sybil 저항성이 높아집니다."
     },
     "helptips": {
         "title_send_failed": "시도해 볼 방법",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "자동 연결 소스",
         "blocked_ips": "차단된 IP",
         "burst": "애너운스 버스트",
-        "path_burst": "경로 요청 버스트"
+        "path_burst": "경로 요청 버스트",
+        "network_internals": "네트워크 내부",
+        "path_table_detail": "경로 {total}개 · 미사용 {unused}개",
+        "storage_known_destinations": "알려진 대상",
+        "storage_announce_cache": "announce 캐시"
     },
     "remote_mgmt": {
         "management_identity": "관리 신원",

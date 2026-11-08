@@ -30,6 +30,7 @@ import traceback
 import webbrowser
 from collections import deque
 from datetime import UTC, datetime, timedelta
+from typing import ClassVar
 
 import bcrypt
 import LXMF
@@ -3425,7 +3426,17 @@ class ReticulumMeshChat:
         )
 
     def create_identity(self, display_name=None):
-        return self.identity_manager.create_identity(display_name)
+        stamp_value = 0.0
+        try:
+            ctx = self.current_context
+            if ctx is not None and getattr(ctx, "config", None) is not None:
+                stamp_value = ctx.config.rns_identity_stamp_value.get() or 0.0
+        except Exception:
+            stamp_value = 0.0
+        return self.identity_manager.create_identity(
+            display_name,
+            stamp_value=stamp_value,
+        )
 
     def _evict_cached_identity_context(self, identity_hash: str) -> None:
         canonical = normalize_identity_storage_hash(identity_hash)
@@ -4799,6 +4810,152 @@ class ReticulumMeshChat:
 
         return reticulum_config
 
+    # Reticulum 1.6 tuning sections. Keys are the option names RNS reads from
+    # the [filter] and [stamps] config sections (see RNS.Reticulum config
+    # parsing). Scalar options only; destination-type allow/ignore lists stay
+    # a raw-config-editor concern.
+    _RNS_TUNING_SECTIONS: ClassVar[dict] = {
+        "filter": {
+            "bool": {"required_only"},
+            "int": {"hop_limiter"},
+        },
+        "stamps": {
+            "bool": {
+                "stamp_destinations",
+                "stamp_prs",
+                "always_stamp_lrs",
+                "enforce_stamps",
+            },
+            "float": {
+                "destination_cost",
+                "destination_value",
+                "pr_cost",
+                "pr_value",
+                "lr_cost",
+                "lr_stamp_timeout",
+                "pr_stamp_timeout",
+            },
+        },
+    }
+
+    # Effective-value sources on RNS.Transport for the tuning keys above.
+    _RNS_TUNING_TRANSPORT_ATTRS: ClassVar[dict] = {
+        ("filter", "required_only"): "required_destinations_only",
+        ("filter", "hop_limiter"): "HOP_LIMITER",
+        ("stamps", "stamp_destinations"): "STAMP_DESTINATIONS",
+        ("stamps", "stamp_prs"): "STAMP_PRS",
+        ("stamps", "always_stamp_lrs"): "ALWAYS_STAMP_LRS",
+        ("stamps", "enforce_stamps"): "STAMPS_ENFORCED",
+        ("stamps", "destination_cost"): "DESTINATION_COST",
+        ("stamps", "destination_value"): "DESTINATION_VALUE",
+        ("stamps", "pr_cost"): "PR_COST",
+        ("stamps", "pr_value"): "PR_VALUE",
+        ("stamps", "lr_cost"): "LR_COST",
+        ("stamps", "lr_stamp_timeout"): "LINK_STAMP_TIMEOUT",
+        ("stamps", "pr_stamp_timeout"): "PR_STAMP_TIMEOUT",
+    }
+
+    def _get_rns_config_section(self, name: str) -> dict:
+        """Return a live RNS config section dict ([filter], [stamps], ...)."""
+        try:
+            reticulum = getattr(self, "reticulum", None)
+            cfg = getattr(reticulum, "config", None) if reticulum else None
+            if cfg is None:
+                return {}
+            section = cfg.get(name)
+            return section if isinstance(section, dict) else {}
+        except Exception:
+            return {}
+
+    def _rns_tuning_key_kind(self, section: str, key: str):
+        spec = self._RNS_TUNING_SECTIONS.get(section, {})
+        if key in spec.get("bool", set()):
+            return "bool"
+        if key in spec.get("int", set()):
+            return "int"
+        if key in spec.get("float", set()):
+            return "float"
+        return None
+
+    def _build_rns_tuning_settings(self) -> dict:
+        """Effective [filter]/[stamps] values (config or RNS defaults)."""
+        transport = getattr(RNS, "Transport", None)
+        result: dict[str, dict] = {}
+        for section, spec in self._RNS_TUNING_SECTIONS.items():
+            values: dict[str, object] = {}
+            for group in ("bool", "int", "float"):
+                for key in sorted(spec.get(group, set())):
+                    attr = self._RNS_TUNING_TRANSPORT_ATTRS.get((section, key))
+                    value = getattr(transport, attr, None) if attr else None
+                    if group == "bool":
+                        values[key] = (
+                            bool(value)
+                            if isinstance(value, (bool, int, float, str))
+                            else False
+                        )
+                    elif group == "int":
+                        try:
+                            values[key] = int(value)
+                        except (TypeError, ValueError):
+                            values[key] = None
+                    else:
+                        try:
+                            values[key] = float(value)
+                        except (TypeError, ValueError):
+                            values[key] = None
+            result[section] = values
+        return result
+
+    def _apply_rns_tuning_patch(self, data: dict):
+        """Apply {"filter": {...}, "stamps": {...}} sub-dicts to the RNS config.
+
+        Returns (changed, error_message). Unknown keys and bad types are
+        rejected; explicit null removes the key so RNS falls back to its
+        default. Values are written with the same Yes/No + scalar formatting
+        the [reticulum] options use.
+        """
+        reticulum = getattr(self, "reticulum", None)
+        cfg = getattr(reticulum, "config", None) if reticulum else None
+        if cfg is None:
+            return False, "Reticulum is not initialized"
+
+        changed = False
+        for section_name in self._RNS_TUNING_SECTIONS:
+            patch = data.get(section_name)
+            if patch is None:
+                continue
+            if not isinstance(patch, dict):
+                return False, f"{section_name} must be an object"
+            section = cfg.get(section_name)
+            if not isinstance(section, dict):
+                section = {}
+                cfg[section_name] = section
+            for key, raw in patch.items():
+                kind = self._rns_tuning_key_kind(section_name, key)
+                if kind is None:
+                    return False, f"Unknown {section_name} option: {key}"
+                if raw is None:
+                    if key in section:
+                        del section[key]
+                        changed = True
+                    continue
+                if kind == "bool":
+                    section[key] = self._format_rns_config_bool(
+                        self._parse_rns_config_bool(raw, default=False),
+                    )
+                elif kind == "int":
+                    try:
+                        section[key] = str(int(float(raw)))
+                    except (TypeError, ValueError):
+                        return False, f"{section_name}.{key} must be an integer"
+                else:
+                    try:
+                        section[key] = str(float(raw))
+                    except (TypeError, ValueError):
+                        return False, f"{section_name}.{key} must be a number"
+                changed = True
+        return changed, None
+
     @staticmethod
     def _parse_rns_config_bool(value, default=False):
         """Parse Reticulum config Yes/No / bool-ish values."""
@@ -4948,6 +5105,7 @@ class ReticulumMeshChat:
             "remote_management_allowed": self._safe_remote_management_allowed(
                 section.get("remote_management_allowed"),
             ),
+            "tuning": self._build_rns_tuning_settings(),
         }
 
     def _safe_remote_management_allowed(self, value):
@@ -6523,6 +6681,13 @@ class ReticulumMeshChat:
             return None
 
     @staticmethod
+    def _coerce_float(value):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
     def _normalize_optional_hex_color(value):
         if value is None or value == "":
             return None
@@ -6796,6 +6961,15 @@ class ReticulumMeshChat:
                 data["lxmf_preferred_propagation_node_auto_select"],
             )
             self.config.lxmf_preferred_propagation_node_auto_select.set(value)
+
+        # update Reticulum identity stamp value (applies to new identities)
+        if "rns_identity_stamp_value" in data:
+            value = self._coerce_float(data["rns_identity_stamp_value"])
+            if value is None:
+                value = self.config.rns_identity_stamp_value.get()
+            if value is None or value < 0:
+                value = 0.0
+            self.config.rns_identity_stamp_value.set(value)
 
         # update inbound stamp cost (for direct delivery messages)
         if "lxmf_inbound_stamp_cost" in data:
@@ -8463,6 +8637,7 @@ class ReticulumMeshChat:
             "lxmf_user_icon_background_colour": ctx.config.lxmf_user_icon_background_colour.get(),
             "lxmf_inbound_stamp_cost": ctx.config.lxmf_inbound_stamp_cost.get(),
             "lxmf_propagation_node_stamp_cost": ctx.config.lxmf_propagation_node_stamp_cost.get(),
+            "rns_identity_stamp_value": ctx.config.rns_identity_stamp_value.get(),
             "lxmf_propagation_sequential_validation": ctx.config.lxmf_propagation_sequential_validation.get(),
             "lxmf_propagation_static_peers_bypass_sequential": ctx.config.lxmf_propagation_static_peers_bypass_sequential.get(),
             "lxmf_propagation_max_inbound_syncs": ctx.config.lxmf_propagation_max_inbound_syncs.get(),

@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Réglage Reticulum 1.6",
+        "rns_tuning_description": "Filtres réseau Reticulum avancés et options de tampons proof-of-work. Les modifications redémarrent le transport.",
+        "rns_filter_required_only": "Annonces requises uniquement",
+        "rns_filter_required_only_description": "Ne recevoir que les annonces pour les types de destination utilisés par ce nœud (rejette le trafic d'annonces non pertinent).",
+        "rns_filter_hop_limiter": "Limiteur de sauts",
+        "rns_filter_hop_limiter_description": "Sauts maximaux du pathfinder (0-128). Vide conserve la valeur par défaut de Reticulum.",
+        "rns_stamp_destinations": "Tamponner les destinations",
+        "rns_stamp_destinations_description": "Générer des tampons proof-of-work pour les destinations annoncées (intensif en CPU au premier announce).",
+        "rns_stamp_prs": "Tamponner les requêtes de chemin",
+        "rns_stamp_prs_description": "Inclure des tampons dans les requêtes de chemin sortantes.",
+        "rns_always_stamp_lrs": "Toujours tamponner les requêtes de lien",
+        "rns_always_stamp_lrs_description": "Tamponner chaque requête de lien, même vers des destinations qui ne l'exigent pas.",
+        "rns_enforce_stamps": "Appliquer les tampons",
+        "rns_enforce_stamps_description": "Rejeter les annonces, requêtes de chemin et de lien sans tampons valides. À n'activer que sur les réseaux tamponnés.",
+        "rns_stamp_costs_description": "Valeurs de coût/valeur de tampon et de délai. Les champs vides conservent les valeurs Reticulum.",
+        "rns_identity_stamp_value": "Valeur de tampon d'identité",
+        "rns_identity_stamp_value_description": "Valeur proof-of-work pour les identités nouvellement créées. 0 désactive (défaut) ; des valeurs plus élevées ralentissent la génération de clés mais compliquent la Sybil."
     },
     "helptips": {
         "title_send_failed": "Choses à essayer",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "Source de connexion automatique",
         "blocked_ips": "IP bloquées",
         "burst": "Rafale d'annonces",
-        "path_burst": "Rafale de demandes de chemin"
+        "path_burst": "Rafale de demandes de chemin",
+        "network_internals": "Internes réseau",
+        "path_table_detail": "{total} chemins · {unused} inutilisés",
+        "storage_known_destinations": "Destinations connues",
+        "storage_announce_cache": "Cache d'annonces"
     },
     "remote_mgmt": {
         "management_identity": "Identité de gestion",

@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Ajuste do Reticulum 1.6",
+        "rns_tuning_description": "Filtros de rede avançados do Reticulum e opções de carimbos proof-of-work. Alterações reiniciam o transporte.",
+        "rns_filter_required_only": "Apenas announces necessários",
+        "rns_filter_required_only_description": "Receber announces apenas para os tipos de destino usados por este nó (descarta tráfego de announces não relacionado).",
+        "rns_filter_hop_limiter": "Limitador de saltos",
+        "rns_filter_hop_limiter_description": "Saltos máximos do pathfinder (0-128). Vazio mantém o padrão do Reticulum.",
+        "rns_stamp_destinations": "Carimbar destinos",
+        "rns_stamp_destinations_description": "Gerar carimbos proof-of-work para destinos anunciados (intenso em CPU no primeiro announce).",
+        "rns_stamp_prs": "Carimbar solicitações de caminho",
+        "rns_stamp_prs_description": "Incluir carimbos nas solicitações de caminho de saída.",
+        "rns_always_stamp_lrs": "Sempre carimbar solicitações de link",
+        "rns_always_stamp_lrs_description": "Carimbar toda solicitação de link, mesmo para destinos que não exigem.",
+        "rns_enforce_stamps": "Aplicar carimbos",
+        "rns_enforce_stamps_description": "Rejeitar announces, solicitações de caminho e de link sem carimbos válidos. Ative apenas em redes com carimbos.",
+        "rns_stamp_costs_description": "Valores de custo/valor de carimbo e timeouts. Campos vazios mantêm os padrões do Reticulum.",
+        "rns_identity_stamp_value": "Valor de carimbo de identidade",
+        "rns_identity_stamp_value_description": "Valor proof-of-work para identidades recém-criadas. 0 desativa (padrão); valores maiores tornam a geração de chaves mais lenta, mas mais resistente a Sybil."
     },
     "helptips": {
         "title_send_failed": "Coisas a tentar",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "Fonte de conexão automática",
         "blocked_ips": "IPs bloqueados",
         "burst": "Rajada de anúncios",
-        "path_burst": "Rajada de solicit. de caminho"
+        "path_burst": "Rajada de solicit. de caminho",
+        "network_internals": "Internos de rede",
+        "path_table_detail": "{total} caminhos · {unused} não usados",
+        "storage_known_destinations": "Destinos conhecidos",
+        "storage_announce_cache": "Cache de announces"
     },
     "remote_mgmt": {
         "management_identity": "Identidade de gerenciamento",

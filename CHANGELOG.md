@@ -3,6 +3,7 @@
 ### Changed
 
 - Dependencies: Electron 45, RNS 1.6.0, LXMF 1.3.0, and a refresh of frontend and backend packages. RNS now keeps known destinations and announces in SQLite storage, and MeshChatX writes ratchets through that store instead of a thread per write. The local propagation node address resolves lazily, and path expiry follows RNS's PATH_TIMEOUT.
+- Reticulum 1.6: the Settings transport section gains a "Reticulum 1.6 tuning" group exposing the new `[filter]` options (required announces only, hop limiter) and `[stamps]` options (destination/path/link-request stamping, cost/value, timeouts, enforcement), all optional and off by default. The RNStatus page now shows path-table pool counts and which storage backend is active, and the RNPath table surfaces per-path stamp value, usage and link-request cost.
 - CI: workflows migrated to Blacksmith runners.
 - CI: cut PR cost. The advisory mutation job, quarantined tests, Lighthouse, and the custom CodeQL jobs now run on master pushes only (mutation remains available via manual dispatch), the headless Self-Check matrix job and the exploratory E2E job are removed, and every job has a timeout. The coverage job fetches full history so diff-cover finds a merge base again.
 - CI: backend coverage is now collected inside the four test shards and merged by the coverage job, which no longer re-runs the whole suite. The coverage floor and the diff-cover gate are unchanged.
@@ -23,6 +24,7 @@
 - Web UI: the keyboard focus ring was clipped at the edges of scrollable sidebars and tab strips. Affected controls now draw the ring inside their bounds so it stays fully visible.
 - Web UI: context menus no longer hijack text selection. On touch devices, long-pressing selectable text (messages, NomadNet pages, inputs) keeps the native selection and copy menu, while desktop right-click and the overflow buttons still open the app menus.
 - Web UI: several actions that failed silently now warn the user — loading the bot list, plugins, notification sounds, or sticker packs, and saving message drafts, relay chat preferences, or Micron editor content.
+- Reticulum 1.6: new identities can optionally be created with an identity stamp value (Settings -> Transport, default off). Stamped key generation is CPU-heavy, so it stays opt-in.
 
 ## [4.11.0] - 2026-11-01 [skipped]
 

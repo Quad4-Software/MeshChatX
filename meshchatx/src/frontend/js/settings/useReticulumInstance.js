@@ -29,6 +29,10 @@ export function useReticulumInstance(options = {}) {
         rpc_config_snippet: null,
         is_connected_to_shared_instance: false,
         enable_transport: false,
+        tuning: {
+            filter: {},
+            stamps: {},
+        },
     });
     const reticulumInstanceSaving = ref(false);
     const remoteManagementAllowedText = ref("");
@@ -44,6 +48,10 @@ export function useReticulumInstance(options = {}) {
             remote_management_allowed: Array.isArray(instance.remote_management_allowed)
                 ? instance.remote_management_allowed
                 : [],
+            tuning: {
+                filter: { ...(instance.tuning?.filter || {}) },
+                stamps: { ...(instance.tuning?.stamps || {}) },
+            },
         };
     }
 
@@ -146,6 +154,35 @@ export function useReticulumInstance(options = {}) {
         });
     }
 
+    // RNS 1.6 [filter]/[stamps] tuning. Each handler patches one key inside
+    // its section; null resets the option to the RNS default.
+    const TUNING_NUMERIC_KEYS = new Set([
+        "hop_limiter",
+        "destination_cost",
+        "destination_value",
+        "pr_cost",
+        "pr_value",
+        "lr_cost",
+        "lr_stamp_timeout",
+        "pr_stamp_timeout",
+    ]);
+
+    function onTuningChange(section, key, rawValue) {
+        const sectionData = reticulumInstance.value.tuning?.[section];
+        if (!sectionData) return;
+        let value = rawValue;
+        if (value === "" || value === null || value === undefined) {
+            value = null;
+        } else if (TUNING_NUMERIC_KEYS.has(key) || typeof sectionData[key] === "number") {
+            const num = Number(value);
+            value = Number.isFinite(num) ? num : null;
+        } else {
+            value = !!value;
+        }
+        sectionData[key] = value;
+        patchReticulumInstance({ [section]: { [key]: value } });
+    }
+
     async function copyRpcConfigSnippet() {
         const snippet = reticulumInstance.value.rpc_config_snippet;
         if (!snippet) return;
@@ -174,6 +211,7 @@ export function useReticulumInstance(options = {}) {
         onSettingsMgmtIdentityHash,
         onSharedInstanceTypeChange,
         onInstanceNameChange,
+        onTuningChange,
         copyRpcConfigSnippet,
     };
 }

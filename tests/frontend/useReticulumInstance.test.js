@@ -63,6 +63,47 @@ describe("useReticulumInstance", () => {
         expect(applyReticulumInstanceSettings).not.toHaveBeenCalled();
     });
 
+    it("onTuningChange patches filter/stamps sections and coerces types", async () => {
+        const r = useReticulumInstance();
+        r.reticulumInstance.value.tuning = {
+            filter: { required_only: false, hop_limiter: 128 },
+            stamps: { stamp_destinations: false, lr_cost: 12.5 },
+        };
+        await r.onTuningChange("filter", "required_only", true);
+        expect(applyReticulumInstanceSettings).toHaveBeenCalledWith(
+            { filter: { required_only: true } },
+            window.api
+        );
+        await r.onTuningChange("filter", "hop_limiter", "64");
+        expect(applyReticulumInstanceSettings).toHaveBeenCalledWith(
+            { filter: { hop_limiter: 64 } },
+            window.api
+        );
+        await r.onTuningChange("stamps", "lr_cost", "9.5");
+        expect(applyReticulumInstanceSettings).toHaveBeenCalledWith(
+            { stamps: { lr_cost: 9.5 } },
+            window.api
+        );
+        await r.onTuningChange("stamps", "lr_cost", "");
+        expect(applyReticulumInstanceSettings).toHaveBeenCalledWith(
+            { stamps: { lr_cost: null } },
+            window.api
+        );
+    });
+
+    it("mergeInstance keeps tuning sections from the backend", async () => {
+        fetchReticulumInstanceSettings.mockResolvedValueOnce({
+            tuning: {
+                filter: { required_only: true },
+                stamps: { enforce_stamps: true, destination_cost: 23.5 },
+            },
+        });
+        const r = useReticulumInstance();
+        await r.loadReticulumInstanceSettings();
+        expect(r.reticulumInstance.value.tuning.filter.required_only).toBe(true);
+        expect(r.reticulumInstance.value.tuning.stamps.destination_cost).toBe(23.5);
+    });
+
     it("rpc snippet is redacted unless the key is visible", () => {
         const snippet = "host = 1.2.3.4\nrpc_key = supersecretkey";
         const hidden = useReticulumInstance({ t: (k) => k, getRpcKeyVisible: () => false });

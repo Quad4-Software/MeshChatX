@@ -83,6 +83,45 @@ async def test_rnpath_table_endpoint(mock_rns_minimal, temp_dir):
 
 
 @pytest.mark.asyncio
+async def test_rnpath_table_passes_stamp_fields(mock_rns_minimal, temp_dir):
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+
+        entry = {
+            "hash": b"\x03" * 32,
+            "hops": 2,
+            "via": b"\x04" * 32,
+            "interface": "UDP",
+            "expires": 1234567890,
+            "value": 25.0,
+            "used": 1,
+            "lr_cost": 12.5,
+        }
+        app_instance.reticulum.get_path_table.return_value = [entry]
+
+        request = MagicMock()
+        request.query = {}
+
+        handler = next(
+            r.handler
+            for r in app_instance.get_routes()
+            if r.path == "/api/v1/rnpath/table"
+        )
+        response = await handler(request)
+        data = json.loads(response.body)
+
+        assert len(data["table"]) == 1
+        row = data["table"][0]
+        assert row["value"] == 25.0
+        assert row["used"] == 1
+        assert row["lr_cost"] == 12.5
+
+
+@pytest.mark.asyncio
 async def test_rnpath_request_endpoint(mock_rns_minimal, temp_dir):
     with (
         patch("meshchatx.meshchat.generate_ssl_certificate"),

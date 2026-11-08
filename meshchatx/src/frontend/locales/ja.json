@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Reticulum 1.6 チューニング",
+        "rns_tuning_description": "高度な Reticulum ネットワークフィルターとプルーフオブワークスタンプオプション。変更はトランスポートを再起動します。",
+        "rns_filter_required_only": "必要なアナウンスのみ",
+        "rns_filter_required_only_description": "このノードが使用する宛先タイプのアナウンスのみを受信します（無関係なアナウンストラフィックを破棄）。",
+        "rns_filter_hop_limiter": "ホップ制限",
+        "rns_filter_hop_limiter_description": "パスファインダーの最大ホップ数（0〜128）。空欄は Reticulum のデフォルトを維持します。",
+        "rns_stamp_destinations": "宛先にスタンプ",
+        "rns_stamp_destinations_description": "アナウンスされた宛先のプルーフオブワークスタンプを生成します（初回アナウンス時に CPU 負荷が高くなります）。",
+        "rns_stamp_prs": "パスリクエストにスタンプ",
+        "rns_stamp_prs_description": "送信するパスリクエストにスタンプを含めます。",
+        "rns_always_stamp_lrs": "リンクリクエストを常にスタンプ",
+        "rns_always_stamp_lrs_description": "スタンプ不要の宛先へのリンクリクエストにも常にスタンプを付けます。",
+        "rns_enforce_stamps": "スタンプを強制",
+        "rns_enforce_stamps_description": "有効なスタンプのないアナウンス、パスリクエスト、リンクリクエストを拒否します。スタンプ対応ネットワークでのみ有効にしてください。",
+        "rns_stamp_costs_description": "スタンプのコスト/値とタイムアウト値。空欄は Reticulum のデフォルトを維持します。",
+        "rns_identity_stamp_value": "アイデンティティスタンプ値",
+        "rns_identity_stamp_value_description": "新規作成するアイデンティティのプルーフオブワーク値。0 で無効（デフォルト）。高い値は鍵生成を遅くしますが Sybil 耐性が上がります。"
     },
     "helptips": {
         "title_send_failed": "試せる対処",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "自動接続元",
         "blocked_ips": "ブロック済み IP",
         "burst": "アナウンスバースト",
-        "path_burst": "パス要求バースト"
+        "path_burst": "パス要求バースト",
+        "network_internals": "ネットワーク内部",
+        "path_table_detail": "パス {total} 件 · 未使用 {unused} 件",
+        "storage_known_destinations": "既知の宛先",
+        "storage_announce_cache": "アナウンスキャッシュ"
     },
     "remote_mgmt": {
         "management_identity": "管理用識別情報",

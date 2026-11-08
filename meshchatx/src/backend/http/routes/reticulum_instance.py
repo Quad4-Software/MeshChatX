@@ -1014,6 +1014,11 @@ def register_reticulum_instance_routes(routes, app):
                 reticulum_config.pop("remote_management_allowed", None)
             changed = True
 
+        tuning_changed, tuning_error = app._apply_rns_tuning_patch(data)
+        if tuning_error:
+            return http_bad_request(tuning_error)
+        changed = changed or tuning_changed
+
         if not changed:
             return web.json_response(
                 {"instance": app._build_reticulum_instance_settings()},

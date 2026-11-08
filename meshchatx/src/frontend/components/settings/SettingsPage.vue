@@ -1957,6 +1957,173 @@
                                         }}</span>
                                     </span>
                                 </label>
+
+                                <div class="border-t border-sem-border pt-4 space-y-4">
+                                    <div class="text-[11px] font-semibold uppercase tracking-wider text-sem-fg-muted">
+                                        {{ $t("app.rns_tuning_subsection") }}
+                                    </div>
+                                    <p class="text-xs text-sem-fg-muted">
+                                        {{ $t("app.rns_tuning_description") }}
+                                    </p>
+
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            id="rns-filter-required-only"
+                                            :model-value="!!reticulumInstance.tuning.filter.required_only"
+                                            :disabled="reticulumInstanceSaving"
+                                            @update:model-value="onTuningChange('filter', 'required_only', $event)"
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{
+                                                $t("app.rns_filter_required_only")
+                                            }}</span>
+                                            <span class="setting-toggle__description">{{
+                                                $t("app.rns_filter_required_only_description")
+                                            }}</span>
+                                        </span>
+                                    </label>
+
+                                    <div class="space-y-1">
+                                        <div class="text-sm font-medium text-sem-fg">
+                                            {{ $t("app.rns_filter_hop_limiter") }}
+                                        </div>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="128"
+                                            step="1"
+                                            class="input-field"
+                                            :disabled="reticulumInstanceSaving"
+                                            :value="reticulumInstance.tuning.filter.hop_limiter ?? ''"
+                                            :placeholder="String(reticulumInstance.tuning.filter.hop_limiter ?? '')"
+                                            @change="onTuningChange('filter', 'hop_limiter', $event.target.value)"
+                                        />
+                                        <div class="text-xs text-sem-fg-muted">
+                                            {{ $t("app.rns_filter_hop_limiter_description") }}
+                                        </div>
+                                    </div>
+
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            id="rns-stamp-destinations"
+                                            :model-value="!!reticulumInstance.tuning.stamps.stamp_destinations"
+                                            :disabled="reticulumInstanceSaving"
+                                            @update:model-value="onTuningChange('stamps', 'stamp_destinations', $event)"
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{
+                                                $t("app.rns_stamp_destinations")
+                                            }}</span>
+                                            <span class="setting-toggle__description">{{
+                                                $t("app.rns_stamp_destinations_description")
+                                            }}</span>
+                                        </span>
+                                    </label>
+
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            id="rns-stamp-prs"
+                                            :model-value="!!reticulumInstance.tuning.stamps.stamp_prs"
+                                            :disabled="reticulumInstanceSaving"
+                                            @update:model-value="onTuningChange('stamps', 'stamp_prs', $event)"
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{ $t("app.rns_stamp_prs") }}</span>
+                                            <span class="setting-toggle__description">{{
+                                                $t("app.rns_stamp_prs_description")
+                                            }}</span>
+                                        </span>
+                                    </label>
+
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            id="rns-always-stamp-lrs"
+                                            :model-value="!!reticulumInstance.tuning.stamps.always_stamp_lrs"
+                                            :disabled="reticulumInstanceSaving"
+                                            @update:model-value="onTuningChange('stamps', 'always_stamp_lrs', $event)"
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{
+                                                $t("app.rns_always_stamp_lrs")
+                                            }}</span>
+                                            <span class="setting-toggle__description">{{
+                                                $t("app.rns_always_stamp_lrs_description")
+                                            }}</span>
+                                        </span>
+                                    </label>
+
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            id="rns-enforce-stamps"
+                                            :model-value="!!reticulumInstance.tuning.stamps.enforce_stamps"
+                                            :disabled="reticulumInstanceSaving"
+                                            @update:model-value="onTuningChange('stamps', 'enforce_stamps', $event)"
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{
+                                                $t("app.rns_enforce_stamps")
+                                            }}</span>
+                                            <span class="setting-toggle__description">{{
+                                                $t("app.rns_enforce_stamps_description")
+                                            }}</span>
+                                        </span>
+                                    </label>
+
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div
+                                            v-for="field in [
+                                                'destination_cost',
+                                                'destination_value',
+                                                'pr_cost',
+                                                'pr_value',
+                                                'lr_cost',
+                                                'lr_stamp_timeout',
+                                                'pr_stamp_timeout',
+                                            ]"
+                                            :key="field"
+                                            class="space-y-1"
+                                        >
+                                            <div class="text-xs font-medium text-sem-fg">{{ field }}</div>
+                                            <input
+                                                type="number"
+                                                step="any"
+                                                min="0"
+                                                class="input-field"
+                                                :disabled="reticulumInstanceSaving"
+                                                :value="reticulumInstance.tuning.stamps[field] ?? ''"
+                                                @change="onTuningChange('stamps', field, $event.target.value)"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div class="text-xs text-sem-fg-muted">
+                                        {{ $t("app.rns_stamp_costs_description") }}
+                                    </div>
+
+                                    <div class="space-y-1 border-t border-sem-border pt-3">
+                                        <div class="text-sm font-medium text-sem-fg">
+                                            {{ $t("app.rns_identity_stamp_value") }}
+                                        </div>
+                                        <input
+                                            v-model.number="config.rns_identity_stamp_value"
+                                            type="number"
+                                            min="0"
+                                            step="any"
+                                            placeholder="0"
+                                            class="input-field"
+                                            @change="
+                                                updateConfig(
+                                                    {
+                                                        rns_identity_stamp_value: config.rns_identity_stamp_value,
+                                                    },
+                                                    'rns_identity_stamp_value'
+                                                )
+                                            "
+                                        />
+                                        <div class="text-xs text-sem-fg-muted">
+                                            {{ $t("app.rns_identity_stamp_value_description") }}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="border-t border-sem-border pt-4 space-y-4">

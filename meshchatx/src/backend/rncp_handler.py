@@ -474,6 +474,7 @@ class RNCPHandler:
                     target_link,
                     metadata=metadata,
                     auto_compress=self.fetch_auto_compress,
+                    app_flag=True,
                 )
                 return True
             except Exception:
@@ -628,6 +629,7 @@ class RNCPHandler:
             callback=progress_callback,
             progress_callback=progress_callback,
             auto_compress=auto_compress,
+            app_flag=True,
         )
 
         transfer_id = resource.hash.hex()

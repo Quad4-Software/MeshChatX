@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Настройка Reticulum 1.6",
+        "rns_tuning_description": "Расширенные сетевые фильтры Reticulum и параметры proof-of-work меток. Изменения перезапускают транспорт.",
+        "rns_filter_required_only": "Только нужные анонсы",
+        "rns_filter_required_only_description": "Получать анонсы только для типов назначений, используемых этим узлом (отбрасывает посторонний трафик анонсов).",
+        "rns_filter_hop_limiter": "Ограничитель хопов",
+        "rns_filter_hop_limiter_description": "Максимум хопов pathfinder (0-128). Пусто — значение по умолчанию Reticulum.",
+        "rns_stamp_destinations": "Метки для назначений",
+        "rns_stamp_destinations_description": "Генерировать proof-of-work метки для анонсируемых назначений (требовательно к CPU при первом анонсе).",
+        "rns_stamp_prs": "Метки для запросов пути",
+        "rns_stamp_prs_description": "Включать метки в исходящие запросы пути.",
+        "rns_always_stamp_lrs": "Всегда помечать запросы канала",
+        "rns_always_stamp_lrs_description": "Помечать каждый запрос канала, даже к назначениям, которым это не требуется.",
+        "rns_enforce_stamps": "Требовать метки",
+        "rns_enforce_stamps_description": "Отклонять анонсы, запросы пути и канала без действительных меток. Включайте только в сетях с метками.",
+        "rns_stamp_costs_description": "Значения стоимости/ценности метки и таймаутов. Пустые поля сохраняют значения Reticulum.",
+        "rns_identity_stamp_value": "Значение метки идентичности",
+        "rns_identity_stamp_value_description": "Значение proof-of-work для новых идентичностей. 0 отключает (по умолчанию); большие значения замедляют генерацию ключей, но усложняют Sybil."
     },
     "helptips": {
         "title_send_failed": "Что можно попробовать",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "Источник автоподключения",
         "blocked_ips": "Заблокированные IP",
         "burst": "Всплеск анонсов",
-        "path_burst": "Всплеск запросов пути"
+        "path_burst": "Всплеск запросов пути",
+        "network_internals": "Внутренние показатели сети",
+        "path_table_detail": "Путей: {total} · неиспользуемых: {unused}",
+        "storage_known_destinations": "Известные назначения",
+        "storage_announce_cache": "Кэш анонсов"
     },
     "remote_mgmt": {
         "management_identity": "Личность управления",

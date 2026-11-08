@@ -705,3 +705,148 @@ async def test_interface_bitrates_true_reload_reports_reloaded(temp_dir):
         assert response.status == 200
         assert body["reloaded"] is True
         assert body["updated"] == ["TestNet"]
+
+
+def _make_tuning_app(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = "/tmp/mock_config"
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.share_instance = True
+        mock_reticulum.rpc_key = None
+        mock_reticulum.transport_enabled.return_value = False
+        app_instance = ReticulumMeshChat(
+            identity=build_identity(),
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+    app_instance.reticulum = mock_reticulum
+    return app_instance, config
+
+
+def test_apply_rns_tuning_patch_writes_sections(temp_dir):
+    app_instance, config = _make_tuning_app(temp_dir)
+
+    changed, error = app_instance._apply_rns_tuning_patch(
+        {
+            "filter": {"required_only": True, "hop_limiter": 64},
+            "stamps": {
+                "stamp_destinations": "Yes",
+                "enforce_stamps": False,
+                "lr_cost": 12.5,
+                "destination_cost": None,
+            },
+        },
+    )
+    assert error is None
+    assert changed is True
+    assert config["filter"]["required_only"] == "Yes"
+    assert config["filter"]["hop_limiter"] == "64"
+    assert config["stamps"]["stamp_destinations"] == "Yes"
+    assert config["stamps"]["enforce_stamps"] == "No"
+    assert config["stamps"]["lr_cost"] == "12.5"
+    assert "destination_cost" not in config["stamps"]
+
+
+def test_apply_rns_tuning_patch_rejects_unknown_and_bad_types(temp_dir):
+    app_instance, _config = _make_tuning_app(temp_dir)
+
+    changed, error = app_instance._apply_rns_tuning_patch(
+        {"filter": {"bogus_key": True}},
+    )
+    assert changed is False
+    assert error is not None and "bogus_key" in error
+
+    changed, error = app_instance._apply_rns_tuning_patch(
+        {"stamps": {"lr_cost": "not-a-number"}},
+    )
+    assert changed is False
+    assert error is not None and "lr_cost" in error
+
+    changed, error = app_instance._apply_rns_tuning_patch(
+        {"filter": "not-an-object"},
+    )
+    assert changed is False
+    assert error is not None
+
+
+def test_build_rns_tuning_settings_coerces_values(temp_dir):
+    app_instance, _config = _make_tuning_app(temp_dir)
+    with patch("RNS.Transport") as mock_transport:
+        # MagicMock attributes are not real scalars and must coerce safely.
+        mock_transport.HOP_LIMITER = "not-an-int"
+        mock_transport.LR_COST = object()
+        tuning = app_instance._build_rns_tuning_settings()
+    assert set(tuning.keys()) == {"filter", "stamps"}
+    assert tuning["filter"]["required_only"] is False
+    assert tuning["filter"]["hop_limiter"] is None
+    assert tuning["stamps"]["stamp_destinations"] is False
+    assert tuning["stamps"]["lr_cost"] is None
+
+
+@pytest.mark.asyncio
+async def test_reticulum_instance_patch_tuning(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = "/tmp/mock_config"
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.share_instance = True
+        mock_reticulum.rpc_key = None
+        mock_reticulum.transport_enabled.return_value = False
+
+        app_instance = ReticulumMeshChat(
+            identity=build_identity(),
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app_instance.reticulum = mock_reticulum
+        app_instance.reload_reticulum = AsyncMock(return_value=True)
+
+        patch_handler = await find_route_handler(
+            app_instance,
+            "/api/v1/reticulum/instance",
+            "PATCH",
+        )
+        assert patch_handler
+
+        class TuningRequest:
+            content = _JsonContent(
+                {"stamps": {"stamp_prs": True}, "filter": {"hop_limiter": 32}},
+            )
+
+            @staticmethod
+            async def json():
+                return {"stamps": {"stamp_prs": True}, "filter": {"hop_limiter": 32}}
+
+        response = await patch_handler(TuningRequest())
+        body = json.loads(response.body)
+        assert response.status == 200
+        assert config["stamps"]["stamp_prs"] == "Yes"
+        assert config["filter"]["hop_limiter"] == "32"
+        assert body["instance"]["tuning"]["stamps"]["stamp_prs"] is False
+        app_instance.reload_reticulum.assert_awaited_once()
+
+        class BadTuningRequest:
+            content = _JsonContent({"stamps": {"nope": 1}})
+
+            @staticmethod
+            async def json():
+                return {"stamps": {"nope": 1}}
+
+        bad_response = await patch_handler(BadTuningRequest())
+        assert bad_response.status == 400

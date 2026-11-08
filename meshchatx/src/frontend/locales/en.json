@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Reticulum 1.6 tuning",
+        "rns_tuning_description": "Advanced Reticulum network filters and proof-of-work stamp options. Changes restart the transport.",
+        "rns_filter_required_only": "Required announces only",
+        "rns_filter_required_only_description": "Only receive announces for destination types this node uses (drops unrelated announce traffic).",
+        "rns_filter_hop_limiter": "Hop limiter",
+        "rns_filter_hop_limiter_description": "Maximum pathfinder hops (0-128). Empty keeps the Reticulum default.",
+        "rns_stamp_destinations": "Stamp destinations",
+        "rns_stamp_destinations_description": "Generate proof-of-work stamps for announced destinations (CPU-heavy on first announce).",
+        "rns_stamp_prs": "Stamp path requests",
+        "rns_stamp_prs_description": "Include stamps on outgoing path requests.",
+        "rns_always_stamp_lrs": "Always stamp link requests",
+        "rns_always_stamp_lrs_description": "Stamp every link request, even to destinations that do not require it.",
+        "rns_enforce_stamps": "Enforce stamps",
+        "rns_enforce_stamps_description": "Reject announces, path requests and link requests without valid stamps. Enable only on stamped networks.",
+        "rns_stamp_costs_description": "Stamp cost/value and timeout values. Empty fields keep Reticulum defaults.",
+        "rns_identity_stamp_value": "Identity stamp value",
+        "rns_identity_stamp_value_description": "Proof-of-work value for newly created identities. 0 disables (default); higher values make key generation slower but harder to Sybil."
     },
     "helptips": {
         "title_send_failed": "Things to try",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "Auto-connect source",
         "blocked_ips": "Blocked IPs",
         "burst": "Announce burst",
-        "path_burst": "Path-request burst"
+        "path_burst": "Path-request burst",
+        "network_internals": "Network internals",
+        "path_table_detail": "{total} paths · {unused} unused",
+        "storage_known_destinations": "Known destinations",
+        "storage_announce_cache": "Announce cache"
     },
     "remote_mgmt": {
         "management_identity": "Management identity",

@@ -162,8 +162,13 @@ class IdentityManager:
             )
         return identities
 
-    def create_identity(self, display_name=None):
-        new_identity = RNS.Identity(create_keys=True)
+    def create_identity(self, display_name=None, stamp_value=None):
+        # RNS 1.6 identity stamps: value > 0 generates a stamped key
+        # (CPU-heavy, one-time). None/0 keeps the cheap unstamped path.
+        stamped = None
+        if isinstance(stamp_value, (int, float)) and stamp_value > 0:
+            stamped = float(stamp_value)
+        new_identity = RNS.Identity(create_keys=True, value=stamped)
         return self._save_new_identity(
             new_identity, display_name or DEFAULT_DISPLAY_NAME
         )

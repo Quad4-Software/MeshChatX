@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Reticulumin 1.6 -viritys",
+        "rns_tuning_description": "Edistyneet Reticulum-verkon suodattimet ja proof-of-work -leimatukset. Muutokset käynnistävät kuljetuksen uudelleen.",
+        "rns_filter_required_only": "Vain tarvittavat announcet",
+        "rns_filter_required_only_description": "Vastaanota announceja vain tälle solmulle käytetyille kohdetyypeille (hylkää muut announce-liikenteen).",
+        "rns_filter_hop_limiter": "Hop-rajoitin",
+        "rns_filter_hop_limiter_description": "Pathfinderin enimmäishyppyjen määrä (0-128). Tyhjä säilyttää Reticulumin oletusarvon.",
+        "rns_stamp_destinations": "Leimaa kohteet",
+        "rns_stamp_destinations_description": "Luo proof-of-work -leimatuksia ilmoitetuille kohteille (CPU-raskasta ensimmäisellä announceella).",
+        "rns_stamp_prs": "Leimaa polypyyntöjä",
+        "rns_stamp_prs_description": "Lisää leimatuksia lähteviin polypyyntöihin.",
+        "rns_always_stamp_lrs": "Leimaa aina linkkipyyntöjä",
+        "rns_always_stamp_lrs_description": "Leimaa jokaisen linkkipyynnön, vaikka kohde ei sitä vaatisi.",
+        "rns_enforce_stamps": "Pakota leimatukset",
+        "rns_enforce_stamps_description": "Hylkää announceet, polypyynnöt ja linkkipyynnöt ilman kelvollisia leimatuksia. Ota käyttöön vain leimatetuissa-verkoissa.",
+        "rns_stamp_costs_description": "Leimasimen kustannus-/arvo- ja aikakatkaisuarvot. Tyhjät kentät säilyttävät Reticulumin oletukset.",
+        "rns_identity_stamp_value": "Identiteetin leimasimen arvo",
+        "rns_identity_stamp_value_description": "Proof-of-work -arvo uusille identiteeteille. 0 poistaa käytöstä (oletus); suuremmat arvot hidastavat avaimen luontia mutta suojaavat Sybililtä."
     },
     "helptips": {
         "title_send_failed": "Kokeile seuraavaa",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "Automaattisen yhdistämisen lähde",
         "blocked_ips": "Estetyt IP:t",
         "burst": "Announce-purske",
-        "path_burst": "Polkupyyntöpurske"
+        "path_burst": "Polkupyyntöpurske",
+        "network_internals": "Verkon sisäosat",
+        "path_table_detail": "{total} polkua · {unused} käyttämätöntä",
+        "storage_known_destinations": "Tunnetut kohteet",
+        "storage_announce_cache": "Announce-välimuisti"
     },
     "remote_mgmt": {
         "management_identity": "Hallinta-identiteetti",

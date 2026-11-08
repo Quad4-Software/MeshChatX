@@ -182,6 +182,28 @@
                             {{ rssStr }}
                         </div>
                     </div>
+                    <div v-if="pathTable || storage" class="rounded-xl border border-sem-border bg-sem-surface p-4">
+                        <div class="text-xs uppercase tracking-wide text-sem-fg-muted">
+                            {{ $t("rnstatus.network_internals") }}
+                        </div>
+                        <div v-if="pathTable" class="mt-1 text-sm font-semibold tabular-nums text-sem-fg">
+                            {{
+                                $t("rnstatus.path_table_detail", {
+                                    total: formatInt(pathTable.total),
+                                    unused: formatInt(pathTable.unused),
+                                })
+                            }}
+                        </div>
+                        <div v-if="storage" class="mt-1 text-xs text-sem-fg-muted">
+                            <div v-if="storage.known_destinations">
+                                {{ $t("rnstatus.storage_known_destinations") }}:
+                                {{ storage.known_destinations }}
+                            </div>
+                            <div v-if="storage.announce_cache">
+                                {{ $t("rnstatus.storage_announce_cache") }}: {{ storage.announce_cache }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div v-if="totalsAnnounces || totalsPathRequests" class="grid gap-3 lg:grid-cols-2">
@@ -453,6 +475,8 @@ export default {
             rnsVersion: "",
             activeLinkCount: null,
             rssStr: "",
+            pathTable: null,
+            storage: null,
         };
     },
     computed: {
@@ -705,6 +729,8 @@ export default {
                 this.totalsPathRequests = data.totals?.path_requests || null;
                 this.queues = data.queues || null;
                 this.rnsVersion = data.rns_version || "";
+                this.pathTable = data.path_table || null;
+                this.storage = data.storage || null;
                 this.activeLinkCount =
                     data.active_link_count === undefined || data.active_link_count === null
                         ? null

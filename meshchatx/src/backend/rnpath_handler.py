@@ -76,6 +76,9 @@ class RNPathHandler:
                     "timestamp": entry.get("timestamp"),
                     "announce_hash": announce_hash,
                     "state": state,
+                    "value": entry.get("value"),
+                    "used": entry.get("used"),
+                    "lr_cost": entry.get("lr_cost"),
                 },
             )
 

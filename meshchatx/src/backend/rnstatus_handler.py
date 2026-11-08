@@ -356,6 +356,32 @@ def _set_if_present(target: dict[str, Any], key: str, value: Any) -> None:
     target[key] = value
 
 
+def _path_table_stats() -> dict[str, Any] | None:
+    """RNS 1.6 path-table pool counts (total/unused), when available."""
+    path_pool_counts = getattr(RNS.Transport, "path_pool_counts", None)
+    if not callable(path_pool_counts):
+        return None
+    try:
+        total, unused = path_pool_counts()
+    except Exception:
+        return None
+    return {"total": total, "unused": unused}
+
+
+def _storage_backend_info() -> dict[str, str] | None:
+    """Which RNS 1.6 storage backend is active (SQLite vs legacy files)."""
+    info: dict[str, str] = {}
+    store = getattr(RNS.Identity, "known_destinations_store", None)
+    if store is not None:
+        info["known_destinations"] = "sqlite"
+    elif getattr(RNS.Reticulum, "storagepath", None):
+        info["known_destinations"] = "file"
+    cache = getattr(RNS.Transport, "announce_cache", None)
+    if cache is not None:
+        info["announce_cache"] = "sqlite"
+    return info or None
+
+
 class RNStatusHandler:
     def __init__(self, reticulum_instance):
         self.reticulum = reticulum_instance
@@ -561,6 +587,8 @@ class RNStatusHandler:
             "queues": queues,
             "rss": rss,
             "rss_str": size_str(rss) if rss is not None else None,
+            "path_table": _path_table_stats(),
+            "storage": _storage_backend_info(),
         }
 
     def _format_interface(self, ifstat: dict, discovered_list: list) -> dict[str, Any]:

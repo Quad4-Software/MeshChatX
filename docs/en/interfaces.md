@@ -131,6 +131,16 @@ MeshChatX allows one I2P interface, last in the list, with Transport Mode on. Ne
 
 The Interfaces UI links into the Reticulum manual sections on interface options. Open **Documentation -> Reticulum** and search for interfaces if you need field-by-field reference.
 
+## Network tuning (Reticulum 1.6)
+
+Reticulum 1.6 adds network-wide filters and proof-of-work "stamps". MeshChatX exposes the common ones under **Settings -> Transport -> Reticulum 1.6 tuning**; everything else stays editable in the raw Reticulum config editor.
+
+- **Required announces only** (`[filter] required_only`) drops announce traffic for destination types this node never uses.
+- **Hop limiter** (`[filter] hop_limiter`) caps pathfinder hops (0-128).
+- **Stamp options** (`[stamps]`) control proof-of-work stamps on announces, path requests and link requests, plus the cost/value and timeout values announced to peers. All stamp emission defaults to off in Reticulum 1.6.0; enable `enforce_stamps` only on networks where peers actually stamp, or you will drop their traffic.
+- **Identity stamp value** (app setting, default 0) optionally stamps newly created identities. Stamped key generation is CPU-heavy, so keep it off unless you need it.
+- Reticulum 1.6 stores known destinations, ratchets and the announce cache in SQLite databases under the Reticulum `storage/` directory (`known_destinations.db`, `cache/announces.db`), importing legacy files automatically on first run. The **RNStatus** page shows which backend is active plus path-table pool counts.
+
 ## Tips
 
 - Run only the interfaces you need. Each open port or radio adds attack surface and power draw.

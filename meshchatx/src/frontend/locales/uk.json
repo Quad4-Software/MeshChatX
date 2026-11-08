@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Налаштування Reticulum 1.6",
+        "rns_tuning_description": "Розширені мережеві фільтри Reticulum та параметри proof-of-work міток. Зміни перезапускають транспорт.",
+        "rns_filter_required_only": "Лише потрібні анонси",
+        "rns_filter_required_only_description": "Отримувати анонси лише для типів призначень, які використовує цей вузол (відкидає сторонній трафік анонсів).",
+        "rns_filter_hop_limiter": "Обмежувач хопів",
+        "rns_filter_hop_limiter_description": "Максимум хопів pathfinder (0-128). Порожньо — значення за замовчуванням Reticulum.",
+        "rns_stamp_destinations": "Мітки для призначень",
+        "rns_stamp_destinations_description": "Генерувати proof-of-work мітки для анонсованих призначень (витратно для CPU під час першого анонсу).",
+        "rns_stamp_prs": "Мітки для запитів шляху",
+        "rns_stamp_prs_description": "Додавати мітки у вихідні запити шляху.",
+        "rns_always_stamp_lrs": "Завжди мітити запити каналу",
+        "rns_always_stamp_lrs_description": "Мітити кожен запит каналу, навіть до призначень, яким це не потрібно.",
+        "rns_enforce_stamps": "Вимагати мітки",
+        "rns_enforce_stamps_description": "Відхиляти анонси, запити шляху та каналу без дійсних міток. Вмикайте лише в мережах з мітками.",
+        "rns_stamp_costs_description": "Значення вартості/цінності мітки та тайм-аутів. Порожні поля зберігають значення Reticulum.",
+        "rns_identity_stamp_value": "Значення мітки ідентичності",
+        "rns_identity_stamp_value_description": "Значення proof-of-work для нових ідентичностей. 0 вимикає (за замовчуванням); більші значення сповільнюють генерацію ключів, але ускладнюють Sybil."
     },
     "helptips": {
         "title_send_failed": "Що спробувати",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "Джерело автопідключення",
         "blocked_ips": "Заблоковані IP",
         "burst": "Спалах анонсів",
-        "path_burst": "Спалах запитів шляхів"
+        "path_burst": "Спалах запитів шляхів",
+        "network_internals": "Внутрішні показники мережі",
+        "path_table_detail": "Шляхів: {total} · невикористаних: {unused}",
+        "storage_known_destinations": "Відомі призначення",
+        "storage_announce_cache": "Кеш анонсів"
     },
     "remote_mgmt": {
         "management_identity": "Керуюча ідентичність",

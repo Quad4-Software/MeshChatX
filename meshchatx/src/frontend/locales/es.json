@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Ajuste de Reticulum 1.6",
+        "rns_tuning_description": "Filtros avanzados de red de Reticulum y opciones de sellos proof-of-work. Los cambios reinician el transporte.",
+        "rns_filter_required_only": "Solo announces requeridos",
+        "rns_filter_required_only_description": "Recibir announces solo para los tipos de destino que usa este nodo (descarta tráfico de announces no relacionado).",
+        "rns_filter_hop_limiter": "Límite de saltos",
+        "rns_filter_hop_limiter_description": "Saltos máximos del pathfinder (0-128). Vacío mantiene el valor por defecto de Reticulum.",
+        "rns_stamp_destinations": "Sellar destinos",
+        "rns_stamp_destinations_description": "Generar sellos proof-of-work para destinos anunciados (intensivo en CPU en el primer announce).",
+        "rns_stamp_prs": "Sellar solicitudes de ruta",
+        "rns_stamp_prs_description": "Incluir sellos en las solicitudes de ruta salientes.",
+        "rns_always_stamp_lrs": "Sellar siempre solicitudes de enlace",
+        "rns_always_stamp_lrs_description": "Sellar cada solicitud de enlace, incluso a destinos que no lo requieran.",
+        "rns_enforce_stamps": "Exigir sellos",
+        "rns_enforce_stamps_description": "Rechazar announces, solicitudes de ruta y de enlace sin sellos válidos. Activar solo en redes con sellos.",
+        "rns_stamp_costs_description": "Valores de coste/valor de sello y tiempos de espera. Los campos vacíos mantienen los valores de Reticulum.",
+        "rns_identity_stamp_value": "Valor de sello de identidad",
+        "rns_identity_stamp_value_description": "Valor proof-of-work para identidades recién creadas. 0 lo desactiva (predeterminado); valores mayores hacen la generación de claves más lenta pero más resistente a Sybil."
     },
     "helptips": {
         "title_send_failed": "Cosas que probar",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "Origen de autoconexión",
         "blocked_ips": "IPs bloqueadas",
         "burst": "Ráfaga de announces",
-        "path_burst": "Ráfaga de peticiones de ruta"
+        "path_burst": "Ráfaga de peticiones de ruta",
+        "network_internals": "Internos de red",
+        "path_table_detail": "{total} rutas · {unused} sin usar",
+        "storage_known_destinations": "Destinos conocidos",
+        "storage_announce_cache": "Caché de announces"
     },
     "remote_mgmt": {
         "management_identity": "Identidad de gestión",

@@ -179,6 +179,15 @@
                                 <div v-if="path.announce_hash" class="text-sem-fg-muted">
                                     <span class="font-semibold uppercase">Announce Hash:</span> {{ path.announce_hash }}
                                 </div>
+                                <div
+                                    v-if="path.value != null || path.used != null || path.lr_cost != null"
+                                    class="text-sem-fg-muted"
+                                >
+                                    <span class="font-semibold uppercase">Stamps:</span>
+                                    <template v-if="path.value != null">value {{ path.value }}</template>
+                                    <template v-if="path.used != null"> · used {{ path.used }}</template>
+                                    <template v-if="path.lr_cost != null"> · lr_cost {{ path.lr_cost }}</template>
+                                </div>
                             </div>
                         </div>
                         <button

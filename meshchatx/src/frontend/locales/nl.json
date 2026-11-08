@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Reticulum 1.6-afstemming",
+        "rns_tuning_description": "Geavanceerde Reticulum-netwerkfilters en proof-of-work-stempelopties. Wijzigingen herstarten het transport.",
+        "rns_filter_required_only": "Alleen vereiste announces",
+        "rns_filter_required_only_description": "Alleen announces ontvangen voor doeltypes die deze node gebruikt (verwerpt niet-gerelateerde announce-trafiek).",
+        "rns_filter_hop_limiter": "Hop-limiter",
+        "rns_filter_hop_limiter_description": "Maximale pathfinder-hops (0-128). Leeg behoudt de Reticulum-standaard.",
+        "rns_stamp_destinations": "Bestemmingen stempelen",
+        "rns_stamp_destinations_description": "Proof-of-work-stempels genereren voor aangekondigde bestemmingen (CPU-intensief bij eerste announce).",
+        "rns_stamp_prs": "Padverzoeken stempelen",
+        "rns_stamp_prs_description": "Stempels opnemen in uitgaande padverzoeken.",
+        "rns_always_stamp_lrs": "Linkverzoeken altijd stempelen",
+        "rns_always_stamp_lrs_description": "Elk linkverzoek stempelen, ook naar bestemmingen die het niet vereisen.",
+        "rns_enforce_stamps": "Stempels afdwingen",
+        "rns_enforce_stamps_description": "Announces, pad- en linkverzoeken zonder geldige stempels weigeren. Alleen inschakelen op gestempelde netwerken.",
+        "rns_stamp_costs_description": "Stempel kost-/waarden en time-outwaarden. Lege velden behouden de Reticulum-standaarden.",
+        "rns_identity_stamp_value": "Identiteitsstempelwaarde",
+        "rns_identity_stamp_value_description": "Proof-of-work-waarde voor nieuw aangemaakte identiteiten. 0 schakelt uit (standaard); hogere waarden vertragen sleutelgeneratie maar bemoeilijken Sybil."
     },
     "helptips": {
         "title_send_failed": "Mogelijke oplossingen",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "Auto-connect-bron",
         "blocked_ips": "Geblokkeerde IP's",
         "burst": "Announce-burst",
-        "path_burst": "Padverzoek-burst"
+        "path_burst": "Padverzoek-burst",
+        "network_internals": "Netwerkinternen",
+        "path_table_detail": "{total} paden · {unused} ongebruikt",
+        "storage_known_destinations": "Bekende bestemmingen",
+        "storage_announce_cache": "Announce-cache"
     },
     "remote_mgmt": {
         "management_identity": "Beheeridentiteit",

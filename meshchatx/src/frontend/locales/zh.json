@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Reticulum 1.6 调优",
+        "rns_tuning_description": "高级 Reticulum 网络过滤器和工作量证明戳选项。更改会重启传输层。",
+        "rns_filter_required_only": "仅接收必需的公告",
+        "rns_filter_required_only_description": "仅接收此节点使用的目标类型的公告（丢弃无关公告流量）。",
+        "rns_filter_hop_limiter": "跳数限制",
+        "rns_filter_hop_limiter_description": "寻路器最大跳数（0-128）。留空则保留 Reticulum 默认值。",
+        "rns_stamp_destinations": "为目标加戳",
+        "rns_stamp_destinations_description": "为公告的目标生成工作量证明戳（首次公告时 CPU 开销大）。",
+        "rns_stamp_prs": "为路径请求加戳",
+        "rns_stamp_prs_description": "在出站路径请求中包含戳。",
+        "rns_always_stamp_lrs": "始终为链接请求加戳",
+        "rns_always_stamp_lrs_description": "为每个链接请求加戳，即使目标不需要。",
+        "rns_enforce_stamps": "强制戳验证",
+        "rns_enforce_stamps_description": "拒绝没有有效戳的公告、路径请求和链接请求。仅在已加戳的网络中启用。",
+        "rns_stamp_costs_description": "戳的成本/价值及超时值。留空字段保留 Reticulum 默认值。",
+        "rns_identity_stamp_value": "身份戳值",
+        "rns_identity_stamp_value_description": "新创建身份的工作量证明值。0 表示禁用（默认）；更高的值会使密钥生成更慢，但更能抵御 Sybil 攻击。"
     },
     "helptips": {
         "title_send_failed": "可尝试的方法",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "自动连接来源",
         "blocked_ips": "已拦截 IP",
         "burst": "通告突发",
-        "path_burst": "路径请求突发"
+        "path_burst": "路径请求突发",
+        "network_internals": "网络内部",
+        "path_table_detail": "路径 {total} 条 · 未使用 {unused} 条",
+        "storage_known_destinations": "已知目标",
+        "storage_announce_cache": "公告缓存"
     },
     "remote_mgmt": {
         "management_identity": "管理身份",

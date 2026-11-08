@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Regolazione Reticulum 1.6",
+        "rns_tuning_description": "Filtri di rete Reticulum avanzati e opzioni di timbro proof-of-work. Le modifiche riavviano il trasporto.",
+        "rns_filter_required_only": "Solo announce richieste",
+        "rns_filter_required_only_description": "Ricevi announce solo per i tipi di destinazione usati da questo nodo (scarta il traffico di announce non pertinente).",
+        "rns_filter_hop_limiter": "Limite di hop",
+        "rns_filter_hop_limiter_description": "Hop massimi del pathfinder (0-128). Vuoto mantiene il valore predefinito di Reticulum.",
+        "rns_stamp_destinations": "Timbra destinazioni",
+        "rns_stamp_destinations_description": "Genera timbri proof-of-work per le destinazioni annunciate (intenso in CPU al primo announce).",
+        "rns_stamp_prs": "Timbra richieste di percorso",
+        "rns_stamp_prs_description": "Includi timbri nelle richieste di percorso in uscita.",
+        "rns_always_stamp_lrs": "Timbra sempre le richieste di link",
+        "rns_always_stamp_lrs_description": "Timbra ogni richiesta di link, anche verso destinazioni che non lo richiedono.",
+        "rns_enforce_stamps": "Applica timbri",
+        "rns_enforce_stamps_description": "Rifiuta announce, richieste di percorso e di link senza timbri validi. Abilita solo su reti con timbri.",
+        "rns_stamp_costs_description": "Valori di costo/valore del timbro e timeout. I campi vuoti mantengono i valori predefiniti di Reticulum.",
+        "rns_identity_stamp_value": "Valore del timbro di identità",
+        "rns_identity_stamp_value_description": "Valore proof-of-work per le identità appena create. 0 disattiva (predefinito); valori più alti rallentano la generazione delle chiavi ma rendono più difficile il Sybil."
     },
     "helptips": {
         "title_send_failed": "Cose da provare",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "Sorgente autoconnessione",
         "blocked_ips": "IP bloccati",
         "burst": "Burst di announce",
-        "path_burst": "Burst di richieste di percorso"
+        "path_burst": "Burst di richieste di percorso",
+        "network_internals": "Interni di rete",
+        "path_table_detail": "{total} percorsi · {unused} inutilizzati",
+        "storage_known_destinations": "Destinazioni note",
+        "storage_announce_cache": "Cache degli announce"
     },
     "remote_mgmt": {
         "management_identity": "Identità di gestione",

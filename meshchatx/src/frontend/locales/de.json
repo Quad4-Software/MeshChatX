@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Reticulum-1.6-Anpassung",
+        "rns_tuning_description": "Erweiterte Reticulum-Netzwerkfilter und Proof-of-Work-Stempeloptionen. Änderungen starten den Transport neu.",
+        "rns_filter_required_only": "Nur benötigte Announces",
+        "rns_filter_required_only_description": "Nur Announces für Zieltypen empfangen, die dieser Knoten nutzt (verwirft unrelated Announce-Traffic).",
+        "rns_filter_hop_limiter": "Hop-Limiter",
+        "rns_filter_hop_limiter_description": "Maximale Pathfinder-Hops (0-128). Leer behält den Reticulum-Standard.",
+        "rns_stamp_destinations": "Ziele stempeln",
+        "rns_stamp_destinations_description": "Proof-of-Work-Stempel für angekündigte Ziele erzeugen (CPU-intensiv beim ersten Announce).",
+        "rns_stamp_prs": "Pfadanfragen stempeln",
+        "rns_stamp_prs_description": "Stempel in ausgehenden Pfadanfragen einfügen.",
+        "rns_always_stamp_lrs": "Link-Anfragen immer stempeln",
+        "rns_always_stamp_lrs_description": "Jede Link-Anfrage stempeln, auch an Ziele, die es nicht erfordern.",
+        "rns_enforce_stamps": "Stempel erzwingen",
+        "rns_enforce_stamps_description": "Announces, Pfad- und Link-Anfragen ohne gültige Stempel ablehnen. Nur in gestempelten Netzwerken aktivieren.",
+        "rns_stamp_costs_description": "Kosten-/Werte- und Timeout-Werte für Stempel. Leere Felder behalten Reticulum-Standardwerte.",
+        "rns_identity_stamp_value": "Identitäts-Stempelwert",
+        "rns_identity_stamp_value_description": "Proof-of-Work-Wert für neu erstellte Identitäten. 0 deaktiviert (Standard); höhere Werte verlangsamen die Schlüsselgenerierung, erschweren Sybils."
     },
     "helptips": {
         "title_send_failed": "Lösungsvorschläge",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "Auto-Connect-Quelle",
         "blocked_ips": "Blockierte IPs",
         "burst": "Announce-Burst",
-        "path_burst": "Pfad-Anfrage-Burst"
+        "path_burst": "Pfad-Anfrage-Burst",
+        "network_internals": "Netzwerk-Interna",
+        "path_table_detail": "{total} Pfade · {unused} ungenutzt",
+        "storage_known_destinations": "Bekannte Ziele",
+        "storage_announce_cache": "Announce-Cache"
     },
     "remote_mgmt": {
         "management_identity": "Verwaltungsidentität",

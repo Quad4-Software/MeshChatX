@@ -763,7 +763,24 @@
         "ui_font_inter": "Inter",
         "ui_font_jetbrains_mono": "JetBrains Mono",
         "ui_font_ibm_plex_sans": "IBM Plex Sans",
-        "ui_font_space_grotesk": "Space Grotesk"
+        "ui_font_space_grotesk": "Space Grotesk",
+        "rns_tuning_subsection": "Dostrajanie Reticulum 1.6",
+        "rns_tuning_description": "Zaawansowane filtry sieci Reticulum i opcje stempli proof-of-work. Zmiany restartują transport.",
+        "rns_filter_required_only": "Tylko wymagane announce'y",
+        "rns_filter_required_only_description": "Odbieraj announce'y tylko dla typów celów używanych przez ten węzeł (odrzuca pozostały ruch announce'ów).",
+        "rns_filter_hop_limiter": "Limit hopów",
+        "rns_filter_hop_limiter_description": "Maksymalna liczba hopów pathfindera (0-128). Puste zachowuje domyślne Reticulum.",
+        "rns_stamp_destinations": "Stempluj cele",
+        "rns_stamp_destinations_description": "Generuj stemple proof-of-work dla ogłaszanych celów (obciążenie CPU przy pierwszym announce).",
+        "rns_stamp_prs": "Stempluj żądania ścieżki",
+        "rns_stamp_prs_description": "Dołączaj stemple do wychodzących żądań ścieżki.",
+        "rns_always_stamp_lrs": "Zawsze stempluj żądania linku",
+        "rns_always_stamp_lrs_description": "Stempluj każde żądanie linku, także do celów, które tego nie wymagają.",
+        "rns_enforce_stamps": "Wymuszaj stemple",
+        "rns_enforce_stamps_description": "Odrzucaj announce'y, żądania ścieżki i linku bez prawidłowych stempli. Włączaj tylko w sieciach ze stemplami.",
+        "rns_stamp_costs_description": "Wartości kosztu/wartości stempla i limitów czasu. Puste pola zachowują domyślne Reticulum.",
+        "rns_identity_stamp_value": "Wartość stempla tożsamości",
+        "rns_identity_stamp_value_description": "Wartość proof-of-work dla nowo tworzonych tożsamości. 0 wyłącza (domyślnie); wyższe wartości spowalniają generowanie kluczy, utrudniając Sybil."
     },
     "helptips": {
         "title_send_failed": "Co możesz spróbować",
@@ -4758,7 +4775,11 @@
         "autoconnect_source": "Źródło automatycznego łączenia",
         "blocked_ips": "Zablokowane IP",
         "burst": "Seria anonsów",
-        "path_burst": "Seria żądań ścieżek"
+        "path_burst": "Seria żądań ścieżek",
+        "network_internals": "Wewnętrzne sieci",
+        "path_table_detail": "{total} ścieżek · {unused} nieużywanych",
+        "storage_known_destinations": "Znane cele",
+        "storage_announce_cache": "Pamięć podręczna announce'ów"
     },
     "remote_mgmt": {
         "management_identity": "Tożsamość zarządzania",
