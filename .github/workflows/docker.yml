@@ -175,7 +175,7 @@ jobs:
                   check sigstore/cosign-installer v3.10.1 7e8b541eb2e61bf99390e1afd4be13a184e9ebc5
 
             - name: Checkout
-              uses: useblacksmith/checkout@v1 # v6.0.1
+              uses: useblacksmith/checkout@2b9fe87d796feea153b455ec2f3125b471a7b0e7 # v1.8.2
               with:
                   persist-credentials: false
 
@@ -201,7 +201,7 @@ jobs:
               uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
 
             - name: Setup Blacksmith Builder
-              uses: useblacksmith/setup-docker-builder@v1
+              uses: useblacksmith/setup-docker-builder@8fbda8108100092be0ef3320da0a93fbb8f47d7f # v1.14.0
 
             - name: Log in to GHCR
               uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
@@ -275,7 +275,7 @@ jobs:
             # image exporter options in `outputs`.
             - name: Build and push (GHCR, zstd layers)
               id: build
-              uses: useblacksmith/build-push-action@v2 # v6.18.0
+              uses: useblacksmith/build-push-action@9b0579bbec7a6cad2f171596c57e7ac1e7658850 # v2.3.0
               with:
                   context: .
                   file: ${{ matrix.dockerfile }}
@@ -294,7 +294,7 @@ jobs:
 
             - name: Build and push (Docker Hub, gzip layers)
               if: ${{ steps.dockerhub.outputs.configured == 'true' }}
-              uses: useblacksmith/build-push-action@v2 # v6.18.0
+              uses: useblacksmith/build-push-action@9b0579bbec7a6cad2f171596c57e7ac1e7658850 # v2.3.0
               with:
                   context: .
                   file: ${{ matrix.dockerfile }}
