@@ -305,6 +305,159 @@ def test_apply_landlock_allows_translation_pack_storage(tmp_path):
     assert_probe_ok(result)
 
 
+_ECRYPTFS_MOUNTINFO = (
+    "22 1 8:2 / / rw,relatime shared:1 - ext4 /dev/sda2 rw\n"
+    "40 22 0:35 / /home/alice rw,nosuid,nodev,relatime shared:20 - ecryptfs "
+    "/home/alice/.Private rw,ecryptfs_sig=0011,ecryptfs_cipher=aes\n"
+    "41 22 0:36 / /mnt/my\\040disk rw,relatime shared:21 - ext4 /dev/sdb1 rw\n"
+)
+
+
+def test_read_mountinfo_parses_and_unescapes(tmp_path):
+    info = tmp_path / "mountinfo"
+    info.write_text(_ECRYPTFS_MOUNTINFO, encoding="utf-8")
+    mounts = ll._read_mountinfo(str(info))
+    assert ("/", "ext4", "/dev/sda2") in mounts
+    assert ("/home/alice", "ecryptfs", "/home/alice/.Private") in mounts
+    assert ("/mnt/my disk", "ext4", "/dev/sdb1") in mounts
+
+
+def test_mount_for_path_prefers_longest_prefix():
+    mounts = [
+        ("/", "ext4", "/dev/sda2"),
+        ("/home/alice", "ecryptfs", "/home/alice/.Private"),
+    ]
+    assert ll._mount_for_path("/home/alice/.reticulum", mounts)[1] == "ecryptfs"
+    assert ll._mount_for_path("/home/alice", mounts)[1] == "ecryptfs"
+    assert ll._mount_for_path("/home/alicex", mounts)[1] == "ext4"
+    assert ll._mount_for_path("/usr/lib", mounts)[1] == "ext4"
+
+
+def test_ecryptfs_lower_dirs_reachable_and_unreachable(tmp_path):
+    upper = tmp_path / "home"
+    lower = tmp_path / ".Private"
+    (upper / ".reticulum").mkdir(parents=True)
+    lower.mkdir()
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    mounts = [
+        ("/", "ext4", "/dev/sda2"),
+        (os.path.realpath(str(upper)), "ecryptfs", str(lower)),
+    ]
+    lower_dirs, unreachable = ll._ecryptfs_lower_dirs(
+        [str(upper / ".reticulum"), str(plain)],
+        mounts,
+    )
+    assert lower_dirs == [os.path.realpath(str(lower))]
+    assert unreachable == []
+
+    missing = str(tmp_path / "gone" / ".Private")
+    mounts[1] = (os.path.realpath(str(upper)), "ecryptfs", missing)
+    lower_dirs, unreachable = ll._ecryptfs_lower_dirs([str(upper)], mounts)
+    assert lower_dirs == []
+    assert unreachable == [missing]
+
+
+def test_ecryptfs_lower_dirs_ignores_non_ecryptfs(tmp_path):
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    mounts = [("/", "ext4", "/dev/sda2")]
+    lower_dirs, unreachable = ll._ecryptfs_lower_dirs([str(plain)], mounts)
+    assert lower_dirs == []
+    assert unreachable == []
+
+
+class _FakeRuleset:
+    instances: ClassVar[list] = []
+
+    def __init__(self, **_kwargs):
+        self.allowed: list[tuple[str, object]] = []
+        self.restricted = False
+        self.closed = False
+        _FakeRuleset.instances.append(self)
+
+    def allow_path(self, path, access):
+        self.allowed.append((path, access))
+
+    def restrict(self):
+        self.restricted = True
+
+    def close(self):
+        self.closed = True
+
+
+def _sandbox_prereqs(monkeypatch):
+    """Stub everything apply_landlock_sandbox checks before building rules.
+
+    Runs in auto mode (no MESHCHAT_LANDLOCK override) so the eCryptfs
+    unreachable-lower skip path is reachable; tests that need force-on set
+    the env var themselves.
+    """
+    monkeypatch.delenv("MESHCHAT_LANDLOCK", raising=False)
+    monkeypatch.setattr(ll, "landlock_kernel_supported", lambda: True)
+    monkeypatch.setattr(ll, "_probe_landlock_abi", lambda: 5)
+    monkeypatch.setattr(ll, "_collect_read_roots", lambda: ["/usr"])
+    monkeypatch.setattr(ll, "_collect_rw_roots", lambda *a: ["/tmp"])
+    monkeypatch.setattr(ll, "_existing_dir", lambda p: p)
+    monkeypatch.setattr(ll, "Ruleset", _FakeRuleset)
+    _FakeRuleset.instances.clear()
+
+
+def test_apply_skips_when_ecryptfs_lower_unreachable(monkeypatch):
+    _sandbox_prereqs(monkeypatch)
+    monkeypatch.setattr(
+        ll,
+        "_ecryptfs_lower_dirs",
+        lambda _roots: ([], ["/home/alice/.Private"]),
+    )
+    assert ll.apply_landlock_sandbox() is False
+    ruleset = _FakeRuleset.instances[0]
+    assert ruleset.closed is True
+    assert ruleset.restricted is False
+    assert ruleset.allowed == []
+
+
+def test_apply_force_on_still_sandboxed_when_lower_unreachable(monkeypatch):
+    _sandbox_prereqs(monkeypatch)
+    monkeypatch.setenv("MESHCHAT_LANDLOCK", "1")
+    monkeypatch.setattr(
+        ll,
+        "_ecryptfs_lower_dirs",
+        lambda _roots: ([], ["/home/alice/.Private"]),
+    )
+    # MESHCHAT_LANDLOCK=1 is the explicit force-on: sandbox stays enabled.
+    assert ll.apply_landlock_sandbox() is True
+    ruleset = _FakeRuleset.instances[0]
+    assert ruleset.restricted is True
+
+
+def test_apply_adds_readdir_rule_for_ecryptfs_lower_dir(monkeypatch, tmp_path):
+    _sandbox_prereqs(monkeypatch)
+    lower = str(tmp_path / ".Private")
+    os.makedirs(lower)
+    monkeypatch.setattr(
+        ll,
+        "_ecryptfs_lower_dirs",
+        lambda _roots: ([lower], []),
+    )
+    assert ll.apply_landlock_sandbox() is True
+    ruleset = _FakeRuleset.instances[0]
+    assert ruleset.restricted is True
+    granted = dict(ruleset.allowed)
+    assert lower in granted
+    assert granted[lower] == ll.AccessFS.READ_DIR
+
+
+def test_collect_rw_roots_creates_reticulum_dir_instead_of_parent(tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    reticulum = home / ".reticulum"
+    roots = ll._collect_rw_roots(None, str(reticulum), None)
+    assert reticulum.is_dir()
+    assert str(reticulum) in roots
+    assert str(home) not in roots
+
+
 def test_normalize_extra_landlock_read_root_rejects_overbroad(tmp_path):
     plugins = tmp_path / "sideband-plugins"
     plugins.mkdir()

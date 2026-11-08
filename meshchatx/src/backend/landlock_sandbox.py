@@ -226,6 +226,100 @@ def _existing_dir(path: str | None) -> str | None:
     return None
 
 
+def _unescape_mountinfo(field: str) -> str:
+    r"""Decode the octal escapes (\040 for space, etc.) used in mountinfo."""
+    out: list[str] = []
+    i = 0
+    while i < len(field):
+        chunk = field[i : i + 4]
+        if (
+            len(chunk) == 4
+            and chunk[0] == "\\"
+            and all(c in "01234567" for c in chunk[1:])
+        ):
+            out.append(chr(int(chunk[1:], 8)))
+            i += 4
+        else:
+            out.append(field[i])
+            i += 1
+    return "".join(out)
+
+
+def _read_mountinfo(path: str = "/proc/self/mountinfo") -> list[tuple[str, str, str]]:
+    """Return (mount_point, fstype, source) for each mount, in table order."""
+    mounts: list[tuple[str, str, str]] = []
+    try:
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            lines = handle.read().splitlines()
+    except OSError:
+        return mounts
+    for line in lines:
+        left, sep, right = line.partition(" - ")
+        if not sep:
+            continue
+        left_fields = left.split()
+        right_fields = right.split()
+        if len(left_fields) < 5 or len(right_fields) < 2:
+            continue
+        mounts.append(
+            (
+                _unescape_mountinfo(left_fields[4]),
+                right_fields[0],
+                _unescape_mountinfo(right_fields[1]),
+            ),
+        )
+    return mounts
+
+
+def _mount_for_path(
+    path: str,
+    mounts: list[tuple[str, str, str]],
+) -> tuple[str, str, str] | None:
+    """Return the mount entry covering path (longest prefix, last one wins)."""
+    best: tuple[str, str, str] | None = None
+    for entry in mounts:
+        mount_point = entry[0]
+        if mount_point == "/":
+            covers = True
+        else:
+            covers = path == mount_point or path.startswith(mount_point + "/")
+        if covers and (best is None or len(mount_point) >= len(best[0])):
+            best = entry
+    return best
+
+
+def _ecryptfs_lower_dirs(
+    roots: list[str],
+    mounts: list[tuple[str, str, str]] | None = None,
+) -> tuple[list[str], list[str]]:
+    """Find eCryptfs lower directories backing any of roots.
+
+    eCryptfs is a stacked filesystem: opening a directory on the plaintext
+    upper mount makes the kernel open the matching lower directory with the
+    caller's credentials, which Landlock checks a second time. Returns
+    (reachable lower dirs, unreachable eCryptfs sources). A source is
+    unreachable when it does not exist in this mount namespace (containers,
+    Flatpaks), where no rule can be added for it.
+    """
+    if mounts is None:
+        mounts = _read_mountinfo()
+    lower_dirs: list[str] = []
+    unreachable: list[str] = []
+    for root in roots:
+        real = realpath_or_none(root) or root
+        entry = _mount_for_path(real, mounts)
+        if entry is None or entry[1] != "ecryptfs":
+            continue
+        source = entry[2]
+        if os.path.isdir(source):
+            resolved = realpath_or_none(source) or source
+            if resolved not in lower_dirs:
+                lower_dirs.append(resolved)
+        elif source not in unreachable:
+            unreachable.append(source)
+    return lower_dirs, unreachable
+
+
 def _collect_user_local_cli_roots() -> list[str]:
     """User-installed CLIs (pipx, rnsh/rnx wrappers, git-remote-rns, etc.)."""
     home = os.path.expanduser("~")
@@ -323,6 +417,16 @@ def _collect_rw_roots(
     reticulum_config_dir: str | None,
     log_dir: str | None,
 ) -> list[str]:
+    # Reticulum creates its config dir only during deferred network setup,
+    # which runs after restrict(). Create the directories we own now so
+    # _existing_dir does not fall back to the parent and grant RW on the
+    # whole home directory (including ~/.ssh) on first launch.
+    for owned in (storage_dir, reticulum_config_dir):
+        if owned:
+            try:
+                os.makedirs(os.path.expanduser(owned), exist_ok=True)
+            except OSError:
+                pass
     paths: list[str] = []
     for candidate in (
         storage_dir,
@@ -459,8 +563,6 @@ def apply_landlock_sandbox(
             resolved = _normalize_extra_landlock_read_root(str(extra))
             if resolved and resolved not in read_roots:
                 read_roots.append(resolved)
-        for root in read_roots:
-            _add_path_beneath_rule(ruleset, root, read_access, handled)
         rw_roots = _collect_rw_roots(storage_dir, reticulum_config_dir, log_dir)
         public_existing = _existing_dir(public_dir)
         if public_existing and public_existing not in rw_roots:
@@ -471,6 +573,26 @@ def apply_landlock_sandbox(
             resolved = _normalize_extra_landlock_read_root(str(extra))
             if resolved and resolved not in rw_roots:
                 rw_roots.append(resolved)
+        # The eCryptfs check must run before the first allow_path and see
+        # every root: a root added later could sit on an eCryptfs mount the
+        # check never saw, leaving directory listings broken under Landlock.
+        lower_dirs, unreachable = _ecryptfs_lower_dirs(read_roots + rw_roots)
+        if unreachable and _landlock_env_override() is not True:
+            logger.warning(
+                "Landlock disabled: allowed paths live on eCryptfs (%s) whose "
+                "lower directory is not visible here, so directory listings "
+                "would fail.",
+                ", ".join(unreachable),
+            )
+            ruleset.close()
+            return False
+        for root in read_roots:
+            _add_path_beneath_rule(ruleset, root, read_access, handled)
+        # READ_DIR only: enough for the lower-directory opens eCryptfs
+        # forwards to the caller's credentials. Exposes encrypted file
+        # names, never plaintext contents or write access to the tree.
+        for lower in lower_dirs:
+            _add_path_beneath_rule(ruleset, lower, AccessFS.READ_DIR, handled)
         for root in rw_roots:
             _add_path_beneath_rule(ruleset, root, rw_access, handled)
         ruleset.restrict()
