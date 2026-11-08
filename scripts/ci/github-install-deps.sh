@@ -110,13 +110,53 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
             && [[ -d "${dest}/usr/include/codec2" ]]
     }
 
-    # Some sdists (miniaudio, pycodec2) need a C++ compiler. Point CXX at
-    # whatever exists; on minimal self-hosted runners bootstrap zig's
-    # bundled clang as a portable cc/c++ toolchain under $HOME.
+    # Real GCC toolchain for runners with no system compiler. The Arch
+    # gcc package set is extracted into syslibs; GCC_EXEC_PREFIX makes
+    # cc1, the cc1 headers and the support libs resolve relative to the
+    # extraction root, and LD_LIBRARY_PATH covers the runtime libs
+    # (gmp/mpfr/mpc/isl/zlib/zstd, libstdc++/libgcc_s). fetch_arch_pkg
+    # only needs curl + the Arch package API, so this works on any glibc
+    # Linux self-hosted runner, not just Arch.
+    ensure_user_gcc() {
+        local dest="$HOME/.local/meshchatx-ci/syslibs"
+        local gcclib="${dest}/usr/lib/gcc"
+        # The package files persist in $HOME across jobs but GITHUB_ENV
+        # does not, so the exports below must run on every invocation.
+        if ! compgen -G "${gcclib}/*/*/cc1" >/dev/null 2>&1 \
+            || [[ ! -x "${dest}/usr/bin/gcc" ]]; then
+            local pkg
+            for pkg in gcc "libstdc++" libgcc libgomp libatomic libquadmath \
+                gmp libisl libmpc mpfr zlib zstd; do
+                fetch_arch_pkg "${pkg}" || return 1
+            done
+            [[ -x "${dest}/usr/bin/gcc" ]] || return 1
+        fi
+        compgen -G "${gcclib}/*/*/cc1" >/dev/null 2>&1 \
+            && [[ -x "${dest}/usr/bin/gcc" ]] || return 1
+        link_syslib_bins
+        export GCC_EXEC_PREFIX="${gcclib}"
+        export LD_LIBRARY_PATH="${dest}/usr/lib:${LD_LIBRARY_PATH:-}"
+        export LIBRARY_PATH="${dest}/usr/lib:${LIBRARY_PATH:-}"
+        if [[ -n "${GITHUB_ENV:-}" ]]; then
+            {
+                echo "GCC_EXEC_PREFIX=${GCC_EXEC_PREFIX}"
+                echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
+                echo "LIBRARY_PATH=${LIBRARY_PATH}"
+            } >> "$GITHUB_ENV"
+        fi
+        return 0
+    }
+
+    # Some sdists (miniaudio, pycodec2, numpy) need a C/C++ compiler. Point
+    # CC/CXX at whatever exists; on minimal self-hosted runners prefer a
+    # real user-space GCC (meson and friends mis-detect zig's bundled
+    # clang and its linker rejects GNU thin archives), with zig's clang
+    # as the fully portable last resort.
     ensure_cpp() {
         command -v c++ >/dev/null 2>&1 && return 0
         command -v g++ >/dev/null 2>&1 && { export CXX=g++; return 0; }
         command -v clang++ >/dev/null 2>&1 && { export CXX=clang++; return 0; }
+        ensure_user_gcc && { export CC=cc CXX=c++; return 0; }
         local zdir tmp mode
         zdir="$HOME/.local/meshchatx-ci/zig"
         # Pinned stable zig; shasum from ziglang.org/download/index.json.

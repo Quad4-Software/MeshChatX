@@ -17,10 +17,13 @@ fetch_arch_pkg() {
     fi
     if ! compgen -G "${dest}/pkgs/${pkg}-*.pkg.tar.zst" >/dev/null; then
         # Package search API: pick the result whose pkgname matches
-        # exactly and take its authoritative filename + repo.
+        # exactly and take its authoritative filename + repo. The name is
+        # URL-encoded because '+' (e.g. libstdc++) would otherwise decode
+        # as a space in the query string.
+        local qname="${pkg//+/%2B}"
         local row fname rep
         row="$(curl -fsSL --max-time 30 \
-            "https://archlinux.org/packages/search/json/?name=${pkg}" 2>/dev/null \
+            "https://archlinux.org/packages/search/json/?name=${qname}" 2>/dev/null \
             | grep -o '{[^{}]*"pkgname"[^{}]*}' \
             | grep -F "\"pkgname\": \"${pkg}\"" \
             | head -n1)"
