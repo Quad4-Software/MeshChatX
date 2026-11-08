@@ -63,7 +63,7 @@
                     :src="url"
                     class="max-w-full max-h-[90vh] rounded-xl shadow-2xl"
                     alt="Image preview"
-                    @contextmenu.prevent.stop="$emit('contextmenu', $event)"
+                    @contextmenu.stop="$emit('contextmenu', $event)"
                 />
             </div>
         </div>

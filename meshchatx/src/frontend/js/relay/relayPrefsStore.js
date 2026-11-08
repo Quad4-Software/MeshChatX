@@ -16,6 +16,19 @@ const MAX_IGNORED = 500;
 const MAX_WORDS = 200;
 const MAX_WORD_LEN = 64;
 
+let saveErrorHandler = null;
+
+/**
+ * Registers a callback invoked (once per failure streak) when persisting
+ * relay preferences to localStorage fails, so hosts can surface the loss
+ * instead of failing silently.
+ */
+export function setRelayPrefsErrorHandler(fn) {
+    saveErrorHandler = typeof fn === "function" ? fn : null;
+}
+
+let writeErrorNotified = false;
+
 function readRoot() {
     try {
         const raw = JSON.parse(localStorage.getItem(STORAGE_KEYS.RRC_PREFS) || "{}");
@@ -28,8 +41,13 @@ function readRoot() {
 function writeRoot(root) {
     try {
         localStorage.setItem(STORAGE_KEYS.RRC_PREFS, JSON.stringify(root));
+        writeErrorNotified = false;
     } catch (e) {
         console.error("Failed to save relay prefs:", e);
+        if (saveErrorHandler && !writeErrorNotified) {
+            writeErrorNotified = true;
+            saveErrorHandler(e);
+        }
     }
 }
 

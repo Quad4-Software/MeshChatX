@@ -192,6 +192,7 @@ export default {
             } catch (error) {
                 console.error("Failed to load notification sounds:", error);
                 this.sounds = [];
+                ToastUtils.error(this.$t("app.sync_error_generic"));
             }
         },
         onEnabledChange(value) {

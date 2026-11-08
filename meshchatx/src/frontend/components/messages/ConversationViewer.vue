@@ -1679,7 +1679,7 @@ import { useUnreadStore } from "../../js/stores/unreadStore";
 import { useIdentityStore } from "../../js/stores/identityStore";
 import Utils from "../../js/Utils";
 import { copyTextToClipboard, copyImageBlobToClipboard, readTextFromClipboard } from "../../js/clipboardUtils.js";
-import { preferNativeTextSelectionMenu } from "../../js/contextMenuUtils.js";
+import { shouldOpenCustomContextMenu } from "../../js/contextMenuUtils.js";
 import { MESSAGE_BODY_MAX_DISPLAY_CHARS, isStringTooLargeForInlineDisplay } from "../../js/messageDisplayLimits.js";
 import {
     MAX_CODEC2_DECODED_RAW_BYTES,
@@ -1869,6 +1869,7 @@ export default {
                         inst.proxy.$nextTick(() => inst.proxy.adjustTextareaHeight());
                     }
                 },
+                onError: () => ToastUtils.warning(inst?.proxy.$t("app.sync_error_generic")),
             }),
             ...usePaperIngest({
                 getIdentityKey: () => inst?.proxy._draftIdentityKey(),
@@ -4912,7 +4913,7 @@ export default {
         onMessageContextMenu(event, chatItem, openedFromBubble = false) {
             // Long-press text selection on Android fires contextmenu after the
             // word is highlighted. Do not steal Copy for the app message menu.
-            if (event && preferNativeTextSelectionMenu(event)) {
+            if (event && !shouldOpenCustomContextMenu(event)) {
                 return;
             }
             if (event && typeof event.preventDefault === "function") {

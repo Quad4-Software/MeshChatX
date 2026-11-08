@@ -15,7 +15,7 @@
                     role="tab"
                     draggable="true"
                     :aria-selected="tab.id === activeTabId"
-                    class="group flex min-h-0 min-w-[6.5rem] max-w-[12rem] min-[900px]:min-w-[7rem] min-[900px]:max-w-[14rem] shrink-0 cursor-grab items-center gap-1 border border-transparent px-2 min-[900px]:px-3 text-xs min-[900px]:text-sm leading-none transition-[opacity,background-color,border-color] duration-150 rounded-t-lg active:cursor-grabbing"
+                    class="group flex min-h-0 min-w-[6.5rem] max-w-[12rem] min-[900px]:min-w-[7rem] min-[900px]:max-w-[14rem] shrink-0 cursor-grab items-center gap-1 border border-transparent px-2 min-[900px]:px-3 text-xs min-[900px]:text-sm leading-none transition-[opacity,background-color,border-color] duration-150 rounded-t-lg active:cursor-grabbing focus-ring-inset"
                     :class="[
                         tab.private
                             ? tab.id === activeTabId
@@ -32,7 +32,7 @@
                     @dragover.prevent="onTabDragOver(tabIndex)"
                     @drop.prevent="onTabDrop(tabIndex)"
                     @dragend="onTabDragEnd"
-                    @contextmenu.prevent="openTabContextMenu($event, tab)"
+                    @contextmenu="openTabContextMenu($event, tab)"
                 >
                     <span class="min-w-0 flex-1 truncate text-left leading-none">{{ tabTitle(tab) }}</span>
                     <span
@@ -47,7 +47,7 @@
                 </button>
                 <button
                     type="button"
-                    class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
+                    class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80 focus-ring-inset"
                     :title="$t('nomadnet.new_tab_shortcut')"
                     @click="addTab()"
                 >
@@ -56,7 +56,7 @@
                 <button
                     v-if="privateTabsEnabled"
                     type="button"
-                    class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-purple-400 transition-colors hover:bg-purple-900/40 hover:text-purple-200"
+                    class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-purple-400 transition-colors hover:bg-purple-900/40 hover:text-purple-200 focus-ring-inset"
                     :title="$t('nomadnet.new_private_tab_shortcut')"
                     @click="addTab('', null, null, true, true)"
                 >
@@ -66,7 +66,7 @@
                     <button
                         ref="historyBtn"
                         type="button"
-                        class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80 cursor-pointer"
+                        class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80 cursor-pointer focus-ring-inset"
                         :title="$t('nomadnet.history')"
                         @click="showHistoryMenu = !showHistoryMenu"
                     >
@@ -163,6 +163,7 @@ import { loadNomadTabs, saveNomadTabs } from "../../js/browserLayoutStore";
 import { getNomadHistory } from "../../js/nomadHistory";
 import LinkUtils from "../../js/LinkUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { shouldOpenCustomContextMenu } from "../../js/contextMenuUtils.js";
 
 export default {
     name: "NomadNetworkBrowser",
@@ -828,6 +829,12 @@ export default {
             delete this.pageRefs[tabId];
         },
         openTabContextMenu(event, tab) {
+            if (!shouldOpenCustomContextMenu(event)) {
+                return;
+            }
+            if (event && typeof event.preventDefault === "function") {
+                event.preventDefault();
+            }
             this.selectTab(tab.id);
             this.contextMenu = {
                 show: true,

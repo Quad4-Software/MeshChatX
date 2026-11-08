@@ -1173,6 +1173,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
+import { shouldOpenCustomContextMenu } from "../../js/contextMenuUtils.js";
 import DOMPurify from "dompurify";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
@@ -4399,6 +4400,7 @@ export default {
         // Context menu handlers
         onContextMenu(evt) {
             if (!this.map) return;
+            if (!shouldOpenCustomContextMenu(evt)) return;
             evt.preventDefault();
             const pixel = this.map.getEventPixel(evt);
             const feature = this.map.forEachFeatureAtPixel(pixel, (f) => f, {

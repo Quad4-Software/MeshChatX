@@ -71,7 +71,7 @@
                         <template #item="{ item: contact }">
                             <div
                                 class="group flex cursor-default items-center gap-3 px-1 py-3 transition-colors hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface"
-                                @contextmenu.prevent="openContextMenu($event, contact)"
+                                @contextmenu="openContextMenu($event, contact)"
                             >
                                 <div class="shrink-0">
                                     <LxmfUserIcon
@@ -168,7 +168,7 @@
                             v-for="contact in mergedContacts"
                             :key="contact.id"
                             class="group flex cursor-default items-center gap-3 px-1 py-3 transition-colors hover:bg-sem-surface-muted/80 dark:hover:bg-sem-surface"
-                            @contextmenu.prevent="openContextMenu($event, contact)"
+                            @contextmenu="openContextMenu($event, contact)"
                         >
                             <div class="shrink-0">
                                 <LxmfUserIcon
@@ -548,6 +548,7 @@ import DialogUtils from "../../js/DialogUtils";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry";
 import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../../js/constants";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { shouldOpenCustomContextMenu } from "../../js/contextMenuUtils.js";
 import * as announcesApi from "../../js/api/announces.js";
 import * as telephoneApi from "../../js/api/telephone.js";
 import {
@@ -962,6 +963,14 @@ export default {
             this.$router.push({ name: "call", query: { destination_hash: hash, tab: "phone" } });
         },
         openContextMenu(event, contact) {
+            if (event && event.type === "contextmenu") {
+                if (!shouldOpenCustomContextMenu(event)) {
+                    return;
+                }
+                if (typeof event.preventDefault === "function") {
+                    event.preventDefault();
+                }
+            }
             this.contextMenu.visible = true;
             this.contextMenu.contact = contact;
             this.contextMenu.x = event.clientX;

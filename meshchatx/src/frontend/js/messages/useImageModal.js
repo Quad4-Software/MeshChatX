@@ -1,6 +1,7 @@
 // @ts-check
 
 import { nextTick, reactive, ref } from "vue";
+import { shouldOpenCustomContextMenu } from "../contextMenuUtils.js";
 
 /**
  * Image lightbox state for ConversationViewer: single-image and gallery
@@ -66,6 +67,12 @@ export function useImageModal(options = {}) {
     function onImageModalContextMenu(event) {
         if (!imageModalActiveChatItem()) {
             return;
+        }
+        if (event && !shouldOpenCustomContextMenu(event)) {
+            return;
+        }
+        if (event && typeof event.preventDefault === "function") {
+            event.preventDefault();
         }
         imageModalContextMenu.show = true;
         const menuWidth = 240;

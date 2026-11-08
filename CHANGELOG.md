@@ -19,6 +19,9 @@
 - Message blocklist: importing a shared document whose version field is not an integer crashed the request with a server error. Malformed documents are now rejected cleanly.
 - Web UI access: a malformed entry in the IP allowlist file or in the trusted proxy CIDRs environment variable turned every request into a server error. Access checks now fail closed instead.
 - NomadNet browser: the renderer engine toggle and toolbar icon buttons now pick up the themed hover color. They referenced a design token that does not exist, so the inactive toggle rendered without a background and icon hovers stayed dark even in light mode.
+- Web UI: the keyboard focus ring was clipped at the edges of scrollable sidebars and tab strips. Affected controls now draw the ring inside their bounds so it stays fully visible.
+- Web UI: context menus no longer hijack text selection. On touch devices, long-pressing selectable text (messages, NomadNet pages, inputs) keeps the native selection and copy menu, while desktop right-click and the overflow buttons still open the app menus.
+- Web UI: several actions that failed silently now warn the user — loading the bot list, plugins, notification sounds, or sticker packs, and saving message drafts, relay chat preferences, or Micron editor content.
 
 ## [4.11.0] - 2026-11-01 [skipped]
 

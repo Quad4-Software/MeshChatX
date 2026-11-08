@@ -741,6 +741,8 @@ export default {
                 this.loading = false;
             } catch (e) {
                 console.error("[BotsPage] getStatus failed", e?.response?.data || e?.message || e);
+                this.loading = false;
+                ToastUtils.error(this.$t("app.sync_error_generic"));
             }
         },
         openSetup(template) {

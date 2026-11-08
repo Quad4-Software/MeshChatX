@@ -1107,6 +1107,7 @@ import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
 import SidebarVirtualList from "../SidebarVirtualList.vue";
 import SidebarFilterBar from "./SidebarFilterBar.vue";
 import { isCustomFilterId, loadSidebarFilterLayout, matchesCustomQuery } from "../../js/messages/sidebarFilters.js";
+import { shouldOpenCustomContextMenu } from "../../js/contextMenuUtils.js";
 
 export default {
     name: "MessagesSidebar",
@@ -1498,7 +1499,14 @@ export default {
             }
         },
         async onRightClick(event, hash) {
-            event.preventDefault();
+            if (event && event.type === "contextmenu") {
+                if (!shouldOpenCustomContextMenu(event)) {
+                    return;
+                }
+                if (typeof event.preventDefault === "function") {
+                    event.preventDefault();
+                }
+            }
             if (this.selectionMode && !this.selectedHashes.has(hash)) {
                 this.selectedHashes.add(hash);
             }

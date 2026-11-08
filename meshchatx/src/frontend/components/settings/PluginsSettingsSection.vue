@@ -349,6 +349,7 @@ export default {
                 this.plugins = response.data?.plugins || [];
             } catch (e) {
                 console.error("Failed to load plugins", e);
+                ToastUtils.error(this.$t("app.sync_error_generic"));
             }
         },
         async refreshSideband() {
@@ -366,6 +367,7 @@ export default {
                 this.sidebandPlugins = response.data?.plugins || [];
             } catch (e) {
                 console.error("Failed to load sideband plugins", e);
+                ToastUtils.error(this.$t("app.sync_error_generic"));
             }
         },
         async onSidebandMasterToggle() {

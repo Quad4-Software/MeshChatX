@@ -11,6 +11,7 @@
 
 import "../css/nomad-page-chrome.css";
 import { NOMAD_CRASH_TAB_CHANNEL } from "./nomadCrashTabShell.js";
+import { shouldOpenCustomContextMenu } from "./contextMenuUtils.js";
 
 const root = document.getElementById("root");
 let renderSeq = 0;
@@ -642,9 +643,17 @@ function onFieldContextMenu(event) {
     if (!isAndroidWebViewShell()) {
         return;
     }
+    const el = fieldFromContextTarget(event.target);
+    if (!el) {
+        // Non-field targets: a touch long-press over selectable page text
+        // must keep the native selection/copy menu, so only hijack the
+        // contextmenu when our own menu rules allow it.
+        if (!shouldOpenCustomContextMenu(event)) {
+            return;
+        }
+    }
     event.preventDefault();
     event.stopPropagation();
-    const el = fieldFromContextTarget(event.target);
     if (el) {
         pendingFieldPasteEl = el;
         post({ type: "field-contextmenu", x: event.clientX, y: event.clientY });

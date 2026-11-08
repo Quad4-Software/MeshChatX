@@ -13,14 +13,14 @@
                 type="button"
                 role="tab"
                 :aria-selected="tab.id === activeTabId"
-                class="group flex min-w-[7rem] max-w-[14rem] items-center gap-1.5 border-r border-sem-border px-3 text-sm transition-colors"
+                class="group flex min-w-[7rem] max-w-[14rem] items-center gap-1.5 border-r border-sem-border px-3 text-sm transition-colors focus-ring-inset"
                 :class="
                     tab.id === activeTabId
                         ? 'bg-sem-canvas font-medium text-sem-fg'
                         : 'text-sem-fg-muted hover:bg-sem-surface/80'
                 "
                 @click="selectTab(tab.id)"
-                @contextmenu.prevent="openTabContextMenu($event, tab)"
+                @contextmenu="openTabContextMenu($event, tab)"
             >
                 <MaterialDesignIcon icon-name="map" class="size-4 shrink-0 opacity-70" />
                 <input
@@ -54,7 +54,7 @@
             </button>
             <button
                 type="button"
-                class="flex w-9 shrink-0 items-center justify-center text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
+                class="flex w-9 shrink-0 items-center justify-center text-sem-fg-muted transition-colors hover:bg-sem-surface/80 focus-ring-inset"
                 :title="$t('map.new_tab_shortcut')"
                 @click="addTab()"
             >
@@ -105,6 +105,7 @@ import GlobalEmitter from "../../js/GlobalEmitter";
 import { EMITTER_EVENTS } from "../../js/constants";
 import { loadMapTabs, saveMapTabs } from "../../js/browserLayoutStore";
 import { LEGACY_MAP_STATE_KEY, legacyMapTabStateKey, mapViewStateKey } from "../../js/mapStateKeys.js";
+import { shouldOpenCustomContextMenu } from "../../js/contextMenuUtils.js";
 
 const DOUBLE_TAP_MS = 400;
 
@@ -446,6 +447,12 @@ export default {
             });
         },
         openTabContextMenu(event, tab) {
+            if (!shouldOpenCustomContextMenu(event)) {
+                return;
+            }
+            if (event && typeof event.preventDefault === "function") {
+                event.preventDefault();
+            }
             this.selectTab(tab.id);
             this.tabContextMenu = {
                 show: true,

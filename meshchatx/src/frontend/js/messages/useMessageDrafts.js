@@ -17,6 +17,13 @@ export function useMessageDrafts(options = {}) {
     const lastDraftIdentityKey = scope.identityKey;
     const getNewMessageText = options.getNewMessageText || (() => "");
     const setDraftText = options.setDraftText || (() => {});
+    const onError = typeof options.onError === "function" ? options.onError : () => {};
+    let errorNotified = false;
+    function reportError(e) {
+        if (errorNotified) return;
+        errorNotified = true;
+        onError(e);
+    }
 
     function readDraftRoot() {
         const raw = JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGE_DRAFTS) || "{}");
@@ -72,8 +79,10 @@ export function useMessageDrafts(options = {}) {
                 text = drafts[destinationHash];
             }
             setDraftText(text);
+            errorNotified = false;
         } catch (e) {
             console.error("Failed to load draft:", e);
+            reportError(e);
         }
     }
 
@@ -96,8 +105,10 @@ export function useMessageDrafts(options = {}) {
             }
             localStorage.setItem(STORAGE_KEYS.MESSAGE_DRAFTS, JSON.stringify(drafts));
             scope.identityKey.value = key;
+            errorNotified = false;
         } catch (e) {
             console.error("Failed to save draft:", e);
+            reportError(e);
         }
     }
 

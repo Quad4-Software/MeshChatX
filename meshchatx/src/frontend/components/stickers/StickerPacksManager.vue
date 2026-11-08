@@ -187,6 +187,7 @@ export default {
             } catch (e) {
                 console.error(e);
                 this.packs = [];
+                ToastUtils.error(this.$t("app.sync_error_generic"));
             }
         },
         stickerImageUrl(id) {

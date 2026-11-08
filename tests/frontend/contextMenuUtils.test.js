@@ -4,6 +4,9 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import {
     preferNativeTextSelectionMenu,
     openAppContextMenuUnlessTextSelection,
+    isTouchContextMenu,
+    pointHitsSelectableText,
+    shouldOpenCustomContextMenu,
 } from "../../meshchatx/src/frontend/js/contextMenuUtils.js";
 
 describe("contextMenuUtils", () => {
@@ -99,6 +102,48 @@ describe("contextMenuUtils", () => {
             expect(openNative).not.toHaveBeenCalled();
         } finally {
             input.remove();
+        }
+    });
+    it("isTouchContextMenu detects pointerType touch and mouse", () => {
+        expect(isTouchContextMenu({ pointerType: "touch" })).toBe(true);
+        expect(isTouchContextMenu({ pointerType: "mouse" })).toBe(false);
+        expect(isTouchContextMenu({ sourceCapabilities: { firesTouchEvents: true } })).toBe(true);
+        expect(isTouchContextMenu(null)).toBe(false);
+    });
+
+    it("isTouchContextMenu falls back to a recent touchstart", () => {
+        window.dispatchEvent(new Event("touchstart"));
+        expect(isTouchContextMenu({})).toBe(true);
+    });
+
+    it("pointHitsSelectableText uses caretRangeFromPoint when available", () => {
+        const p = document.createElement("p");
+        p.textContent = "selectable";
+        document.body.appendChild(p);
+        const orig = document.caretRangeFromPoint;
+        try {
+            document.caretRangeFromPoint = () => ({ startContainer: p.firstChild });
+            expect(pointHitsSelectableText({ clientX: 1, clientY: 1 })).toBe(true);
+            document.caretRangeFromPoint = () => ({ startContainer: p });
+            expect(pointHitsSelectableText({ clientX: 1, clientY: 1 })).toBe(false);
+            document.caretRangeFromPoint = orig;
+        } finally {
+            p.remove();
+            if (orig) document.caretRangeFromPoint = orig; else delete document.caretRangeFromPoint;
+        }
+    });
+
+    it("shouldOpenCustomContextMenu suppresses touch long-press on text", () => {
+        const orig = document.caretRangeFromPoint;
+        vi.useFakeTimers();
+        try {
+            document.caretRangeFromPoint = () => ({ startContainer: document.createTextNode("x") });
+            expect(shouldOpenCustomContextMenu({ pointerType: "touch", clientX: 1, clientY: 1 })).toBe(false);
+            vi.setSystemTime(Date.now() + 2000);
+            expect(shouldOpenCustomContextMenu({ pointerType: "mouse", clientX: 1, clientY: 1 })).toBe(true);
+        } finally {
+            vi.useRealTimers();
+            if (orig) document.caretRangeFromPoint = orig; else delete document.caretRangeFromPoint;
         }
     });
 });

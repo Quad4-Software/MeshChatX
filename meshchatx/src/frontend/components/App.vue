@@ -348,7 +348,7 @@
                                 <div v-if="appInfo?.version" class="shrink-0 border-t border-sem-border bg-sem-canvas">
                                     <RouterLink
                                         :to="{ name: 'about' }"
-                                        class="flex items-center gap-2 py-2 text-[10px] font-mono text-sem-fg-muted transition-colors hover:text-sem-fg text-sem-fg-muted dark:hover:text-sem-fg-secondary"
+                                        class="flex items-center gap-2 py-2 text-[10px] font-mono text-sem-fg-muted transition-colors hover:text-sem-fg text-sem-fg-muted dark:hover:text-sem-fg-secondary focus-ring-inset"
                                         :class="isSidebarCollapsed ? 'justify-center px-0' : 'justify-start px-3'"
                                         data-testid="sidebar-app-version"
                                         :title="sidebarVersionTitle"

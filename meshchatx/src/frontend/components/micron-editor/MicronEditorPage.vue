@@ -339,6 +339,7 @@ export default {
             wasmLoading: false,
             localImages: {},
             imageDragOver: false,
+            storageSaveFailed: false,
         };
     },
     watch: {
@@ -770,8 +771,13 @@ export default {
         async saveContent() {
             try {
                 await micronStorage.saveTabs(this.tabs);
+                this.storageSaveFailed = false;
             } catch (error) {
                 console.warn("Failed to save content to IndexedDB:", error);
+                if (!this.storageSaveFailed) {
+                    this.storageSaveFailed = true;
+                    ToastUtils.error(this.$t("app.sync_error_generic"));
+                }
             }
         },
         async loadContent() {

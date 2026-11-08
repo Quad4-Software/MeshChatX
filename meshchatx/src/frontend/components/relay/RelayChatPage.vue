@@ -135,7 +135,7 @@
                     <div
                         v-else
                         class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2"
-                        @contextmenu.prevent="openSidebarContextMenu($event, {})"
+                        @contextmenu="openSidebarContextMenu($event, {})"
                     >
                         <button
                             type="button"
@@ -159,7 +159,7 @@
                             @dragover.prevent="onHubDragOver(hubIndex)"
                             @drop.prevent="onHubDrop(hubIndex)"
                             @dragend="dragHubIndex = null"
-                            @contextmenu.prevent="openSidebarContextMenu($event, { hub })"
+                            @contextmenu="openSidebarContextMenu($event, { hub })"
                         >
                             <button
                                 type="button"
@@ -317,7 +317,7 @@
                                         @drop.prevent="onRoomDrop(hub, roomIndex)"
                                         @dragend="onRoomDragEnd"
                                         @click="selectRoom(hub.hub_hash, roomName)"
-                                        @contextmenu.prevent="openSidebarContextMenu($event, { hub, room: roomName })"
+                                        @contextmenu="openSidebarContextMenu($event, { hub, room: roomName })"
                                     >
                                         <span class="flex min-w-0 items-center gap-1.5">
                                             <MaterialDesignIcon
@@ -730,7 +730,7 @@
                                             class="group/member flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-sem-surface/60 dark:hover:bg-sem-surface/30"
                                             :title="m.hash"
                                             @click="insertMention(m.name)"
-                                            @contextmenu.prevent="copyMemberHash(m)"
+                                            @contextmenu="onMemberContextMenu($event, m)"
                                         >
                                             <span
                                                 class="relative flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold uppercase"
@@ -785,7 +785,7 @@
                                             class="group/member flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 opacity-60 transition-all hover:bg-sem-surface/60 hover:opacity-100 dark:hover:bg-sem-surface/30"
                                             :title="m.hash"
                                             @click="insertMention(m.name)"
-                                            @contextmenu.prevent="copyMemberHash(m)"
+                                            @contextmenu="onMemberContextMenu($event, m)"
                                         >
                                             <span
                                                 class="flex size-7 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-[11px] font-bold uppercase text-sem-fg-muted"
@@ -1800,6 +1800,7 @@ import {
     loadRelayPrefs,
     relayPrefsEqualIgnored,
     saveRelayPrefs,
+    setRelayPrefsErrorHandler,
 } from "../../js/relay/relayPrefsStore.js";
 import { normalizeHighlightWordInput, relayTextMatchesWords } from "../../js/relay/relayHighlights.js";
 import { MIN_VIRTUAL_RELAY_ENTRIES } from "./relayMessageListVirtual.js";
@@ -1809,7 +1810,7 @@ import { RELAY_HOST_MODAL_OVERLAY, RELAY_HOST_MODAL_PANEL_COMPACT } from "../../
 import { applyRelayShareLink, buildRelayShareMessage, parseRelayUri } from "../../js/relayLinkUtils.js";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import MarkdownRenderer from "../../js/MarkdownRenderer.js";
-import { preferNativeTextSelectionMenu } from "../../js/contextMenuUtils.js";
+import { shouldOpenCustomContextMenu } from "../../js/contextMenuUtils.js";
 import {
     ANNOUNCE_SLIDER_POS_MAX,
     announceMinutesToSliderPos,
@@ -1965,6 +1966,7 @@ export default {
                         inst.proxy.composer = text;
                     }
                 },
+                onError: () => ToastUtils.warning(inst?.proxy.$t("app.sync_error_generic")),
             }),
         };
     },
@@ -2294,6 +2296,7 @@ export default {
         // layout. Without this, mount time auto-selection persists an empty
         // layout over the saved one before the restore reads it.
         this._suppressRelayLayoutPersist = true;
+        setRelayPrefsErrorHandler(() => ToastUtils.warning(this.$t("app.sync_error_generic")));
     },
     mounted() {
         onWsEvent(WS_EVENTS.RRC_CHANGE, this.onRrcChange);
@@ -3292,6 +3295,12 @@ export default {
             this.dragRoomIndex = null;
         },
         openSidebarContextMenu(event, { hub = null, room = null }) {
+            if (!shouldOpenCustomContextMenu(event)) {
+                return;
+            }
+            if (event && typeof event.preventDefault === "function") {
+                event.preventDefault();
+            }
             this.sidebarMenu = {
                 show: true,
                 x: event.clientX,
@@ -3308,7 +3317,7 @@ export default {
             if (!msg || msg.kind === "system" || msg.kind === "notice" || msg.kind === "error") {
                 return;
             }
-            if (event && preferNativeTextSelectionMenu(event)) {
+            if (event && !shouldOpenCustomContextMenu(event)) {
                 return;
             }
             if (event && typeof event.preventDefault === "function") {
@@ -3731,6 +3740,15 @@ export default {
         memberAvatarStyle(hash) {
             const color = this.colorForHash(hash);
             return { backgroundColor: `${color}26`, color };
+        },
+        onMemberContextMenu(event, member) {
+            if (!shouldOpenCustomContextMenu(event)) {
+                return;
+            }
+            if (event && typeof event.preventDefault === "function") {
+                event.preventDefault();
+            }
+            this.copyMemberHash(member);
         },
         async copyMemberHash(member) {
             if (!member?.hash) {

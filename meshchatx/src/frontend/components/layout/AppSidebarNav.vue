@@ -148,7 +148,7 @@
         >
             <button
                 type="button"
-                class="flex w-full items-center gap-3 py-2.5 text-sm font-semibold text-sem-fg hover:bg-sem-surface-muted text-sem-fg dark:hover:bg-sem-surface transition-colors"
+                class="flex w-full items-center gap-3 py-2.5 text-sm font-semibold text-sem-fg hover:bg-sem-surface-muted text-sem-fg dark:hover:bg-sem-surface transition-colors focus-ring-inset"
                 :class="isCollapsed ? 'justify-center px-0' : 'px-4'"
                 data-testid="sidebar-more-toggle"
                 @pointerdown="onNavHoldPointerDown"

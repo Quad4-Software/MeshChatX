@@ -124,6 +124,12 @@
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sem-focus focus-visible:ring-offset-2 focus-visible:ring-offset-sem-canvas;
 }
 
+/* Inset variant for controls inside overflow-clipped containers (tab strips,
+   scrollable sidebars) where an outward ring or offset outline is cut off. */
+.focus-ring-inset {
+    @apply focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sem-focus;
+}
+
 .skip-link {
     @apply sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[500] focus:px-4 focus:py-2 focus:bg-sem-surface focus:text-sem-fg focus:rounded-lg focus:shadow-lg focus:ring-2 focus:ring-sem-focus;
 }
@@ -762,7 +768,11 @@ a[href] {
 }
 
 .sidebar-nav-link {
-    @apply w-full text-sem-fg flex gap-x-3 p-2 text-sm leading-6 font-semibold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sem-focus;
+    /* Inset outline: the sidebar scroll container clips paint outside the
+       link box, so an outward offset ring would be cut off at the edges.
+       Chrome text is not selectable so long-press keeps the app menu path. */
+    @apply w-full text-sem-fg flex gap-x-3 p-2 text-sm leading-6 font-semibold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sem-focus select-none;
+    -webkit-touch-callout: none;
 }
 
 .sidebar-nav-link--active {

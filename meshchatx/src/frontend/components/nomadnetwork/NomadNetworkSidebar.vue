@@ -6,7 +6,7 @@
             <div class="hidden sm:flex h-10 shrink-0 items-center justify-center border-b border-sem-border px-2">
                 <button
                     type="button"
-                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted text-sem-fg-muted dark:hover:bg-sem-surface transition-colors"
+                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted text-sem-fg-muted dark:hover:bg-sem-surface transition-colors focus-ring-inset"
                     @click="$emit('toggle-collapse')"
                 >
                     <MaterialDesignIcon icon-name="chevron-right" class="size-5" />
@@ -15,7 +15,7 @@
             <div class="flex flex-col items-center gap-1 py-2 px-1 border-b border-sem-border">
                 <button
                     type="button"
-                    class="p-2 rounded-xl transition-colors"
+                    class="p-2 rounded-xl transition-colors focus-ring-inset"
                     :class="
                         tab === 'favourites'
                             ? 'bg-sem-action-primary text-sem-action-primary-text dark:bg-sem-info'
@@ -27,7 +27,7 @@
                 </button>
                 <button
                     type="button"
-                    class="p-2 rounded-xl transition-colors"
+                    class="p-2 rounded-xl transition-colors focus-ring-inset"
                     :class="
                         tab === 'announces'
                             ? 'bg-sem-action-primary text-sem-action-primary-text dark:bg-sem-info'
@@ -84,7 +84,7 @@
                 <div class="flex min-w-0 flex-1">
                     <button
                         type="button"
-                        class="sidebar-tab"
+                        class="sidebar-tab focus-ring-inset"
                         :class="{ 'sidebar-tab--active': tab === 'favourites' }"
                         @click="tab = 'favourites'"
                     >
@@ -92,7 +92,7 @@
                     </button>
                     <button
                         type="button"
-                        class="sidebar-tab"
+                        class="sidebar-tab focus-ring-inset"
                         :class="{ 'sidebar-tab--active': tab === 'announces' }"
                         @click="tab = 'announces'"
                     >
@@ -101,7 +101,7 @@
                 </div>
                 <button
                     type="button"
-                    class="hidden sm:flex shrink-0 items-center border-b-2 border-transparent px-1.5 text-sem-fg-muted hover:bg-sem-surface-muted text-sem-fg-muted dark:hover:bg-sem-surface transition-colors"
+                    class="hidden sm:flex shrink-0 items-center border-b-2 border-transparent px-1.5 text-sem-fg-muted hover:bg-sem-surface-muted text-sem-fg-muted dark:hover:bg-sem-surface transition-colors focus-ring-inset"
                     @click="$emit('toggle-collapse')"
                 >
                     <MaterialDesignIcon icon-name="chevron-left" class="size-5" />
@@ -253,7 +253,7 @@
                                 class="flex items-center justify-between px-2 py-1 cursor-pointer select-none"
                                 draggable="true"
                                 @click="toggleSectionCollapse(section.id)"
-                                @contextmenu.prevent="openSectionContextMenu($event, section)"
+                                @contextmenu="openSectionContextMenu($event, section)"
                                 @dragstart="onSectionDragStart(section.id)"
                                 @dragover.prevent="onSectionReorderDragOver(section.id)"
                                 @drop.prevent="onSectionDrop(section.id)"
@@ -318,7 +318,7 @@
                                     ]"
                                     draggable="true"
                                     @click="onFavouriteRowActivate(favourite)"
-                                    @contextmenu.prevent="openFavouriteContextMenu($event, favourite, section.id)"
+                                    @contextmenu="openFavouriteContextMenu($event, favourite, section.id)"
                                     @dragstart="onFavouriteDragStart($event, favourite, section.id)"
                                     @dragover.prevent="onFavouriteDragOver($event)"
                                     @drop.prevent="onFavouriteDrop($event, section.id, favourite)"
@@ -581,7 +581,7 @@
                                         ? 'ring-1 ring-sem-info dark:ring-sem-info/50'
                                         : '',
                                 ]"
-                                @contextmenu.prevent="openAnnounceContextMenu($event, node)"
+                                @contextmenu="openAnnounceContextMenu($event, node)"
                             >
                                 <!-- banished overlay -->
                                 <div
@@ -679,7 +679,7 @@
                                     ? 'ring-1 ring-sem-info dark:ring-sem-info/50'
                                     : '',
                             ]"
-                            @contextmenu.prevent="openAnnounceContextMenu($event, node)"
+                            @contextmenu="openAnnounceContextMenu($event, node)"
                         >
                             <div
                                 v-if="configStore.config.banished_effect_enabled && isBlocked(node.identity_hash)"
@@ -846,6 +846,7 @@ import DropDownMenuItem from "../DropDownMenuItem.vue";
 import DialogUtils from "../../js/DialogUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
+import { shouldOpenCustomContextMenu } from "../../js/contextMenuUtils.js";
 import DownloadUtils from "../../js/DownloadUtils";
 import { isUnknownNodeDisplayName } from "../../js/nomadUnknownNodeName.js";
 import { useNomadFavouritesLayout } from "../../js/nomadnet/useNomadFavouritesLayout.js";
@@ -1434,6 +1435,14 @@ export default {
             this.draggingSectionOverId = null;
         },
         openFavouriteContextMenu(event, favourite, sectionId) {
+            if (event && event.type === "contextmenu") {
+                if (!shouldOpenCustomContextMenu(event)) {
+                    return;
+                }
+                if (typeof event.preventDefault === "function") {
+                    event.preventDefault();
+                }
+            }
             this.favouriteContextMenu = {
                 show: true,
                 justOpened: true,
@@ -1448,6 +1457,12 @@ export default {
             }, 50);
         },
         openSectionContextMenu(event, section) {
+            if (!shouldOpenCustomContextMenu(event)) {
+                return;
+            }
+            if (event && typeof event.preventDefault === "function") {
+                event.preventDefault();
+            }
             this.sectionContextMenu = {
                 show: true,
                 x: event.pageX || event.clientX,
@@ -1498,6 +1513,12 @@ export default {
             this.favouriteBulkMoveMenuOpen = false;
         },
         openAnnounceContextMenu(event, node) {
+            if (!shouldOpenCustomContextMenu(event)) {
+                return;
+            }
+            if (event && typeof event.preventDefault === "function") {
+                event.preventDefault();
+            }
             this.announceContextMenu = {
                 show: true,
                 justOpened: true,
