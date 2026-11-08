@@ -63,38 +63,82 @@ if [[ "$INSTALL_PYTHON" == "true" ]]; then
         fi
     fi
 
-    # User-space audio libs for runners where package install is impossible.
-    # pyogg dlopens libogg/libopus (& friends) at runtime; fetch the Arch
-    # packages and unpack just usr/lib into $HOME, then point the dynamic
-    # loader at it. find_library() honours LD_LIBRARY_PATH on CPython 3.15.
-    install_user_audio_libs() {
+    # fetch_arch_pkg <pkg>: download an Arch 'extra' package without root —
+    # via pacman download-only into a writable cachedir when possible,
+    # otherwise the package API + geo mirror — and extract it fully into
+    # $HOME/.local/meshchatx-ci/syslibs.
+    fetch_arch_pkg() {
+        local pkg="$1"
         local dest="$HOME/.local/meshchatx-ci/syslibs"
         mkdir -p "${dest}/pkgs"
-        [[ -f "${dest}/usr/lib/libopus.so.0" && -f "${dest}/usr/lib/libogg.so.0" ]] && return 0
-
-        local pkg ver url tmp f
-        for pkg in opus libogg opusfile libvorbis flac speex opus-tools; do
-            # 1) pacman download-only into a writable cachedir (no root).
-            if command -v pacman >/dev/null 2>&1 \
-                && pacman -Sw --cachedir "${dest}/pkgs" --noconfirm "${pkg}" >/dev/null 2>&1; then
-                for f in "${dest}/pkgs"/*.pkg.tar.zst; do
-                    [[ -e "${f}" ]] || continue
-                    tar -xf "${f}" -C "${dest}" usr/lib 2>/dev/null || true
-                done
-                continue
-            fi
-            # 2) Arch package API + geo mirror fallback.
+        local f ver url tmp
+        if command -v pacman >/dev/null 2>&1; then
+            pacman -Sw --cachedir "${dest}/pkgs" --noconfirm "${pkg}" >/dev/null 2>&1 || true
+        fi
+        if ! compgen -G "${dest}/pkgs/${pkg}-*.pkg.tar.zst" >/dev/null; then
             ver="$(curl -fsSL "https://archlinux.org/packages/search/json/?name=${pkg}&repo=extra" 2>/dev/null \
                 | grep -o '"pkgver":"[^"]*"' | head -n1 | cut -d'"' -f4)"
-            [[ -n "${ver}" ]] || continue
+            [[ -n "${ver}" ]] || return 1
             url="https://geo.mirror.pkgbuild.com/extra/os/x86_64/${pkg}-${ver}-x86_64.pkg.tar.zst"
             tmp="$(mktemp -d)"
-            if curl -fsSL -o "${tmp}/p.pkg.tar.zst" "${url}" 2>/dev/null; then
-                tar -xf "${tmp}/p.pkg.tar.zst" -C "${dest}" usr/lib 2>/dev/null || true
-            fi
+            curl -fsSL -o "${tmp}/p.pkg.tar.zst" "${url}" 2>/dev/null \
+                || { rm -rf "${tmp}"; return 1; }
+            mv "${tmp}/p.pkg.tar.zst" "${dest}/pkgs/${pkg}-${ver}-x86_64.pkg.tar.zst"
             rm -rf "${tmp}"
+        fi
+        local extracted=0
+        for f in "${dest}/pkgs/${pkg}-"*.pkg.tar.zst; do
+            [[ -e "${f}" ]] || continue
+            tar -xf "${f}" -C "${dest}" 2>/dev/null && extracted=1
         done
+        [[ ${extracted} -eq 1 ]]
+    }
 
+    # Link user-space binaries fetched into syslibs/usr/bin onto PATH.
+    link_syslib_bins() {
+        local dest="$HOME/.local/meshchatx-ci/syslibs"
+        [[ -d "${dest}/usr/bin" ]] || return 0
+        mkdir -p "${HOME}/.local/bin"
+        local b
+        for b in "${dest}/usr/bin"/*; do
+            [[ -f "${b}" ]] || continue
+            ln -sf "${b}" "${HOME}/.local/bin/$(basename "${b}")"
+        done
+        export PATH="${HOME}/.local/bin:${PATH}"
+        if [[ -n "${GITHUB_PATH:-}" ]]; then
+            echo "${HOME}/.local/bin" >> "$GITHUB_PATH"
+        fi
+    }
+
+    # GNU make, binutils and pkg-config for source builds (codec2, sdists)
+    # on runners with no root. Fetched as Arch packages into $HOME.
+    ensure_build_tools() {
+        local t missing=0
+        for t in make ar ranlib nm objcopy pkg-config; do
+            command -v "${t}" >/dev/null 2>&1 || missing=1
+        done
+        if [[ ${missing} -eq 1 ]]; then
+            command -v make >/dev/null 2>&1 || fetch_arch_pkg make || true
+            fetch_arch_pkg binutils || true
+            command -v pkg-config >/dev/null 2>&1 || fetch_arch_pkg pkgconf || true
+            link_syslib_bins
+        fi
+        for t in make ar ranlib nm objcopy pkg-config; do
+            command -v "${t}" >/dev/null 2>&1 || return 1
+        done
+        return 0
+    }
+
+    # pyogg dlopens libogg/libopus (& friends) at runtime; fetch the Arch
+    # packages and unpack them into $HOME, then point the dynamic loader
+    # at syslibs/usr/lib via LD_LIBRARY_PATH.
+    install_user_audio_libs() {
+        local dest="$HOME/.local/meshchatx-ci/syslibs"
+        [[ -f "${dest}/usr/lib/libopus.so.0" && -f "${dest}/usr/lib/libogg.so.0" ]] && return 0
+        local pkg
+        for pkg in opus libogg opusfile libvorbis flac speex opus-tools; do
+            fetch_arch_pkg "${pkg}" || true
+        done
         [[ -f "${dest}/usr/lib/libopus.so.0" && -f "${dest}/usr/lib/libogg.so.0" ]]
     }
 
@@ -188,6 +232,23 @@ WRAPPER
         return 0
     }
 
+    if [[ "$(uname -s)" == "Linux" ]]; then
+        # Bootstrap the toolchain before codec2/sdist decisions: zig provides
+        # cc/c++/gcc/g++ when no C++ compiler exists, and user-space GNU
+        # make/binutils/pkg-config cover minimal self-hosted images.
+        if ! ensure_cpp; then
+            echo "::warning::no C++ compiler found; sdist builds may fail"
+        fi
+        if ! ensure_build_tools; then
+            echo "::warning::no make/binutils/pkg-config found; source builds may fail"
+        fi
+        if [[ -n "${GITHUB_ENV:-}" ]]; then
+            echo "PATH=${PATH}" >> "$GITHUB_ENV"
+            if [ -n "${CC:-}" ]; then echo "CC=${CC}" >> "$GITHUB_ENV"; fi
+            if [ -n "${CXX:-}" ]; then echo "CXX=${CXX}" >> "$GITHUB_ENV"; fi
+        fi
+    fi
+
     MESHCHATX_LINUX_CODEC2=""
     if [[ "$(uname -s)" == "Linux" ]]; then
         if command -v apt-get >/dev/null 2>&1 && have_priv; then
@@ -238,18 +299,6 @@ WRAPPER
             else
                 echo "::warning::could not provide libogg/libopus; Opus audio tests may fail"
             fi
-        fi
-    fi
-
-    if [[ "$(uname -s)" == "Linux" ]]; then
-        if ensure_cpp; then
-            if [[ -n "${GITHUB_ENV:-}" ]]; then
-                echo "PATH=${PATH}" >> "$GITHUB_ENV"
-                if [ -n "${CC:-}" ]; then echo "CC=${CC}" >> "$GITHUB_ENV"; fi
-                if [ -n "${CXX:-}" ]; then echo "CXX=${CXX}" >> "$GITHUB_ENV"; fi
-            fi
-        else
-            echo "::warning::no C++ compiler found; sdist builds may fail"
         fi
     fi
 
