@@ -30,6 +30,6 @@ if [ -z "$EXPECTED" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
     exit 1
 fi
 
-run_priv install -m 0755 /tmp/cosign /usr/local/bin/cosign
+install_tool /tmp/cosign cosign
 rm -f /tmp/cosign /tmp/cosign-checksums.txt
 cosign version

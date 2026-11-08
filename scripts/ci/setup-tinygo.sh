@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: 0BSD
-# Install TinyGo into /usr/local so `tinygo` lands on PATH for WASM builds.
+# Install TinyGo so `tinygo` lands on PATH for WASM builds.
 # Usage: sh scripts/ci/setup-tinygo.sh <version>  (e.g. 0.44.0)
 
 set -eu
@@ -16,15 +16,23 @@ fi
 
 curl -fsSL -o "/tmp/${TARBALL}" "${URL}"
 
-# /usr/local is not runner-writable on the Ubuntu 26 image, so sudo when needed.
+# /usr/local is not writable on all self-hosted runners (and sudo may be
+# unavailable under no_new_privs). Fall back to a per-user dir on PATH.
+DEST="/usr/local"
 TAR="tar"
-if [ ! -w /usr/local ] && command -v sudo >/dev/null 2>&1; then
-    TAR="sudo tar"
+if [ ! -w /usr/local ]; then
+    if sudo -n true 2>/dev/null; then
+        TAR="sudo tar"
+    else
+        DEST="${HOME}/.local/meshchatx-ci"
+        mkdir -p "${DEST}"
+    fi
 fi
-${TAR} -C /usr/local -xzf "/tmp/${TARBALL}"
+${TAR} -C "${DEST}" -xzf "/tmp/${TARBALL}"
 
+BINDIR="${DEST}/tinygo/bin"
 if [ -n "${GITHUB_PATH:-}" ]; then
-    echo "/usr/local/tinygo/bin" >> "${GITHUB_PATH}"
+    echo "${BINDIR}" >> "${GITHUB_PATH}"
 fi
 
-/usr/local/tinygo/bin/tinygo version
+"${BINDIR}/tinygo" version

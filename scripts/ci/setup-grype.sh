@@ -32,5 +32,7 @@ echo "${EXPECTED_SHA}  /tmp/grype.tar.gz" | sha256sum -c
 
 mkdir -p /tmp/grype-bin
 tar -xzf /tmp/grype.tar.gz -C /tmp/grype-bin grype
-sh scripts/ci/exec-priv.sh install -m 0755 /tmp/grype-bin/grype /usr/local/bin/grype
+# shellcheck source=priv.sh disable=SC1091
+. "$(dirname "$0")/priv.sh"
+install_tool /tmp/grype-bin/grype grype
 grype version

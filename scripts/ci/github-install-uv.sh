@@ -9,6 +9,13 @@ set -euo pipefail
 UV_VERSION="${UV_VERSION:-0.13.5}"
 UV_INSTALL_DIR="${UV_INSTALL_DIR:-/usr/local/bin}"
 
+# /usr/local/bin is not writable on all self-hosted runners and sudo may be
+# unusable (no_new_privs). Fall back to a per-job/user dir; GITHUB_PATH
+# export at the end keeps it on PATH for later steps.
+if [ "$(id -u)" -ne 0 ] && [ ! -w "${UV_INSTALL_DIR}" ] && ! sudo -n true 2>/dev/null; then
+    UV_INSTALL_DIR="${RUNNER_TEMP:-${HOME}/.local}/bin"
+fi
+
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
 

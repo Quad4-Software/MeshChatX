@@ -32,5 +32,7 @@ echo "${EXPECTED_SHA}  ${TMPDIR:-/tmp}/gitleaks.tar.gz" | sha256sum -c
 
 mkdir -p ${TMPDIR:-/tmp}/gitleaks-bin
 tar -xzf ${TMPDIR:-/tmp}/gitleaks.tar.gz -C ${TMPDIR:-/tmp}/gitleaks-bin gitleaks
-sh scripts/ci/exec-priv.sh install -m 0755 ${TMPDIR:-/tmp}/gitleaks-bin/gitleaks /usr/local/bin/gitleaks
+# shellcheck source=priv.sh disable=SC1091
+. "$(dirname "$0")/priv.sh"
+install_tool ${TMPDIR:-/tmp}/gitleaks-bin/gitleaks gitleaks
 gitleaks version
