@@ -7,6 +7,17 @@
 # $HOME/.local/meshchatx-ci/syslibs. link_syslib_bins puts binaries found
 # under syslibs/usr/bin on PATH via ~/.local/bin.
 
+# Same /tmp fallback as priv.sh for callers that do not source it.
+if [ ! -d /tmp ] || [ ! -w /tmp ]; then
+    _ci_tmp="${RUNNER_TEMP:-${HOME}/.meshchatx-ci}/tmp"
+    mkdir -p "${_ci_tmp}" 2>/dev/null && {
+        TMPDIR="${_ci_tmp}"
+        export TMPDIR
+        [ -n "${GITHUB_ENV:-}" ] && echo "TMPDIR=${TMPDIR}" >> "${GITHUB_ENV}"
+    }
+fi
+unset _ci_tmp
+
 fetch_arch_pkg() {
     local pkg="$1"
     local dest="${MESHCHAT_SYSLIBS_DEST:-$HOME/.local/meshchatx-ci/syslibs}"

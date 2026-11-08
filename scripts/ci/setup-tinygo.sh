@@ -5,6 +5,14 @@
 
 set -eu
 
+# /tmp can be absent on minimal self-hosted runners; keep downloads
+# user-writable via TMPDIR (mktemp and our ${TMPDIR:-/tmp} paths honour it).
+if [ ! -d /tmp ] || [ ! -w /tmp ]; then
+    _ci_tmp="${RUNNER_TEMP:-${HOME:-/tmp}/.meshchatx-ci}/tmp"
+    mkdir -p "${_ci_tmp}" 2>/dev/null && TMPDIR="${_ci_tmp}" && export TMPDIR
+fi
+unset _ci_tmp
+
 VERSION="${1:?tinygo version required}"
 TARBALL="tinygo${VERSION}.linux-amd64.tar.gz"
 URL="https://github.com/tinygo-org/tinygo/releases/download/v${VERSION}/${TARBALL}"
@@ -14,7 +22,7 @@ if command -v tinygo >/dev/null 2>&1 && tinygo version | grep -q "${VERSION}"; t
     exit 0
 fi
 
-curl -fsSL -o "/tmp/${TARBALL}" "${URL}"
+curl -fsSL -o "${TMPDIR:-/tmp}/${TARBALL}" "${URL}"
 
 # /usr/local is not writable on all self-hosted runners (and sudo may be
 # unavailable under no_new_privs). Fall back to a per-user dir on PATH.
@@ -28,7 +36,7 @@ if [ ! -w /usr/local ]; then
         mkdir -p "${DEST}"
     fi
 fi
-${TAR} -C "${DEST}" -xzf "/tmp/${TARBALL}"
+${TAR} -C "${DEST}" -xzf "${TMPDIR:-/tmp}/${TARBALL}"
 
 BINDIR="${DEST}/tinygo/bin"
 if [ -n "${GITHUB_PATH:-}" ]; then

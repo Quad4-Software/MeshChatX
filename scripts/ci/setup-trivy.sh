@@ -14,6 +14,17 @@
 # Optional mirror: TRIVY_DEB_URL and TRIVY_DEB_SHA256 (sha256sum -c format, hex only).
 set -eu
 
+# Self-hosted runners may lack /tmp; our ${TMPDIR:-/tmp} paths honour it.
+if [ ! -d /tmp ] || [ ! -w /tmp ]; then
+    _ci_tmp="${RUNNER_TEMP:-${HOME}/.meshchatx-ci}/tmp"
+    mkdir -p "${_ci_tmp}" 2>/dev/null && {
+        TMPDIR="${_ci_tmp}"
+        export TMPDIR
+        [ -n "${GITHUB_ENV:-}" ] && echo "TMPDIR=${TMPDIR}" >> "${GITHUB_ENV}"
+    }
+fi
+unset _ci_tmp
+
 COSIGN_VERSION="${COSIGN_VERSION:-3.0.6}"
 TRIVY_VERSION="${TRIVY_VERSION:-0.74.0}"
 TRIVY_RELEASE_BASE="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
@@ -32,9 +43,9 @@ verify_checksums() {
     ensure_cosign
     export COSIGN_YES="${COSIGN_YES:-true}"
 
-    curl -fsSL --retry 5 --retry-delay 2 -o /tmp/trivy_checksums.txt "${TRIVY_RELEASE_BASE}/trivy_${TRIVY_VERSION}_checksums.txt"
-    curl -fsSL --retry 5 --retry-delay 2 -o /tmp/trivy_checksums.sigstore.json "${TRIVY_RELEASE_BASE}/trivy_${TRIVY_VERSION}_checksums.txt.sigstore.json"
-    cosign verify-blob /tmp/trivy_checksums.txt --bundle /tmp/trivy_checksums.sigstore.json \
+    curl -fsSL --retry 5 --retry-delay 2 -o ${TMPDIR:-/tmp}/trivy_checksums.txt "${TRIVY_RELEASE_BASE}/trivy_${TRIVY_VERSION}_checksums.txt"
+    curl -fsSL --retry 5 --retry-delay 2 -o ${TMPDIR:-/tmp}/trivy_checksums.sigstore.json "${TRIVY_RELEASE_BASE}/trivy_${TRIVY_VERSION}_checksums.txt.sigstore.json"
+    cosign verify-blob ${TMPDIR:-/tmp}/trivy_checksums.txt --bundle ${TMPDIR:-/tmp}/trivy_checksums.sigstore.json \
         --certificate-identity-regexp="${TRIVY_CERT_IDENTITY_RE}" \
         --certificate-oidc-issuer-regexp="${TRIVY_CERT_ISSUER_RE}"
 }
@@ -42,7 +53,7 @@ verify_checksums() {
 verify_asset() {
     asset="$1"
     out="$2"
-    EXPECTED_SHA="$(awk -v f="${asset}" '$2 == f { print $1; exit }' /tmp/trivy_checksums.txt)"
+    EXPECTED_SHA="$(awk -v f="${asset}" '$2 == f { print $1; exit }' ${TMPDIR:-/tmp}/trivy_checksums.txt)"
     if [ -z "${EXPECTED_SHA}" ]; then
         echo "setup-trivy.sh: no SHA256 line for ${asset} in checksums.txt" >&2
         exit 1
@@ -62,9 +73,9 @@ verify_upstream_deb() {
     DEB_BASE="trivy_${TRIVY_VERSION}_${deb_arch}.deb"
 
     verify_checksums
-    verify_asset "${DEB_BASE}" /tmp/trivy.deb
+    verify_asset "${DEB_BASE}" ${TMPDIR:-/tmp}/trivy.deb
 
-    rm -f /tmp/trivy_checksums.txt /tmp/trivy_checksums.sigstore.json /tmp/trivy.deb.sigstore.json
+    rm -f ${TMPDIR:-/tmp}/trivy_checksums.txt ${TMPDIR:-/tmp}/trivy_checksums.sigstore.json ${TMPDIR:-/tmp}/trivy.deb.sigstore.json
 }
 
 install_tgz() {
@@ -73,14 +84,14 @@ install_tgz() {
     dest="${TRIVY_BIN_DIR:-${HOME}/.local/bin}"
 
     verify_checksums
-    verify_asset "${TGZ_BASE}" /tmp/trivy.tar.gz
+    verify_asset "${TGZ_BASE}" ${TMPDIR:-/tmp}/trivy.tar.gz
 
-    rm -f /tmp/trivy_checksums.txt /tmp/trivy_checksums.sigstore.json /tmp/trivy.tar.gz.sigstore.json
+    rm -f ${TMPDIR:-/tmp}/trivy_checksums.txt ${TMPDIR:-/tmp}/trivy_checksums.sigstore.json ${TMPDIR:-/tmp}/trivy.tar.gz.sigstore.json
 
     mkdir -p "${dest}"
-    tar -xzf /tmp/trivy.tar.gz -C "${dest}" trivy
+    tar -xzf ${TMPDIR:-/tmp}/trivy.tar.gz -C "${dest}" trivy
     chmod +x "${dest}/trivy"
-    rm -f /tmp/trivy.tar.gz
+    rm -f ${TMPDIR:-/tmp}/trivy.tar.gz
 
     if [ -n "${GITHUB_PATH:-}" ]; then
         echo "${dest}" >> "${GITHUB_PATH}"
@@ -106,12 +117,12 @@ if [ -n "${TRIVY_DEB_URL:-}" ]; then
         echo "setup-trivy.sh: TRIVY_DEB_URL requires TRIVY_DEB_SHA256" >&2
         exit 1
     fi
-    curl -fsSL --retry 5 --retry-delay 2 -o /tmp/trivy.deb "${TRIVY_DEB_URL}"
-    echo "${TRIVY_DEB_SHA256}  /tmp/trivy.deb" | sha256sum -c
-    sh scripts/ci/exec-priv.sh dpkg -i /tmp/trivy.deb || sh scripts/ci/exec-priv.sh apt-get install -f -y
+    curl -fsSL --retry 5 --retry-delay 2 -o ${TMPDIR:-/tmp}/trivy.deb "${TRIVY_DEB_URL}"
+    echo "${TRIVY_DEB_SHA256}  ${TMPDIR:-/tmp}/trivy.deb" | sha256sum -c
+    sh scripts/ci/exec-priv.sh dpkg -i ${TMPDIR:-/tmp}/trivy.deb || sh scripts/ci/exec-priv.sh apt-get install -f -y
 elif command -v dpkg >/dev/null 2>&1; then
     verify_upstream_deb "${rel_arch}"
-    sh scripts/ci/exec-priv.sh dpkg -i /tmp/trivy.deb || sh scripts/ci/exec-priv.sh apt-get install -f -y
+    sh scripts/ci/exec-priv.sh dpkg -i ${TMPDIR:-/tmp}/trivy.deb || sh scripts/ci/exec-priv.sh apt-get install -f -y
 else
     install_tgz "${rel_arch}"
 fi

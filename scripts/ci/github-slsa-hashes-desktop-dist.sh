@@ -3,6 +3,18 @@
 # Subject paths are the relative paths passed to sha256sum (stable for slsa-verifier).
 set -euo pipefail
 
+# Self-hosted runners may lack /tmp; mktemp honours TMPDIR.
+if [ ! -d /tmp ] || [ ! -w /tmp ]; then
+    _ci_tmp="${RUNNER_TEMP:-${HOME}/.meshchatx-ci}/tmp"
+    mkdir -p "${_ci_tmp}" 2>/dev/null && {
+        TMPDIR="${_ci_tmp}"
+        export TMPDIR
+        [ -n "${GITHUB_ENV:-}" ] && echo "TMPDIR=${TMPDIR}" >> "${GITHUB_ENV}"
+    }
+fi
+unset _ci_tmp
+
+
 if [ "$#" -lt 1 ]; then
     echo "usage: $0 <root> [root...]" >&2
     exit 1

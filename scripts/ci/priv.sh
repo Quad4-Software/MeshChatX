@@ -2,6 +2,19 @@
 # Sourced by scripts/ci/*.sh - run commands as root when sudo is missing (e.g. Docker, act).
 # Usage: . "$(dirname "$0")/priv.sh"
 
+# Minimal self-hosted images can lose /tmp mid-run (tmpfiles cleanup,
+# unmounted tmpfs). mktemp honours TMPDIR, so point it at a user-writable
+# dir when /tmp is absent; GITHUB_ENV carries it to later steps.
+if [ ! -d /tmp ] || [ ! -w /tmp ]; then
+    _ci_tmp="${RUNNER_TEMP:-${HOME}/.meshchatx-ci}/tmp"
+    mkdir -p "${_ci_tmp}" 2>/dev/null && {
+        TMPDIR="${_ci_tmp}"
+        export TMPDIR
+        [ -n "${GITHUB_ENV:-}" ] && echo "TMPDIR=${TMPDIR}" >> "${GITHUB_ENV}"
+    }
+fi
+unset _ci_tmp
+
 run_priv() {
     if [ "$(id -u)" -eq 0 ]; then
         "$@"

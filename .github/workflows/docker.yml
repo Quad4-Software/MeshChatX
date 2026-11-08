@@ -258,10 +258,10 @@ jobs:
                   IMAGE_NAME: ${{ steps.image.outputs.name }}
               run: |
                   set -euo pipefail
-                  sh scripts/ci/docker-tags.sh "${IMAGE_NAME}" /tmp/docker-tags.txt
+                  sh scripts/ci/docker-tags.sh "${IMAGE_NAME}" ${RUNNER_TEMP:-/tmp}/docker-tags.txt
                   {
                     echo 'tags<<EOF'
-                    sed 's/^-t //' /tmp/docker-tags.txt
+                    sed 's/^-t //' ${RUNNER_TEMP:-/tmp}/docker-tags.txt
                     echo 'EOF'
                   } >> "$GITHUB_OUTPUT"
 
@@ -279,10 +279,10 @@ jobs:
                   set -euo pipefail
                   repo="${DH_REPO_NAME:-meshchatx}"
                   base="docker.io/$(printf '%s' "$DH_USER" | tr '[:upper:]' '[:lower:]')/$(printf '%s' "$repo" | tr '[:upper:]' '[:lower:]')"
-                  sh scripts/ci/docker-tags.sh "${base}" /tmp/docker-hub-tags.txt
+                  sh scripts/ci/docker-tags.sh "${base}" ${RUNNER_TEMP:-/tmp}/docker-hub-tags.txt
                   {
                     echo 'tags<<EOF'
-                    sed 's/^-t //' /tmp/docker-hub-tags.txt
+                    sed 's/^-t //' ${RUNNER_TEMP:-/tmp}/docker-hub-tags.txt
                     echo 'EOF'
                   } >> "$GITHUB_OUTPUT"
 

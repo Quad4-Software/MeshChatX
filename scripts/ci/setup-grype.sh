@@ -19,20 +19,20 @@ esac
 
 ASSET="grype_${GRYPE_VERSION}_linux_${asset_arch}.tar.gz"
 
-curl -fsSL --retry 5 --retry-delay 2 -o /tmp/grype_checksums.txt \
+curl -fsSL --retry 5 --retry-delay 2 -o ${TMPDIR:-/tmp}/grype_checksums.txt \
     "${RELEASE_BASE}/grype_${GRYPE_VERSION}_checksums.txt"
-EXPECTED_SHA="$(awk -v f="${ASSET}" '$2 == f { print $1; exit }' /tmp/grype_checksums.txt)"
+EXPECTED_SHA="$(awk -v f="${ASSET}" '$2 == f { print $1; exit }' ${TMPDIR:-/tmp}/grype_checksums.txt)"
 if [ -z "${EXPECTED_SHA}" ]; then
     echo "setup-grype.sh: no SHA256 line for ${ASSET} in checksums.txt" >&2
     exit 1
 fi
 
-curl -fsSL --retry 5 --retry-delay 2 -o /tmp/grype.tar.gz "${RELEASE_BASE}/${ASSET}"
-echo "${EXPECTED_SHA}  /tmp/grype.tar.gz" | sha256sum -c
+curl -fsSL --retry 5 --retry-delay 2 -o ${TMPDIR:-/tmp}/grype.tar.gz "${RELEASE_BASE}/${ASSET}"
+echo "${EXPECTED_SHA}  ${TMPDIR:-/tmp}/grype.tar.gz" | sha256sum -c
 
-mkdir -p /tmp/grype-bin
-tar -xzf /tmp/grype.tar.gz -C /tmp/grype-bin grype
+mkdir -p ${TMPDIR:-/tmp}/grype-bin
+tar -xzf ${TMPDIR:-/tmp}/grype.tar.gz -C ${TMPDIR:-/tmp}/grype-bin grype
 # shellcheck source=priv.sh disable=SC1091
 . "$(dirname "$0")/priv.sh"
-install_tool /tmp/grype-bin/grype grype
+install_tool ${TMPDIR:-/tmp}/grype-bin/grype grype
 grype version

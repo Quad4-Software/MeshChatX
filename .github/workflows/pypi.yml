@@ -216,11 +216,11 @@ jobs:
                     exit 0
                   fi
                   sh scripts/ci/setup-cosign.sh "${COSIGN_VERSION}"
-                  printf '%s\n' "$COSIGN_PRIVATE_KEY" > /tmp/cosign.key
-                  chmod 600 /tmp/cosign.key
-                  export COSIGN_KEY_PATH=/tmp/cosign.key
+                  printf '%s\n' "$COSIGN_PRIVATE_KEY" > ${RUNNER_TEMP}/cosign.key
+                  chmod 600 ${RUNNER_TEMP}/cosign.key
+                  export COSIGN_KEY_PATH=${RUNNER_TEMP}/cosign.key
                   sh scripts/ci/attest-release-assets.sh ./dist
-                  rm -f /tmp/cosign.key
+                  rm -f ${RUNNER_TEMP}/cosign.key
 
             - name: Store distribution packages
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9

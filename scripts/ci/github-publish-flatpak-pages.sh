@@ -18,6 +18,18 @@
 #   FLATPAK_PAGES_BRANCH   target branch (default gh-pages)
 set -euo pipefail
 
+# Self-hosted runners may lack /tmp; mktemp honours TMPDIR.
+if [ ! -d /tmp ] || [ ! -w /tmp ]; then
+    _ci_tmp="${RUNNER_TEMP:-${HOME}/.meshchatx-ci}/tmp"
+    mkdir -p "${_ci_tmp}" 2>/dev/null && {
+        TMPDIR="${_ci_tmp}"
+        export TMPDIR
+        [ -n "${GITHUB_ENV:-}" ] && echo "TMPDIR=${TMPDIR}" >> "${GITHUB_ENV}"
+    }
+fi
+unset _ci_tmp
+
+
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BUNDLE="${1:-}"
 

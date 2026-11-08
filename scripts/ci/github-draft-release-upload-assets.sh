@@ -13,6 +13,18 @@
 # SPDX-License-Identifier: 0BSD
 set -euo pipefail
 
+# Self-hosted runners may lack /tmp; mktemp honours TMPDIR.
+if [ ! -d /tmp ] || [ ! -w /tmp ]; then
+    _ci_tmp="${RUNNER_TEMP:-${HOME}/.meshchatx-ci}/tmp"
+    mkdir -p "${_ci_tmp}" 2>/dev/null && {
+        TMPDIR="${_ci_tmp}"
+        export TMPDIR
+        [ -n "${GITHUB_ENV:-}" ] && echo "TMPDIR=${TMPDIR}" >> "${GITHUB_ENV}"
+    }
+fi
+unset _ci_tmp
+
+
 DIR="${1:?path to directory of files to upload}"
 TAG="${TAG:-${GITHUB_REF_NAME:?set TAG or GITHUB_REF_NAME}}"
 NOTES_ONLY="${MESHCHATX_DRAFT_NOTES_ONLY:-0}"

@@ -53,16 +53,16 @@ download_release() {
 }
 
 echo "Installing Task v${TASK_VERSION} (${ARCH})"
-download_release /tmp/task-checksums.txt "${BASE_URL}/task_checksums.txt"
-download_release /tmp/task.tar.gz "${BASE_URL}/${TARBALL}"
+download_release ${TMPDIR:-/tmp}/task-checksums.txt "${BASE_URL}/task_checksums.txt"
+download_release ${TMPDIR:-/tmp}/task.tar.gz "${BASE_URL}/${TARBALL}"
 
-EXPECTED="$(grep "  ${TARBALL}\$" /tmp/task-checksums.txt | cut -d' ' -f1)"
-ACTUAL="$(sha256sum /tmp/task.tar.gz | cut -d' ' -f1)"
+EXPECTED="$(grep "  ${TARBALL}\$" ${TMPDIR:-/tmp}/task-checksums.txt | cut -d' ' -f1)"
+ACTUAL="$(sha256sum ${TMPDIR:-/tmp}/task.tar.gz | cut -d' ' -f1)"
 if [ -z "$EXPECTED" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
     echo "SHA256 verification failed for ${TARBALL}" >&2
     echo "  expected: ${EXPECTED}" >&2
     echo "  got:      ${ACTUAL}" >&2
-    rm -f /tmp/task.tar.gz /tmp/task-checksums.txt
+    rm -f ${TMPDIR:-/tmp}/task.tar.gz ${TMPDIR:-/tmp}/task-checksums.txt
     exit 1
 fi
 echo "SHA256 verified: ${ACTUAL}"
@@ -73,14 +73,14 @@ TASK_DEST="/usr/local/bin"
 if [ ! -w "${TASK_DEST}" ] && [ "$(id -u)" -ne 0 ] && ! sudo -n true 2>/dev/null; then
     TASK_DEST="${RUNNER_TEMP:-${HOME}/.local}/bin"
     mkdir -p "${TASK_DEST}"
-    tar -xzf /tmp/task.tar.gz -C "${TASK_DEST}" task
+    tar -xzf ${TMPDIR:-/tmp}/task.tar.gz -C "${TASK_DEST}" task
     if [ -n "${GITHUB_PATH:-}" ]; then
         echo "${TASK_DEST}" >> "${GITHUB_PATH}"
     fi
     export PATH="${TASK_DEST}:${PATH}"
 else
-    run_priv tar -xzf /tmp/task.tar.gz -C /usr/local/bin task
+    run_priv tar -xzf ${TMPDIR:-/tmp}/task.tar.gz -C /usr/local/bin task
 fi
-rm -f /tmp/task.tar.gz /tmp/task-checksums.txt
+rm -f ${TMPDIR:-/tmp}/task.tar.gz ${TMPDIR:-/tmp}/task-checksums.txt
 
 task --version

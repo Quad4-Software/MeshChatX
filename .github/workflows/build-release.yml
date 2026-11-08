@@ -207,6 +207,8 @@ jobs:
             - name: Set up Go (RPM/APK full builds)
               if: matrix.arch == 'x64'
               uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+              env:
+                  TMPDIR: ${{ runner.temp }}
               with:
                   go-version: "1.27.x"
                   # Tag-triggered release workflow: no cache, per the
@@ -307,11 +309,11 @@ jobs:
                     exit 0
                   fi
                   sh scripts/ci/setup-cosign.sh "${COSIGN_VERSION}"
-                  printf '%s\n' "$COSIGN_PRIVATE_KEY" > /tmp/cosign.key
-                  chmod 600 /tmp/cosign.key
-                  export COSIGN_KEY_PATH=/tmp/cosign.key
+                  printf '%s\n' "$COSIGN_PRIVATE_KEY" > ${RUNNER_TEMP}/cosign.key
+                  chmod 600 ${RUNNER_TEMP}/cosign.key
+                  export COSIGN_KEY_PATH=${RUNNER_TEMP}/cosign.key
                   sh scripts/ci/attest-release-assets.sh ./release-assets
-                  rm -f /tmp/cosign.key
+                  rm -f ${RUNNER_TEMP}/cosign.key
 
     flatpak:
         name: Flatpak (Wails shell)
@@ -886,15 +888,15 @@ jobs:
                     exit 0
                   fi
                   sh scripts/ci/setup-cosign.sh "${COSIGN_VERSION}"
-                  printf '%s\n' "$COSIGN_PRIVATE_KEY" > /tmp/cosign.key
-                  chmod 600 /tmp/cosign.key
-                  export COSIGN_KEY_PATH=/tmp/cosign.key
+                  printf '%s\n' "$COSIGN_PRIVATE_KEY" > ${RUNNER_TEMP}/cosign.key
+                  chmod 600 ${RUNNER_TEMP}/cosign.key
+                  export COSIGN_KEY_PATH=${RUNNER_TEMP}/cosign.key
                   for d in upload/win upload/mac; do
                     if [ -d "$d" ]; then
                       sh scripts/ci/attest-release-assets.sh "$d"
                     fi
                   done
-                  rm -f /tmp/cosign.key
+                  rm -f ${RUNNER_TEMP}/cosign.key
 
             - name: Build CDN webseed torrent
               run: |

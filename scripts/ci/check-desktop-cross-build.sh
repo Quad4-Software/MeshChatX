@@ -6,6 +6,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 D=desktop
+if [ ! -d /tmp ] || [ ! -w /tmp ]; then
+    _ci_tmp="${RUNNER_TEMP:-${HOME}/.meshchatx-ci}/tmp"
+    mkdir -p "${_ci_tmp}" 2>/dev/null && export TMPDIR="${_ci_tmp}"
+fi
+unset _ci_tmp
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP"

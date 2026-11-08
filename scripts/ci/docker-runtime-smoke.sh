@@ -2,6 +2,17 @@
 # Build the standard Docker image and verify /api/v1/status over HTTPS inside the container.
 set -euo pipefail
 
+# Self-hosted runners may lack /tmp; mktemp honours TMPDIR.
+if [ ! -d /tmp ] || [ ! -w /tmp ]; then
+    _ci_tmp="${RUNNER_TEMP:-${HOME}/.meshchatx-ci}/tmp"
+    mkdir -p "${_ci_tmp}" 2>/dev/null && {
+        TMPDIR="${_ci_tmp}"
+        export TMPDIR
+        [ -n "${GITHUB_ENV:-}" ] && echo "TMPDIR=${TMPDIR}" >> "${GITHUB_ENV}"
+    }
+fi
+unset _ci_tmp
+
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
@@ -52,9 +63,10 @@ docker run -d \
 
 deadline=$((SECONDS + TIMEOUT_SEC))
 status_ok=0
+_status_file="${TMPDIR:-/tmp}/meshchatx-docker-status.json"
 while [ "$SECONDS" -lt "$deadline" ]; do
-    if curl -fsSk "https://127.0.0.1:${HOST_PORT}/api/v1/status" >/tmp/meshchatx-docker-status.json 2>/dev/null; then
-        if python3 -c 'import json,sys; d=json.load(open("/tmp/meshchatx-docker-status.json")); sys.exit(0 if d.get("status")=="ok" else 1)'; then
+    if curl -fsSk "https://127.0.0.1:${HOST_PORT}/api/v1/status" >"${_status_file}" 2>/dev/null; then
+        if python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d.get("status")=="ok" else 1)' "${_status_file}"; then
             status_ok=1
             break
         fi
@@ -73,4 +85,4 @@ if [ "$status_ok" != "1" ]; then
     exit 1
 fi
 
-echo "Docker runtime smoke passed: $(cat /tmp/meshchatx-docker-status.json)"
+echo "Docker runtime smoke passed: $(cat "${_status_file}")"
