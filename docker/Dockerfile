@@ -37,8 +37,10 @@ COPY scripts/build-desktop-shell-css.mjs scripts/build-desktop-shell-css.mjs
 COPY scripts/copy-font-licenses.mjs scripts/copy-font-licenses.mjs
 COPY scripts/ensure-micron-parser-package.js scripts/ensure-micron-parser-package.js
 COPY scripts/sync-meshchatx-docs.js scripts/sync-meshchatx-docs.js
+COPY scripts/sync-desktop-bridge.mjs scripts/sync-desktop-bridge.mjs
 COPY desktop/shell/loading.html desktop/shell/loading.html
 COPY desktop/shell/crash.html desktop/shell/crash.html
+COPY desktop/shell/desktop-bridge.js desktop/shell/desktop-bridge.js
 COPY desktop/shell/assets/css/desktop-shell.src.css desktop/shell/assets/css/desktop-shell.src.css
 COPY scripts/pip_rns_remotes.py scripts/pip_rns_remotes.py
 COPY scripts/build/fetch_reticulum_manual.py scripts/build/fetch_reticulum_manual.py
