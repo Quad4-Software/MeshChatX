@@ -915,6 +915,33 @@ ANNOUNCES_LIST_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+ANNOUNCES_NEARBY_SCHEMA: dict = {
+    "type": "object",
+    "required": ["peers"],
+    "properties": {
+        "peers": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["destination_hash"],
+                "properties": {
+                    "destination_hash": {"type": ["string", "null"]},
+                    "identity_hash": {"type": ["string", "null"]},
+                    "display_name": {"type": ["string", "null"]},
+                    "custom_display_name": {"type": ["string", "null"]},
+                    "lxmf_user_icon": {"type": ["string", "null"]},
+                    "contact_image": {"type": ["string", "null"]},
+                    "hops": {"type": ["integer", "null"]},
+                    "created_at": {"type": ["string", "null", "number"]},
+                    "updated_at": {"type": ["string", "null", "number"]},
+                },
+                "additionalProperties": True,
+            },
+        }
+    },
+    "additionalProperties": True,
+}
+
 DESTINATION_PATH_SCHEMA: dict = {
     "type": "object",
     "required": ["path"],

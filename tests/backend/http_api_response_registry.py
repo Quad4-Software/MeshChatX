@@ -24,6 +24,7 @@ from tests.backend.http_api_response_schemas import (
     ACCESS_ATTEMPTS_SCHEMA,
     ACTIVE_SESSIONS_SCHEMA,
     ANNOUNCES_LIST_SCHEMA,
+    ANNOUNCES_NEARBY_SCHEMA,
     BLACKHOLE_STATUS_SCHEMA,
     BLOCKED_DESTINATIONS_ENVELOPE_SCHEMA,
     BOTS_STATUS_SCHEMA,
@@ -330,6 +331,7 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract("GET", "/api/v1/announces", ANNOUNCES_LIST_SCHEMA),
+    HttpJsonContract("GET", "/api/v1/announces/nearby", ANNOUNCES_NEARBY_SCHEMA),
     HttpJsonContract(
         "GET",
         "/api/v1/destination/{destination_hash}/path",
