@@ -24,14 +24,17 @@ fi
 
 export MESHCHAT_SYSLIBS_DEST="$HOME/.local/meshchatx-ci/browserlibs"
 
-# Runtime deps of chrome-headless-shell on Arch (superset of the Debian
-# --with-deps list; extra libs are harmless). atk merged into
-# at-spi2-core, and the cups client library split into libcups.
-PKGS="nspr nss at-spi2-core libcups libdrm libxkbcommon libxcomposite \
+# Runtime deps of chrome-headless-shell on Arch, derived from the binary's
+# own NEEDED list (superset of the Debian --with-deps list; extra libs are
+# harmless and fetch failures only warn). atk merged into at-spi2-core,
+# and the cups client library split into libcups.
+PKGS="nspr nss at-spi2-core atk libcups libdrm libxkbcommon libxcomposite \
 libxdamage libxfixes libxrandr libxext libxrender libxi libxtst libx11 \
-libxcb libxshmfence libxxf86vm libxt libxft fontconfig freetype2 cairo \
-pango glib2 expat alsa-lib mesa libglvnd libpng libjpeg-turbo libwebp \
-harfbuzz graphite fribidi libdatrie libthai libepoxy wayland"
+libxcb libxau libxdmcp libxshmfence libxxf86vm libxt libxft fontconfig \
+freetype2 cairo pango glib2 expat alsa-lib mesa libglvnd libpng \
+libjpeg-turbo libwebp harfbuzz graphite fribidi libdatrie libthai \
+libepoxy wayland libffi util-linux-libs dbus systemd-libs pcre2 zlib \
+gcc-libs"
 
 for pkg in ${PKGS}; do
     fetch_arch_pkg "${pkg}" || echo "ensure-playwright-deps: ${pkg} unavailable" >&2
