@@ -20,20 +20,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      # No marketplace actions: clone with plain git. act_runner job containers
-      # may not reach the public git URL (hairpin/NAT), so probe the public
-      # endpoint first, then common container-reachable addresses for
-      # self-hosted instances colocated with the runner host.
+      # No marketplace actions: clone with plain git. Job containers on
+      # self-hosted act_runner may not reach the public git URL, so probe the
+      # public endpoint first, then common container-reachable addresses.
       - name: Check out repository
         run: |
           set -euo pipefail
-          export GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/false
-          repo_path="${{ forgejo.repository || github.repository }}"
-          sha="${{ forgejo.sha || github.sha }}"
-          ref="${{ forgejo.ref || github.ref }}"
-          ref_name="${{ forgejo.ref_name || github.ref_name }}"
-          gw="$(ip route 2>/dev/null | awk '/default/ {print $3; exit}')"
-          bases="${{ forgejo.server_url || github.server_url }}"
+          export GIT_TERMINAL_PROMPT=0
+          command -v git >/dev/null 2>&1 || { echo "checkout: git not installed" >&2; exit 1; }
+          repo_path="${{ github.repository }}"
+          sha="${{ github.sha }}"
+          ref="${{ github.ref }}"
+          ref_name="${{ github.ref_name }}"
+          gw="$(ip route 2>/dev/null | awk '/default/ {print $3; exit}' || true)"
+          bases="${{ github.server_url }}"
           for extra in "https://host.docker.internal" \
                        "http://host.docker.internal:3000" \
                        "http://172.17.0.1:3000" \
