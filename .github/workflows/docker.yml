@@ -213,6 +213,7 @@ jobs:
               run: | # zizmor: ignore[github-env] discovered paths come from the runner host filesystem, never from workflow input
                   set -euo pipefail
                   found=""
+                  is_podman=0
                   # type -P only returns real files on disk; command -v can
                   # return shell functions/aliases/hashes that node actions
                   # cannot exec.
@@ -224,9 +225,60 @@ jobs:
                     p="$(type -P "$cand" 2>/dev/null || true)"
                     if [ -n "$p" ] && [ -x "$p" ]; then found="$p"; break; fi
                   done
+                  case "$(basename "${found:-none}")" in
+                    podman|podman-docker) is_podman=1 ;;
+                  esac
+
+                  # Podman rootless needs subuid/subgid ranges; without them
+                  # every container op fails. Prefer, in order: an existing
+                  # socket, a working rootless podman, then rootful podman via
+                  # passwordless sudo.
+                  sock=""
+                  for cand_sock in \
+                    /var/run/docker.sock /run/docker.sock \
+                    /run/podman/podman.sock /var/run/podman/podman.sock \
+                    "${XDG_RUNTIME_DIR:-}/podman/podman.sock" \
+                    "${XDG_RUNTIME_DIR:-}/docker.sock"; do
+                    [ -n "$cand_sock" ] && [ -S "$cand_sock" ] && { sock="$cand_sock"; break; }
+                  done
+                  if [ -z "$sock" ] && [ "$is_podman" = "1" ] && [ -n "$found" ]; then
+                    if "$found" info >/dev/null 2>&1; then
+                      # rootless podman works; find its user socket
+                      export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-${RUNNER_TEMP:-/tmp}/xdg-runtime}"
+                      mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
+                      "$found" info --format '{{range .Plugins.Network}}{{.Name}} {{end}}' >/dev/null 2>&1 || true
+                      for cand_sock in "$XDG_RUNTIME_DIR/podman/podman.sock" "$XDG_RUNTIME_DIR/docker.sock"; do
+                        [ -S "$cand_sock" ] && { sock="$cand_sock"; break; }
+                      done
+                      [ -z "$sock" ] && { "$found" system service --time 0 >/dev/null 2>&1 || true; }
+                      for i in 1 2 3 4 5; do
+                        [ -n "$sock" ] && break
+                        for cand_sock in "$XDG_RUNTIME_DIR/podman/podman.sock" "$XDG_RUNTIME_DIR/docker.sock"; do
+                          [ -S "$cand_sock" ] && { sock="$cand_sock"; break; }
+                        done
+                        [ -n "$sock" ] || sleep 1
+                      done
+                    elif sudo -n true 2>/dev/null; then
+                      echo "rootless podman unavailable; trying rootful via sudo"
+                      sudo -n "$found" info >/dev/null 2>&1 || true
+                      sudo -n systemctl start podman.socket 2>/dev/null || true
+                      for i in 1 2 3 4 5; do
+                        for cand_sock in /run/podman/podman.sock /var/run/podman/podman.sock; do
+                          [ -S "$cand_sock" ] && { sock="$cand_sock"; break; }
+                        done
+                        [ -n "$sock" ] && break
+                        sleep 1
+                      done
+                    fi
+                  fi
+                  if [ -n "$sock" ]; then
+                    echo "DOCKER_HOST=unix://$sock" >> "$GITHUB_ENV"
+                    echo "container socket: $sock"
+                  fi
+
                   if [ -z "$found" ]; then
                     # Last resort: static docker CLI. A daemon may still be
-                    # reachable via /var/run/docker.sock or a rootless sock.
+                    # reachable via a socket detected above.
                     cli="${RUNNER_TEMP:-/tmp}/docker-cli"
                     tmp="$(mktemp -d)"
                     if curl -fsSL --retry 3 \
@@ -243,7 +295,11 @@ jobs:
                       exit 1
                     fi
                   fi
-                  echo "container CLI: $found"
+                  if [ -z "$sock" ] && [ "$is_podman" = "0" ]; then
+                    # docker CLI defaults to /var/run/docker.sock; nothing to set
+                    :
+                  fi
+                  echo "container CLI: $found (podman=$is_podman)"
                   if [ "$(basename "$found")" = "docker" ]; then
                     dirname "$found" >> "$GITHUB_PATH"
                   else
@@ -252,15 +308,6 @@ jobs:
                     mkdir -p "$shim"
                     ln -sf "$found" "$shim/docker"
                     echo "$shim" >> "$GITHUB_PATH"
-                  fi
-                  if [ -n "${XDG_RUNTIME_DIR:-}" ]; then
-                    for sock in "$XDG_RUNTIME_DIR/docker.sock" "$XDG_RUNTIME_DIR/podman/podman.sock" /run/podman/podman.sock /var/run/docker.sock; do
-                      if [ -S "$sock" ]; then
-                        echo "DOCKER_HOST=unix://$sock" >> "$GITHUB_ENV"
-                        echo "rootless socket: $sock"
-                        break
-                      fi
-                    done
                   fi
 
             - name: Set up QEMU
