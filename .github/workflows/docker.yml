@@ -159,18 +159,10 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
               run: |
                   set -euo pipefail
-                  hdr=(-H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${GH_TOKEN}")
                   api="https://api.github.com/repos"
                   resolve() {
-                    local repo="$1" tag="$2" ref typ url
-                    ref=$(curl -sSf "${hdr[@]}" "${api}/${repo}/git/refs/tags/${tag}")
-                    typ=$(printf '%s' "$ref" | jq -r .object.type)
-                    if [ "$typ" = "commit" ]; then
-                      printf '%s' "$ref" | jq -r .object.sha
-                      return
-                    fi
-                    url=$(printf '%s' "$ref" | jq -r .object.url)
-                    curl -sSf "${hdr[@]}" "$url" | jq -r .object.sha
+                    # jq is not installed on the self-hosted runner; python3 is.
+                    python3 -c 'import json,os,sys,urllib.request as U; R,T,A=sys.argv[1:4]; H={"Accept":"application/vnd.github+json","Authorization":"Bearer "+os.environ["GH_TOKEN"],"User-Agent":"meshchatx-pin-check"}; g=lambda x: json.load(U.urlopen(U.Request(x,headers=H))); o=g(A+"/"+R+"/git/refs/tags/"+T)["object"]; print(o["sha"] if o["type"]=="commit" else g(o["url"])["object"]["sha"])' "$1" "$2" "${api}"
                   }
                   check() {
                     local repo="$1" tag="$2" want="$3" got
