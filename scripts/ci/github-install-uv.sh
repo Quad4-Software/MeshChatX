@@ -131,18 +131,87 @@ download() {
 }
 
 echo "Installing uv ${UV_VERSION} (${TARGET})"
-download "${TMPDIR_UV}/${ASSET}" "${BASE_URL}/${ASSET}"
-download "${TMPDIR_UV}/${ASSET}.sha256" "${BASE_URL}/${ASSET}.sha256"
+EXTRACT_DIR="${TMPDIR_UV}/extract"
+mkdir -p "${EXTRACT_DIR}"
 
-EXPECTED="$(awk '{print $1}' "${TMPDIR_UV}/${ASSET}.sha256")"
-ACTUAL="$(sha256sum "${TMPDIR_UV}/${ASSET}" | awk '{print $1}')"
-if [ -z "${EXPECTED}" ] || [ "${EXPECTED}" != "${ACTUAL}" ]; then
-    echo "SHA256 verification failed for ${ASSET}" >&2
-    echo "  expected: ${EXPECTED}" >&2
-    echo "  got:      ${ACTUAL}" >&2
-    exit 1
+GITHUB_OK=0
+if download "${TMPDIR_UV}/${ASSET}" "${BASE_URL}/${ASSET}" &&
+    download "${TMPDIR_UV}/${ASSET}.sha256" "${BASE_URL}/${ASSET}.sha256"; then
+    GITHUB_OK=1
 fi
-echo "SHA256 verified: ${ACTUAL}"
+
+if [ "${GITHUB_OK}" = "1" ]; then
+    EXPECTED="$(awk '{print $1}' "${TMPDIR_UV}/${ASSET}.sha256")"
+    ACTUAL="$(sha256sum "${TMPDIR_UV}/${ASSET}" | awk '{print $1}')"
+    if [ -z "${EXPECTED}" ] || [ "${EXPECTED}" != "${ACTUAL}" ]; then
+        echo "SHA256 verification failed for ${ASSET}" >&2
+        echo "  expected: ${EXPECTED}" >&2
+        echo "  got:      ${ACTUAL}" >&2
+        exit 1
+    fi
+    echo "SHA256 verified: ${ACTUAL}"
+    case "${EXT}" in
+        tar.gz)
+            tar -xzf "${TMPDIR_UV}/${ASSET}" -C "${EXTRACT_DIR}"
+            ;;
+        zip)
+            unzip -q -o "${TMPDIR_UV}/${ASSET}" -d "${EXTRACT_DIR}"
+            ;;
+    esac
+else
+    # GitHub release assets can be unavailable (e.g. 504 outages) while
+    # PyPI stays up. The uv wheel ships the same binaries under
+    # <ver>.data/scripts/, so reuse the shared find/install below.
+    echo "GitHub release download failed; trying PyPI wheel fallback" >&2
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo "python3 is required for the PyPI fallback" >&2
+        exit 1
+    fi
+    WHEEL_PICK="$(curl -fsSL --retry 3 --retry-all-errors \
+        --connect-timeout 20 --max-time 60 \
+        "https://pypi.org/pypi/uv/${UV_VERSION}/json" | UV_TARGET="${TARGET}" python3 -c '
+import json, os, sys
+target = os.environ["UV_TARGET"]
+def ok(fn):
+    fn = fn.lower()
+    if target == "x86_64-unknown-linux-gnu":
+        return "x86_64" in fn and "manylinux" in fn and "musllinux" not in fn
+    if target == "x86_64-unknown-linux-musl":
+        return "x86_64" in fn and "musllinux" in fn
+    if target == "aarch64-unknown-linux-gnu":
+        return "aarch64" in fn and "manylinux" in fn
+    if target == "aarch64-unknown-linux-musl":
+        return "aarch64" in fn and "musllinux" in fn
+    if target == "x86_64-apple-darwin":
+        return "macosx" in fn and "x86_64" in fn
+    if target == "aarch64-apple-darwin":
+        return "macosx" in fn and "arm64" in fn
+    if target == "x86_64-pc-windows-msvc":
+        return "win_amd64" in fn
+    if target == "aarch64-pc-windows-msvc":
+        return "win_arm64" in fn
+    return False
+d = json.load(sys.stdin)
+cands = [u for u in d.get("urls", [])
+         if u.get("filename", "").endswith(".whl") and ok(u["filename"])]
+if not cands:
+    sys.exit("no matching PyPI wheel for " + target)
+cands.sort(key=lambda u: u["filename"])
+u = cands[0]
+print(u["url"], u["digests"]["sha256"])
+')" || {
+        echo "PyPI fallback failed: could not select a wheel" >&2
+        exit 1
+    }
+    read -r WHEEL_URL WHEEL_SHA256 <<< "${WHEEL_PICK}"
+    download "${TMPDIR_UV}/uv.whl" "${WHEEL_URL}"
+    echo "${WHEEL_SHA256}  ${TMPDIR_UV}/uv.whl" | sha256sum -c --status || {
+        echo "SHA256 verification failed for PyPI wheel ${WHEEL_URL}" >&2
+        exit 1
+    }
+    echo "SHA256 verified (PyPI): ${WHEEL_SHA256}"
+    python3 -m zipfile -e "${TMPDIR_UV}/uv.whl" "${EXTRACT_DIR}/"
+fi
 
 install_bin() {
     src="$1"
@@ -154,17 +223,6 @@ install_bin() {
         run_priv install -m 0755 "${src}" "${dest}"
     fi
 }
-
-EXTRACT_DIR="${TMPDIR_UV}/extract"
-mkdir -p "${EXTRACT_DIR}"
-case "${EXT}" in
-    tar.gz)
-        tar -xzf "${TMPDIR_UV}/${ASSET}" -C "${EXTRACT_DIR}"
-        ;;
-    zip)
-        unzip -q -o "${TMPDIR_UV}/${ASSET}" -d "${EXTRACT_DIR}"
-        ;;
-esac
 
 UV_BIN="$(find "${EXTRACT_DIR}" -type f \( -name uv -o -name uv.exe \) | head -n1)"
 UVX_BIN="$(find "${EXTRACT_DIR}" -type f \( -name uvx -o -name uvx.exe \) | head -n1)"
