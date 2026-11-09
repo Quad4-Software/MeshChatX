@@ -210,7 +210,7 @@ jobs:
             # (rootless installs, /usr/local, snap). Locate any container CLI
             # and put its directory on PATH for the docker/* actions.
             - name: Locate container runtime
-              run: |
+              run: | # zizmor: ignore[github-env] discovered paths come from command -v on the runner host, never from workflow input
                   set -euo pipefail
                   found=""
                   for cand in docker /usr/bin/docker /usr/local/bin/docker /snap/bin/docker "$HOME/.docker/bin/docker" "$HOME/.local/bin/docker" "$HOME/bin/docker" /usr/bin/podman /usr/local/bin/podman /usr/bin/podman-docker; do

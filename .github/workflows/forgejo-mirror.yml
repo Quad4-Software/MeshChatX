@@ -14,6 +14,9 @@
 name: Mirror to Forgejo
 
 on:
+  # zizmor: ignore[dangerous-triggers] workflow_run only fires for the named
+  # workflows, which run exclusively on master pushes, tags, and manual
+  # dispatch; jobs additionally verify name, conclusion, and head repo.
   workflow_run:
     workflows: ["Docker (GHCR + Docker Hub)", "Build release"]
     types: [completed]
@@ -39,9 +42,13 @@ jobs:
     # Only mirror when the Docker workflow actually succeeded.
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.name == 'Docker (GHCR + Docker Hub)'
+      github.event.workflow_run.name == 'Docker (GHCR + Docker Hub)' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      GH_ACTOR: ${{ github.actor }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout (for tag computation)
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -90,7 +97,7 @@ jobs:
             [ -n "$src" ] && [ -n "$dst" ] || continue
             echo "copy $src -> $dst"
             sudo skopeo copy --all \
-              --src-creds "${{ github.actor }}:${{ github.token }}" \
+              --src-creds "${GH_ACTOR}:${GH_TOKEN}" \
               --dest-creds "${FORGEJO_USER}:${FORGEJO_TOKEN}" \
               "docker://${src}" "docker://${dst}"
           done
@@ -100,6 +107,7 @@ jobs:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.name == 'Build release' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
       startsWith(github.event.workflow_run.head_branch, 'v')
     runs-on: ubuntu-latest
     timeout-minutes: 120
