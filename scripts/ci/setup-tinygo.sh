@@ -5,21 +5,28 @@
 
 set -eu
 
-# /tmp can be absent on minimal self-hosted runners; keep downloads
-# user-writable via TMPDIR (mktemp and our ${TMPDIR:-/tmp} paths honour it).
-if [ ! -d /tmp ] || [ ! -w /tmp ]; then
-    _ci_tmp=""
-    for _ci_cand in "${RUNNER_TEMP:-}" "${HOME:-}" "${GITHUB_WORKSPACE:-}"; do
-        [ -n "${_ci_cand}" ] || continue
-        _ci_cand="${_ci_cand}/.meshchatx-ci-tmp"
-        if mkdir -p "${_ci_cand}" 2>/dev/null && [ -w "${_ci_cand}" ]; then
-            _ci_tmp="${_ci_cand}"
-            break
-        fi
-    done
-    [ -n "${_ci_tmp}" ] && TMPDIR="${_ci_tmp}" && export TMPDIR
-    unset _ci_cand
+# /tmp can disappear mid-run on self-hosted runners (tmpfiles cleanup,
+# unmounted tmpfs), so never depend on it: mktemp and friends honour
+# TMPDIR. Always point TMPDIR at a user-writable per-job dir and
+# propagate it to later steps via GITHUB_ENV.
+_ci_tmp=""
+for _ci_cand in "${RUNNER_TEMP:-}" "${HOME:-}" "${GITHUB_WORKSPACE:-}"; do
+    [ -n "${_ci_cand}" ] || continue
+    _ci_cand="${_ci_cand}/.meshchatx-ci-tmp"
+    if mkdir -p "${_ci_cand}" 2>/dev/null && [ -w "${_ci_cand}" ]; then
+        _ci_tmp="${_ci_cand}"
+        break
+    fi
+done
+if [ -n "${_ci_tmp}" ]; then
+    TMPDIR="${_ci_tmp}"
+    export TMPDIR
+    [ -n "${GITHUB_ENV:-}" ] && echo "TMPDIR=${TMPDIR}" >> "${GITHUB_ENV}"
+    echo "ci: TMPDIR=${TMPDIR}"
+else
+    echo "ci: WARNING: no writable temp dir available" >&2
 fi
+unset _ci_cand
 unset _ci_tmp
 
 VERSION="${1:?tinygo version required}"
