@@ -255,12 +255,14 @@ jobs:
                   persist-credentials: false
 
             - name: Prepare runner temp
-              # The self-hosted runner has no usable /tmp; CodeQL's CLI
-              # creates temp dirs via TMPDIR, so point it at runner temp
-              # before init/analyze run.
+              # The self-hosted runner has no usable /tmp. CodeQL's CLI and
+              # extractors create temp dirs through the JVM, whose
+              # java.io.tmpdir defaults to /tmp and ignores TMPDIR, so point
+              # it at runner temp via JAVA_TOOL_OPTIONS as well.
               run: |
                   mkdir -p "${RUNNER_TEMP}/.meshchatx-ci-tmp"
                   echo "TMPDIR=${RUNNER_TEMP}/.meshchatx-ci-tmp" >> "${GITHUB_ENV}"
+                  echo "JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=${RUNNER_TEMP}" >> "${GITHUB_ENV}"
 
             - name: Ensure basic CLI tools
               # CodeQL autobuild helpers shell out to `which`; minimal
