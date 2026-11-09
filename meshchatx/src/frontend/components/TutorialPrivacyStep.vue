@@ -2,12 +2,17 @@
 <template>
     <div class="tutorial-privacy" :class="compact ? 'tutorial-privacy--compact' : ''">
         <div class="tutorial-privacy__intro">
-            <h2 class="tutorial-privacy__title">
-                {{ $t("tutorial.privacy_title") }}
-            </h2>
-            <p class="tutorial-privacy__desc">
-                {{ $t("tutorial.privacy_desc") }}
-            </p>
+            <span class="tutorial-privacy__icon">
+                <MaterialDesignIcon icon-name="shield-lock-outline" class="size-6" />
+            </span>
+            <div class="min-w-0">
+                <h2 class="tutorial-privacy__title">
+                    {{ $t("tutorial.privacy_title") }}
+                </h2>
+                <p class="tutorial-privacy__desc">
+                    {{ $t("tutorial.privacy_desc") }}
+                </p>
+            </div>
         </div>
 
         <div class="tutorial-privacy__list">
@@ -80,11 +85,13 @@ import AndroidBridge from "../js/rnode/AndroidBridge.js";
 import ToastUtils from "../js/ToastUtils";
 import { apiPath } from "../js/constants";
 import SettingToggleRow from "./settings/SettingToggleRow.vue";
+import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
 export default {
     name: "TutorialPrivacyStep",
     components: {
         SettingToggleRow,
+        MaterialDesignIcon,
     },
     props: {
         compact: {
@@ -268,16 +275,19 @@ export default {
     @apply space-y-3;
 }
 .tutorial-privacy__intro {
-    @apply space-y-1 text-center sm:text-left;
+    @apply flex items-center gap-3 sm:gap-4;
+}
+.tutorial-privacy__icon {
+    @apply flex size-11 shrink-0 items-center justify-center rounded-2xl bg-sem-accent/10 text-sem-accent;
 }
 .tutorial-privacy__title {
-    @apply text-xl sm:text-2xl font-black text-sem-fg;
+    @apply text-xl sm:text-2xl font-bold tracking-tight text-sem-fg;
 }
 .tutorial-privacy__desc {
-    @apply text-sm text-sem-fg-muted max-w-xl mx-auto sm:mx-0;
+    @apply mt-1 text-sm text-sem-fg-muted;
 }
 .tutorial-privacy__list {
-    @apply space-y-2 w-full max-w-xl mx-auto sm:mx-0;
+    @apply space-y-2 w-full;
 }
 .tutorial-privacy__callout {
     @apply p-3 rounded-2xl border border-sem-warning dark:border-sem-warning bg-sem-warning/15 dark:bg-sem-warning/15 text-left space-y-2;
@@ -289,7 +299,7 @@ export default {
     @apply text-xs text-sem-warning dark:text-amber-100/90;
 }
 .tutorial-privacy__hint {
-    @apply text-xs text-center sm:text-left text-sem-fg-muted max-w-xl mx-auto sm:mx-0;
+    @apply text-xs text-sem-fg-muted;
 }
 .tutorial-privacy :deep(.setting-toggle) {
     @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-sem-border bg-white/70 dark:bg-sem-surface px-3 py-2.5;
