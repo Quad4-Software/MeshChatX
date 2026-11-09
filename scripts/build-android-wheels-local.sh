@@ -37,7 +37,7 @@ Options:
   --bleak-version V          bleak pure-python wheel version to vendor (default: 3.0.2)
   --httpx-version V          httpx pure-python wheel version to vendor (default: 0.28.1)
   --usbserial4a-version V    usbserial4a version to build from sdist (default: 0.4.0)
-  --rns-version V            rns wheel version to patch (default: 1.5.7)
+  --rns-version V            rns wheel version to patch (default: 1.6.0)
   --no-lxst-patch            Skip LXST metadata patch
   --no-rns-patch             Skip RNS Android RNodeInterface patch
   --only-recipes LIST        Comma-separated recipe directory names under
@@ -73,7 +73,7 @@ PYOPENSSL_VERSION="26.4.0"
 CERTIFI_VERSION="2026.10.23"
 SERVICE_IDENTITY_VERSION="26.1.0"
 ATTRS_VERSION="26.1.0"
-RNS_VERSION="1.5.7"
+RNS_VERSION="1.6.0"
 PATCH_LXST="1"
 PATCH_RNS="1"
 ONLY_RECIPES=""
