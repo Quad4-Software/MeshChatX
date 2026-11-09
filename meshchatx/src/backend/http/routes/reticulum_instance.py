@@ -393,7 +393,9 @@ def register_reticulum_instance_routes(routes, app):
                         reloaded=False,
                     )
             except Exception as e:
-                logger.debug("Failed to reload RNS after discovery config update: %s", e)
+                logger.debug(
+                    "Failed to reload RNS after discovery config update: %s", e
+                )
                 return http_unexpected(
                     "Discovery settings saved but RNS reload failed", reloaded=False
                 )

@@ -81,10 +81,7 @@ def test_live_apply_mode_maps_to_interface_constant(saved_rns_state):
     app = _FakeApp({"autoconnect_interface_mode": "access_point"})
     applied, _reason = live.apply_discovery_settings_live(app)
     assert applied is True
-    assert (
-        _class("autoconnect_interface_mode")
-        == Interface.Interface.MODE_ACCESS_POINT
-    )
+    assert _class("autoconnect_interface_mode") == Interface.Interface.MODE_ACCESS_POINT
 
 
 def test_live_apply_unset_autoconnect_becomes_false(saved_rns_state):
@@ -97,9 +94,7 @@ def test_live_apply_unset_autoconnect_becomes_false(saved_rns_state):
 
 
 def test_live_apply_invalid_sources_skipped(saved_rns_state):
-    app = _FakeApp(
-        {"interface_discovery_sources": "not-hex,zz" + "," + "cc" * 16}
-    )
+    app = _FakeApp({"interface_discovery_sources": "not-hex,zz" + "," + "cc" * 16})
     applied, _ = live.apply_discovery_settings_live(app)
     assert applied is True
     assert _class("interface_sources") == [bytes.fromhex("cc" * 16)]

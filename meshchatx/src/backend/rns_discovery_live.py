@@ -150,7 +150,9 @@ def _apply_autoconnect_mode(value: Any) -> None:
     mode_name = _MODE_MAP.get(str(value).strip().lower())
     if mode_name is None:
         return
-    _set_class_var("autoconnect_interface_mode", getattr(Interface.Interface, mode_name))
+    _set_class_var(
+        "autoconnect_interface_mode", getattr(Interface.Interface, mode_name)
+    )
 
 
 def _apply_discovery_thresholds(reticulum_config: dict) -> None:
@@ -253,11 +255,16 @@ def apply_discovery_settings_live(app: Any) -> tuple[bool, str | None]:
     try:
         discover_enabled = _as_bool(reticulum_config.get("discover_interfaces"))
         _set_class_var("discover_interfaces", discover_enabled)
-        _set_class_var("interface_sources", _parse_discovery_sources(
-            reticulum_config.get("interface_discovery_sources")
-        ))
+        _set_class_var(
+            "interface_sources",
+            _parse_discovery_sources(
+                reticulum_config.get("interface_discovery_sources")
+            ),
+        )
 
-        required_value = _as_float_or_none(reticulum_config.get("required_discovery_value"))
+        required_value = _as_float_or_none(
+            reticulum_config.get("required_discovery_value")
+        )
         if required_value is not None and required_value <= 0:
             required_value = None
         _set_class_var("required_discovery_value", required_value)
