@@ -4,6 +4,9 @@
 # release checksums.txt before installing.
 set -eu
 
+# shellcheck source=priv.sh disable=SC1091
+. "$(dirname "$0")/priv.sh"
+
 NUCLEI_VERSION="${NUCLEI_VERSION:-3.11.1}"
 RELEASE_BASE="https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}"
 
@@ -32,7 +35,5 @@ echo "${EXPECTED_SHA}  ${TMPDIR:-/tmp}/nuclei.zip" | sha256sum -c
 
 mkdir -p ${TMPDIR:-/tmp}/nuclei-bin
 unzip -o ${TMPDIR:-/tmp}/nuclei.zip nuclei -d ${TMPDIR:-/tmp}/nuclei-bin
-# shellcheck source=priv.sh disable=SC1091
-. "$(dirname "$0")/priv.sh"
 install_tool ${TMPDIR:-/tmp}/nuclei-bin/nuclei nuclei
 nuclei -version

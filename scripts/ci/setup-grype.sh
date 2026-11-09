@@ -4,6 +4,9 @@
 # release checksums.txt before installing.
 set -eu
 
+# shellcheck source=priv.sh disable=SC1091
+. "$(dirname "$0")/priv.sh"
+
 GRYPE_VERSION="${GRYPE_VERSION:-0.119.0}"
 RELEASE_BASE="https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}"
 
@@ -32,7 +35,5 @@ echo "${EXPECTED_SHA}  ${TMPDIR:-/tmp}/grype.tar.gz" | sha256sum -c
 
 mkdir -p ${TMPDIR:-/tmp}/grype-bin
 tar -xzf ${TMPDIR:-/tmp}/grype.tar.gz -C ${TMPDIR:-/tmp}/grype-bin grype
-# shellcheck source=priv.sh disable=SC1091
-. "$(dirname "$0")/priv.sh"
 install_tool ${TMPDIR:-/tmp}/grype-bin/grype grype
 grype version

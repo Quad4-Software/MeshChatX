@@ -141,6 +141,32 @@ jobs:
                     trivy config --exit-code 1 "$f"
                   done
 
+            - name: Install Rust toolchain (Argus builds argus-scanner via cargo)
+              run: |
+                  set -euo pipefail
+                  if ! command -v cargo >/dev/null 2>&1; then
+                      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+                          | sh -s -- -y --profile minimal --default-toolchain stable
+                  fi
+                  echo "${HOME}/.cargo/bin" >> "${GITHUB_PATH}"
+                  # cargo links through `cc`; reuse the user-space dirs
+                  # provisioned by setup-dev-environment when the runner
+                  # has no system toolchain, and alias cc to gcc if needed.
+                  if ! command -v cc >/dev/null 2>&1; then
+                      _extra=""
+                      for d in "${HOME}/.local/meshchatx-ci/syslibs/usr/bin" "${HOME}/.local/meshchatx-ci/zig/bin"; do
+                          if [ -d "$d" ]; then
+                              echo "$d" >> "${GITHUB_PATH}"
+                              _extra="${_extra}:${d}"
+                          fi
+                      done
+                      mkdir -p "${HOME}/.local/bin"
+                      export PATH="${HOME}/.local/bin${_extra}:${PATH}"
+                      if ! command -v cc >/dev/null 2>&1 && command -v gcc >/dev/null 2>&1; then
+                          ln -sf "$(command -v gcc)" "${HOME}/.local/bin/cc"
+                      fi
+                  fi
+
             - name: Argus supply-chain indicator scan
               uses: Quad4-Software/argus@35d2d5fc3d0569f60dc7481b64fd922092e4886a # v0.3.1
               with:
@@ -227,6 +253,14 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
                   persist-credentials: false
+
+            - name: Prepare runner temp
+              # The self-hosted runner has no usable /tmp; CodeQL's CLI
+              # creates temp dirs via TMPDIR, so point it at runner temp
+              # before init/analyze run.
+              run: |
+                  mkdir -p "${RUNNER_TEMP}/.meshchatx-ci-tmp"
+                  echo "TMPDIR=${RUNNER_TEMP}/.meshchatx-ci-tmp" >> "${GITHUB_ENV}"
 
             - name: Ensure basic CLI tools
               # CodeQL autobuild helpers shell out to `which`; minimal

@@ -4,6 +4,9 @@
 # release checksums.txt before installing.
 set -eu
 
+# shellcheck source=priv.sh disable=SC1091
+. "$(dirname "$0")/priv.sh"
+
 GITLEAKS_VERSION="${GITLEAKS_VERSION:-8.30.1}"
 RELEASE_BASE="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
 
@@ -32,7 +35,5 @@ echo "${EXPECTED_SHA}  ${TMPDIR:-/tmp}/gitleaks.tar.gz" | sha256sum -c
 
 mkdir -p ${TMPDIR:-/tmp}/gitleaks-bin
 tar -xzf ${TMPDIR:-/tmp}/gitleaks.tar.gz -C ${TMPDIR:-/tmp}/gitleaks-bin gitleaks
-# shellcheck source=priv.sh disable=SC1091
-. "$(dirname "$0")/priv.sh"
 install_tool ${TMPDIR:-/tmp}/gitleaks-bin/gitleaks gitleaks
 gitleaks version
