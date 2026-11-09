@@ -206,6 +206,42 @@ jobs:
                   lower="$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
                   echo "name=${REGISTRY}/${lower}" >> "$GITHUB_OUTPUT"
 
+            # The self-hosted runner's service PATH may not include docker
+            # (rootless installs, /usr/local, snap). Locate any container CLI
+            # and put its directory on PATH for the docker/* actions.
+            - name: Locate container runtime
+              run: |
+                  set -euo pipefail
+                  found=""
+                  for cand in docker /usr/bin/docker /usr/local/bin/docker /snap/bin/docker "$HOME/.docker/bin/docker" "$HOME/.local/bin/docker" "$HOME/bin/docker" /usr/bin/podman /usr/local/bin/podman /usr/bin/podman-docker; do
+                    p="$(command -v "$cand" 2>/dev/null || true)"
+                    [ -z "$p" ] && [ -x "$cand" ] && p="$cand"
+                    if [ -n "$p" ]; then found="$p"; break; fi
+                  done
+                  if [ -z "$found" ]; then
+                    echo "container CLI not found in common locations" >&2
+                    exit 1
+                  fi
+                  echo "container CLI: $found"
+                  if [ "$(basename "$found")" = "docker" ]; then
+                    dirname "$found" >> "$GITHUB_PATH"
+                  else
+                    # docker/* actions call `docker` literally; shim the name.
+                    shim="${RUNNER_TEMP:-/tmp}/docker-shim"
+                    mkdir -p "$shim"
+                    ln -sf "$found" "$shim/docker"
+                    echo "$shim" >> "$GITHUB_PATH"
+                  fi
+                  if [ -n "${XDG_RUNTIME_DIR:-}" ]; then
+                    for sock in "$XDG_RUNTIME_DIR/docker.sock" "$XDG_RUNTIME_DIR/podman/podman.sock"; do
+                      if [ -S "$sock" ]; then
+                        echo "DOCKER_HOST=unix://$sock" >> "$GITHUB_ENV"
+                        echo "rootless socket: $sock"
+                        break
+                      fi
+                    done
+                  fi
+
             - name: Set up QEMU
               uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
 
