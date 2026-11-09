@@ -196,7 +196,7 @@ jobs:
 
             - name: Install frontend dependencies
               run: |
-                  sh scripts/ci/ensure-pnpm-store.sh
+                  . scripts/ci/ensure-pnpm-store.sh
                   pnpm install --frozen-lockfile
 
             - name: Sync version metadata

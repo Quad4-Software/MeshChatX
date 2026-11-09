@@ -19,6 +19,19 @@ inputs:
 runs:
     using: composite
     steps:
+        - name: Provide a runtime dir for pnpm store locks
+          shell: bash
+          run: |
+              set -euo pipefail
+              # pnpm 12 places store operation locks under XDG_RUNTIME_DIR,
+              # falling back to /tmp. Self-hosted runners may not have /tmp,
+              # so give pnpm a per-job runtime dir that passes its
+              # ownership and permission checks.
+              xdg_runtime="${RUNNER_TEMP:-${TMPDIR:-${HOME}/.cache}}/xdg-runtime"
+              mkdir -p "${xdg_runtime}"
+              chmod 700 "${xdg_runtime}"
+              echo "XDG_RUNTIME_DIR=${xdg_runtime}" >> "${GITHUB_ENV}"
+
         - name: Set up Node.js
           uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
           with:

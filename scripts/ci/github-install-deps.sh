@@ -467,7 +467,7 @@ fi
 
 if [[ "$INSTALL_NODE" == "true" ]]; then
     pnpm config set verify-store-integrity true
-    sh scripts/ci/ensure-pnpm-store.sh
+    . scripts/ci/ensure-pnpm-store.sh
     pnpm install --frozen-lockfile
 fi
 
