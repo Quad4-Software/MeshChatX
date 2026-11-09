@@ -195,6 +195,7 @@ def register_reticulum_instance_routes(routes, app):
             return http_bad_request("Invalid request body")
 
         reticulum_config = app._get_reticulum_section()
+        previous_network_identity = reticulum_config.get("network_identity")
 
         # Lazy import: see reticulum_discovery_get.
         from meshchatx.meshchat import ReticulumMeshChat
@@ -361,17 +362,41 @@ def register_reticulum_instance_routes(routes, app):
         if not app._write_reticulum_config():
             return http_unexpected("Failed to write Reticulum config")
 
-        try:
-            reloaded = await app.reload_reticulum()
-            if reloaded is False:
+        # network_identity swaps the announce identity and still needs a full
+        # reload; every other discovery option is applied live.
+        network_identity_changed = (
+            "network_identity" in data
+            and reticulum_config.get("network_identity") != previous_network_identity
+        )
+
+        applied_live = False
+        needs_reload = network_identity_changed
+        if not needs_reload:
+            try:
+                from meshchatx.src.backend.rns_discovery_live import (
+                    apply_discovery_settings_live,
+                )
+
+                applied_live, live_reason = apply_discovery_settings_live(app)
+                needs_reload = live_reason is not None
+            except Exception as exc:
+                logger.debug("Live discovery apply errored: %s", exc)
+                needs_reload = True
+
+        reloaded = False
+        if needs_reload:
+            try:
+                reloaded = await app.reload_reticulum()
+                if reloaded is False:
+                    return http_unexpected(
+                        "Discovery settings saved but RNS reload failed",
+                        reloaded=False,
+                    )
+            except Exception as e:
+                logger.debug("Failed to reload RNS after discovery config update: %s", e)
                 return http_unexpected(
                     "Discovery settings saved but RNS reload failed", reloaded=False
                 )
-        except Exception as e:
-            logger.debug("Failed to reload RNS after discovery config update: %s", e)
-            return http_unexpected(
-                "Discovery settings saved but RNS reload failed", reloaded=False
-            )
 
         discovery_config = {
             "discover_interfaces": reticulum_config.get("discover_interfaces"),
@@ -424,7 +449,8 @@ def register_reticulum_instance_routes(routes, app):
                 "interface_discovery_remove_after_days",
             ),
             "network_identity": reticulum_config.get("network_identity"),
-            "reloaded": True,
+            "reloaded": reloaded,
+            "applied_live": applied_live,
         }
 
         return web.json_response({"discovery": discovery_config})
