@@ -15,14 +15,15 @@ import { listLocaleCodes, normalizeUiLocaleCode } from "./localeLoader.js";
  * @returns {{ mode: "light" | "dark", htmlDark: boolean }}
  */
 export function expectedBootTheme(storedTheme, prefersDark = false) {
-    if (storedTheme === "system") {
-        const mode = prefersDark ? "dark" : "light";
+    // Explicit light/dark are preserved; "system", unset, and unrecognized
+    // values resolve through the OS scheme (dark when it cannot be read).
+    if (storedTheme === "light" || storedTheme === "dark") {
         return {
-            mode,
-            htmlDark: mode === "dark",
+            mode: storedTheme,
+            htmlDark: storedTheme === "dark",
         };
     }
-    const mode = storedTheme === "dark" ? "dark" : "light";
+    const mode = prefersDark ? "dark" : "light";
     return {
         mode,
         htmlDark: mode === "dark",

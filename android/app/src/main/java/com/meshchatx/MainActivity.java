@@ -2,6 +2,7 @@ package com.meshchatx;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.UiModeManager;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -80,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREF_REMOTE_BACKEND_URL = "remote_backend_url";
     private static final String THEME_DARK = "dark";
     private static final String THEME_LIGHT = "light";
+    private static final String THEME_SYSTEM = "system";
 
     private WebView webView;
     private ProgressBar progressBar;
@@ -203,10 +205,8 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        boolean darkShell = isDarkUiTheme(resolvePreferredUiTheme());
-        getDelegate().setLocalNightMode(
-            darkShell ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO
-        );
+        String preferredUiTheme = resolvePreferredUiTheme();
+        getDelegate().setLocalNightMode(nightModeForUiTheme(preferredUiTheme));
         getTheme().applyStyle(R.style.OptOutEdgeToEdgeEnforcement, false);
         super.onCreate(savedInstanceState);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
@@ -1211,29 +1211,67 @@ public class MainActivity extends AppCompatActivity {
         }, retryDelayMs);
     }
 
-    private String resolvePreferredUiTheme() {
-        SharedPreferences prefs = getSharedPreferences(SHELL_PREFS, MODE_PRIVATE);
-        String stored = prefs.getString(PREF_UI_THEME, null);
-        if (THEME_LIGHT.equals(stored) || THEME_DARK.equals(stored)) {
-            return stored;
+    private static String normalizeUiThemePreference(String theme) {
+        if (THEME_LIGHT.equals(theme) || THEME_DARK.equals(theme) || THEME_SYSTEM.equals(theme)) {
+            return theme;
         }
-        return THEME_DARK;
+        return THEME_SYSTEM;
     }
 
-    private static boolean isDarkUiTheme(String theme) {
-        return !THEME_LIGHT.equals(theme);
+    private String resolvePreferredUiTheme() {
+        SharedPreferences prefs = getSharedPreferences(SHELL_PREFS, MODE_PRIVATE);
+        return normalizeUiThemePreference(prefs.getString(PREF_UI_THEME, null));
+    }
+
+    private boolean isSystemDarkMode() {
+        // UiModeManager reports the OS-level night flag (API 29+); below
+        // that the app configuration already tracks the system while local
+        // night mode follows the system.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            UiModeManager uiModeManager = getSystemService(UiModeManager.class);
+            if (uiModeManager != null) {
+                int nightMode = uiModeManager.getNightMode();
+                if (nightMode == UiModeManager.MODE_NIGHT_YES) {
+                    return true;
+                }
+                if (nightMode == UiModeManager.MODE_NIGHT_NO) {
+                    return false;
+                }
+            }
+        }
+        int nightMode =
+            getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        return nightMode == Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    private boolean resolvesToDarkUiTheme(String theme) {
+        if (THEME_LIGHT.equals(theme)) {
+            return false;
+        }
+        if (THEME_DARK.equals(theme)) {
+            return true;
+        }
+        return isSystemDarkMode();
+    }
+
+    private int nightModeForUiTheme(String theme) {
+        if (THEME_SYSTEM.equals(theme)) {
+            return AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
+        }
+        return resolvesToDarkUiTheme(theme)
+            ? AppCompatDelegate.MODE_NIGHT_YES
+            : AppCompatDelegate.MODE_NIGHT_NO;
     }
 
     private void persistPreferredUiTheme(String theme) {
-        String normalized = isDarkUiTheme(theme) ? THEME_DARK : THEME_LIGHT;
         getSharedPreferences(SHELL_PREFS, MODE_PRIVATE)
             .edit()
-            .putString(PREF_UI_THEME, normalized)
+            .putString(PREF_UI_THEME, normalizeUiThemePreference(theme))
             .apply();
     }
 
     private void applyShellCanvasTheme(String theme) {
-        boolean dark = isDarkUiTheme(theme);
+        boolean dark = resolvesToDarkUiTheme(theme);
         int canvasColor = ContextCompat.getColor(
             this,
             dark ? R.color.meshchat_canvas_dark : R.color.meshchat_canvas_light
@@ -1254,15 +1292,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setUiThemeFromBridge(String theme) {
-        String normalized = isDarkUiTheme(theme) ? THEME_DARK : THEME_LIGHT;
+        String normalized = normalizeUiThemePreference(theme);
         persistPreferredUiTheme(normalized);
         applyShellCanvasTheme(normalized);
         // Update night mode without forcing an immediate recreate mid-session.
         // Next cold start applies local night mode before setContentView.
-        int desired =
-            isDarkUiTheme(normalized)
-                ? AppCompatDelegate.MODE_NIGHT_YES
-                : AppCompatDelegate.MODE_NIGHT_NO;
+        int desired = nightModeForUiTheme(normalized);
         if (getDelegate().getLocalNightMode() != desired) {
             getDelegate().setLocalNightMode(desired);
         }

@@ -3323,7 +3323,7 @@ export default {
                 display_name: "",
                 identity_hash: "",
                 lxmf_address_hash: "",
-                theme: "dark",
+                theme: "system",
                 theme_preset: "default",
                 accent_color: null,
                 custom_canvas_color: null,
@@ -3662,7 +3662,7 @@ export default {
                     display_name: "",
                     identity_hash: "",
                     lxmf_address_hash: "",
-                    theme: "dark",
+                    theme: "system",
                     is_transport_enabled: false,
                     location_source: "disabled",
                     location_manual_lat: "0.0",
@@ -4746,7 +4746,7 @@ export default {
             );
         },
         async resetAppearanceDefaults() {
-            this.config.theme = "light";
+            this.config.theme = "system";
             this.config.theme_preset = "default";
             this.config.accent_color = null;
             this.config.custom_canvas_color = null;
@@ -4764,7 +4764,7 @@ export default {
             applyAppearanceTheme(this.config);
             await this.updateConfig(
                 {
-                    theme: "light",
+                    theme: "system",
                     theme_preset: "default",
                     accent_color: null,
                     custom_canvas_color: null,

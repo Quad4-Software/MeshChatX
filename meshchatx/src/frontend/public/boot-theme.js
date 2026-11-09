@@ -1,23 +1,27 @@
 /* SPDX-License-Identifier: 0BSD */
 (function () {
     try {
-        var theme = null;
+        var preference = null;
         if (window.MeshChatXAndroid && typeof window.MeshChatXAndroid.getPreferredUiTheme === "function") {
-            theme = window.MeshChatXAndroid.getPreferredUiTheme();
+            preference = window.MeshChatXAndroid.getPreferredUiTheme();
         }
-        if (!theme) {
+        if (!preference) {
             try {
-                theme = window.localStorage.getItem("meshchatx_ui_theme");
+                preference = window.localStorage.getItem("meshchatx_ui_theme");
             } catch (e) {}
         }
-        if (theme === "system") {
-            theme =
-                window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        var effective;
+        if (preference === "light" || preference === "dark") {
+            // Explicit choices are preserved verbatim.
+            effective = preference;
+        } else {
+            // "system", unset, or unrecognized values follow the OS scheme.
+            // When the platform cannot report one, stay dark.
+            var media =
+                window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
+            effective = !media || media.matches ? "dark" : "light";
         }
-        if (theme !== "light" && theme !== "dark") {
-            theme = "light";
-        }
-        if (theme === "dark") {
+        if (effective === "dark") {
             document.documentElement.classList.add("dark");
             document.documentElement.dataset.bootTheme = "dark";
             document.documentElement.style.colorScheme = "dark";
@@ -27,6 +31,8 @@
             document.documentElement.style.colorScheme = "light";
         }
         document.documentElement.dataset.themePreference =
-            theme === "dark" || theme === "light" ? theme : "light";
+            preference === "light" || preference === "dark" || preference === "system"
+                ? preference
+                : "system";
     } catch (e) {}
 })();

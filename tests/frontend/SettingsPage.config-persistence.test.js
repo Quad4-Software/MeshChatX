@@ -231,7 +231,7 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         expect(api.patch).toHaveBeenCalledWith(
             "/api/v1/config",
             expect.objectContaining({
-                theme: "light",
+                theme: "system",
                 theme_preset: "default",
                 accent_color: null,
                 custom_canvas_color: null,

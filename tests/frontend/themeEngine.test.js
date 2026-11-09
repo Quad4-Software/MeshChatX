@@ -14,6 +14,7 @@ import {
     resolveEffectiveTheme,
     sanitizeThemeConfigFields,
     shellCanvasBackgroundStyle,
+    systemPrefersDark,
     updateThemeColorMeta,
     getThemePresetPreviewColors,
     themePresetPreviewStripStyle,
@@ -22,8 +23,12 @@ import {
 describe("themeEngine", () => {
     it("normalizes theme preference and preset ids", () => {
         expect(normalizeThemePreference("dark")).toBe("dark");
+        expect(normalizeThemePreference("light")).toBe("light");
         expect(normalizeThemePreference("system")).toBe("system");
-        expect(normalizeThemePreference("weird")).toBe("light");
+        // Unset/invalid values fall back to the system-aware default.
+        expect(normalizeThemePreference("weird")).toBe("system");
+        expect(normalizeThemePreference(undefined)).toBe("system");
+        expect(normalizeThemePreference(null)).toBe("system");
         expect(normalizeThemePreset("oled")).toBe("oled");
         expect(normalizeThemePreset("nope")).toBe("void");
         expect(THEME_PRESET_IDS).toContain("custom");
@@ -53,6 +58,24 @@ describe("themeEngine", () => {
         expect(resolveEffectiveTheme("dark", false)).toBe("dark");
         expect(resolveEffectiveTheme("system", true)).toBe("dark");
         expect(resolveEffectiveTheme("system", false)).toBe("light");
+        // Unset/invalid preferences resolve through the OS scheme.
+        expect(resolveEffectiveTheme(undefined, true)).toBe("dark");
+        expect(resolveEffectiveTheme(undefined, false)).toBe("light");
+    });
+
+    it("systemPrefersDark falls back to dark when matchMedia is unavailable", () => {
+        expect(systemPrefersDark({})).toBe(true);
+        expect(systemPrefersDark(null)).toBe(true);
+        expect(
+            systemPrefersDark({
+                matchMedia: (q) => ({ matches: q.includes("dark") }),
+            })
+        ).toBe(true);
+        expect(
+            systemPrefersDark({
+                matchMedia: (q) => ({ matches: !q.includes("dark") }),
+            })
+        ).toBe(false);
     });
 
     it("builds preset and accent overrides", () => {
@@ -231,6 +254,19 @@ describe("applyAppearanceTheme DOM integration", () => {
         applyAppearanceTheme({ theme: "system", theme_preset: "default" }, { prefersDark: true });
         expect(document.documentElement.classList.contains("dark")).toBe(true);
         expect(window.localStorage.getItem("meshchatx_ui_theme")).toBe("system");
+    });
+
+    it("sends the stored preference (not the resolved mode) to the Android bridge", () => {
+        const setUiTheme = vi.fn();
+        window.MeshChatXAndroid = { setUiTheme };
+        try {
+            applyAppearanceTheme({ theme: "system" }, { prefersDark: true });
+            expect(setUiTheme).toHaveBeenCalledWith("system");
+            applyAppearanceTheme({ theme: "light" }, { prefersDark: true });
+            expect(setUiTheme).toHaveBeenCalledWith("light");
+        } finally {
+            delete window.MeshChatXAndroid;
+        }
     });
 
     it("injectThemeOverrideVariables targets active mode selector", () => {

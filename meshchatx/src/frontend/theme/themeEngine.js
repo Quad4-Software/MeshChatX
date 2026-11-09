@@ -54,10 +54,12 @@ const MESHCHAT_THEME_COLOR_META_ID = "meshchat-theme-color-meta";
  * @returns {"light" | "dark" | "system"}
  */
 export function normalizeThemePreference(value) {
-    if (value === "dark" || value === "system") {
+    if (value === "light" || value === "dark") {
         return value;
     }
-    return "light";
+    // "system" and anything unset/invalid resolve through the OS scheme;
+    // only explicit light/dark choices are preserved verbatim.
+    return "system";
 }
 
 /**
@@ -80,7 +82,8 @@ export function normalizeThemePreset(value) {
  */
 export function systemPrefersDark(windowObj = typeof window !== "undefined" ? window : null) {
     if (!windowObj?.matchMedia) {
-        return false;
+        // The platform cannot report a scheme; the app default is dark.
+        return true;
     }
     return windowObj.matchMedia("(prefers-color-scheme: dark)").matches;
 }
@@ -1052,7 +1055,9 @@ export function applyAppearanceTheme(config, options = {}) {
     try {
         const bridge = windowObj?.MeshChatXAndroid;
         if (bridge && typeof bridge.setUiTheme === "function") {
-            bridge.setUiTheme(effectiveMode);
+            // Send the stored preference ("system" included) so the shell can
+            // follow OS night-mode changes instead of pinning a resolved mode.
+            bridge.setUiTheme(persistMode);
         }
     } catch {
         // ignore missing bridge

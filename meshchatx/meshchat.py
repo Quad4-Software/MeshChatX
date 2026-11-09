@@ -6772,7 +6772,7 @@ class ReticulumMeshChat:
         if "theme" in data and data["theme"] != "":
             theme = data["theme"]
             if theme not in ("light", "dark", "system"):
-                theme = "light"
+                theme = "system"
             self.config.theme.set(theme)
 
         if "map_coordinate_format" in data:

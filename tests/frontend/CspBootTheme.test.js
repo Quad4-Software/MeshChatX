@@ -56,13 +56,36 @@ describe("main app CSP and boot theme", () => {
         }
     });
 
-    it("boot-theme.js applies light theme by default", () => {
+    it("boot-theme.js follows the OS scheme when no theme is stored", () => {
         const code = readFileSync(BOOT_THEME_JS, "utf8");
         // eslint-disable-next-line no-new-func
         Function(code)();
+        // No stored preference resolves through the OS scheme; the test
+        // matchMedia mock reports a light scheme.
         expect(document.documentElement.classList.contains("dark")).toBe(false);
         expect(document.documentElement.dataset.bootTheme).toBe("light");
         expect(document.documentElement.style.colorScheme).toBe("light");
+    });
+
+    it("boot-theme.js falls back to dark when no scheme can be determined", () => {
+        const originalMatchMedia = window.matchMedia;
+        Object.defineProperty(window, "matchMedia", {
+            writable: true,
+            value: undefined,
+        });
+        try {
+            const code = readFileSync(BOOT_THEME_JS, "utf8");
+            // eslint-disable-next-line no-new-func
+            Function(code)();
+            expect(document.documentElement.classList.contains("dark")).toBe(true);
+            expect(document.documentElement.dataset.bootTheme).toBe("dark");
+            expect(document.documentElement.style.colorScheme).toBe("dark");
+        } finally {
+            Object.defineProperty(window, "matchMedia", {
+                writable: true,
+                value: originalMatchMedia,
+            });
+        }
     });
 
     it("boot-theme.js resolves system theme from prefers-color-scheme", () => {
