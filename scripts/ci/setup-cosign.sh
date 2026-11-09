@@ -19,8 +19,21 @@ BASE_URL="https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION
 BINARY="cosign-linux-${ARCH}"
 CHECKSUMS_URL="${BASE_URL}/cosign_checksums.txt"
 
-curl -fsSL "$CHECKSUMS_URL" -o ${TMPDIR:-/tmp}/cosign-checksums.txt
-curl -fsSL "${BASE_URL}/${BINARY}" -o ${TMPDIR:-/tmp}/cosign
+# GitHub release downloads intermittently return 5xx; retry transient
+# failures including HTTP/2 stream resets (--http1.1 + --retry-all-errors).
+_fetch() {
+    curl -fsSL --http1.1 \
+        --retry 8 \
+        --retry-all-errors \
+        --retry-delay 4 \
+        --retry-max-time 240 \
+        --connect-timeout 20 \
+        --max-time 300 \
+        "$@"
+}
+
+_fetch "$CHECKSUMS_URL" -o "${TMPDIR:-/tmp}/cosign-checksums.txt"
+_fetch "${BASE_URL}/${BINARY}" -o "${TMPDIR:-/tmp}/cosign"
 
 EXPECTED="$(grep "  ${BINARY}\$" ${TMPDIR:-/tmp}/cosign-checksums.txt | awk '{print $1}')"
 ACTUAL="$(sha256sum ${TMPDIR:-/tmp}/cosign | awk '{print $1}')"

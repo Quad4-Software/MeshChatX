@@ -33,28 +33,73 @@ VERSION="${1:?tinygo version required}"
 TARBALL="tinygo${VERSION}.linux-amd64.tar.gz"
 URL="https://github.com/tinygo-org/tinygo/releases/download/v${VERSION}/${TARBALL}"
 
-if command -v tinygo >/dev/null 2>&1 && tinygo version | grep -q "${VERSION}"; then
-    echo "tinygo ${VERSION} already installed"
+# Resolve the install destination first so an existing copy (from an
+# earlier job on a persistent self-hosted runner) is reused instead of
+# re-downloading the tarball every run.
+DEST="/usr/local"
+if [ ! -w /usr/local ]; then
+    if sudo -n true 2>/dev/null; then
+        :
+    else
+        DEST="${HOME}/.local/meshchatx-ci"
+    fi
+fi
+BINDIR="${DEST}/tinygo/bin"
+
+_existing=""
+for _cand in "$(command -v tinygo 2>/dev/null || true)" \
+    "/usr/local/tinygo/bin/tinygo" \
+    "${HOME}/.local/meshchatx-ci/tinygo/bin/tinygo" \
+    "${HOME}/.local/bin/tinygo"; do
+    [ -n "${_cand}" ] && [ -x "${_cand}" ] || continue
+    if "${_cand}" version 2>/dev/null | grep -q "${VERSION}"; then
+        _existing="${_cand}"
+        break
+    fi
+done
+unset _cand
+
+if [ -n "${_existing}" ]; then
+    echo "tinygo ${VERSION} already installed at ${_existing}"
+    if [ -n "${GITHUB_PATH:-}" ]; then
+        echo "$(dirname "${_existing}")" >> "${GITHUB_PATH}"
+    fi
     exit 0
 fi
 
-curl -fsSL -o "${TMPDIR:-/tmp}/${TARBALL}" "${URL}"
+# GitHub release downloads intermittently return 5xx for minutes at a
+# time, so retry both inside curl and across a few spaced attempts.
+_attempt=0
+while [ "${_attempt}" -lt 3 ]; do
+    _attempt=$((_attempt + 1))
+    if curl -fsSL --http1.1 \
+        --retry 8 \
+        --retry-all-errors \
+        --retry-delay 4 \
+        --retry-max-time 240 \
+        --connect-timeout 20 \
+        --max-time 300 \
+        -o "${TMPDIR:-/tmp}/${TARBALL}" "${URL}"; then
+        break
+    fi
+    if [ "${_attempt}" -ge 3 ]; then
+        echo "tinygo download failed after ${_attempt} attempts" >&2
+        exit 1
+    fi
+    echo "tinygo download attempt ${_attempt} failed; retrying in 30s" >&2
+    sleep 30
+done
+unset _attempt
 
 # /usr/local is not writable on all self-hosted runners (and sudo may be
-# unavailable under no_new_privs). Fall back to a per-user dir on PATH.
-DEST="/usr/local"
+# unavailable under no_new_privs). DEST was resolved above.
 TAR="tar"
-if [ ! -w /usr/local ]; then
-    if sudo -n true 2>/dev/null; then
-        TAR="sudo tar"
-    else
-        DEST="${HOME}/.local/meshchatx-ci"
-        mkdir -p "${DEST}"
-    fi
+if [ "${DEST}" = "/usr/local" ] && [ ! -w /usr/local ]; then
+    TAR="sudo tar"
 fi
+mkdir -p "${DEST}"
 ${TAR} -C "${DEST}" -xzf "${TMPDIR:-/tmp}/${TARBALL}"
 
-BINDIR="${DEST}/tinygo/bin"
 if [ -n "${GITHUB_PATH:-}" ]; then
     echo "${BINDIR}" >> "${GITHUB_PATH}"
 fi

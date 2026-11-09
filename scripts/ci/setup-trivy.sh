@@ -56,8 +56,8 @@ verify_checksums() {
     ensure_cosign
     export COSIGN_YES="${COSIGN_YES:-true}"
 
-    curl -fsSL --retry 5 --retry-delay 2 -o ${TMPDIR:-/tmp}/trivy_checksums.txt "${TRIVY_RELEASE_BASE}/trivy_${TRIVY_VERSION}_checksums.txt"
-    curl -fsSL --retry 5 --retry-delay 2 -o ${TMPDIR:-/tmp}/trivy_checksums.sigstore.json "${TRIVY_RELEASE_BASE}/trivy_${TRIVY_VERSION}_checksums.txt.sigstore.json"
+    curl -fsSL --http1.1 --retry 8 --retry-all-errors --retry-delay 4 --retry-max-time 240 --connect-timeout 20 --max-time 300 -o ${TMPDIR:-/tmp}/trivy_checksums.txt "${TRIVY_RELEASE_BASE}/trivy_${TRIVY_VERSION}_checksums.txt"
+    curl -fsSL --http1.1 --retry 8 --retry-all-errors --retry-delay 4 --retry-max-time 240 --connect-timeout 20 --max-time 300 -o ${TMPDIR:-/tmp}/trivy_checksums.sigstore.json "${TRIVY_RELEASE_BASE}/trivy_${TRIVY_VERSION}_checksums.txt.sigstore.json"
     cosign verify-blob ${TMPDIR:-/tmp}/trivy_checksums.txt --bundle ${TMPDIR:-/tmp}/trivy_checksums.sigstore.json \
         --certificate-identity-regexp="${TRIVY_CERT_IDENTITY_RE}" \
         --certificate-oidc-issuer-regexp="${TRIVY_CERT_ISSUER_RE}"
@@ -72,10 +72,10 @@ verify_asset() {
         exit 1
     fi
 
-    curl -fsSL --retry 5 --retry-delay 2 -o "${out}" "${TRIVY_RELEASE_BASE}/${asset}"
+    curl -fsSL --http1.1 --retry 8 --retry-all-errors --retry-delay 4 --retry-max-time 240 --connect-timeout 20 --max-time 300 -o "${out}" "${TRIVY_RELEASE_BASE}/${asset}"
     echo "${EXPECTED_SHA}  ${out}" | sha256sum -c
 
-    curl -fsSL --retry 5 --retry-delay 2 -o "${out}.sigstore.json" "${TRIVY_RELEASE_BASE}/${asset}.sigstore.json"
+    curl -fsSL --http1.1 --retry 8 --retry-all-errors --retry-delay 4 --retry-max-time 240 --connect-timeout 20 --max-time 300 -o "${out}.sigstore.json" "${TRIVY_RELEASE_BASE}/${asset}.sigstore.json"
     cosign verify-blob "${out}" --bundle "${out}.sigstore.json" \
         --certificate-identity-regexp="${TRIVY_CERT_IDENTITY_RE}" \
         --certificate-oidc-issuer-regexp="${TRIVY_CERT_ISSUER_RE}"
@@ -130,7 +130,7 @@ if [ -n "${TRIVY_DEB_URL:-}" ]; then
         echo "setup-trivy.sh: TRIVY_DEB_URL requires TRIVY_DEB_SHA256" >&2
         exit 1
     fi
-    curl -fsSL --retry 5 --retry-delay 2 -o ${TMPDIR:-/tmp}/trivy.deb "${TRIVY_DEB_URL}"
+    curl -fsSL --http1.1 --retry 8 --retry-all-errors --retry-delay 4 --retry-max-time 240 --connect-timeout 20 --max-time 300 -o ${TMPDIR:-/tmp}/trivy.deb "${TRIVY_DEB_URL}"
     echo "${TRIVY_DEB_SHA256}  ${TMPDIR:-/tmp}/trivy.deb" | sha256sum -c
     sh scripts/ci/exec-priv.sh dpkg -i ${TMPDIR:-/tmp}/trivy.deb || sh scripts/ci/exec-priv.sh apt-get install -f -y
 elif command -v dpkg >/dev/null 2>&1; then

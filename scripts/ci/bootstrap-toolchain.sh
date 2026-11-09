@@ -105,7 +105,10 @@ node_linux_arch() {
 fetch() {
 	local url="$1" dest="$2"
 	if command -v curl >/dev/null 2>&1; then
-		curl -fsSL "$url" -o "$dest"
+		curl -fsSL --http1.1 --retry 8 --retry-all-errors \
+			--retry-delay 4 --retry-max-time 240 \
+			--connect-timeout 20 --max-time 300 \
+			"$url" -o "$dest"
 	elif command -v wget >/dev/null 2>&1; then
 		wget -qO "$dest" "$url"
 	else
