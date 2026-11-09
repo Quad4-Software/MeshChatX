@@ -1,0 +1,59 @@
+# Temporary runner-capability probe. Delete after the docker/release
+# workflows land; kept out of .gitea on purpose (Forgejo-only diagnostics).
+name: Runner probe
+
+on:
+  push:
+    branches:
+      - ci/probe-runner
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: docker:27
+      options: --network=host -v /var/run/docker.sock:/var/run/docker.sock
+    steps:
+      - name: Environment
+        run: |
+          set -uo pipefail
+          echo "== id =="; id
+          echo "== tools =="
+          for t in git docker curl wget python3 jq; do
+            printf '%-8s %s\n' "$t" "$(command -v $t || echo MISSING)"
+          done
+          docker version --format 'client={{.Client.Version}} server={{.Server.Version}}' 2>&1 | head -3
+          docker info --format 'server={{.ServerVersion}} driver={{.Driver}}' 2>&1 | head -3
+      - name: Egress
+        run: |
+          set -uo pipefail
+          for url in \
+            https://pypi.org/simple/ \
+            https://github.com \
+            https://registry-1.docker.io/v2/ \
+            https://git.quad4.io \
+            https://git.quad4.io/v2/ ; do
+            code="$(curl -sS -m 10 -o /dev/null -w '%{http_code}' "$url" 2>/dev/null || echo ERR)"
+            echo "$url -> $code"
+          done
+      - name: Git self-access
+        run: |
+          set -uo pipefail
+          git ls-remote https://git.quad4.io/reticulum/MeshChatX.git HEAD 2>&1 | head -3
+      - name: Auto token scope
+        env:
+          FORGEJO_TOKEN: ${{ secrets.GITEA_TOKEN }}
+        run: |
+          set -uo pipefail
+          if [ -z "${FORGEJO_TOKEN:-}" ]; then
+            echo "GITEA_TOKEN secret is empty"
+            exit 0
+          fi
+          echo "== /api/v1/user =="
+          curl -sS -m 10 -H "Authorization: token ${FORGEJO_TOKEN}" \
+            https://git.quad4.io/api/v1/user | head -c 400; echo
+          echo "== repo write check (GET repo) =="
+          curl -sS -m 10 -H "Authorization: token ${FORGEJO_TOKEN}" \
+            https://git.quad4.io/api/v1/repos/reticulum/MeshChatX | head -c 200; echo
