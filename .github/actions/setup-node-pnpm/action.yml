@@ -47,7 +47,34 @@ runs:
                   rm -f "$d/yarn" "$d/yarnpkg" "$d/pnpm" "$d/pnpx" "$d/pn" "$d/px"
               done
 
+        - name: Locate cached Node.js
+          id: nodecache
+          shell: bash
+          run: |
+              set -euo pipefail
+              major="${{ inputs.node-version }}"
+              major="${major%%.*}"
+              dir="$(ls -d "${RUNNER_TOOL_CACHE:-}/node/${major}."*/*/bin 2>/dev/null | sort -V | tail -1 || true)"
+              if [ -n "${dir}" ] && [ -x "${dir}/node" ]; then
+                  echo "found=true" >> "${GITHUB_OUTPUT}"
+                  echo "path=${dir}" >> "${GITHUB_OUTPUT}"
+              else
+                  echo "found=false" >> "${GITHUB_OUTPUT}"
+              fi
+
+        - name: Use cached Node.js
+          if: runner.environment == 'self-hosted' && steps.nodecache.outputs.found == 'true'
+          shell: bash
+          run: |
+              set -euo pipefail
+              # actions/setup-node's environment probe can hang on
+              # self-hosted runners; the toolcache already has Node, so put
+              # it on PATH directly and skip the action entirely.
+              echo "${{ steps.nodecache.outputs.path }}" >> "${GITHUB_PATH}"
+              "${{ steps.nodecache.outputs.path }}/node" --version
+
         - name: Set up Node.js
+          if: runner.environment != 'self-hosted' || steps.nodecache.outputs.found != 'true'
           uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
           with:
               node-version: ${{ inputs.node-version }}
@@ -75,9 +102,20 @@ runs:
               pnpm -v
               node -e "const major=Number(process.versions.node.split('.')[0]); if(major<24) process.exit(1)"
 
+        - name: Resolve pnpm cache paths
+          id: pnpmcache
+          shell: bash
+          run: |
+              set -euo pipefail
+              store="$(pnpm store path)"
+              lockhash="$(sha256sum "${{ inputs.cache-dependency-path }}" | cut -d' ' -f1)"
+              {
+                  echo "path=${store}"
+                  echo "key=pnpm-${{ runner.os }}-${{ runner.arch }}-${lockhash}"
+              } >> "${GITHUB_OUTPUT}"
+
         - name: Cache pnpm dependencies
-          uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+          uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
           with:
-              node-version: ${{ inputs.node-version }}
-              cache: pnpm
-              cache-dependency-path: ${{ inputs.cache-dependency-path }}
+              path: ${{ steps.pnpmcache.outputs.path }}
+              key: ${{ steps.pnpmcache.outputs.key }}

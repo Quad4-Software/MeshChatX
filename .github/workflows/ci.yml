@@ -226,9 +226,14 @@ jobs:
                   done
 
             - name: Set up Node
-              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-              with:
-                  node-version: "24"
+              run: |
+                  set -euo pipefail
+                  # actions/setup-node's environment probe can hang on this
+                  # self-hosted runner; use the toolcache Node directly.
+                  dir="$(ls -d "${RUNNER_TOOL_CACHE:-}/node/24."*/*/bin 2>/dev/null | sort -V | tail -1 || true)"
+                  [ -n "$dir" ] && [ -x "$dir/node" ] || { echo "no cached Node.js 24 in toolcache"; exit 1; }
+                  echo "$dir" >> "$GITHUB_PATH"
+                  "$dir/node" --version
 
             - name: Install TinyGo
               run: sh scripts/ci/setup-tinygo.sh ${{ env.TINYGO_VERSION }}
@@ -292,9 +297,14 @@ jobs:
                   done
 
             - name: Set up Node
-              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-              with:
-                  node-version: "24"
+              run: |
+                  set -euo pipefail
+                  # actions/setup-node's environment probe can hang on this
+                  # self-hosted runner; use the toolcache Node directly.
+                  dir="$(ls -d "${RUNNER_TOOL_CACHE:-}/node/24."*/*/bin 2>/dev/null | sort -V | tail -1 || true)"
+                  [ -n "$dir" ] && [ -x "$dir/node" ] || { echo "no cached Node.js 24 in toolcache"; exit 1; }
+                  echo "$dir" >> "$GITHUB_PATH"
+                  "$dir/node" --version
 
             - name: Install TinyGo
               run: sh scripts/ci/setup-tinygo.sh ${{ env.TINYGO_VERSION }}
@@ -355,9 +365,14 @@ jobs:
                   done
 
             - name: Set up Node (backend tests invoke node scripts)
-              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-              with:
-                  node-version: "24"
+              run: |
+                  set -euo pipefail
+                  # actions/setup-node's environment probe can hang on this
+                  # self-hosted runner; use the toolcache Node directly.
+                  dir="$(ls -d "${RUNNER_TOOL_CACHE:-}/node/24."*/*/bin 2>/dev/null | sort -V | tail -1 || true)"
+                  [ -n "$dir" ] && [ -x "$dir/node" ] || { echo "no cached Node.js 24 in toolcache"; exit 1; }
+                  echo "$dir" >> "$GITHUB_PATH"
+                  "$dir/node" --version
 
             - name: Run backend tests
               env:
