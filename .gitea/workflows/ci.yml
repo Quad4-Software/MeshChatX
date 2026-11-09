@@ -20,19 +20,49 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      # No marketplace actions: clone with plain git. Gitea exposes pull
-      # refs, so try the exact SHA first, then the full ref, then ref_name.
+      # No marketplace actions: clone with plain git. act_runner job containers
+      # may not reach the public git URL (hairpin/NAT), so probe the public
+      # endpoint first, then common container-reachable addresses for
+      # self-hosted instances colocated with the runner host.
       - name: Check out repository
         run: |
           set -euo pipefail
-          server="${{ github.server_url }}"
+          export GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/false
+          repo_path="${{ gitea.repository || github.repository }}"
+          sha="${{ gitea.sha || github.sha }}"
+          ref="${{ gitea.ref || github.ref }}"
+          ref_name="${{ gitea.ref_name || github.ref_name }}"
+          gw="$(ip route 2>/dev/null | awk '/default/ {print $3; exit}')"
+          bases="${{ gitea.server_url || github.server_url }}"
+          for extra in "https://host.docker.internal" \
+                       "http://host.docker.internal:3000" \
+                       "http://172.17.0.1:3000" \
+                       "http://gitea:3000"; do
+            case " $bases " in *" $extra "*) ;; *) bases="$bases $extra" ;; esac
+          done
+          if [ -n "$gw" ]; then bases="$bases http://$gw:3000"; fi
+          base=""
+          for b in $bases; do
+            b="${b%/}"
+            [ -z "$b" ] && continue
+            echo "checkout: probing ${b}/${repo_path}.git"
+            if timeout 20 git ls-remote "${b}/${repo_path}.git" HEAD >/dev/null 2>&1; then
+              base="$b"
+              break
+            fi
+          done
+          if [ -z "$base" ]; then
+            echo "checkout: no reachable git endpoint for ${repo_path}" >&2
+            exit 1
+          fi
+          echo "checkout: using ${base}/${repo_path}.git"
           git init -q .
-          git remote add origin "${server%/}/${{ github.repository }}.git"
-          git fetch -q --depth=1 origin "${{ github.sha }}" 2>/dev/null \
+          git remote add origin "${base}/${repo_path}.git"
+          git fetch -q --depth=1 origin "$sha" 2>/dev/null \
             && git checkout -q FETCH_HEAD \
-            || { git fetch -q --depth=1 origin "${{ github.ref }}" 2>/dev/null \
+            || { git fetch -q --depth=1 origin "$ref" 2>/dev/null \
                  && git checkout -q FETCH_HEAD \
-                 || { git fetch -q --depth=1 origin "${{ github.ref_name }}" \
+                 || { git fetch -q --depth=1 origin "$ref_name" \
                       && git checkout -q FETCH_HEAD; }; }
       - name: Bootstrap toolchain
         run: bash scripts/ci/bootstrap-toolchain.sh install
