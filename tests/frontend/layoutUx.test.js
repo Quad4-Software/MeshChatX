@@ -37,9 +37,13 @@ describe("layout UX reference-light", () => {
 
     it("MessagesPage mobile compose FAB and sheet clear safe-area and use dvh", () => {
         const page = src("components/messages/MessagesPage.vue");
+        const modal = src("components/AppModal.vue");
         expect(page).toContain("bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))]");
-        expect(page).toContain("max-h-[90dvh]");
-        expect(page).not.toContain("max-h-[90vh]");
+        expect(page).toContain(":fullscreen=\"isMobileComposeFullscreen\"");
+        expect(page).toContain("windowWidth < 640");
+        expect(modal).toContain("min(90dvh, 100%)");
+        expect(modal).toContain("env(safe-area-inset-bottom)");
+        expect(modal).not.toContain("90vh");
     });
 
     it("MicronEditor shows tab close on touch and splits at tablet width", () => {
