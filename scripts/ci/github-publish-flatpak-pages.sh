@@ -20,12 +20,24 @@ set -euo pipefail
 
 # Self-hosted runners may lack /tmp; mktemp honours TMPDIR.
 if [ ! -d /tmp ] || [ ! -w /tmp ]; then
-    _ci_tmp="${RUNNER_TEMP:-${HOME}/.meshchatx-ci}/tmp"
-    mkdir -p "${_ci_tmp}" 2>/dev/null && {
+    _ci_tmp=""
+    for _ci_cand in "${RUNNER_TEMP:-}" "${HOME:-}" "${GITHUB_WORKSPACE:-}"; do
+        [ -n "${_ci_cand}" ] || continue
+        _ci_cand="${_ci_cand}/.meshchatx-ci-tmp"
+        if mkdir -p "${_ci_cand}" 2>/dev/null && [ -w "${_ci_cand}" ]; then
+            _ci_tmp="${_ci_cand}"
+            break
+        fi
+    done
+    if [ -n "${_ci_tmp}" ]; then
         TMPDIR="${_ci_tmp}"
         export TMPDIR
         [ -n "${GITHUB_ENV:-}" ] && echo "TMPDIR=${TMPDIR}" >> "${GITHUB_ENV}"
-    }
+        echo "ci: /tmp unavailable, using TMPDIR=${TMPDIR}"
+    else
+        echo "ci: WARNING: no writable temp dir available" >&2
+    fi
+    unset _ci_cand
 fi
 unset _ci_tmp
 
