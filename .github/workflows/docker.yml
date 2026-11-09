@@ -210,17 +210,38 @@ jobs:
             # (rootless installs, /usr/local, snap). Locate any container CLI
             # and put its directory on PATH for the docker/* actions.
             - name: Locate container runtime
-              run: | # zizmor: ignore[github-env] discovered paths come from command -v on the runner host, never from workflow input
+              run: | # zizmor: ignore[github-env] discovered paths come from the runner host filesystem, never from workflow input
                   set -euo pipefail
                   found=""
-                  for cand in docker /usr/bin/docker /usr/local/bin/docker /snap/bin/docker "$HOME/.docker/bin/docker" "$HOME/.local/bin/docker" "$HOME/bin/docker" /usr/bin/podman /usr/local/bin/podman /usr/bin/podman-docker; do
-                    p="$(command -v "$cand" 2>/dev/null || true)"
-                    [ -z "$p" ] && [ -x "$cand" ] && p="$cand"
-                    if [ -n "$p" ]; then found="$p"; break; fi
+                  # type -P only returns real files on disk; command -v can
+                  # return shell functions/aliases/hashes that node actions
+                  # cannot exec.
+                  for cand in docker podman podman-docker \
+                    /usr/bin/docker /usr/local/bin/docker /snap/bin/docker \
+                    /usr/bin/podman /usr/local/bin/podman /usr/bin/podman-docker \
+                    "$HOME/.docker/bin/docker" "$HOME/.local/bin/docker" \
+                    "$HOME/bin/docker" "$HOME/.local/bin/podman"; do
+                    p="$(type -P "$cand" 2>/dev/null || true)"
+                    if [ -n "$p" ] && [ -x "$p" ]; then found="$p"; break; fi
                   done
                   if [ -z "$found" ]; then
-                    echo "container CLI not found in common locations" >&2
-                    exit 1
+                    # Last resort: static docker CLI. A daemon may still be
+                    # reachable via /var/run/docker.sock or a rootless sock.
+                    cli="${RUNNER_TEMP:-/tmp}/docker-cli"
+                    tmp="$(mktemp -d)"
+                    if curl -fsSL --retry 3 \
+                        "https://download.docker.com/linux/static/stable/x86_64/docker-27.5.1.tgz" \
+                        | tar -xz -C "$tmp" \
+                      && [ -x "$tmp/docker/docker" ]; then
+                      mkdir -p "$cli"
+                      cp "$tmp/docker/docker" "$cli/docker"
+                      chmod +x "$cli/docker"
+                      found="$cli/docker"
+                      echo "using static docker CLI: $found"
+                    else
+                      echo "container CLI not found and static download failed" >&2
+                      exit 1
+                    fi
                   fi
                   echo "container CLI: $found"
                   if [ "$(basename "$found")" = "docker" ]; then
@@ -233,7 +254,7 @@ jobs:
                     echo "$shim" >> "$GITHUB_PATH"
                   fi
                   if [ -n "${XDG_RUNTIME_DIR:-}" ]; then
-                    for sock in "$XDG_RUNTIME_DIR/docker.sock" "$XDG_RUNTIME_DIR/podman/podman.sock"; do
+                    for sock in "$XDG_RUNTIME_DIR/docker.sock" "$XDG_RUNTIME_DIR/podman/podman.sock" /run/podman/podman.sock /var/run/docker.sock; do
                       if [ -S "$sock" ]; then
                         echo "DOCKER_HOST=unix://$sock" >> "$GITHUB_ENV"
                         echo "rootless socket: $sock"
