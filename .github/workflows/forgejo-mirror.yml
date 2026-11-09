@@ -1,0 +1,148 @@
+# Mirror build outputs to git.quad4.io (Forgejo):
+#   - container images: GHCR -> Forgejo container registry (skopeo copy,
+#     preserves the multi-arch manifest list)
+#   - version-tag releases: GitHub release assets -> Forgejo release
+#
+# This runs on GitHub-hosted runners because the Forgejo act_runner job
+# containers currently have no usable egress/docker access; the artifacts
+# are already built by the GitHub workflows, so mirroring is cheap.
+#
+# Required repository secret (one-time setup):
+#   FORGEJO_TOKEN  git.quad4.io personal access token with scopes
+#                  write:package and write:repository.
+
+name: Mirror to Forgejo
+
+on:
+  workflow_run:
+    workflows: ["Docker (GHCR + Docker Hub)", "Build release"]
+    types: [completed]
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: forgejo-mirror-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+env:
+  FORGEJO_HOST: git.quad4.io
+  FORGEJO_IMAGE: git.quad4.io/reticulum/meshchatx
+  FORGEJO_REPO: reticulum/MeshChatX
+  FORGEJO_USER: ivan
+  FORGEJO_SERVER: https://git.quad4.io
+  GHCR_IMAGE: ghcr.io/quad4-software/meshchatx
+
+jobs:
+  mirror-image:
+    # Only mirror when the Docker workflow actually succeeded.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.name == 'Docker (GHCR + Docker Hub)'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout (for tag computation)
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Install skopeo
+        run: |
+          set -euo pipefail
+          if ! command -v skopeo >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq skopeo
+          fi
+          skopeo --version
+      - name: Compute tag sets
+        env:
+          GITHUB_REF: ${{ github.event.workflow_run.head_branch }}
+          GITHUB_REF_NAME: ${{ github.event.workflow_run.head_branch }}
+          GITHUB_EVENT_NAME: ${{ github.event.workflow_run.event }}
+          TAG_SUFFIX: ""
+        run: |
+          set -euo pipefail
+          # head_branch for tag runs is the tag name; for branch runs the
+          # branch. docker-tags.sh keys off GITHUB_REF for tag detection,
+          # so synthesize the right ref form.
+          case "${GITHUB_REF}" in
+            refs/*) : ;;
+            v*) export GITHUB_REF="refs/tags/${GITHUB_REF}" ;;
+            *) export GITHUB_REF="refs/heads/${GITHUB_REF}" ;;
+          esac
+          sh scripts/ci/docker-tags.sh "${GHCR_IMAGE}" /tmp/src-tags.txt
+          sh scripts/ci/docker-tags.sh "${FORGEJO_IMAGE}" /tmp/dst-tags.txt
+      - name: Copy images GHCR -> Forgejo
+        env:
+          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FORGEJO_TOKEN:-}" ]; then
+            echo "FORGEJO_TOKEN secret not set; skipping" >&2
+            exit 0
+          fi
+          srcs=$(sed 's/^-t //' /tmp/src-tags.txt)
+          dsts=$(sed 's/^-t //' /tmp/dst-tags.txt)
+          paste <(printf '%s\n' "$srcs") <(printf '%s\n' "$dsts") | \
+          while read -r src dst; do
+            [ -n "$src" ] && [ -n "$dst" ] || continue
+            echo "copy $src -> $dst"
+            sudo skopeo copy --all \
+              --src-creds "${{ github.actor }}:${{ github.token }}" \
+              --dest-creds "${FORGEJO_USER}:${FORGEJO_TOKEN}" \
+              "docker://${src}" "docker://${dst}"
+          done
+
+  mirror-release:
+    # Only mirror successful tag releases from the Build release workflow.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.name == 'Build release' &&
+      startsWith(github.event.workflow_run.head_branch, 'v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Download GitHub release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+          gh release download "${TAG}" --repo "${{ github.repository }}" \
+            --dir assets --clobber
+          ls -lh assets | head -30
+      - name: Create Forgejo release and upload assets
+        env:
+          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+          TAG: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FORGEJO_TOKEN:-}" ]; then
+            echo "FORGEJO_TOKEN secret not set; skipping Forgejo release" >&2
+            exit 0
+          fi
+          prerelease=0
+          case "${TAG}" in *-beta*|*-rc*|*-alpha*|nightly-*|testing-*|preview-*) prerelease=1 ;; esac
+          payload="$(python3 -c 'import json,sys; print(json.dumps({"tag_name":sys.argv[1],"name":"MeshChatX "+sys.argv[1],"body":sys.argv[2],"draft":False,"prerelease":sys.argv[3]=="1","target_commitish":sys.argv[4]}))' \
+            "${TAG}" "Mirrored from GitHub release. Commit ${SHA}." "${prerelease}" "${SHA}")"
+          resp="$(curl -sS -m 30 -X POST \
+            -H "Authorization: token ${FORGEJO_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "${FORGEJO_SERVER}/api/v1/repos/${FORGEJO_REPO}/releases" \
+            -d "${payload}")"
+          rel_id="$(printf '%s' "${resp}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+          echo "forgejo release id: ${rel_id}"
+          for f in assets/*; do
+            [ -f "$f" ] || continue
+            echo "uploading $(basename "$f") ($(du -h "$f" | cut -f1))"
+            curl -sS -m 1800 -X POST \
+              -H "Authorization: token ${FORGEJO_TOKEN}" \
+              -H "Content-Type: application/octet-stream" \
+              "${FORGEJO_SERVER}/api/v1/repos/${FORGEJO_REPO}/releases/${rel_id}/assets?name=$(basename "$f")" \
+              --data-binary "@${f}" >/dev/null
+          done
+          echo "forgejo release: ${FORGEJO_SERVER}/${FORGEJO_REPO}/releases/tag/${TAG}"
