@@ -195,7 +195,9 @@ jobs:
               run: sh scripts/ci/setup-tinygo.sh ${{ env.TINYGO_VERSION }}
 
             - name: Install frontend dependencies
-              run: pnpm install --frozen-lockfile
+              run: |
+                  sh scripts/ci/ensure-pnpm-store.sh
+                  pnpm install --frozen-lockfile
 
             - name: Sync version metadata
               run: pnpm run version:sync
