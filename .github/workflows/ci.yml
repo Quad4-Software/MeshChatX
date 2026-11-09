@@ -218,6 +218,13 @@ jobs:
               with:
                   go-version: ${{ env.GO_VERSION }}
 
+            - name: Remove stale corepack shims
+              run: |
+                  for d in "${RUNNER_TOOL_CACHE:-}/node"/*/*/bin; do
+                      [ -d "$d" ] || continue
+                      rm -f "$d/yarn" "$d/yarnpkg" "$d/pnpm" "$d/pnpx" "$d/pn" "$d/px"
+                  done
+
             - name: Set up Node
               uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
               with:
@@ -277,6 +284,13 @@ jobs:
               with:
                   go-version: ${{ env.GO_VERSION }}
 
+            - name: Remove stale corepack shims
+              run: |
+                  for d in "${RUNNER_TOOL_CACHE:-}/node"/*/*/bin; do
+                      [ -d "$d" ] || continue
+                      rm -f "$d/yarn" "$d/yarnpkg" "$d/pnpm" "$d/pnpx" "$d/pn" "$d/px"
+                  done
+
             - name: Set up Node
               uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
               with:
@@ -332,6 +346,13 @@ jobs:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
                   install-node: "false"
+
+            - name: Remove stale corepack shims
+              run: |
+                  for d in "${RUNNER_TOOL_CACHE:-}/node"/*/*/bin; do
+                      [ -d "$d" ] || continue
+                      rm -f "$d/yarn" "$d/yarnpkg" "$d/pnpm" "$d/pnpx" "$d/pn" "$d/px"
+                  done
 
             - name: Set up Node (backend tests invoke node scripts)
               uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1

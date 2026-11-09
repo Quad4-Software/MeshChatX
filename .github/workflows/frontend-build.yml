@@ -29,7 +29,7 @@ on:
                 type: string
                 default: "24"
             pnpm_version:
-                description: pnpm version activated through corepack.
+                description: pnpm version installed globally via npm.
                 required: false
                 type: string
                 default: "12.15.0"
@@ -58,7 +58,7 @@ on:
                 type: string
                 default: "24"
             pnpm_version:
-                description: pnpm version activated through corepack.
+                description: pnpm version installed globally via npm.
                 required: false
                 type: string
                 default: "12.15.0"

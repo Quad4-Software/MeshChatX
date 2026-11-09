@@ -19,7 +19,7 @@ inputs:
         required: false
         default: "24"
     pnpm-version:
-        description: pnpm version activated through corepack
+        description: pnpm version installed globally via npm
         required: false
         default: "12.15.0"
     task-version:

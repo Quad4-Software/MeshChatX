@@ -1,14 +1,16 @@
-# Install Node, activate pnpm via corepack, then restore setup-node's pnpm cache.
-# setup-node with cache: pnpm requires pnpm on PATH during that step (see setup-node docs).
+# Install Node, install pnpm globally via npm, then restore setup-node's
+# pnpm cache. pnpm is installed directly rather than through corepack:
+# corepack leaves yarn/pnpm shims in the shared toolcache, and setup-node's
+# environment probe can hang executing them on self-hosted runners.
 name: Setup Node.js and pnpm
-description: Node.js, corepack-managed pnpm, and pnpm store cache
+description: Node.js, npm-installed pnpm, and pnpm store cache
 
 inputs:
     node-version:
         description: Node.js version
         required: true
     pnpm-version:
-        description: pnpm version activated through corepack
+        description: pnpm version installed globally via npm
         required: false
         default: "12.15.0"
     cache-dependency-path:
@@ -32,34 +34,35 @@ runs:
               chmod 700 "${xdg_runtime}"
               echo "XDG_RUNTIME_DIR=${xdg_runtime}" >> "${GITHUB_ENV}"
 
+        - name: Remove stale corepack shims
+          shell: bash
+          run: |
+              set -euo pipefail
+              # Older runs left corepack shims (yarn, pnpm, ...) inside the
+              # shared toolcache. setup-node's environment probe executes
+              # yarn --version, and a cold corepack cache can hang trying to
+              # reach yarnpkg endpoints that egress policies may block.
+              for d in "${RUNNER_TOOL_CACHE:-}/node"/*/*/bin; do
+                  [ -d "$d" ] || continue
+                  rm -f "$d/yarn" "$d/yarnpkg" "$d/pnpm" "$d/pnpx" "$d/pn" "$d/px"
+              done
+
         - name: Set up Node.js
           uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
           with:
               node-version: ${{ inputs.node-version }}
 
-        - name: Cache corepack downloads
-          uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-          with:
-              path: |
-                  ~/.cache/node/corepack
-                  ~/Library/Caches/node/corepack
-                  ~/AppData/Local/node/corepack
-              # runner.arch matters: pnpm 12 ships a native binary, so an
-              # arm64 restore on an x64 macOS runner fails with bad CPU type.
-              key: corepack-${{ runner.os }}-${{ runner.arch }}-${{ inputs.node-version }}-pnpm-${{ inputs.pnpm-version }}
-
-        - name: Enable pnpm (corepack)
+        - name: Install pnpm
           shell: bash
           env:
               PNPM_VERSION: ${{ inputs.pnpm-version }}
           run: |
               set -euo pipefail
-              corepack enable
               for attempt in 1 2 3; do
-                  if corepack prepare "pnpm@${PNPM_VERSION}" --activate; then
+                  if npm install -g "pnpm@${PNPM_VERSION}"; then
                       exit 0
                   fi
-                  echo "corepack prepare failed (attempt $attempt of 3); retrying"
+                  echo "npm install -g pnpm failed (attempt $attempt of 3); retrying"
                   sleep $((attempt * 5))
               done
               exit 1
