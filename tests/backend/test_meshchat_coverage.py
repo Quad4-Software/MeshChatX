@@ -15,7 +15,7 @@ from meshchatx.src.backend.reticulum_pathfinding import OutboundPathOutcome
 
 
 @pytest.fixture
-def mock_app():
+def mock_app(tmp_path):
     # Use __new__ to avoid full initialization
     app = ReticulumMeshChat.__new__(ReticulumMeshChat)
     app.current_context = MagicMock()
@@ -23,7 +23,7 @@ def mock_app():
     app.database = MagicMock()
     app.reticulum = MagicMock()
     app.message_router = MagicMock()
-    app.storage_dir = "/tmp/meshchat_test"
+    app.storage_dir = str(tmp_path / "meshchat_test")
     os.makedirs(app.storage_dir, exist_ok=True)
     return app
 
