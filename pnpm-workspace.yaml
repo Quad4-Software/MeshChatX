@@ -48,7 +48,7 @@ overrides:
     js-yaml: ">=5.2.2"
     lodash: ">=4.17.24"
     micromatch: ">=4.0.8"
-    minimatch: ">=10.2.3"
+    minimatch: ">=11.0.1"
     minimist: ">=1.2.8"
     fast-uri: ">=4.2.3"
     fflate: ">=0.8.3"

@@ -194,7 +194,7 @@ overrides:
   js-yaml: '>=5.2.2'
   lodash: '>=4.17.24'
   micromatch: '>=4.0.8'
-  minimatch: '>=10.2.3'
+  minimatch: '>=11.0.1'
   minimist: '>=1.2.8'
   fast-uri: '>=4.2.3'
   fflate: '>=0.8.3'
@@ -344,7 +344,7 @@ importers:
         specifier: github:RFnexus/micron-parser-js#ce24ce44adf804230a16520a9f79cd5f183c0bb5
         version: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/ce24ce44adf804230a16520a9f79cd5f183c0bb5
       minimatch:
-        specifier: '>=10.2.3'
+        specifier: '>=11.0.1'
         version: 11.0.3
       ol:
         specifier: ^10.11.0
