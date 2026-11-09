@@ -104,9 +104,11 @@ jobs:
                 include:
                     - arch: x64
                       runner: self-hosted
+                      fork_runner: ubuntu-24.04
                     - arch: arm64
                       runner: ubuntu-24.04-arm
-        runs-on: ${{ matrix.runner }}
+                      fork_runner: ubuntu-24.04-arm
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && matrix.fork_runner || matrix.runner }}
         timeout-minutes: 90
         permissions:
             contents: read
@@ -176,7 +178,7 @@ jobs:
     flatpak:
         name: Flatpak (Wails shell)
         needs: frontend
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 90
         permissions:
             contents: read

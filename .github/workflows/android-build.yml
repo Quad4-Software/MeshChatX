@@ -112,7 +112,7 @@ jobs:
 
     android:
         name: Android test/build
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         needs: frontend
         timeout-minutes: 90
         permissions:

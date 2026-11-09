@@ -95,7 +95,7 @@ env:
 jobs:
     dependency-audit:
         name: Dependency and config scan
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 45
         permissions:
             contents: read
@@ -176,7 +176,7 @@ jobs:
 
     secret-scan:
         name: Secret scan (gitleaks)
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 20
         permissions:
             contents: read
@@ -224,7 +224,7 @@ jobs:
     codeql:
         name: CodeQL (${{ matrix.language }})
         if: github.event_name != 'pull_request'
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 60
         permissions:
             security-events: write
@@ -296,7 +296,7 @@ jobs:
     codeql-javascript:
         name: CodeQL (javascript-typescript)
         if: github.event_name != 'pull_request'
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         needs: [frontend]
         timeout-minutes: 60
         permissions:

@@ -119,7 +119,7 @@ jobs:
 
     verify:
         name: ${{ matrix.task.name }}
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: ${{ matrix.task.timeout }}
         permissions:
             contents: read
@@ -194,7 +194,7 @@ jobs:
 
     visualiser-wasm:
         name: Visualiser WASM (Go)
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 15
         permissions:
             contents: read
@@ -265,7 +265,7 @@ jobs:
 
     geo-wasm:
         name: Geo WASM (Go)
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 15
         permissions:
             contents: read
@@ -336,7 +336,7 @@ jobs:
 
     backend-tests:
         name: Backend tests (Python 3.15) - Shard ${{ matrix.shard }} / 4
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 20
         permissions:
             contents: read
@@ -399,7 +399,7 @@ jobs:
 
     backend-coverage:
         name: Backend coverage floor
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 30
         needs: backend-tests
         permissions:
@@ -446,7 +446,7 @@ jobs:
 
     zizmor:
         name: Workflow audit (zizmor)
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 10
         permissions:
             contents: read
@@ -469,7 +469,7 @@ jobs:
     quarantined-tests:
         name: Quarantined backend tests (non-gating)
         if: github.event_name != 'pull_request'
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 20
         continue-on-error: true
         permissions:
@@ -503,7 +503,7 @@ jobs:
 
     lxmf-live-local:
         name: Live LXMF (local TCP + pack/reject)
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 15
         permissions:
             contents: read
@@ -528,7 +528,7 @@ jobs:
 
     build-check:
         name: Linux build check
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         needs: frontend
         timeout-minutes: 60
         permissions:
@@ -603,7 +603,7 @@ jobs:
 
     validate-build-artifact:
         name: Validate Linux build artifact
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 15
         needs: build-check
         permissions:
@@ -648,7 +648,7 @@ jobs:
 
     e2e:
         name: E2E smoke
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 25
         permissions:
             contents: read
@@ -690,7 +690,7 @@ jobs:
         name: UI Lighthouse (core pages)
         if: github.event_name != 'pull_request'
         needs: frontend
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 45
         permissions:
             contents: read

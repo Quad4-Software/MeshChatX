@@ -1,6 +1,16 @@
 # Argus findings suppressions.
 # Format: RULE (everywhere) | RULE path/glob | * path (everything under path)
 
+# WFA-007: pull_request jobs route to GitHub-hosted runners when the PR
+# comes from a fork (untrusted code never reaches the self-hosted runner).
+# Same-repo PRs still use self-hosted, which is acceptable because opening
+# one requires write access to the repository.
+WFA-007 .github/workflows/ci.yml
+WFA-007 .github/workflows/security.yml
+WFA-007 .github/workflows/android-build.yml
+WFA-007 .github/workflows/docker.yml
+WFA-007 .github/workflows/build-linux-packages.yml
+
 # Dependency and build trees: scanned upstream, not first-party code.
 * .venv/**
 * node_modules/**

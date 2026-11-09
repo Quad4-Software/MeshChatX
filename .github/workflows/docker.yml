@@ -120,7 +120,7 @@ jobs:
         # images when the run actually passed. Tag pushes and manual
         # dispatches are unaffected.
         if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
-        runs-on: self-hosted
+        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
         timeout-minutes: 90
         permissions:
             contents: read
