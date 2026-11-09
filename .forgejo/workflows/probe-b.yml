@@ -1,0 +1,62 @@
+# Temporary runner-capability probe (variant B: docker:27 image,
+# --network=host, no volume mounts).
+name: Probe B (docker img + host net)
+
+on:
+  push:
+    branches:
+      - ci/probe-runner
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: docker:27
+      options: --network=host
+    steps:
+      - name: Collect diagnostics
+        env:
+          FORGEJO_TOKEN: ${{ secrets.GITEA_TOKEN }}
+        run: |
+          set -uo pipefail
+          out="/tmp/probe-b.txt"
+          {
+            echo "## Probe B — docker:27 + --network=host"
+            echo "### id"; id
+            echo "### tools"
+            for t in git docker curl wget python3 jq; do
+              printf '%-8s %s\n' "$t" "$(command -v $t || echo MISSING)"
+            done
+            echo "### docker"
+            docker version 2>&1 | head -8 || true
+            echo "### egress"
+            for url in https://pypi.org/simple/ https://github.com https://registry-1.docker.io/v2/ https://git.quad4.io https://git.quad4.io/v2/; do
+              code="$(curl -sS -m 10 -o /dev/null -w '%{http_code}' "$url" 2>/dev/null || echo ERR)"
+              echo "$url -> $code"
+            done
+            echo "### git self"
+            git ls-remote https://git.quad4.io/reticulum/MeshChatX.git HEAD 2>&1 | head -3 || true
+            echo "### token"
+            if [ -n "${FORGEJO_TOKEN:-}" ]; then
+              curl -sS -m 10 -H "Authorization: token ${FORGEJO_TOKEN}" https://git.quad4.io/api/v1/user | head -c 400; echo
+            else
+              echo "GITEA_TOKEN empty"
+            fi
+          } > "$out" 2>&1
+          cat "$out"
+          title="Runner probe B results (run ${GITHUB_RUN_ID:-?})"
+          python3 - "$out" "$title" <<'PY' 2>/dev/null || curl -sS -m 15 -X POST \
+            -H "Authorization: token ${FORGEJO_TOKEN}" -H "Content-Type: application/json" \
+            "https://git.quad4.io/api/v1/repos/reticulum/MeshChatX/issues" \
+            -d "$(python3 -c 'import json,sys; print(json.dumps({"title":sys.argv[2],"body":open(sys.argv[1]).read()}))' "$out" "$title")" | head -c 300
+          import json, os, sys, urllib.request
+          body = open(sys.argv[1]).read()
+          payload = json.dumps({"title": sys.argv[2], "body": body}).encode()
+          req = urllib.request.Request(
+              "https://git.quad4.io/api/v1/repos/reticulum/MeshChatX/issues",
+              data=payload, method="POST",
+              headers={"Authorization": "token " + os.environ["FORGEJO_TOKEN"],
+                       "Content-Type": "application/json"})
+          print(urllib.request.urlopen(req, timeout=20).status)
+          PY
