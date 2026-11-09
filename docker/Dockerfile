@@ -74,6 +74,7 @@ COPY vendor ./vendor
 COPY scripts/docker-bake-lxst-filterlib-musl.py ./scripts/docker-bake-lxst-filterlib-musl.py
 COPY scripts/patch_lxst_pyogg_ogg_ctypes.py ./scripts/patch_lxst_pyogg_ogg_ctypes.py
 COPY scripts/patch_lxst_codec2_optional.py ./scripts/patch_lxst_codec2_optional.py
+COPY scripts/patch_lxst_pulseaudio_hardened.py ./scripts/patch_lxst_pulseaudio_hardened.py
 COPY meshchatx/src/backend/lxst_pyogg_ctypes_compat.py ./meshchatx/src/backend/lxst_pyogg_ctypes_compat.py
 COPY scripts/docker/prepare-venv.sh scripts/docker/prepare-venv.sh
 COPY scripts/docker/build-app-overlay.sh scripts/docker/build-app-overlay.sh
