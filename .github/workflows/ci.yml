@@ -683,7 +683,9 @@ jobs:
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: e2e-junit
-                  path: test-results/junit/
+                  path: |
+                      test-results/junit/
+                      test-results/**/error-context.md
                   if-no-files-found: ignore
 
     ui-lighthouse:
@@ -739,5 +741,6 @@ jobs:
                       test-results/perf/
                       test-results/heap/
                       test-results/metrics/
+                      test-results/**/error-context.md
                   if-no-files-found: ignore
                   retention-days: 14
