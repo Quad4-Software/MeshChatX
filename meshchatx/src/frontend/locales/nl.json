@@ -2495,7 +2495,12 @@
         "filters_custom_query": "bijv. familie, mama, a1b2c3",
         "filters_custom_add": "Filter toevoegen",
         "filters_custom_remove": "Eigen filter verwijderen",
-        "translate_auto_conversation": "Auto-translate this conversation"
+        "translate_auto_conversation": "Auto-translate this conversation",
+        "nearby_peers": "Dichtbijzijnde peers",
+        "nearby_peers_loading": "Dichtbijzijnde peers laden...",
+        "nearby_peers_empty": "Nog geen nabijgelegen peers gevonden.",
+        "scan_lxmf": "LXMF scannen",
+        "invalid_lxmf_qr": "Die QR-code bevat geen LXMF-adres."
     },
     "settings": {
         "tabs": {
@@ -5331,6 +5336,8 @@
         "bootstrap_selected_nodes_heading": "Geselecteerde knooppunten",
         "bootstrap_search_placeholder": "Zoek onder ontdekte en community…",
         "bootstrap_search_no_match": "Geen knooppunt komt overeen met uw zoekopdracht",
+        "bootstrap_empty_title": "Nog geen bootstrap-knooppunten",
+        "bootstrap_empty": "Discovery heeft nog geen knooppunten gevonden en er zijn geen community-voorinstellingen beschikbaar. Gebruik 'Interfaces openen' hierboven om een aangepast interface toe te voegen, of ga door en kies bootstrap-knooppunten later.",
         "bootstrap_search_clear": "Zoekopdracht wissen",
         "bootstrap_only_label": "Bootstrap-only voor toegevoegde interfaces",
         "bootstrap_only_hint": "Standaard ingeschakeld. Bootstrap-interfaces zijn tijdelijke startpunten. Reticulum kan ze loskoppelen zodra er voldoende stabiele links zijn. Laat dit ingeschakeld staan om te voorkomen dat veel TCP-verbindingen open blijven. Schakel het uit als u een permanente koppeling met een gekozen knooppunt wilt. De standaardwaarde is later aan te passen onder Interfaces, Discovery-instellingen.",
@@ -5542,5 +5549,13 @@
             "nomadnet": "NomadNet",
             "crawler": "Crawler"
         }
+    },
+    "qr_scanner": {
+        "title": "Scan QR-code",
+        "hint": "Richt camera op een identiteit QR code.",
+        "camera_not_supported": "Camera QR scannen wordt niet ondersteund in deze browser.",
+        "camera_not_found": "Geen camera apparaat gevonden.",
+        "camera_permission_denied": "Camera toestemming geweigerd. Laat de camera toe.",
+        "camera_failed": "Starten van camerascanner is mislukt."
     }
 }

@@ -2495,7 +2495,12 @@
         "filters_custom_query": "z.B. Familie, Mama, a1b2c3",
         "filters_custom_add": "Filter hinzufügen",
         "filters_custom_remove": "Eigenen Filter entfernen",
-        "translate_auto_conversation": "Auto-translate this conversation"
+        "translate_auto_conversation": "Auto-translate this conversation",
+        "nearby_peers": "Nahegelegene Peers",
+        "nearby_peers_loading": "Nahegelegene Peers werden geladen...",
+        "nearby_peers_empty": "Noch keine nahegelegenen Peers entdeckt.",
+        "scan_lxmf": "LXMF scannen",
+        "invalid_lxmf_qr": "Dieser QR-Code enthält keine LXMF-Adresse."
     },
     "settings": {
         "tabs": {
@@ -5331,6 +5336,8 @@
         "bootstrap_selected_nodes_heading": "Ausgewählte Knoten",
         "bootstrap_search_placeholder": "Erkannte und Community durchsuchen…",
         "bootstrap_search_no_match": "Keine Knoten entsprechen der Suche",
+        "bootstrap_empty_title": "Noch keine Bootstrap-Knoten",
+        "bootstrap_empty": "Die Suche hat noch keine Knoten gefunden und es sind keine Community-Vorlagen verfügbar. Füge oben über „Interfaces öffnen“ eine eigene Schnittstelle hinzu oder fahre fort und wähle Bootstrap-Knoten später.",
         "bootstrap_search_clear": "Suche löschen",
         "bootstrap_only_label": "Bootstrap-only für hinzugefügte Schnittstellen",
         "bootstrap_only_hint": "Standardmäßig aktiv. Bootstrap-Schnittstellen sind temporäre Startpunkte. Reticulum kann sie trennen, sobald genügend stabile Verbindungen gefunden wurden. Lassen Sie die Option aktiviert, um viele offene TCP-Verbindungen zu vermeiden. Schalten Sie sie aus, wenn Sie eine dauerhafte Verbindung zu einem bestimmten Knoten wünschen. Der Standardwert lässt sich unter Schnittstellen, Discovery-Einstellungen anpassen.",
@@ -5542,5 +5549,13 @@
             "nomadnet": "NomadNet",
             "crawler": "Crawler"
         }
+    },
+    "qr_scanner": {
+        "title": "QR-Code scannen",
+        "hint": "Kamera auf einen Identitäts-QR-Code richten.",
+        "camera_not_supported": "Kamera-QR-Scan wird in diesem Browser nicht unterstützt.",
+        "camera_not_found": "Keine Kamera gefunden.",
+        "camera_permission_denied": "Kamerazugriff verweigert. Bitte Kameraberechtigung erlauben.",
+        "camera_failed": "Kamera konnte nicht gestartet werden."
     }
 }

@@ -2495,7 +2495,12 @@
         "filters_custom_query": "e.g. family, mom, a1b2c3",
         "filters_custom_add": "Add filter",
         "filters_custom_remove": "Remove custom filter",
-        "translate_auto_conversation": "Auto-translate this conversation"
+        "translate_auto_conversation": "Auto-translate this conversation",
+        "nearby_peers": "Nearby peers",
+        "nearby_peers_loading": "Loading nearby peers...",
+        "nearby_peers_empty": "No nearby peers discovered yet.",
+        "scan_lxmf": "Scan LXMF",
+        "invalid_lxmf_qr": "That QR code doesn't contain an LXMF address."
     },
     "settings": {
         "tabs": {
@@ -5331,6 +5336,8 @@
         "bootstrap_selected_nodes_heading": "Selected nodes",
         "bootstrap_search_placeholder": "Search discovered and community…",
         "bootstrap_search_no_match": "No nodes match your search",
+        "bootstrap_empty_title": "No bootstrap nodes to show",
+        "bootstrap_empty": "Discovery hasn't found any nodes yet and no community presets are available. Use \"Open interfaces\" above to add a custom interface, or continue and pick bootstraps later.",
         "bootstrap_search_clear": "Clear search",
         "bootstrap_only_label": "Bootstrap-only for added interfaces",
         "bootstrap_only_hint": "Off by default. Bootstrap interfaces are temporary starting points. Reticulum can drop them after it finds enough stable links. Turn this on to avoid holding many TCP connections open. Leave it off if you want a persistent link to a chosen node. The default is adjustable in Interfaces, Discovery settings.",
@@ -5542,5 +5549,13 @@
             "nomadnet": "NomadNet",
             "crawler": "Crawler"
         }
+    },
+    "qr_scanner": {
+        "title": "Scan QR Code",
+        "hint": "Point camera at an identity QR code.",
+        "camera_not_supported": "Camera QR scanning is not supported in this browser.",
+        "camera_not_found": "No camera device found.",
+        "camera_permission_denied": "Camera permission denied. Please allow camera access.",
+        "camera_failed": "Failed to start camera scanner."
     }
 }

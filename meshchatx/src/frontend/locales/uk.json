@@ -2495,7 +2495,12 @@
         "filters_custom_query": "напр. сім'я, мама, a1b2c3",
         "filters_custom_add": "Додати фільтр",
         "filters_custom_remove": "Видалити власний фільтр",
-        "translate_auto_conversation": "Auto-translate this conversation"
+        "translate_auto_conversation": "Auto-translate this conversation",
+        "nearby_peers": "Ближні піри",
+        "nearby_peers_loading": "Завантаження ближніх пірів...",
+        "nearby_peers_empty": "Ближніх пірів поки не виявлено.",
+        "scan_lxmf": "Сканувати LXMF",
+        "invalid_lxmf_qr": "Цей QR-код не містить адреси LXMF."
     },
     "settings": {
         "tabs": {
@@ -5331,6 +5336,8 @@
         "bootstrap_selected_nodes_heading": "Вибрано вузлів",
         "bootstrap_search_placeholder": "Пошук виявлених і спільнотних…",
         "bootstrap_search_no_match": "Вашому пошуку не відповідають вузли",
+        "bootstrap_empty_title": "Поки немає bootstrap-вузлів",
+        "bootstrap_empty": "Виявлення ще не знайшло вузлів, і немає доступних пресетів спільноти. Скористайтеся «Відкрити інтерфейси» вище, щоб додати власний інтерфейс, або продовжте та оберіть bootstrap пізніше.",
         "bootstrap_search_clear": "Очистити пошук",
         "bootstrap_only_label": "Лише завантаження для доданих інтерфейсів",
         "bootstrap_only_hint": "Типово увімкнено. Інтерфейси завантаження - це тимчасові початкові точки. Reticulum може їх від'єднати, коли знайде достатньо стабільних посилань. Залиште увімкненим, щоб не тримати відкритими багато TCP-з'єднань. Вимкніть, якщо хочете постійне з'єднання з обраним вузлом. Типове значення можна змінити в розділах «Інтерфейси» та «Налаштування виявлення».",
@@ -5542,5 +5549,13 @@
             "nomadnet": "NomadNet",
             "crawler": "Crawler"
         }
+    },
+    "qr_scanner": {
+        "title": "Сканувати QR-код",
+        "hint": "Спрямуйте камеру на QR-код ідентичності.",
+        "camera_not_supported": "Сканування QR через камеру не підтримується в цьому браузері.",
+        "camera_not_found": "Пристрій камери не знайдено.",
+        "camera_permission_denied": "У доступі до камери відмовлено. Будь ласка, дозвольте доступ до камери.",
+        "camera_failed": "Не вдалося запустити сканер камери."
     }
 }

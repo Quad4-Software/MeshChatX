@@ -2495,7 +2495,12 @@
         "filters_custom_query": "ör. aile, anne, a1b2c3",
         "filters_custom_add": "Filtre ekle",
         "filters_custom_remove": "Özel filtreyi kaldır",
-        "translate_auto_conversation": "Auto-translate this conversation"
+        "translate_auto_conversation": "Auto-translate this conversation",
+        "nearby_peers": "Yakındaki Eşler",
+        "nearby_peers_loading": "Yakındaki eşler yükleniyor...",
+        "nearby_peers_empty": "Henüz yakındaki eş bulunamadı.",
+        "scan_lxmf": "LXMF tara",
+        "invalid_lxmf_qr": "Bu QR kodu bir LXMF adresi içermiyor."
     },
     "settings": {
         "tabs": {
@@ -5331,6 +5336,8 @@
         "bootstrap_selected_nodes_heading": "Seçilen düğümler",
         "bootstrap_search_placeholder": "Keşfedilen ve topluluk ara…",
         "bootstrap_search_no_match": "Aramanla eşleşen düğüm yok",
+        "bootstrap_empty_title": "Henüz bootstrap düğümü yok",
+        "bootstrap_empty": "Keşif henüz düğüm bulamadı ve topluluk ön ayarı yok. Özel bir arabirim eklemek için yukarıdaki 'Arabirimleri aç' düğmesini kullanın veya devam edip bootstrap'leri daha sonra seçin.",
         "bootstrap_search_clear": "Aramayı temizle",
         "bootstrap_only_label": "Eklenen arayüzler için yalnızca başlangıç noktası",
         "bootstrap_only_hint": "Varsayılan olarak açık. Başlangıç arayüzleri geçici başlangıç noktalarıdır. Reticulum yeterince kararlı bağlantı bulduğunda bunları devre dışı bırakabilir. Çok sayıda TCP bağlantısının açık kalmasını önlemek için açık bırakın. Belirli bir düğüme kalıcı bağlantı istiyorsanız kapatın. Varsayılanı Arayüzler, Keşif ayarlarından değiştirebilirsiniz.",
@@ -5542,5 +5549,13 @@
             "nomadnet": "NomadNet",
             "crawler": "Crawler"
         }
+    },
+    "qr_scanner": {
+        "title": "QR Kodunu Tara",
+        "hint": "Kamerayı bir kimlik QR koduna doğrult.",
+        "camera_not_supported": "Bu tarayıcıda kamera QR taraması desteklenmiyor.",
+        "camera_not_found": "Kamera cihazı bulunamadı.",
+        "camera_permission_denied": "Kamera izni reddedildi. Lütfen kamera erişimine izin ver.",
+        "camera_failed": "Kamera tarayıcısı başlatılamadı."
     }
 }

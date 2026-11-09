@@ -7,6 +7,7 @@ import asyncio
 import json
 import logging
 
+import RNS
 from aiohttp import web
 
 from meshchatx.src.backend.announce_manager import (
@@ -210,6 +211,101 @@ def register_favourites_routes(routes, app):
                 "total_count": len(all_announces),
             },
         )
+
+    # nearby LXMF peers sorted by hop distance, for compose suggestions
+    @routes.get(API_V1_PREFIX + "/announces/nearby")
+    async def announces_nearby_get(request):
+        unavailable = require_database(app)
+        if unavailable is not None:
+            return unavailable
+
+        try:
+            limit_raw = request.query.get("limit")
+            limit = int(limit_raw) if limit_raw not in (None, "") else 20
+        except (TypeError, ValueError):
+            limit = 20
+        limit = max(1, min(limit, 50))
+
+        try:
+            return await _announces_nearby_get_impl(limit)
+        except Exception as e:
+            logger.exception("announces_nearby_get failed")
+            return http_for_database_exception(e)
+
+    async def _announces_nearby_get_impl(limit):
+        blocked_identity_hashes = None
+        if app.current_context and app.current_context.config:
+            blocked = await asyncio.to_thread(
+                app.database.misc.get_blocked_destinations,
+            )
+            blocked_identity_hashes = [b["destination_hash"] for b in blocked]
+
+        results = await asyncio.to_thread(
+            app.announce_manager.get_filtered_announces,
+            aspect="lxmf.delivery",
+            blocked_identity_hashes=blocked_identity_hashes,
+            limit=None,
+        )
+
+        local_identity_hash = None
+        if app.current_context:
+            local_identity_hash = getattr(app.current_context, "identity_hash", None)
+
+        # RNS reports PATHFINDER_M (128) when no path is known; the UI uses
+        # the same sentinel, so peers without a known path sort last.
+        unknown_hops = getattr(RNS.Transport, "PATHFINDER_M", 128)
+
+        scored = []
+        for row in results:
+            if not isinstance(row, dict):
+                row = dict(row)
+            if local_identity_hash and row.get("identity_hash") == local_identity_hash:
+                continue
+            hops = None
+            try:
+                hops = RNS.Transport.hops_to(bytes.fromhex(row["destination_hash"]))
+            except Exception:
+                hops = None
+            if not isinstance(hops, int) or hops < 0 or hops >= unknown_hops:
+                hops = None
+            scored.append((row, hops))
+
+        # Known hop counts ascending first; unknown last. Python's sort is
+        # stable and rows arrive ordered by updated_at DESC, so equal-hop
+        # peers keep their recency order.
+        scored.sort(
+            key=lambda item: (item[1] is None, item[1] if item[1] is not None else 0)
+        )
+
+        top_rows = [row for row, _ in scored[:limit]]
+        converted = await asyncio.to_thread(
+            app._batch_convert_announces_to_api_dicts,
+            top_rows,
+            "lxmf.delivery",
+        )
+
+        # The converter re-derives hops via hops_to and returns the raw
+        # PATHFINDER_M sentinel for unknown paths, so prefer the normalized
+        # values computed above for sorting.
+        hops_by_destination = {
+            row["destination_hash"]: hops for row, hops in scored[:limit]
+        }
+
+        peers = [
+            {
+                "destination_hash": ann.get("destination_hash"),
+                "identity_hash": ann.get("identity_hash"),
+                "display_name": ann.get("display_name"),
+                "custom_display_name": ann.get("custom_display_name"),
+                "lxmf_user_icon": ann.get("lxmf_user_icon"),
+                "contact_image": ann.get("contact_image"),
+                "hops": hops_by_destination.get(ann.get("destination_hash")),
+                "created_at": ann.get("created_at"),
+                "updated_at": ann.get("updated_at"),
+            }
+            for ann in converted
+        ]
+        return web.json_response({"peers": peers})
 
     # serve favourites
 

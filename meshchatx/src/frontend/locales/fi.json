@@ -2495,7 +2495,12 @@
         "filters_custom_query": "esim. perhe, äiti, a1b2c3",
         "filters_custom_add": "Lisää suodatin",
         "filters_custom_remove": "Poista oma suodatin",
-        "translate_auto_conversation": "Auto-translate this conversation"
+        "translate_auto_conversation": "Auto-translate this conversation",
+        "nearby_peers": "Läheiset osallistujat",
+        "nearby_peers_loading": "Ladataan läheitä osallistujia...",
+        "nearby_peers_empty": "Läheitä osallistujia ei ole vielä löytynyt.",
+        "scan_lxmf": "Skannaa LXMF",
+        "invalid_lxmf_qr": "Tuo QR-koodi ei sisällä LXMF-osoitetta."
     },
     "settings": {
         "tabs": {
@@ -5331,6 +5336,8 @@
         "bootstrap_selected_nodes_heading": "Valitut solmut",
         "bootstrap_search_placeholder": "Hae löydetyistä ja yhteisöstä…",
         "bootstrap_search_no_match": "Yksikään solmu ei vastaa hakua",
+        "bootstrap_empty_title": "Ei vielä bootstrap-solmuja",
+        "bootstrap_empty": "Etsintä ei ole löytänyt vielä solmuja eikä yhteisön valmiita asetuksia ole saatavilla. Lisää mukautettu rajapinta yllä olevalla painikkeella tai jatka ja valitse bootstrapit myöhemmin.",
         "bootstrap_search_clear": "Tyhjennä haku",
         "bootstrap_only_label": "Vain bootstrap lisätyille rajapinnoille",
         "bootstrap_only_hint": "Oletuksena päällä. Bootstrap-rajapinnat ovat tilapäisiä lähtöpisteitä, ja Reticulum voi pudottaa ne, kun se löytää tarpeeksi vakaita linkkejä. Jätä tämä päälle, jotta TCP-yhteyksiä ei pidetä turhaan auki. Poista käytöstä, jos haluat pysyvän yhteyden valitsemaasi solmuun. Oletusta voi muuttaa Rajapinnat-osion Löytö-asetuksista.",
@@ -5542,5 +5549,13 @@
             "nomadnet": "NomadNet",
             "crawler": "Crawler"
         }
+    },
+    "qr_scanner": {
+        "title": "Lue QR-koodi",
+        "hint": "Osoita kameraa tunnuksen QR-koodiin.",
+        "camera_not_supported": "Selain ei tue kameran QR-lukua.",
+        "camera_not_found": "Kameraa ei löytynyt.",
+        "camera_permission_denied": "Kameralupa evätty. Salli kameran käyttö.",
+        "camera_failed": "Kameralukijan käynnistys epäonnistui."
     }
 }

@@ -2495,7 +2495,12 @@
         "filters_custom_query": "예: family, mom, a1b2c3",
         "filters_custom_add": "필터 추가",
         "filters_custom_remove": "사용자 지정 필터 삭제",
-        "translate_auto_conversation": "Auto-translate this conversation"
+        "translate_auto_conversation": "Auto-translate this conversation",
+        "nearby_peers": "주변 피어",
+        "nearby_peers_loading": "주변 피어를 불러오는 중...",
+        "nearby_peers_empty": "아직 발견된 주변 피어가 없습니다.",
+        "scan_lxmf": "LXMF 스캔",
+        "invalid_lxmf_qr": "해당 QR 코드에 LXMF 주소가 없습니다."
     },
     "settings": {
         "tabs": {
@@ -5331,6 +5336,8 @@
         "bootstrap_selected_nodes_heading": "선택된 노드",
         "bootstrap_search_placeholder": "발견된 노드와 커뮤니티 검색…",
         "bootstrap_search_no_match": "검색과 일치하는 노드가 없습니다",
+        "bootstrap_empty_title": "아직 부트스트랩 노드가 없습니다",
+        "bootstrap_empty": "발견이 아직 노드를 찾지 못했고 커뮤니티 프리셋도 없습니다. 위의 '인터페이스 열기'로 사용자 지정 인터페이스를 추가하거나 계속 진행한 후 나중에 부트스트랩을 선택하세요.",
         "bootstrap_search_clear": "검색 지우기",
         "bootstrap_only_label": "추가되는 인터페이스를 부트스트랩 전용으로",
         "bootstrap_only_hint": "기본적으로 켜집니다. 부트스트랩 인터페이스는 임시 시작점이며, 안정적인 링크를 충분히 찾으면 Reticulum이 연결을 해제할 수 있습니다. 많은 TCP 연결을 유지하지 않으려면 켜 두세요. 선택한 노드와 지속적으로 연결하려면 끄세요. 기본값은 인터페이스 > 발견 설정에서 바꿀 수 있습니다.",
@@ -5542,5 +5549,13 @@
             "nomadnet": "NomadNet",
             "crawler": "Crawler"
         }
+    },
+    "qr_scanner": {
+        "title": "QR 코드 스캔",
+        "hint": "카메라를 신원 QR 코드에 향하세요.",
+        "camera_not_supported": "이 브라우저에서는 카메라 QR 스캔이 지원되지 않습니다.",
+        "camera_not_found": "카메라 기기를 찾을 수 없습니다.",
+        "camera_permission_denied": "카메라 권한이 거부되었습니다. 카메라 접근을 허용해 주세요.",
+        "camera_failed": "카메라 스캐너를 시작하지 못했습니다."
     }
 }

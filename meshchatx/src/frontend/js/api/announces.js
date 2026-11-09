@@ -11,6 +11,9 @@ import { apiPath } from "../constants";
 export function listAnnounces(...rest) {
     return window.api.get(apiPath("/announces"), ...rest);
 }
+export function listNearbyPeers(...rest) {
+    return window.api.get(apiPath("/announces/nearby"), ...rest);
+}
 export function postQuery(data, ...rest) {
     return window.api.post(apiPath("/announces/query"), data, ...rest);
 }

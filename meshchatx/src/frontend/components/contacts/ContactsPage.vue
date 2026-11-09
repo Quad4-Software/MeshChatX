@@ -402,37 +402,12 @@
         </div>
 
         <!-- Scanner dialog -->
-        <div
-            v-if="isScannerDialogOpen"
-            v-escape-close="closeScannerDialog"
-            class="fixed inset-0 z-220 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs"
-            @click.self="closeScannerDialog"
-        >
-            <div
-                role="dialog"
-                aria-modal="true"
-                class="w-full max-w-xl rounded-2xl bg-sem-surface shadow-2xl overflow-hidden"
-            >
-                <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-sem-fg">{{ $t("contacts.scan_qr") }}</h3>
-                    <button type="button" class="text-sem-fg-muted hover:text-sem-fg" @click="closeScannerDialog">
-                        <MaterialDesignIcon icon-name="close" class="size-5" />
-                    </button>
-                </div>
-                <div class="p-5 space-y-3">
-                    <video
-                        ref="scannerVideo"
-                        class="w-full rounded-xl bg-black max-h-[60vh]"
-                        autoplay
-                        playsinline
-                        muted
-                    ></video>
-                    <div class="text-sm text-sem-fg-muted">
-                        {{ scannerError || $t("contacts.scanner_hint") }}
-                    </div>
-                </div>
-            </div>
-        </div>
+        <QrScannerDialog
+            v-model="isScannerDialogOpen"
+            :title="$t('contacts.scan_qr')"
+            :hint="$t('contacts.scanner_hint')"
+            @scan="onScannerQrScanned"
+        />
 
         <!-- Import contacts dialog -->
         <div
@@ -551,13 +526,8 @@ import GlobalEmitter from "../../js/GlobalEmitter";
 import { shouldOpenCustomContextMenu } from "../../js/contextMenuUtils.js";
 import * as announcesApi from "../../js/api/announces.js";
 import * as telephoneApi from "../../js/api/telephone.js";
-import {
-    attachStreamToVideo,
-    decodeQrFromVideo,
-    describeCameraError as describeQrCameraError,
-    isCameraSupported,
-    startCameraStream,
-} from "../../js/qrScannerUtils";
+import { isCameraSupported } from "../../js/qrScannerUtils";
+import QrScannerDialog from "../QrScannerDialog.vue";
 
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
@@ -572,6 +542,7 @@ export default {
         EmptyState,
         LoadingState,
         MaterialDesignIcon,
+        QrScannerDialog,
         SearchInput,
         LxmfUserIcon,
         SidebarVirtualList,
@@ -604,9 +575,6 @@ export default {
             newContactInput: "",
 
             isScannerDialogOpen: false,
-            scannerError: null,
-            scannerStream: null,
-            scannerAnimationFrame: null,
             pendingLxmaImport: false,
             lxmaImportTimeout: null,
 
@@ -651,9 +619,6 @@ export default {
         offWsEvent(WS_EVENTS.LXM_INGEST_URI_RESULT, this.onLxmIngestUriResult);
         GlobalEmitter.off(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         clearTimeout(this.lxmaImportTimeout);
-
-        this.isScannerDialogOpen = false;
-        this.stopScanner();
         if (this.searchDebounceTimeout) {
             clearTimeout(this.searchDebounceTimeout);
         }
@@ -1073,76 +1038,13 @@ export default {
                 ToastUtils.error(this.$t("messages.failed_read_clipboard"));
             }
         },
-        async openScannerDialog() {
+        openScannerDialog() {
             this.isScannerDialogOpen = true;
-            this.scannerError = null;
-            await this.$nextTick();
-            await this.startScanner();
         },
-        async startScanner() {
-            if (!this.cameraSupported) {
-                this.scannerError = this.$t("contacts.camera_not_supported");
-                return;
-            }
-            try {
-                const stream = await startCameraStream();
-                if (!stream.getVideoTracks().length) {
-                    this.scannerError = this.$t("contacts.camera_not_found");
-                    stream.getTracks().forEach((track) => track.stop());
-                    return;
-                }
-                this.scannerStream = stream;
-                const video = this.$refs.scannerVideo;
-                if (!(await attachStreamToVideo(stream, video))) {
-                    return;
-                }
-                this.detectQrLoop();
-            } catch (e) {
-                this.scannerError = this.describeCameraError(e);
-            }
-        },
-        detectQrLoop() {
-            if (!this.isScannerDialogOpen) return;
-            const video = this.$refs.scannerVideo;
-            decodeQrFromVideo(video)
-                .then((qr) => {
-                    if (!this.isScannerDialogOpen) {
-                        return;
-                    }
-                    if (qr) {
-                        this.newContactInput = qr;
-                        this.closeScannerDialog();
-                        ToastUtils.success(this.$t("contacts.qr_scanned"));
-                        return;
-                    }
-                    this.scannerAnimationFrame = requestAnimationFrame(() => this.detectQrLoop());
-                })
-                .catch(() => {
-                    if (this.isScannerDialogOpen) {
-                        this.scannerAnimationFrame = requestAnimationFrame(() => this.detectQrLoop());
-                    }
-                });
-        },
-        stopScanner() {
-            if (this.scannerAnimationFrame) {
-                cancelAnimationFrame(this.scannerAnimationFrame);
-                this.scannerAnimationFrame = null;
-            }
-            if (this.scannerStream) {
-                this.scannerStream.getTracks().forEach((track) => track.stop());
-                this.scannerStream = null;
-            }
-        },
-        closeScannerDialog() {
+        onScannerQrScanned(qr) {
+            this.newContactInput = qr;
             this.isScannerDialogOpen = false;
-            this.stopScanner();
-        },
-        describeCameraError(error) {
-            return describeQrCameraError(error, {
-                permissionDenied: this.$t("contacts.camera_permission_denied"),
-                notFound: this.$t("contacts.camera_not_found"),
-                failed: this.$t("contacts.camera_failed"),
-            });
+            ToastUtils.success(this.$t("contacts.qr_scanned"));
         },
     },
 };

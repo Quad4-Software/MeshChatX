@@ -2495,7 +2495,12 @@
         "filters_custom_query": "es. famiglia, mamma, a1b2c3",
         "filters_custom_add": "Aggiungi filtro",
         "filters_custom_remove": "Rimuovi filtro personalizzato",
-        "translate_auto_conversation": "Auto-translate this conversation"
+        "translate_auto_conversation": "Auto-translate this conversation",
+        "nearby_peers": "Peer nelle vicinanze",
+        "nearby_peers_loading": "Caricamento dei peer nelle vicinanze...",
+        "nearby_peers_empty": "Nessun peer nelle vicinanze rilevato.",
+        "scan_lxmf": "Scansiona LXMF",
+        "invalid_lxmf_qr": "Quel codice QR non contiene un indirizzo LXMF."
     },
     "settings": {
         "tabs": {
@@ -5331,6 +5336,8 @@
         "bootstrap_selected_nodes_heading": "Nodi selezionati",
         "bootstrap_search_placeholder": "Cerca tra rilevati e community…",
         "bootstrap_search_no_match": "Nessun nodo corrisponde alla ricerca",
+        "bootstrap_empty_title": "Nessun nodo bootstrap per ora",
+        "bootstrap_empty": "La scoperta non ha ancora trovato nodi e non sono disponibili preset della community. Usa «Apri interfacce» sopra per aggiungere un'interfaccia personalizzata, oppure continua e scegli i bootstrap in seguito.",
         "bootstrap_search_clear": "Cancella ricerca",
         "bootstrap_only_label": "Bootstrap-only per le interfacce aggiunte",
         "bootstrap_only_hint": "Attivo per impostazione predefinita. Le interfacce bootstrap sono punti di partenza temporanei. Reticulum può staccarle dopo aver trovato collegamenti sufficientemente stabili. Lascia attiva questa opzione per evitare di mantenere aperte molte connessioni TCP. Disattivala se vuoi un collegamento persistente verso un nodo scelto. Il valore predefinito è modificabile in Interfacce, Impostazioni di scoperta.",
@@ -5542,5 +5549,13 @@
             "nomadnet": "NomadNet",
             "crawler": "Crawler"
         }
+    },
+    "qr_scanner": {
+        "title": "Scansiona QR",
+        "hint": "Inquadra il codice QR dell'identità con la fotocamera.",
+        "camera_not_supported": "La scansione QR con fotocamera non è supportata in questo browser.",
+        "camera_not_found": "Nessuna fotocamera trovata.",
+        "camera_permission_denied": "Permesso fotocamera negato. Consenti l'accesso alla fotocamera.",
+        "camera_failed": "Impossibile avviare la fotocamera."
     }
 }

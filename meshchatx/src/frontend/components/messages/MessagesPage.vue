@@ -142,71 +142,112 @@
             <MaterialDesignIcon icon-name="plus" class="size-7" />
         </button>
 
-        <div
-            v-if="isMobileComposeModalOpen"
-            class="fixed inset-0 z-95 flex items-end justify-center sm:items-center p-0 sm:p-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0px,env(safe-area-inset-bottom))] bg-black/50 backdrop-blur-xs sm:bg-black/50"
-            @click.self="isMobileComposeModalOpen = false"
+        <AppModal
+            v-model="isMobileComposeModalOpen"
+            :title="$t('messages.mobile_compose_title')"
+            :fullscreen="isMobileComposeFullscreen"
+            :max-width="448"
+            show-close
+            panel-class="max-sm:rounded-none!"
         >
-            <div
-                class="w-full sm:max-w-md bg-sem-surface rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[90dvh] flex flex-col"
-                @click.stop
-            >
-                <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between shrink-0">
-                    <h3 class="text-lg font-bold text-sem-fg">
-                        {{ $t("messages.mobile_compose_title") }}
-                    </h3>
+            <div class="p-5 space-y-4">
+                <p class="text-sm text-sem-fg-muted">
+                    {{ $t("messages.select_peer_or_enter_address") }}
+                </p>
+                <div>
+                    <label
+                        class="block text-xs font-medium text-sem-fg-muted uppercase tracking-wider mb-1"
+                        for="mobile-compose-destination"
+                    >
+                        {{ $t("app.lxmf_address_hash") }}
+                    </label>
+                    <input
+                        id="mobile-compose-destination"
+                        ref="mobileComposeAddressInput"
+                        v-model="mobileComposeAddress"
+                        type="text"
+                        autocomplete="off"
+                        autocorrect="off"
+                        spellcheck="false"
+                        :placeholder="$t('messages.mobile_compose_destination_placeholder')"
+                        class="input-field w-full"
+                        @keydown.enter="submitMobileCompose"
+                    />
+                </div>
+
+                <div>
+                    <h4 class="text-xs font-medium text-sem-fg-muted uppercase tracking-wider mb-2">
+                        {{ $t("messages.nearby_peers") }}
+                    </h4>
+                    <div v-if="isLoadingNearbyPeers" class="text-sm text-sem-fg-muted py-2">
+                        {{ $t("messages.nearby_peers_loading") }}
+                    </div>
+                    <div v-else-if="nearbyPeers.length === 0" class="text-sm text-sem-fg-muted py-2">
+                        {{ $t("messages.nearby_peers_empty") }}
+                    </div>
+                    <ul v-else class="max-h-60 overflow-y-auto -mx-2">
+                        <li v-for="peer in nearbyPeers" :key="peer.destination_hash">
+                            <button
+                                type="button"
+                                class="w-full flex items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-sem-surface-muted transition-colors focus-ring-sem"
+                                @click="fillMobileComposeAddress(peer.destination_hash)"
+                            >
+                                <LxmfUserIcon
+                                    :custom-image="peer.contact_image"
+                                    :icon-name="peer.lxmf_user_icon?.icon_name"
+                                    :icon-foreground-colour="peer.lxmf_user_icon?.foreground_colour"
+                                    :icon-background-colour="peer.lxmf_user_icon?.background_colour"
+                                    :icon-style="nearbyPeerIconStyle"
+                                />
+                                <span class="min-w-0 flex-1">
+                                    <span class="block truncate text-sm font-medium text-sem-fg">
+                                        {{ peer.custom_display_name ?? peer.display_name }}
+                                    </span>
+                                    <span class="block text-xs text-sem-fg-muted">
+                                        {{ nearbyPeerHopsLabel(peer) }}
+                                    </span>
+                                </span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="flex flex-col gap-2">
                     <button
                         type="button"
-                        class="text-sem-fg-muted hover:text-sem-fg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2"
-                        @click="isMobileComposeModalOpen = false"
+                        class="primary-chip w-full! rounded-xl! py-2.5! text-sm! focus-ring-sem disabled:opacity-50 disabled:pointer-events-none"
+                        :disabled="!mobileComposeAddress.trim() || isMobileComposeSubmitting"
+                        @click="submitMobileCompose"
                     >
-                        <MaterialDesignIcon icon-name="close" class="size-6" />
+                        {{ $t("app.compose") }}
+                    </button>
+                    <button
+                        v-if="cameraSupported"
+                        type="button"
+                        class="secondary-chip w-full! rounded-xl! py-2.5! text-sm! focus-ring-sem"
+                        @click="isMobileComposeScannerOpen = true"
+                    >
+                        <MaterialDesignIcon icon-name="qrcode-scan" class="size-5 shrink-0" />
+                        {{ $t("messages.scan_lxmf") }}
+                    </button>
+                    <button
+                        type="button"
+                        class="secondary-chip w-full! rounded-xl! py-2.5! text-sm! focus-ring-sem"
+                        @click="openIngestFromMobileCompose"
+                    >
+                        <MaterialDesignIcon icon-name="qrcode" class="size-5 shrink-0" />
+                        {{ $t("messages.ingest_paper_message") }}
                     </button>
                 </div>
-                <div class="p-5 overflow-y-auto space-y-4">
-                    <p class="text-sm text-sem-fg-muted">
-                        {{ $t("messages.select_peer_or_enter_address") }}
-                    </p>
-                    <div>
-                        <label
-                            class="block text-xs font-medium text-sem-fg-muted uppercase tracking-wider mb-1"
-                            for="mobile-compose-destination"
-                        >
-                            {{ $t("app.lxmf_address_hash") }}
-                        </label>
-                        <input
-                            id="mobile-compose-destination"
-                            v-model="mobileComposeAddress"
-                            type="text"
-                            autocomplete="off"
-                            autocorrect="off"
-                            spellcheck="false"
-                            :placeholder="$t('messages.mobile_compose_destination_placeholder')"
-                            class="input-field w-full"
-                            @keydown.enter="submitMobileCompose"
-                        />
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <button
-                            type="button"
-                            class="primary-chip w-full! rounded-xl! py-2.5! text-sm! focus-ring-sem disabled:opacity-50 disabled:pointer-events-none"
-                            :disabled="!mobileComposeAddress.trim()"
-                            @click="submitMobileCompose"
-                        >
-                            {{ $t("app.compose") }}
-                        </button>
-                        <button
-                            type="button"
-                            class="secondary-chip w-full! rounded-xl! py-2.5! text-sm! focus-ring-sem"
-                            @click="openIngestFromMobileCompose"
-                        >
-                            <MaterialDesignIcon icon-name="qrcode" class="size-5 shrink-0" />
-                            {{ $t("messages.ingest_paper_message") }}
-                        </button>
-                    </div>
-                </div>
             </div>
-        </div>
+        </AppModal>
+
+        <QrScannerDialog
+            v-model="isMobileComposeScannerOpen"
+            :title="$t('messages.scan_qr')"
+            :hint="$t('messages.scanner_hint')"
+            @scan="onMobileComposeQrScanned"
+        />
 
         <!-- Ingest Paper Message Modal -->
         <div
@@ -279,32 +320,12 @@
             </div>
         </div>
 
-        <div
-            v-if="isIngestScannerModalOpen"
-            class="fixed inset-0 z-120 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs"
-            @click.self="closeIngestScannerModal"
-        >
-            <div class="w-full max-w-xl rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
-                <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-sem-fg">{{ $t("messages.scan_qr") }}</h3>
-                    <button type="button" class="text-sem-fg-muted hover:text-sem-fg" @click="closeIngestScannerModal">
-                        <MaterialDesignIcon icon-name="close" class="size-5" />
-                    </button>
-                </div>
-                <div class="p-5 space-y-3">
-                    <video
-                        ref="ingestScannerVideo"
-                        class="w-full rounded-xl bg-black max-h-[60vh]"
-                        autoplay
-                        playsinline
-                        muted
-                    ></video>
-                    <div class="text-sm text-sem-fg-muted">
-                        {{ ingestScannerError || $t("messages.scanner_hint") }}
-                    </div>
-                </div>
-            </div>
-        </div>
+        <QrScannerDialog
+            v-model="isIngestScannerModalOpen"
+            :title="$t('messages.scan_qr')"
+            :hint="$t('messages.scanner_hint')"
+            @scan="onIngestQrScanned"
+        />
     </div>
 </template>
 
@@ -328,13 +349,7 @@ import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
 import NotificationUtils from "../../js/NotificationUtils";
 import { setOpenDestinationHashes } from "../../js/activeConversationStore.js";
-import {
-    attachStreamToVideo,
-    decodeQrFromVideo,
-    describeCameraError as describeQrCameraError,
-    isCameraSupported,
-    startCameraStream,
-} from "../../js/qrScannerUtils";
+import { isCameraSupported } from "../../js/qrScannerUtils";
 import { lxmfConversationListPreview } from "../../js/lxmfConversationPreview";
 import {
     conversationListSignature,
@@ -351,13 +366,19 @@ import * as announcesApi from "../../js/api/announces.js";
 import * as lxmfApi from "../../js/api/lxmf.js";
 import { CONVERSATION_MESSAGES_PAGE_SIZE } from "./conversationDisplayGroups.js";
 import { useMessagePanes } from "../../js/messages/useMessagePanes.js";
+import AppModal from "../AppModal.vue";
+import LxmfUserIcon from "../LxmfUserIcon.vue";
+import QrScannerDialog from "../QrScannerDialog.vue";
 
 export default {
     name: "MessagesPage",
     components: {
+        AppModal,
         ConversationViewer,
+        LxmfUserIcon,
         MessagesSidebar,
         MaterialDesignIcon,
+        QrScannerDialog,
     },
     props: {
         destinationHash: {
@@ -420,11 +441,14 @@ export default {
             isIngestModalOpen: false,
             ingestUri: "",
             isIngestScannerModalOpen: false,
-            ingestScannerError: null,
-            ingestScannerStream: null,
-            ingestScannerAnimationFrame: null,
             isMobileComposeModalOpen: false,
+            isMobileComposeScannerOpen: false,
+            isMobileComposeSubmitting: false,
             mobileComposeAddress: "",
+            nearbyPeers: [],
+            isLoadingNearbyPeers: false,
+            nearbyPeersAbortController: null,
+            windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
         };
     },
     computed: {
@@ -447,10 +471,24 @@ export default {
         cameraSupported() {
             return isCameraSupported();
         },
+        isMobileComposeFullscreen() {
+            return this.windowWidth < 640;
+        },
+        nearbyPeerIconStyle() {
+            const size = this.config?.message_icon_size || 28;
+            return { width: `${size}px`, height: `${size}px` };
+        },
     },
     watch: {
         messagesListSidebarCollapsed(collapsed) {
             saveFeatureSidebarCollapsed("messages", collapsed);
+        },
+        isMobileComposeModalOpen(open) {
+            if (open) {
+                this.loadNearbyPeers();
+            } else {
+                this.resetMobileComposeState();
+            }
         },
         conversations() {
             this.syncUnreadCount();
@@ -496,8 +534,11 @@ export default {
         }
         this.conversationsAbortController?.abort();
         this.announcesAbortController?.abort();
+        this.nearbyPeersAbortController?.abort();
         this.isIngestScannerModalOpen = false;
-        this.stopIngestScanner();
+        if (typeof window !== "undefined") {
+            window.removeEventListener("resize", this.onWindowResize);
+        }
         this.teardownPaneViewportWatchers();
         this.teardownPaneResize();
         this.teardownConversationDragWatch();
@@ -518,6 +559,9 @@ export default {
     },
     mounted() {
         this.setupPaneViewportWatchers();
+        if (typeof window !== "undefined") {
+            window.addEventListener("resize", this.onWindowResize, { passive: true });
+        }
 
         // listen for websocket events
         onWsEvent(WS_EVENTS.CONFIG, this.onConfigEvent);
@@ -606,6 +650,11 @@ export default {
         },
         onIdentitySwitched() {
             this.conversationsAbortController?.abort();
+            // Nearby peers and any scanned address belong to the previous
+            // identity's announce view; close the composer outright.
+            this.isMobileComposeModalOpen = false;
+            this.isMobileComposeScannerOpen = false;
+            this.resetMobileComposeState();
             this.conversations = [];
             this.conversationListSignature = "";
             this.hasMoreConversations = true;
@@ -1586,78 +1635,19 @@ export default {
             this.ingestUri = "";
             this.isIngestModalOpen = true;
         },
-        async openIngestScannerModal() {
-            this.ingestScannerError = null;
+        openIngestScannerModal() {
             this.isIngestScannerModalOpen = true;
-            await this.$nextTick();
-            await this.startIngestScanner();
         },
-        closeIngestScannerModal() {
-            this.isIngestScannerModalOpen = false;
-            this.stopIngestScanner();
-        },
-        async startIngestScanner() {
-            if (!this.cameraSupported) {
-                this.ingestScannerError = this.$t("messages.camera_not_supported");
+        onIngestQrScanned(qr) {
+            if (!/^lxm(a|f)?:\/\//i.test(qr)) {
+                // Keep the scanner open so the user can try another code;
+                // the dialog dedupes repeat scans of the same payload.
+                ToastUtils.error(this.$t("messages.invalid_qr_uri"));
                 return;
             }
-            try {
-                const stream = await startCameraStream();
-                this.ingestScannerStream = stream;
-                const video = this.$refs.ingestScannerVideo;
-                if (!(await attachStreamToVideo(stream, video))) {
-                    this.ingestScannerError = this.$t("messages.camera_failed");
-                    this.stopIngestScanner();
-                    return;
-                }
-                this.detectIngestQrLoop();
-            } catch (e) {
-                this.ingestScannerError = this.describeCameraError(e);
-            }
-        },
-        detectIngestQrLoop() {
-            if (!this.isIngestScannerModalOpen) return;
-            const video = this.$refs.ingestScannerVideo;
-            decodeQrFromVideo(video)
-                .then((qr) => {
-                    if (!this.isIngestScannerModalOpen) {
-                        return;
-                    }
-                    if (!qr) {
-                        this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
-                        return;
-                    }
-                    if (!/^lxm(a|f)?:\/\//i.test(qr)) {
-                        ToastUtils.error(this.$t("messages.invalid_qr_uri"));
-                        this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
-                        return;
-                    }
-                    this.ingestUri = qr;
-                    this.closeIngestScannerModal();
-                    this.ingestPaperMessage();
-                })
-                .catch(() => {
-                    if (this.isIngestScannerModalOpen) {
-                        this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
-                    }
-                });
-        },
-        stopIngestScanner() {
-            if (this.ingestScannerAnimationFrame) {
-                cancelAnimationFrame(this.ingestScannerAnimationFrame);
-                this.ingestScannerAnimationFrame = null;
-            }
-            if (this.ingestScannerStream) {
-                this.ingestScannerStream.getTracks().forEach((track) => track.stop());
-                this.ingestScannerStream = null;
-            }
-        },
-        describeCameraError(error) {
-            return describeQrCameraError(error, {
-                permissionDenied: this.$t("messages.camera_permission_denied"),
-                notFound: this.$t("messages.camera_not_found"),
-                failed: this.$t("messages.camera_failed"),
-            });
+            this.ingestUri = qr;
+            this.isIngestScannerModalOpen = false;
+            this.ingestPaperMessage();
         },
         async pasteFromClipboard() {
             try {
@@ -1690,9 +1680,96 @@ export default {
             const match = hash.match(/popout=([^&]+)/);
             return match ? decodeURIComponent(match[1]) : null;
         },
+        onWindowResize() {
+            this.windowWidth = window.innerWidth;
+        },
         openMobileCompose() {
             this.mobileComposeAddress = "";
             this.isMobileComposeModalOpen = true;
+        },
+        resetMobileComposeState() {
+            this.nearbyPeersAbortController?.abort();
+            this.nearbyPeersAbortController = null;
+            this.nearbyPeers = [];
+            this.isLoadingNearbyPeers = false;
+            this.mobileComposeAddress = "";
+            // isMobileComposeSubmitting is owned by submitMobileCompose's
+            // finally block; clearing it here would reopen the double-submit
+            // window while onComposeNewMessage is still in flight.
+        },
+        async loadNearbyPeers() {
+            this.nearbyPeersAbortController?.abort();
+            this.nearbyPeersAbortController = new AbortController();
+            const myController = this.nearbyPeersAbortController;
+            this.isLoadingNearbyPeers = true;
+            this.nearbyPeers = [];
+            try {
+                const response = await announcesApi.listNearbyPeers({
+                    params: { limit: 20 },
+                    signal: myController.signal,
+                });
+                if (this.nearbyPeersAbortController !== myController) {
+                    return;
+                }
+                this.nearbyPeers = response?.data?.peers || [];
+            } catch (e) {
+                if (window.api.isCancel?.(e)) {
+                    return;
+                }
+                console.log(e);
+                if (this.nearbyPeersAbortController === myController) {
+                    this.nearbyPeers = [];
+                }
+            } finally {
+                if (this.nearbyPeersAbortController === myController) {
+                    this.isLoadingNearbyPeers = false;
+                }
+            }
+        },
+        nearbyPeerHopsLabel(peer) {
+            const hops = peer?.hops;
+            if (hops == null || hops === 128) {
+                return this.$t("tools.propagation_nodes.unknown_hops");
+            }
+            if (hops === 0 || hops === 1) {
+                return this.$t("messages.direct");
+            }
+            return this.$t("messages.hops", { count: hops });
+        },
+        fillMobileComposeAddress(destinationHash) {
+            const normalized = Utils.normalizeMeshchatHashHex(destinationHash || "");
+            if (normalized.length !== 32) {
+                return;
+            }
+            this.mobileComposeAddress = normalized;
+            this.$nextTick(() => {
+                this.$refs.mobileComposeAddressInput?.focus();
+            });
+        },
+        extractComposeAddressFromScan(input) {
+            const raw = (input || "").trim().toLowerCase();
+            if (!raw) {
+                return null;
+            }
+            // Accepts lxmf://, lxm://, lxma:// (identity+address payloads keep
+            // the destination hash) and bare 32-char hex hashes.
+            const isUri = /^lxm[af]?:\/\/[0-9a-f]{32}/.test(raw);
+            const isRawHash = /^[0-9a-f]{32}$/.test(raw);
+            if (!isUri && !isRawHash) {
+                return null;
+            }
+            const hash = Utils.normalizeMeshchatHashHex(raw);
+            return hash.length === 32 ? hash : null;
+        },
+        onMobileComposeQrScanned(qr) {
+            const hash = this.extractComposeAddressFromScan(qr);
+            if (!hash) {
+                // Keep the scanner open so the user can try another code.
+                ToastUtils.error(this.$t("messages.invalid_lxmf_qr"));
+                return;
+            }
+            this.mobileComposeAddress = hash;
+            this.isMobileComposeScannerOpen = false;
         },
         openIngestFromMobileCompose() {
             this.isMobileComposeModalOpen = false;
@@ -1700,12 +1777,23 @@ export default {
         },
         async submitMobileCompose() {
             const raw = this.mobileComposeAddress.trim();
-            if (!raw) {
+            if (!raw || this.isMobileComposeSubmitting) {
                 return;
             }
+            const normalized = Utils.normalizeMeshchatHashHex(raw);
+            if (normalized.length !== 32) {
+                // Stay in the modal so the user can fix the address.
+                DialogUtils.alert(this.$t("common.invalid_address"));
+                return;
+            }
+            this.isMobileComposeSubmitting = true;
             this.isMobileComposeModalOpen = false;
             this.mobileComposeAddress = "";
-            await this.onComposeNewMessage(raw);
+            try {
+                await this.onComposeNewMessage(normalized);
+            } finally {
+                this.isMobileComposeSubmitting = false;
+            }
         },
     },
 };

@@ -2495,7 +2495,12 @@
         "filters_custom_query": "p. ej. familia, mamá, a1b2c3",
         "filters_custom_add": "Añadir filtro",
         "filters_custom_remove": "Quitar filtro personalizado",
-        "translate_auto_conversation": "Auto-translate this conversation"
+        "translate_auto_conversation": "Auto-translate this conversation",
+        "nearby_peers": "Pares cercanos",
+        "nearby_peers_loading": "Cargando pares cercanos...",
+        "nearby_peers_empty": "Aún no se han descubierto pares cercanos.",
+        "scan_lxmf": "Escanear LXMF",
+        "invalid_lxmf_qr": "Ese código QR no contiene una dirección LXMF."
     },
     "settings": {
         "tabs": {
@@ -5331,6 +5336,8 @@
         "bootstrap_selected_nodes_heading": "Nodos seleccionados",
         "bootstrap_search_placeholder": "Buscar descubiertos y comunidad…",
         "bootstrap_search_no_match": "Ningún nodo coincide con la búsqueda",
+        "bootstrap_empty_title": "Aún no hay nodos bootstrap",
+        "bootstrap_empty": "El descubrimiento aún no ha encontrado nodos y no hay ajustes preestablecidos de la comunidad. Usa «Abrir interfaces» arriba para añadir una interfaz personalizada, o continúa y elige los bootstrap más tarde.",
         "bootstrap_search_clear": "Borrar búsqueda",
         "bootstrap_only_label": "Bootstrap-only en interfaces añadidas",
         "bootstrap_only_hint": "Activado por defecto. Las interfaces de arranque son puntos de partida temporales. Reticulum puede eliminarlas al encontrar suficientes enlaces estables. Manténgalo activado para evitar dejar muchas conexiones TCP abiertas. Desactívelo si desea un enlace persistente con un nodo concreto. El valor por defecto se puede ajustar en Interfaces, en ajustes de Descubrimiento.",
@@ -5542,5 +5549,13 @@
             "nomadnet": "NomadNet",
             "crawler": "Crawler"
         }
+    },
+    "qr_scanner": {
+        "title": "Escanear código QR",
+        "hint": "Marcar la cámara en un código QR de identidad.",
+        "camera_not_supported": "El escaneado de cámara QR no es compatible con este navegador.",
+        "camera_not_found": "No hay dispositivo de cámara encontrado.",
+        "camera_permission_denied": "Se niega el permiso de cámara. Por favor, permita el acceso a la cámara.",
+        "camera_failed": "No se pudo iniciar el escáner de cámara."
     }
 }

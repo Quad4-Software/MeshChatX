@@ -2495,7 +2495,12 @@
         "filters_custom_query": "np. rodzina, mama, a1b2c3",
         "filters_custom_add": "Dodaj filtr",
         "filters_custom_remove": "Usuń filtr własny",
-        "translate_auto_conversation": "Auto-translate this conversation"
+        "translate_auto_conversation": "Auto-translate this conversation",
+        "nearby_peers": "Pobliscy peerzy",
+        "nearby_peers_loading": "Ładowanie pobliskich peerów...",
+        "nearby_peers_empty": "Nie znaleziono jeszcze pobliskich peerów.",
+        "scan_lxmf": "Skanuj LXMF",
+        "invalid_lxmf_qr": "Ten kod QR nie zawiera adresu LXMF."
     },
     "settings": {
         "tabs": {
@@ -5331,6 +5336,8 @@
         "bootstrap_selected_nodes_heading": "Wybrane węzły",
         "bootstrap_search_placeholder": "Szukaj wśród odkrytych i społecznościowych…",
         "bootstrap_search_no_match": "Brak węzłów pasujących do wyszukiwania",
+        "bootstrap_empty_title": "Brak węzłów bootstrap",
+        "bootstrap_empty": "Wykrywanie nie znalazło jeszcze żadnych węzłów i nie ma dostępnych ustawień społeczności. Użyj opcji otwarcia interfejsów powyżej, aby dodać własny interfejs, lub kontynuuj i wybierz bootstrapy później.",
         "bootstrap_search_clear": "Wyczyść wyszukiwanie",
         "bootstrap_only_label": "Tylko bootstrap dla dodanych interfejsów",
         "bootstrap_only_hint": "Włączone domyślnie. Interfejsy bootstrap to tymczasowe punkty wyjścia. Reticulum może je zamknąć po znalezieniu wystarczającej liczby stabilnych łączy. Pozostaw tę opcję włączoną, by nie utrzymywać wielu połączeń TCP. Wyłącz ją, jeśli chcesz trwałe łącze z wybranym węzłem. Wartość domyślną można zmienić w Interfejsach, w ustawieniach Odkrywania.",
@@ -5542,5 +5549,13 @@
             "nomadnet": "NomadNet",
             "crawler": "Crawler"
         }
+    },
+    "qr_scanner": {
+        "title": "Zeskanuj kod QR",
+        "hint": "Skieruj aparat na kod QR tożsamości.",
+        "camera_not_supported": "Skanowanie kodów QR aparatem nie jest obsługiwane w tej przeglądarce.",
+        "camera_not_found": "Nie znaleziono aparatu.",
+        "camera_permission_denied": "Odmówiono dostępu do aparatu. Zezwól na dostęp do aparatu.",
+        "camera_failed": "Nie udało się uruchomić skanera aparatu."
     }
 }
