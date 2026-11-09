@@ -35,12 +35,7 @@ runs:
           shell: bash
           env:
               UV_VERSION: ${{ inputs.uv-version }}
-              # /usr/local/bin is not writable on all self-hosted runners;
-              # RUNNER_TEMP always is. Exported to PATH for later steps.
-              UV_INSTALL_DIR: ${{ runner.temp }}/bin
-          run: |
-              bash scripts/ci/github-install-uv.sh
-              echo "${UV_INSTALL_DIR}" >> "${GITHUB_PATH}"
+          run: bash scripts/ci/github-install-uv.sh
 
         - name: Fallback to uv-managed Python
           if: steps.setup-python.outcome == 'failure'

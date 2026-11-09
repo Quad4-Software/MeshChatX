@@ -9,11 +9,24 @@ set -euo pipefail
 UV_VERSION="${UV_VERSION:-0.13.5}"
 UV_INSTALL_DIR="${UV_INSTALL_DIR:-/usr/local/bin}"
 
+if command -v uv >/dev/null 2>&1; then
+    _uv_have="$(uv --version 2>/dev/null | awk '{print $2}' || true)"
+    if [ "${_uv_have}" = "${UV_VERSION}" ]; then
+        echo "uv ${UV_VERSION} already installed"
+        exit 0
+    fi
+fi
+unset _uv_have
+
 # /usr/local/bin is not writable on all self-hosted runners and sudo may be
-# unusable (no_new_privs). Fall back to a per-job/user dir; GITHUB_PATH
-# export at the end keeps it on PATH for later steps.
+# unusable (no_new_privs). Prefer the persistent per-user dir so the binary
+# is fetched once instead of every job; RUNNER_TEMP is the last resort.
 if [ "$(id -u)" -ne 0 ] && [ ! -w "${UV_INSTALL_DIR}" ] && ! sudo -n true 2>/dev/null; then
-    UV_INSTALL_DIR="${RUNNER_TEMP:-${HOME}/.local}/bin"
+    if mkdir -p "${HOME}/.local/bin" 2>/dev/null && [ -w "${HOME}/.local/bin" ]; then
+        UV_INSTALL_DIR="${HOME}/.local/bin"
+    else
+        UV_INSTALL_DIR="${RUNNER_TEMP:-${HOME}/.local}/bin"
+    fi
 fi
 
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
