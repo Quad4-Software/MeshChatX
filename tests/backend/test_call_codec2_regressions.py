@@ -315,11 +315,14 @@ class TestAndroidCodec2PackagingRegression:
 
     def test_pycodec2_roundtrip_for_call_codec2_profiles(self):
         import numpy as np
-        from LXST.Codecs import Codec2
 
         if not TelephoneManager.codec2_available():
             pytest.skip("pycodec2/libcodec2 not available on this host")
         assert TelephoneManager.codec2_available() is True
+        # codec2_available() installs the ctypes fallback and reloads
+        # LXST.Codecs, so the import must happen after it to see the
+        # bound Codec2 class rather than the earlier soft-import None.
+        from LXST.Codecs import Codec2
         for pid in (
             Profiles.BANDWIDTH_ULTRA_LOW,
             Profiles.BANDWIDTH_VERY_LOW,

@@ -230,11 +230,16 @@ def ensure_lxst_codec2_binding() -> bool:
         if getattr(codecs_mod, "Codec2", None) is None:
             return False
         # Refresh Telephony bindings that may have imported Codec2 as None.
+        # Reloading the module would re-create the Telephone class and break
+        # isinstance checks for callers holding the original class, so rebind
+        # only the codec names Telephony imported from LXST.Codecs.
         try:
             telephony_mod = importlib.import_module("LXST.Primitives.Telephony")
-            importlib.reload(telephony_mod)
+            for _name in ("Raw", "Opus", "Codec2", "Null"):
+                if hasattr(codecs_mod, _name):
+                    setattr(telephony_mod, _name, getattr(codecs_mod, _name))
         except Exception as tel_exc:
-            logger.debug("LXST Telephony reload skipped: %s", tel_exc)
+            logger.debug("LXST Telephony Codec2 rebind skipped: %s", tel_exc)
         return True
     except Exception as exc:
         logger.warning("LXST Codec2 binding failed: %s", exc)
