@@ -171,6 +171,7 @@
                     </div>
                     <div
                         v-if="sparkHover"
+                        data-testid="traffic-tooltip"
                         class="pointer-events-none absolute top-16 z-10 w-44 rounded-lg border border-sem-border bg-sem-surface p-2 text-xs shadow-lg"
                         :style="sparkTooltipStyle"
                     >

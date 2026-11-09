@@ -65,7 +65,7 @@ free_port() {
     fi
 }
 
-for port in "${BACKEND_PORT}" "${E2E_PEER_PORT}" "${E2E_CHAOS_PORT}" "${VITE_PORT}"; do
+for port in "${BACKEND_PORT}" "${E2E_PEER_PORT}" "${E2E_CHAOS_PORT}" "${VITE_PORT}" 47428 47429; do
     free_port "$port"
 done
 

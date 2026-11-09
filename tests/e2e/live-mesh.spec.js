@@ -341,9 +341,9 @@ test.describe("Traffic tool live payload", () => {
         const box = await chart.boundingBox();
         expect(box).toBeTruthy();
         await page.mouse.move(box.x + box.width * 0.6, box.y + box.height / 2);
-        await expect(page.getByText(/Mostly |Upload|Download/).first()).toBeVisible({
-            timeout: 10000,
-        });
+        const tooltip = page.getByTestId("traffic-tooltip");
+        await expect(tooltip).toBeVisible({ timeout: 10000 });
+        await expect(tooltip).toContainText(/Up|Down|Mostly/);
     });
 });
 
