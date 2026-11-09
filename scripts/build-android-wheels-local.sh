@@ -1184,12 +1184,47 @@ def patch_so(data):
             capture_output=True,
             text=True,
         )
-        if result.returncode != 0 or old_soname not in result.stdout.split():
+        if result.returncode != 0:
             return None
-        subprocess.run(
-            ["patchelf", "--replace-needed", old_soname, new_soname, so_path],
-            check=True,
-        )
+        needed = result.stdout.split()
+        changed = False
+        if old_soname in needed:
+            subprocess.run(
+                ["patchelf", "--replace-needed", old_soname, new_soname, so_path],
+                check=True,
+            )
+            changed = True
+        if not any(entry.startswith("libpython") for entry in needed):
+            # Maturin/abi3 builds (e.g. cryptography's _rust.so) can emit an
+            # extension whose Py* symbols stay undefined with no libpython
+            # DT_NEEDED entry at all. Chaquopy's importer then fails with
+            # "cannot locate symbol PyModule_Type", so link libpython the
+            # same way every other Chaquopy wheel does.
+            try:
+                syms = subprocess.run(
+                    ["readelf", "--dyn-syms", so_path],
+                    capture_output=True,
+                    text=True,
+                )
+            except OSError:
+                syms = None
+            if syms is not None and syms.returncode == 0:
+                has_py_undef = False
+                for line in syms.stdout.splitlines():
+                    if " UND " not in line:
+                        continue
+                    symbol = line.split()[-1].split("@", 1)[0]
+                    if symbol.startswith("Py") or symbol.startswith("_Py"):
+                        has_py_undef = True
+                        break
+                if has_py_undef:
+                    subprocess.run(
+                        ["patchelf", "--add-needed", new_soname, so_path],
+                        check=True,
+                    )
+                    changed = True
+        if not changed:
+            return None
         return Path(so_path).read_bytes()
     finally:
         Path(so_path).unlink(missing_ok=True)
@@ -1208,7 +1243,7 @@ with zipfile.ZipFile(wheel, "r") as zin, zipfile.ZipFile(tmp, "w", compression=z
 
 if changed:
     tmp.replace(wheel)
-    print(f"Rewrote {old_soname} -> {new_soname} in {wheel.name}")
+    print(f"Fixed libpython linkage ({old_soname} -> {new_soname}) in {wheel.name}")
 else:
     tmp.unlink(missing_ok=True)
 PY
