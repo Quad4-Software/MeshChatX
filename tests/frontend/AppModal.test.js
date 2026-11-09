@@ -68,12 +68,14 @@ describe("AppModal.vue", () => {
         expect(focusable[0].getAttribute("aria-label")).toBe("common.close");
     });
 
-    it("fullscreen mode sets full viewport panel dimensions", () => {
+    it("fullscreen mode fills the safe-area-aware container", () => {
         const wrapper = mountModal({ fullscreen: true });
         const panel = wrapper.find('[role="dialog"]');
         const style = panel.attributes("style") || "";
-        expect(style).toContain("100dvh");
-        expect(style).toContain("100vw");
+        expect(style).toContain("height: 100%");
+        expect(style).toContain("width: 100%");
+        expect(style).toContain("max-height: 100%");
+        expect(style).toContain("max-width: 100%");
         wrapper.unmount();
     });
 });

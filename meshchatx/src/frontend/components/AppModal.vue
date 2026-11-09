@@ -5,7 +5,12 @@
         <div
             v-if="modelValue"
             ref="dialog"
-            class="fixed inset-0 z-[200] flex items-center justify-center p-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-black/50 backdrop-blur-xs"
+            class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-xs"
+            :class="
+                fullscreen
+                    ? 'p-0 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]'
+                    : 'p-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]'
+            "
             @click.self="onBackdropClick"
         >
             <div
@@ -98,7 +103,7 @@ export default {
     computed: {
         panelStyle() {
             if (this.fullscreen) {
-                return { maxHeight: "100dvh", height: "100dvh", maxWidth: "100vw", width: "100vw" };
+                return { maxHeight: "100%", height: "100%", maxWidth: "100%", width: "100%" };
             }
             const raw = this.maxWidth;
             const px = typeof raw === "number" ? `${raw}px` : String(raw);
