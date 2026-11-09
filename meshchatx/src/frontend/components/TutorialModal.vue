@@ -46,6 +46,16 @@
             </div>
         </div>
 
+        <!-- Reticulum stack rebuild in flight (triggered here or elsewhere) -->
+        <div
+            v-if="reticulumBusy"
+            class="flex shrink-0 items-center justify-center gap-2 border-b border-sem-border bg-sem-surface-muted/60 px-4 py-1.5 text-xs font-semibold text-sem-fg-muted sm:px-6"
+            role="status"
+        >
+            <MaterialDesignIcon icon-name="loading" class="size-3.5 animate-spin text-sem-accent" />
+            {{ $t("app.reloading_rns") }}
+        </div>
+
         <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-6 md:px-10 md:py-8">
             <div class="flex min-h-full w-full flex-col justify-center">
                 <transition name="fade-slide" mode="out-in">
@@ -141,6 +151,7 @@
                                                 type="radio"
                                                 class="mt-0.5 size-4 shrink-0 accent-sem-accent"
                                                 value="external"
+                                                :disabled="androidStorageBusy"
                                             />
                                             <span class="min-w-0">
                                                 <span class="block text-sm font-semibold text-sem-fg">
@@ -164,6 +175,7 @@
                                                 type="radio"
                                                 class="mt-0.5 size-4 shrink-0 accent-sem-accent"
                                                 value="internal"
+                                                :disabled="androidStorageBusy"
                                             />
                                             <span class="min-w-0">
                                                 <span class="block text-sm font-semibold text-sem-fg">
@@ -281,11 +293,16 @@
                             class="hidden"
                             @change="onIdentityImportFileChange"
                         />
-                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div
+                            class="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                            :class="{ 'pointer-events-none opacity-70': tutorialNavBusy }"
+                            :aria-busy="tutorialNavBusy"
+                        >
                             <button
                                 type="button"
                                 class="tutorial-choice"
                                 :class="identityMode === 'new' ? 'tutorial-choice--selected' : ''"
+                                :disabled="tutorialNavBusy"
                                 @click="setIdentityMode('new')"
                             >
                                 <span class="tutorial-icon-tile bg-sem-accent/10 text-sem-accent">
@@ -307,6 +324,7 @@
                                 type="button"
                                 class="tutorial-choice"
                                 :class="identityMode === 'import' ? 'tutorial-choice--selected' : ''"
+                                :disabled="tutorialNavBusy"
                                 @click="setIdentityMode('import')"
                             >
                                 <span class="tutorial-icon-tile bg-sem-info/10 text-sem-info">
@@ -334,6 +352,7 @@
                                 type="text"
                                 :placeholder="defaultUsername"
                                 class="input-field"
+                                :disabled="tutorialNavBusy"
                             />
                             <div v-if="identityMode === 'import'" class="space-y-3 border-t border-sem-border pt-3">
                                 <p class="text-xs text-sem-fg-muted">
@@ -342,7 +361,7 @@
                                 <button
                                     type="button"
                                     class="tutorial-action-btn tutorial-action-btn-secondary w-full justify-center"
-                                    :disabled="identityImportInProgress"
+                                    :disabled="tutorialNavBusy"
                                     @click="$refs.identityImportFileInput?.click()"
                                 >
                                     {{
@@ -356,7 +375,7 @@
                                     rows="3"
                                     class="input-field font-mono"
                                     :placeholder="$t('tutorial.identity_base32_placeholder')"
-                                    :disabled="Boolean(identityImportFile) || identityImportInProgress"
+                                    :disabled="Boolean(identityImportFile) || tutorialNavBusy"
                                     @input="onIdentityImportBase32Input"
                                 />
                                 <p
@@ -387,6 +406,7 @@
                         <div
                             class="grid grid-cols-1 gap-3 sm:grid-cols-2"
                             :class="{ 'pointer-events-none opacity-70': connectionSetupBusy }"
+                            :aria-busy="connectionSetupBusy"
                         >
                             <button
                                 type="button"
@@ -550,6 +570,7 @@
                             <div class="flex shrink-0 items-start pt-0.5">
                                 <Toggle
                                     v-model="defaultBootstrapOnly"
+                                    :disabled="bootstrapActionBusy"
                                     @update:model-value="persistDefaultBootstrapOnly"
                                 />
                             </div>
@@ -563,221 +584,290 @@
                             </div>
                         </div>
 
-                        <div v-if="hasAnyBootstrapsToShow" class="relative">
-                            <MaterialDesignIcon
-                                icon-name="magnify"
-                                class="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-sem-fg-muted"
-                            />
-                            <input
-                                v-model="bootstrapListSearch"
-                                type="search"
-                                autocomplete="off"
-                                :placeholder="$t('tutorial.bootstrap_search_placeholder')"
-                                class="search-input"
-                            />
-                            <button
-                                v-if="bootstrapListSearch"
-                                type="button"
-                                class="absolute right-1.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-sem-fg-muted transition-colors hover:bg-sem-surface-muted hover:text-sem-fg"
-                                :title="$t('tutorial.bootstrap_search_clear')"
-                                :aria-label="$t('tutorial.bootstrap_search_clear')"
-                                @click="bootstrapListSearch = ''"
-                            >
-                                <MaterialDesignIcon icon-name="close" class="size-4" />
-                            </button>
+                        <div class="tutorial-notice tutorial-notice--info">
+                            <div class="flex items-start gap-3">
+                                <MaterialDesignIcon
+                                    icon-name="lan-connect"
+                                    class="mt-0.5 size-5 shrink-0 text-sem-info"
+                                />
+                                <div class="min-w-0 flex-1 space-y-3">
+                                    <div>
+                                        <div class="text-sm font-bold text-sem-fg">
+                                            {{ $t("tutorial.custom_interfaces") }}
+                                        </div>
+                                        <p class="mt-0.5 text-sm text-sem-fg-muted">
+                                            {{
+                                                isPage
+                                                    ? $t("tutorial.custom_interfaces_desc_page")
+                                                    : $t("tutorial.custom_interfaces_desc")
+                                            }}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="tutorial-mini-btn tutorial-mini-btn--secondary"
+                                        :disabled="tutorialNavBusy"
+                                        @click="gotoAddInterface()"
+                                    >
+                                        {{ $t("tutorial.open_interfaces") }}
+                                        <MaterialDesignIcon icon-name="arrow-right" class="size-4" />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-                            <div
-                                v-if="sortedDiscoveredInterfaces.length > 0"
-                                class="tutorial-section tutorial-section--discovered"
-                            >
+                        <template v-if="hasAnyBootstrapsToShow">
+                            <div class="relative">
+                                <MaterialDesignIcon
+                                    icon-name="magnify"
+                                    class="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-sem-fg-muted"
+                                />
+                                <input
+                                    v-model="bootstrapListSearch"
+                                    type="search"
+                                    autocomplete="off"
+                                    :placeholder="$t('tutorial.bootstrap_search_placeholder')"
+                                    class="search-input"
+                                />
                                 <button
+                                    v-if="bootstrapListSearch"
                                     type="button"
-                                    class="tutorial-section__head"
-                                    :aria-expanded="bootstrapDiscoveredSectionOpen"
-                                    @click="bootstrapDiscoveredSectionOpen = !bootstrapDiscoveredSectionOpen"
+                                    class="absolute right-1.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-sem-fg-muted transition-colors hover:bg-sem-surface-muted hover:text-sem-fg"
+                                    :title="$t('tutorial.bootstrap_search_clear')"
+                                    :aria-label="$t('tutorial.bootstrap_search_clear')"
+                                    @click="bootstrapListSearch = ''"
                                 >
-                                    <span
-                                        class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sem-success/10 text-sem-success"
-                                    >
-                                        <MaterialDesignIcon icon-name="radar" class="size-4" />
-                                    </span>
-                                    <span class="text-sm font-bold text-sem-fg">{{
-                                        $t("tutorial.bootstrap_discovered")
-                                    }}</span>
-                                    <span class="tutorial-count-chip">{{ sortedDiscoveredInterfaces.length }}</span>
-                                    <MaterialDesignIcon
-                                        :icon-name="bootstrapDiscoveredSectionOpen ? 'chevron-up' : 'chevron-down'"
-                                        class="ml-auto size-5 shrink-0 text-sem-fg-muted"
-                                    />
+                                    <MaterialDesignIcon icon-name="close" class="size-4" />
                                 </button>
-                                <div v-show="bootstrapDiscoveredSectionOpen" class="px-4 pb-4">
-                                    <p
-                                        v-if="
-                                            bootstrapListSearch &&
-                                            sortedDiscoveredInterfaces.length > 0 &&
-                                            filteredDiscoveredForBootstrap.length === 0
-                                        "
-                                        class="text-xs text-sem-fg-muted"
-                                    >
-                                        {{ $t("tutorial.bootstrap_search_no_match") }}
-                                    </p>
-                                    <div v-else class="max-h-72 space-y-2 overflow-y-auto pt-1 custom-scrollbar">
-                                        <label
-                                            v-for="iface in filteredDiscoveredForBootstrap"
-                                            :key="iface.discovery_hash || iface.name"
-                                            class="tutorial-bootstrap-row"
-                                            :class="
-                                                isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
-                                                    ? 'tutorial-bootstrap-row--selected'
-                                                    : ''
-                                            "
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                class="size-4 shrink-0 accent-sem-accent"
-                                                :checked="
-                                                    isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
-                                                "
-                                                @change="toggleBootstrap(`disc:${iface.discovery_hash || iface.name}`)"
-                                            />
-                                            <MaterialDesignIcon
-                                                :icon-name="getDiscoveryIcon(iface)"
-                                                class="size-5 shrink-0 text-sem-success"
-                                            />
-                                            <span class="min-w-0 flex-1">
-                                                <span class="block truncate text-sm font-semibold text-sem-fg">
-                                                    {{ iface.name }}
-                                                </span>
-                                                <span
-                                                    class="mt-0.5 block truncate font-mono text-[11px] text-sem-fg-muted"
-                                                >
-                                                    <span v-if="iface.reachable_on"
-                                                        >{{ iface.reachable_on
-                                                        }}<span v-if="iface.port">:{{ iface.port }}</span></span
-                                                    >
-                                                    <span v-else>{{ iface.type }}</span>
-                                                    <span class="ml-2 capitalize">{{ iface.status }}</span>
-                                                </span>
-                                            </span>
-                                        </label>
-                                    </div>
-                                </div>
                             </div>
 
                             <div
-                                class="tutorial-section tutorial-section--community"
-                                :class="[sortedDiscoveredInterfaces.length === 0 ? 'lg:col-span-2' : '']"
+                                class="grid grid-cols-1 items-start gap-4 lg:grid-cols-2"
+                                :aria-busy="bootstrapActionBusy"
                             >
-                                <button
-                                    type="button"
-                                    class="tutorial-section__head"
-                                    :aria-expanded="bootstrapCommunitySectionOpen"
-                                    @click="bootstrapCommunitySectionOpen = !bootstrapCommunitySectionOpen"
+                                <div
+                                    v-if="sortedDiscoveredInterfaces.length > 0"
+                                    class="tutorial-section tutorial-section--discovered"
                                 >
-                                    <span
-                                        class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sem-accent/10 text-sem-accent"
+                                    <button
+                                        type="button"
+                                        class="tutorial-section__head"
+                                        :aria-expanded="bootstrapDiscoveredSectionOpen"
+                                        @click="bootstrapDiscoveredSectionOpen = !bootstrapDiscoveredSectionOpen"
                                     >
-                                        <MaterialDesignIcon icon-name="web" class="size-4" />
-                                    </span>
-                                    <span class="text-sm font-bold text-sem-fg">{{
-                                        $t("tutorial.bootstrap_community")
-                                    }}</span>
-                                    <span class="tutorial-count-chip">{{ communityInterfaces.length }}</span>
-                                    <MaterialDesignIcon
-                                        :icon-name="bootstrapCommunitySectionOpen ? 'chevron-up' : 'chevron-down'"
-                                        class="ml-auto size-5 shrink-0 text-sem-fg-muted"
-                                    />
-                                </button>
-                                <div v-show="bootstrapCommunitySectionOpen" class="px-4 pb-4">
-                                    <p
-                                        v-if="
-                                            bootstrapListSearch &&
-                                            communityInterfaces.length > 0 &&
-                                            filteredCommunityForBootstrap.length === 0
-                                        "
-                                        class="text-xs text-sem-fg-muted"
-                                    >
-                                        {{ $t("tutorial.bootstrap_search_no_match") }}
-                                    </p>
-                                    <div v-else class="max-h-72 space-y-2 overflow-y-auto pt-1 custom-scrollbar">
-                                        <label
-                                            v-for="iface in filteredCommunityForBootstrap"
-                                            :key="iface.name"
-                                            class="tutorial-bootstrap-row"
-                                            :class="
-                                                isBootstrapSelected(`comm:${iface.name}`)
-                                                    ? 'tutorial-bootstrap-row--selected'
-                                                    : ''
-                                            "
+                                        <span
+                                            class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sem-success/10 text-sem-success"
                                         >
-                                            <input
-                                                type="checkbox"
-                                                class="size-4 shrink-0 accent-sem-accent"
-                                                :checked="isBootstrapSelected(`comm:${iface.name}`)"
-                                                @change="toggleBootstrap(`comm:${iface.name}`)"
-                                            />
-                                            <MaterialDesignIcon
-                                                icon-name="server-network"
-                                                class="size-5 shrink-0 text-sem-accent"
-                                            />
-                                            <span class="min-w-0 flex-1">
-                                                <span class="block truncate text-sm font-semibold text-sem-fg">
-                                                    {{ iface.name }}
+                                            <MaterialDesignIcon icon-name="radar" class="size-4" />
+                                        </span>
+                                        <span class="text-sm font-bold text-sem-fg">{{
+                                            $t("tutorial.bootstrap_discovered")
+                                        }}</span>
+                                        <span class="tutorial-count-chip">{{ sortedDiscoveredInterfaces.length }}</span>
+                                        <MaterialDesignIcon
+                                            :icon-name="bootstrapDiscoveredSectionOpen ? 'chevron-up' : 'chevron-down'"
+                                            class="ml-auto size-5 shrink-0 text-sem-fg-muted"
+                                        />
+                                    </button>
+                                    <div v-show="bootstrapDiscoveredSectionOpen" class="px-4 pb-4">
+                                        <p
+                                            v-if="
+                                                bootstrapListSearch &&
+                                                sortedDiscoveredInterfaces.length > 0 &&
+                                                filteredDiscoveredForBootstrap.length === 0
+                                            "
+                                            class="text-xs text-sem-fg-muted"
+                                        >
+                                            {{ $t("tutorial.bootstrap_search_no_match") }}
+                                        </p>
+                                        <div
+                                            v-else
+                                            class="max-h-72 space-y-2 overflow-y-auto pt-1 custom-scrollbar"
+                                            :class="{ 'pointer-events-none opacity-60': bootstrapActionBusy }"
+                                        >
+                                            <label
+                                                v-for="iface in filteredDiscoveredForBootstrap"
+                                                :key="iface.discovery_hash || iface.name"
+                                                class="tutorial-bootstrap-row"
+                                                :class="
+                                                    isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
+                                                        ? 'tutorial-bootstrap-row--selected'
+                                                        : ''
+                                                "
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    class="size-4 shrink-0 accent-sem-accent"
+                                                    :disabled="bootstrapActionBusy"
+                                                    :checked="
+                                                        isBootstrapSelected(
+                                                            `disc:${iface.discovery_hash || iface.name}`
+                                                        )
+                                                    "
+                                                    @change="
+                                                        toggleBootstrap(`disc:${iface.discovery_hash || iface.name}`)
+                                                    "
+                                                />
+                                                <MaterialDesignIcon
+                                                    :icon-name="getDiscoveryIcon(iface)"
+                                                    class="size-5 shrink-0 text-sem-success"
+                                                />
+                                                <span class="min-w-0 flex-1">
+                                                    <span class="block truncate text-sm font-semibold text-sem-fg">
+                                                        {{ iface.name }}
+                                                    </span>
+                                                    <span
+                                                        class="mt-0.5 block truncate font-mono text-[11px] text-sem-fg-muted"
+                                                    >
+                                                        <span v-if="iface.reachable_on"
+                                                            >{{ iface.reachable_on
+                                                            }}<span v-if="iface.port">:{{ iface.port }}</span></span
+                                                        >
+                                                        <span v-else>{{ iface.type }}</span>
+                                                        <span class="ml-2 capitalize">{{ iface.status }}</span>
+                                                    </span>
                                                 </span>
-                                                <span class="block truncate font-mono text-[11px] text-sem-fg-muted">
-                                                    {{ iface.target_host
-                                                    }}<span v-if="iface.target_port">:{{ iface.target_port }}</span>
-                                                </span>
-                                            </span>
-                                            <span v-if="iface.online" class="tutorial-online-badge">{{
-                                                $t("tutorial.online")
-                                            }}</span>
-                                        </label>
-                                        <div v-if="loadingInterfaces" class="flex justify-center py-3">
-                                            <MaterialDesignIcon
-                                                icon-name="loading"
-                                                class="size-6 animate-spin text-sem-accent"
-                                            />
+                                            </label>
                                         </div>
                                     </div>
+                                </div>
+
+                                <div
+                                    class="tutorial-section tutorial-section--community"
+                                    :class="[sortedDiscoveredInterfaces.length === 0 ? 'lg:col-span-2' : '']"
+                                >
+                                    <button
+                                        type="button"
+                                        class="tutorial-section__head"
+                                        :aria-expanded="bootstrapCommunitySectionOpen"
+                                        @click="bootstrapCommunitySectionOpen = !bootstrapCommunitySectionOpen"
+                                    >
+                                        <span
+                                            class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sem-accent/10 text-sem-accent"
+                                        >
+                                            <MaterialDesignIcon icon-name="web" class="size-4" />
+                                        </span>
+                                        <span class="text-sm font-bold text-sem-fg">{{
+                                            $t("tutorial.bootstrap_community")
+                                        }}</span>
+                                        <span class="tutorial-count-chip">{{ communityInterfaces.length }}</span>
+                                        <MaterialDesignIcon
+                                            :icon-name="bootstrapCommunitySectionOpen ? 'chevron-up' : 'chevron-down'"
+                                            class="ml-auto size-5 shrink-0 text-sem-fg-muted"
+                                        />
+                                    </button>
+                                    <div v-show="bootstrapCommunitySectionOpen" class="px-4 pb-4">
+                                        <p
+                                            v-if="
+                                                bootstrapListSearch &&
+                                                communityInterfaces.length > 0 &&
+                                                filteredCommunityForBootstrap.length === 0
+                                            "
+                                            class="text-xs text-sem-fg-muted"
+                                        >
+                                            {{ $t("tutorial.bootstrap_search_no_match") }}
+                                        </p>
+                                        <div
+                                            v-else
+                                            class="max-h-72 space-y-2 overflow-y-auto pt-1 custom-scrollbar"
+                                            :class="{ 'pointer-events-none opacity-60': bootstrapActionBusy }"
+                                        >
+                                            <label
+                                                v-for="iface in filteredCommunityForBootstrap"
+                                                :key="iface.name"
+                                                class="tutorial-bootstrap-row"
+                                                :class="
+                                                    isBootstrapSelected(`comm:${iface.name}`)
+                                                        ? 'tutorial-bootstrap-row--selected'
+                                                        : ''
+                                                "
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    class="size-4 shrink-0 accent-sem-accent"
+                                                    :disabled="bootstrapActionBusy"
+                                                    :checked="isBootstrapSelected(`comm:${iface.name}`)"
+                                                    @change="toggleBootstrap(`comm:${iface.name}`)"
+                                                />
+                                                <MaterialDesignIcon
+                                                    icon-name="server-network"
+                                                    class="size-5 shrink-0 text-sem-accent"
+                                                />
+                                                <span class="min-w-0 flex-1">
+                                                    <span class="block truncate text-sm font-semibold text-sem-fg">
+                                                        {{ iface.name }}
+                                                    </span>
+                                                    <span
+                                                        class="block truncate font-mono text-[11px] text-sem-fg-muted"
+                                                    >
+                                                        {{ iface.target_host
+                                                        }}<span v-if="iface.target_port">:{{ iface.target_port }}</span>
+                                                    </span>
+                                                </span>
+                                                <span v-if="iface.online" class="tutorial-online-badge">{{
+                                                    $t("tutorial.online")
+                                                }}</span>
+                                            </label>
+                                            <div v-if="loadingInterfaces" class="flex justify-center py-3">
+                                                <MaterialDesignIcon
+                                                    icon-name="loading"
+                                                    class="size-6 animate-spin text-sem-accent"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <div v-else class="tutorial-notice tutorial-notice--info">
+                            <div class="flex items-start gap-3">
+                                <MaterialDesignIcon icon-name="radar" class="mt-0.5 size-5 shrink-0 text-sem-info" />
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-sm font-bold text-sem-fg">
+                                        {{ $t("tutorial.bootstrap_empty_title") }}
+                                    </div>
+                                    <p class="mt-0.5 text-sm text-sem-fg-muted">
+                                        {{ $t("tutorial.bootstrap_empty") }}
+                                    </p>
                                 </div>
                             </div>
                         </div>
 
                         <div
-                            class="flex flex-col gap-3 border-t border-sem-border pt-4 sm:flex-row sm:items-center sm:justify-between"
+                            class="sticky bottom-0 -mx-4 border-t border-sem-border bg-sem-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:-mx-6 sm:px-6 md:-mx-10 md:px-10"
+                            :aria-busy="bootstrapActionBusy"
                         >
-                            <p class="text-xs text-sem-fg-muted">
-                                {{
-                                    $t("tutorial.bootstrap_selected", {
-                                        count: selectedBootstrapCount,
-                                    })
-                                }}
-                            </p>
-                            <div class="flex flex-col gap-2 sm:flex-row">
-                                <button
-                                    type="button"
-                                    class="tutorial-action-btn tutorial-action-btn-secondary w-full sm:w-auto"
-                                    :disabled="bootstrapActionBusy"
-                                    @click="skipBootstraps"
-                                >
-                                    {{ $t("tutorial.bootstrap_skip") }}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="tutorial-action-btn tutorial-action-btn-success w-full sm:w-auto"
-                                    :disabled="bootstrapActionBusy || selectedBootstrapCount === 0"
-                                    @click="confirmBootstraps"
-                                >
-                                    <MaterialDesignIcon
-                                        v-if="bootstrapActionBusy"
-                                        icon-name="loading"
-                                        class="size-4 animate-spin"
-                                    />
-                                    {{ $t("tutorial.bootstrap_confirm") }}
-                                </button>
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <p class="text-xs text-sem-fg-muted">
+                                    {{
+                                        $t("tutorial.bootstrap_selected", {
+                                            count: selectedBootstrapCount,
+                                        })
+                                    }}
+                                </p>
+                                <div class="flex flex-col gap-2 sm:flex-row">
+                                    <button
+                                        type="button"
+                                        class="tutorial-action-btn tutorial-action-btn-secondary w-full sm:w-auto"
+                                        :disabled="bootstrapActionBusy"
+                                        @click="skipBootstraps"
+                                    >
+                                        {{ $t("tutorial.bootstrap_skip") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="tutorial-action-btn tutorial-action-btn-success w-full sm:w-auto"
+                                        :disabled="bootstrapActionBusy || selectedBootstrapCount === 0"
+                                        @click="confirmBootstraps"
+                                    >
+                                        <MaterialDesignIcon
+                                            v-if="bootstrapActionBusy"
+                                            icon-name="loading"
+                                            class="size-4 animate-spin"
+                                        />
+                                        {{ $t("tutorial.bootstrap_confirm") }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -808,7 +898,7 @@
                                 <button
                                     type="button"
                                     class="tutorial-action-btn tutorial-action-btn-primary w-full sm:w-auto"
-                                    :disabled="savingPropagation"
+                                    :disabled="tutorialNavBusy"
                                     @click="enableAutoPropagation"
                                 >
                                     <MaterialDesignIcon
@@ -821,6 +911,7 @@
                                 <button
                                     type="button"
                                     class="tutorial-action-btn tutorial-action-btn-secondary w-full sm:w-auto"
+                                    :disabled="tutorialNavBusy"
                                     @click="nextStep"
                                 >
                                     {{ $t("tutorial.propagation_skip_auto") }}
@@ -1190,6 +1281,16 @@
             </div>
         </div>
 
+        <!-- Reticulum stack rebuild in flight (triggered here or elsewhere) -->
+        <div
+            v-if="reticulumBusy"
+            class="flex shrink-0 items-center justify-center gap-2 border-b border-sem-border bg-sem-surface-muted/60 px-4 py-1.5 text-xs font-semibold text-sem-fg-muted sm:px-6"
+            role="status"
+        >
+            <MaterialDesignIcon icon-name="loading" class="size-3.5 animate-spin text-sem-accent" />
+            {{ $t("app.reloading_rns") }}
+        </div>
+
         <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-6 md:px-10 md:py-8">
             <div class="flex min-h-full w-full flex-col justify-center">
                 <transition name="fade-slide" mode="out-in">
@@ -1204,13 +1305,13 @@
                                 class="absolute -inset-1.5 rotate-6 rounded-[1.6rem] bg-sem-accent/15 sm:-inset-2 sm:rounded-[2rem]"
                             ></div>
                             <div
-                                class="relative flex size-28 items-center justify-center rounded-[1.75rem] border border-sem-border bg-sem-surface p-3 shadow-sm sm:size-32 sm:rounded-[2rem] sm:p-4"
+                                class="relative flex size-24 items-center justify-center rounded-[1.75rem] border border-sem-border bg-sem-surface p-3 shadow-sm sm:size-28 sm:rounded-[2rem] sm:p-4"
                             >
                                 <img :src="logoUrl" alt="" class="size-full object-contain" />
                             </div>
                         </div>
                         <div class="space-y-2">
-                            <h1 class="text-4xl font-black leading-tight tracking-tight text-sem-fg sm:text-5xl">
+                            <h1 class="text-3xl font-black leading-tight tracking-tight text-sem-fg sm:text-4xl">
                                 {{ $t("tutorial.welcome") }} <span class="text-sem-accent">MeshChatX</span>
                             </h1>
                             <p class="mx-auto max-w-xl text-base text-sem-fg-muted sm:text-lg">
@@ -1289,6 +1390,7 @@
                                                 type="radio"
                                                 class="mt-0.5 size-4 shrink-0 accent-sem-accent"
                                                 value="external"
+                                                :disabled="androidStorageBusy"
                                             />
                                             <span class="min-w-0">
                                                 <span class="block text-sm font-semibold text-sem-fg">
@@ -1312,6 +1414,7 @@
                                                 type="radio"
                                                 class="mt-0.5 size-4 shrink-0 accent-sem-accent"
                                                 value="internal"
+                                                :disabled="androidStorageBusy"
                                             />
                                             <span class="min-w-0">
                                                 <span class="block text-sm font-semibold text-sem-fg">
@@ -1435,11 +1538,16 @@
                             class="hidden"
                             @change="onIdentityImportFileChange"
                         />
-                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div
+                            class="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                            :class="{ 'pointer-events-none opacity-70': tutorialNavBusy }"
+                            :aria-busy="tutorialNavBusy"
+                        >
                             <button
                                 type="button"
                                 class="tutorial-choice"
                                 :class="identityMode === 'new' ? 'tutorial-choice--selected' : ''"
+                                :disabled="tutorialNavBusy"
                                 @click="setIdentityMode('new')"
                             >
                                 <span class="tutorial-icon-tile bg-sem-accent/10 text-sem-accent">
@@ -1461,6 +1569,7 @@
                                 type="button"
                                 class="tutorial-choice"
                                 :class="identityMode === 'import' ? 'tutorial-choice--selected' : ''"
+                                :disabled="tutorialNavBusy"
                                 @click="setIdentityMode('import')"
                             >
                                 <span class="tutorial-icon-tile bg-sem-info/10 text-sem-info">
@@ -1488,6 +1597,7 @@
                                 type="text"
                                 :placeholder="defaultUsername"
                                 class="input-field"
+                                :disabled="tutorialNavBusy"
                             />
                             <div v-if="identityMode === 'import'" class="space-y-3 border-t border-sem-border pt-3">
                                 <p class="text-xs text-sem-fg-muted">
@@ -1496,7 +1606,7 @@
                                 <button
                                     type="button"
                                     class="tutorial-action-btn tutorial-action-btn-secondary w-full justify-center"
-                                    :disabled="identityImportInProgress"
+                                    :disabled="tutorialNavBusy"
                                     @click="$refs.identityImportFileInput?.click()"
                                 >
                                     {{
@@ -1510,7 +1620,7 @@
                                     rows="4"
                                     class="input-field font-mono"
                                     :placeholder="$t('tutorial.identity_base32_placeholder')"
-                                    :disabled="Boolean(identityImportFile) || identityImportInProgress"
+                                    :disabled="Boolean(identityImportFile) || tutorialNavBusy"
                                     @input="onIdentityImportBase32Input"
                                 />
                                 <p
@@ -1541,6 +1651,7 @@
                         <div
                             class="grid grid-cols-1 gap-3 sm:grid-cols-2"
                             :class="{ 'pointer-events-none opacity-70': connectionSetupBusy }"
+                            :aria-busy="connectionSetupBusy"
                         >
                             <button
                                 type="button"
@@ -1704,6 +1815,7 @@
                             <div class="flex shrink-0 items-start pt-0.5">
                                 <Toggle
                                     v-model="defaultBootstrapOnly"
+                                    :disabled="bootstrapActionBusy"
                                     @update:model-value="persistDefaultBootstrapOnly"
                                 />
                             </div>
@@ -1717,221 +1829,290 @@
                             </div>
                         </div>
 
-                        <div v-if="hasAnyBootstrapsToShow" class="relative">
-                            <MaterialDesignIcon
-                                icon-name="magnify"
-                                class="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-sem-fg-muted"
-                            />
-                            <input
-                                v-model="bootstrapListSearch"
-                                type="search"
-                                autocomplete="off"
-                                :placeholder="$t('tutorial.bootstrap_search_placeholder')"
-                                class="search-input"
-                            />
-                            <button
-                                v-if="bootstrapListSearch"
-                                type="button"
-                                class="absolute right-1.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-sem-fg-muted transition-colors hover:bg-sem-surface-muted hover:text-sem-fg"
-                                :title="$t('tutorial.bootstrap_search_clear')"
-                                :aria-label="$t('tutorial.bootstrap_search_clear')"
-                                @click="bootstrapListSearch = ''"
-                            >
-                                <MaterialDesignIcon icon-name="close" class="size-4" />
-                            </button>
+                        <div class="tutorial-notice tutorial-notice--info">
+                            <div class="flex items-start gap-3">
+                                <MaterialDesignIcon
+                                    icon-name="lan-connect"
+                                    class="mt-0.5 size-5 shrink-0 text-sem-info"
+                                />
+                                <div class="min-w-0 flex-1 space-y-3">
+                                    <div>
+                                        <div class="text-sm font-bold text-sem-fg">
+                                            {{ $t("tutorial.custom_interfaces") }}
+                                        </div>
+                                        <p class="mt-0.5 text-sm text-sem-fg-muted">
+                                            {{
+                                                isPage
+                                                    ? $t("tutorial.custom_interfaces_desc_page")
+                                                    : $t("tutorial.custom_interfaces_desc")
+                                            }}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="tutorial-mini-btn tutorial-mini-btn--secondary"
+                                        :disabled="tutorialNavBusy"
+                                        @click="gotoAddInterface()"
+                                    >
+                                        {{ $t("tutorial.open_interfaces") }}
+                                        <MaterialDesignIcon icon-name="arrow-right" class="size-4" />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-                            <div
-                                v-if="sortedDiscoveredInterfaces.length > 0"
-                                class="tutorial-section tutorial-section--discovered"
-                            >
+                        <template v-if="hasAnyBootstrapsToShow">
+                            <div class="relative">
+                                <MaterialDesignIcon
+                                    icon-name="magnify"
+                                    class="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-sem-fg-muted"
+                                />
+                                <input
+                                    v-model="bootstrapListSearch"
+                                    type="search"
+                                    autocomplete="off"
+                                    :placeholder="$t('tutorial.bootstrap_search_placeholder')"
+                                    class="search-input"
+                                />
                                 <button
+                                    v-if="bootstrapListSearch"
                                     type="button"
-                                    class="tutorial-section__head"
-                                    :aria-expanded="bootstrapDiscoveredSectionOpen"
-                                    @click="bootstrapDiscoveredSectionOpen = !bootstrapDiscoveredSectionOpen"
+                                    class="absolute right-1.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-sem-fg-muted transition-colors hover:bg-sem-surface-muted hover:text-sem-fg"
+                                    :title="$t('tutorial.bootstrap_search_clear')"
+                                    :aria-label="$t('tutorial.bootstrap_search_clear')"
+                                    @click="bootstrapListSearch = ''"
                                 >
-                                    <span
-                                        class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sem-success/10 text-sem-success"
-                                    >
-                                        <MaterialDesignIcon icon-name="radar" class="size-4" />
-                                    </span>
-                                    <span class="text-sm font-bold text-sem-fg">{{
-                                        $t("tutorial.bootstrap_discovered")
-                                    }}</span>
-                                    <span class="tutorial-count-chip">{{ sortedDiscoveredInterfaces.length }}</span>
-                                    <MaterialDesignIcon
-                                        :icon-name="bootstrapDiscoveredSectionOpen ? 'chevron-up' : 'chevron-down'"
-                                        class="ml-auto size-5 shrink-0 text-sem-fg-muted"
-                                    />
+                                    <MaterialDesignIcon icon-name="close" class="size-4" />
                                 </button>
-                                <div v-show="bootstrapDiscoveredSectionOpen" class="px-4 pb-4">
-                                    <p
-                                        v-if="
-                                            bootstrapListSearch &&
-                                            sortedDiscoveredInterfaces.length > 0 &&
-                                            filteredDiscoveredForBootstrap.length === 0
-                                        "
-                                        class="text-xs text-sem-fg-muted"
-                                    >
-                                        {{ $t("tutorial.bootstrap_search_no_match") }}
-                                    </p>
-                                    <div v-else class="max-h-72 space-y-2 overflow-y-auto pt-1 custom-scrollbar">
-                                        <label
-                                            v-for="iface in filteredDiscoveredForBootstrap"
-                                            :key="iface.discovery_hash || iface.name"
-                                            class="tutorial-bootstrap-row"
-                                            :class="
-                                                isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
-                                                    ? 'tutorial-bootstrap-row--selected'
-                                                    : ''
-                                            "
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                class="size-4 shrink-0 accent-sem-accent"
-                                                :checked="
-                                                    isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
-                                                "
-                                                @change="toggleBootstrap(`disc:${iface.discovery_hash || iface.name}`)"
-                                            />
-                                            <MaterialDesignIcon
-                                                :icon-name="getDiscoveryIcon(iface)"
-                                                class="size-5 shrink-0 text-sem-success"
-                                            />
-                                            <span class="min-w-0 flex-1">
-                                                <span class="block truncate text-sm font-semibold text-sem-fg">
-                                                    {{ iface.name }}
-                                                </span>
-                                                <span
-                                                    class="mt-0.5 block truncate font-mono text-[11px] text-sem-fg-muted"
-                                                >
-                                                    <span v-if="iface.reachable_on"
-                                                        >{{ iface.reachable_on
-                                                        }}<span v-if="iface.port">:{{ iface.port }}</span></span
-                                                    >
-                                                    <span v-else>{{ iface.type }}</span>
-                                                    <span class="ml-2 capitalize">{{ iface.status }}</span>
-                                                </span>
-                                            </span>
-                                        </label>
-                                    </div>
-                                </div>
                             </div>
 
                             <div
-                                class="tutorial-section tutorial-section--community"
-                                :class="[sortedDiscoveredInterfaces.length === 0 ? 'lg:col-span-2' : '']"
+                                class="grid grid-cols-1 items-start gap-4 lg:grid-cols-2"
+                                :aria-busy="bootstrapActionBusy"
                             >
-                                <button
-                                    type="button"
-                                    class="tutorial-section__head"
-                                    :aria-expanded="bootstrapCommunitySectionOpen"
-                                    @click="bootstrapCommunitySectionOpen = !bootstrapCommunitySectionOpen"
+                                <div
+                                    v-if="sortedDiscoveredInterfaces.length > 0"
+                                    class="tutorial-section tutorial-section--discovered"
                                 >
-                                    <span
-                                        class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sem-accent/10 text-sem-accent"
+                                    <button
+                                        type="button"
+                                        class="tutorial-section__head"
+                                        :aria-expanded="bootstrapDiscoveredSectionOpen"
+                                        @click="bootstrapDiscoveredSectionOpen = !bootstrapDiscoveredSectionOpen"
                                     >
-                                        <MaterialDesignIcon icon-name="web" class="size-4" />
-                                    </span>
-                                    <span class="text-sm font-bold text-sem-fg">{{
-                                        $t("tutorial.bootstrap_community")
-                                    }}</span>
-                                    <span class="tutorial-count-chip">{{ communityInterfaces.length }}</span>
-                                    <MaterialDesignIcon
-                                        :icon-name="bootstrapCommunitySectionOpen ? 'chevron-up' : 'chevron-down'"
-                                        class="ml-auto size-5 shrink-0 text-sem-fg-muted"
-                                    />
-                                </button>
-                                <div v-show="bootstrapCommunitySectionOpen" class="px-4 pb-4">
-                                    <p
-                                        v-if="
-                                            bootstrapListSearch &&
-                                            communityInterfaces.length > 0 &&
-                                            filteredCommunityForBootstrap.length === 0
-                                        "
-                                        class="text-xs text-sem-fg-muted"
-                                    >
-                                        {{ $t("tutorial.bootstrap_search_no_match") }}
-                                    </p>
-                                    <div v-else class="max-h-72 space-y-2 overflow-y-auto pt-1 custom-scrollbar">
-                                        <label
-                                            v-for="iface in filteredCommunityForBootstrap"
-                                            :key="iface.name"
-                                            class="tutorial-bootstrap-row"
-                                            :class="
-                                                isBootstrapSelected(`comm:${iface.name}`)
-                                                    ? 'tutorial-bootstrap-row--selected'
-                                                    : ''
-                                            "
+                                        <span
+                                            class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sem-success/10 text-sem-success"
                                         >
-                                            <input
-                                                type="checkbox"
-                                                class="size-4 shrink-0 accent-sem-accent"
-                                                :checked="isBootstrapSelected(`comm:${iface.name}`)"
-                                                @change="toggleBootstrap(`comm:${iface.name}`)"
-                                            />
-                                            <MaterialDesignIcon
-                                                icon-name="server-network"
-                                                class="size-5 shrink-0 text-sem-accent"
-                                            />
-                                            <span class="min-w-0 flex-1">
-                                                <span class="block truncate text-sm font-semibold text-sem-fg">
-                                                    {{ iface.name }}
+                                            <MaterialDesignIcon icon-name="radar" class="size-4" />
+                                        </span>
+                                        <span class="text-sm font-bold text-sem-fg">{{
+                                            $t("tutorial.bootstrap_discovered")
+                                        }}</span>
+                                        <span class="tutorial-count-chip">{{ sortedDiscoveredInterfaces.length }}</span>
+                                        <MaterialDesignIcon
+                                            :icon-name="bootstrapDiscoveredSectionOpen ? 'chevron-up' : 'chevron-down'"
+                                            class="ml-auto size-5 shrink-0 text-sem-fg-muted"
+                                        />
+                                    </button>
+                                    <div v-show="bootstrapDiscoveredSectionOpen" class="px-4 pb-4">
+                                        <p
+                                            v-if="
+                                                bootstrapListSearch &&
+                                                sortedDiscoveredInterfaces.length > 0 &&
+                                                filteredDiscoveredForBootstrap.length === 0
+                                            "
+                                            class="text-xs text-sem-fg-muted"
+                                        >
+                                            {{ $t("tutorial.bootstrap_search_no_match") }}
+                                        </p>
+                                        <div
+                                            v-else
+                                            class="max-h-72 space-y-2 overflow-y-auto pt-1 custom-scrollbar"
+                                            :class="{ 'pointer-events-none opacity-60': bootstrapActionBusy }"
+                                        >
+                                            <label
+                                                v-for="iface in filteredDiscoveredForBootstrap"
+                                                :key="iface.discovery_hash || iface.name"
+                                                class="tutorial-bootstrap-row"
+                                                :class="
+                                                    isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
+                                                        ? 'tutorial-bootstrap-row--selected'
+                                                        : ''
+                                                "
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    class="size-4 shrink-0 accent-sem-accent"
+                                                    :disabled="bootstrapActionBusy"
+                                                    :checked="
+                                                        isBootstrapSelected(
+                                                            `disc:${iface.discovery_hash || iface.name}`
+                                                        )
+                                                    "
+                                                    @change="
+                                                        toggleBootstrap(`disc:${iface.discovery_hash || iface.name}`)
+                                                    "
+                                                />
+                                                <MaterialDesignIcon
+                                                    :icon-name="getDiscoveryIcon(iface)"
+                                                    class="size-5 shrink-0 text-sem-success"
+                                                />
+                                                <span class="min-w-0 flex-1">
+                                                    <span class="block truncate text-sm font-semibold text-sem-fg">
+                                                        {{ iface.name }}
+                                                    </span>
+                                                    <span
+                                                        class="mt-0.5 block truncate font-mono text-[11px] text-sem-fg-muted"
+                                                    >
+                                                        <span v-if="iface.reachable_on"
+                                                            >{{ iface.reachable_on
+                                                            }}<span v-if="iface.port">:{{ iface.port }}</span></span
+                                                        >
+                                                        <span v-else>{{ iface.type }}</span>
+                                                        <span class="ml-2 capitalize">{{ iface.status }}</span>
+                                                    </span>
                                                 </span>
-                                                <span class="block truncate font-mono text-[11px] text-sem-fg-muted">
-                                                    {{ iface.target_host
-                                                    }}<span v-if="iface.target_port">:{{ iface.target_port }}</span>
-                                                </span>
-                                            </span>
-                                            <span v-if="iface.online" class="tutorial-online-badge">{{
-                                                $t("tutorial.online")
-                                            }}</span>
-                                        </label>
-                                        <div v-if="loadingInterfaces" class="flex justify-center py-3">
-                                            <MaterialDesignIcon
-                                                icon-name="loading"
-                                                class="size-6 animate-spin text-sem-accent"
-                                            />
+                                            </label>
                                         </div>
                                     </div>
+                                </div>
+
+                                <div
+                                    class="tutorial-section tutorial-section--community"
+                                    :class="[sortedDiscoveredInterfaces.length === 0 ? 'lg:col-span-2' : '']"
+                                >
+                                    <button
+                                        type="button"
+                                        class="tutorial-section__head"
+                                        :aria-expanded="bootstrapCommunitySectionOpen"
+                                        @click="bootstrapCommunitySectionOpen = !bootstrapCommunitySectionOpen"
+                                    >
+                                        <span
+                                            class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sem-accent/10 text-sem-accent"
+                                        >
+                                            <MaterialDesignIcon icon-name="web" class="size-4" />
+                                        </span>
+                                        <span class="text-sm font-bold text-sem-fg">{{
+                                            $t("tutorial.bootstrap_community")
+                                        }}</span>
+                                        <span class="tutorial-count-chip">{{ communityInterfaces.length }}</span>
+                                        <MaterialDesignIcon
+                                            :icon-name="bootstrapCommunitySectionOpen ? 'chevron-up' : 'chevron-down'"
+                                            class="ml-auto size-5 shrink-0 text-sem-fg-muted"
+                                        />
+                                    </button>
+                                    <div v-show="bootstrapCommunitySectionOpen" class="px-4 pb-4">
+                                        <p
+                                            v-if="
+                                                bootstrapListSearch &&
+                                                communityInterfaces.length > 0 &&
+                                                filteredCommunityForBootstrap.length === 0
+                                            "
+                                            class="text-xs text-sem-fg-muted"
+                                        >
+                                            {{ $t("tutorial.bootstrap_search_no_match") }}
+                                        </p>
+                                        <div
+                                            v-else
+                                            class="max-h-72 space-y-2 overflow-y-auto pt-1 custom-scrollbar"
+                                            :class="{ 'pointer-events-none opacity-60': bootstrapActionBusy }"
+                                        >
+                                            <label
+                                                v-for="iface in filteredCommunityForBootstrap"
+                                                :key="iface.name"
+                                                class="tutorial-bootstrap-row"
+                                                :class="
+                                                    isBootstrapSelected(`comm:${iface.name}`)
+                                                        ? 'tutorial-bootstrap-row--selected'
+                                                        : ''
+                                                "
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    class="size-4 shrink-0 accent-sem-accent"
+                                                    :disabled="bootstrapActionBusy"
+                                                    :checked="isBootstrapSelected(`comm:${iface.name}`)"
+                                                    @change="toggleBootstrap(`comm:${iface.name}`)"
+                                                />
+                                                <MaterialDesignIcon
+                                                    icon-name="server-network"
+                                                    class="size-5 shrink-0 text-sem-accent"
+                                                />
+                                                <span class="min-w-0 flex-1">
+                                                    <span class="block truncate text-sm font-semibold text-sem-fg">
+                                                        {{ iface.name }}
+                                                    </span>
+                                                    <span
+                                                        class="block truncate font-mono text-[11px] text-sem-fg-muted"
+                                                    >
+                                                        {{ iface.target_host
+                                                        }}<span v-if="iface.target_port">:{{ iface.target_port }}</span>
+                                                    </span>
+                                                </span>
+                                                <span v-if="iface.online" class="tutorial-online-badge">{{
+                                                    $t("tutorial.online")
+                                                }}</span>
+                                            </label>
+                                            <div v-if="loadingInterfaces" class="flex justify-center py-3">
+                                                <MaterialDesignIcon
+                                                    icon-name="loading"
+                                                    class="size-6 animate-spin text-sem-accent"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <div v-else class="tutorial-notice tutorial-notice--info">
+                            <div class="flex items-start gap-3">
+                                <MaterialDesignIcon icon-name="radar" class="mt-0.5 size-5 shrink-0 text-sem-info" />
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-sm font-bold text-sem-fg">
+                                        {{ $t("tutorial.bootstrap_empty_title") }}
+                                    </div>
+                                    <p class="mt-0.5 text-sm text-sem-fg-muted">
+                                        {{ $t("tutorial.bootstrap_empty") }}
+                                    </p>
                                 </div>
                             </div>
                         </div>
 
                         <div
-                            class="flex flex-col gap-3 border-t border-sem-border pt-4 sm:flex-row sm:items-center sm:justify-between"
+                            class="sticky bottom-0 -mx-4 border-t border-sem-border bg-sem-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:-mx-6 sm:px-6 md:-mx-10 md:px-10"
+                            :aria-busy="bootstrapActionBusy"
                         >
-                            <p class="text-xs text-sem-fg-muted">
-                                {{
-                                    $t("tutorial.bootstrap_selected", {
-                                        count: selectedBootstrapCount,
-                                    })
-                                }}
-                            </p>
-                            <div class="flex flex-col gap-2 sm:flex-row">
-                                <button
-                                    type="button"
-                                    class="tutorial-action-btn tutorial-action-btn-secondary w-full sm:w-auto"
-                                    :disabled="bootstrapActionBusy"
-                                    @click="skipBootstraps"
-                                >
-                                    {{ $t("tutorial.bootstrap_skip") }}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="tutorial-action-btn tutorial-action-btn-success w-full sm:w-auto"
-                                    :disabled="bootstrapActionBusy || selectedBootstrapCount === 0"
-                                    @click="confirmBootstraps"
-                                >
-                                    <MaterialDesignIcon
-                                        v-if="bootstrapActionBusy"
-                                        icon-name="loading"
-                                        class="size-4 animate-spin"
-                                    />
-                                    {{ $t("tutorial.bootstrap_confirm") }}
-                                </button>
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <p class="text-xs text-sem-fg-muted">
+                                    {{
+                                        $t("tutorial.bootstrap_selected", {
+                                            count: selectedBootstrapCount,
+                                        })
+                                    }}
+                                </p>
+                                <div class="flex flex-col gap-2 sm:flex-row">
+                                    <button
+                                        type="button"
+                                        class="tutorial-action-btn tutorial-action-btn-secondary w-full sm:w-auto"
+                                        :disabled="bootstrapActionBusy"
+                                        @click="skipBootstraps"
+                                    >
+                                        {{ $t("tutorial.bootstrap_skip") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="tutorial-action-btn tutorial-action-btn-success w-full sm:w-auto"
+                                        :disabled="bootstrapActionBusy || selectedBootstrapCount === 0"
+                                        @click="confirmBootstraps"
+                                    >
+                                        <MaterialDesignIcon
+                                            v-if="bootstrapActionBusy"
+                                            icon-name="loading"
+                                            class="size-4 animate-spin"
+                                        />
+                                        {{ $t("tutorial.bootstrap_confirm") }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1962,7 +2143,7 @@
                                 <button
                                     type="button"
                                     class="tutorial-action-btn tutorial-action-btn-primary w-full sm:w-auto"
-                                    :disabled="savingPropagation"
+                                    :disabled="tutorialNavBusy"
                                     @click="enableAutoPropagation"
                                 >
                                     <MaterialDesignIcon
@@ -1975,6 +2156,7 @@
                                 <button
                                     type="button"
                                     class="tutorial-action-btn tutorial-action-btn-secondary w-full sm:w-auto"
+                                    :disabled="tutorialNavBusy"
                                     @click="nextStep"
                                 >
                                     {{ $t("tutorial.propagation_skip_auto") }}
@@ -2323,7 +2505,8 @@ import AndroidStorageBridge from "../js/AndroidStorageBridge.js";
 import ToastUtils from "../js/ToastUtils";
 import DialogUtils from "../js/DialogUtils";
 import GlobalEmitter from "../js/GlobalEmitter";
-import { apiPath, EMITTER_EVENTS } from "../js/constants";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../js/constants";
+import { onWsEvent, offWsEvent } from "../js/registries/wsEventRegistry.js";
 import { bundledReticulumDocsUrl } from "../js/reticulumDocsEntryUrl.js";
 import { useTutorialIdentity } from "../js/tutorial/useTutorialIdentity.js";
 import AppModal from "./AppModal.vue";
@@ -2375,6 +2558,8 @@ export default {
             addingBootstraps: false,
             addingLocal: false,
             reloadingReticulum: false,
+            reticulumReloading: false,
+            identityActionBusy: false,
             discoveredInterfaces: [],
             discoveredActive: [],
             loadingDiscovered: false,
@@ -2469,14 +2654,22 @@ export default {
             }
             return this.currentStep < this.totalSteps;
         },
+        reticulumBusy() {
+            // Local reload call in flight, or the backend broadcast a
+            // reticulum_reload_status with in_progress for a reload triggered
+            // anywhere else (settings, interfaces page, discovery PATCH).
+            return this.reloadingReticulum || this.reticulumReloading;
+        },
         connectionSetupBusy() {
-            return this.addingRecommended || this.savingDiscovery || this.addingLocal || this.reloadingReticulum;
+            return this.addingRecommended || this.savingDiscovery || this.addingLocal || this.reticulumBusy;
         },
         bootstrapPickBusy() {
-            return this.pickingRandomBootstraps || this.loadingInterfaces || this.loadingDiscovered;
+            return (
+                this.pickingRandomBootstraps || this.loadingInterfaces || this.loadingDiscovered || this.reticulumBusy
+            );
         },
         bootstrapActionBusy() {
-            return this.pickingRandomBootstraps || this.addingBootstraps || this.reloadingReticulum;
+            return this.pickingRandomBootstraps || this.addingBootstraps || this.reticulumBusy;
         },
         tutorialNavBusy() {
             return (
@@ -2484,7 +2677,10 @@ export default {
                 this.bootstrapActionBusy ||
                 this.savingPropagation ||
                 this.finishingTutorial ||
-                this.identityImportInProgress
+                this.identityImportInProgress ||
+                this.identityActionBusy ||
+                this.migrationBusy ||
+                this.androidStorageBusy
             );
         },
     },
@@ -2513,12 +2709,19 @@ export default {
         if (this.discoveryInterval) {
             clearInterval(this.discoveryInterval);
         }
+        offWsEvent(WS_EVENTS.RETICULUM_RELOAD_STATUS, this.onReticulumReloadStatus);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
     },
     mounted() {
         this.onWindowResize = () => {
             this.windowWidth = window.innerWidth;
         };
         window.addEventListener("resize", this.onWindowResize, { passive: true });
+        // The backend broadcasts reticulum_reload_status for every stack
+        // reload, including ones this wizard did not trigger. Track it so
+        // mutating controls lock while the stack is being rebuilt.
+        onWsEvent(WS_EVENTS.RETICULUM_RELOAD_STATUS, this.onReticulumReloadStatus);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         if (this.isPage) {
             this.loadIdentitySetupDefaults();
             this.loadDiscoveryBootstrapDefaults();
@@ -2687,17 +2890,34 @@ export default {
                 this.migrationBusy = false;
             }
         },
+        onReticulumReloadStatus(json) {
+            this.reticulumReloading = Boolean(json && typeof json === "object" && json.in_progress !== false);
+        },
+        onWebsocketReconnected() {
+            // A reload "done" broadcast can be lost while the socket is down;
+            // resync the busy flag instead of leaving the wizard locked.
+            this.reticulumReloading = false;
+        },
+        clearPendingInterfaceChanges() {
+            const store = useInterfaceChangesStore();
+            store.hasPendingInterfaceChanges = false;
+            if (store.modifiedInterfaceNames && store.modifiedInterfaceNames.clear) {
+                store.modifiedInterfaceNames.clear();
+            }
+        },
+        noteDiscoveryPatchResult(response) {
+            // PATCH /reticulum/discovery applies most options live. When it
+            // reports reloaded=true the stack restart already applied every
+            // pending interface edit, so finishTutorial must not reload again.
+            if (response?.data?.discovery?.reloaded === true) {
+                this.clearPendingInterfaceChanges();
+            }
+        },
         async reloadReticulum() {
             this.reloadingReticulum = true;
             try {
                 await window.api.post(apiPath("/reticulum/reload"));
-                useInterfaceChangesStore().hasPendingInterfaceChanges = false;
-                if (
-                    useInterfaceChangesStore().modifiedInterfaceNames &&
-                    useInterfaceChangesStore().modifiedInterfaceNames.clear
-                ) {
-                    useInterfaceChangesStore().modifiedInterfaceNames.clear();
-                }
+                this.clearPendingInterfaceChanges();
                 return true;
             } catch (e) {
                 console.error("Failed to reload Reticulum:", e);
@@ -2726,7 +2946,8 @@ export default {
                     autoconnect_discovered_interfaces: 3,
                     default_bootstrap_only: false,
                 };
-                await window.api.patch(apiPath("/reticulum/discovery"), payload);
+                const discoveryResponse = await window.api.patch(apiPath("/reticulum/discovery"), payload);
+                this.noteDiscoveryPatchResult(discoveryResponse);
                 this.defaultBootstrapOnly = false;
 
                 ToastUtils.success(this.$t("tutorial.mode_recommended_added"));
@@ -2763,7 +2984,8 @@ export default {
                     autoconnect_discovered_interfaces: 3,
                     default_bootstrap_only: false,
                 };
-                await window.api.patch(apiPath("/reticulum/discovery"), payload);
+                const discoveryResponse = await window.api.patch(apiPath("/reticulum/discovery"), payload);
+                this.noteDiscoveryPatchResult(discoveryResponse);
                 this.defaultBootstrapOnly = false;
                 ToastUtils.success(this.$t("tutorial.discovery_enabled"));
                 this.connectionMode = "discovery";
@@ -2952,7 +3174,9 @@ export default {
         async pickRandomTcpBootstraps(options = {}) {
             const silent = options.silent === true;
             const auto = options.auto === true;
-            if (this.pickingRandomBootstraps) {
+            // bootstrapActionBusy covers an in-flight pick, bootstrap adds,
+            // and any Reticulum reload so selection cannot churn mid-reload.
+            if (this.bootstrapActionBusy) {
                 return;
             }
             this.pickingRandomBootstraps = true;
@@ -3053,10 +3277,14 @@ export default {
             }
         },
         async persistDefaultBootstrapOnly(value) {
+            if (this.bootstrapActionBusy) {
+                return;
+            }
             try {
-                await window.api.patch(apiPath("/reticulum/discovery"), {
+                const response = await window.api.patch(apiPath("/reticulum/discovery"), {
                     default_bootstrap_only: value === true,
                 });
+                this.noteDiscoveryPatchResult(response);
                 this.defaultBootstrapOnly = value === true;
             } catch (e) {
                 console.error("Failed to save default_bootstrap_only:", e);
@@ -3227,7 +3455,15 @@ export default {
         },
         async handlePrimaryAction() {
             if (this.currentStep === 2) {
-                await this.handleIdentityContinue();
+                if (this.identityActionBusy) {
+                    return;
+                }
+                this.identityActionBusy = true;
+                try {
+                    await this.handleIdentityContinue();
+                } finally {
+                    this.identityActionBusy = false;
+                }
                 return;
             }
             this.nextStep();

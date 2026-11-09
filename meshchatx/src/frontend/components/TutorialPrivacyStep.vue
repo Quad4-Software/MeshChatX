@@ -28,7 +28,7 @@
                     v-model="screenSecurityEnabled"
                     :title="$t('app.screen_security_enabled')"
                     :description="$t('app.screen_security_description_short')"
-                    :disabled="screenSecuritySaving"
+                    :disabled="screenSecuritySaving || stackReloading"
                     @update:model-value="onScreenSecurityChange"
                 />
             </div>
@@ -39,7 +39,7 @@
                 v-model="androidBlockScreenshots"
                 :title="$t('settings.android_block_screenshots')"
                 :description="$t('tutorial.privacy_android_screenshots_desc')"
-                :disabled="androidSaving"
+                :disabled="androidSaving || stackReloading"
                 @update:model-value="onAndroidBlockScreenshotsChange"
             />
 
@@ -48,7 +48,7 @@
                 v-model="localHopsDelta"
                 :title="$t('app.obfuscate_hops')"
                 :description="$t('tutorial.privacy_obfuscate_hops_desc')"
-                :disabled="reticulumSaving"
+                :disabled="reticulumSaving || stackReloading"
                 @update:model-value="onLocalHopsDeltaChange"
             />
 
@@ -57,7 +57,7 @@
                 v-model="privacyModeEnabled"
                 :title="$t('app.privacy_mode_enabled')"
                 :description="$t('tutorial.privacy_mode_desc')"
-                :disabled="configSaving"
+                :disabled="configSaving || stackReloading"
                 @update:model-value="onPrivacyModeChange"
             />
 
@@ -66,7 +66,7 @@
                 v-model="telemetryEnabled"
                 :title="$t('app.telemetry_enabled')"
                 :description="$t('tutorial.privacy_telemetry_desc')"
-                :disabled="configSaving"
+                :disabled="configSaving || stackReloading"
                 @update:model-value="onTelemetryChange"
             />
         </div>
@@ -83,7 +83,9 @@ import { useAuthStore } from "../js/stores/authStore";
 import DesktopUtils from "../js/DesktopUtils.js";
 import AndroidBridge from "../js/rnode/AndroidBridge.js";
 import ToastUtils from "../js/ToastUtils";
-import { apiPath } from "../js/constants";
+import { apiPath, EMITTER_EVENTS, WS_EVENTS } from "../js/constants";
+import { onWsEvent, offWsEvent } from "../js/registries/wsEventRegistry.js";
+import GlobalEmitter from "../js/GlobalEmitter";
 import SettingToggleRow from "./settings/SettingToggleRow.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
@@ -109,15 +111,28 @@ export default {
             showAndroidScreenshotBlock: false,
             localHopsDelta: false,
             reticulumSaving: false,
+            stackReloading: false,
             privacyModeEnabled: false,
             telemetryEnabled: false,
             configSaving: false,
         };
     },
     async mounted() {
+        onWsEvent(WS_EVENTS.RETICULUM_RELOAD_STATUS, this.onReticulumReloadStatus);
+        GlobalEmitter.on(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
         await this.loadPrivacyOptions();
     },
+    beforeUnmount() {
+        offWsEvent(WS_EVENTS.RETICULUM_RELOAD_STATUS, this.onReticulumReloadStatus);
+        GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
+    },
     methods: {
+        onReticulumReloadStatus(json) {
+            this.stackReloading = Boolean(json && typeof json === "object" && json.in_progress !== false);
+        },
+        onWebsocketReconnected() {
+            this.stackReloading = false;
+        },
         async loadPrivacyOptions() {
             this.showWindowsScreenSecurity =
                 typeof DesktopUtils.isWindowsDesktop === "function" && DesktopUtils.isWindowsDesktop();
