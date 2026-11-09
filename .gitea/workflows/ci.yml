@@ -20,27 +20,51 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      # No marketplace actions: clone with plain git. act_runner job containers
-      # may not reach the public git URL (hairpin/NAT), so probe the public
-      # endpoint first, then common container-reachable addresses for
-      # self-hosted instances colocated with the runner host.
+      # No marketplace actions: clone with plain git. Job containers on
+      # self-hosted act_runner may not reach the public git URL, so probe the
+      # public endpoint, then route the git host through the container's
+      # default gateway (the runner host) via /etc/hosts, then common
+      # container-reachable addresses.
       - name: Check out repository
         run: |
           set -euo pipefail
-          export GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/false
-          repo_path="${{ gitea.repository || github.repository }}"
-          sha="${{ gitea.sha || github.sha }}"
-          ref="${{ gitea.ref || github.ref }}"
-          ref_name="${{ gitea.ref_name || github.ref_name }}"
-          gw="$(ip route 2>/dev/null | awk '/default/ {print $3; exit}')"
-          bases="${{ gitea.server_url || github.server_url }}"
-          for extra in "https://host.docker.internal" \
-                       "http://host.docker.internal:3000" \
-                       "http://172.17.0.1:3000" \
-                       "http://gitea:3000"; do
+          export GIT_TERMINAL_PROMPT=0
+          command -v git >/dev/null 2>&1 || { echo "checkout: git not installed" >&2; exit 1; }
+          repo_path="${{ gitea.repository }}"
+          host="$(echo "${{ gitea.server_url }}" | sed -E 's#^https?://([^/]+).*#\1#')"
+          scheme="$(echo "${{ gitea.server_url }}" | sed -E 's#^(https?)://.*#\1#')"
+          [ -z "$scheme" ] && scheme="https"
+          sha="${{ gitea.sha }}"
+          ref="${{ gitea.ref }}"
+          ref_name="${{ gitea.ref_name }}"
+
+          for probe in "https://github.com" "https://${host}"; do
+            if timeout 10 git ls-remote "${probe}" HEAD >/dev/null 2>&1; then
+              echo "checkout: egress OK via ${probe}"
+            else
+              echo "checkout: egress FAIL via ${probe}"
+            fi
+          done
+
+          gw_hex="$(awk '$2 == "00000000" {print $3; exit}' /proc/net/route 2>/dev/null || true)"
+          gw=""
+          if [ -n "$gw_hex" ] && [ "${#gw_hex}" -eq 8 ]; then
+            gw="$(printf '%d.%d.%d.%d' "0x${gw_hex:6:2}" "0x${gw_hex:4:2}" "0x${gw_hex:2:2}" "0x${gw_hex:0:2}")"
+          fi
+          echo "checkout: gateway=${gw:-none} host=${host}"
+
+          bases="${scheme}://${host}"
+          if [ -n "$gw" ] && ! timeout 15 git ls-remote "${bases}/${repo_path}.git" HEAD >/dev/null 2>&1; then
+            if grep -q " ${host}\$" /etc/hosts 2>/dev/null; then :; else
+              echo "${gw} ${host}" >> /etc/hosts 2>/dev/null && echo "checkout: pinned ${host} -> ${gw} in /etc/hosts" || true
+            fi
+          fi
+          for extra in "http://${gw}:3000" "http://172.17.0.1:3000" \
+                       "http://host.docker.internal:3000" "http://gitea:3000"; do
+            [ "$extra" = "http://:3000" ] && continue
             case " $bases " in *" $extra "*) ;; *) bases="$bases $extra" ;; esac
           done
-          if [ -n "$gw" ]; then bases="$bases http://$gw:3000"; fi
+
           base=""
           for b in $bases; do
             b="${b%/}"
