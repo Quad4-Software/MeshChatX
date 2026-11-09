@@ -5,6 +5,13 @@ if (process.env.E2E_BACKEND_PORT === undefined || process.env.E2E_BACKEND_PORT =
     process.env.E2E_BACKEND_PORT = "18079";
 }
 
+// Peer-share dirs must resolve identically in the spec workers and the
+// webServer script. /tmp does not exist on every self-hosted runner, so
+// anchor both sides on TMPDIR here; the webServer inherits this env.
+const e2eTmp = process.env.TMPDIR || "/tmp";
+process.env.E2E_PEER_SHARE = process.env.E2E_PEER_SHARE || `${e2eTmp}/meshchatx-e2e-peer-share`;
+process.env.E2E_PEER2_SHARE = process.env.E2E_PEER2_SHARE || `${e2eTmp}/meshchatx-e2e-peer2-share`;
+
 const HOST = process.env.E2E_VITE_HOST || "127.0.0.1";
 const PORT = parseInt(process.env.E2E_VITE_PORT || "5173", 10);
 const baseURL = `http://${HOST}:${PORT}`;

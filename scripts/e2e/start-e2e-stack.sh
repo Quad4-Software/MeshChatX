@@ -24,13 +24,13 @@ mkdir -p "$MESHCHAT_LOG_DIR"
 # links in as a TCP client and runs lxmf.delivery plus an RRC hub. Specs
 # coordinate through E2E_PEER_SHARE files. Skip with E2E_LIVE_MESH=0.
 # Fixed default so the Playwright spec process can find it without env.
-export E2E_PEER_SHARE="${E2E_PEER_SHARE:-/tmp/meshchatx-e2e-peer-share}"
+export E2E_PEER_SHARE="${E2E_PEER_SHARE:-${TMPDIR:-/tmp}/meshchatx-e2e-peer-share}"
 export E2E_PEER_PORT="${E2E_PEER_PORT:-43737}"
 # Chaos proxy: peer connects here, proxy forwards to E2E_PEER_PORT. Specs
 # inject link faults through a control file in the share dir.
 export E2E_CHAOS_PORT="${E2E_CHAOS_PORT:-43837}"
-export E2E_CHAOS_CONTROL="${E2E_PEER_SHARE:-/tmp/meshchatx-e2e-peer-share}/chaos.mode"
-export E2E_PEER2_SHARE="${E2E_PEER2_SHARE:-/tmp/meshchatx-e2e-peer2-share}"
+export E2E_CHAOS_CONTROL="${E2E_PEER_SHARE}/chaos.mode"
+export E2E_PEER2_SHARE="${E2E_PEER2_SHARE:-${TMPDIR:-/tmp}/meshchatx-e2e-peer2-share}"
 E2E_LIVE_MESH="${E2E_LIVE_MESH:-1}"
 E2E_LIVE_MESH2="${E2E_LIVE_MESH2:-1}"
 rm -rf "$E2E_PEER_SHARE" "$E2E_PEER2_SHARE"

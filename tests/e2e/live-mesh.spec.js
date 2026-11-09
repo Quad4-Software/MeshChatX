@@ -1,5 +1,6 @@
 const { test, expect } = require("@playwright/test");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const { E2E_BACKEND_ORIGIN, e2ePost, prepareE2eSession } = require("./helpers");
 
@@ -7,7 +8,7 @@ const { E2E_BACKEND_ORIGIN, e2ePost, prepareE2eSession } = require("./helpers");
 // e2e backend over a TCP interface pair. Nothing is mocked: announces, path
 // resolution, link establishment, LXMF delivery and the RRC
 // HELLO/JOIN/echo flow all run over real Reticulum sockets.
-const SHARE = process.env.E2E_PEER_SHARE || "/tmp/meshchatx-e2e-peer-share";
+const SHARE = process.env.E2E_PEER_SHARE || path.join(os.tmpdir(), "meshchatx-e2e-peer-share");
 const READY = path.join(SHARE, "peer_ready.json");
 const PEER_INBOX = path.join(SHARE, "peer_inbox.jsonl");
 const PEER_OUTBOX = path.join(SHARE, "peer_outbox.jsonl");
@@ -713,7 +714,7 @@ test.describe("Live mesh adversarial announce storm", () => {
     });
 });
 
-const SHARE2 = process.env.E2E_PEER2_SHARE || "/tmp/meshchatx-e2e-peer2-share";
+const SHARE2 = process.env.E2E_PEER2_SHARE || path.join(os.tmpdir(), "meshchatx-e2e-peer2-share");
 
 function peer2Ready() {
     const p = path.join(SHARE2, "peer_ready.json");

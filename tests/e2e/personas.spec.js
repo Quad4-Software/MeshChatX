@@ -1,6 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const crypto = require("crypto");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const { E2E_BACKEND_ORIGIN, e2ePost, prepareE2eSession, seedE2eLongConversationThread } = require("./helpers");
 
@@ -120,7 +121,7 @@ const TEXT_INPUT_SELECTOR = [
     "textarea:visible",
 ].join(", ");
 
-const SHARE = process.env.E2E_PEER_SHARE || "/tmp/meshchatx-e2e-peer-share";
+const SHARE = process.env.E2E_PEER_SHARE || path.join(os.tmpdir(), "meshchatx-e2e-peer-share");
 const READY = path.join(SHARE, "peer_ready.json");
 
 function peerReady() {
