@@ -323,6 +323,7 @@ class TestAndroidCodec2PackagingRegression:
         # LXST.Codecs, so the import must happen after it to see the
         # bound Codec2 class rather than the earlier soft-import None.
         from LXST.Codecs import Codec2
+
         for pid in (
             Profiles.BANDWIDTH_ULTRA_LOW,
             Profiles.BANDWIDTH_VERY_LOW,
