@@ -29,7 +29,7 @@ def format_outbound_path_finding_measure(outcome: OutboundPathOutcome) -> str:
 
 
 IDX_PT_TIMESTAMP = 0
-IDX_PT_RVCD_IF = 5
+IDX_PT_EXPIRES = 3
 
 # Soft cap for in-memory RNS path table entries (~270 MB at RNS estimate).
 DEFAULT_PATH_TABLE_SOFT_CAP = 15_000
@@ -38,19 +38,15 @@ DEFAULT_PATH_PRUNE_TRIGGER = 10_000
 
 
 def _path_table_entry_is_expired_by_reticulum_rules(entry) -> bool:
-    ts = entry[IDX_PT_TIMESTAMP]
-    attached = entry[IDX_PT_RVCD_IF]
-    if attached is not None and hasattr(attached, "mode"):
-        iface = RNS.Interfaces.Interface.Interface
-        if attached.mode == iface.MODE_ACCESS_POINT:
-            dest_exp = ts + RNS.Transport.AP_PATH_TIME
-        elif attached.mode == iface.MODE_ROAMING:
-            dest_exp = ts + RNS.Transport.ROAMING_PATH_TIME
-        else:
-            dest_exp = ts + RNS.Transport.PATH_TIMEOUT
-    else:
-        dest_exp = ts + RNS.Transport.PATH_TIMEOUT
-    return time.time() > dest_exp
+    # RNS stores the computed expiry at IDX_PT_EXPIRES (index 3) in both
+    # 1.5.x and 1.6.x and culls on it directly. Reading it avoids depending
+    # on timeout constants that were renamed between releases.
+    if not entry or len(entry) <= IDX_PT_EXPIRES:
+        return True
+    expires = entry[IDX_PT_EXPIRES]
+    if not isinstance(expires, (int, float)):
+        return True
+    return time.time() > expires
 
 
 def transport_path_table_entry_is_expired(destination_hash: bytes) -> bool:

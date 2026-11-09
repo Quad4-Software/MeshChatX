@@ -66,14 +66,28 @@ def test_path_metadata_no_path():
     assert m["path_unresponsive"] is False
 
 
-def test_path_table_entry_expired_ap_mode():
+def test_path_table_entry_expired_when_expires_in_past():
     iface = MagicMock()
     iface.mode = RNS.Interfaces.Interface.Interface.MODE_ACCESS_POINT
+    entry = [time.time() - 100, None, 1, time.time() - 1, None, iface, None]
+    assert rp._path_table_entry_is_expired_by_reticulum_rules(entry) is True
+
+
+def test_path_table_entry_fresh_when_expires_in_future():
+    iface = MagicMock()
+    iface.mode = RNS.Interfaces.Interface.Interface.MODE_ACCESS_POINT
+    entry = [time.time(), None, 1, time.time() + 3600, None, iface, None]
+    assert rp._path_table_entry_is_expired_by_reticulum_rules(entry) is False
+
+
+def test_path_table_entry_expired_roaming_mode():
+    iface = MagicMock()
+    iface.mode = RNS.Interfaces.Interface.Interface.MODE_ROAMING
     entry = [
-        time.time() - RNS.Transport.AP_PATH_TIME - 5,
+        time.time() - RNS.Transport.ROAMING_PATH_TIME - 5,
         None,
         1,
-        0,
+        time.time() - 1,
         None,
         iface,
         None,
@@ -81,11 +95,44 @@ def test_path_table_entry_expired_ap_mode():
     assert rp._path_table_entry_is_expired_by_reticulum_rules(entry) is True
 
 
-def test_path_table_entry_fresh_ap_mode():
+def test_path_table_entry_fresh_roaming_mode():
     iface = MagicMock()
-    iface.mode = RNS.Interfaces.Interface.Interface.MODE_ACCESS_POINT
-    entry = [time.time(), None, 1, 0, None, iface, None]
+    iface.mode = RNS.Interfaces.Interface.Interface.MODE_ROAMING
+    entry = [time.time(), None, 1, time.time() + 3600, None, iface, None]
     assert rp._path_table_entry_is_expired_by_reticulum_rules(entry) is False
+
+
+def test_path_table_entry_expired_default_mode():
+    iface = MagicMock()
+    iface.mode = RNS.Interfaces.Interface.Interface.MODE_FULL
+    entry = [time.time() - 100, None, 1, time.time() - 1, None, iface, None]
+    assert rp._path_table_entry_is_expired_by_reticulum_rules(entry) is True
+
+
+def test_path_table_entry_expired_when_rvcd_if_is_none():
+    entry = [time.time() - 100, None, 1, time.time() - 1, None, None, None]
+    assert rp._path_table_entry_is_expired_by_reticulum_rules(entry) is True
+
+
+def test_path_table_entry_expired_when_expires_missing_or_invalid():
+    assert rp._path_table_entry_is_expired_by_reticulum_rules([]) is True
+    assert rp._path_table_entry_is_expired_by_reticulum_rules(None) is True
+    assert (
+        rp._path_table_entry_is_expired_by_reticulum_rules([time.time(), None, 1])
+        is True
+    )
+    assert (
+        rp._path_table_entry_is_expired_by_reticulum_rules(
+            [time.time(), None, 1, None, None, None, None]
+        )
+        is True
+    )
+    assert (
+        rp._path_table_entry_is_expired_by_reticulum_rules(
+            [time.time(), None, 1, 0, None, None, None]
+        )
+        is True
+    )
 
 
 def test_prepare_fresh_drops_and_requests_when_stale():
@@ -117,42 +164,6 @@ def test_prepare_fresh_noop_when_reusing():
         mock_req.assert_not_called()
 
 
-def test_path_table_entry_expired_roaming_mode():
-    iface = MagicMock()
-    iface.mode = RNS.Interfaces.Interface.Interface.MODE_ROAMING
-    entry = [
-        time.time() - RNS.Transport.ROAMING_PATH_TIME - 5,
-        None,
-        1,
-        0,
-        None,
-        iface,
-        None,
-    ]
-    assert rp._path_table_entry_is_expired_by_reticulum_rules(entry) is True
-
-
-def test_path_table_entry_fresh_roaming_mode():
-    iface = MagicMock()
-    iface.mode = RNS.Interfaces.Interface.Interface.MODE_ROAMING
-    entry = [time.time(), None, 1, 0, None, iface, None]
-    assert rp._path_table_entry_is_expired_by_reticulum_rules(entry) is False
-
-
-def test_path_table_entry_expired_default_mode():
-    iface = MagicMock()
-    iface.mode = RNS.Interfaces.Interface.Interface.MODE_FULL
-    old = time.time() - RNS.Transport.PATH_TIMEOUT - 1
-    entry = [old, None, 1, 0, None, iface, None]
-    assert rp._path_table_entry_is_expired_by_reticulum_rules(entry) is True
-
-
-def test_path_table_entry_expired_when_rvcd_if_is_none():
-    old = time.time() - RNS.Transport.PATH_TIMEOUT - 1
-    entry = [old, None, 1, 0, None, None, None]
-    assert rp._path_table_entry_is_expired_by_reticulum_rules(entry) is True
-
-
 def test_transport_path_table_entry_is_expired_uses_path_table():
     to_del = []
     dest = bytes([0x1B] * 16)
@@ -164,7 +175,7 @@ def test_transport_path_table_entry_is_expired_uses_path_table():
             time.time() - RNS.Transport.ROAMING_PATH_TIME - 2,
             None,
             1,
-            0,
+            time.time() - 1,
             None,
             iface,
             None,

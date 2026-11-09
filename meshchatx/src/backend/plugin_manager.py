@@ -1378,16 +1378,19 @@ class PluginManager:
                 ]
             except Exception:
                 hashes = []
+        hops_to = None
+        try:
+            import RNS
+
+            hops_to = getattr(RNS.Transport, "hops_to", None)
+        except Exception:
+            hops_to = None
         for item in hashes:
             if not item:
                 continue
             try:
                 raw = bytes.fromhex(item) if isinstance(item, str) else item
-                hops = (
-                    reticulum.get_hops_to(raw)
-                    if hasattr(reticulum, "get_hops_to")
-                    else None
-                )
+                hops = hops_to(raw) if hops_to is not None else None
                 paths.append({"destination_hash": item, "hops": hops})
             except Exception:
                 paths.append({"destination_hash": item, "hops": None})

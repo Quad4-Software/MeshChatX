@@ -2628,7 +2628,12 @@ class ReticulumMeshChat:
             RNS.Transport.destinations_map = {}
         RNS.Transport.active_links = []
         RNS.Transport.pending_links = []
-        RNS.Transport.announce_handlers = {}
+        # RNS 1.6 stores announce_handlers as a dict keyed by name hash;
+        # 1.5.x used a list. Preserve whichever container type is active.
+        existing_handlers = getattr(RNS.Transport, "announce_handlers", None)
+        RNS.Transport.announce_handlers = (
+            {} if isinstance(existing_handlers, dict) else []
+        )
         RNS.Transport.announce_table = {}
         RNS.Transport.path_table = {}
         RNS.Transport.reverse_table = {}
