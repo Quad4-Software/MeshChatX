@@ -20,6 +20,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
+      # No marketplace actions: clone with plain git. Gitea exposes pull
+      # refs, so try the exact SHA first, then the full ref, then ref_name.
+      - name: Check out repository
+        run: |
+          set -euo pipefail
+          server="${{ github.server_url }}"
+          git init -q .
+          git remote add origin "${server%/}/${{ github.repository }}.git"
+          git fetch -q --depth=1 origin "${{ github.sha }}" 2>/dev/null \
+            && git checkout -q FETCH_HEAD \
+            || { git fetch -q --depth=1 origin "${{ github.ref }}" 2>/dev/null \
+                 && git checkout -q FETCH_HEAD \
+                 || { git fetch -q --depth=1 origin "${{ github.ref_name }}" \
+                      && git checkout -q FETCH_HEAD; }; }
       - name: Bootstrap toolchain
         run: bash scripts/ci/bootstrap-toolchain.sh install
       - name: PR gate
