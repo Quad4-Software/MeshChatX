@@ -187,6 +187,13 @@ if [ "${SKIP_DESKTOP:-0}" != 1 ]; then
             _desktop_backend "$NATIVE_ARCH"
             # shellcheck disable=SC2086
             run_desktop_package $_tasks ARCH="$_goarch"
+            # wails3 tool package emits arch-agnostic names (meshchatx-desktop.deb);
+            # suffix the arch so x64/arm64 artifacts do not overwrite each other
+            # when both legs download into the same release directory.
+            for _pkg in desktop/bin/*.deb desktop/bin/*.rpm; do
+                [ -e "$_pkg" ] || continue
+                mv "$_pkg" "${_pkg%.*}-${NATIVE_ARCH}.${_pkg##*.}"
+            done
             mkdir -p release-assets
             cp -f desktop/bin/*.AppImage desktop/bin/*.deb desktop/bin/*.rpm \
                   desktop/bin/*-linux-*.zip release-assets/ 2>/dev/null || true
@@ -211,7 +218,10 @@ echo "Collecting release files..."
 find desktop/bin -maxdepth 1 -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" -o -name "*.zip" \) -exec cp -f {} release-assets/ \; 2>/dev/null || true
 find python-dist -maxdepth 1 -type f -name "*.whl" -exec cp -f {} release-assets/ \; 2>/dev/null || true
 
-if [ -d meshchatx/public ] && [ "${SKIP_DESKTOP:-0}" != 1 ]; then
+# frontend.zip/openvex.json/sbom are arch-independent (or already covered by the
+# docs-canonical names); emit them on x64 only so both matrix legs do not ship
+# duplicate basenames into the shared release asset directory.
+if [ "$NATIVE_ARCH" = "x64" ] && [ -d meshchatx/public ] && [ "${SKIP_DESKTOP:-0}" != 1 ]; then
     ( cd meshchatx/public && zip -qr "${ROOT}/release-assets/meshchatx-frontend.zip" . )
 fi
 
@@ -228,16 +238,18 @@ ls -1 release-assets/
     echo "SBOM: **\`sbom.cyclonedx.json\`** (CycloneDX) when produced by CI."
 } > release-body.md
 
-if [ "${TRIVY_SBOM:-1}" != 0 ] && command -v trivy >/dev/null 2>&1; then
+if [ "${TRIVY_SBOM:-1}" != 0 ] && [ "$NATIVE_ARCH" = "x64" ] && command -v trivy >/dev/null 2>&1; then
     echo "Generating SBOM..."
     trivy fs --format cyclonedx --include-dev-deps --output release-assets/sbom.cyclonedx.json .
 else
-    echo "Skipping SBOM (trivy not on PATH or TRIVY_SBOM=0)." >&2
+    echo "Skipping SBOM (trivy not on PATH, TRIVY_SBOM=0, or non-x64 leg)." >&2
 fi
 
 # Ship the curated OpenVEX document alongside the SBOM so downstream
 # scanners (grype --vex, Dependency-Track) can consume our triage notes.
-if [ -f security/openvex.json ]; then
+# x64 only: the file is arch-independent and both legs would collide on the
+# basename when their artifacts merge into the release directory.
+if [ "$NATIVE_ARCH" = "x64" ] && [ -f security/openvex.json ]; then
     cp -f security/openvex.json release-assets/openvex.json
 fi
 
