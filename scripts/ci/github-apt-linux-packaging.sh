@@ -11,7 +11,7 @@ if [ "$_HOST_ARCH" = "x86_64" ]; then
 fi
 run_priv apt-get update -y
 
-_PKGS=(patchelf libopusfile0 espeak-ng zip rpm elfutils fakeroot file)
+_PKGS=(patchelf libopusfile0 espeak-ng zip rpm elfutils fakeroot file libgtk-4-dev libwebkitgtk-6.0-dev)
 if [ "$_HOST_ARCH" = "x86_64" ]; then
     _PKGS+=("libc6:i386" "libstdc++6:i386")
 fi

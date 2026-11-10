@@ -29,7 +29,7 @@ fi
 # Windows packaging runs on a Windows runner via the desktop Taskfile
 # (wails3 generate syso + makensis). Cross-building NSIS from Linux is not
 # supported; this script is intended for windows-latest CI jobs.
-sh scripts/ci/setup-wails3.sh
+. scripts/ci/setup-wails3.sh
 cd desktop && task windows:package
 cd "$ROOT"
 

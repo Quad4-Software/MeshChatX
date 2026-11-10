@@ -183,7 +183,7 @@ if [ "${SKIP_DESKTOP:-0}" != 1 ]; then
         has_format deb && _tasks="$_tasks linux:create:deb linux:create:rpm"
         if [ -n "$_tasks" ]; then
             echo "Desktop linux ${NATIVE_ARCH} (${_tasks})..."
-            sh scripts/ci/setup-wails3.sh
+            . scripts/ci/setup-wails3.sh
             _desktop_backend "$NATIVE_ARCH"
             # shellcheck disable=SC2086
             run_desktop_package $_tasks ARCH="$_goarch"

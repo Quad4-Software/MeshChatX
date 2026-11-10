@@ -44,6 +44,12 @@ bash scripts/ensure-flatpak-flathub-remote.sh
 pnpm run version:sync
 pnpm run build-backend
 
+# Build the Wails shell on the host (GTK4/WebKitGTK dev packages are
+# installed by the workflow); the flatpak manifest installs the
+# prebuilt binary and frozen backend.
+. scripts/ci/setup-wails3.sh
+( cd desktop && task linux:build PRODUCTION=true )
+
 manifest="packaging/flatpak/manifest.json"
 if [[ ! -f "$manifest" ]]; then
     echo "packaging/flatpak/manifest.json is missing; the Wails flatpak manifest has not been authored yet." >&2

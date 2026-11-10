@@ -23,9 +23,59 @@
     "--env=XDG_DATA_HOME=/var/data",
     "--env=WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=0"
   ],
-  "modules": [],
-  "build-options": { "append-path": "/usr/bin", "env": {} },
-  "cleanup": ["/include", "/lib/pkgconfig", "/share/pkgconfig", "*.a"],
+  "modules": [
+    {
+      "name": "meshchatx-app",
+      "buildsystem": "simple",
+      "builddir": true,
+      "build-commands": [
+        "set -e",
+        "install -Dm755 bin-src/meshchatx-desktop /app/bin/meshchatx-desktop",
+        "mkdir -p /app/lib/reticulum-meshchatx",
+        "cp -a backend-src /app/lib/reticulum-meshchatx/backend",
+        "install -Dm644 share-src/com.meshchatx.app.desktop /app/share/applications/com.meshchatx.app.desktop",
+        "install -Dm644 share-src/com.meshchatx.app.metainfo.xml /app/share/metainfo/com.meshchatx.app.metainfo.xml",
+        "install -Dm644 share-src/com.meshchatx.app.png /app/share/icons/hicolor/512x512/apps/com.meshchatx.app.png"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "path": "../../desktop/bin/meshchatx-desktop",
+          "dest": "bin-src/meshchatx-desktop"
+        },
+        {
+          "type": "dir",
+          "path": "../../build/exe/linux-x64",
+          "dest": "backend-src"
+        },
+        {
+          "type": "file",
+          "path": "com.meshchatx.app.desktop",
+          "dest": "share-src/com.meshchatx.app.desktop"
+        },
+        {
+          "type": "file",
+          "path": "com.meshchatx.app.metainfo.xml",
+          "dest": "share-src/com.meshchatx.app.metainfo.xml"
+        },
+        {
+          "type": "file",
+          "path": "com.meshchatx.app.png",
+          "dest": "share-src/com.meshchatx.app.png"
+        }
+      ]
+    }
+  ],
+  "build-options": {
+    "append-path": "/usr/bin",
+    "env": {}
+  },
+  "cleanup": [
+    "/include",
+    "/lib/pkgconfig",
+    "/share/pkgconfig",
+    "*.a"
+  ],
   "rename-desktop-file": "com.meshchatx.app.desktop",
   "rename-icon": "com.meshchatx.app",
   "desktop-file-name-suffix": "",
@@ -41,31 +91,5 @@
   "remove-licenses": false,
   "patches": [],
   "post-install": [],
-  "sources": [
-    {
-      "type": "file",
-      "path": "desktop/bin/meshchatx-desktop",
-      "dest": "bin/meshchatx-desktop"
-    },
-    {
-      "type": "dir",
-      "path": "build/exe/linux-x64",
-      "dest": "lib/reticulum-meshchatx/backend"
-    },
-    {
-      "type": "file",
-      "path": "packaging/flatpak/com.meshchatx.app.desktop",
-      "dest": "share/applications/com.meshchatx.app.desktop"
-    },
-    {
-      "type": "file",
-      "path": "packaging/flatpak/com.meshchatx.app.metainfo.xml",
-      "dest": "share/metainfo/com.meshchatx.app.metainfo.xml"
-    },
-    {
-      "type": "file",
-      "path": "packaging/flatpak/com.meshchatx.app.png",
-      "dest": "share/icons/hicolor/512x512/apps/com.meshchatx.app.png"
-    }
-  ]
+  "sources": []
 }

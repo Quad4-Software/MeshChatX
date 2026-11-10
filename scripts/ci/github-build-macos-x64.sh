@@ -35,7 +35,7 @@ bash scripts/ci/github-verify-frozen-codec2.sh "$ROOT/build/exe/darwin-x64"
 bash scripts/ci/github-verify-frozen-umsgpack.sh "$ROOT/build/exe/darwin-x64"
 bash scripts/ci/github-verify-frozen-runtime.sh "$ROOT/build/exe/darwin-x64"
 
-sh scripts/ci/setup-wails3.sh
+. scripts/ci/setup-wails3.sh
 
 # x64-only package on a native Intel runner: darwin:package builds a
 # universal binary via lipo, which needs an arm64-capable CGO toolchain

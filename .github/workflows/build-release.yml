@@ -344,7 +344,9 @@ jobs:
                       elfutils \
                       zstd \
                       desktop-file-utils \
-                      appstream
+                      appstream \
+                      libgtk-4-dev \
+                      libwebkitgtk-6.0-dev
 
             - name: Cache Flatpak runtimes
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
@@ -399,6 +401,17 @@ jobs:
                   test -f meshchatx/public/index.html
                   test -d meshchatx/public/assets
                   test -d meshchatx/public/reticulum-docs-bundled/current
+
+            - name: Set up Go (Wails shell)
+              uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+              with:
+                  go-version: "1.27.x"
+                  cache: false
+
+            - name: Setup Task
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+              run: sh scripts/ci/setup-task.sh
 
             - name: Build flatpak bundle
               run: bash scripts/ci/github-build-linux-flatpak.sh
@@ -615,6 +628,12 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ github.token }}
               run: sh scripts/ci/setup-task.sh
+
+            - name: Set up Go (Wails shell)
+              uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+              with:
+                  go-version: "1.27.x"
+                  cache: false
 
             - name: Download frontend artifact
               uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
