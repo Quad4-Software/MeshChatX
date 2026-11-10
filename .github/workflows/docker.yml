@@ -295,4 +295,14 @@ jobs:
               run: |
                   set -euo pipefail
                   test -n "${IMAGE_DIGEST}"
-                  cosign sign "${IMAGE_NAME}@${IMAGE_DIGEST}"
+                  # Fulcio/OIDC token fetches flake intermittently
+                  # ("invalid character ... looking for beginning of value");
+                  # signing is idempotent so retry the whole sign call.
+                  for attempt in 1 2 3; do
+                    if cosign sign "${IMAGE_NAME}@${IMAGE_DIGEST}"; then
+                      exit 0
+                    fi
+                    echo "cosign sign attempt ${attempt} failed; retrying in 20s" >&2
+                    sleep 20
+                  done
+                  exit 1
