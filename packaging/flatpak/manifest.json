@@ -76,8 +76,6 @@
     "/share/pkgconfig",
     "*.a"
   ],
-  "rename-desktop-file": "com.meshchatx.app.desktop",
-  "rename-icon": "com.meshchatx.app",
   "desktop-file-name-suffix": "",
   "finish-args-extra": [],
   "add-extensions": {},
