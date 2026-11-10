@@ -20,7 +20,15 @@ function ensureParentDir(filePath) {
 }
 
 function buildCss() {
-    const result = spawnSync("pnpm", ["exec", "tailwindcss", "-i", SRC_CSS, "-o", SHELL_OUT, "--minify"], {
+    // Invoke the installed bin directly: `pnpm exec` is not spawnable in
+    // every container image (Chainguard/Wolfi node) and dies silently.
+    const tailwindBin = path.join(
+        REPO_ROOT,
+        "node_modules",
+        ".bin",
+        process.platform === "win32" ? "tailwindcss.cmd" : "tailwindcss",
+    );
+    const result = spawnSync(tailwindBin, ["-i", SRC_CSS, "-o", SHELL_OUT, "--minify"], {
         cwd: REPO_ROOT,
         stdio: "inherit",
     });
