@@ -884,7 +884,10 @@ jobs:
                   path: upload/flatpak
 
             - name: Download Android APK bundle
-              continue-on-error: true
+              # Master-track tags must ship signed APKs; anything else builds
+              # a debug APK that is not a release asset. Also fail loudly when
+              # the Android job itself failed, since no APK bundle can exist.
+              continue-on-error: ${{ needs.android-release.outputs.track != 'master' && needs.android-release.result == 'success' }}
               uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   name: meshchatx-android-apks-${{ github.ref_name }}-${{ github.run_id }}
