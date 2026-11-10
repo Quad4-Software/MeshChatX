@@ -30,6 +30,27 @@ fi
 # (wails3 generate syso + makensis). Cross-building NSIS from Linux is not
 # supported; this script is intended for windows-latest CI jobs.
 . scripts/ci/setup-wails3.sh
+
+# makensis is not on Git Bash PATH on windows-2025 even when NSIS is
+# installed; probe the standard locations, then fall back to chocolatey.
+if ! command -v makensis >/dev/null 2>&1; then
+    for _nsis_dir in "/c/Program Files (x86)/NSIS" "/c/Program Files/NSIS"; do
+        if [[ -f "$_nsis_dir/makensis.exe" ]]; then
+            export PATH="$_nsis_dir:$PATH"
+            break
+        fi
+    done
+fi
+if ! command -v makensis >/dev/null 2>&1; then
+    choco install nsis -y --no-progress
+    export PATH="/c/Program Files (x86)/NSIS:$PATH"
+    if [[ -n "${GITHUB_PATH:-}" ]]; then
+        echo 'C:\Program Files (x86)\NSIS' >> "$GITHUB_PATH"
+    fi
+fi
+command -v makensis
+makensis -VERSION | head -1
+
 cd desktop && task windows:package
 cd "$ROOT"
 
