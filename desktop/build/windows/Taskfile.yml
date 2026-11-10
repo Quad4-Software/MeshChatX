@@ -51,15 +51,15 @@ tasks:
           PRODUCTION: "true"
     cmds:
       - wails3 generate webview2bootstrapper -dir "{{.ROOT_DIR}}/build/windows/nsis"
-      - makensis -DARG_WAILS_{{.ARG_FLAG}}_BINARY="{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe" -DINFO_PRODUCTVERSION={{.VERSION}} project.nsi
+      - |
+        V=$(grep -o '"version"[^,}]*' "{{.ROOT_DIR}}/app-version.json" | grep -o '[0-9][0-9.]*' | head -1)
+        makensis -DARG_WAILS_{{.ARG_FLAG}}_BINARY="{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe" -DINFO_PRODUCTVERSION="$V" project.nsi
     vars:
       ARCH: '{{.ARCH | default ARCH}}'
       ARG_FLAG: '{{if eq .ARCH "amd64"}}AMD64{{else}}ARM64{{end}}'
       ROOT_DIR: '{{.ROOT_DIR}}'
       BIN_DIR: '{{.BIN_DIR}}'
       APP_NAME: '{{.APP_NAME}}'
-      VERSION:
-        sh: grep -o '"version"[^,}]*' {{.ROOT_DIR}}/app-version.json | grep -o '[0-9][0-9.]*' | head -1
 
   create:zip:
     summary: Creates a portable zip (shell + backend/, PORTABLE_EXECUTABLE_DIR aware)
@@ -76,11 +76,24 @@ tasks:
         if [ -d "{{.ROOT_DIR}}/bin/backend" ]; then
           cp -r {{.ROOT_DIR}}/bin/backend/. "$STAGE/backend/"
         fi
-        cd /tmp && zip -qr "{{.ROOT_DIR}}/{{.BIN_DIR}}/ReticulumMeshChat-v{{.VERSION}}-win32-{{.ARCH}}.zip" {{.APP_NAME}}-portable
+        V=$(grep -o '"version"[^,}]*' "{{.ROOT_DIR}}/app-version.json" | grep -o '[0-9][0-9.]*' | head -1)
+        OUT="{{.ROOT_DIR}}/{{.BIN_DIR}}/ReticulumMeshChat-v${V}-win32-{{.ARCH}}.zip"
+        cd /tmp
+        if command -v zip >/dev/null 2>&1; then
+          zip -qr "$OUT" {{.APP_NAME}}-portable
+        elif [ -x "/c/Program Files/7-Zip/7z.exe" ]; then
+          OUT_W=$(cygpath -w "$OUT")
+          "/c/Program Files/7-Zip/7z.exe" a -tzip "$OUT_W" {{.APP_NAME}}-portable >/dev/null
+        elif command -v powershell.exe >/dev/null 2>&1; then
+          STAGE_W=$(cygpath -w "$STAGE")
+          OUT_W=$(cygpath -w "$OUT")
+          powershell.exe -NoProfile -Command "Compress-Archive -LiteralPath '$STAGE_W' -DestinationPath '$OUT_W' -Force"
+        else
+          echo "no zip-capable tool found (zip/7z/powershell)" >&2
+          exit 1
+        fi
         rm -rf "$STAGE"
     vars:
-      VERSION:
-        sh: grep -o '"version"[^,}]*' {{.ROOT_DIR}}/app-version.json | grep -o '[0-9][0-9.]*' | head -1
       ARCH: '{{.ARCH | default ARCH}}'
 
   run:
