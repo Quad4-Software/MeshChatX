@@ -30,38 +30,38 @@
       "builddir": true,
       "build-commands": [
         "set -e",
-        "install -Dm755 bin-src/meshchatx-desktop /app/bin/meshchatx-desktop",
+        "install -Dm755 payload/bin/meshchatx-desktop /app/bin/meshchatx-desktop",
         "mkdir -p /app/lib/reticulum-meshchatx",
-        "cp -a backend-src /app/lib/reticulum-meshchatx/backend",
-        "install -Dm644 share-src/com.meshchatx.app.desktop /app/share/applications/com.meshchatx.app.desktop",
-        "install -Dm644 share-src/com.meshchatx.app.metainfo.xml /app/share/metainfo/com.meshchatx.app.metainfo.xml",
-        "install -Dm644 share-src/com.meshchatx.app.png /app/share/icons/hicolor/512x512/apps/com.meshchatx.app.png"
+        "cp -a payload/backend /app/lib/reticulum-meshchatx/backend",
+        "install -Dm644 payload/share/com.meshchatx.app.desktop /app/share/applications/com.meshchatx.app.desktop",
+        "install -Dm644 payload/share/com.meshchatx.app.metainfo.xml /app/share/metainfo/com.meshchatx.app.metainfo.xml",
+        "install -Dm644 payload/share/com.meshchatx.app.png /app/share/icons/hicolor/512x512/apps/com.meshchatx.app.png"
       ],
       "sources": [
         {
           "type": "file",
           "path": "../../desktop/bin/meshchatx-desktop",
-          "dest": "bin-src/meshchatx-desktop"
+          "dest": "payload/bin"
         },
         {
           "type": "dir",
           "path": "../../build/exe/linux-x64",
-          "dest": "backend-src"
+          "dest": "payload/backend"
         },
         {
           "type": "file",
           "path": "com.meshchatx.app.desktop",
-          "dest": "share-src/com.meshchatx.app.desktop"
+          "dest": "payload/share"
         },
         {
           "type": "file",
           "path": "com.meshchatx.app.metainfo.xml",
-          "dest": "share-src/com.meshchatx.app.metainfo.xml"
+          "dest": "payload/share"
         },
         {
           "type": "file",
           "path": "com.meshchatx.app.png",
-          "dest": "share-src/com.meshchatx.app.png"
+          "dest": "payload/share"
         }
       ]
     }
