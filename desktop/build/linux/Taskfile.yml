@@ -105,6 +105,8 @@ tasks:
 
   generate:deb:
     summary: Creates a deb package
+    deps:
+      - task: generate:dotdesktop
     cmds:
       - wails3 tool package -name {{.APP_NAME}} -format deb -config ./build/linux/nfpm/nfpm.yaml -out {{.ROOT_DIR}}/bin
     vars:
@@ -113,6 +115,8 @@ tasks:
 
   generate:rpm:
     summary: Creates a rpm package
+    deps:
+      - task: generate:dotdesktop
     cmds:
       - wails3 tool package -name {{.APP_NAME}} -format rpm -config ./build/linux/nfpm/nfpm.yaml -out {{.ROOT_DIR}}/bin
     vars:

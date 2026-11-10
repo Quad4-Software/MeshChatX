@@ -47,7 +47,11 @@ tasks:
         SRC="../build/exe/${PLATFORM}-${SUFFIX}"
         if [ -d "$SRC" ]; then
           mkdir -p "{{.BIN_DIR}}/backend"
-          cp -a "$SRC/." "{{.BIN_DIR}}/backend/"
+          if [ "$PLATFORM" = "win32" ]; then
+            cp -r "$SRC/." "{{.BIN_DIR}}/backend/"
+          else
+            cp -a "$SRC/." "{{.BIN_DIR}}/backend/"
+          fi
           echo "bundled backend from $SRC -> {{.BIN_DIR}}/backend"
         else
           echo "bundle:backend: frozen backend not found at $SRC (run 'pnpm run build-backend' at repo root before packaging)" >&2
