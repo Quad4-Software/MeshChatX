@@ -74,24 +74,21 @@ tasks:
     cmds:
       - |
         set -e
-        STAGE=/tmp/{{.APP_NAME}}-portable
-        rm -rf "$STAGE" && mkdir -p "$STAGE/backend"
-        cp {{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe "$STAGE/"
-        if [ -d "{{.ROOT_DIR}}/bin/backend" ]; then
-          cp -r {{.ROOT_DIR}}/bin/backend/. "$STAGE/backend/"
-        fi
         V=$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1],'utf8')).version)" "{{.ROOT_DIR}}/app-version.json")
-        OUT="{{.ROOT_DIR}}/{{.BIN_DIR}}/ReticulumMeshChat-v${V}-win32-{{.ARCH}}.zip"
-        cd /tmp
+        NAME="ReticulumMeshChat-v${V}-win32-{{.ARCH}}.zip"
+        STAGE="{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}-portable"
+        rm -rf "$STAGE" && mkdir -p "$STAGE/backend"
+        cp "{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe" "$STAGE/"
+        if [ -d "{{.ROOT_DIR}}/{{.BIN_DIR}}/backend" ]; then
+          cp -r "{{.ROOT_DIR}}/{{.BIN_DIR}}/backend/." "$STAGE/backend/"
+        fi
+        cd "{{.ROOT_DIR}}/{{.BIN_DIR}}"
         if command -v zip >/dev/null 2>&1; then
-          zip -qr "$OUT" {{.APP_NAME}}-portable
-        elif [ -x "/c/Program Files/7-Zip/7z.exe" ]; then
-          OUT_W=$(cygpath -w "$OUT")
-          "/c/Program Files/7-Zip/7z.exe" a -tzip "$OUT_W" {{.APP_NAME}}-portable >/dev/null
+          zip -qr "$NAME" {{.APP_NAME}}-portable
+        elif [ -f "C:/Program Files/7-Zip/7z.exe" ]; then
+          "C:/Program Files/7-Zip/7z.exe" a -tzip "$NAME" {{.APP_NAME}}-portable >/dev/null
         elif command -v powershell.exe >/dev/null 2>&1; then
-          STAGE_W=$(cygpath -w "$STAGE")
-          OUT_W=$(cygpath -w "$OUT")
-          powershell.exe -NoProfile -Command "Compress-Archive -LiteralPath \"$STAGE_W\" -DestinationPath \"$OUT_W\" -Force"
+          powershell.exe -NoProfile -Command "Compress-Archive -LiteralPath \".\\{{.APP_NAME}}-portable\" -DestinationPath \".\\$NAME\" -Force"
         else
           echo "no zip-capable tool found (zip/7z/powershell)" >&2
           exit 1
