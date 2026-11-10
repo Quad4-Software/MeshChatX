@@ -629,7 +629,10 @@ jobs:
                   GITHUB_TOKEN: ${{ github.token }}
               run: sh scripts/ci/setup-task.sh
 
+            # Windows images ship Go already; setup-go fails there looking
+            # for powershell under the hardened runner.
             - name: Set up Go (Wails shell)
+              if: matrix.label != 'windows'
               uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
               with:
                   go-version: "1.27.x"
