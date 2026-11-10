@@ -35,5 +35,24 @@ bash scripts/ci/github-verify-frozen-codec2.sh "$ROOT/build/exe/darwin-x64"
 bash scripts/ci/github-verify-frozen-umsgpack.sh "$ROOT/build/exe/darwin-x64"
 bash scripts/ci/github-verify-frozen-runtime.sh "$ROOT/build/exe/darwin-x64"
 
-pnpm exec Wails desktop packaging --mac --x64 --config scripts/ci/Wails desktop packaging-mac.config.js --publish=never
+sh scripts/ci/setup-wails3.sh
+
+# x64-only package on a native Intel runner: darwin:package builds a
+# universal binary via lipo, which needs an arm64-capable CGO toolchain
+# that Intel runners do not have. Build amd64 natively instead and rename
+# the dmg so it does not claim to be universal.
+(
+    cd desktop
+    task darwin:build PRODUCTION=true ARCH=amd64
+    task darwin:create:app:bundle
+    task darwin:create:dmg
+)
+cd "$ROOT"
+
+mkdir -p dist
+dmg="$(ls desktop/bin/*-mac-universal.dmg 2>/dev/null | head -1)"
+if [ -n "$dmg" ]; then
+    mv "$dmg" "dist/$(basename "$dmg" | sed 's/mac-universal/mac-x64/')"
+fi
+ls -1 dist/
 

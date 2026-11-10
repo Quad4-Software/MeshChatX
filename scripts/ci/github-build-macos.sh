@@ -29,4 +29,10 @@ bash scripts/ci/github-verify-frozen-umsgpack.sh "$ROOT/build/exe/darwin-arm64"
 bash scripts/ci/github-verify-frozen-runtime.sh "$ROOT/build/exe/darwin-arm64"
 bash scripts/ci/github-verify-frozen-bleak.sh "$ROOT/build/exe/darwin-arm64"
 
+sh scripts/ci/setup-wails3.sh
 cd desktop && task darwin:package
+cd "$ROOT"
+
+mkdir -p dist
+cp -f desktop/bin/*.dmg dist/ 2>/dev/null || true
+ls -1 dist/

@@ -52,3 +52,5 @@ fi
 
 flatpak-builder --repo=repo --force-clean build-dir "$manifest"
 flatpak build-bundle repo "reticulum-meshchatx-${branch}.flatpak" com.meshchatx.app
+mkdir -p dist
+mv -f "reticulum-meshchatx-${branch}.flatpak" dist/

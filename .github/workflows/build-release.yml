@@ -204,8 +204,7 @@ jobs:
             # The RPM and APK tasks run a full frontend build, and the
             # visualiser WASM step requires TinyGo. Without it both formats
             # were silently skipped as best effort.
-            - name: Set up Go (RPM/APK full builds)
-              if: matrix.arch == 'x64'
+            - name: Set up Go (desktop packaging)
               uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
               env:
                   TMPDIR: ${{ runner.temp }}
@@ -361,8 +360,8 @@ jobs:
                   set -euo pipefail
                   bash scripts/ensure-flatpak-flathub-remote.sh
                   flatpak --user install -y --noninteractive flathub \
-                      org.freedesktop.Platform//25.08 \
-                      org.freedesktop.Sdk//25.08 \
+                      org.gnome.Platform//49 \
+                      org.gnome.Sdk//49 \
 
             - name: Set up Python and UV
               uses: $/.github/actions/setup-python-uv

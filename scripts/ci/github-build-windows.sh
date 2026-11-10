@@ -29,8 +29,14 @@ fi
 # Windows packaging runs on a Windows runner via the desktop Taskfile
 # (wails3 generate syso + makensis). Cross-building NSIS from Linux is not
 # supported; this script is intended for windows-latest CI jobs.
+sh scripts/ci/setup-wails3.sh
 cd desktop && task windows:package
 cd "$ROOT"
+
+mkdir -p dist
+cp -f desktop/bin/ReticulumMeshChat*-win32-*.zip \
+      desktop/bin/ReticulumMeshChatX-v*-win32-*-installer.exe dist/ 2>/dev/null || true
+ls -1 dist/
 
 # Verify the bundled backend manifest inside the staged package payload.
 for backend_dir in desktop/bin/backend build/exe/win32-x64; do

@@ -183,9 +183,13 @@ if [ "${SKIP_DESKTOP:-0}" != 1 ]; then
         has_format deb && _tasks="$_tasks linux:create:deb linux:create:rpm"
         if [ -n "$_tasks" ]; then
             echo "Desktop linux ${NATIVE_ARCH} (${_tasks})..."
-            _desktop_backend "${NATIVE_ARCH/x64/amd64}"
+            sh scripts/ci/setup-wails3.sh
+            _desktop_backend "$NATIVE_ARCH"
             # shellcheck disable=SC2086
             run_desktop_package $_tasks ARCH="$_goarch"
+            mkdir -p release-assets
+            cp -f desktop/bin/*.AppImage desktop/bin/*.deb desktop/bin/*.rpm \
+                  desktop/bin/*-linux-*.zip release-assets/ 2>/dev/null || true
         fi
         if [[ -d "desktop/bin/backend" ]]; then
             node scripts/ci/github-verify-backend-manifest.mjs desktop/bin/backend

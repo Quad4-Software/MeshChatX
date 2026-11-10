@@ -104,8 +104,10 @@ env:
 jobs:
     android:
         name: Android APK (tag)
-        runs-on: self-hosted
-        timeout-minutes: 90
+        # GitHub-hosted: the job needs apt, setup-python image manifests, and
+        # the preinstalled Android SDK, none of which exist on the Arch runner.
+        runs-on: ubuntu-latest
+        timeout-minutes: 150
         defaults:
             run:
                 shell: bash
