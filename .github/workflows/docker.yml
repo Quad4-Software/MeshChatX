@@ -49,66 +49,6 @@ concurrency:
     cancel-in-progress: true
 
 env:
-    HARDEN_ENDPOINTS: >
-        github.com:443
-        api.github.com:443
-        codeload.github.com:443
-        uploads.github.com:443
-        release-assets.githubusercontent.com:443
-        *.githubusercontent.com:443
-        *.actions.githubusercontent.com:443
-        *.githubapp.com:443
-        *.blob.core.windows.net:443
-        ghcr.io:443
-        azure.archive.ubuntu.com:80
-        archive.ubuntu.com:80
-        *.ubuntu.com:443
-        packages.microsoft.com:443
-        pypi.org:443
-        upload.pypi.org:443
-        *.pythonhosted.org:443
-        registry.npmjs.org:443
-        nodejs.org:443
-        proxy.golang.org:443
-        sum.golang.org:443
-        sh.rustup.rs:443
-        static.rust-lang.org:443
-        static.crates.io:443
-        index.crates.io:443
-        api.adoptium.net:443
-        dl.google.com:443
-        maven.google.com:443
-        repo.maven.apache.org:443
-        services.gradle.org:443
-        repo.gradle.org:443
-        plugins.gradle.org:443
-        chaquo.com:443
-        auth.docker.io:443
-        registry-1.docker.io:443
-        download.docker.com:443
-        production.cloudfront.docker.com:443
-        mirror.gcr.io:443
-        *.sigstore.dev:443
-        check.trivy.dev:443
-        cgr.dev:443
-        *.cgr.dev:443
-        dl-cdn.alpinelinux.org:443
-        *.alpinelinux.org:443
-        *.r2.cloudflarestorage.com:443
-        dl.flathub.org:443
-        flathub.org:443
-        api.securityscorecards.dev:443
-        meshchatx.com:443
-        cdn.playwright.dev:443
-        playwright.download.prss.microsoft.com:443
-        *.prss.microsoft.com:443
-        firefox.settings.services.mozilla.com:443
-        *.mozilla.com:443
-        storage.googleapis.com:443
-        *.stepsecurity.io:443
-        archlinux.org:443
-        geo.mirror.pkgbuild.com:443
-        ziglang.org:443
     REGISTRY: ghcr.io
     # Official .deb from aquasecurity/trivy releases. Scripts/ci/setup-trivy.sh verifies
     # checksums.txt (sigstore) + .deb SHA256 + .deb (sigstore). Bump with upstream tags.
@@ -120,7 +60,7 @@ jobs:
         # images when the run actually passed. Tag pushes and manual
         # dispatches are unaffected.
         if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
-        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
+        runs-on: ubuntu-latest
         timeout-minutes: 90
         permissions:
             contents: read
@@ -149,11 +89,6 @@ jobs:
                       oci_description: "MeshChatX all-in-one Reticulum client with i2pd and yggdrasil."
                       oci_licenses: "MIT AND 0BSD AND BSD-3-Clause AND LGPL-3.0-only"
         steps:
-            - name: Harden runner
-              uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
-              with:
-                  egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
-                  allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
             - name: Verify action pins (GitHub API)
               env:
                   GH_TOKEN: ${{ github.token }}
@@ -161,7 +96,7 @@ jobs:
                   set -euo pipefail
                   api="https://api.github.com/repos"
                   resolve() {
-                    # jq is not installed on the self-hosted runner; python3 is.
+                    # python3 is guaranteed on every runner image.
                     python3 -c 'import json,os,sys,urllib.request as U; R,T,A=sys.argv[1:4]; H={"Accept":"application/vnd.github+json","Authorization":"Bearer "+os.environ["GH_TOKEN"],"User-Agent":"meshchatx-pin-check"}; g=lambda x: json.load(U.urlopen(U.Request(x,headers=H))); o=g(A+"/"+R+"/git/refs/tags/"+T)["object"]; print(o["sha"] if o["type"]=="commit" else g(o["url"])["object"]["sha"])' "$1" "$2" "${api}"
                   }
                   check() {
@@ -205,110 +140,6 @@ jobs:
                   set -euo pipefail
                   lower="$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
                   echo "name=${REGISTRY}/${lower}" >> "$GITHUB_OUTPUT"
-
-            # The self-hosted runner's service PATH may not include docker
-            # (rootless installs, /usr/local, snap). Locate any container CLI
-            # and put its directory on PATH for the docker/* actions.
-            - name: Locate container runtime
-              run: | # zizmor: ignore[github-env] discovered paths come from the runner host filesystem, never from workflow input
-                  set -euo pipefail
-                  found=""
-                  is_podman=0
-                  # type -P only returns real files on disk; command -v can
-                  # return shell functions/aliases/hashes that node actions
-                  # cannot exec.
-                  for cand in docker podman podman-docker \
-                    /usr/bin/docker /usr/local/bin/docker /snap/bin/docker \
-                    /usr/bin/podman /usr/local/bin/podman /usr/bin/podman-docker \
-                    "$HOME/.docker/bin/docker" "$HOME/.local/bin/docker" \
-                    "$HOME/bin/docker" "$HOME/.local/bin/podman"; do
-                    p="$(type -P "$cand" 2>/dev/null || true)"
-                    if [ -n "$p" ] && [ -x "$p" ]; then found="$p"; break; fi
-                  done
-                  case "$(basename "${found:-none}")" in
-                    podman|podman-docker) is_podman=1 ;;
-                  esac
-
-                  # Podman rootless needs subuid/subgid ranges; without them
-                  # every container op fails. Prefer, in order: an existing
-                  # socket, a working rootless podman, then rootful podman via
-                  # passwordless sudo.
-                  sock=""
-                  for cand_sock in \
-                    /var/run/docker.sock /run/docker.sock \
-                    /run/podman/podman.sock /var/run/podman/podman.sock \
-                    "${XDG_RUNTIME_DIR:-}/podman/podman.sock" \
-                    "${XDG_RUNTIME_DIR:-}/docker.sock"; do
-                    [ -n "$cand_sock" ] && [ -S "$cand_sock" ] && { sock="$cand_sock"; break; }
-                  done
-                  if [ -z "$sock" ] && [ "$is_podman" = "1" ] && [ -n "$found" ]; then
-                    if "$found" info >/dev/null 2>&1; then
-                      # rootless podman works; find its user socket
-                      export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-${RUNNER_TEMP:-/tmp}/xdg-runtime}"
-                      mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
-                      "$found" info --format '{{range .Plugins.Network}}{{.Name}} {{end}}' >/dev/null 2>&1 || true
-                      for cand_sock in "$XDG_RUNTIME_DIR/podman/podman.sock" "$XDG_RUNTIME_DIR/docker.sock"; do
-                        [ -S "$cand_sock" ] && { sock="$cand_sock"; break; }
-                      done
-                      [ -z "$sock" ] && { "$found" system service --time 0 >/dev/null 2>&1 || true; }
-                      for i in 1 2 3 4 5; do
-                        [ -n "$sock" ] && break
-                        for cand_sock in "$XDG_RUNTIME_DIR/podman/podman.sock" "$XDG_RUNTIME_DIR/docker.sock"; do
-                          [ -S "$cand_sock" ] && { sock="$cand_sock"; break; }
-                        done
-                        [ -n "$sock" ] || sleep 1
-                      done
-                    elif sudo -n true 2>/dev/null; then
-                      echo "rootless podman unavailable; trying rootful via sudo"
-                      sudo -n "$found" info >/dev/null 2>&1 || true
-                      sudo -n systemctl start podman.socket 2>/dev/null || true
-                      for i in 1 2 3 4 5; do
-                        for cand_sock in /run/podman/podman.sock /var/run/podman/podman.sock; do
-                          [ -S "$cand_sock" ] && { sock="$cand_sock"; break; }
-                        done
-                        [ -n "$sock" ] && break
-                        sleep 1
-                      done
-                    fi
-                  fi
-                  if [ -n "$sock" ]; then
-                    echo "DOCKER_HOST=unix://$sock" >> "$GITHUB_ENV"
-                    echo "container socket: $sock"
-                  fi
-
-                  if [ -z "$found" ]; then
-                    # Last resort: static docker CLI. A daemon may still be
-                    # reachable via a socket detected above.
-                    cli="${RUNNER_TEMP:-/tmp}/docker-cli"
-                    tmp="$(mktemp -d)"
-                    if curl -fsSL --retry 3 \
-                        "https://download.docker.com/linux/static/stable/x86_64/docker-27.5.1.tgz" \
-                        | tar -xz -C "$tmp" \
-                      && [ -x "$tmp/docker/docker" ]; then
-                      mkdir -p "$cli"
-                      cp "$tmp/docker/docker" "$cli/docker"
-                      chmod +x "$cli/docker"
-                      found="$cli/docker"
-                      echo "using static docker CLI: $found"
-                    else
-                      echo "container CLI not found and static download failed" >&2
-                      exit 1
-                    fi
-                  fi
-                  if [ -z "$sock" ] && [ "$is_podman" = "0" ]; then
-                    # docker CLI defaults to /var/run/docker.sock; nothing to set
-                    :
-                  fi
-                  echo "container CLI: $found (podman=$is_podman)"
-                  if [ "$(basename "$found")" = "docker" ]; then
-                    dirname "$found" >> "$GITHUB_PATH"
-                  else
-                    # docker/* actions call `docker` literally; shim the name.
-                    shim="${RUNNER_TEMP:-/tmp}/docker-shim"
-                    mkdir -p "$shim"
-                    ln -sf "$found" "$shim/docker"
-                    echo "$shim" >> "$GITHUB_PATH"
-                  fi
 
             - name: Set up QEMU
               uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
