@@ -52,7 +52,7 @@ tasks:
     cmds:
       - wails3 generate webview2bootstrapper -dir "{{.ROOT_DIR}}/build/windows/nsis"
       - |
-        V=$(grep -o '"version"[^,}]*' "{{.ROOT_DIR}}/app-version.json" | grep -o '[0-9][0-9.]*' | head -1)
+        V=$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1],'utf8')).version)" "{{.ROOT_DIR}}/app-version.json")
         test -n "$V" || { echo "could not resolve version from {{.ROOT_DIR}}/app-version.json" >&2; exit 1; }
         makensis -DARG_WAILS_{{.ARG_FLAG}}_BINARY="{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe" -DINFO_PRODUCTVERSION="$V" project.nsi
     vars:
@@ -77,7 +77,7 @@ tasks:
         if [ -d "{{.ROOT_DIR}}/bin/backend" ]; then
           cp -r {{.ROOT_DIR}}/bin/backend/. "$STAGE/backend/"
         fi
-        V=$(grep -o '"version"[^,}]*' "{{.ROOT_DIR}}/app-version.json" | grep -o '[0-9][0-9.]*' | head -1)
+        V=$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1],'utf8')).version)" "{{.ROOT_DIR}}/app-version.json")
         OUT="{{.ROOT_DIR}}/{{.BIN_DIR}}/ReticulumMeshChat-v${V}-win32-{{.ARCH}}.zip"
         cd /tmp
         if command -v zip >/dev/null 2>&1; then
@@ -88,7 +88,7 @@ tasks:
         elif command -v powershell.exe >/dev/null 2>&1; then
           STAGE_W=$(cygpath -w "$STAGE")
           OUT_W=$(cygpath -w "$OUT")
-          powershell.exe -NoProfile -Command "Compress-Archive -LiteralPath '$STAGE_W' -DestinationPath '$OUT_W' -Force"
+          powershell.exe -NoProfile -Command "Compress-Archive -LiteralPath \"$STAGE_W\" -DestinationPath \"$OUT_W\" -Force"
         else
           echo "no zip-capable tool found (zip/7z/powershell)" >&2
           exit 1
