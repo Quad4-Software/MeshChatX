@@ -203,7 +203,8 @@ print(u["url"], u["digests"]["sha256"])
         echo "PyPI fallback failed: could not select a wheel" >&2
         exit 1
     }
-    read -r WHEEL_URL WHEEL_SHA256 <<< "${WHEEL_PICK}"
+    WHEEL_URL="${WHEEL_PICK%% *}"
+    WHEEL_SHA256="${WHEEL_PICK##* }"
     download "${TMPDIR_UV}/uv.whl" "${WHEEL_URL}"
     echo "${WHEEL_SHA256}  ${TMPDIR_UV}/uv.whl" | sha256sum -c --status || {
         echo "SHA256 verification failed for PyPI wheel ${WHEEL_URL}" >&2
