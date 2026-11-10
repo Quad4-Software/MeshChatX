@@ -87,7 +87,15 @@ tasks:
     cmds:
       - |
         set -e
-        hdiutil create -volname "Reticulum MeshChatX" -srcfolder "{{.BIN_DIR}}/{{.APP_NAME}}.app" -ov -format UDZO "{{.BIN_DIR}}/ReticulumMeshChatX-v{{.VERSION}}-mac-universal.dmg"
+        DMG="{{.BIN_DIR}}/ReticulumMeshChatX-v{{.VERSION}}-mac-universal.dmg"
+        for i in 1 2 3; do
+          if hdiutil create -volname "Reticulum MeshChatX" -srcfolder "{{.BIN_DIR}}/{{.APP_NAME}}.app" -ov -format UDZO "$DMG"; then
+            exit 0
+          fi
+          echo "hdiutil create failed (attempt $i of 3); retrying" >&2
+          sleep 15
+        done
+        exit 1
     vars:
       VERSION:
         sh: grep -o '"version"[^,}]*' {{.ROOT_DIR}}/app-version.json | grep -o '[0-9][0-9.]*' | head -1

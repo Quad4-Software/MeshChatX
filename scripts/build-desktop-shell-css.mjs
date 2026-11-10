@@ -26,7 +26,7 @@ function buildCss() {
         REPO_ROOT,
         "node_modules",
         ".bin",
-        process.platform === "win32" ? "tailwindcss.cmd" : "tailwindcss",
+        process.platform === "win32" ? "tailwindcss.cmd" : "tailwindcss"
     );
     const result = spawnSync(tailwindBin, ["-i", SRC_CSS, "-o", SHELL_OUT, "--minify"], {
         cwd: REPO_ROOT,
