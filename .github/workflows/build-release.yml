@@ -570,15 +570,10 @@ jobs:
             FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
             MESHCHATX_FRONTEND_PREBUILT: "1"
         steps:
-            # harden-runner's Windows post-step fails to spawn powershell.exe on
-            # windows-2025 and marks the whole job failed after a good build.
-            # It only audits (non-Linux egress-policy) so skipping loses nothing.
-            - name: Harden runner
-              if: runner.os != 'Windows'
-              uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
-              with:
-                  egress-policy: ${{ runner.os == 'Linux' && 'block' || 'audit' }}
-                  allowed-endpoints: ${{ env.HARDEN_ENDPOINTS }}
+            # No harden-runner here: every leg is non-Linux so it would only
+            # audit, and its Windows post-step cannot spawn powershell.exe on
+            # windows-2025, failing jobs after a good build. Egress-block
+            # hardening stays on the Linux jobs where it actually filters.
             - name: Checkout
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:

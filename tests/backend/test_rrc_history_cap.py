@@ -68,3 +68,77 @@ def test_default_cap_keeps_full_real_history(tmp_path):
     assert len(msgs) == 600
     assert all(m.kind == "msg" for m in msgs)
     assert [m.text for m in msgs] == [f"real-{i}" for i in range(600)]
+
+
+def test_byte_cap_trims_oversized_room_buffer(tmp_path):
+    """Count caps alone cannot bound memory when bodies are large.
+
+    A hub may advertise max_msg_body_bytes up to the protocol ceiling, so
+    history_per_room_cap * body-size can reach tens of GB. The in-memory
+    buffer must also honor the same byte bound as the history file.
+    """
+    manager = RRCManager(
+        identity=FakeIdentity(b"\x22" * 16),
+        storage_dir=str(tmp_path),
+        history_per_room_cap=0,
+    )
+    hub = manager.add_hub(b"\xaa" * 16, name="test")
+    hub.add_room("general")
+    big = "x" * (1024 * 1024)
+    for i in range(10):
+        hub._record_message(
+            proto.RRCMessage(
+                "msg", "general", b"\x33" * 16, "peer", big + str(i), 1000 + i
+            )
+        )
+
+    buf = hub.messages["general"]
+    assert len(buf) <= 8
+    assert buf[-1].text.endswith("9")
+    assert hub._room_bytes["general"] <= hub.HISTORY_FILE_MAX_BYTES
+    assert hub._room_bytes["general"] == sum(hub._msg_buf_size(m) for m in buf)
+
+
+def test_byte_cap_counts_utf8_bytes(tmp_path):
+    manager = RRCManager(
+        identity=FakeIdentity(b"\x22" * 16),
+        storage_dir=str(tmp_path),
+        history_per_room_cap=0,
+    )
+    hub = manager.add_hub(b"\xaa" * 16, name="test")
+    hub.add_room("general")
+    # Each character is two UTF-8 bytes; char count alone would undercount.
+    text = "é" * (4 * 1024 * 1024)
+    for i in range(3):
+        hub._record_message(
+            proto.RRCMessage(
+                "msg", "general", b"\x33" * 16, "peer", f"{text}-{i}", 1000 + i
+            )
+        )
+
+    buf = hub.messages["general"]
+    # Each record alone exceeds the byte cap, so only the newest survives.
+    assert len(buf) == 1
+    assert buf[0].text.endswith("-2")
+    assert hub._room_bytes["general"] == sum(hub._msg_buf_size(m) for m in buf)
+
+
+def test_notice_buffer_byte_cap(tmp_path):
+    manager = RRCManager(
+        identity=FakeIdentity(b"\x22" * 16),
+        storage_dir=str(tmp_path),
+        history_per_room_cap=0,
+    )
+    hub = manager.add_hub(b"\xaa" * 16, name="test")
+    hub.add_room("general")
+    big = "y" * (4 * 1024 * 1024)
+    for i in range(4):
+        hub._record_notice(
+            proto.RRCMessage(
+                "notice", "general", b"\x33" * 16, "peer", big + str(i), 1000 + i
+            )
+        )
+
+    assert hub._notice_bytes <= hub.HISTORY_FILE_MAX_BYTES
+    assert hub._notice_bytes == sum(hub._msg_buf_size(m) for m in hub.notices)
+    assert len(hub.notices) <= 200

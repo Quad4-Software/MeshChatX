@@ -163,6 +163,11 @@ const UI_PAGES = [
         ready: "Reticulum Mesh",
         budgets: { performance: 35 },
         perf: { lcpMs: 8000, navMs: 8000, heapMb: 350 },
+        // vis-network attaches element-scoped listeners to its own canvas
+        // and container; they are collected with the destroyed graph and
+        // never call removeEventListener, so the call-counting probe sees a
+        // small positive net per mount. The page itself registers none.
+        heap: { listeners: 60 },
     },
     {
         id: "archives",
