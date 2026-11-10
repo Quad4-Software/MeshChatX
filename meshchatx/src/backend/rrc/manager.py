@@ -220,7 +220,16 @@ class RRCHub:
 
         self.rooms = set()
         self.messages = {}
+        # Approximate per-room buffer sizes in bytes. Count caps alone let a
+        # hub advertising large max_msg_body_bytes grow a room to
+        # history_per_room_cap * body-size before file compaction runs, so
+        # appends also enforce HISTORY_FILE_MAX_BYTES per room. The dirty
+        # set marks rooms whose buffer changed outside the tracked append
+        # and trim paths; the next accounting pass recomputes the total.
+        self._room_bytes = {}
+        self._room_bytes_dirty = set()
         self.notices = []
+        self._notice_bytes = 0
         self.unread_rooms = set()
         self.unread_counts = {}
         self.mention_rooms = set()
@@ -316,6 +325,8 @@ class RRCHub:
         with self._lock:
             self.rooms.discard(r)
             self.messages.pop(r, None)
+            self._room_bytes.pop(r, None)
+            self._room_bytes_dirty.discard(r)
             self.unread_rooms.discard(r)
             self.unread_counts.pop(r, None)
             self.mention_rooms.discard(r)
@@ -329,6 +340,8 @@ class RRCHub:
         with self._lock:
             if r in self.messages:
                 self.messages[r] = []
+                self._room_bytes.pop(r, None)
+                self._room_bytes_dirty.discard(r)
             self.unread_rooms.discard(r)
             self.unread_counts.pop(r, None)
             self.mention_rooms.discard(r)
@@ -1193,6 +1206,8 @@ class RRCHub:
         with self._lock:
             self.rooms.discard(room_n)
             self.messages.pop(room_n, None)
+            self._room_bytes.pop(room_n, None)
+            self._room_bytes_dirty.discard(room_n)
             self.unread_rooms.discard(room_n)
             self.unread_counts.pop(room_n, None)
             self.mention_rooms.discard(room_n)
@@ -1457,6 +1472,62 @@ class RRCHub:
             return None
         return v if v > 0 else None
 
+    @staticmethod
+    def _msg_buf_size(msg):
+        size = 192
+        text = getattr(msg, "text", None)
+        if isinstance(text, str):
+            size += len(text.encode("utf-8", "ignore"))
+        nick = getattr(msg, "nick", None)
+        if isinstance(nick, str):
+            size += len(nick.encode("utf-8", "ignore"))
+        return size
+
+    def _room_buf_bytes(self, room, buf):
+        if room in self._room_bytes_dirty:
+            total = 0
+            for m in buf:
+                total += self._msg_buf_size(m)
+            self._room_bytes[room] = total
+            self._room_bytes_dirty.discard(room)
+        return self._room_bytes.get(room, 0)
+
+    def _append_room_msg(self, room, buf, msg):
+        """Append under both the count and byte caps, dropping oldest first.
+
+        Caller must hold self._lock.
+        """
+        total = self._room_buf_bytes(room, buf) + self._msg_buf_size(msg)
+        self._room_bytes[room] = total
+        buf.append(msg)
+        self._trim_room_buf(room, buf)
+
+    def _trim_room_buf(self, room, buf, enforce_count=True):
+        """Drop oldest messages until the count and byte caps hold.
+
+        The newest message always survives the byte cap so one oversized
+        record cannot empty the room. Caller must hold self._lock.
+        """
+        total = self._room_buf_bytes(room, buf)
+        limit = self.HISTORY_FILE_MAX_BYTES
+        cap = self._per_room_cap() if enforce_count else None
+        need = max(0, len(buf) - cap) if cap is not None else 0
+        drop = 0
+        while drop < len(buf):
+            byte_over = total > limit and drop < len(buf) - 1
+            if need <= 0 and not byte_over:
+                break
+            total -= self._msg_buf_size(buf[drop])
+            drop += 1
+            if need > 0:
+                need -= 1
+        if drop:
+            del buf[:drop]
+            self._room_bytes[room] = max(0, total)
+
+    def _invalidate_room_buf(self, room):
+        self._room_bytes_dirty.add(room)
+
     def _filter_history(self):
         return bool(self.manager.filter_loaded_history)
 
@@ -1602,6 +1673,8 @@ class RRCHub:
                 break
             self._ephemeral_rooms.pop(victim, None)
             self.messages.pop(victim, None)
+            self._room_bytes.pop(victim, None)
+            self._room_bytes_dirty.discard(victim)
             self.members.pop(victim, None)
             self.unread_rooms.discard(victim)
             self.unread_counts.pop(victim, None)
@@ -1616,6 +1689,8 @@ class RRCHub:
                 break
             self._ephemeral_rooms.pop(victim, None)
             self.messages.pop(victim, None)
+            self._room_bytes.pop(victim, None)
+            self._room_bytes_dirty.discard(victim)
             self.members.pop(victim, None)
             self.unread_rooms.discard(victim)
             self.unread_counts.pop(victim, None)
@@ -1631,6 +1706,10 @@ class RRCHub:
         if buf is None:
             self._register_room_key(room)
             buf = self.messages.setdefault(room, [])
+        elif room not in self._room_bytes and room not in self._room_bytes_dirty:
+            # Buffer exists without byte accounting (legacy path); recompute
+            # on the next append rather than undercounting forever.
+            self._room_bytes_dirty.add(room)
         return buf
 
     def _note_nick(self, peer_hash, nick):
@@ -1770,6 +1849,8 @@ class RRCHub:
                 m.seq = self._next_seq()
             with self._lock:
                 self.messages[room] = msgs
+                self._room_bytes_dirty.add(room)
+                self._trim_room_buf(room, msgs, enforce_count=False)
 
     def _clean_history(self):
         now = time.time()
@@ -1787,6 +1868,8 @@ class RRCHub:
                         for m in old:
                             self.messages[r].remove(m)
                             cleaned = True
+                        if old:
+                            self._room_bytes_dirty.add(r)
                 except Exception as e:
                     RNS.trace_exception(e)
         self._last_history_clean = time.time()
@@ -1927,7 +2010,6 @@ class RRCHub:
         return "unknown"
 
     def _record_message(self, msg, local=False):
-        cap = self._per_room_cap()
         bumped = None
         with self._lock:
             buf = self._messages_buf(msg.room or "*")
@@ -1939,9 +2021,7 @@ class RRCHub:
                     bumped = existing
             if bumped is None:
                 msg.seq = self._next_seq()
-                buf.append(msg)
-                if cap is not None and len(buf) > cap:
-                    del buf[: len(buf) - cap]
+                self._append_room_msg(msg.room or "*", buf, msg)
                 if (
                     not local
                     and msg.room
@@ -1963,13 +2043,10 @@ class RRCHub:
             return
         msg = proto.RRCMessage("system", room, None, None, text, proto.now_ms())
         msg.event = event if isinstance(event, str) and event else None
-        cap = self._per_room_cap()
         with self._lock:
             msg.seq = self._next_seq()
             buf = self._messages_buf(room)
-            buf.append(msg)
-            if cap is not None and len(buf) > cap:
-                del buf[: len(buf) - cap]
+            self._append_room_msg(room, buf, msg)
             self.manager._notify_messages(self, msg)
         self._append_history(room, msg)
         self._clean_history()
@@ -1990,17 +2067,18 @@ class RRCHub:
             if target_room:
                 msg.room = target_room
 
-        cap = self._per_room_cap()
         with self._lock:
             msg.seq = self._next_seq()
             self.notices.append(msg)
-            if len(self.notices) > 200:
-                del self.notices[: len(self.notices) - 200]
+            self._notice_bytes += self._msg_buf_size(msg)
+            while self.notices and (
+                len(self.notices) > 200
+                or self._notice_bytes > self.HISTORY_FILE_MAX_BYTES
+            ):
+                self._notice_bytes -= self._msg_buf_size(self.notices.pop(0))
             if target_room:
                 buf = self._messages_buf(target_room)
-                buf.append(msg)
-                if cap is not None and len(buf) > cap:
-                    del buf[: len(buf) - cap]
+                self._append_room_msg(target_room, buf, msg)
                 if target_room != self.manager.active_room_for(self):
                     # Informational notices (MOTD, WHO replies, room lists, and
                     # join/part chatter on hubs that send it as NOTICE) must not
@@ -2684,6 +2762,8 @@ class RRCHub:
             with self._lock:
                 for room_name in leave_rooms:
                     self.messages.pop(room_name, None)
+                    self._room_bytes.pop(room_name, None)
+                    self._room_bytes_dirty.discard(room_name)
                     self.members.pop(room_name, None)
             for room_name in leave_rooms:
                 if self.manager.active_room_for(self) == room_name:
@@ -3373,6 +3453,8 @@ class RRCManager:
                                 and len(hub.messages) < MAX_ROOM_KEYS
                             ):
                                 hub.messages[rn] = []
+                                hub._room_bytes.pop(rn, None)
+                                hub._room_bytes_dirty.discard(rn)
         cn = e.get("custom_name")
         if isinstance(cn, str) and cn.strip():
             hub.custom_name = cn.strip()
