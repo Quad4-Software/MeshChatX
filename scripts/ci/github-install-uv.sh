@@ -142,7 +142,7 @@ fi
 
 if [ "${GITHUB_OK}" = "1" ]; then
     EXPECTED="$(awk '{print $1}' "${TMPDIR_UV}/${ASSET}.sha256")"
-    ACTUAL="$(sha256sum "${TMPDIR_UV}/${ASSET}" | awk '{print $1}')"
+    ACTUAL="$(cd "${TMPDIR_UV}" && sha256sum "${ASSET}" | awk '{print $1}')"
     if [ -z "${EXPECTED}" ] || [ "${EXPECTED}" != "${ACTUAL}" ]; then
         echo "SHA256 verification failed for ${ASSET}" >&2
         echo "  expected: ${EXPECTED}" >&2

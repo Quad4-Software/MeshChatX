@@ -225,7 +225,6 @@ jobs:
                   artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 
             - name: Setup Task
-              if: matrix.setup_trivy
               env:
                   GITHUB_TOKEN: ${{ github.token }}
               run: sh scripts/ci/setup-task.sh
@@ -612,6 +611,11 @@ jobs:
             - name: Install Rosetta (Apple Silicon)
               if: matrix.label == 'macos'
               run: /usr/sbin/softwareupdate --install-rosetta --agree-to-license || true
+
+            - name: Setup Task
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+              run: sh scripts/ci/setup-task.sh
 
             - name: Download frontend artifact
               uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333

@@ -36,7 +36,7 @@ _fetch "$CHECKSUMS_URL" -o "${TMPDIR:-/tmp}/cosign-checksums.txt"
 _fetch "${BASE_URL}/${BINARY}" -o "${TMPDIR:-/tmp}/cosign"
 
 EXPECTED="$(grep "  ${BINARY}\$" ${TMPDIR:-/tmp}/cosign-checksums.txt | awk '{print $1}')"
-ACTUAL="$(sha256sum ${TMPDIR:-/tmp}/cosign | awk '{print $1}')"
+ACTUAL="$(cd "${TMPDIR:-/tmp}" && sha256sum cosign | awk '{print $1}')"
 if [ -z "$EXPECTED" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
     echo "SHA256 verification failed for ${BINARY}" >&2
     rm -f ${TMPDIR:-/tmp}/cosign ${TMPDIR:-/tmp}/cosign-checksums.txt

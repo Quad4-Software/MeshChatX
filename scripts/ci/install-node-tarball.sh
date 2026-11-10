@@ -34,7 +34,7 @@ curl -fsSL --retry 8 --retry-all-errors --retry-delay 4 \
     -o "${TMPDIR_NODE}/SHASUMS256.txt" "${BASE_URL}/SHASUMS256.txt"
 
 EXPECTED="$(grep "  ${TARBALL}\$" "${TMPDIR_NODE}/SHASUMS256.txt" | awk '{print $1}')"
-ACTUAL="$(sha256sum "${TMPDIR_NODE}/${TARBALL}" | awk '{print $1}')"
+ACTUAL="$(cd "${TMPDIR_NODE}" && sha256sum "${TARBALL}" | awk '{print $1}')"
 if [ -z "${EXPECTED}" ] || [ "${EXPECTED}" != "${ACTUAL}" ]; then
     echo "SHA256 verification failed for ${TARBALL}" >&2
     echo "  expected: ${EXPECTED}" >&2
