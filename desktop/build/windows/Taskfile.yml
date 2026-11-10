@@ -54,7 +54,10 @@ tasks:
       - |
         V=$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1],'utf8')).version)" "{{.ROOT_DIR}}/app-version.json")
         test -n "$V" || { echo "could not resolve version from {{.ROOT_DIR}}/app-version.json" >&2; exit 1; }
-        makensis -DARG_WAILS_{{.ARG_FLAG}}_BINARY="{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe" -DINFO_PRODUCTVERSION="$V" project.nsi
+        EXE="{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe"
+        test -f "$EXE" || { echo "missing $EXE" >&2; ls -la "{{.ROOT_DIR}}/{{.BIN_DIR}}" >&2; exit 1; }
+        EXE_W=$(node -e "console.log(process.argv[1].replace(/\//g,'\\\\'))" "$EXE")
+        makensis -DARG_WAILS_{{.ARG_FLAG}}_BINARY="$EXE_W" -DINFO_PRODUCTVERSION="$V" project.nsi
     vars:
       ARCH: '{{.ARCH | default ARCH}}'
       ARG_FLAG: '{{if eq .ARCH "amd64"}}AMD64{{else}}ARM64{{end}}'
