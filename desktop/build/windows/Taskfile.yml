@@ -53,6 +53,7 @@ tasks:
       - wails3 generate webview2bootstrapper -dir "{{.ROOT_DIR}}/build/windows/nsis"
       - |
         V=$(grep -o '"version"[^,}]*' "{{.ROOT_DIR}}/app-version.json" | grep -o '[0-9][0-9.]*' | head -1)
+        test -n "$V" || { echo "could not resolve version from {{.ROOT_DIR}}/app-version.json" >&2; exit 1; }
         makensis -DARG_WAILS_{{.ARG_FLAG}}_BINARY="{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe" -DINFO_PRODUCTVERSION="$V" project.nsi
     vars:
       ARCH: '{{.ARCH | default ARCH}}'
