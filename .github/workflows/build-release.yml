@@ -337,16 +337,25 @@ jobs:
             - name: Install flatpak toolchain
               run: |
                   set -euo pipefail
-                  sudo apt-get update -y
-                  sudo apt-get install -y --no-install-recommends \
-                      flatpak \
-                      flatpak-builder \
-                      elfutils \
-                      zstd \
-                      desktop-file-utils \
-                      appstream \
-                      libgtk-4-dev \
-                      libwebkitgtk-6.0-dev
+                  for attempt in 1 2 3; do
+                      if sudo apt-get -o Acquire::Retries=3 update -y \
+                          && sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+                              flatpak \
+                              flatpak-builder \
+                              elfutils \
+                              zstd \
+                              desktop-file-utils \
+                              appstream \
+                              libgtk-4-dev \
+                              libwebkitgtk-6.0-dev; then
+                          break
+                      fi
+                      if [ "$attempt" -eq 3 ]; then
+                          exit 1
+                      fi
+                      echo "apt attempt $attempt failed; retrying" >&2
+                      sleep 15
+                  done
 
             - name: Cache Flatpak runtimes
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
@@ -361,9 +370,18 @@ jobs:
               run: |
                   set -euo pipefail
                   bash scripts/ensure-flatpak-flathub-remote.sh
-                  flatpak --user install -y --noninteractive flathub \
-                      org.gnome.Platform//49 \
-                      org.gnome.Sdk//49 \
+                  for attempt in 1 2 3; do
+                      if flatpak --user install -y --noninteractive flathub \
+                          org.gnome.Platform//49 \
+                          org.gnome.Sdk//49; then
+                          break
+                      fi
+                      if [ "$attempt" -eq 3 ]; then
+                          exit 1
+                      fi
+                      echo "flatpak runtime install attempt $attempt failed; retrying" >&2
+                      sleep 15
+                  done
 
             - name: Set up Python and UV
               uses: $/.github/actions/setup-python-uv
