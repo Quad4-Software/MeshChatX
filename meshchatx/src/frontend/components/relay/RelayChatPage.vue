@@ -1810,6 +1810,7 @@ import { RELAY_HOST_MODAL_OVERLAY, RELAY_HOST_MODAL_PANEL_COMPACT } from "../../
 import { applyRelayShareLink, buildRelayShareMessage, parseRelayUri } from "../../js/relayLinkUtils.js";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import MarkdownRenderer from "../../js/MarkdownRenderer.js";
+import { hasRelayMicron, renderRelayMicronHtml, stripRelayMicron } from "../../js/relay/relayMicron.js";
 import { shouldOpenCustomContextMenu } from "../../js/contextMenuUtils.js";
 import {
     ANNOUNCE_SLIDER_POS_MAX,
@@ -3800,7 +3801,15 @@ export default {
                 return "";
             }
         },
-        renderMessageHtml(text) {
+        renderMessageHtml(text, { stripMicron = false } = {}) {
+            // Bodies carrying NomadNet's ¦-form Micron tags render as Micron,
+            // like NomadNet does; everything else keeps the Markdown path.
+            if (hasRelayMicron(text)) {
+                if (stripMicron) {
+                    return MarkdownRenderer.renderBasic(stripRelayMicron(text));
+                }
+                return renderRelayMicronHtml(text);
+            }
             return MarkdownRenderer.renderBasic(text);
         },
         handleMessageHtmlClick(event) {

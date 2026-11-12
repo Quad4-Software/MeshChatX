@@ -79,7 +79,7 @@
         <span
             class="wrap-break-word"
             @click="page.handleMessageHtmlClick($event)"
-            v-html="page.renderMessageHtml(entry.msg.text)"
+            v-html="page.renderMessageHtml(entry.msg.text, { stripMicron: true })"
         ></span>
         <!-- eslint-enable vue/no-v-html -->
         <div
@@ -102,27 +102,49 @@
     </div>
     <div
         v-else-if="entry.msg"
-        class="rounded-lg px-2 py-1 text-sm"
-        :class="entry.msg.mention ? 'bg-sem-warning/15' : 'hover:bg-sem-surface/40 dark:hover:bg-sem-surface/20'"
+        class="px-2 text-sm"
+        :class="[
+            entry.msg.mention ? 'bg-sem-warning/15' : 'hover:bg-sem-surface/40 dark:hover:bg-sem-surface/20',
+            micronArt ? '' : 'rounded-lg py-1',
+        ]"
         :data-msg-key="page.messageKey(entry.msg)"
         @contextmenu="page.openMessageContextMenu($event, entry.msg)"
     >
-        <span class="mr-1.5 text-xs text-sem-fg-muted">{{ page.formatTime(entry.msg.ts) }}</span>
-        <span
-            v-if="page.showDupCount(entry.msg)"
-            class="mr-1.5 rounded bg-sem-surface/70 px-1 py-px align-middle text-[10px] font-medium text-sem-fg-muted"
-            :title="$t('relay_chat.duplicate_count_title', { count: entry.msg.dup_count })"
-            data-testid="duplicate-count"
-            >{{ $t("relay_chat.duplicate_count", { count: entry.msg.dup_count }) }}</span
-        >
-        <span class="mr-1.5 font-semibold" :style="page.nameStyle(entry.msg)">{{ page.displayName(entry.msg) }}:</span>
-        <!-- eslint-disable vue/no-v-html -- sanitized via renderMessageHtml -->
-        <span
-            class="whitespace-pre-wrap wrap-break-word"
-            @click="page.handleMessageHtmlClick($event)"
-            v-html="page.renderMessageHtml(page.relayMessageDisplayText(entry.msg))"
-        ></span>
-        <!-- eslint-enable vue/no-v-html -->
+        <!-- Micron art keeps its shape: one unwrapped monospace line per message and no row padding, so
+             consecutive lines from one sender stack column for column. Coloured spans are inline blocks
+             so a background fills exactly its characters' cells, top to bottom. -->
+        <div :class="micronArt ? 'flex items-center' : 'contents'" :data-micron-art="micronArt ? '' : undefined">
+            <span
+                class="mr-1.5 shrink-0 text-xs tabular-nums text-sem-fg-muted"
+                :class="micronArt ? 'leading-none' : ''"
+                >{{ page.formatTime(entry.msg.ts) }}</span
+            >
+            <span
+                v-if="page.showDupCount(entry.msg)"
+                class="mr-1.5 shrink-0 rounded bg-sem-surface/70 px-1 py-px align-middle text-[10px] font-medium text-sem-fg-muted"
+                :title="$t('relay_chat.duplicate_count_title', { count: entry.msg.dup_count })"
+                data-testid="duplicate-count"
+                >{{ $t("relay_chat.duplicate_count", { count: entry.msg.dup_count }) }}</span
+            >
+            <span
+                class="mr-1.5 shrink-0 font-semibold"
+                :class="micronArt ? 'leading-none' : ''"
+                :style="page.nameStyle(entry.msg)"
+                >{{ page.displayName(entry.msg) }}:</span
+            >
+            <!-- eslint-disable vue/no-v-html -- sanitized via renderMessageHtml -->
+            <span
+                :class="
+                    micronArt
+                        ? 'min-w-0 overflow-hidden whitespace-pre font-mono leading-[normal] [&>span]:inline-block'
+                        : 'whitespace-pre-wrap wrap-break-word'
+                "
+                data-testid="relay-message-body"
+                @click="page.handleMessageHtmlClick($event)"
+                v-html="page.renderMessageHtml(displayText)"
+            ></span>
+            <!-- eslint-enable vue/no-v-html -->
+        </div>
         <div
             v-if="translation"
             class="mt-1 pt-1 border-t border-black/5 dark:border-white/5 text-xs text-sem-fg-muted flex items-center gap-2"
@@ -166,6 +188,7 @@
 <script setup>
 import { computed } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import { hasRelayMicronColour } from "../../js/relay/relayMicron.js";
 
 const props = defineProps({
     entry: {
@@ -189,6 +212,10 @@ const expanded = computed(() => {
     }
     return props.page.isPresenceGroupExpanded(props.entry.id);
 });
+
+const displayText = computed(() => (props.entry?.msg ? props.page.relayMessageDisplayText(props.entry.msg) : ""));
+
+const micronArt = computed(() => hasRelayMicronColour(displayText.value));
 
 const translation = computed(() => {
     if (!props.entry?.msg) {

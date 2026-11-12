@@ -1,0 +1,17 @@
+¦Bf00¦Faf0▄¦B0f9▀ ¦Fa0f▄███  ¦Bf00 ¦B0f9▀ ¦Faf0▀▀▀ ¦Fa0f▄¦Bf00▀¦F0f9▄¦B0f9        ¦Baf0▄▄▄▄▄ ¦Bf00¦Fa0f▄█¦B0f9  ¦Baf0   ¦B0f9 ▄¦Bf00▀¦Baf0¦F0f9▄█¦Ba0f    ██¦Baf0 ¦Ff00▀¦Ba0f▄▄¦B0f9▄▄¦Ba0f▄▄▄  ¦F0f9▄ ¦b¦f
+¦B08f ¦Ba0f¦Ff00▄¦Faf0▄¦Bf00▄▄ ¦Ba0f ¦B08f █¦Bf00¦Fa0f▀¦B08f▄▄▄▄¦Ff00▄¦Ba0f¦Faf0▄¦B08f¦Ff00▀¦Faf0▀        ¦Fa0f▄▄▄▄  ¦Bf00¦Faf0▀¦Ba0f ¦B08f  ▀▀▀ ¦Fa0f▄¦Bf00¦Faf0▄¦B08f▀ ¦Ba0f    ¦B08f     ▀▀▀▀█¦Ff00█¦Fa0f██  █¦b¦f
+¦Bf00¦Faf0▄¦B0f9▀  █¦Ba0f¦Ff00▀ ¦F0f9█¦Baf0▄ ¦Ff00▀¦Fa0f▀¦Ff00▀¦B0f9▀¦Faf0▀      ¦Fa0f▄▄█¦Bf00▀▀ ¦Faf0▄▄¦Ba0f  ¦B0f9▄¦Ff00█¦Ba0f     ▄¦Baf0▀¦F0f9▄█¦Ba0f        ¦Ff00▄▄▄▄▄ ¦B0f9 ¦Baf0 █¦Ba0f    ¦Baf0▀¦b¦f
+¦Baf0 ¦F0f9█▀  ¦Bf0f ¦B08f ▀▀▀▀▀▀¦B0f9   ¦Faf0▄▄▄ ¦F08f▄¦Bf0f▀¦Faf0▄¦B0f9▀▀  ██¦Bf0f¦F08f▄¦F0f9█¦Faf0█   ▄¦B0f9▀▀       ¦F08f▀█¦Ff0f█¦Baf0▀ ¦F0f9▄▄▄ ¦Ff0f▄¦B08f▀¦B0f9 ¦Baf0 ███▀ ¦B0f9¦F08f▄¦b¦f
+¦Bf00¦Faf0▀▀¦Bf0f▀¦Ff00▀       ¦B00f¦F0ff▄█¦Baf0▀¦Ff00▄¦Ff0f▄▄¦Ff00▄ ¦B0ff ¦B00f¦Ff0f▄¦Bf00 ¦Baf0 ¦B0ff   ¦Baf0 ¦Bf00▄¦B00f▀¦Baf0¦F0ff▀ ¦Ff00███▀▀¦F0ff▀█▀▀     █¦Ff0f█¦Ff00█ ¦B0ff   ¦Baf0 ¦Bf0f▀¦F0ff▄¦Baf0▀¦Ff00▄¦Bf0f   ▄¦Faf0█¦F0ff█¦F00f▀¦b¦f
+¦Bf09¦F0f9▄▄▄      ¦F00f▄¦B0f9▀¦Fff0▄¦Bf09▀¦F00f▄▄▄  ¦Bff0 ¦B0f9▄¦Bf09 ¦Bff0 ¦F0f9▀▀▀¦Ff09▄█¦B0f9▀ ¦Bff0        ▄▄¦Bf09 ¦F00f▄  ¦Bff0 ¦B0f9 ¦Bf09▀ ¦Fff0█¦B0f9  ▄¦Bf09▀¦F00f▄¦B0f9▀¦Fff0▄¦Bf09▀    █¦B0f9  ¦F00f▀¦b¦f
+¦Bff0 ¦F0ff▀█¦Ff0f██  █¦B0ff▀¦Fff0▄¦Bf0f▀¦F00f▄¦B0ff▀¦Fff0▄▄ ¦B00f ¦Bf0f▄█¦F0ff█¦F00f▄¦Fff0▀▀▀¦F00f▄¦F0ff▄█¦Bff0▀       ¦Ff0f▄¦B0ff▀¦F00f▀¦Fff0▄▄ ¦B00f ¦Bff0¦Ff0f▀ ¦B0ff █¦Bff0   ▄¦B00f▀¦F0ff▄¦Bff0▀ ¦Bf0f     ¦Bff0     ¦b¦f
+¦Ff00█¦B0f9  ¦Bf0f █▀ ¦B0f9 ¦Faf0▄¦Bf00¦Ff0f▄¦B0f9▀ ¦Baf0  ¦B0f9  █¦Bf00▄¦Faf0▀¦B0f9▄▄▄▄▄        █¦Bf00¦Ff0f▄¦B0f9▀ ¦Faf0▄██  ¦Bf0f ¦Bf00▄¦B0f9 ¦Ff0f▄█¦Bf00▄█¦B0f9▀ ¦Faf0▄¦Bf00▀ ¦Bf0f      ¦F0f9▄▄▄▄▄¦b¦f
+¦Baf0¦F08f▄█¦Ba0f   ▄█¦Baf0▀¦Ba0f¦Ff00▀ ¦B08f      ¦Ba0f   ▀▀▀█¦Baf0▀¦B08f▀ ¦Fa0f▄▄██  ¦Bf00¦Faf0▀¦Ba0f ¦B08f  ▀▀ ¦Fa0f▄¦Bf00▀¦B08f¦Faf0▀  ¦Fa0f█▀▀  ¦Baf0   ¦Ff00▀▀█¦Fa0f██¦B08f▀  ¦Faf0▄▄  ¦b¦f
+¦B0ff ¦Ba0f    ¦B0ff  ¦Baf0 ¦Ff00▀¦Ba0f▄▄▄▄   ¦F0ff▄███▄ ¦Bf00 ¦Baf0▄¦Ba0f▀ ¦Ff00▄¦Baf0▀█¦Ba0f ¦F0ff▄¦B0f0 ¦Bf00 ¦Ba0f ▀▀▀¦Ff00▄¦Faf0▄¦B0ff▀¦F0f0▀¦Fa0f▄██▀   ¦F0f0▀▀▀¦Faf0▀▀█¦Bf00 ¦Ba0f  ¦B0ff ¦B0f0▄██¦B0ff▀¦Fa0f▄¦Bf00▀¦b¦f
+¦B08f ¦Fa0f██▀     ¦F0f0▀▀¦Faf0▀¦B0f0▀¦Bf00 ¦Fa0f█¦B08f     ▄¦Baf0▀¦F08f▄¦Ba0f▀¦Ff00▄¦Baf0▀▀█¦Ba0f▀ ¦B08f ¦B0f0 ¦Baf0 ▀▀¦B08f▀▀¦F0f0▀ ¦Fa0f▄▄      ▄▄▄▄▄ ¦B0f0 ¦Bf00 █¦B08f ¦B0f0 ¦Faf0▀¦B08f▀ ¦Fa0f▄¦B0f0¦Ff00▀¦F08f▄¦b¦f
+¦B08f   ¦Fa0f▄█¦Bf00▀▀ ¦F0f0▄¦Faf0▄¦Fa0f▀¦B08f▄ ¦Baf0 █¦B08f    █¦Bf00¦Faf0▄¦B08f¦F0f0▀¦Fa0f▄¦Bf00▀   ▄█¦B08f    ▄▄▄███▀     ▄¦Bf00▀▀  ▀█¦F08f█¦Faf0▀¦Fa0f█¦B08f   ▄¦Ff00▄¦Baf0¦Fa0f▀¦F08f▄¦Ba0f▀¦Ff00▄¦b¦f
+¦B0f9¦Faf0▄ ¦B00f ¦Ba0f █¦B0f9▀ ¦F00f▄▄¦B0f0 ¦Baf0 ¦Ba0f ¦B0f9 ¦Baf0 ¦Ba0f ▀▀ ¦Faf0▄¦B0f0▀¦B0f9¦F00f▄█¦Ba0f    ▄▄██▀      ▄¦B0f9▀¦F0f0▄▄  ¦F00f█¦Ba0f ¦Baf0     ¦Ba0f ¦B0f9▀¦Baf0¦F0f0▀¦Fa0f▄█¦B00f▄▄¦Baf0▀ ¦F0f9▄¦Ba0f▀ ¦Baf0  ¦b¦f
+¦Bff0 ¦F0f9█¦Fa0f█ ¦B0f9 ¦B08f   ¦B0f9 ¦Bff0 ¦Bf00▄¦F08f█¦F0f9█¦Fff0█▄▄▄¦B0f9▀   ¦F08f▀▀▀▀▀▀▀▄¦Ba0f     ▄¦B0f9▀¦Fff0▄▄¦Bf00▀▀█¦B0f9 ¦F08f▄¦Ba0f ¦Ff00█¦Bff0  ▄¦Ba0f▀¦F08f▄¦F0f9█¦Fff0█¦Ff00▀  ¦Fff0▄¦Bf00▄¦B0f9▀¦F08f▄¦Ba0f▀  ¦Ff00▀▀¦b¦f
+¦B000 ¦F0ff.-------------------------------------------------------. ¦b¦f
+¦B000 ¦F0ff| ¦Fff0R¦F0f0R¦Ff0fC ¦Ffffart over ¦F00fReticulum¦Ffff, drawn by ¦Ff00ascii.py          ¦F0ff| ¦b¦f
+¦B000 ¦F0ff'-------------------------------------------------------' ¦b¦f

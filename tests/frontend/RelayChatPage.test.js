@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import RelayChatPage from "@/components/relay/RelayChatPage.vue";
+import MarkdownRenderer from "@/js/MarkdownRenderer.js";
 import { mountToolsPageGlobals } from "./testI18n.js";
 
 const HUB_HASH = "00112233445566778899aabbccddeeff";
@@ -1655,6 +1656,20 @@ describe("RelayChatPage.vue", () => {
                 await wrapper.vm.openRelayRoomLink("rrc://nothex/lobby");
                 expect(errSpy).toHaveBeenCalled();
                 expect(wrapper.vm.selectedRoom).toBe(before);
+            });
+
+            it("renders bodies with broken-bar Micron tags as Micron, others as Markdown", () => {
+                const wrapper = mountPage();
+                expect(wrapper.vm.renderMessageHtml("**hi** `x`")).toBe(MarkdownRenderer.renderBasic("**hi** `x`"));
+                expect(wrapper.vm.renderMessageHtml("`Ff00not micron`")).toBe(
+                    MarkdownRenderer.renderBasic("`Ff00not micron`")
+                );
+                expect(wrapper.vm.renderMessageHtml("¦Ff00red¦f <b>")).toBe(
+                    '<span style="color:#f00">red</span> &lt;b&gt;'
+                );
+                expect(wrapper.vm.renderMessageHtml("¦Ff00**waves**", { stripMicron: true })).toBe(
+                    MarkdownRenderer.renderBasic("**waves**")
+                );
             });
 
             it("renders rrc links clickable inside message html", () => {
