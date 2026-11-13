@@ -19,6 +19,8 @@ linux-unpacked/
 win-unpacked/
 mac-unpacked/
 packaging/
+desktop/bin/
+.local/
 
 # Public assets and libraries
 meshchatx/public/

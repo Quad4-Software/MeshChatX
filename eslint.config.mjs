@@ -28,6 +28,8 @@ export default [
             "**/linux-unpacked/**",
             "**/win-unpacked/**",
             "**/mac-unpacked/**",
+            "desktop/bin/**",
+            "**/.local/**",
             "**/*.asar",
             "**/*.asar.unpacked/**",
             "**/*.wasm",
