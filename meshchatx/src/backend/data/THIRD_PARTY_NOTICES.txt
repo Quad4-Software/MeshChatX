@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-11-08T16:34:49.992365Z
+Generated at: 2026-11-13T22:26:27.148327Z
 Frontend source: pnpm
 
 Python dependencies
@@ -94,6 +94,9 @@ propcache 0.5.4
 psutil 7.2.2
   License: BSD-3-Clause
   Author: Giampaolo Rodola
+pycodec2 4.1.1
+  License: OSI Approved :: BSD License
+  Author: Grzegorz Milka
 pycparser 3.12
   License: BSD-3-Clause
   Author: Eli Bendersky <eliben@gmail.com>
@@ -133,31 +136,25 @@ yarl 1.25.1
 
 Node dependencies
 -----------------
-@asamuzakjp/css-color 7.1.9
-  License: MIT
-  Author: asamuzaK
-@asamuzakjp/dom-selector 10.0.5
-  License: MIT
-  Author: asamuzaK
 @babel/code-frame 7.29.7
   License: MIT
   Author: The Babel Team
 @babel/compat-data 7.29.7
   License: MIT
   Author: The Babel Team
-@babel/core 7.29.7
+@babel/core 7.29.13
   License: MIT
   Author: The Babel Team
-@babel/generator 7.29.12
+@babel/generator 7.29.13
   License: MIT
   Author: The Babel Team
 @babel/helper-annotate-as-pure 7.29.7
   License: MIT
   Author: The Babel Team
-@babel/helper-compilation-targets 7.29.7
+@babel/helper-compilation-targets 7.29.13
   License: MIT
   Author: The Babel Team
-@babel/helper-create-class-features-plugin 7.29.12
+@babel/helper-create-class-features-plugin 7.29.13
   License: MIT
   Author: The Babel Team
 @babel/helper-globals 7.29.7
@@ -169,7 +166,7 @@ Node dependencies
 @babel/helper-module-imports 7.29.7
   License: MIT
   Author: The Babel Team
-@babel/helper-module-transforms 7.29.7
+@babel/helper-module-transforms 7.29.13
   License: MIT
   Author: The Babel Team
 @babel/helper-optimise-call-expression 7.29.7
@@ -181,10 +178,10 @@ Node dependencies
 @babel/helper-replace-supers 7.29.7
   License: MIT
   Author: The Babel Team
-@babel/helper-skip-transparent-expression-wrappers 7.29.7
+@babel/helper-skip-transparent-expression-wrappers 7.29.13
   License: MIT
   Author: The Babel Team
-@babel/helper-string-parser 7.29.11
+@babel/helper-string-parser 7.29.13
   License: MIT
   Author: The Babel Team
 @babel/helper-validator-identifier 7.29.7
@@ -193,10 +190,10 @@ Node dependencies
 @babel/helper-validator-option 7.29.7
   License: MIT
   Author: The Babel Team
-@babel/helpers 7.29.10
+@babel/helpers 7.29.13
   License: MIT
   Author: The Babel Team
-@babel/parser 7.29.12
+@babel/parser 7.29.13
   License: MIT
   Author: The Babel Team
 @babel/plugin-proposal-decorators 7.29.7
@@ -223,7 +220,7 @@ Node dependencies
 @babel/template 7.29.7
   License: MIT
   Author: The Babel Team
-@babel/traverse 7.29.12
+@babel/traverse 7.29.13
   License: MIT
   Author: The Babel Team
 @babel/types 7.29.11
@@ -232,9 +229,6 @@ Node dependencies
 @bcoe/v8-coverage 1.0.2
   License: MIT
   Author: Charles Samborski
-@bramus/specificity 2.4.3
-  License: MIT
-  Author: Bramus Van Damme
 @browsermt/bergamot-translator 0.4.9
   License: MPL-2.0
   Author: -
@@ -244,24 +238,6 @@ Node dependencies
 @cacheable/utils 2.5.0
   License: MIT
   Author: Jared Wray
-@csstools/color-helpers 6.1.2
-  License: MIT-0
-  Author: -
-@csstools/css-calc 3.4.3
-  License: MIT
-  Author: -
-@csstools/css-color-parser 4.2.7
-  License: MIT
-  Author: -
-@csstools/css-parser-algorithms 4.0.2
-  License: MIT
-  Author: -
-@csstools/css-syntax-patches-for-csstree 1.1.16
-  License: MIT-0
-  Author: -
-@csstools/css-tokenizer 4.0.2
-  License: MIT
-  Author: -
 @dual-bundle/import-meta-resolve 4.2.1
   License: MIT
   Author: Titus Wormer
@@ -343,19 +319,19 @@ Node dependencies
 @humanwhocodes/retry 0.4.3
   License: Apache-2.0
   Author: Nicholas C. Zaks
-@intlify/core-base 11.4.16
+@intlify/core-base 11.4.18
   License: MIT
   Author: kazuya kawaguchi
-@intlify/devtools-types 11.4.16
+@intlify/devtools-types 11.4.18
   License: MIT
   Author: kazuya kawaguchi
-@intlify/message-compiler 11.4.16
+@intlify/message-compiler 11.4.18
   License: MIT
   Author: kazuya kawaguchi
-@intlify/shared 11.4.16
+@intlify/shared 11.4.18
   License: MIT
   Author: kazuya kawaguchi
-@isaacs/nonrecursive-glob-match 1.0.3
+@isaacs/nonrecursive-glob-match 1.1.0
   License: BlueOak-1.0.0
   Author: -
 @jridgewell/gen-mapping 0.3.13
@@ -388,15 +364,12 @@ Node dependencies
 @mapbox/unitbezier 1.0.0
   License: BSD-2-Clause
   Author: -
-@maplibre/maplibre-gl-style-spec 26.5.0
+@maplibre/maplibre-gl-style-spec 26.5.1
   License: ISC
   Author: MapLibre
 @mdi/js 7.4.47
   License: Apache-2.0
   Author: Austin Andrews
-@noble/hashes 1.8.0
-  License: MIT
-  Author: Paul Miller
 @one-ini/wasm 0.2.1
   License: MIT
   Author: -
@@ -412,10 +385,10 @@ Node dependencies
 @oxc-resolver/binding-linux-x64-gnu 11.24.2
   License: MIT
   Author: -
-@parcel/watcher 2.5.1
+@parcel/watcher 2.6.0
   License: MIT
   Author: -
-@parcel/watcher-linux-x64-glibc 2.5.1
+@parcel/watcher-linux-x64-glibc 2.6.0
   License: MIT
   Author: -
 @paulirish/trace_engine 0.0.67
@@ -427,7 +400,7 @@ Node dependencies
 @pkgr/core 0.3.6
   License: MIT
   Author: JounQin
-@playwright/test 1.64.1
+@playwright/test 1.65.0
   License: Apache-2.0
   Author: Microsoft Corporation
 @polka/url 1.0.0-next.29
@@ -442,49 +415,52 @@ Node dependencies
 @rolldown/pluginutils 1.0.1
   License: MIT
   Author: -
-@sentry/bundler-plugins 11.10.0
+@sentry/bundler-plugins 11.11.0
   License: MIT
   Author: Sentry
-@sentry/conventions 0.29.0
+@sentry/conventions 0.30.0
   License: MIT
   Author: -
-@sentry/core 11.10.0
+@sentry/core 11.11.0
   License: MIT
   Author: Sentry
-@sentry/node 11.10.0
+@sentry/node 11.11.0
   License: MIT
   Author: Sentry
-@sentry/opentelemetry 11.10.0
+@sentry/opentelemetry 11.11.0
   License: MIT
   Author: Sentry
-@sentry/server-runtime-injection 11.10.0
+@sentry/server-runtime-injection 11.11.0
   License: MIT
   Author: Sentry
-@sentry/server-utils 11.10.0
+@sentry/server-utils 11.11.0
   License: MIT
   Author: Sentry
-@tailwindcss/cli 4.3.3
+@tailwindcss/cli 4.3.5
   License: MIT
   Author: -
 @tailwindcss/forms 0.5.11
   License: MIT
   Author: -
-@tailwindcss/node 4.3.3
+@tailwindcss/node 4.3.5
   License: MIT
   Author: -
-@tailwindcss/oxide 4.3.3
+@tailwindcss/oxide 4.3.5
   License: MIT
   Author: -
-@tailwindcss/oxide-linux-x64-gnu 4.3.3
+@tailwindcss/oxide-linux-x64-gnu 4.3.5
   License: MIT
   Author: -
-@tailwindcss/vite 4.3.3
+@tailwindcss/oxide-wasm32-wasi 4.3.5
   License: MIT
   Author: -
-@tanstack/virtual-core 3.19.9
+@tailwindcss/vite 4.3.5
+  License: MIT
+  Author: -
+@tanstack/virtual-core 3.19.11
   License: MIT
   Author: Tanner Linsley
-@tanstack/vue-virtual 3.13.50
+@tanstack/vue-virtual 3.13.52
   License: MIT
   Author: Tanner Linsley
 @types/chai 5.2.3
@@ -517,28 +493,28 @@ Node dependencies
 @vitejs/plugin-vue 6.0.10
   License: MIT
   Author: Evan You
-@vitest/coverage-v8 5.0.5
+@vitest/coverage-v8 5.1.0
   License: MIT
   Author: Anthony Fu
-@vitest/istanbul-lib-coverage 1.0.2
+@vitest/istanbul-lib-coverage 2.1.0
   License: MIT
   Author: Vitest Team
-@vitest/istanbul-lib-report 1.0.2
+@vitest/istanbul-lib-report 2.1.0
   License: MIT
   Author: Vitest Team
-@vitest/mocker 5.0.5
+@vitest/mocker 5.1.0
   License: MIT
   Author: -
-@vitest/pretty-format 5.0.5
+@vitest/pretty-format 5.1.0
   License: MIT
   Author: -
-@vitest/spy 5.0.5
+@vitest/spy 5.1.0
   License: MIT
   Author: -
-@vitest/ui 5.0.5
+@vitest/ui 5.1.0
   License: MIT
   Author: -
-@vitest/utils 5.0.5
+@vitest/utils 5.1.0
   License: MIT
   Author: -
 @volar/language-core 2.4.30
@@ -565,16 +541,16 @@ Node dependencies
 @vue/babel-plugin-resolve-type 1.5.0
   License: MIT
   Author: 三咲智子 Kevin Deng
-@vue/compiler-core 3.5.44
+@vue/compiler-core 3.5.45
   License: MIT
   Author: Evan You
-@vue/compiler-dom 3.5.44
+@vue/compiler-dom 3.5.45
   License: MIT
   Author: Evan You
-@vue/compiler-sfc 3.5.44
+@vue/compiler-sfc 3.5.45
   License: MIT
   Author: Evan You
-@vue/compiler-ssr 3.5.44
+@vue/compiler-ssr 3.5.45
   License: MIT
   Author: Evan You
 @vue/devtools-api 6.6.4
@@ -592,19 +568,19 @@ Node dependencies
 @vue/language-core 3.3.14
   License: MIT
   Author: -
-@vue/reactivity 3.5.44
+@vue/reactivity 3.5.45
   License: MIT
   Author: Evan You
-@vue/runtime-core 3.5.44
+@vue/runtime-core 3.5.45
   License: MIT
   Author: Evan You
-@vue/runtime-dom 3.5.44
+@vue/runtime-dom 3.5.45
   License: MIT
   Author: Evan You
-@vue/server-renderer 3.5.44
+@vue/server-renderer 3.5.45
   License: MIT
   Author: Evan You
-@vue/shared 3.5.44
+@vue/shared 3.5.45
   License: MIT
   Author: Evan You
 @vue/test-utils 2.5.1
@@ -640,7 +616,7 @@ ansi-regex 5.0.1
 ansi-styles 4.3.0
   License: MIT
   Author: Sindre Sorhus
-ansis 4.4.0
+ansis 4.5.0
   License: ISC
   Author: webdiscus
 assertion-error 2.0.1
@@ -664,12 +640,15 @@ axe-core 4.14.0
 balanced-match 4.0.4
   License: MIT
   Author: -
-baseline-browser-mapping 2.11.34
+baseline-browser-mapping 2.11.35
   License: Apache-2.0
   Author: -
-bidi-js 1.1.0
+bcp-47 2.1.2
   License: MIT
-  Author: Jason Johnston
+  Author: Titus Wormer
+bcp-47-match 2.0.3
+  License: MIT
+  Author: Titus Wormer
 birpc 2.9.0
   License: MIT
   Author: Anthony Fu
@@ -682,9 +661,6 @@ boolbase 1.0.0
 brace-expansion 5.0.12
   License: MIT
   Author: -
-braces 3.0.3
-  License: MIT
-  Author: Jon Schlinkert
 browserslist 4.29.5
   License: MIT
   Author: Andrey Sitnik
@@ -697,7 +673,7 @@ bundle-name 4.1.1
 cacheable 2.5.0
   License: MIT
   Author: Jared Wray
-caniuse-lite 1.0.30001820
+caniuse-lite 1.0.30001823
   License: CC-BY-4.0
   Author: Ben Briggs
 chai 6.3.0
@@ -706,7 +682,7 @@ chai 6.3.0
 chokidar 5.0.0
   License: MIT
   Author: Paul Miller
-chrome-launcher 1.2.2
+chrome-launcher 1.2.3
   License: Apache-2.0
   Author: The Chromium Authors
 chromium-bidi 17.0.2
@@ -754,9 +730,6 @@ cross-spawn 7.0.6
 csp_evaluator 1.1.8
   License: Apache-2.0
   Author: Lukas Weichselbaum
-css-tree 3.2.1
-  License: MIT
-  Author: Roman Dvornov
 cssesc 3.0.0
   License: MIT
   Author: Mathias Bynens
@@ -790,7 +763,7 @@ default-browser-id 5.0.1
 define-lazy-prop 3.0.0
   License: MIT
   Author: Sindre Sorhus
-detect-libc 1.0.3
+detect-libc 2.1.2
   License: Apache-2.0
   Author: Lovell Fuller
 devtools-protocol 0.0.1666840
@@ -814,7 +787,7 @@ earcut 3.2.4
 editorconfig 3.0.2
   License: MIT
   Author: EditorConfig Team
-electron-to-chromium 1.5.472
+electron-to-chromium 1.5.478
   License: ISC
   Author: Kilian Valkhof
 emoji-picker-element 1.29.1
@@ -826,7 +799,7 @@ emoji-picker-element-data 1.8.0
 emoji-regex 8.0.0
   License: MIT
   Author: Mathias Bynens
-enhanced-resolve 5.26.0
+enhanced-resolve 5.26.1
   License: MIT
   Author: Tobias Koppers @sokra
 enquirer 2.4.1
@@ -922,9 +895,6 @@ fflate 0.8.3
 file-entry-cache 11.1.5
   License: MIT
   Author: Jared Wray
-fill-range 7.1.1
-  License: MIT
-  Author: Jon Schlinkert
 find-up 4.1.0
   License: MIT
   Author: Sindre Sorhus
@@ -952,13 +922,13 @@ get-east-asian-width 1.7.0
 get-tsconfig 4.14.3
   License: MIT
   Author: Hiroki Osame
-glob 14.0.3
+glob 14.0.4
   License: BlueOak-1.0.0
   Author: Isaac Z. Schlueter
 glob-parent 6.0.2
   License: ISC
   Author: Gulp Team
-globals 17.13.0
+globals 17.14.0
   License: MIT
   Author: Sindre Sorhus
 graceful-fs 4.2.11
@@ -1003,9 +973,18 @@ ini 7.0.0
 intl-messageformat 10.7.18
   License: BSD-3-Clause
   Author: Eric Ferraiuolo
+is-alphabetical 2.0.1
+  License: MIT
+  Author: Titus Wormer
+is-alphanumerical 2.0.1
+  License: MIT
+  Author: Titus Wormer
 is-blob 2.1.0
   License: MIT
   Author: Sindre Sorhus
+is-decimal 2.0.1
+  License: MIT
+  Author: Titus Wormer
 is-docker 2.2.1
   License: MIT
   Author: Sindre Sorhus
@@ -1024,9 +1003,6 @@ is-in-ssh 1.0.0
 is-inside-container 1.0.0
   License: MIT
   Author: Sindre Sorhus
-is-number 7.0.0
-  License: MIT
-  Author: Jon Schlinkert
 is-potential-custom-element-name 1.0.1
   License: MIT
   Author: Mathias Bynens
@@ -1060,7 +1036,7 @@ js-library-detector 6.7.0
 js-tokens 4.0.0
   License: MIT
   Author: Simon Lydell
-jsdom 30.1.3
+jsdom 31.0.0
   License: MIT
   Author: -
 jsesc 3.1.0
@@ -1114,10 +1090,10 @@ lighthouse-logger 2.0.2
 lighthouse-stack-packs 1.12.3
   License: Apache-2.0
   Author: The Chromium Authors
-lightningcss 1.32.0
+lightningcss 1.33.0
   License: MPL-2.0
   Author: -
-lightningcss-linux-x64-gnu 1.32.0
+lightningcss-linux-x64-gnu 1.33.0
   License: MPL-2.0
   Author: -
 local-pkg 1.2.1
@@ -1144,25 +1120,19 @@ magicast 0.5.5
 mapbox-to-css-font 3.3.0
   License: BSD-2-Clause
   Author: Andreas Hocevar
-marked 18.1.2
+marked 18.1.3
   License: MIT
   Author: Christopher Jeffrey
 marky 1.3.0
   License: Apache-2.0
   Author: Nolan Lawson
-mdn-data 2.27.1
-  License: CC0-1.0
-  Author: Mozilla Developer Network
-micromatch 4.0.8
-  License: MIT
-  Author: Jon Schlinkert
 micron-parser 0.0.0
   License: Unknown
   Author: -
 mini-svg-data-uri 1.4.4
   License: MIT
   Author: Taylor “Tigt” Hunt
-minimatch 11.0.3
+minimatch 11.0.5
   License: BlueOak-1.0.0
   Author: Isaac Z. Schlueter
 minimist 1.2.8
@@ -1225,7 +1195,7 @@ ohash 2.0.12
 ol 10.11.0
   License: BSD-2-Clause
   Author: -
-ol-mapbox-style 13.8.0
+ol-mapbox-style 13.9.0
   License: BSD-2-Clause
   Author: -
 open 11.0.4
@@ -1258,7 +1228,10 @@ pako 1.0.11
 parse-headers 2.0.6
   License: MIT
   Author: David Björklund
-parse5 8.0.1
+parse5 8.1.0
+  License: MIT
+  Author: Ivan Nikulin
+parse5-parser-stream 8.1.0
   License: MIT
   Author: Ivan Nikulin
 path-browserify 1.0.1
@@ -1294,10 +1267,10 @@ pinia 4.1.0
 pkg-types 1.3.1
   License: MIT
   Author: -
-playwright 1.64.1
+playwright 1.65.0
   License: Apache-2.0
   Author: Microsoft Corporation
-playwright-core 1.64.1
+playwright-core 1.65.0
   License: Apache-2.0
   Author: Microsoft Corporation
 pngjs 5.0.0
@@ -1402,7 +1375,7 @@ saxes 6.0.0
 scule 1.3.0
   License: MIT
   Author: -
-semver 7.8.5
+semver 7.8.6
   License: ISC
   Author: GitHub Inc.
 sentry 0.45.0
@@ -1468,7 +1441,7 @@ synckit 0.12.3
 tagged-tag 1.0.0
   License: MIT
   Author: Sindre Sorhus
-tailwindcss 4.3.3
+tailwindcss 4.3.5
   License: MIT
   Author: -
 tapable 2.3.3
@@ -1480,7 +1453,7 @@ terser 5.51.2
 third-party-web 0.30.0
   License: MIT
   Author: Patrick Hulce
-tinybench 6.2.2
+tinybench 6.2.3
   License: MIT
   Author: -
 tinyexec 1.3.1
@@ -1504,13 +1477,10 @@ tldts-core 7.4.20
 tldts-icann 7.4.19
   License: MIT
   Author: Rémi Berson
-to-regex-range 5.0.1
-  License: MIT
-  Author: Jon Schlinkert
 totalist 3.0.1
   License: MIT
   Author: Luke Edwards
-tough-cookie 6.0.2
+tough-cookie 6.1.0
   License: BSD-3-Clause
   Author: Jeremy Stashewsky
 tr46 7.0.0
@@ -1534,7 +1504,7 @@ typescript 6.0.3
 ufo 1.6.4
   License: MIT
   Author: -
-unbash 6.0.2
+unbash 6.0.3
   License: ISC
   Author: Lars Kappert
 undici 7.30.1
@@ -1573,7 +1543,7 @@ vis-network 10.1.4
 vis-util 6.0.3
   License: (Apache-2.0 OR MIT)
   Author: Alex de Mulder
-vite 8.3.5
+vite 8.3.6
   License: MIT
   Author: Evan You
 vite-dev-rpc 2.0.0
@@ -1591,7 +1561,7 @@ vite-plugin-vue-devtools 8.2.1
 vite-plugin-vue-inspector 6.0.0
   License: MIT
   Author: webfansplz
-vitest 5.0.5
+vitest 5.1.0
   License: MIT
   Author: Anthony Fu
 vscode-jsonrpc 10.0.0
@@ -1609,16 +1579,16 @@ vscode-languageserver-types 3.18.5
 vscode-uri 3.2.0
   License: MIT
   Author: Microsoft
-vue 3.5.44
+vue 3.5.45
   License: MIT
   Author: Evan You
 vue-component-type-helpers 3.3.14
   License: MIT
   Author: -
-vue-eslint-parser 10.4.1
+vue-eslint-parser 10.4.2
   License: MIT
   Author: Toru Nagashima
-vue-i18n 11.4.16
+vue-i18n 11.4.18
   License: MIT
   Author: kazuya kawaguchi
 vue-router 5.4.0

@@ -71,11 +71,12 @@ describe("AppModal.vue", () => {
     it("fullscreen mode fills the safe-area-aware container", () => {
         const wrapper = mountModal({ fullscreen: true });
         const panel = wrapper.find('[role="dialog"]');
-        const style = panel.attributes("style") || "";
-        expect(style).toContain("height: 100%");
-        expect(style).toContain("width: 100%");
-        expect(style).toContain("max-height: 100%");
-        expect(style).toContain("max-width: 100%");
+        // Assert on the style properties, not the serialized attribute:
+        // cssstyle may emit the max-size shorthand for max-height/max-width.
+        expect(panel.element.style.height).toBe("100%");
+        expect(panel.element.style.width).toBe("100%");
+        expect(panel.element.style.maxHeight).toBe("100%");
+        expect(panel.element.style.maxWidth).toBe("100%");
         wrapper.unmount();
     });
 });

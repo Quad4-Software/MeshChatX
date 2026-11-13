@@ -180,6 +180,12 @@
     "license": "BSD-3-Clause"
   },
   {
+    "name": "pycodec2",
+    "version": "4.1.1",
+    "author": "Grzegorz Milka",
+    "license": "OSI Approved :: BSD License"
+  },
+  {
     "name": "pycparser",
     "version": "3.12",
     "author": "Eli Bendersky <eliben@gmail.com>",

@@ -29,7 +29,7 @@ dependencies = [
   "psutil>=7.2.2",
   "pyserial>=3.5",
   "rns>=1.6.0",
-  "websockets>=17.3",
+  "websockets>=17.4",
   "bcrypt>=5.0.0,<6.0.0",
   "aiohttp-session>=2.12.1,<3.0.0",
   "packaging>=26.3",
@@ -42,7 +42,7 @@ dependencies = [
   "wasmtime>=50.0.1",
   "bleak>=3.0.2,<4.0",
   "httpx[http2]>=0.28.1,<1.0",
-  "landlockpy>=0.2.0,<0.3",
+  "landlockpy>=0.2.1,<0.3",
   "seccompy==0.2.0",
 ]
 
