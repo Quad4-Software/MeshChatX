@@ -841,9 +841,7 @@ class PageNode:
                         chunk = stream.read1(65536)
                         if not chunk:
                             break
-                        room = (
-                            EXECUTABLE_PAGE_MAX_OUTPUT_BYTES + 1 - len(out)
-                        )
+                        room = EXECUTABLE_PAGE_MAX_OUTPUT_BYTES + 1 - len(out)
                         out.extend(chunk[:room])
                 except Exception:
                     pass

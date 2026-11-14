@@ -148,9 +148,7 @@ def _exec_node(tmp_path, script_body):
 
     for d in ("pages", "files", "media_cache"):
         os.makedirs(os.path.join(tmp_path, d), exist_ok=True)
-    node = pn.PageNode(
-        "n1", "t", str(tmp_path), executable_pages_enabled=True
-    )
+    node = pn.PageNode("n1", "t", str(tmp_path), executable_pages_enabled=True)
     node.pages_dir = os.path.join(tmp_path, "pages")
     node.files_dir = os.path.join(tmp_path, "files")
     node.media_cache_dir = os.path.join(tmp_path, "media_cache")

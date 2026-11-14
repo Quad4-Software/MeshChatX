@@ -372,9 +372,7 @@ def _identified_router(*, resources=None, link_resources=None):
     for resource in list(resources or []) + list(link_resources or []):
         resource.link = link
     router = SimpleNamespace(
-        incoming_delivery_resources={
-            r.hash.hex(): r for r in (resources or [])
-        },
+        incoming_delivery_resources={r.hash.hex(): r for r in (resources or [])},
         incoming_delivery_resource_lock=threading.Lock(),
         delivery_resource_advertised=MagicMock(return_value=True),
         delivery_resource_transfer_began=MagicMock(),

@@ -242,15 +242,11 @@ def register_websocket_upgrade_routes(routes, app):
                         import importlib
 
                         msgpack = importlib.import_module("msgpack")
-                        binary_decoded = msgpack.unpackb(
-                            message.data, raw=False
-                        )
+                        binary_decoded = msgpack.unpackb(message.data, raw=False)
                     except Exception:
                         binary_decoded = None
                     if binary_decoded is None:
-                        if not await _ws_rate_gate(
-                            app, websocket_response, 1.0
-                        ):
+                        if not await _ws_rate_gate(app, websocket_response, 1.0):
                             if websocket_response.closed:
                                 break
                             continue
@@ -261,9 +257,7 @@ def register_websocket_upgrade_routes(routes, app):
                             else None
                         )
                         cost = message_rate_cost(
-                            msg_type.strip()
-                            if isinstance(msg_type, str)
-                            else None
+                            msg_type.strip() if isinstance(msg_type, str) else None
                         )
                         if not await _ws_rate_gate(
                             app,

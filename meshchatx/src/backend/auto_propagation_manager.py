@@ -338,8 +338,7 @@ class AutoPropagationManager:
                 return False
         if router.propagation_transfer_state == LXMRouter.PR_PATH_REQUESTED:
             return (
-                getattr(router, "wants_download_on_path_available_from", None)
-                == dest
+                getattr(router, "wants_download_on_path_available_from", None) == dest
             )
         return False
 

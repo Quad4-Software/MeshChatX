@@ -61,7 +61,9 @@ async def test_nomad_download_cancel_does_not_verify_client_ownership(mock_app):
     mock_app.active_downloads[4242] = downloader
 
     await handle_nomadnet_download_cancel(
-        mock_app, attacker_client, {"download_id": 4242},
+        mock_app,
+        attacker_client,
+        {"download_id": 4242},
     )
 
     # Secure behaviour: a download owned by a different client must survive.
@@ -146,11 +148,11 @@ def test_generate_paper_uri_content_is_size_capped():
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("require_loopback_tcp")
 async def test_binary_ws_frames_bypass_heavy_mutator_rate_cost(
-    mock_app, monkeypatch,
+    mock_app,
+    monkeypatch,
 ):
     """TEXT lxm.generate_paper_uri costs WS_RATE_COST_HEAVY (5) tokens; the BINARY branch of the /ws loop always charges 1.0 regardless of the decoded type, giving heavy mutators a ~5x rate discount."""
     fake_msgpack = types.SimpleNamespace(
-
         unpackb=lambda data, raw=False: json.loads(data),
     )
     monkeypatch.setitem(sys.modules, "msgpack", fake_msgpack)
@@ -223,7 +225,8 @@ async def _status_latency_during(client, trigger):
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("require_loopback_tcp")
 async def test_translation_pack_import_does_not_block_event_loop(
-    mock_app, monkeypatch,
+    mock_app,
+    monkeypatch,
 ):
     """import_translation_pack calls translation_pack_manager.import_archive (zip extraction of up to 512 MiB) synchronously instead of asyncio.to_thread."""
     _enable_real_to_thread(monkeypatch)
@@ -242,7 +245,9 @@ async def test_translation_pack_import_does_not_block_event_loop(
 
         form = FormData()
         form.add_field(
-            "file", b"not-a-real-zip", filename="pack.zip",
+            "file",
+            b"not-a-real-zip",
+            filename="pack.zip",
             content_type="application/zip",
         )
 
@@ -264,7 +269,8 @@ async def test_translation_pack_import_does_not_block_event_loop(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("require_loopback_tcp")
 async def test_maintenance_clear_announces_does_not_block_event_loop(
-    mock_app, monkeypatch,
+    mock_app,
+    monkeypatch,
 ):
     """DELETE /maintenance/announces runs delete_all_announces on the event loop while sibling maintenance handlers use asyncio.to_thread."""
     _enable_real_to_thread(monkeypatch)
@@ -299,7 +305,8 @@ async def test_maintenance_clear_announces_does_not_block_event_loop(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("require_loopback_tcp")
 async def test_page_node_file_upload_does_not_block_event_loop(
-    mock_app, monkeypatch,
+    mock_app,
+    monkeypatch,
 ):
     """page_nodes_upload_file calls node.add_file -> atomic_write_bytes (up to 64 MiB write + fsync) synchronously on the event loop."""
     _enable_real_to_thread(monkeypatch)
@@ -319,7 +326,9 @@ async def test_page_node_file_upload_does_not_block_event_loop(
 
         form = FormData()
         form.add_field(
-            "file", b"x" * 4096, filename="blob.bin",
+            "file",
+            b"x" * 4096,
+            filename="blob.bin",
             content_type="application/octet-stream",
         )
 

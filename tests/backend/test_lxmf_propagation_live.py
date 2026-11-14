@@ -296,7 +296,9 @@ def _free_ports(count: int) -> list[int]:
     return ports
 
 
-def _node_config(name: str, own_port: int, peer_ports: list[int], shared_port: int) -> str:
+def _node_config(
+    name: str, own_port: int, peer_ports: list[int], shared_port: int
+) -> str:
     lines = [
         "[reticulum]",
         "enable_transport = Yes",
@@ -326,7 +328,9 @@ def _node_config(name: str, own_port: int, peer_ports: list[int], shared_port: i
     return "\n".join(lines) + "\n"
 
 
-def _spawn(script: str, config_dir: Path, share_dir: Path, timeout_s: float) -> subprocess.Popen:
+def _spawn(
+    script: str, config_dir: Path, share_dir: Path, timeout_s: float
+) -> subprocess.Popen:
     return subprocess.Popen(
         [sys.executable, "-c", script, str(config_dir), str(share_dir), str(timeout_s)],
         stdout=subprocess.PIPE,
@@ -366,7 +370,9 @@ def test_live_lxmf_propagation_node_delivery(tmp_path):
         encoding="utf-8",
     )
     (alice_dir / "config").write_text(
-        _node_config("alice", alice_port, [pn_port, bob_port], 42000 + alice_port % 500),
+        _node_config(
+            "alice", alice_port, [pn_port, bob_port], 42000 + alice_port % 500
+        ),
         encoding="utf-8",
     )
     (bob_dir / "config").write_text(

@@ -270,9 +270,7 @@ class AnnounceManager:
             # would silently unblock every peer. Back off retries so a
             # sustained DB failure does not retry the reload on every
             # announce classification.
-            self._peer_sets_retry_at = (
-                time.time() + PEER_SETS_RETRY_BACKOFF_SECONDS
-            )
+            self._peer_sets_retry_at = time.time() + PEER_SETS_RETRY_BACKOFF_SECONDS
             return
         for raw in raw_blocked:
             h = _norm_hash(raw)
