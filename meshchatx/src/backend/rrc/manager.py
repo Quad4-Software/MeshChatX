@@ -129,8 +129,8 @@ MAX_HUB_ENTRIES = 256
 # Largest single wire packet accepted for CBOR decode. Legitimate RRC
 # envelopes are small (messages <=256 KiB, chunked notices <=512 KiB
 # total); anything bigger is hostile or corrupt and must not reach the
-# decoder.
-MAX_PACKET_BYTES = 1024 * 1024
+# decoder. Canonical definition lives in protocol.py.
+MAX_PACKET_BYTES = proto.MAX_PACKET_BYTES
 
 # Advertised WELCOME limits are clamped to sane ranges: a hostile or
 # buggy hub must not zero out send limits (which would reject every
@@ -251,7 +251,10 @@ class RRCHub:
         # session let _handle_chat drop replays before they reach the room
         # buffer. The content key check in _record_message catches replays
         # whose ids differ or whose originals were loaded from history.
-        self._seen_envelope_ids = deque(maxlen=2048)
+        # mid -> sanitized room hint. Bounded like the old deque; the room
+        # hint scopes duplicate bumps so a replay cannot force an
+        # all-rooms scan under _lock.
+        self._seen_envelope_ids = {}
 
         self._hello_thread = None
         self._stop_hello = threading.Event()
@@ -1377,11 +1380,19 @@ class RRCHub:
         room_n = room.strip().lower() if isinstance(room, str) else None
         found = None
         with self._lock:
+            if room_n is None:
+                hint = self._seen_envelope_ids.get(mid_b)
+                if isinstance(hint, str) and hint.strip():
+                    room_n = hint.strip().lower()
             candidates = [room_n] if room_n else list(self.messages.keys())
+            scanned = 0
             for r in candidates:
                 if not r:
                     continue
-                for m in self.messages.get(r, []):
+                for m in reversed(self.messages.get(r, [])):
+                    scanned += 1
+                    if scanned > self._DUP_SCAN_MAX_MESSAGES:
+                        return None
                     m_mid = getattr(m, "mid", None)
                     if isinstance(m_mid, (bytes, bytearray)) and bytes(m_mid) == mid_b:
                         if m.delivery == "failed":
@@ -1646,6 +1657,31 @@ class RRCHub:
             return value
         return encoded[:limit].decode("utf-8", errors="ignore")
 
+    _SEEN_ENVELOPE_MAX = 2048
+    # Hard bound on rows scanned while resolving a duplicate bump when no
+    # room hint exists. Keeps a replay flood from holding _lock across
+    # every room buffer.
+    _DUP_SCAN_MAX_MESSAGES = 100_000
+
+    def _mark_envelope_seen(self, mid_b, room_hint=None):
+        """Record an envelope id, returning False when it was already seen.
+
+        Caller must hold self._lock (an RLock). room_hint is the sanitized
+        room the envelope claimed; it lets duplicate resolution scan one
+        room instead of every buffer. The dict preserves insertion order,
+        so evicting the first key drops the oldest id.
+        """
+        seen = self._seen_envelope_ids
+        if mid_b in seen:
+            # Refresh recency so hot ids are not evicted by the cap.
+            del seen[mid_b]
+            seen[mid_b] = room_hint
+            return False
+        if len(seen) >= self._SEEN_ENVELOPE_MAX:
+            seen.pop(next(iter(seen)))
+        seen[mid_b] = room_hint
+        return True
+
     def _wire_member_hashes(self, body):
         """Bounded list of member hash bytes from a JOINED/PARTED body."""
         if not isinstance(body, list):
@@ -1778,12 +1814,22 @@ class RRCHub:
                 continue
             records = []
             decode_error = None
+            window = self.HISTORY_FILE_MAX_BYTES + 1024 * 1024
             try:
+                try:
+                    file_size = os.path.getsize(path)
+                except OSError:
+                    file_size = 0
                 with open(path, "rb") as f:
                     # Compaction keeps files under HISTORY_FILE_MAX_BYTES;
-                    # read a bounded prefix so a corrupt oversized file
-                    # cannot balloon memory on load.
-                    data = f.read(self.HISTORY_FILE_MAX_BYTES + 1024 * 1024)
+                    # read a bounded window so a corrupt oversized file
+                    # cannot balloon memory on load. For oversized legacy
+                    # files seek to the tail: the newest records live at
+                    # the end, and the resync loop below skips the partial
+                    # first record to find a real boundary.
+                    if file_size > window:
+                        f.seek(file_size - window)
+                    data = f.read(window)
                 pos = 0
                 size = len(data)
                 while pos < size:
@@ -1811,18 +1857,27 @@ class RRCHub:
                     + str(decode_error),
                     RNS.LOG_ERROR,
                 )
-            msgs = []
+            pairs = []
             filter_msgs = self._filter_history()
-            # Files written before redelivery dedup exist may already hold
-            # duplicate rows. Collapse them on load. The next compaction
-            # then writes back a clean file.
             for e in records:
                 m = self._msg_from_entry(room, e)
                 if m is None:
                     continue
                 if filter_msgs and m.kind in ("system", "notice"):
                     continue
-                existing = self._find_duplicate(msgs, m)
+                pairs.append((e, m))
+            cap = self._per_room_cap()
+            if cap is not None and len(pairs) > cap:
+                pairs = pairs[len(pairs) - cap :]
+            # Files written before redelivery dedup exist may already hold
+            # duplicate rows. Collapse them on load, but only within the
+            # retained window: _find_duplicate is a linear scan, so running
+            # it over the whole file was quadratic on large histories, and
+            # records older than the cap are discarded anyway. The next
+            # compaction then writes back a clean file.
+            deduped = []
+            for e, m in pairs:
+                existing = self._find_duplicate(deduped, m)
                 if existing is not None:
                     # Later records for the same mid are updates: delivery
                     # confirmations rewrite the state of the first record.
@@ -1841,10 +1896,8 @@ class RRCHub:
                             int(getattr(existing, "dup_count", 1) or 1) + 1
                         )
                     continue
-                msgs.append(m)
-            cap = self._per_room_cap()
-            if cap is not None and len(msgs) > cap:
-                msgs = msgs[len(msgs) - cap :]
+                deduped.append(m)
+            msgs = deduped
             for m in msgs:
                 m.seq = self._next_seq()
             with self._lock:
@@ -1854,7 +1907,6 @@ class RRCHub:
 
     def _clean_history(self):
         now = time.time()
-        cleaned = False
         remove_after = self._ephemeral_notices_history()
         if now > self._last_history_clean + self.CLEAN_HISTORY_INTERVAL:
             with self._lock:
@@ -1867,14 +1919,16 @@ class RRCHub:
                                 old.add(m)
                         for m in old:
                             self.messages[r].remove(m)
-                            cleaned = True
                         if old:
                             self._invalidate_room_buf(r)
                 except Exception as e:
                     RNS.trace_exception(e)
-        self._last_history_clean = time.time()
-        if cleaned:
+            # Compaction must run on file size on the sweep cadence, not
+            # only when aged rows were removed: a room of plain chat
+            # messages can push the file past HISTORY_FILE_MAX_BYTES
+            # indefinitely otherwise. Per-room it is a getsize check.
             self._compact_history_files()
+        self._last_history_clean = time.time()
 
     HISTORY_FILE_MAX_BYTES = 8 * 1024 * 1024
 
@@ -1970,11 +2024,24 @@ class RRCHub:
             room_n = room.strip().lower()
         found = None
         with self._lock:
+            if room_n is None:
+                # No room on the replay: fall back to the room recorded
+                # when the envelope id was first seen so the scan stays
+                # scoped to one buffer.
+                hint = self._seen_envelope_ids.get(mid_b)
+                if isinstance(hint, str) and hint.strip():
+                    room_n = hint.strip().lower()
             candidates = [room_n] if room_n else list(self.messages.keys())
+            scanned = 0
             for r in candidates:
                 if not r:
                     continue
-                for m in self.messages.get(r, []):
+                # Newest rows sit at the end; scan backwards so a live
+                # redelivery resolves without walking the whole buffer.
+                for m in reversed(self.messages.get(r, [])):
+                    scanned += 1
+                    if scanned > self._DUP_SCAN_MAX_MESSAGES:
+                        return False
                     m_mid = getattr(m, "mid", None)
                     if isinstance(m_mid, (bytes, bytearray)) and bytes(m_mid) == mid_b:
                         m.dup_count = int(getattr(m, "dup_count", 1) or 1) + 1
@@ -2472,7 +2539,10 @@ class RRCHub:
         if own_echo:
             confirmed = self._confirm_delivery(mid_b)
             with self._lock:
-                self._seen_envelope_ids.append(mid_b)
+                self._mark_envelope_seen(
+                    mid_b,
+                    self._sanitize_wire_room(room),
+                )
             if not confirmed:
                 # An echo arriving after the row already failed is still
                 # proof of delivery and restores it. Only when the row was
@@ -2480,20 +2550,10 @@ class RRCHub:
                 if self._restore_failed_delivery(mid_b, room) is None:
                     self._bump_duplicate_by_mid(mid_b, room)
             return
-        if mid_b is not None:
-            stale = False
-            with self._lock:
-                if mid_b in self._seen_envelope_ids:
-                    stale = True
-                else:
-                    self._seen_envelope_ids.append(mid_b)
-            if stale:
-                # Redelivery of an already recorded envelope. Fold it
-                # into the original row as a repeat count.
-                self._bump_duplicate_by_mid(mid_b, room)
-                return
-        if src_b is not None and nick_safe:
-            self._note_nick(src_b, nick_safe)
+        # Validate the body before consuming the envelope id: an invalid
+        # envelope must not mark its mid seen, or a later valid copy of the
+        # same mid would be dropped as a duplicate, and a flood of garbage
+        # mids would evict legitimate ids from the bounded seen set.
         body_safe = self._wire_text(body, MAX_WIRE_BODY_BYTES)
         if body_safe is None:
             return
@@ -2502,6 +2562,19 @@ class RRCHub:
             if isinstance(ts, int) and 0 < ts <= proto.now_ms() + 300_000
             else proto.now_ms()
         )
+        if src_b is not None and nick_safe:
+            self._note_nick(src_b, nick_safe)
+        if mid_b is not None:
+            with self._lock:
+                stale = not self._mark_envelope_seen(
+                    mid_b,
+                    self._sanitize_wire_room(room),
+                )
+            if stale:
+                # Redelivery of an already recorded envelope. Fold it
+                # into the original row as a repeat count.
+                self._bump_duplicate_by_mid(mid_b, room)
+                return
         msg = proto.RRCMessage(
             kind,
             self._sanitize_wire_room(room),
@@ -2649,11 +2722,12 @@ class RRCHub:
                 return
 
         if mid_b is not None:
+            room_n = self._sanitize_wire_room(room)
             with self._lock:
-                if mid_b in self._seen_envelope_ids:
+                if not self._mark_envelope_seen(mid_b, room_n):
                     return
-                self._seen_envelope_ids.append(mid_b)
-        room_n = self._sanitize_wire_room(room)
+        else:
+            room_n = self._sanitize_wire_room(room)
         if room_n is None and body.strip() and is_hub_src:
             with self._lock:
                 self.motd = body

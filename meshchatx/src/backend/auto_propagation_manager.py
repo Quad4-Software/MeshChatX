@@ -322,6 +322,27 @@ class AutoPropagationManager:
         with contextlib.suppress(Exception):
             router.propagation_transfer_state = LXMRouter.PR_IDLE
 
+    @staticmethod
+    def _propagation_transfer_targets(router, dest: bytes) -> bool:
+        """True when the router's in-flight propagation work targets dest.
+
+        propagation_transfer_state is router-global, so a non-idle state is
+        only evidence for this probe when the outbound link (or the pending
+        path request) actually points at the destination being probed.
+        """
+        link = getattr(router, "outbound_propagation_link", None)
+        if link is not None:
+            try:
+                return bytes(link.destination.hash) == dest
+            except Exception:
+                return False
+        if router.propagation_transfer_state == LXMRouter.PR_PATH_REQUESTED:
+            return (
+                getattr(router, "wants_download_on_path_available_from", None)
+                == dest
+            )
+        return False
+
     async def _probe_propagation_sync(self, node_hex: str) -> bool:
         ctx = self.context
         router = ctx.message_router
@@ -351,20 +372,35 @@ class AutoPropagationManager:
 
         # Prove access with a tiny transfer budget. Full mailbox sync belongs
         # to the operator-triggered or interval sync paths, not auto-select.
-        router.request_messages_from_propagation_node(
-            ctx.identity,
-            max_messages=PROBE_MAX_MESSAGES,
-        )
+        try:
+            router.request_messages_from_propagation_node(
+                ctx.identity,
+                max_messages=PROBE_MAX_MESSAGES,
+            )
+        except Exception:
+            self.app.stop_propagation_node_sync(context=ctx)
+            return False
 
         deadline = time.monotonic() + SYNC_PROBE_TIMEOUT_SECONDS
         left_idle = False
 
         while time.monotonic() < deadline:
+            # propagation_transfer_state is router-global: only trust
+            # transitions observed while the outbound node still points
+            # at the destination being probed.
+            if router.get_outbound_propagation_node() != dest:
+                self.app.stop_propagation_node_sync(context=ctx)
+                return False
             state = router.propagation_transfer_state
             if state in _PROP_FAILURE_STATES:
                 self.app.stop_propagation_node_sync(context=ctx)
                 return False
             if state not in _PROP_SUCCESS_STATES:
+                if not self._propagation_transfer_targets(router, dest):
+                    # Non-idle churn with no transfer aimed at the probed
+                    # node: an unrelated sync is driving the router.
+                    self.app.stop_propagation_node_sync(context=ctx)
+                    return False
                 left_idle = True
                 break
             await asyncio.sleep(POLL_INTERVAL_SECONDS)
@@ -373,6 +409,9 @@ class AutoPropagationManager:
             return False
 
         while time.monotonic() < deadline:
+            if router.get_outbound_propagation_node() != dest:
+                self.app.stop_propagation_node_sync(context=ctx)
+                return False
             state = router.propagation_transfer_state
             if state in _PROP_FAILURE_STATES:
                 self.app.stop_propagation_node_sync(context=ctx)

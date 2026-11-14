@@ -33,6 +33,37 @@ def _looks_like_html(text: str) -> bool:
     return head.startswith("<!doctype html") or head.startswith("<html")
 
 
+def _looks_like_dtd(text: str) -> bool:
+    # A DOCTYPE/ENTITY declaration is only legal in the XML prolog: before
+    # the root element. Walk that region skipping whitespace, PIs and
+    # comments so a long comment prefix cannot push a real declaration past
+    # a fixed window, while "<!DOCTYPE" inside later comments or CDATA does
+    # not trip the check.
+    i, n = 0, len(text)
+    parts: list[str] = []
+    while i < n:
+        if text[i].isspace():
+            i += 1
+            continue
+        if text.startswith("<?", i):
+            j = text.find("?>", i + 2)
+            i = n if j < 0 else j + 2
+            continue
+        if text.startswith("<!--", i):
+            j = text.find("-->", i + 4)
+            i = n if j < 0 else j + 3
+            continue
+        if text.startswith("<!", i):
+            j = text.find(">", i + 2)
+            end = n if j < 0 else j + 1
+            parts.append(text[i:end])
+            i = end
+            continue
+        break
+    head = "".join(parts).upper()
+    return "<!DOCTYPE" in head or "<!ENTITY" in head
+
+
 def _count_geojson_features(obj) -> int:
     if not isinstance(obj, dict):
         raise GeoValidationError("invalid_geojson")
@@ -145,8 +176,7 @@ def validate_kml_bytes(
         raise GeoValidationError("invalid_encoding") from exc
     if _looks_like_html(text):
         raise GeoValidationError("not_geo_content")
-    head = text[:4096].upper()
-    if "<!DOCTYPE" in head or "<!ENTITY" in head:
+    if _looks_like_dtd(text):
         raise GeoValidationError("dtd_forbidden")
     try:
         root = ET.fromstring(text)  # noqa: S314 - DTD rejected above

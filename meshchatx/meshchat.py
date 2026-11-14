@@ -137,6 +137,7 @@ from meshchatx.src.backend.lxmf_utils import (
     FIELD_REPLY_QUOTE,
     FIELD_REPLY_TO,
     LXMF_APP_EXTENSIONS_FIELD,
+    _lxmf_hash_hex,
     build_lxmf_reaction_field,
     convert_lxmf_message_to_dict,
     convert_lxmf_method_to_string,
@@ -712,6 +713,7 @@ class ReticulumMeshChat:
         # event loop, so every mutation of this state goes through the lock.
         self._lxmf_incoming_timestamps = []
         self._lxmf_flood_lock = threading.RLock()
+        self._lxmf_delivery_seen = {}
         self._flood_protection_current_cost = None
         self._flood_protection_last_bump_time = 0
 
@@ -8523,6 +8525,8 @@ class ReticulumMeshChat:
             )
             return
         if isinstance(decoded, dict):
+            # The upgrade loop already priced this frame by type before
+            # dispatch; nothing left to charge here.
             await self.on_websocket_data_received(client, decoded)
 
     def _detach_active_session(self, websocket_response) -> bool:
@@ -9894,6 +9898,42 @@ class ReticulumMeshChat:
             return ctx
         return self
 
+    _LXMF_REDELIVERY_DEDUP_TTL = 3600.0
+    _LXMF_REDELIVERY_DEDUP_MAX = 8192
+
+    def _lxmf_delivery_already_seen(self, ctx, hash_hex: str) -> bool:
+        """Record an inbound LXMF message hash; True on redelivery.
+
+        LXMF can deliver the same message more than once (allow_duplicate
+        retries, multi-path arrival). The DB upsert is idempotent, but
+        forwarding and client broadcasts must not repeat, so callers gate
+        those on this check. State lives on the same per-context owner as
+        the flood timestamps and shares its lock.
+        """
+        if not hash_hex:
+            return False
+        owner = self._lxmf_flood_state_owner(ctx)
+        now = time.time()
+        with self._lxmf_flood_lock:
+            seen = getattr(owner, "_lxmf_delivery_seen", None)
+            if not isinstance(seen, dict):
+                seen = {}
+                owner._lxmf_delivery_seen = seen
+            if hash_hex in seen:
+                seen[hash_hex] = now
+                return True
+            if len(seen) >= self._LXMF_REDELIVERY_DEDUP_MAX:
+                cutoff = now - self._LXMF_REDELIVERY_DEDUP_TTL
+                for key in [k for k, ts in seen.items() if ts < cutoff]:
+                    del seen[key]
+                # Still full of fresh entries: evict the oldest quarter.
+                # dict preserves insertion order, so the head is oldest.
+                if len(seen) >= self._LXMF_REDELIVERY_DEDUP_MAX:
+                    for key in list(seen)[: self._LXMF_REDELIVERY_DEDUP_MAX // 4]:
+                        del seen[key]
+            seen[hash_hex] = now
+            return False
+
     def _check_lxmf_flood_protection(self, context=None) -> None:
         """Check incoming LXMF message rate and auto-adjust stamp cost if flooding."""
         ctx = context or self.current_context
@@ -10386,8 +10426,15 @@ class ReticulumMeshChat:
             )
             self._maybe_store_path_at_send_for_lxmf(ctx, lxmf_message)
 
+            # allow_duplicate redeliveries re-upsert idempotently above, but
+            # must not re-forward or re-broadcast the same message.
+            is_redelivery = self._lxmf_delivery_already_seen(
+                ctx,
+                _lxmf_hash_hex(getattr(lxmf_message, "hash", None)),
+            )
+
             # handle forwarding
-            if lxmf_signature_validated(lxmf_message):
+            if not is_redelivery and lxmf_signature_validated(lxmf_message):
                 self.handle_forwarding(lxmf_message, context=ctx)
 
             self._apply_lxmf_sieve_folder_rule(
@@ -10549,7 +10596,7 @@ class ReticulumMeshChat:
             )
             self._merge_stored_path_fields_from_db(
                 ctx,
-                lxmf_message.hash.hex(),
+                _lxmf_hash_hex(getattr(lxmf_message, "hash", None)),
                 msg_dict,
             )
 
@@ -10560,18 +10607,19 @@ class ReticulumMeshChat:
                 message_content=message_content,
             )
 
-            AsyncUtils.run_async(
-                self.websocket_broadcast(
-                    json.dumps(
-                        {
-                            "type": "lxmf.delivery",
-                            "remote_identity_name": sender_name,
-                            "lxmf_message": msg_dict,
-                            "sieve_suppress_notifications": suppress_notifications,
-                        },
+            if not is_redelivery:
+                AsyncUtils.run_async(
+                    self.websocket_broadcast(
+                        json.dumps(
+                            {
+                                "type": "lxmf.delivery",
+                                "remote_identity_name": sender_name,
+                                "lxmf_message": msg_dict,
+                                "sieve_suppress_notifications": suppress_notifications,
+                            },
+                        ),
                     ),
-                ),
-            )
+                )
 
         except Exception:
             msg_hash = getattr(lxmf_message, "hash", None)

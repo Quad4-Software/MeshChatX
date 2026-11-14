@@ -86,6 +86,10 @@ RES_KIND_BLOB = "blob"
 HUB_HASH_BYTES = 16
 
 DEFAULT_DEST_NAME = "rrc.hub"
+# Envelopes are small (messages <=256 KiB, chunked notices <=512 KiB
+# total); anything bigger is hostile or corrupt and must not reach the
+# decoder. Shared by the client link and the hub server packet paths.
+MAX_PACKET_BYTES = 1024 * 1024
 DEFAULT_MAX_NICK_BYTES = 32
 DEFAULT_MAX_ROOM_BYTES = 64
 DEFAULT_MAX_MSG_BYTES = 350

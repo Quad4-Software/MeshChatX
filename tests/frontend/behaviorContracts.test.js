@@ -167,7 +167,7 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
         it("multipart upload path reaches add_file from meshchat handler", () => {
             const handler = readSources(["meshchatx/meshchat.py", "meshchatx/src/backend/http/routes/page_nodes.py"]);
             expect(handler).toContain("async def page_nodes_upload_file");
-            expect(handler).toContain("node.add_file(filename, file_data)");
+            expect(handler).toContain("node.add_file, filename, file_data");
         });
 
         it("page node upload returns JSON errors instead of unhandled 500s", () => {

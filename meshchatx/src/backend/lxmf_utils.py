@@ -2,6 +2,7 @@
 
 import base64
 import json
+import time
 
 import LXMF
 import RNS
@@ -35,6 +36,97 @@ def _lxmf_dict_key(d: dict, *keys):
     for key in keys:
         if key in d:
             return d[key]
+    return None
+
+
+def _lxmf_text(value) -> str:
+    """Coerce an LXMF title/content field to text without raising.
+
+    LXMF 1.3 decodes content as bytes, but a hand-built or future-version
+    message can carry str, None, or an unexpected type. Anything that is
+    not bytes/str becomes its repr-free empty string rather than dropping
+    the whole message on AttributeError.
+    """
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    if isinstance(value, str):
+        return value
+    return ""
+
+
+_LXMF_TS_MAX = 4102444800.0  # 2100-01-01 UTC; LXMF timestamps are epoch seconds
+
+
+def _lxmf_timestamp(value):
+    """Return a bounded numeric timestamp for storage.
+
+    LXMF timestamps are epoch seconds. A str/list/dict/NaN value from the
+    wire must not reach the database: SQLite would store it verbatim and
+    break ordering and datetime.fromtimestamp() callers. Invalid input
+    falls back to the current time; finite values clamp to a plausible
+    epoch range so a huge int cannot poison sort order.
+    """
+    if isinstance(value, bool):
+        return time.time()
+    if isinstance(value, (int, float)):
+        try:
+            f = float(value)
+        except (OverflowError, ValueError):
+            return time.time()
+        if f != f or f in (float("inf"), float("-inf")):
+            return time.time()
+        return min(max(f, 0.0), _LXMF_TS_MAX)
+    return time.time()
+
+
+def _lxmf_hash_hex(value) -> str:
+    """Hex-encode an LXMF hash field, tolerating str/None/malformed input."""
+    if isinstance(value, bytes):
+        return value.hex()
+    if isinstance(value, str):
+        return value
+    return ""
+
+
+def _lxmf_num(value):
+    """Return value as a finite float/int, else None. For telemetry-ish fields."""
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, (int, float)):
+        try:
+            f = float(value)
+        except (OverflowError, ValueError):
+            return None
+        if f != f or f in (float("inf"), float("-inf")):
+            return None
+        return value
+    return None
+
+
+def _lxmf_json_safe(value, _depth: int = 0):
+    """Recursively coerce a value into JSON-serializable form.
+
+    bytes become hex strings, tuples/sets become lists, dict keys are
+    stringified, and anything else unsupported is dropped to None. Depth
+    is capped so a self-referential or absurdly nested field cannot hang
+    the converter.
+    """
+    if _depth > 24:
+        return None
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, bytes):
+        return value.hex()
+    if isinstance(value, (bytearray, memoryview)):
+        return bytes(value).hex()
+    if isinstance(value, dict):
+        out = {}
+        for k, v in value.items():
+            key = k if isinstance(k, str) else str(k)
+            out[key] = _lxmf_json_safe(v, _depth + 1)
+        return out
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return [_lxmf_json_safe(v, _depth + 1) for v in value]
     return None
 
 
@@ -719,7 +811,12 @@ def convert_lxmf_message_to_dict(
 ):
     # handle fields
     fields = {}
-    message_fields = lxmf_message.get_fields()
+    try:
+        message_fields = lxmf_message.get_fields() or {}
+    except Exception:
+        message_fields = {}
+    if not isinstance(message_fields, dict):
+        message_fields = {}
     is_reaction = False
     reaction_to = None
     reaction_emoji = None
@@ -818,7 +915,7 @@ def convert_lxmf_message_to_dict(
         if field_type == FIELD_REACTION and isinstance(value, dict):
             parsed_reaction = parse_lxmf_reaction_field_dict(
                 value,
-                lxmf_message.source_hash.hex(),
+                _lxmf_hash_hex(getattr(lxmf_message, "source_hash", None)),
             )
             if parsed_reaction:
                 fields["reaction"] = {
@@ -849,27 +946,38 @@ def convert_lxmf_message_to_dict(
                     ]
 
     # convert 0.0-1.0 progress to 0.00-100 percentage
-    progress_percentage = round(lxmf_message.progress * 100, 2)
+    progress_percentage = 0.0
+    progress_raw = getattr(lxmf_message, "progress", None)
+    if isinstance(progress_raw, (int, float)) and not isinstance(progress_raw, bool):
+        try:
+            progress_f = float(progress_raw)
+            if progress_f == progress_f and progress_f not in (
+                float("inf"),
+                float("-inf"),
+            ):
+                progress_percentage = round(progress_f * 100, 2)
+        except (TypeError, ValueError, OverflowError):
+            pass
 
     # get rssi
-    rssi = lxmf_message.rssi
+    rssi = getattr(lxmf_message, "rssi", None)
     if rssi is None and reticulum:
-        rssi = reticulum.get_packet_rssi(lxmf_message.hash)
+        rssi = reticulum.get_packet_rssi(getattr(lxmf_message, "hash", None))
 
     # get snr
-    snr = lxmf_message.snr
+    snr = getattr(lxmf_message, "snr", None)
     if snr is None and reticulum:
-        snr = reticulum.get_packet_snr(lxmf_message.hash)
+        snr = reticulum.get_packet_snr(getattr(lxmf_message, "hash", None))
 
     # get quality
-    quality = lxmf_message.q
+    quality = getattr(lxmf_message, "q", None)
     if quality is None and reticulum:
-        quality = reticulum.get_packet_q(lxmf_message.hash)
+        quality = reticulum.get_packet_q(getattr(lxmf_message, "hash", None))
 
     if not is_reaction:
         parsed_reaction = extract_reaction_from_lxmf_fields(
             message_fields,
-            source_hash_hex=lxmf_message.source_hash.hex(),
+            source_hash_hex=_lxmf_hash_hex(getattr(lxmf_message, "source_hash", None)),
             parsed_fields=fields,
         )
         if parsed_reaction:
@@ -884,12 +992,10 @@ def convert_lxmf_message_to_dict(
         reply_to_hash = val.hex() if isinstance(val, bytes) else val
     elif fields.get("reply_to"):
         reply_to_hash = fields.get("reply_to")
+    if reply_to_hash is not None and not isinstance(reply_to_hash, str):
+        reply_to_hash = None
 
-    content = (
-        lxmf_message.content.decode("utf-8", errors="replace")
-        if lxmf_message.content
-        else ""
-    )
+    content = _lxmf_text(getattr(lxmf_message, "content", None))
 
     # auto-detect reply from content if not present
     if not reply_to_hash and content and isinstance(content, str):
@@ -900,10 +1006,12 @@ def convert_lxmf_message_to_dict(
             reply_to_hash = match.group(1)
 
     out = {
-        "hash": lxmf_message.hash.hex(),
-        "source_hash": lxmf_message.source_hash.hex(),
-        "destination_hash": lxmf_message.destination_hash.hex(),
-        "is_incoming": lxmf_message.incoming,
+        "hash": _lxmf_hash_hex(getattr(lxmf_message, "hash", None)),
+        "source_hash": _lxmf_hash_hex(getattr(lxmf_message, "source_hash", None)),
+        "destination_hash": _lxmf_hash_hex(
+            getattr(lxmf_message, "destination_hash", None),
+        ),
+        "is_incoming": bool(getattr(lxmf_message, "incoming", False)),
         "state": state_override
         if state_override is not None
         else convert_lxmf_state_to_string(lxmf_message),
@@ -911,21 +1019,19 @@ def convert_lxmf_message_to_dict(
         "method": method_override
         if method_override is not None
         else convert_lxmf_method_to_string(lxmf_message),
-        "delivery_attempts": lxmf_message.delivery_attempts,
-        "next_delivery_attempt_at": getattr(
-            lxmf_message,
-            "next_delivery_attempt",
-            None,
+        "delivery_attempts": _lxmf_num(
+            getattr(lxmf_message, "delivery_attempts", None),
+        ),
+        "next_delivery_attempt_at": _lxmf_num(
+            getattr(lxmf_message, "next_delivery_attempt", None),
         ),  # attribute may not exist yet
-        "title": lxmf_message.title.decode("utf-8", errors="replace")
-        if lxmf_message.title
-        else "",
+        "title": _lxmf_text(getattr(lxmf_message, "title", None)),
         "content": content,
-        "fields": fields,
-        "timestamp": lxmf_message.timestamp,
-        "rssi": rssi,
-        "snr": snr,
-        "quality": quality,
+        "fields": _lxmf_json_safe(fields),
+        "timestamp": _lxmf_timestamp(getattr(lxmf_message, "timestamp", None)),
+        "rssi": _lxmf_num(rssi),
+        "snr": _lxmf_num(snr),
+        "quality": _lxmf_num(quality),
         "reply_to_hash": reply_to_hash,
         "is_reaction": is_reaction,
     }

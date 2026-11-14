@@ -71,7 +71,16 @@ def reset_test_temp_root() -> None:
     # deletes its basetemp and coverage files. Skip the reset instead.
     if any(m != _marker_path() for m in _live_markers()):
         return
-    shutil.rmtree(TEST_TEMP_ROOT, ignore_errors=True)
+    # rmtree would also delete the .run-* markers, and they are only
+    # re-claimed after the wipe. A concurrent suite checking markers in
+    # that window sees none and wipes the root mid-run. Preserve markers.
+    for child in TEST_TEMP_ROOT.iterdir():
+        if child.name.startswith(RUN_MARKER_PREFIX):
+            continue
+        if child.is_dir() and not child.is_symlink():
+            shutil.rmtree(child, ignore_errors=True)
+        else:
+            child.unlink(missing_ok=True)
 
 
 def ensure_test_temp_dirs() -> Path:

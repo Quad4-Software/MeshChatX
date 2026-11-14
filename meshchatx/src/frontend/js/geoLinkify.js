@@ -72,10 +72,26 @@ export function linkifyGeoRefs(text) {
     // pass. Sequential replace() re-scanned the generated anchor markup and
     // could nest anchors inside data-geo-text attributes.
     const matches = [];
+    // Covered-position bitmap: overlap checks stay O(candidate length)
+    // instead of scanning every claimed range per candidate (O(n*m) on
+    // maidenhead-dense text). Kept matches are disjoint by construction,
+    // so a marked position means "inside a claimed range".
+    let covered = null;
     const addMatch = (start, end, display, body) => {
-        // Skip overlaps with an already-claimed range.
-        for (const m of matches) {
-            if (start < m.end && end > m.start) return;
+        if (covered === null) {
+            covered = new Uint8Array(text.length);
+        }
+        const lo = Math.max(0, start);
+        const hi = Math.min(end, text.length);
+        if (hi <= lo) {
+            if (lo < text.length && covered[lo]) return;
+        } else {
+            for (let i = lo; i < hi; i += 1) {
+                if (covered[i]) return;
+            }
+            for (let i = lo; i < hi; i += 1) {
+                covered[i] = 1;
+            }
         }
         matches.push({ start, end, display, body });
     };

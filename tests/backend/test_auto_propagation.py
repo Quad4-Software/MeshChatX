@@ -51,7 +51,36 @@ def _make_manager(memory_raw=None):
     context.running = True
     context.message_router = MagicMock()
     context.message_router.propagation_transfer_state = LXMRouter.PR_IDLE
+    # Model the real router's outbound bookkeeping: set_outbound updates
+    # what get_outbound reports, and request_messages establishes a link
+    # aimed at that destination (LINK_ESTABLISHING/REQUEST_SENT imply one).
+    _outbound = [None]
+
+    def _set_outbound(dest):
+        if _outbound[0] != dest:
+            _outbound[0] = dest
+            context.message_router.outbound_propagation_link = None
+
+    def _get_outbound():
+        if _outbound[0] is not None:
+            return _outbound[0]
+        # Fall back to an explicitly configured return_value so tests that
+        # stub the getter directly keep working.
+        return context.message_router.get_outbound_propagation_node.return_value
+
+    def _request_messages(_identity, max_messages=None):
+        dest = _outbound[0]
+        if dest is not None:
+            link = MagicMock()
+            link.destination.hash = dest
+            context.message_router.outbound_propagation_link = link
+
+    context.message_router.set_outbound_propagation_node.side_effect = _set_outbound
+    context.message_router.get_outbound_propagation_node.side_effect = _get_outbound
     context.message_router.get_outbound_propagation_node.return_value = None
+    context.message_router.request_messages_from_propagation_node.side_effect = (
+        _request_messages
+    )
 
     manager = AutoPropagationManager(app, context)
     return manager, app, context, config, database, manager_store

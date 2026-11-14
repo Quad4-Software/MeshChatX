@@ -595,6 +595,10 @@ class RRCHubServer:
                 rx=len(data),
                 peer=self._peer_label_for(link),
             )
+        # Same bound as the client link path: oversized frames must not
+        # reach the decoder.
+        if not isinstance(data, (bytes, bytearray)) or len(data) > proto.MAX_PACKET_BYTES:
+            return
         try:
             env = proto.decode(data)
         except Exception:

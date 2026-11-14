@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import shutil
 
@@ -22,6 +23,7 @@ from meshchatx.src.backend.http.safe_file_response import file_response
 from meshchatx.src.backend.http.uploads import (
     UPLOAD_LIMITS,
     PayloadTooLargeError,
+    read_json_limited,
     write_field_to_path,
 )
 from meshchatx.src.backend.privacy_mode import ensure_outbound_http_allowed
@@ -69,7 +71,12 @@ def register_translation_routes(routes, app) -> None:
                 UPLOAD_LIMITS["translation_pack"],
             )
 
-            pairs = app.translation_pack_manager.import_archive(archive_path)
+            # Archive extraction is synchronous and CPU/IO bound; keep it
+            # off the event loop.
+            pairs = await asyncio.to_thread(
+                app.translation_pack_manager.import_archive,
+                archive_path,
+            )
             return web.json_response({"pairs": pairs})
         except PayloadTooLargeError:
             return http_payload_too_large()
@@ -115,7 +122,7 @@ def register_translation_routes(routes, app) -> None:
             ensure_outbound_http_allowed(
                 app.config, feature="translation pack downloads"
             )
-            data = await request.json()
+            data = await read_json_limited(request)
             want_all = bool(data.get("all"))
             pair = str(data.get("pair") or "").lower()
             if not want_all and not pair:
@@ -153,6 +160,8 @@ def register_translation_routes(routes, app) -> None:
             return web.json_response(
                 {"installed": installed, "failed": failed}, status=status
             )
+        except PayloadTooLargeError:
+            return http_payload_too_large()
         except Exception as e:
             RNS.log(f"Error fetching translation packs: {e}", RNS.LOG_ERROR)
             return http_error_from_exception(e, fallback_status=502)

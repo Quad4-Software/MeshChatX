@@ -60,11 +60,17 @@ export function rewriteCssBodyHtmlSelectors(css) {
         return "";
     }
     let s = stripExternalFromCss(css);
+    s = s.replace(/\bhtml\s+body\b/g, `.${NOMAD_HTML_ROOT_CLASS}`);
     s = s.replace(/\bhtml\s*\{/g, `.${NOMAD_HTML_ROOT_CLASS} {`);
     s = s.replace(/\bbody\s*\{/g, `.${NOMAD_HTML_ROOT_CLASS} {`);
     s = s.replace(/\bhtml\s*,/g, `.${NOMAD_HTML_ROOT_CLASS},`);
     s = s.replace(/\bbody\s*,/g, `.${NOMAD_HTML_ROOT_CLASS},`);
-    s = s.replace(/\bhtml\s+body\b/g, `.${NOMAD_HTML_ROOT_CLASS}`);
+    // html/body may head any complex selector: body *, body>*, body:hover,
+    // body[attr], body.foo, ... Each would otherwise match the real document
+    // and restyle or hide the whole app. Anchor on selector-start positions
+    // (start, or after { } , ;) so declaration values and generated class
+    // names like .nomad-html-root are untouched.
+    s = s.replace(/(^|[{},;]\s*)(html|body)(?=[\s>+~*:(.[#])/gim, `$1.${NOMAD_HTML_ROOT_CLASS}`);
     return s;
 }
 
@@ -86,13 +92,34 @@ export function stripOverlayFromCss(css) {
     s = s.replace(/[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g, "");
     s = s.replace(/position\s*:\s*[^;{}]+/gi, (decl) => {
         const lower = decl.toLowerCase().replace(/\s+/g, "");
-        if (/\bfixed\b/.test(lower) || /\bsticky\b/.test(lower) || /\babsolute\b/.test(lower)) {
+        // var()/env()/attr() can smuggle fixed/sticky/absolute past the
+        // literal keyword checks, so unverifiable position values go static.
+        if (
+            /\bfixed\b/.test(lower) ||
+            /\bsticky\b/.test(lower) ||
+            /\babsolute\b/.test(lower) ||
+            /(?:var|env|attr)\(/.test(lower)
+        ) {
             return "position:static";
         }
         return decl;
     });
-    s = s.replace(/\b(?:z-index|inset|top|left|right|bottom|transform)\s*:\s*[^;{}]+/gi, "");
-    s = s.replace(/\b(?:width|height)\s*:\s*[^;{}]*100(?:v[wh]|%)[^;{}]*/gi, "");
+    s = s.replace(
+        // eslint-disable-next-line security/detect-unsafe-regex -- flat alternation over declaration text, no nested quantifiers
+        /\b(?:z-index|inset(?:-[a-z]+)?|top|left|right|bottom|transform|translate|rotate|scale|margin(?:-[a-z]+)?)\s*:\s*[^;{}]+/gi,
+        ""
+    );
+    s = s.replace(/\b(?:min-|max-)?(?:width|height|inline-size|block-size)\s*:\s*[^;{}]+/gi, (decl) => {
+        const colon = decl.indexOf(":");
+        const val = decl.slice(colon + 1);
+        // Viewport/container-relative full sizes (100vw, 100dvh, 100lvw,
+        // 100svh, 100cqw, 100vi, ...) and literal 100% all cover the
+        // viewport when paired with positioning tricks.
+        if (/100(?:(?:d|s|l)?v\w*|cq\w*|%)/i.test(val)) {
+            return "";
+        }
+        return decl;
+    });
     return s;
 }
 
@@ -300,6 +327,11 @@ export function sanitizeNomadHtmlDocument(html) {
             .join("\n");
         const body = doc.body;
         if (body) {
+            // Every <style> was already collected and rewritten above. Drop
+            // the in-body copies so body.innerHTML cannot emit a second,
+            // verbatim stylesheet whose body/html selectors were never
+            // scoped to .nomad-html-root.
+            body.querySelectorAll("style").forEach((el) => el.remove());
             bodyMarkup = (styles ? `<style>${styles}</style>` : "") + body.innerHTML;
         }
     } catch {

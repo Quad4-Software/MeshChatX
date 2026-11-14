@@ -127,7 +127,10 @@ def register_maintenance_routes(routes, app):
     @routes.delete(API_V1_PREFIX + "/maintenance/announces")
     async def maintenance_clear_announces(request):
         aspect = request.query.get("aspect")
-        app.database.announces.delete_all_announces(aspect=aspect)
+        await asyncio.to_thread(
+            app.database.announces.delete_all_announces,
+            aspect=aspect,
+        )
         return web.json_response(
             {
                 "message": f"Announces cleared{' for aspect ' + aspect if aspect else ''}",
@@ -140,7 +143,10 @@ def register_maintenance_routes(routes, app):
     @routes.delete(API_V1_PREFIX + "/maintenance/favourites")
     async def maintenance_clear_favourites(request):
         aspect = request.query.get("aspect")
-        app.database.announces.delete_all_favourites(aspect=aspect)
+        await asyncio.to_thread(
+            app.database.announces.delete_all_favourites,
+            aspect=aspect,
+        )
         return web.json_response(
             {
                 "message": f"Favourites cleared{' for aspect ' + aspect if aspect else ''}",
@@ -152,7 +158,7 @@ def register_maintenance_routes(routes, app):
     # maintenance - clear archives
     @routes.delete(API_V1_PREFIX + "/maintenance/archives")
     async def maintenance_clear_archives(request):
-        app.database.misc.delete_archived_pages()
+        await asyncio.to_thread(app.database.misc.delete_archived_pages)
         return web.json_response({"message": "All archived pages cleared"})
 
     # maintenance - clear LXMF icons
@@ -160,19 +166,25 @@ def register_maintenance_routes(routes, app):
     # maintenance - clear LXMF icons
     @routes.delete(API_V1_PREFIX + "/maintenance/lxmf-icons")
     async def maintenance_clear_lxmf_icons(request):
-        app.database.misc.delete_all_user_icons()
+        await asyncio.to_thread(app.database.misc.delete_all_user_icons)
         return web.json_response({"message": "All LXMF icons cleared"})
 
     @routes.delete(API_V1_PREFIX + "/maintenance/stickers")
     async def maintenance_clear_stickers(request):
         identity_hash = app.identity.hash.hex()
-        n = app.database.stickers.delete_all_for_identity(identity_hash)
+        n = await asyncio.to_thread(
+            app.database.stickers.delete_all_for_identity,
+            identity_hash,
+        )
         return web.json_response({"message": "Stickers cleared", "deleted": n})
 
     @routes.delete(API_V1_PREFIX + "/maintenance/gifs")
     async def maintenance_clear_gifs(request):
         identity_hash = app.identity.hash.hex()
-        n = app.database.gifs.delete_all_for_identity(identity_hash)
+        n = await asyncio.to_thread(
+            app.database.gifs.delete_all_for_identity,
+            identity_hash,
+        )
         return web.json_response({"message": "GIFs cleared", "deleted": n})
 
     @routes.delete(API_V1_PREFIX + "/maintenance/path-table")

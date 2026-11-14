@@ -207,13 +207,21 @@ def message_fields_have_attachments(fields_json: str | None):
 
 
 def has_attachments(lxmf_fields: dict) -> bool:
+    """Return True when any LXMF attachment field carries a payload.
+
+    Each field is checked independently: an empty or malformed
+    file_attachments value must not mask image/audio fields, and a
+    non-empty malformed value counts as attachment-bearing so the
+    stranger/block policies still apply.
+    """
     try:
+        if LXMF.FIELD_IMAGE in lxmf_fields or LXMF.FIELD_AUDIO in lxmf_fields:
+            return True
         if LXMF.FIELD_FILE_ATTACHMENTS in lxmf_fields:
-            return len(lxmf_fields[LXMF.FIELD_FILE_ATTACHMENTS]) > 0
-        if LXMF.FIELD_IMAGE in lxmf_fields:
-            return True
-        if LXMF.FIELD_AUDIO in lxmf_fields:
-            return True
+            val = lxmf_fields[LXMF.FIELD_FILE_ATTACHMENTS]
+            if isinstance(val, (list, tuple, set)):
+                return len(val) > 0
+            return bool(val)
         return False
     except Exception:
         return False

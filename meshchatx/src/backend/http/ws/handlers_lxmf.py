@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import math
@@ -301,7 +302,10 @@ async def handle_lxm_ingest_uri(app, client, data):
         else:
             uri = uri_raw
 
-        ingest_result = app.message_router.ingest_lxm_uri(
+        # LXMF parse/decrypt is synchronous and CPU-bound; keep it off the
+        # event loop so a large paper URI cannot stall every client.
+        ingest_result = await asyncio.to_thread(
+            app.message_router.ingest_lxm_uri,
             uri,
             signal_local_delivery=local_delivery_signal,
             signal_duplicate=duplicate_signal,

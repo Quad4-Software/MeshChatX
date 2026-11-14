@@ -205,7 +205,28 @@ export default class MicronParser extends BaseMicronParser {
 
     static stripOverlayStyles(html) {
         if (typeof html !== "string") return html;
-        const dangerousProps = ["zindex", "inset", "top", "left", "right", "bottom", "transform"];
+        // Exact-match props (dashes already stripped from prop names).
+        const dangerousProps = new Set([
+            "zindex",
+            "top",
+            "left",
+            "right",
+            "bottom",
+            "transform",
+            "translate",
+            "rotate",
+            "scale",
+        ]);
+        const sizeProps = new Set([
+            "width",
+            "minwidth",
+            "maxwidth",
+            "height",
+            "minheight",
+            "maxheight",
+            "inlinesize",
+            "blocksize",
+        ]);
         const scrubStyleValue = (styleValue) => {
             // Strip CSS comments so position/**/:fixed cannot hide the colon.
             let cleaned = String(styleValue).replace(/\/\*[\s\S]*?\*\//g, "");
@@ -236,15 +257,32 @@ export default class MicronParser extends BaseMicronParser {
                     .trim();
                 if (
                     prop === "position" &&
-                    (/\bfixed\b/.test(val) || /\bsticky\b/.test(val) || /\babsolute\b/.test(val))
+                    (/\bfixed\b/.test(val) ||
+                        /\bsticky\b/.test(val) ||
+                        /\babsolute\b/.test(val) ||
+                        // var()/env()/attr() can smuggle fixed/sticky/absolute
+                        // past the literal keyword checks.
+                        /(?:var|env|attr)\(/.test(val))
                 ) {
                     return false;
                 }
-                if (dangerousProps.includes(prop)) return false;
-                // Block viewport-covering sizes. Keep width/height 100% for Micron
-                // page and line backgrounds (NomadNet full-bleed rows).
-                if (prop === "width" && /100v[wh]/.test(val)) return false;
-                if (prop === "height" && /100v[hw]/.test(val)) return false;
+                if (dangerousProps.has(prop)) return false;
+                // inset-* props move or offset content without naming a
+                // stripped prop.
+                if (prop.startsWith("inset")) return false;
+                // Margins are legitimate Micron output (image alignment,
+                // section indents), but a viewport-sized margin can drag
+                // content across the page, so block the same 100%-viewport
+                // values as the size props below.
+                if (prop.startsWith("margin") && /100(?:(?:d|s|l)?v\w*|cq\w*)/i.test(val)) {
+                    return false;
+                }
+                // Block viewport/container-covering sizes. Keep width/height
+                // 100% for Micron page and line backgrounds (NomadNet
+                // full-bleed rows); viewport units have no such use.
+                if (sizeProps.has(prop) && /100(?:(?:d|s|l)?v\w*|cq\w*)/i.test(val)) {
+                    return false;
+                }
                 if (inlineStyleHasNetworkPaint(decl)) return false;
                 return true;
             });

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 
 from aiohttp import web
@@ -296,7 +297,8 @@ def register_page_nodes_routes(routes, app):
         if file_data is None:
             return http_bad_request("No file uploaded")
         try:
-            saved_name = node.add_file(filename, file_data)
+            # add_file writes to disk; keep it off the event loop.
+            saved_name = await asyncio.to_thread(node.add_file, filename, file_data)
         except ValueError as e:
             return http_bad_request(str(e))
         except OSError:

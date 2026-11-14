@@ -22,6 +22,9 @@ ANNOUNCE_JOURNAL_MAX_PENDING = 2000
 # How long cached contact/favourite/conversation/block sets stay valid.
 # Mutations can force an early rebuild via invalidate_peer_sets().
 PEER_SETS_REFRESH_SECONDS = 120.0
+# After a failed peer-set reload, wait this long before retrying so an
+# announce flood cannot turn each classification into a DB query storm.
+PEER_SETS_RETRY_BACKOFF_SECONDS = 60.0
 
 _ASPECT_MAX_STORED_KEYS = {
     "lxmf.delivery": "announce_max_stored_lxmf_delivery",
@@ -84,6 +87,7 @@ class AnnounceManager:
         self._is_blocked_resolver = is_blocked_resolver
         self._peer_sets_lock = threading.RLock()
         self._peer_sets_loaded_at = 0.0
+        self._peer_sets_retry_at = 0.0
         self._priority_hashes: set = set()
         self._blocked_hashes: set = set()
         self._pending_lock = threading.RLock()
@@ -172,6 +176,7 @@ class AnnounceManager:
         """Force priority/blocked set rebuild on the next classify call."""
         with self._peer_sets_lock:
             self._peer_sets_loaded_at = 0.0
+            self._peer_sets_retry_at = 0.0
 
     def classify_announce(self, destination_hash, identity_hash=None) -> str:
         """Return 'blocked', 'priority', or 'background' for an inbound announce.
@@ -206,7 +211,10 @@ class AnnounceManager:
             return "background"
 
     def _ensure_peer_sets(self):
-        if time.time() - self._peer_sets_loaded_at < PEER_SETS_REFRESH_SECONDS:
+        now = time.time()
+        if now - self._peer_sets_loaded_at < PEER_SETS_REFRESH_SECONDS:
+            return
+        if now < self._peer_sets_retry_at:
             return
         self._reload_peer_sets()
 
@@ -259,7 +267,12 @@ class AnnounceManager:
             # Block list unreadable: leave the sets unloaded so classify
             # falls back to the resolver path, which fails closed like
             # is_destination_blocked. Loading an empty block set here
-            # would silently unblock every peer.
+            # would silently unblock every peer. Back off retries so a
+            # sustained DB failure does not retry the reload on every
+            # announce classification.
+            self._peer_sets_retry_at = (
+                time.time() + PEER_SETS_RETRY_BACKOFF_SECONDS
+            )
             return
         for raw in raw_blocked:
             h = _norm_hash(raw)
@@ -284,6 +297,7 @@ class AnnounceManager:
             self._priority_hashes = priority
             self._blocked_hashes = blocked
             self._peer_sets_loaded_at = time.time()
+            self._peer_sets_retry_at = 0.0
 
     def flush_pending(self):
         """Commit deferred announce rows in a single transaction."""

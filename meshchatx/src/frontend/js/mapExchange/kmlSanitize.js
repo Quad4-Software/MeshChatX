@@ -67,9 +67,40 @@ export function isAllowedDataImageHref(href) {
 }
 
 function looksLikeDtd(text) {
-    // Iterate code points (not UTF-16 units) so the 4096-char window matches
-    // the Python sanitizer — astral padding must not push <!DOCTYPE past it.
-    const head = [...String(text || "")].slice(0, 4096).join("").toUpperCase();
+    // A DOCTYPE/ENTITY declaration is only legal in the XML prolog: before
+    // the root element. Walk that region skipping whitespace, PIs and
+    // comments so a long comment prefix cannot push a real declaration past
+    // a fixed window, while "<!DOCTYPE" inside later comments or CDATA does
+    // not trip the check.
+    const s = String(text || "");
+    const n = s.length;
+    let i = 0;
+    const parts = [];
+    while (i < n) {
+        if (/\s/.test(s[i])) {
+            i += 1;
+            continue;
+        }
+        if (s.startsWith("<?", i)) {
+            const j = s.indexOf("?>", i + 2);
+            i = j < 0 ? n : j + 2;
+            continue;
+        }
+        if (s.startsWith("<!--", i)) {
+            const j = s.indexOf("-->", i + 4);
+            i = j < 0 ? n : j + 3;
+            continue;
+        }
+        if (s.startsWith("<!", i)) {
+            const j = s.indexOf(">", i + 2);
+            const end = j < 0 ? n : j + 1;
+            parts.push(s.slice(i, end));
+            i = end;
+            continue;
+        }
+        break;
+    }
+    const head = parts.join("").toUpperCase();
     return head.includes("<!DOCTYPE") || head.includes("<!ENTITY");
 }
 

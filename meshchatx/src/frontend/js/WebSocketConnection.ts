@@ -394,7 +394,13 @@ class WebSocketConnection {
         this._pendingReconnectUi = false;
         this._sessionReady = false;
         this._reconnectAttempt = 0;
+        // Dropped queue entries still owe their request_id callers a
+        // queue_expired settlement, same as eviction and TTL expiry.
+        const pending = this._outboundQueue;
         this._outboundQueue = [];
+        for (const item of pending) {
+            this.emit("queue_expired", { request_id: item.requestId });
+        }
         this._stopHeartbeat();
         if (this._reconnectTimeout != null) {
             clearTimeout(this._reconnectTimeout);

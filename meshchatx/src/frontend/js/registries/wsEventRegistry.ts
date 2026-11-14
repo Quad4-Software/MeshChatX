@@ -20,15 +20,19 @@ export async function dispatchWsEvent(type: WsEventType, payload: Record<string,
     if (!handlers || handlers.length === 0) {
         return;
     }
-    for (const handler of handlers) {
-        // One faulty handler must not starve the rest of the listeners for
-        // this event type.
-        try {
-            await handler(payload);
-        } catch (e) {
-            console.error(`wsEventRegistry handler for "${type}" failed`, e);
-        }
-    }
+    // Run handlers concurrently: awaiting each in turn lets one slow async
+    // handler starve every later listener for the same event type. Each
+    // handler still settles independently, so a rejection cannot take the
+    // rest down with it.
+    await Promise.all(
+        handlers.map((handler) =>
+            Promise.resolve()
+                .then(() => handler(payload))
+                .catch((e) => {
+                    console.error(`wsEventRegistry handler for "${type}" failed`, e);
+                })
+        )
+    );
 }
 
 export function listRegisteredWsEventTypes(): string[] {

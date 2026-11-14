@@ -12,9 +12,10 @@ REMOTE_PEER = "c3" * 16
 def fake_lxmf_message():
     fake_lxm = MagicMock()
     fake_lxm.fields = {}
-    fake_lxm.hash = MagicMock(hex=lambda: "d4" * 16)
-    fake_lxm.source_hash = MagicMock(hex=lambda: LOCAL_LXMF)
-    fake_lxm.destination_hash = MagicMock(hex=lambda: LOCAL_LXMF)
+    # Real LXMF hash fields are bytes; .hex() callers keep working.
+    fake_lxm.hash = bytes.fromhex("d4" * 16)
+    fake_lxm.source_hash = bytes.fromhex(LOCAL_LXMF)
+    fake_lxm.destination_hash = bytes.fromhex(LOCAL_LXMF)
     fake_lxm.incoming = False
     fake_lxm.progress = 0
     fake_lxm.delivery_attempts = 0

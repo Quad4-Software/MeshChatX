@@ -14,6 +14,7 @@ from xml.etree import ElementTree as ET  # nosec: BAN-B405
 from meshchatx.src.backend.map_geo_validator import (
     ZIP_LOCAL_HEADER,
     GeoValidationError,
+    _looks_like_dtd,
     sniff_format,
 )
 
@@ -60,11 +61,6 @@ class SanitizeResult:
     format: str
     stripped: list[str] = field(default_factory=list)
     feature_count: int = 0
-
-
-def _looks_like_dtd(text: str) -> bool:
-    head = text[:4096].upper()
-    return "<!DOCTYPE" in head or "<!ENTITY" in head
 
 
 def is_remote_href(href: str) -> bool:

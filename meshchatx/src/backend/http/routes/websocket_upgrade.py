@@ -230,12 +230,52 @@ def register_websocket_upgrade_routes(routes, app):
                         )
                 elif message.type == WSMsgType.BINARY:
                     touch_client_activity(websocket_response)
-                    # Binary frames carry a msgpack envelope. Price them like a
-                    # normal message before the decode dispatch.
-                    if not await _ws_rate_gate(app, websocket_response, 1.0):
-                        if websocket_response.closed:
-                            break
-                        continue
+                    # Binary frames carry a msgpack envelope. Decode far
+                    # enough to price the payload by type, same as the text
+                    # path, before dispatch. Undecodable frames still pay
+                    # the flat cost and get reported by the handler.
+                    binary_decoded = None
+                    try:
+                        # msgpack is an optional dependency for the binary
+                        # rns.link path; importlib keeps the optional import
+                        # invisible to static analysis.
+                        import importlib
+
+                        msgpack = importlib.import_module("msgpack")
+                        binary_decoded = msgpack.unpackb(
+                            message.data, raw=False
+                        )
+                    except Exception:
+                        binary_decoded = None
+                    if binary_decoded is None:
+                        if not await _ws_rate_gate(
+                            app, websocket_response, 1.0
+                        ):
+                            if websocket_response.closed:
+                                break
+                            continue
+                    else:
+                        msg_type = (
+                            binary_decoded.get("type")
+                            if isinstance(binary_decoded, dict)
+                            else None
+                        )
+                        cost = message_rate_cost(
+                            msg_type.strip()
+                            if isinstance(msg_type, str)
+                            else None
+                        )
+                        if not await _ws_rate_gate(
+                            app,
+                            websocket_response,
+                            cost,
+                            request_id=binary_decoded.get("request_id")
+                            if isinstance(binary_decoded, dict)
+                            else None,
+                        ):
+                            if websocket_response.closed:
+                                break
+                            continue
                     try:
                         await app.on_websocket_binary_received(
                             websocket_response,

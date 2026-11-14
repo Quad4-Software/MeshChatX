@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import threading
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -358,6 +359,158 @@ def test_installed_policy_wrapper_fail_open_and_positive_block():
     )
     install_lxmf_inbound_delivery_policy(router2, BlockingApp(), lambda: ctx)
     assert router2.delivery_resource_advertised(resource) is False
+
+
+def _identified_router(*, resources=None, link_resources=None):
+    """Router stub modelling LXMRouter delivery callbacks and tracking."""
+    link = SimpleNamespace(
+        incoming_resources=list(link_resources or []),
+        get_remote_identity=lambda: SimpleNamespace(
+            hash=bytes.fromhex(PEER_SPAMMER),
+        ),
+    )
+    for resource in list(resources or []) + list(link_resources or []):
+        resource.link = link
+    router = SimpleNamespace(
+        incoming_delivery_resources={
+            r.hash.hex(): r for r in (resources or [])
+        },
+        incoming_delivery_resource_lock=threading.Lock(),
+        delivery_resource_advertised=MagicMock(return_value=True),
+        delivery_resource_transfer_began=MagicMock(),
+        delivery_remote_identified=MagicMock(),
+    )
+    return router, link
+
+
+def test_remote_identified_cancels_stranger_resource_mid_transfer():
+    """Identity resolving after advertise must still cancel in-flight work.
+
+    A first-contact stranger's resource is accepted while unidentified;
+    when backchannel identification lands mid-transfer the policy has to
+    re-run or the sender sees DELIVERED for a message we then strip.
+    """
+    resource = _resource_for_peer(PEER_SPAMMER)
+    resource.status = 1  # TRANSFERRING, below RNS.Resource.COMPLETE
+    router, link = _identified_router(resources=[resource])
+    original_identified = router.delivery_remote_identified
+    app = _policy_app(is_contact=False)
+    ctx = _policy_ctx(block_attachments=True)
+
+    install_lxmf_inbound_delivery_policy(router, app, lambda: ctx)
+    identity = SimpleNamespace(hash=b"\x01" * 16)
+    router.delivery_remote_identified(link, identity)
+
+    resource.cancel.assert_called_once()
+    # The wrapped original still runs so backchannel links get recorded.
+    original_identified.assert_called_once_with(link, identity)
+
+
+def test_remote_identified_keeps_contact_and_blocked_exempt_resource():
+    resource = _resource_for_peer(PEER_FRIEND)
+    resource.status = 1
+    router, link = _identified_router(resources=[resource])
+    app = _policy_app(is_contact=True)
+    ctx = _policy_ctx(block_attachments=True, block_all=True)
+
+    install_lxmf_inbound_delivery_policy(router, app, lambda: ctx)
+    router.delivery_remote_identified(link, SimpleNamespace(hash=b"\x01" * 16))
+
+    resource.cancel.assert_not_called()
+
+
+def test_remote_identified_ignores_resources_on_other_links():
+    resource = _resource_for_peer(PEER_SPAMMER)
+    resource.status = 1
+    other_link = SimpleNamespace(
+        get_remote_identity=lambda: SimpleNamespace(
+            hash=bytes.fromhex(PEER_SPAMMER),
+        ),
+    )
+    resource.link = other_link
+    router, link = _identified_router()
+    router.incoming_delivery_resources = {resource.hash.hex(): resource}
+    app = _policy_app(is_contact=False)
+    ctx = _policy_ctx(block_attachments=True)
+
+    install_lxmf_inbound_delivery_policy(router, app, lambda: ctx)
+    router.delivery_remote_identified(link, SimpleNamespace(hash=b"\x01" * 16))
+
+    resource.cancel.assert_not_called()
+    app._is_contact.assert_not_called()  # skipcq: PYL-W0212
+
+
+def test_remote_identified_skips_completed_resources():
+    import RNS
+
+    resource = _resource_for_peer(PEER_SPAMMER)
+    resource.status = RNS.Resource.COMPLETE
+    router, link = _identified_router(resources=[resource])
+    app = _policy_app(is_contact=False)
+    ctx = _policy_ctx(block_attachments=True)
+
+    install_lxmf_inbound_delivery_policy(router, app, lambda: ctx)
+    router.delivery_remote_identified(link, SimpleNamespace(hash=b"\x01" * 16))
+
+    resource.cancel.assert_not_called()
+    app._is_contact.assert_not_called()  # skipcq: PYL-W0212
+
+
+def test_remote_identified_covers_link_resources_missing_from_router_dict():
+    """Accepted-but-not-yet-begun transfers live only on the RNS link."""
+    resource = _resource_for_peer(PEER_SPAMMER)
+    resource.status = 1
+    router, link = _identified_router(link_resources=[resource])
+    app = _policy_app(is_contact=False)
+    ctx = _policy_ctx(block_all=True)
+
+    install_lxmf_inbound_delivery_policy(router, app, lambda: ctx)
+    router.delivery_remote_identified(link, SimpleNamespace(hash=b"\x01" * 16))
+
+    resource.cancel.assert_called_once()
+
+
+def test_remote_identified_continues_past_malformed_resource():
+    """A resource that raises mid-check must not skip later candidates."""
+
+    class _Exploding:
+        hash = "bad"
+        status = 1
+
+        @property
+        def link(self):
+            raise RuntimeError("boom")
+
+    bad = _Exploding()
+    good = _resource_for_peer(PEER_SPAMMER)
+    good.status = 1
+    router, link = _identified_router(resources=[good])
+    router.incoming_delivery_resources["bad"] = bad
+    app = _policy_app(is_contact=False)
+    ctx = _policy_ctx(block_attachments=True)
+
+    install_lxmf_inbound_delivery_policy(router, app, lambda: ctx)
+    router.delivery_remote_identified(link, SimpleNamespace(hash=b"\x01" * 16))
+
+    good.cancel.assert_called_once()
+
+
+def test_remote_identified_fail_open_and_original_still_called():
+    router = SimpleNamespace(
+        delivery_resource_advertised=MagicMock(return_value=True),
+        delivery_resource_transfer_began=MagicMock(),
+        delivery_remote_identified=MagicMock(),
+    )
+
+    def _boom():
+        raise RuntimeError("ctx gone")
+
+    original_identified = router.delivery_remote_identified
+    app = _policy_app()
+    install_lxmf_inbound_delivery_policy(router, app, _boom)
+    link = SimpleNamespace(incoming_resources=[], get_remote_identity=lambda: None)
+    router.delivery_remote_identified(link, SimpleNamespace(hash=b"\x01" * 16))
+    original_identified.assert_called_once()
 
 
 def test_is_destination_blocked_fail_closed_flag(monkeypatch):

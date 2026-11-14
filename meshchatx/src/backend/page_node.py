@@ -102,6 +102,10 @@ _ANNOUNCE_DEFAULT_BY_CONFIG_VERSION = {
     2: 3600,
 }
 EXECUTABLE_PAGE_TIMEOUT_SECONDS = 15
+# Executable pages are remote-influenced code: cap concurrent scripts and
+# captured stdout so one peer cannot fork-bomb or memory-bomb the host.
+EXECUTABLE_PAGE_MAX_CONCURRENT = 4
+EXECUTABLE_PAGE_MAX_OUTPUT_BYTES = 4 * 1024 * 1024
 MAX_UNIQUE_REMOTE_HASHES = 4096
 
 # How often a running node rescans its content directories so pages and
@@ -398,6 +402,7 @@ class PageNode:
         self._file_access_grants = {}
         self._file_access_grants_by_identity = {}
         self._file_access_grant_ttl = 300
+        self._exec_page_sem = threading.Semaphore(EXECUTABLE_PAGE_MAX_CONCURRENT)
         self._media_cache_lock = threading.Lock()
         # source_path -> ((st_size, st_mtime_ns), sha256_hex). Hashing the
         # whole source on every /media request is the dominant CPU cost on
@@ -787,11 +792,10 @@ class PageNode:
         remote_identity=None,
     ):
         env_map = _build_executable_page_env(data, link_id, remote_identity)
-        run_kwargs = {
+        popen_kwargs = {
             "stdout": subprocess.PIPE,
             "stderr": subprocess.DEVNULL,
             "env": env_map,
-            "timeout": EXECUTABLE_PAGE_TIMEOUT_SECONDS,
         }
         if _is_windows_platform():
             command = _windows_page_command(page_path)
@@ -801,24 +805,70 @@ class PageNode:
                 )
             env_map.setdefault("PYTHONIOENCODING", "utf-8")
             if os.name == "nt":
-                run_kwargs["creationflags"] = getattr(
+                popen_kwargs["creationflags"] = getattr(
                     subprocess,
                     "CREATE_NO_WINDOW",
                     0x08000000,
                 )
         else:
             command = [page_path]
+
+        # Bound concurrency: each request would otherwise fork a script.
+        if not self._exec_page_sem.acquire(
+            timeout=EXECUTABLE_PAGE_TIMEOUT_SECONDS,
+        ):
+            return _page_generation_error_bytes("The page server is busy.")
         try:
-            generated = subprocess.run(command, **run_kwargs)
-            return generated.stdout
-        except subprocess.TimeoutExpired:
-            return _page_generation_error_bytes("The page script timed out.")
-        except Exception as e:
-            # These bytes are served to the remote requester. Internal
-            # exception text can carry local paths, so keep it generic
-            # and log the real error server-side.
-            RNS.trace_exception(e)
-            return _page_generation_error_bytes("The page script failed to run.")
+            try:
+                proc = subprocess.Popen(command, **popen_kwargs)
+            except Exception as e:
+                RNS.trace_exception(e)
+                return _page_generation_error_bytes(
+                    "The page script failed to run.",
+                )
+            # Drain stdout on a thread with a hard cap. subprocess.run
+            # would buffer unbounded output in memory; here the reader
+            # stops at the cap, the pipe fills, and the child blocks until
+            # the wait timeout kills it.
+            out = bytearray()
+
+            def _drain():
+                try:
+                    stream = proc.stdout
+                    if stream is None:
+                        return
+                    while len(out) <= EXECUTABLE_PAGE_MAX_OUTPUT_BYTES:
+                        chunk = stream.read1(65536)
+                        if not chunk:
+                            break
+                        room = (
+                            EXECUTABLE_PAGE_MAX_OUTPUT_BYTES + 1 - len(out)
+                        )
+                        out.extend(chunk[:room])
+                except Exception:
+                    pass
+
+            drain_thread = threading.Thread(target=_drain, daemon=True)
+            drain_thread.start()
+            timed_out = False
+            try:
+                proc.wait(timeout=EXECUTABLE_PAGE_TIMEOUT_SECONDS)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                with contextlib.suppress(Exception):
+                    proc.kill()
+                with contextlib.suppress(Exception):
+                    proc.wait(timeout=5)
+            drain_thread.join(timeout=5)
+            if len(out) > EXECUTABLE_PAGE_MAX_OUTPUT_BYTES:
+                return _page_generation_error_bytes(
+                    "The page script produced too much output.",
+                )
+            if timed_out:
+                return _page_generation_error_bytes("The page script timed out.")
+            return bytes(out)
+        finally:
+            self._exec_page_sem.release()
 
     def serve_page_content(
         self,
@@ -877,6 +927,11 @@ class PageNode:
                 rid = str(remote_identity)
             if rid:
                 self._file_access_grants_by_identity[rid] = expires
+        # Cleanup also runs on the write path: peers that fetch pages but
+        # never request files would otherwise leave expired grants in the
+        # dicts forever. Runs after the insert so a zero-TTL grant cannot
+        # outlive its own call.
+        self._cleanup_file_access_grants()
 
     def _check_file_access(self, link_id, remote_identity):
         self._cleanup_file_access_grants()

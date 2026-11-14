@@ -272,23 +272,29 @@ async def handle_nomadnet_download_cancel(app, client, data):
 
     # cancel the download. The RNS request callbacks run on another thread
     # and can pop the same key, so remove atomically rather than
-    # check-then-delete.
-    downloader = app.active_downloads.pop(download_id, None)
-    if downloader is not None:
-        downloader.cancel()
+    # check-then-delete. Only the client that started the download may
+    # cancel it: download ids are guessable, so verify ownership before
+    # touching the entry and restore it if it belongs to someone else.
+    popped = app.active_downloads.pop(download_id, None)
+    if popped is None:
+        return
+    if getattr(popped, "_meshchatx_client", None) is not client:
+        app.active_downloads.setdefault(download_id, popped)
+        return
+    popped.cancel()
 
-        # notify client
-        AsyncUtils.run_async(
-            client.send_str(
-                json.dumps(
-                    {
-                        "type": "nomadnet.download.cancelled",
-                        "download_id": download_id,
-                        **rid,
-                    },
-                ),
+    # notify client
+    AsyncUtils.run_async(
+        client.send_str(
+            json.dumps(
+                {
+                    "type": "nomadnet.download.cancelled",
+                    "download_id": download_id,
+                    **rid,
+                },
             ),
-        )
+        ),
+    )
 
     # handle getting page archives
 

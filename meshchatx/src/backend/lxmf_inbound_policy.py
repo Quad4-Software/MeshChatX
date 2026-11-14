@@ -121,6 +121,77 @@ def _cancel_resource(resource) -> None:
         logger.debug("Failed to cancel inbound delivery resource", exc_info=True)
 
 
+def _cancel_identified_link_resources(app, ctx, router, link) -> None:
+    """Cancel this link's unfinished delivery resources that fail policy.
+
+    Backchannel identification can resolve the sender after a resource was
+    accepted while the peer was still unidentified. Re-run the policy over
+    both the router's transfer-began resources and the link's RNS-level
+    incoming resources (which also covers accepted-but-not-yet-begun
+    transfers) so a now-known stranger's delivery is still cancelled before
+    completion. Receiver-side cancel sends RESOURCE_RCL, which the sender's
+    LXMF stack maps to a terminal REJECTED state, not a retry.
+    """
+    candidates = []
+    resources = getattr(router, "incoming_delivery_resources", None)
+    if isinstance(resources, dict):
+        lock = getattr(router, "incoming_delivery_resource_lock", None)
+        try:
+            if lock is not None:
+                with lock:
+                    candidates.extend(resources.values())
+            else:
+                candidates.extend(list(resources.values()))
+        except Exception:
+            logger.debug(
+                "Failed to snapshot inbound delivery resources",
+                exc_info=True,
+            )
+    link_resources = getattr(link, "incoming_resources", None)
+    if isinstance(link_resources, (list, tuple)):
+        try:
+            candidates.extend(link_resources)
+        except Exception:
+            logger.debug(
+                "Failed to read link incoming resources",
+                exc_info=True,
+            )
+
+    seen = set()
+    complete_status = getattr(RNS.Resource, "COMPLETE", None)
+    for resource in candidates:
+        try:
+            if resource is None or id(resource) in seen:
+                continue
+            seen.add(id(resource))
+            if getattr(resource, "link", None) is not link:
+                continue
+            if complete_status is not None:
+                status = getattr(resource, "status", None)
+                if status is not None and status >= complete_status:
+                    continue
+            reject, reason = evaluate_inbound_delivery_resource_policy(
+                app,
+                ctx,
+                resource,
+            )
+            if reject:
+                source_hash = source_hash_from_delivery_resource(resource)
+                logger.info(
+                    "Cancelling inbound LXMF delivery resource after "
+                    "identification (%s) from %s",
+                    reason,
+                    source_hash or "unknown",
+                )
+                _cancel_resource(resource)
+        except Exception:
+            # One malformed resource must not skip the rest of the scan.
+            logger.debug(
+                "Post-identification resource policy check failed",
+                exc_info=True,
+            )
+
+
 def install_lxmf_inbound_delivery_policy(
     router,
     app,
@@ -136,6 +207,7 @@ def install_lxmf_inbound_delivery_policy(
 
     original_advertised = router.delivery_resource_advertised
     original_began = getattr(router, "delivery_resource_transfer_began", None)
+    original_identified = getattr(router, "delivery_remote_identified", None)
 
     def delivery_resource_advertised(resource):
         ctx = context_getter()
@@ -165,7 +237,27 @@ def install_lxmf_inbound_delivery_policy(
         if original_began is not None:
             original_began(resource)
 
+    def delivery_remote_identified(link, identity):
+        # Backchannel identification resolves the sender after resources
+        # may already have been accepted while the peer was unidentified.
+        # Re-run the policy over this link's unfinished transfers so a
+        # now-known stranger's delivery is still cancelled before it
+        # completes; a completed transfer can no longer be recalled and
+        # stays covered by the post-delivery strip path.
+        try:
+            ctx = context_getter()
+            if ctx is not None and getattr(ctx, "config", None):
+                _cancel_identified_link_resources(app, ctx, router, link)
+        except Exception:
+            logger.debug(
+                "Post-identification delivery policy check failed",
+                exc_info=True,
+            )
+        if original_identified is not None:
+            original_identified(link, identity)
+
     router.delivery_resource_advertised = delivery_resource_advertised
     if original_began is not None:
         router.delivery_resource_transfer_began = delivery_resource_transfer_began
+    router.delivery_remote_identified = delivery_remote_identified
     router._meshchatx_inbound_policy_installed = True

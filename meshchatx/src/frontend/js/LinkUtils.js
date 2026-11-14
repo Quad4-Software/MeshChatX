@@ -62,6 +62,19 @@ export default class LinkUtils {
         let core = url;
         let suffix = "";
         const alwaysTrim = new Set([".", ",", "!", "?", ":", ";"]);
+        // Count brackets once up front. Only trailing closers are ever
+        // trimmed, so decrementing the close count keeps the opens/closes
+        // comparison exact without rescanning the string per character.
+        let openParen = 0;
+        let closeParen = 0;
+        let openBracket = 0;
+        let closeBracket = 0;
+        for (const c of core) {
+            if (c === "(") openParen += 1;
+            else if (c === ")") closeParen += 1;
+            else if (c === "[") openBracket += 1;
+            else if (c === "]") closeBracket += 1;
+        }
         while (core.length > 0) {
             const ch = core.at(-1);
             if (alwaysTrim.has(ch)) {
@@ -69,16 +82,17 @@ export default class LinkUtils {
                 core = core.slice(0, -1);
                 continue;
             }
-            if (ch === ")" || ch === "]") {
-                const open = ch === ")" ? "(" : "[";
-                const close = ch;
-                const opens = [...core].filter((c) => c === open).length;
-                const closes = [...core].filter((c) => c === close).length;
-                if (closes > opens) {
-                    suffix = ch + suffix;
-                    core = core.slice(0, -1);
-                    continue;
-                }
+            if (ch === ")" && closeParen > openParen) {
+                closeParen -= 1;
+                suffix = ch + suffix;
+                core = core.slice(0, -1);
+                continue;
+            }
+            if (ch === "]" && closeBracket > openBracket) {
+                closeBracket -= 1;
+                suffix = ch + suffix;
+                core = core.slice(0, -1);
+                continue;
             }
             break;
         }

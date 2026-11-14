@@ -44,6 +44,8 @@ WS_NOMAD_PAGE_MAX_CHARS = 4 * 1024 * 1024
 WS_ARCHIVE_CONTENT_MAX_CHARS = 4 * 1024 * 1024
 WS_B64_FIELD_MAX_CHARS = 14 * 1024 * 1024
 WS_PAPER_URI_MAX_CHARS = 12 * 1024 * 1024
+WS_LXM_CONTENT_MAX_CHARS = 2 * 1024 * 1024
+WS_LXM_TITLE_MAX_CHARS = 8192
 WS_PLUGIN_EVENT_PAYLOAD_MAX_CHARS = 65_536
 
 WS_IDLE_TIMEOUT_SEC = 90.0
@@ -427,6 +429,21 @@ def _validate_known_fields(msg_type: str, data: dict) -> str | None:
                 return "invalid_uri"
             if len(uri) > WS_PAPER_URI_MAX_CHARS:
                 return "payload_too_large"
+    if msg_type == "lxm.generate_paper_uri":
+        content = data.get("content")
+        if content is not None:
+            if not isinstance(content, str):
+                return "invalid_content"
+            # The packed+base64 LXMF message must stay ingestible, so cap
+            # the source text well under the URI limit.
+            if len(content) > WS_LXM_CONTENT_MAX_CHARS:
+                return "payload_too_large"
+        title = data.get("title")
+        if title is not None:
+            if not isinstance(title, str):
+                return "invalid_title"
+            if len(title) > WS_LXM_TITLE_MAX_CHARS:
+                return "payload_too_large"
     if msg_type == "nomadnet.page.archive.add":
         content = data.get("content")
         if content is not None:
@@ -562,7 +579,15 @@ class CoalesceBuffer:
                 pending = self._pending
                 self._pending = {}
                 for payload in pending.values():
-                    await self._flush_cb(payload)
+                    # One failing payload must not discard the rest of the
+                    # batch: they were already removed from _pending.
+                    try:
+                        await self._flush_cb(payload)
+                    except Exception:
+                        logger.debug(
+                            "coalesce payload flush failed",
+                            exc_info=True,
+                        )
                 # Offers that land while flush callbacks are still running
                 # must not be stranded in _pending until a future offer.
                 if not self._pending:
@@ -582,7 +607,13 @@ class CoalesceBuffer:
         pending = self._pending
         self._pending = {}
         for payload in pending.values():
-            await self._flush_cb(payload)
+            try:
+                await self._flush_cb(payload)
+            except Exception:
+                logger.debug(
+                    "coalesce payload flush failed",
+                    exc_info=True,
+                )
 
 
 def truncate_plugin_payload(payload: object) -> object:

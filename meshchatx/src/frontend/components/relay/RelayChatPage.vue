@@ -2395,6 +2395,16 @@ export default {
         if (this.discoverySearchTimer) {
             clearTimeout(this.discoverySearchTimer);
         }
+        if (this._hubRefreshTimer) {
+            clearTimeout(this._hubRefreshTimer);
+            this._hubRefreshTimer = null;
+        }
+        if (this._readMarkTimers) {
+            for (const timer of this._readMarkTimers.values()) {
+                clearTimeout(timer);
+            }
+            this._readMarkTimers.clear();
+        }
         if (this.hostUptimeTimer) {
             clearInterval(this.hostUptimeTimer);
             this.hostUptimeTimer = null;
@@ -3900,6 +3910,44 @@ export default {
         encodeRoom(room) {
             return encodeURIComponent(room);
         },
+        scheduleHubRefresh() {
+            // Off-room RRC messages arrive per-room; a busy relay would
+            // otherwise fire one REST request per message. Throttle to at
+            // most one hubs fetch per window; the timer is not reset, so
+            // continuous traffic still refreshes every window.
+            if (this._hubRefreshTimer) {
+                return;
+            }
+            this._hubRefreshTimer = setTimeout(() => {
+                this._hubRefreshTimer = null;
+                this.fetchHubs();
+            }, 500);
+        },
+        scheduleRoomReadMark(hubHash, room) {
+            // Same throttling for the per-message read POST: collapse a
+            // burst into one request per window per room.
+            if (!hubHash || !room) {
+                return;
+            }
+            this.clearLocalRoomUnread(hubHash, room);
+            const key = this.roomTrackKey(hubHash, room);
+            if (!this._readMarkTimers) {
+                this._readMarkTimers = new Map();
+            }
+            if (this._readMarkTimers.has(key)) {
+                return;
+            }
+            const timer = setTimeout(() => {
+                this._readMarkTimers.delete(key);
+                if (!this.isRoomGone(hubHash, room)) {
+                    window.api
+                        .post(apiPath(`/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/read`))
+                        .catch(() => {});
+                }
+                this.updateUnreadBadge();
+            }, 800);
+            this._readMarkTimers.set(key, timer);
+        },
         async fetchHubs() {
             try {
                 const response = await window.api.get(apiPath("/rrc/hubs"));
@@ -4944,9 +4992,11 @@ export default {
                 }
                 // Chat is already open: dismiss unread/mention badge without waiting
                 // for a later hub list refresh race. Delivery-state re-pushes
-                // carry no new content, so skip the POST for those.
+                // carry no new content, so skip the POST for those. Both the
+                // read mark and any hub refresh are throttled: a busy room
+                // must not turn every inbound message into REST calls.
                 if (!json.message.delivery) {
-                    this.markRoomRead(json.hub_hash, json.room);
+                    this.scheduleRoomReadMark(json.hub_hash, json.room);
                 }
             } else if (
                 json.message &&
@@ -4963,13 +5013,12 @@ export default {
                         ToastUtils.info(this.$t("relay_chat.new_message_toast", { room: json.room || "" }));
                     }
                 }
-                this.fetchHubs().then(() => {
-                    if (bump) {
-                        this.flagLocalRoomMention(json.hub_hash, json.room);
-                    }
-                });
+                if (bump) {
+                    this.flagLocalRoomMention(json.hub_hash, json.room);
+                }
+                this.scheduleHubRefresh();
             } else {
-                this.fetchHubs();
+                this.scheduleHubRefresh();
             }
         },
         onRrcServerChange() {
