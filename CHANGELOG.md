@@ -1,5 +1,9 @@
 ## [4.12.0] - 2026-11-08 [unreleased]
 
+### Added
+
+- Relay chat: NomadNet Micron colour and formatting now renders in relay messages. Bodies carrying the broken-bar tag form get 12-bit and 24-bit foreground and background colours, bold, italic, underline, and full or partial resets; layout and link tags are dropped, unknown bars stay as text, and raw backtick Micron still behaves as Markdown inline code. A message that sets a colour draws as one unwrapped monospace line with whitespace preserved, so multi-line colour art keeps its shape.
+
 ### Changed
 
 - Desktop shell: the desktop app is now a Go/Wails v3 shell instead of Electron. IPC channel names are unchanged, the Python backend is untouched, and the shell cross-compiles to Windows and macOS from Linux. The app now serves the UI through a loopback app server so the loading and app pages share one web process, which reduces memory use on software-rendered systems.
@@ -11,6 +15,7 @@
 - CI: removed the weekly Dependabot version-update schedule; it opened no PRs (limit 0) and only produced failing runs. Dependabot alerts are unaffected.
 - Docker: refreshed pinned digests for the node:24-alpine, python:3.15.0-alpine3.24, python:3.15.0-slim-trixie, and Chainguard node/python latest-dev base images.
 - Go: TinyGo 0.43.0 to 0.44.0 and the go directive to 1.27.3 across the visualiser-wasm and geo-wasm modules, with the WASM artifacts rebuilt and their SRI manifests refreshed.
+- Dependencies: refreshed frontend, Python, and Go modules to the newest releases inside the seven-day release-age window, and moved the package manager pin to pnpm 12.18.0. The pnpm patches were re-keyed to the resolved ol-mapbox-style and maplibre-gl-style-spec versions.
 
 ### Fixed
 
@@ -26,6 +31,7 @@
 - Web UI: context menus no longer hijack text selection. On touch devices, long-pressing selectable text (messages, NomadNet pages, inputs) keeps the native selection and copy menu, while desktop right-click and the overflow buttons still open the app menus.
 - Web UI: several actions that failed silently now warn the user — loading the bot list, plugins, notification sounds, or sticker packs, and saving message drafts, relay chat preferences, or Micron editor content.
 - Reticulum 1.6: new identities can optionally be created with an identity stamp value (Settings -> Transport, default off). Stamped key generation is CPU-heavy, so it stays opt-in.
+- Tooling: eslint and prettier no longer scan gitignored local build output (the Wails AppDir tree under desktop/bin and chaquopy build venvs under .local), which could stall or fail local lint runs after a desktop build.
 
 ## [4.11.0] - 2026-11-01 [skipped]
 
