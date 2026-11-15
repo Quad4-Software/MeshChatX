@@ -228,6 +228,13 @@ patchedDependencies:
 importers:
 
   .:
+    dependencies:
+      '@protomaps/basemaps':
+        specifier: 5.7.2
+        version: 5.7.2
+      pmtiles:
+        specifier: 4.5.0
+        version: 4.5.0
     devDependencies:
       '@browsermt/bergamot-translator':
         specifier: 0.4.9
@@ -1223,6 +1230,10 @@ packages:
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
+
+  '@protomaps/basemaps@5.7.2':
+    resolution: {integrity: sha512-K1Yk6bWdULulYg+R2QRVXx4NzJZan5YQhpejEG0c1/sXruJrfPIPZuakpf3jwAgVmjIRVQwAv+yRafDeN0aaUQ==}
+    hasBin: true
 
   '@puppeteer/browsers@3.2.1':
     resolution: {integrity: sha512-KDz+3qDRdBAlRlMjmKyj6dEs33YHTk/xRHEENSXq6TNnhgoU15ruSHtEBeVF6OZ9tBDY55Se4P0nFMNsipzU9A==}
@@ -2719,6 +2730,9 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
+  pmtiles@4.5.0:
+    resolution: {integrity: sha512-CBeD4SoUluFziGdy/8k7FOjQxQy486n+929W/tWophauvMICpkZ26vGBWhDt/6b1FZQWNaf4jFdT/5+q0Wii5w==}
+
   pngjs@5.0.0:
     resolution: {integrity: sha512-40QW5YalBNfQo5yRYmiw7Yz6TKKVr3h6970B2YE+3fQpsWcrbj1PzJgxeJ19DRQjhMbKPIuMY8rFaXc8moolVw==}
     engines: {node: '>=10.13.0'}
@@ -4072,6 +4086,8 @@ snapshots:
       playwright: 1.65.0
 
   '@polka/url@1.0.0-next.29': {}
+
+  '@protomaps/basemaps@5.7.2': {}
 
   '@puppeteer/browsers@3.2.1':
     dependencies:
@@ -5557,6 +5573,10 @@ snapshots:
   playwright@1.65.0:
     dependencies:
       playwright-core: 1.65.0
+
+  pmtiles@4.5.0:
+    dependencies:
+      fflate: 0.8.3
 
   pngjs@5.0.0: {}
 

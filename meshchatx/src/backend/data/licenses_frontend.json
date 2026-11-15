@@ -540,6 +540,12 @@
     "license": "MIT"
   },
   {
+    "name": "@protomaps/basemaps",
+    "version": "5.7.2",
+    "author": "The Protomaps Authors",
+    "license": "BSD-3-Clause"
+  },
+  {
     "name": "@puppeteer/browsers",
     "version": "3.2.1",
     "author": "The Chromium Authors",
@@ -2272,6 +2278,12 @@
     "version": "1.65.0",
     "author": "Microsoft Corporation",
     "license": "Apache-2.0"
+  },
+  {
+    "name": "pmtiles",
+    "version": "4.5.0",
+    "author": "Brandon Liu",
+    "license": "BSD-3-Clause"
   },
   {
     "name": "pngjs",

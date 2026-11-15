@@ -136,5 +136,8 @@
     "vue-router": "^5.4.0",
     "vue-tsc": "^3.3.14"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@protomaps/basemaps": "5.7.2",
+    "pmtiles": "4.5.0"
+  }
 }

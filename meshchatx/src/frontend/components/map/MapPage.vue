@@ -1114,6 +1114,7 @@ import { getCurrentInstance, markRaw } from "vue";
 import "ol/ol.css";
 import "../../js/mapVectorWebFonts.js";
 import { apply as applyMapboxStyle } from "ol-mapbox-style";
+import { buildPlanetPmtilesBaseMapLayer } from "../../js/mapPmtilesBasemap.js";
 import OlMap from "ol/Map";
 import View from "ol/View";
 import LayerGroup from "ol/layer/Group";
@@ -2701,6 +2702,20 @@ export default {
         },
         async buildBaseMapLayer() {
             const url = (this.tileServerUrl || DEFAULT_OSM_RASTER).trim();
+            if (!this.offlineEnabled && url === DEFAULT_OSM_RASTER) {
+                try {
+                    // Bound the wait: header + sprite fetches must not stall
+                    // map boot on dead networks; raster fallback loads instantly.
+                    return await Promise.race([
+                        buildPlanetPmtilesBaseMapLayer(),
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error("PMTiles basemap timed out")), 10000)
+                        ),
+                    ]);
+                } catch (e) {
+                    console.warn("PMTiles basemap failed to load, using raster fallback", e);
+                }
+            }
             if (!this.offlineEnabled && !this.cachingEnabled && this.isOpenFreeMapStyleUrl(url)) {
                 const group = new LayerGroup();
                 try {

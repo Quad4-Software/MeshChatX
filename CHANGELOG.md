@@ -16,6 +16,7 @@
 - Docker: refreshed pinned digests for the node:24-alpine, python:3.15.0-alpine3.24, python:3.15.0-slim-trixie, and Chainguard node/python latest-dev base images.
 - Go: TinyGo 0.43.0 to 0.44.0 and the go directive to 1.27.3 across the visualiser-wasm and geo-wasm modules, with the WASM artifacts rebuilt and their SRI manifests refreshed.
 - Dependencies: refreshed frontend, Python, and Go modules to the newest releases inside the seven-day release-age window, and moved the package manager pin to pnpm 12.18.0. The pnpm patches were re-keyed to the resolved ol-mapbox-style and maplibre-gl-style-spec versions.
+- Map: the online default basemap is now a vector basemap read from a single PMTiles archive (planet.pmtiles) instead of raster OpenStreetMap tiles. The client fetches the archive header, tile directory, and only the tile byte ranges it needs through HTTP range requests, so the browser never downloads the whole archive, and the Protomaps light style renders landcover, landuse, water, roads, buildings, boundaries, places, and points of interest to zoom 15. If the archive cannot be reached or validated within ten seconds the map falls back to the previous raster source. Offline mode, custom tile server URLs, and tile caching are unchanged.
 
 ### Fixed
 

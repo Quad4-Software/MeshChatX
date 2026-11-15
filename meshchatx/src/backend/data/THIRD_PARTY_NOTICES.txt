@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-11-13T22:26:27.148327Z
+Generated at: 2026-11-15T22:20:02.829820Z
 Frontend source: pnpm
 
 Python dependencies
@@ -406,6 +406,9 @@ Node dependencies
 @polka/url 1.0.0-next.29
   License: MIT
   Author: Luke Edwards
+@protomaps/basemaps 5.7.2
+  License: BSD-3-Clause
+  Author: The Protomaps Authors
 @puppeteer/browsers 3.2.1
   License: Apache-2.0
   Author: The Chromium Authors
@@ -1273,6 +1276,9 @@ playwright 1.65.0
 playwright-core 1.65.0
   License: Apache-2.0
   Author: Microsoft Corporation
+pmtiles 4.5.0
+  License: BSD-3-Clause
+  Author: Brandon Liu
 pngjs 5.0.0
   License: MIT
   Author: -
