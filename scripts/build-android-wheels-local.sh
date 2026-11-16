@@ -33,7 +33,7 @@ Options:
   --api-level N              Android API level for wheel tag (default: 24)
   --pycodec2-version V       pycodec2 version to build (default: 4.1.1)
   --numpy-version V          NumPy version used during pycodec2 build (default: 1.26.2)
-  --lxst-version V           LXST wheel version for metadata patch (default: 0.5.4)
+  --lxst-version V           LXST wheel version for metadata patch (default: 0.6.0)
   --bleak-version V          bleak pure-python wheel version to vendor (default: 3.0.2)
   --httpx-version V          httpx pure-python wheel version to vendor (default: 0.28.1)
   --usbserial4a-version V    usbserial4a version to build from sdist (default: 0.4.0)
@@ -65,7 +65,7 @@ API_LEVEL="24"
 PYCODEC2_VERSION="4.1.1"
 LIBCODEC2_VERSION="1.2.0"
 NUMPY_VERSION="1.26.2"
-LXST_VERSION="0.5.4"
+LXST_VERSION="0.6.0"
 BLEAK_VERSION="3.0.2"
 HTTPX_VERSION="0.28.1"
 USBSERIAL4A_VERSION="0.4.0"
@@ -869,6 +869,17 @@ with zipfile.ZipFile(src, "r") as zin, zipfile.ZipFile(dst, "w", compression=zip
 """
             if old_get_codec in text:
                 text = text.replace(old_get_codec, new_get_codec)
+            # LXST 0.6.0 declares destination-type interest via
+            # Reticulum.get_instance() unguarded; skip it when no instance
+            # exists so Telephone() still constructs in bare environments.
+            unguarded_wants = '        RNS.Reticulum.get_instance().wants_destination_type(f"{APP_NAME}.{PRIMITIVE_NAME}")\n'
+            guarded_wants = (
+                '        _reticulum_instance = RNS.Reticulum.get_instance()\n'
+                '        if _reticulum_instance is not None:\n'
+                '            _reticulum_instance.wants_destination_type(f"{APP_NAME}.{PRIMITIVE_NAME}")\n'
+            )
+            if unguarded_wants in text:
+                text = text.replace(unguarded_wants, guarded_wants)
             data = text.encode("utf-8")
         elif item.filename.endswith(".dist-info/METADATA"):
             text = data.decode("utf-8")

@@ -47,7 +47,7 @@ ABI_MAP = {
 }
 
 DIST = "lxst_filterlib_android"
-DEFAULT_VERSION = "0.5.1"
+DEFAULT_VERSION = "0.6.0"
 DEFAULT_API = 24
 
 

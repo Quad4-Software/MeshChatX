@@ -35,7 +35,7 @@ pyserial = "3.5"
 
 # Desktop-only floors in pyproject.toml [project].dependencies.
 [pyproject]
-lxst = "0.5.4"
+lxst = "0.6.0"
 packaging = "26.3"
 bcrypt = "5.0.0"
 websockets = "17.4"
@@ -53,7 +53,7 @@ packaging = "26.3"
 numpy = "1.26.2"
 chaquopy-libcodec2 = "1.2.0"
 pycodec2 = "4.1.1"
-lxst-filterlib-android = "0.5.4"
+lxst-filterlib-android = "0.6.0"
 bcrypt = "3.1.7"
 websockets = "17.4"
 cryptography = "50.0.2"
@@ -68,5 +68,5 @@ attrs = "26.1.0"
 # Versions track the vendored builds, which may lag the PyPI floors.
 [android.wheels]
 rns = "1.6.0"
-lxst = "0.5.4"
+lxst = "0.6.0"
 bleak = "3.0.2"

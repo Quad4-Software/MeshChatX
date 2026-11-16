@@ -7,6 +7,10 @@ When pycodec2/libcodec2 is missing, that raises and prevents Opus profiles
 and the whole Telephone stack from loading. Android wheels already soft-import
 Codec2. This patch applies the same guard to a site-packages install.
 
+Also guards the LXST 0.6.0 wants_destination_type() call in Telephony.py:
+it dereferences Reticulum.get_instance() unconditionally, which crashes
+Telephone construction when no Reticulum instance exists yet.
+
 Idempotent. Safe to run after every uv sync / pip install.
 """
 
@@ -92,6 +96,23 @@ _NEW_GET_CODEC = """    @staticmethod
         else:                                         return Opus(profile=Opus.PROFILE_VOICE_MEDIUM)
 """
 
+# LXST 0.6.0 declares destination-type interest for RNS 1.6 announce
+# filtering, but calls Reticulum.get_instance() unguarded. With no live
+# Reticulum (tests, diagnostics, early init) that raises AttributeError and
+# Telephone cannot be constructed at all. Skip the declaration when no
+# instance exists; there is no network to declare interest to anyway.
+_RET_GUARD_MARKER = "_reticulum_instance = RNS.Reticulum.get_instance()"
+_UNGUARDED_WANTS = (
+    "        RNS.Reticulum.get_instance().wants_destination_type("
+    'f"{APP_NAME}.{PRIMITIVE_NAME}")\n'
+)
+_GUARDED_WANTS = (
+    "        _reticulum_instance = RNS.Reticulum.get_instance()\n"
+    "        if _reticulum_instance is not None:\n"
+    "            _reticulum_instance.wants_destination_type("
+    'f"{APP_NAME}.{PRIMITIVE_NAME}")\n'
+)
+
 
 def _lxst_file(*parts: str) -> Path | None:
     try:
@@ -133,21 +154,45 @@ def main() -> int:
         print(
             f"patch_lxst_codec2_optional: Telephony get_codec already guarded ({telephony})",
         )
-        return 0
-
-    if _OLD_GET_CODEC not in tel_text:
+    elif _OLD_GET_CODEC not in tel_text:
         print(
             "patch_lxst_codec2_optional: unexpected Telephony get_codec layout; "
             f"manual check required ({telephony})",
             file=sys.stderr,
         )
         return 1
+    else:
+        telephony.write_text(
+            tel_text.replace(_OLD_GET_CODEC, _NEW_GET_CODEC, 1),
+            encoding="utf-8",
+        )
+        print(f"patch_lxst_codec2_optional: patched Telephony get_codec ({telephony})")
 
-    telephony.write_text(
-        tel_text.replace(_OLD_GET_CODEC, _NEW_GET_CODEC, 1),
-        encoding="utf-8",
-    )
-    print(f"patch_lxst_codec2_optional: patched Telephony get_codec ({telephony})")
+    # Guard the RNS 1.6 destination-type declaration so Telephone() survives
+    # without a live Reticulum instance. Runs on every invocation, including
+    # when get_codec was already patched by an older script revision.
+    tel_text = telephony.read_text(encoding="utf-8")
+    if _RET_GUARD_MARKER in tel_text:
+        print(
+            "patch_lxst_codec2_optional: Telephony reticulum guard already applied "
+            f"({telephony})"
+        )
+    elif _UNGUARDED_WANTS in tel_text:
+        telephony.write_text(
+            tel_text.replace(_UNGUARDED_WANTS, _GUARDED_WANTS, 1),
+            encoding="utf-8",
+        )
+        print(
+            "patch_lxst_codec2_optional: patched Telephony reticulum guard "
+            f"({telephony})"
+        )
+    else:
+        # Older LXST has no wants_destination_type call; newer upstream may
+        # have guarded or removed it. Either way there is nothing to do.
+        print(
+            "patch_lxst_codec2_optional: no unguarded wants_destination_type "
+            f"call found ({telephony})"
+        )
     return 0
 
 

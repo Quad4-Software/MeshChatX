@@ -719,8 +719,8 @@ lxmf==1.3.0 \
     # via
     #   lxst
     #   reticulum-meshchatx
-lxst==0.5.4 \
-    --hash=sha256:feadeb244d12378c27c35dbe48a251ff4db03faf3c8f55b769f9d7656d0adeb7
+lxst==0.6.0 \
+    --hash=sha256:c458b4d7461749b004de02821953b7d6782a65c1c481e95a36219768cd2ea004
     # via reticulum-meshchatx
 miniaudio==1.71 \
     --hash=sha256:06222d80b057ca4beccb6f97a134c2c2bf646ef7890e1759cfc09db7eecec44d \

@@ -36,7 +36,7 @@ dependencies = [
   "cryptography>=50.0.2,<51.0.0",
   "pycparser>=3.12",
   "audioop-lts>=0.2.2; python_version >= '3.13'",
-  "lxst>=0.5.4",
+  "lxst>=0.6.0",
   "miniaudio (>=1.71,<2.0)",
   "cborx>=0.2.5,<0.3",
   "wasmtime>=50.0.1",
