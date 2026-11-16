@@ -101,14 +101,14 @@ def test_per_bot_delivery_and_announce_overrides():
             "lxmf_config": {
                 "direct_delivery_retries": 1,
                 "opportunistic_sending": False,
-                "announce_interval_seconds": 120,
+                "announce_interval_seconds": 3600,
                 "stamp_cost": 4,
             },
         },
     )
     assert effective["direct_delivery_retries"] == 1
     assert effective["opportunistic_sending"] is False
-    assert effective["announce"] == 120
+    assert effective["announce"] == 3600
     assert effective["stamp_cost"] == 4
 
 
@@ -135,13 +135,13 @@ def test_sidecar_roundtrip(tmp_path):
         "propagation_node": "d" * 32,
         "propagation_fallback_enabled": True,
         "direct_delivery_retries": 2,
-        "announce": 300,
+        "announce": 3600,
     }
     path = write_bot_lxmf_config_sidecar(str(storage), settings)
     loaded = load_bot_lxmf_config_sidecar(path)
     assert loaded["propagation_node"] == "d" * 32
     assert loaded["direct_delivery_retries"] == 2
-    assert loaded["announce"] == 300
+    assert loaded["announce"] == 3600
 
 
 @patch("subprocess.Popen")

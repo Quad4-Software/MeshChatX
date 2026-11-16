@@ -12,6 +12,8 @@ import LXMF
 import RNS.vendor.umsgpack as msgpack
 from LXMF import LXMRouter
 
+from meshchatx.src.backend.constants import MIN_ANNOUNCE_INTERVAL_SECONDS
+
 logger = logging.getLogger(__name__)
 
 
@@ -643,3 +645,20 @@ def interval_action_due(
     if last_at > now:
         return True
     return now > last_at + iv
+
+
+def clamp_interval_floor(interval_seconds):
+    """Raise a stored interval to the shared announce floor when needed.
+
+    Config values written before the floor was raised would otherwise keep
+    firing at the old cadence forever. ``None``, ``0``, negatives, and
+    unparseable values pass through untouched so callers keep their own
+    enable/disable semantics.
+    """
+    try:
+        value = int(interval_seconds)
+    except (TypeError, ValueError):
+        return interval_seconds
+    if 0 < value < MIN_ANNOUNCE_INTERVAL_SECONDS:
+        return MIN_ANNOUNCE_INTERVAL_SECONDS
+    return value

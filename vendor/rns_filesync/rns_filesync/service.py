@@ -16,6 +16,7 @@ import RNS
 from rns_filesync import protocol
 from rns_filesync.constants import (
     ANNOUNCE_INTERVAL_DEFAULT,
+    ANNOUNCE_INTERVAL_MIN,
     APP_NAME,
     ASPECT,
     BLOCK_SIZE,
@@ -165,7 +166,7 @@ class FileSyncService:
 
             self._running = True
             self._monitor = monitor
-            self._announce_interval = max(10, int(announce_interval))
+            self._announce_interval = max(ANNOUNCE_INTERVAL_MIN, int(announce_interval))
             self._stop_event.clear()
 
             self.destination.announce()

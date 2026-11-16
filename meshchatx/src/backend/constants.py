@@ -72,7 +72,10 @@ WS_PUBLIC_TYPES = frozenset({WsInboundType.PING, *WS_RUNTIME_CONTROL_TYPES})
 
 # Shared announce cadence bounds for managers that republish on a timer.
 # 6 hours matches upstream NomadNet and Reticulum discovery defaults.
-MIN_ANNOUNCE_INTERVAL_SECONDS = 60
+# The 15 minute floor keeps user configured intervals out of the range the
+# Reticulum network filtering work treats as announce spam; anything lower
+# turns every republishing node into a mesh wide packet source.
+MIN_ANNOUNCE_INTERVAL_SECONDS = 900
 DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 21600
 MAX_ANNOUNCE_INTERVAL_SECONDS = 86400
 

@@ -177,10 +177,10 @@ class TestPageNodeManagerAnnounceSettings:
         node = mgr.create_node(
             "Custom",
             announce_enabled=False,
-            announce_interval_seconds=120,
+            announce_interval_seconds=3600,
         )
         assert node.announce_enabled is False
-        assert node.announce_interval_seconds == 120
+        assert node.announce_interval_seconds == 3600
 
     def test_create_node_defaults_announce_enabled(self, storage_dir, mock_rns):
         mgr = _make_manager(storage_dir)
@@ -207,10 +207,10 @@ class TestPageNodeManagerAnnounceSettings:
         mgr.set_announce_settings(
             node.node_id,
             announce_enabled=False,
-            announce_interval_seconds=300,
+            announce_interval_seconds=3600,
         )
         assert node.announce_enabled is False
-        assert node.announce_interval_seconds == 300
+        assert node.announce_interval_seconds == 3600
 
     def test_set_announce_settings_persists_to_disk(self, storage_dir, mock_rns):
         from meshchatx.src.backend.page_node import PageNode
@@ -233,14 +233,14 @@ class TestPageNodeManagerAnnounceSettings:
         mgr.set_announce_settings(
             node.node_id,
             announce_enabled=False,
-            announce_interval_seconds=200,
+            announce_interval_seconds=3600,
         )
 
         mgr2 = _make_manager(storage_dir)
         mgr2.load_nodes()
         reloaded = mgr2.nodes["reload-1"]
         assert reloaded.announce_enabled is False
-        assert reloaded.announce_interval_seconds == 200
+        assert reloaded.announce_interval_seconds == 3600
 
     def test_load_nodes_restores_executable_page_names(self, storage_dir, mock_rns):
         mgr = _make_manager(storage_dir)
@@ -333,9 +333,20 @@ class TestPageNodeManagerAnnounceMigration:
 
     def test_load_keeps_custom_interval(self, storage_dir, mock_rns):
         mgr = _make_manager(storage_dir)
-        self._write_config(mgr, "custom-interval", 300)
+        self._write_config(mgr, "custom-interval", 3600)
         mgr.load_nodes()
-        assert mgr.nodes["custom-interval"].announce_interval_seconds == 300
+        assert mgr.nodes["custom-interval"].announce_interval_seconds == 3600
+
+    def test_load_clamps_sub_floor_interval(self, storage_dir, mock_rns):
+        from meshchatx.src.backend.page_node import MIN_ANNOUNCE_INTERVAL_SECONDS
+
+        mgr = _make_manager(storage_dir)
+        self._write_config(mgr, "sub-floor", 300)
+        mgr.load_nodes()
+        assert (
+            mgr.nodes["sub-floor"].announce_interval_seconds
+            == MIN_ANNOUNCE_INTERVAL_SECONDS
+        )
 
     def test_load_migrates_v2_default_interval(self, storage_dir, mock_rns):
         from meshchatx.src.backend.page_node import (

@@ -477,7 +477,7 @@ import { apiPath, EMITTER_EVENTS } from "../../js/constants";
 import * as pageNodesApi from "../../js/api/pageNodes.js";
 
 const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 21600;
-const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
+const ANNOUNCE_INTERVAL_MIN_MINUTES = 15;
 const ANNOUNCE_INTERVAL_MAX_MINUTES = 1440;
 
 function resolveAnnounceIntervalSeconds(seconds, defaultSeconds = DEFAULT_ANNOUNCE_INTERVAL_SECONDS) {

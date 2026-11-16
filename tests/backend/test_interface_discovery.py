@@ -258,6 +258,94 @@ async def test_discovery_patch_rejects_zero_autoconnect_as_unset(temp_dir):
         assert "autoconnect_discovered_interfaces" not in config["reticulum"]
 
 
+async def _patch_discovery(app, payload):
+    patch_handler = await find_route_handler(
+        app,
+        "/api/v1/reticulum/discovery",
+        "PATCH",
+    )
+    assert patch_handler
+
+    class PatchRequest:
+        @staticmethod
+        async def json():
+            return payload
+
+    return await patch_handler(PatchRequest())
+
+
+def _build_discovery_patch_app(temp_dir, reticulum_section):
+    config = ConfigDict({"reticulum": reticulum_section, "interfaces": {}})
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = "/tmp/mock_config"
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.transport_enabled.return_value = True
+
+        app = ReticulumMeshChat(
+            identity=build_identity(),
+            storage_dir=str(temp_dir),
+            reticulum_config_dir=str(temp_dir),
+        )
+        app.reload_reticulum = AsyncMock(return_value=True)
+        return app, config
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("bad_value", [33, 500, -2, "abc", 1.5])
+async def test_discovery_patch_rejects_out_of_range_autoconnect(temp_dir, bad_value):
+    app, config = _build_discovery_patch_app(temp_dir, {})
+
+    response = await _patch_discovery(
+        app, {"autoconnect_discovered_interfaces": bad_value}
+    )
+    assert response.status == 422
+    assert "autoconnect_discovered_interfaces" not in config["reticulum"]
+
+
+@pytest.mark.asyncio
+async def test_discovery_patch_accepts_autoconnect_at_bounds(temp_dir):
+    app, config = _build_discovery_patch_app(temp_dir, {})
+
+    for value in (1, 12, ReticulumMeshChat.MAX_AUTOCONNECT_DISCOVERED_INTERFACES):
+        response = await _patch_discovery(
+            app, {"autoconnect_discovered_interfaces": value}
+        )
+        data = json.loads(response.body)
+        assert response.status == 200
+        assert data["discovery"]["autoconnect_discovered_interfaces"] == value
+        assert config["reticulum"]["autoconnect_discovered_interfaces"] == value
+
+
+@pytest.mark.asyncio
+async def test_discovery_patch_clamps_stale_autoconnect_without_rejecting(
+    temp_dir,
+):
+    """A stored value above the cap is normalized on write, not a 422."""
+    app, config = _build_discovery_patch_app(
+        temp_dir, {"autoconnect_discovered_interfaces": 74}
+    )
+
+    response = await _patch_discovery(app, {"required_discovery_value": 20})
+    data = json.loads(response.body)
+    assert response.status == 200
+    assert (
+        data["discovery"]["autoconnect_discovered_interfaces"]
+        == ReticulumMeshChat.MAX_AUTOCONNECT_DISCOVERED_INTERFACES
+    )
+    assert (
+        config["reticulum"]["autoconnect_discovered_interfaces"]
+        == ReticulumMeshChat.MAX_AUTOCONNECT_DISCOVERED_INTERFACES
+    )
+
+
 @pytest.mark.asyncio
 async def test_discovered_interfaces_respect_whitelist_and_blacklist(temp_dir):
     config = ConfigDict(

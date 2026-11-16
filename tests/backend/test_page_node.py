@@ -284,7 +284,10 @@ class TestPageNodeAnnounceInterval:
         assert node.announce_enabled is True
 
     def test_node_clamps_custom_interval_on_construction(self, node_dir, mock_rns):
-        from meshchatx.src.backend.page_node import PageNode
+        from meshchatx.src.backend.page_node import (
+            MIN_ANNOUNCE_INTERVAL_SECONDS,
+            PageNode,
+        )
 
         _, mock_identity, _ = mock_rns
         node = PageNode(
@@ -294,7 +297,7 @@ class TestPageNodeAnnounceInterval:
             identity=mock_identity,
             announce_interval_seconds=5,
         )
-        assert node.announce_interval_seconds == 60
+        assert node.announce_interval_seconds == MIN_ANNOUNCE_INTERVAL_SECONDS
 
     def test_setup_starts_announce_timer_when_enabled(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
@@ -355,9 +358,11 @@ class TestPageNodeAnnounceInterval:
     ):
         node = _make_node(node_dir, mock_rns)
         node.setup()
-        node.set_announce_settings(announce_enabled=True, announce_interval_seconds=120)
+        node.set_announce_settings(
+            announce_enabled=True, announce_interval_seconds=3600
+        )
         assert node.announce_enabled is True
-        assert node.announce_interval_seconds == 120
+        assert node.announce_interval_seconds == 3600
         assert node._announce_timer is not None
 
     def test_set_announce_settings_disable_cancels_timer(self, node_dir, mock_rns):
@@ -384,9 +389,9 @@ class TestPageNodeAnnounceInterval:
         mock_rns,
     ):
         node = _make_node(node_dir, mock_rns)
-        node.set_announce_settings(announce_interval_seconds=300)
+        node.set_announce_settings(announce_interval_seconds=3600)
         assert node.announce_enabled is True
-        assert node.announce_interval_seconds == 300
+        assert node.announce_interval_seconds == 3600
 
 
 class TestPageNodePages:
@@ -616,13 +621,13 @@ class TestPageNodeConfig:
         node = _make_node(node_dir, mock_rns)
         node.set_announce_settings(
             announce_enabled=False,
-            announce_interval_seconds=120,
+            announce_interval_seconds=3600,
         )
         node.save_config()
 
         config = PageNode.load_config(node_dir)
         assert config["announce_enabled"] is False
-        assert config["announce_interval_seconds"] == 120
+        assert config["announce_interval_seconds"] == 3600
 
     def test_save_config_defaults_announce_settings(self, node_dir, mock_rns):
         from meshchatx.src.backend.page_node import (

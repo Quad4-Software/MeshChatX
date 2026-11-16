@@ -156,6 +156,7 @@ from meshchatx.src.backend.memory_pressure import (
     prune_lxmf_incoming_timestamps,
 )
 from meshchatx.src.backend.meshchat_utils import (
+    clamp_interval_floor,
     has_attachments,
     hex_identifier_to_bytes,
     interval_action_due,
@@ -597,6 +598,10 @@ def _apply_generic_config_fields(cm, data) -> None:
 
 class ReticulumMeshChat:
     DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES = 3
+    # Upper bound for autoconnect_discovered_interfaces. Upstream guidance is
+    # ~3 slots for home nodes and ~12 for backbone nodes; anything near this
+    # cap is already far past what extra interfaces can help.
+    MAX_AUTOCONNECT_DISCOVERED_INTERFACES = 32
 
     def __init__(
         self,
@@ -4067,7 +4072,9 @@ class ReticulumMeshChat:
             should_announce = interval_action_due(
                 ctx.config.auto_announce_enabled.get(),
                 ctx.config.last_announced_at.get(),
-                ctx.config.auto_announce_interval_seconds.get(),
+                clamp_interval_floor(
+                    ctx.config.auto_announce_interval_seconds.get(),
+                ),
                 now,
             )
 
@@ -4138,7 +4145,9 @@ class ReticulumMeshChat:
         router = ctx.message_router
         sync_start_time = None
         while self.running and ctx.running and ctx.session_id == session_id:
-            auto_sync_interval_seconds = ctx.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get()
+            auto_sync_interval_seconds = clamp_interval_floor(
+                ctx.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get(),
+            )
             last_synced_at = (
                 ctx.config.lxmf_preferred_propagation_node_last_synced_at.get()
             )
@@ -6886,7 +6895,8 @@ class ReticulumMeshChat:
                 auto_announce_interval_seconds < MIN_ANNOUNCE_INTERVAL_SECONDS
             ):
                 # Announces flood every interface and every peer re-broadcasts
-                # them, so a sub-minute interval is a mesh wide packet storm.
+                # them, so anything under the shared floor is a mesh wide
+                # packet storm.
                 logger.warning(
                     "auto_announce_interval_seconds %s is below the %ss minimum, clamping",
                     auto_announce_interval_seconds,
@@ -7092,8 +7102,9 @@ class ReticulumMeshChat:
             if value < 0:
                 value = 0
             if value > 0 and value < MIN_ANNOUNCE_INTERVAL_SECONDS:
-                # Each sync can pull a full mailbox, so a sub-minute interval
-                # turns the peer and the mesh into a transfer loop.
+                # Each sync can pull a full mailbox, so anything under the
+                # shared floor turns the peer and the mesh into a transfer
+                # loop.
                 logger.warning(
                     "propagation auto sync interval %ss is below the %ss minimum, clamping",
                     value,
@@ -8642,7 +8653,9 @@ class ReticulumMeshChat:
                 else False
             ),
             "auto_announce_enabled": ctx.config.auto_announce_enabled.get(),
-            "auto_announce_interval_seconds": ctx.config.auto_announce_interval_seconds.get(),
+            "auto_announce_interval_seconds": clamp_interval_floor(
+                ctx.config.auto_announce_interval_seconds.get(),
+            ),
             "last_announced_at": ctx.config.last_announced_at.get(),
             "theme": ctx.config.theme.get(),
             "map_coordinate_format": ctx.config.map_coordinate_format.get(),
@@ -8665,7 +8678,9 @@ class ReticulumMeshChat:
             ),
             "lxmf_preferred_propagation_node_destination_hash": ctx.config.lxmf_preferred_propagation_node_destination_hash.get(),
             "lxmf_preferred_propagation_node_auto_select": ctx.config.lxmf_preferred_propagation_node_auto_select.get(),
-            "lxmf_preferred_propagation_node_auto_sync_interval_seconds": ctx.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get(),
+            "lxmf_preferred_propagation_node_auto_sync_interval_seconds": clamp_interval_floor(
+                ctx.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get(),
+            ),
             "lxmf_preferred_propagation_node_last_synced_at": ctx.config.lxmf_preferred_propagation_node_last_synced_at.get(),
             "lxmf_user_icon_name": ctx.config.lxmf_user_icon_name.get(),
             "lxmf_user_icon_foreground_colour": ctx.config.lxmf_user_icon_foreground_colour.get(),

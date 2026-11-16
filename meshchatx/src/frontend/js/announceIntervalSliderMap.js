@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: 0BSD AND MIT
 
-/** High-resolution slider positions for smooth dragging (minutes 1..1440). */
+/** High-resolution slider positions for smooth dragging (minutes 15..1440). */
 export const ANNOUNCE_SLIDER_POS_MAX = 2047;
 
-const MIN_MINUTES = 1;
+// 15 minutes matches the backend MIN_ANNOUNCE_INTERVAL_SECONDS floor; lower
+// cadences are treated as announce spam mesh wide.
+const MIN_MINUTES = 15;
 const MAX_MINUTES = 1440;
 
 /**
  * @param {number} pos
- * @returns {number} Announce interval in minutes (1..1440).
+ * @returns {number} Announce interval in minutes (15..1440).
  */
 export function announceSliderPosToMinutes(pos) {
     const p = Math.max(0, Math.min(ANNOUNCE_SLIDER_POS_MAX, Math.round(Number(pos) || 0)));

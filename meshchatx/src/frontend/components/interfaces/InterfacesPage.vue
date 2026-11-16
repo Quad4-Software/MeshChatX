@@ -735,9 +735,12 @@
                                                 v-model.number="discoveryConfig.autoconnect_discovered_interfaces"
                                                 type="number"
                                                 min="0"
+                                                max="32"
                                                 class="input-field"
                                             />
-                                            <div class="text-xs text-sem-fg-muted">0 disables auto-connect.</div>
+                                            <div class="text-xs text-sem-fg-muted">
+                                                0 disables auto-connect. 3 suits a home node, about 12 a backbone node.
+                                            </div>
                                         </div>
                                         <div>
                                             <div class="text-xs font-semibold text-sem-fg">

@@ -136,7 +136,7 @@
                                         <input
                                             v-model.number="announceInterval"
                                             type="number"
-                                            min="60"
+                                            min="900"
                                             class="input-field w-full"
                                         />
                                         <p class="mt-1 text-xs text-sem-fg-muted">
@@ -433,7 +433,7 @@ export default {
                 storage_directory: "",
             },
             syncDirectory: "",
-            announceInterval: 300,
+            announceInterval: 21600,
             monitor: true,
             connectHash: "",
             peers: [],

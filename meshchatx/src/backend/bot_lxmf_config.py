@@ -155,7 +155,12 @@ def normalize_bot_lxmf_overrides(raw) -> dict:
             parsed = int(announce)
         except (TypeError, ValueError):
             parsed = None
-        if parsed is not None and 30 <= parsed <= 86400:
+        if (
+            parsed is not None
+            and constants.MIN_ANNOUNCE_INTERVAL_SECONDS
+            <= parsed
+            <= constants.MAX_ANNOUNCE_INTERVAL_SECONDS
+        ):
             out["announce_interval_seconds"] = parsed
 
     stamp_cost = raw.get("stamp_cost")
@@ -366,7 +371,12 @@ def load_bot_lxmf_config_sidecar(path: str | None) -> dict:
             parsed = int(announce)
         except (TypeError, ValueError):
             parsed = None
-        if parsed is not None and 30 <= parsed <= 86400:
+        if (
+            parsed is not None
+            and constants.MIN_ANNOUNCE_INTERVAL_SECONDS
+            <= parsed
+            <= constants.MAX_ANNOUNCE_INTERVAL_SECONDS
+        ):
             settings["announce"] = parsed
     if "stamp_cost" in raw:
         try:

@@ -9,14 +9,20 @@ import {
 
 describe("announceIntervalSliderMap", () => {
     it("maps endpoints", () => {
-        expect(announceSliderPosToMinutes(0)).toBe(1);
+        expect(announceSliderPosToMinutes(0)).toBe(15);
         expect(announceSliderPosToMinutes(ANNOUNCE_SLIDER_POS_MAX)).toBe(1440);
-        expect(announceMinutesToSliderPos(1)).toBeGreaterThanOrEqual(0);
-        expect(announceMinutesToSliderPos(1440)).toBeLessThanOrEqual(ANNOUNCE_SLIDER_POS_MAX);
+        expect(announceMinutesToSliderPos(15)).toBe(0);
+        expect(announceMinutesToSliderPos(1440)).toBe(ANNOUNCE_SLIDER_POS_MAX);
+    });
+
+    it("clamps values below the floor to 15 minutes", () => {
+        expect(announceMinutesToSliderPos(1)).toBe(0);
+        expect(announceMinutesToSliderPos(5)).toBe(0);
+        expect(announceSliderPosToMinutes(announceMinutesToSliderPos(5))).toBe(15);
     });
 
     it("round-trips common minute values", () => {
-        for (const minutes of [1, 5, 15, 30, 60, 120, 360, 720, 1440]) {
+        for (const minutes of [15, 30, 60, 120, 360, 720, 1440]) {
             const pos = announceMinutesToSliderPos(minutes);
             expect(announceSliderPosToMinutes(pos)).toBe(minutes);
         }

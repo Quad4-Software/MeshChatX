@@ -4,7 +4,15 @@
 
 import pytest
 
-from meshchatx.src.backend.meshchat_utils import interval_action_due
+from meshchatx.src.backend.constants import (
+    DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+    MAX_ANNOUNCE_INTERVAL_SECONDS,
+    MIN_ANNOUNCE_INTERVAL_SECONDS,
+)
+from meshchatx.src.backend.meshchat_utils import (
+    clamp_interval_floor,
+    interval_action_due,
+)
 
 
 class TestIntervalActionDue:
@@ -56,6 +64,36 @@ class TestIntervalActionDue:
         now = 1_000_000.0
         last = int(now + 2)
         assert interval_action_due(True, last, 3600, now) is True
+
+
+class TestClampIntervalFloor:
+    def test_below_floor_raises_to_minimum(self):
+        assert clamp_interval_floor(1) == MIN_ANNOUNCE_INTERVAL_SECONDS
+        assert clamp_interval_floor(60) == MIN_ANNOUNCE_INTERVAL_SECONDS
+        assert clamp_interval_floor(899) == MIN_ANNOUNCE_INTERVAL_SECONDS
+
+    def test_floor_and_above_pass_through(self):
+        assert clamp_interval_floor(MIN_ANNOUNCE_INTERVAL_SECONDS) == (
+            MIN_ANNOUNCE_INTERVAL_SECONDS
+        )
+        assert clamp_interval_floor(3600) == 3600
+        assert clamp_interval_floor(MAX_ANNOUNCE_INTERVAL_SECONDS) == (
+            MAX_ANNOUNCE_INTERVAL_SECONDS
+        )
+        assert clamp_interval_floor(999999) == 999999
+
+    def test_disabled_and_invalid_values_pass_through(self):
+        assert clamp_interval_floor(0) == 0
+        assert clamp_interval_floor(-30) == -30
+        assert clamp_interval_floor(None) is None
+        assert clamp_interval_floor("not-a-number") == "not-a-number"
+
+    def test_numeric_strings_parse(self):
+        assert clamp_interval_floor("300") == MIN_ANNOUNCE_INTERVAL_SECONDS
+        assert clamp_interval_floor("3600") == 3600
+
+    def test_default_is_above_floor(self):
+        assert DEFAULT_ANNOUNCE_INTERVAL_SECONDS >= MIN_ANNOUNCE_INTERVAL_SECONDS
 
 
 @pytest.mark.parametrize(

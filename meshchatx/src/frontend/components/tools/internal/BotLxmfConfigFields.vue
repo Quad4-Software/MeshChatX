@@ -54,7 +54,7 @@
             <input
                 v-model="localDraft.announce_interval_seconds"
                 type="number"
-                min="30"
+                min="900"
                 max="86400"
                 class="input-field"
             />

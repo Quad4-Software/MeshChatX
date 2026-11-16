@@ -1853,7 +1853,7 @@ const NAME_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b
 // horizontally on phones.
 const ICON_ONLY_TAB_IDS = new Set(["bots", "search"]);
 const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 21600;
-const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
+const ANNOUNCE_INTERVAL_MIN_MINUTES = 15;
 const ANNOUNCE_INTERVAL_MAX_MINUTES = 1440;
 // Matches the conversations jump-to-bottom threshold: within this many pixels
 // of the newest message the view still auto-follows live arrivals.

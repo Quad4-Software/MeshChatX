@@ -15,7 +15,7 @@ DEFAULT_CONFIG = """# RNS FileSync config
 [filesync]
 
 # Automatic announce interval in seconds.
-announce_interval = 300
+announce_interval = 21600
 
 # Optional default sync directory (overridden by -d).
 # directory = ~/shared

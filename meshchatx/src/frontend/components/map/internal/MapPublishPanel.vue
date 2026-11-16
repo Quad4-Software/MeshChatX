@@ -24,7 +24,7 @@
             <input
                 v-model.number="announceInterval"
                 type="number"
-                min="10"
+                min="900"
                 class="w-full rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-[12px]"
                 @blur="saveConfig"
             />

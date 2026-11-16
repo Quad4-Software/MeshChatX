@@ -8,6 +8,7 @@ from typing import ClassVar
 
 from lxmfy import IconAppearance, LXMFBot, pack_icon_appearance_field
 
+from meshchatx.src.backend import constants
 from meshchatx.src.version import __version__ as meshchatx_version
 
 logger = logging.getLogger("meshchatx.bots")
@@ -107,7 +108,7 @@ class EchoBotTemplate(StoppableBot):
                 config_path=config_path,
                 reticulum_config_dir=reticulum_config_dir,
                 lxmf_settings=merged,
-                announce=600,
+                announce=constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
                 command_prefix="",
                 first_message_enabled=True,
             ),
@@ -203,7 +204,7 @@ class NoteBotTemplate(StoppableBot):
                 config_path=config_path,
                 reticulum_config_dir=reticulum_config_dir,
                 lxmf_settings=merged,
-                announce=600,
+                announce=constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
                 command_prefix="/",
                 storage_type="json",
             ),
@@ -309,7 +310,7 @@ class ReminderBotTemplate(StoppableBot):
                 config_path=config_path,
                 reticulum_config_dir=reticulum_config_dir,
                 lxmf_settings=merged,
-                announce=600,
+                announce=constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
                 command_prefix="/",
                 storage_type="sqlite",
             ),
@@ -483,7 +484,7 @@ class RRCBotTemplate(StoppableBot):
                 config_path=config_path,
                 reticulum_config_dir=reticulum_config_dir,
                 lxmf_settings=merged,
-                announce=600,
+                announce=constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
                 rrc_enabled=True,
                 rrc_hubs=[self.rrc_hub],
                 rrc_rooms=list(self.rrc_rooms),
@@ -665,7 +666,7 @@ class CustomBotTemplate(StoppableBot):
                 config_path=config_path,
                 reticulum_config_dir=reticulum_config_dir,
                 lxmf_settings=merged,
-                announce=600,
+                announce=constants.DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
                 command_prefix="!",
                 storage_type="json",
                 first_message_enabled=True,

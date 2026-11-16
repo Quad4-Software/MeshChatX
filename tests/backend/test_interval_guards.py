@@ -2,9 +2,9 @@
 
 """Minimum interval guards on the app wide announce and propagation sync.
 
-Sub-minute intervals turn announces and mailbox syncs into mesh wide
-traffic storms, so the settings API clamps them and logs a warning. These
-tests pin the clamp, the disable path, and the warning.
+Intervals under the shared floor turn announces and mailbox syncs into
+mesh wide traffic storms, so the settings API clamps them and logs a
+warning. These tests pin the clamp, the disable path, and the warning.
 """
 
 import logging

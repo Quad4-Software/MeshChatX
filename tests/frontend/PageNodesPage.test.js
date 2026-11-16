@@ -134,7 +134,7 @@ describe("PageNodesPage.vue", () => {
         expect(wrapper.vm.announceSettingsForm.announce_interval_seconds).toBe(0);
 
         wrapper.vm.announceIntervalMinutes = -5;
-        expect(wrapper.vm.announceSettingsForm.announce_interval_seconds).toBe(60);
+        expect(wrapper.vm.announceSettingsForm.announce_interval_seconds).toBe(15 * 60);
 
         wrapper.vm.announceIntervalMinutes = 999999;
         expect(wrapper.vm.announceSettingsForm.announce_interval_seconds).toBe(1440 * 60);

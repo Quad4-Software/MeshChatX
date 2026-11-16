@@ -68,10 +68,10 @@ def test_settings_migrate_legacy_announce_interval(mock_identity, tmp_path):
 def test_settings_keep_versioned_explicit_announce_interval(mock_identity, tmp_path):
     _write_filesync_settings(
         tmp_path,
-        {"announce_interval": 300, "config_version": 2},
+        {"announce_interval": 3600, "config_version": 2},
     )
     handler = _make_handler(mock_identity, tmp_path)
-    assert handler._announce_interval == 300
+    assert handler._announce_interval == 3600
 
 
 def test_default_status_not_running(handler, mock_identity):
@@ -182,7 +182,7 @@ def test_start_stop_and_teardown(mock_service_cls, handler):
     service.download_file.return_value = {"ok": True, "path": "remote.txt"}
     mock_service_cls.return_value = service
 
-    started = handler.start(monitor=True, announce_interval=120)
+    started = handler.start(monitor=True, announce_interval=3600)
     assert started["ok"] is True
     assert started["destination_hash"] == "dd" * 16
     mock_service_cls.assert_called_once()

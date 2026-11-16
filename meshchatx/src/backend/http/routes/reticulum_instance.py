@@ -204,14 +204,7 @@ def register_reticulum_instance_routes(routes, app):
             if key not in data:
                 return
             value = data.get(key)
-            # Treat 0 for autoconnect_discovered_interfaces the same as unset,
-            # since Reticulum interprets 0 as False, causing bootstrap_only
-            # interfaces to flap (0 >= 0 evaluates to True).
-            if (
-                value is None
-                or value == ""
-                or (key == "autoconnect_discovered_interfaces" and value == 0)
-            ):
+            if value is None or value == "":
                 reticulum_config.pop(key, None)
             else:
                 if key in (
@@ -232,7 +225,6 @@ def register_reticulum_instance_routes(routes, app):
             "interface_discovery_whitelist",
             "interface_discovery_blacklist",
             "required_discovery_value",
-            "autoconnect_discovered_interfaces",
             "autoconnect_unverified_implementations",
             "network_identity",
         ):
@@ -286,6 +278,50 @@ def register_reticulum_instance_routes(routes, app):
                     422, f"{gravity_key} must be between -10000 and 10000"
                 )
             reticulum_config[gravity_key] = gravity
+
+        # Bound the auto-connect slot count. Each slot is a live discovered
+        # interface connection, and upstream guidance is ~3 for home nodes
+        # and ~12 for backbone nodes, so wild values are mesh harm. Values
+        # already stored from before the bound existed are normalized on
+        # write instead of rejected, so unrelated discovery updates keep
+        # working.
+        max_autoconnect = ReticulumMeshChat.MAX_AUTOCONNECT_DISCOVERED_INTERFACES
+
+        def autoconnect_slot_count(raw):
+            try:
+                return int(str(raw).strip())
+            except (TypeError, ValueError):
+                return None
+
+        if "autoconnect_discovered_interfaces" in data:
+            raw_autoconnect = data.get("autoconnect_discovered_interfaces")
+            # Treat 0 the same as unset: Reticulum interprets 0 as False,
+            # which makes bootstrap_only interfaces flap.
+            if raw_autoconnect is None or raw_autoconnect == "" or raw_autoconnect == 0:
+                reticulum_config.pop("autoconnect_discovered_interfaces", None)
+            else:
+                count = autoconnect_slot_count(raw_autoconnect)
+                if count is None or count < 1 or count > max_autoconnect:
+                    return http_error(
+                        422,
+                        "autoconnect_discovered_interfaces must be an integer "
+                        f"between 1 and {max_autoconnect}",
+                    )
+                reticulum_config["autoconnect_discovered_interfaces"] = count
+        else:
+            stored_autoconnect = reticulum_config.get(
+                "autoconnect_discovered_interfaces",
+            )
+            if stored_autoconnect is not None:
+                count = autoconnect_slot_count(stored_autoconnect)
+                if count is not None and 1 <= count <= max_autoconnect:
+                    reticulum_config["autoconnect_discovered_interfaces"] = count
+                elif count is not None and count > max_autoconnect:
+                    reticulum_config["autoconnect_discovered_interfaces"] = (
+                        max_autoconnect
+                    )
+                else:
+                    reticulum_config.pop("autoconnect_discovered_interfaces", None)
 
         # When discover_interfaces is off, also disable autoconnect so RNS
         # does not connect to any discovered interfaces.

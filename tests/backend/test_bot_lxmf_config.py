@@ -57,7 +57,9 @@ def _mock_config(*, preferred_hash=None, auto_select=False, fallback_enabled=Tru
         ({"direct_delivery_retries": 33}, {}),
         ({"direct_delivery_retries": 3}, {"direct_delivery_retries": 3}),
         ({"announce_interval_seconds": 10}, {}),
-        ({"announce_interval_seconds": 120}, {"announce_interval_seconds": 120}),
+        ({"announce_interval_seconds": 899}, {}),
+        ({"announce_interval_seconds": 900}, {"announce_interval_seconds": 900}),
+        ({"announce_interval_seconds": 3600}, {"announce_interval_seconds": 3600}),
         ({"stamp_cost": -1}, {}),
         (
             {"propagation_mode": "autopeer", "propagation_node": "cd" * 16},
