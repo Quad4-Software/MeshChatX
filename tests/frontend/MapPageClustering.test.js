@@ -15,6 +15,15 @@ vi.mock("@/js/TileCache", () => ({
 vi.mock("ol-mapbox-style", () => ({
     apply: vi.fn().mockResolvedValue(undefined),
 }));
+
+// The PMTiles basemap performs real network I/O (archive header, sprite);
+// unit tests must not depend on it.
+vi.mock("@/js/mapPmtilesBasemap.js", () => ({
+    PLANET_PM_TILES_URL: "https://s3.quad4.io/pmtiles/planet.pmtiles",
+    buildPlanetPmtilesBaseMapLayer: vi.fn().mockResolvedValue({
+        getLayers: () => ({ getLength: () => 1, item: () => ({}) }),
+    }),
+}));
 vi.mock("ol/layer/Group", () => ({
     default: vi.fn(function () {}),
 }));
