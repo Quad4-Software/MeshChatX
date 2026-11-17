@@ -47,6 +47,17 @@ func ReadPendingMarker(storageDir string) map[string]any {
 	return marker
 }
 
+// PendingApplyPolicy returns the apply_policy recorded in pending.json
+// ("manual" or "on_restart"), or "" when absent.
+func PendingApplyPolicy(storageDir string) string {
+	marker := ReadPendingMarker(storageDir)
+	if marker == nil {
+		return ""
+	}
+	policy, _ := marker["apply_policy"].(string)
+	return policy
+}
+
 func ClearPending(storageDir string) {
 	_ = os.Remove(filepath.Join(storageDir, "updates", "pending.json"))
 }
