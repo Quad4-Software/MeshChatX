@@ -531,6 +531,121 @@ def test_headless_alone_does_not_force_web_audio():
 
 
 # ---------------------------------------------------------------------------
+# PulseAudio socket pre-check (frozen builds must never reach libpulse
+# without a server: pa_operation_unref(NULL) aborts the process)
+# ---------------------------------------------------------------------------
+
+
+def test_linux_pulse_server_present_env_override(monkeypatch):
+    from meshchatx.meshchat import _linux_pulse_server_present
+
+    monkeypatch.setenv("PULSE_SERVER", "unix:/tmp/fake-pulse-native")
+    assert _linux_pulse_server_present() is True
+
+
+def test_linux_pulse_server_present_detects_xdg_socket(monkeypatch, tmp_path):
+    import os
+
+    from meshchatx.meshchat import _linux_pulse_server_present
+
+    monkeypatch.delenv("PULSE_SERVER", raising=False)
+    runtime = tmp_path / "runtime"
+    sock = runtime / "pulse" / "native"
+    sock.parent.mkdir(parents=True)
+    sock.touch()
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(runtime))
+    # Mask host fallback paths so the result depends only on tmp_path.
+    real_exists = os.path.exists
+    monkeypatch.setattr(
+        os.path,
+        "exists",
+        lambda p: real_exists(p) if str(p).startswith(str(tmp_path)) else False,
+    )
+    assert _linux_pulse_server_present() is True
+
+
+def test_linux_pulse_server_present_false_without_socket(monkeypatch, tmp_path):
+    import os
+
+    from meshchatx.meshchat import _linux_pulse_server_present
+
+    monkeypatch.delenv("PULSE_SERVER", raising=False)
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
+    real_exists = os.path.exists
+    monkeypatch.setattr(
+        os.path,
+        "exists",
+        lambda p: real_exists(p) if str(p).startswith(str(tmp_path)) else False,
+    )
+    assert _linux_pulse_server_present() is False
+
+
+def test_probe_host_audio_skips_lxst_when_no_pulse_socket(monkeypatch):
+    """No PulseAudio endpoint -> True without importing LXST.Sources."""
+    import builtins
+    import sys
+
+    import meshchatx.meshchat as meshchat_module
+    from meshchatx.meshchat import ReticulumMeshChat
+
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.setattr(
+        meshchat_module, "_linux_pulse_server_present", lambda: False
+    )
+
+    real_import = builtins.__import__
+
+    def _no_lxst_import(name, *args, **kwargs):
+        if name == "LXST" or name.startswith("LXST."):
+            raise AssertionError(
+                f"probe imported {name} despite missing pulse socket"
+            )
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _no_lxst_import)
+    assert ReticulumMeshChat._probe_host_audio_unavailable() is True
+
+
+def test_probe_host_audio_runs_lxst_when_pulse_socket_present(monkeypatch):
+    """With a socket endpoint the LXST probe still runs and catches errors."""
+    import sys
+    import types
+
+    import meshchatx.meshchat as meshchat_module
+    from meshchatx.meshchat import ReticulumMeshChat
+
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.setattr(
+        meshchat_module, "_linux_pulse_server_present", lambda: True
+    )
+
+    sources = types.ModuleType("LXST.Sources")
+    sources.Backend = MagicMock(side_effect=RuntimeError("no pulse server"))
+    monkeypatch.setitem(sys.modules, "LXST.Sources", sources)
+
+    assert ReticulumMeshChat._probe_host_audio_unavailable() is True
+
+
+def test_probe_host_audio_ok_when_backend_constructs(monkeypatch):
+    import sys
+    import types
+
+    import meshchatx.meshchat as meshchat_module
+    from meshchatx.meshchat import ReticulumMeshChat
+
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.setattr(
+        meshchat_module, "_linux_pulse_server_present", lambda: True
+    )
+
+    sources = types.ModuleType("LXST.Sources")
+    sources.Backend = MagicMock()
+    monkeypatch.setitem(sys.modules, "LXST.Sources", sources)
+
+    assert ReticulumMeshChat._probe_host_audio_unavailable() is False
+
+
+# ---------------------------------------------------------------------------
 # Android codec2 candidate discovery
 # ---------------------------------------------------------------------------
 

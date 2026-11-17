@@ -494,6 +494,29 @@ def _csrf_exempt_path(path: str) -> bool:
     return path == f"{API_V1_PREFIX}/auth/csrf"
 
 
+def _linux_pulse_server_present() -> bool:
+    """True when a PulseAudio server endpoint exists on Linux.
+
+    LXST's Linux backend talks to PulseAudio through libpulse. On hosts
+    with no audio server the frozen build can abort inside
+    ``pa_operation_unref(NULL)`` because cx_Freeze optimize=2 strips the
+    asserts LXST relies on for control flow. When no server endpoint
+    exists the probe is skipped entirely so startup cannot abort.
+    """
+    if env_str("PULSE_SERVER"):
+        return True
+    candidates = []
+    xdg_runtime = env_str("XDG_RUNTIME_DIR")
+    if xdg_runtime:
+        candidates.append(os.path.join(xdg_runtime, "pulse", "native"))
+    candidates.append("/run/pulse/native")
+    getuid = getattr(os, "getuid", None)
+    if getuid is not None:
+        candidates.append(f"/run/user/{getuid()}/pulse/native")
+    candidates.append(os.path.expanduser("~/.pulse/native"))
+    return any(os.path.exists(path) for path in candidates)
+
+
 class _TrackedConfigData(dict):
     """dict subclass that records every key probed via `in`, [] access, or .get().
 
@@ -826,6 +849,8 @@ class ReticulumMeshChat:
     @staticmethod
     def _probe_host_audio_unavailable() -> bool:
         """Return True when LXST cannot open a host capture device."""
+        if sys.platform == "linux" and not _linux_pulse_server_present():
+            return True
         try:
             from LXST.Sources import Backend
 
