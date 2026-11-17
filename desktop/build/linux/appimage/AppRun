@@ -44,4 +44,60 @@ if [ -d "$APPDIR/usr/lib/gio/modules" ]; then
     export GIO_EXTRA_MODULES="$APPDIR/usr/lib/gio/modules${GIO_EXTRA_MODULES:+:$GIO_EXTRA_MODULES}"
 fi
 
+log() { printf '[meshchatx] %s\n' "$*" >&2; }
+
+# --- WebKitGTK sandbox probe ---------------------------------------------
+# WebKitGTK 6.0 sandboxes its helper processes with the host's bwrap inside
+# unprivileged user namespaces. Ubuntu 24.04+ restricts those namespaces via
+# AppArmor, and minimal installs may lack bubblewrap entirely; when the
+# sandbox cannot start, WebKit helper spawn fails and the app dies. Probe
+# once and disable the WebKit sandbox (with a log line) only when the probe
+# actually fails, never unconditionally.
+#   MESHCHAT_WEBKIT_SANDBOX=0 forces the sandbox off.
+#   MESHCHAT_WEBKIT_SANDBOX=1 forces it on and skips the probe/fallback.
+if [ -n "${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-}" ]; then
+    log "WebKit sandbox disabled via WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS"
+elif [ "${MESHCHAT_WEBKIT_SANDBOX:-}" = "0" ] || [ "${MESHCHAT_WEBKIT_SANDBOX:-}" = "false" ]; then
+    export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
+    log "WebKit sandbox disabled by MESHCHAT_WEBKIT_SANDBOX=${MESHCHAT_WEBKIT_SANDBOX}"
+elif [ "${MESHCHAT_WEBKIT_SANDBOX:-}" = "1" ] || [ "${MESHCHAT_WEBKIT_SANDBOX:-}" = "true" ]; then
+    log "WebKit sandbox forced on by MESHCHAT_WEBKIT_SANDBOX=${MESHCHAT_WEBKIT_SANDBOX}"
+else
+    bwrap_bin=""
+    for cand in "$APPDIR/usr/bin/bwrap" "$(command -v bwrap 2>/dev/null)"; do
+        if [ -n "$cand" ] && [ -x "$cand" ]; then
+            bwrap_bin="$cand"
+            break
+        fi
+    done
+    if [ -z "$bwrap_bin" ]; then
+        export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
+        log "WebKit sandbox disabled: bwrap not found (install bubblewrap, or set MESHCHAT_WEBKIT_SANDBOX=1 to force)"
+    elif ! "$bwrap_bin" --unshare-all --die-with-parent --ro-bind / / --proc /proc --dev /dev -- true >/dev/null 2>&1; then
+        export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
+        log "WebKit sandbox disabled: bwrap cannot create user namespaces (AppArmor restriction? install an AppArmor profile for the AppImage, or set MESHCHAT_WEBKIT_SANDBOX=1 to force)"
+    elif ! "$bwrap_bin" --unshare-all --die-with-parent --ro-bind / / --proc /proc --dev /dev --dir "$APPDIR/.meshchatx-webkit-probe" -- true >/dev/null 2>&1; then
+        # WebKitGTK ro-binds / inside its sandbox and then mkdirs the helper
+        # directory; with the AppDir read-only (squashfs mount or ro-bind)
+        # that mkdir always fails, so the sandbox can never start here.
+        export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
+        log "WebKit sandbox disabled: bwrap cannot create directories under the read-only AppDir"
+    fi
+fi
+
+# --- GPU/renderer fallback -------------------------------------------------
+# With no DRM render node the WebKit DMA-BUF renderer cannot initialize;
+# use the SHM path and the GTK cairo renderer, matching the shell's own
+# no-GPU handling. Values the user already set always win.
+if ! compgen -G '/dev/dri/renderD*' >/dev/null; then
+    if [ -z "${WEBKIT_DISABLE_DMABUF_RENDERER:-}" ]; then
+        export WEBKIT_DISABLE_DMABUF_RENDERER=1
+        log "no /dev/dri render node; disabled WebKit DMA-BUF renderer"
+    fi
+    if [ -z "${GSK_RENDERER:-}" ]; then
+        export GSK_RENDERER=cairo
+        log "no /dev/dri render node; set GSK_RENDERER=cairo"
+    fi
+fi
+
 exec "$APPDIR/usr/bin/meshchatx-desktop" "$@"
