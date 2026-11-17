@@ -89,6 +89,82 @@ function stripFrozenPythonBloat(buildDir) {
     }
 }
 
+function stripForeignCodecLibs(buildDir, platform) {
+    // LXST's pyogg loader reads libs/<platform-dir> only on macOS and
+    // Windows; on Linux it always resolves codecs through the host via
+    // ctypes.util.find_library. Every freeze therefore ships foreign
+    // platform blobs (macOS dylibs, Windows DLLs) that can never load.
+    const libsDir = path.join(buildDir, "lib", "LXST", "Codecs", "libs", "pyogg", "libs");
+    if (!fs.existsSync(libsDir)) {
+        return;
+    }
+    const keep =
+        platform === "darwin"
+            ? new Set(["macos"])
+            : platform === "win32"
+              ? new Set(["win_amd64", "win32"])
+              : new Set(["linux"]);
+    for (const ent of fs.readdirSync(libsDir, { withFileTypes: true })) {
+        if (ent.isDirectory() && !keep.has(ent.name)) {
+            const full = path.join(libsDir, ent.name);
+            console.log(`Removing foreign codec libs ${path.relative(buildDir, full)} from cx_Freeze output.`);
+            fs.rmSync(full, { recursive: true, force: true });
+        }
+    }
+}
+
+function stripSharedObjectSymbols(buildDir, platform) {
+    // cx_Freeze leaves .symtab/.strtab in bundled shared objects; only
+    // dynamic symbols are needed at runtime (wasmtime alone carries ~5 MB
+    // of strtab). Linux only: macOS strip flags differ and Windows ships
+    // .pyd files.
+    if (platform !== "linux") {
+        return;
+    }
+    const probe = spawnSync("strip", ["--version"], { encoding: "utf-8" });
+    if (probe.error || probe.status !== 0) {
+        console.log("strip not available; skipping shared-object symbol stripping.");
+        return;
+    }
+    const lib = path.join(buildDir, "lib");
+    if (!fs.existsSync(lib)) {
+        return;
+    }
+    const sos = [];
+    const walk = (dir) => {
+        let entries;
+        try {
+            entries = fs.readdirSync(dir, { withFileTypes: true });
+        } catch {
+            return;
+        }
+        for (const ent of entries) {
+            const full = path.join(dir, ent.name);
+            if (ent.isDirectory()) {
+                walk(full);
+            } else if (/\.so(\.|$)/.test(ent.name)) {
+                sos.push(full);
+            }
+        }
+    };
+    walk(lib);
+    for (let i = 0; i < sos.length; i += 50) {
+        const result = spawnSync("strip", ["--strip-unneeded", ...sos.slice(i, i + 50)], {
+            stdio: "inherit",
+            shell: false,
+        });
+        if (result.error) {
+            throw result.error;
+        }
+        if (result.status !== 0) {
+            console.warn(`strip exited with status ${result.status} on a .so batch; continuing.`);
+        }
+    }
+    if (sos.length) {
+        console.log(`Stripped symbols from ${sos.length} shared objects.`);
+    }
+}
+
 function stripPythonBytecodeArtifacts(dir) {
     if (!fs.existsSync(dir)) return;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -349,6 +425,7 @@ try {
         stripDuplicateMeshchatxPublic(buildDir);
         stripMeshchatxFrontendSources(buildDir);
         stripFrozenPythonBloat(buildDir);
+        stripForeignCodecLibs(buildDir, platform);
         if (isDarwin) {
             stripPythonBytecodeArtifacts(buildDir);
         }
@@ -378,6 +455,9 @@ try {
             env: env,
         });
         failOnSpawnResult("pycodec2 libcodec2 bake", codec2Result);
+        // Strip after the bake steps: they remove foreign-arch filterlib
+        // blobs that binutils strip cannot parse.
+        stripSharedObjectSymbols(buildDir, platform);
         if (!verifyBinaryArchitecture(buildDir, arch, targetName)) {
             process.exit(1);
         }

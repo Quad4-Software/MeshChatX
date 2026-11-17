@@ -304,6 +304,35 @@ post_deploy() {
     else
         log "WARNING: helper dir $helperdir missing — skipping rpath fix"
     fi
+
+    prune_shadowed_backend_libs
+}
+
+# cx_Freeze bundles its own copies of libraries that linuxdeploy also places
+# in usr/lib for the GTK/WebKit closure (libssl, libsqlite3, numpy's
+# OpenBLAS, ...). AppRun puts usr/lib first in LD_LIBRARY_PATH and ELF lookup
+# honours LD_LIBRARY_PATH before RUNPATH, so inside the AppImage the backend
+# always binds the usr/lib copies; the backend duplicates are unreachable.
+# Drop them (~70 MB uncompressed). Deb/rpm builds keep both copies because
+# the backend there resolves its own lib/ via RUNPATH.
+prune_shadowed_backend_libs() {
+    local backend_root="$APPDIR/usr/lib/reticulum-meshchatx/backend"
+    local top_lib="$APPDIR/usr/lib"
+    [ -d "$backend_root" ] && [ -d "$top_lib" ] || return 0
+    local removed=0 base hits
+    local f
+    for f in "$top_lib"/*.so*; do
+        [ -f "$f" ] || continue
+        base="$(basename "$f")"
+        hits="$(find "$backend_root" -type f -name "$base" 2>/dev/null)"
+        [ -n "$hits" ] || continue
+        while IFS= read -r h; do
+            [ -n "$h" ] || continue
+            rm -f "$h" && removed=$((removed + 1))
+        done <<< "$hits"
+    done
+    [ "$removed" -gt 0 ] \
+        && log "pruned $removed backend libs shadowed by usr/lib copies"
 }
 
 # GStreamer plugins are copied from the BUILD HOST's plugin set, so a host
