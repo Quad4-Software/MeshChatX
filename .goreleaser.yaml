@@ -1,0 +1,96 @@
+version: 2
+
+project_name: meshchatx-desktop
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: desktop-linux
+    dir: desktop
+    main: .
+    binary: meshchatx-desktop
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=1
+    flags:
+      - -tags=production
+      - -trimpath
+      - -buildvcs=false
+    ldflags:
+      - -s -w
+
+  - id: desktop-windows
+    dir: desktop
+    main: .
+    binary: meshchatx-desktop
+    goos:
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -tags=production
+      - -trimpath
+      - -buildvcs=false
+    ldflags:
+      - -s -w -H windowsgui
+
+  - id: desktop-darwin
+    dir: desktop
+    main: .
+    binary: meshchatx-desktop
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    # purego keeps the shell CGO-free so it cross-compiles from any runner,
+    # matching the darwin cross-build path in desktop/Taskfile.yml.
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -tags=production,purego
+      - -trimpath
+      - -buildvcs=false
+    ldflags:
+      - -s -w
+
+archives:
+  - id: desktop-archives
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+      - goos: darwin
+        formats:
+          - zip
+    name_template: >-
+      {{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}
+    files:
+      - none*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs'
+      - '^test'
+      - '^ci'
+      - '^chore\(deps\)'
