@@ -254,7 +254,7 @@ The .deb, .rpm and Arch packages pull these in automatically.
 
 The AppImage bundles the shell, GTK 4, WebKitGTK 6.0, GStreamer plugins and the backend, but not the C runtime: it runs against the host's glibc, libstdc++ and GPU/X11 driver stack. It is built on a recent distribution (glibc 2.44 at the time of writing), so use it on similarly recent hosts; the deb/rpm packages are the better choice for older distributions.
 
-The AppImage needs FUSE (`/dev/fuse` and `fusermount3`) to mount itself. On hosts without FUSE, extract-and-run works instead:
+The AppImage needs FUSE to mount itself: `/dev/fuse` plus the FUSE 2 userspace pieces the runtime calls (`fusermount` and `libfuse.so.2`). On Ubuntu 24.04 and later that is the `libfuse2t64` package; on older releases it is `libfuse2` or `fuse`. On hosts without FUSE, extract-and-run works instead:
 
 ```bash
 chmod +x ./ReticulumMeshChatX-v*-linux-*.AppImage
@@ -263,7 +263,7 @@ chmod +x ./ReticulumMeshChatX-v*-linux-*.AppImage
 ./ReticulumMeshChatX-v*-linux-*.AppImage --appimage-extract-and-run
 ```
 
-WebKitGTK's bubblewrap sandbox is used as-is; the launcher never sets `WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS`. If the sandbox cannot start on your host (for example inside a container without user namespaces), in-page content that needs it may fail; setting that variable yourself disables a security boundary and is not recommended.
+WebKitGTK's bubblewrap sandbox runs inside unprivileged user namespaces, which Ubuntu 24.04 and later restrict through AppArmor. The launcher probes bubblewrap once at startup; when the probe fails it disables the WebKit sandbox for that run and logs `[meshchatx] WebKit sandbox disabled: ...` to stderr. You can force the sandbox off with `MESHCHAT_WEBKIT_SANDBOX=0` or force it on (skipping the probe and fallback) with `MESHCHAT_WEBKIT_SANDBOX=1`; setting `WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS` yourself also works but disables a security boundary and is not recommended.
 
 **Debian package**
 
