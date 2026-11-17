@@ -1148,3 +1148,33 @@ TELEPHONE_CALL_SCHEMA: dict = {
     "type": "object",
     "additionalProperties": True,
 }
+
+
+UPDATE_STATUS_SCHEMA: dict = {
+    "type": "object",
+    "required": ["enabled", "current_version"],
+    "properties": {
+        "enabled": _BOOLEAN,
+        "current_version": _STRING,
+        "channel": _STRING,
+        "pending": {"type": ["object", "null"]},
+        "last_check": {"type": ["object", "null"]},
+        "progress": {"type": "object"},
+        "settings": {"type": "object"},
+        "disclosure": {"type": "object"},
+    },
+    "additionalProperties": True,
+}
+
+UPDATE_PENDING_SCHEMA: dict = {
+    "type": "object",
+    "required": ["pending"],
+    "properties": {"pending": {"type": ["object", "null"]}},
+    "additionalProperties": True,
+}
+
+UPDATE_PROGRESS_SCHEMA: dict = {
+    "type": "object",
+    "properties": {"phase": _STRING},
+    "additionalProperties": True,
+}

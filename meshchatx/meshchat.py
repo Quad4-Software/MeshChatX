@@ -800,6 +800,19 @@ class ReticulumMeshChat:
             reticulum_getter=lambda: getattr(self, "reticulum", None),
             broadcast_event=self._on_rns_link_broadcast,
         )
+        # Update manager: opt-in signed update check/download/stage. With
+        # default settings it performs no network I/O and registers nothing.
+        try:
+            from meshchatx.src.backend.update_manager import UpdateManager
+
+            self.update_manager = UpdateManager(
+                self.storage_dir,
+                config_getter=lambda: getattr(self, "config", None),
+                link_manager=self.rns_link_manager,
+                build_meta=self.get_build_meta(),
+            )
+        except Exception:
+            self.update_manager = None
         self.memory_pressure = MemoryPressureManager(app=self)
         from meshchatx.src.backend.battery_usage_estimate import BatteryUsageTracker
 
@@ -2462,6 +2475,11 @@ class ReticulumMeshChat:
 
     def _teardown_all_contexts_for_reload(self):
         # Stop per-identity long-running services before tearing down contexts.
+        um = getattr(self, "update_manager", None)
+        if um is not None:
+            with contextlib.suppress(Exception):
+                um.stop()
+
         for identity_hash in list(self.contexts.keys()):
             ctx = self.contexts.get(identity_hash)
             if ctx is None:
@@ -6380,6 +6398,13 @@ class ReticulumMeshChat:
                 await try_start_webtransport_sidecar(self)
             except Exception:
                 print("webtransport sidecar startup failed (non-fatal)")
+
+            um = getattr(self, "update_manager", None)
+            if um is not None:
+                try:
+                    um.start()
+                except Exception:
+                    pass
 
         # create and run web app
         app = web.Application(

@@ -787,6 +787,39 @@ class ConfigManager:
             False,
         )
 
+        # Update system settings. Everything defaults off: no check, no
+        # polling, no peer relay and no destinations until the user opts in.
+        self.updates_enabled = self.BoolConfig(self, "updates_enabled", False)
+        self.update_auto_check = self.BoolConfig(self, "update_auto_check", False)
+        self.update_check_interval_hours = self.FloatConfig(
+            self, "update_check_interval_hours", 24.0
+        )
+        self.update_auto_download = self.BoolConfig(
+            self, "update_auto_download", False
+        )
+        self.update_apply_policy = self.StringConfig(
+            self, "update_apply_policy", "manual"
+        )
+        self.update_channel = self.StringConfig(self, "update_channel", "")
+        self.update_transport = self.StringConfig(self, "update_transport", "auto")
+        self.update_custom_mirrors = self.StringConfig(
+            self, "update_custom_mirrors", "[]"
+        )
+        self.update_signer_hashes = self.StringConfig(
+            self, "update_signer_hashes", "[]"
+        )
+        self.update_peer_relay = self.BoolConfig(self, "update_peer_relay", False)
+        self.update_max_download_mb = self.IntConfig(
+            self, "update_max_download_mb", 2048
+        )
+        self.update_rns_rate_kbps = self.FloatConfig(
+            self, "update_rns_rate_kbps", 256.0
+        )
+        self.update_slow_link_kbps = self.FloatConfig(
+            self, "update_slow_link_kbps", 1000.0
+        )
+        self.update_rns_seeds = self.StringConfig(self, "update_rns_seeds", "[]")
+
         self._migrate_legacy_announce_limit_keys()
         self._migrate_translator_from_legacy()
         self._migrate_invalid_telephone_audio_profile()

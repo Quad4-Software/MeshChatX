@@ -140,7 +140,9 @@ from tests.backend.http_api_response_schemas import (
     TELEPHONE_STATUS_SCHEMA,
     TRAFFIC_SCHEMA,
     TRANSLATION_CATALOG_SCHEMA,
-    TRANSLATION_PACKS_SCHEMA,
+    TRANSLATION_PACKS_SCHEMA,    UPDATE_PENDING_SCHEMA,
+    UPDATE_PROGRESS_SCHEMA,
+    UPDATE_STATUS_SCHEMA,
 )
 
 _HEX32 = "a" * 32
@@ -495,6 +497,9 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         "/api/v1/telemetry/trusted-peers",
         TELEMETRY_TRUSTED_PEERS_SCHEMA,
     ),
+    HttpJsonContract("GET", "/api/v1/update/status", UPDATE_STATUS_SCHEMA),
+    HttpJsonContract("GET", "/api/v1/update/pending", UPDATE_PENDING_SCHEMA),
+    HttpJsonContract("GET", "/api/v1/update/progress", UPDATE_PROGRESS_SCHEMA),
     HttpJsonContract(
         "GET",
         "/api/v1/telemetry/latest/{destination_hash}",
