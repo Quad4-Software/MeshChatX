@@ -2,6 +2,7 @@
 
 ### Added
 
+- Updates: new opt-in signed update system. Everything is off by default: no checks, no polling, no announcements until you enable it in Settings under Maintenance. Updates verify a signed msgpack manifest against a pinned signer identity, download over HTTPS mirrors or RNS with ETag and Range support, reuse unchanged blocks from the installed copy, and stage verified artifacts for manual or on-restart apply. Peer relay, custom mirrors, signer pinning, and a slow-link guard for automatic downloads are included. See docs/en/updates.md.
 - Relay chat: NomadNet Micron colour and formatting now renders in relay messages. Bodies carrying the broken-bar tag form get 12-bit and 24-bit foreground and background colours, bold, italic, underline, and full or partial resets; layout and link tags are dropped, unknown bars stay as text, and raw backtick Micron still behaves as Markdown inline code. A message that sets a colour draws as one unwrapped monospace line with whitespace preserved, so multi-line colour art keeps its shape.
 
 ### Changed

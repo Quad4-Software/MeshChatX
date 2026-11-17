@@ -88,6 +88,23 @@ This document is the reviewable artifact behind the controls referenced in
   egress audit, zizmor workflow self-analysis, gitleaks history + diff
   scanning.
 
+### 6. Update delivery
+
+- The signed manifest is the only trust anchor; mirrors, the CDN,
+  release hosts, RNS peers and peer relays are untrusted transports.
+- Pins: signer identity hash (32 or 64 hex), channel binding inside the
+  signed payload, expiry, high-water mark per channel, downgrade
+  rejection, per-artifact SHA-256 and size, blockmap hash.
+- Staging is atomic under the storage jail; apply happens only through
+  the desktop relaunch path or manual install, never mid-session.
+- RNS update links use an ephemeral identity, never the main LXMF
+  identity; peer relay is opt-in and serves only manifest-verified
+  hashes under rate limits.
+- Residual risk: a compromised release signing key can ship malicious
+  updates; mitigate by pinning additional signers or replacing the
+  default. A hostile mirror can withhold updates (availability), never
+  forge them.
+
 ## Standing assumptions
 
 - The host OS account running MeshChatX is trusted at the OS level. The
