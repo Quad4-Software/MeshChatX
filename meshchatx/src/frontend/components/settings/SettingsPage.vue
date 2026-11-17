@@ -559,6 +559,7 @@
                         </section>
 
                         <PluginsSettingsSection :visible="showSection('plugins')" />
+                        <UpdatesSettingsSection :visible="showSection('updates')" />
 
                         <TelephonySettingsSection
                             :visible="showSection('telephony')"
@@ -3262,6 +3263,7 @@ import { getEffectiveMicronWasmReleaseLabel, MICRON_WASM_OVERRIDE_CHANGED_EVENT 
 import MicronWasmUpdateModal from "./MicronWasmUpdateModal.vue";
 import NotificationSoundSettings from "./NotificationSoundSettings.vue";
 import PluginsSettingsSection from "./PluginsSettingsSection.vue";
+import UpdatesSettingsSection from "./sections/UpdatesSettingsSection.vue";
 import {
     loadNomadFavouritesLayout,
     normalizeNomadFavouritesLayout,
@@ -3279,6 +3281,7 @@ export default {
         SettingsSectionBlock,
         SettingsNav,
         PluginsSettingsSection,
+        UpdatesSettingsSection,
         LanguageSettingsSection,
         DesktopSettingsSection,
         StrangerProtectionSettingsSection,
