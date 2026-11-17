@@ -49,6 +49,7 @@ Build, CI, packaging, and development tooling for MeshChatX.
 | `micron-wasm-resolve-bundled.mjs` | Pick bundled vs downloaded micron WASM |
 | `move_wheels.py` | Stage wheels into vendor/ for packaging |
 | `patch_lxst_codec2_optional.py` | Make codec2 optional in vendored LXST |
+| `patch_lxst_pulseaudio_hardened.py` | Harden LXST PulseAudio binding against NULL ops and stripped asserts |
 | `patch_lxst_pyogg_ogg_ctypes.py` | Patch pyogg ctypes loading for PyInstaller |
 | `pip_rns_remotes.py` | Manage pip remotes for RNS deps |
 | `setup_wine_env.sh` | Wine env for Windows backend cross-builds |

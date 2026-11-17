@@ -310,6 +310,26 @@ try {
         console.log("Skipping license artifact generation (artifacts are up to date).");
     }
 
+    // Patch the installed LXST sources before freezing: cx_Freeze
+    // optimize=2 strips asserts, and unpatched LXST aborts the process via
+    // pa_operation_unref(NULL) on hosts without PulseAudio. The patch is
+    // idempotent and must run after any `uv sync` that could restore stock
+    // site-packages.
+    const lxstPatchScript = path.join(__dirname, "patch_lxst_pulseaudio_hardened.py");
+    let patchSpawnCmd = cmd;
+    let patchArgs = [...baseArgs, lxstPatchScript];
+    if (rosettaX64) {
+        patchSpawnCmd = "arch";
+        patchArgs = ["-x86_64", cmd, ...patchArgs];
+    }
+    console.log("Applying LXST PulseAudio hardening patch...");
+    const patchResult = spawnSync(patchSpawnCmd, patchArgs, {
+        stdio: "inherit",
+        shell: false,
+        env: env,
+    });
+    failOnSpawnResult("LXST PulseAudio patch", patchResult);
+
     spawnCmd = cmd;
     spawnArgs = args;
     if (rosettaX64) {

@@ -357,6 +357,7 @@ WRAPPER
     fi
     uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
     uv run python scripts/patch_lxst_codec2_optional.py
+    uv run python scripts/patch_lxst_pulseaudio_hardened.py
 
     # LXST ships prebuilt filterlib blobs per CPython ABI. On pre-release
     # interpreters (3.15 beta legs) none exists, so build it from the bundled

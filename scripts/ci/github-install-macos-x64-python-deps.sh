@@ -125,6 +125,7 @@ fi
 
 arch -x86_64 "$_PY" scripts/patch_lxst_pyogg_ogg_ctypes.py
 arch -x86_64 "$_PY" scripts/patch_lxst_codec2_optional.py
+arch -x86_64 "$_PY" scripts/patch_lxst_pulseaudio_hardened.py
 
 arch -x86_64 "$_PY" -c "
 import numpy

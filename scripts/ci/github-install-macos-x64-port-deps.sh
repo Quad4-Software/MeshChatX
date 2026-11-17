@@ -95,6 +95,7 @@ bash "$(dirname "$0")/macos-normalize-pyogg-dylibs.sh" "$_PY"
 
 "$_PY" scripts/patch_lxst_pyogg_ogg_ctypes.py
 "$_PY" scripts/patch_lxst_codec2_optional.py
+"$_PY" scripts/patch_lxst_pulseaudio_hardened.py
 
 # LXST ships prebuilt filterlib blobs only for released CPython ABIs. The
 # frozen build prunes to the one matching this interpreter and fails when it
