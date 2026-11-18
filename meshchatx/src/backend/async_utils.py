@@ -37,7 +37,7 @@ class AsyncUtils:
 
         def runner() -> None:
             AsyncUtils.set_main_loop(loop)
-            AsyncUtils._background_ready.set()
+            loop.call_soon(AsyncUtils._background_ready.set)
             loop.run_forever()
 
         AsyncUtils._background_loop = loop
@@ -148,6 +148,13 @@ class AsyncUtils:
         can be garbage-collected promptly once finished.
         """
         loop = AsyncUtils.main_loop
+        if loop is None or not loop.is_running():
+            AsyncUtils.ensure_background_loop()
+            loop = AsyncUtils.main_loop
+            if loop is None or not loop.is_running():
+                background_loop = AsyncUtils._background_loop
+                if background_loop is not None and background_loop.is_running():
+                    loop = background_loop
         if loop is not None and loop.is_running():
             future = asyncio.run_coroutine_threadsafe(
                 coroutine,

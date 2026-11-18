@@ -57,7 +57,8 @@ async def _noop():
     return None
 
 
-def test_buffered_coroutines_capped_when_event_loop_not_running():
+def test_buffered_coroutines_capped_when_event_loop_not_running(monkeypatch):
+    monkeypatch.setattr(AsyncUtils, "ensure_background_loop", lambda: None)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
         for _ in range(AsyncUtils._COROUTINES_MAX + 12):
@@ -66,14 +67,37 @@ def test_buffered_coroutines_capped_when_event_loop_not_running():
     assert len(AsyncUtils._pending_coroutines) == AsyncUtils._COROUTINES_MAX
 
 
+def test_run_async_uses_single_fallback_loop_thread():
+    seen: list[bool] = []
+    thread_ids: set[int] = set()
+
+    async def record():
+        thread_ids.add(threading.get_ident())
+        seen.append(True)
+
+    assert AsyncUtils.main_loop is None
+    for _ in range(4):
+        AsyncUtils.run_async(record())
+
+    deadline = time.time() + 3.0
+    while time.time() < deadline and len(seen) < 4:
+        time.sleep(0.05)
+
+    assert len(seen) == 4
+    assert len(thread_ids) == 1
+    assert AsyncUtils._background_thread is not None
+    assert AsyncUtils._background_thread.ident in thread_ids
+
+
 @pytest.mark.asyncio
-async def test_set_main_loop_drains_buffered_coroutines():
+async def test_set_main_loop_drains_buffered_coroutines(monkeypatch):
     seen: list[bool] = []
 
     async def record():
         seen.append(True)
 
     AsyncUtils.main_loop = None
+    monkeypatch.setattr(AsyncUtils, "ensure_background_loop", lambda: None)
 
     queued = threading.Event()
 

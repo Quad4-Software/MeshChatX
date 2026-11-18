@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import binascii
 import json
@@ -82,7 +83,7 @@ def register_map_routes(routes, app):
             y_str = y_str.removesuffix(".png")
             y = int(y_str)
 
-            tile_data = app.map_manager.get_tile(z, x, y)
+            tile_data = await asyncio.to_thread(app.map_manager.get_tile, z, x, y)
             if tile_data:
                 return web.Response(body=tile_data, content_type="image/png")
 

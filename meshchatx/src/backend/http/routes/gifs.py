@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 from datetime import UTC, datetime
@@ -29,7 +30,10 @@ def register_gifs_routes(routes, app):
     @routes.get(API_V1_PREFIX + "/gifs")
     async def gifs_list(request):
         identity_hash = app.identity.hash.hex()
-        rows = app.database.gifs.list_for_identity(identity_hash)
+        rows = await asyncio.to_thread(
+            app.database.gifs.list_for_identity,
+            identity_hash,
+        )
         return web.json_response({"gifs": [dict(r) for r in rows]})
 
     @routes.post(API_V1_PREFIX + "/gifs")
@@ -53,7 +57,8 @@ def register_gifs_routes(routes, app):
         src = data.get("source_message_hash")
         src = src if isinstance(src, str) else None
         try:
-            row = app.database.gifs.insert(
+            row = await asyncio.to_thread(
+                app.database.gifs.insert,
                 identity_hash,
                 name,
                 image_type,
@@ -72,7 +77,11 @@ def register_gifs_routes(routes, app):
         gif_id = parse_int_param(request.match_info.get("gif_id"))
         if gif_id is None:
             return http_bad_request("invalid gif id")
-        ok = app.database.gifs.delete(gif_id, identity_hash)
+        ok = await asyncio.to_thread(
+            app.database.gifs.delete,
+            gif_id,
+            identity_hash,
+        )
         if not ok:
             return http_not_found("not_found")
         return web.json_response({"message": "deleted"})
@@ -92,7 +101,12 @@ def register_gifs_routes(routes, app):
         if "name" not in data:
             return http_bad_request("missing_name")
         name = gif_utils.sanitize_gif_name(data.get("name"))
-        ok = app.database.gifs.update_name(gif_id, identity_hash, name)
+        ok = await asyncio.to_thread(
+            app.database.gifs.update_name,
+            gif_id,
+            identity_hash,
+            name,
+        )
         if not ok:
             return http_not_found("not_found")
         return web.json_response({"message": "updated"})
@@ -103,7 +117,11 @@ def register_gifs_routes(routes, app):
         gif_id = parse_int_param(request.match_info.get("gif_id"))
         if gif_id is None:
             return http_bad_request("invalid gif id")
-        row = app.database.gifs.get_row(gif_id, identity_hash)
+        row = await asyncio.to_thread(
+            app.database.gifs.get_row,
+            gif_id,
+            identity_hash,
+        )
         if row is None:
             return http_not_found("not_found")
         ct = gif_utils.mime_for_image_type(row["image_type"])
@@ -115,7 +133,11 @@ def register_gifs_routes(routes, app):
         gif_id = parse_int_param(request.match_info.get("gif_id"))
         if gif_id is None:
             return http_bad_request("invalid gif id")
-        ok = app.database.gifs.record_usage(gif_id, identity_hash)
+        ok = await asyncio.to_thread(
+            app.database.gifs.record_usage,
+            gif_id,
+            identity_hash,
+        )
         if not ok:
             return http_not_found("not_found")
         return web.json_response({"message": "recorded"})
@@ -123,7 +145,10 @@ def register_gifs_routes(routes, app):
     @routes.get(API_V1_PREFIX + "/gifs/export")
     async def gifs_export(request):
         identity_hash = app.identity.hash.hex()
-        payloads = app.database.gifs.export_payloads_for_identity(identity_hash)
+        payloads = await asyncio.to_thread(
+            app.database.gifs.export_payloads_for_identity,
+            identity_hash,
+        )
         doc = gif_utils.build_export_document(
             payloads,
             datetime.now(UTC).isoformat(),
@@ -144,7 +169,8 @@ def register_gifs_routes(routes, app):
             items = gif_utils.validate_export_document(data)
         except ValueError as e:
             return http_bad_request(str(e))
-        result = app.database.gifs.import_payloads(
+        result = await asyncio.to_thread(
+            app.database.gifs.import_payloads,
             identity_hash,
             items,
             replace_duplicates=replace,

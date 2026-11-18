@@ -20,6 +20,7 @@ TRANSPARENT_TILE = base64.b64decode(
 MAX_EXPORT_TILES = 200_000
 MAX_EXPORT_RECORDS = 8
 MAX_EXPORT_ZOOM = 22
+MAX_CONCURRENT_EXPORTS = 4
 TERMINAL_EXPORT_STATUSES = frozenset({"completed", "failed"})
 
 
@@ -288,13 +289,26 @@ class MapManager:
                 "Shrink the area or lower max zoom."
             )
             raise ValueError(msg)
-        thread = threading.Thread(
-            target=self._run_export,
-            args=(export_id, bbox, min_zoom, max_zoom, name),
-            daemon=True,
-            name="mcx-mapdl",
-        )
+        try:
+            max_concurrent = int(
+                self.config.map_overlay_max_concurrent_jobs.get(),
+            )
+        except (AttributeError, TypeError, ValueError):
+            max_concurrent = MAX_CONCURRENT_EXPORTS
+        max_concurrent = max(1, max_concurrent)
         with self._export_lock:
+            active = sum(
+                1
+                for entry in self._export_progress.values()
+                if entry.get("status") not in TERMINAL_EXPORT_STATUSES
+            )
+            if active >= max_concurrent:
+                msg = (
+                    f"Too many concurrent map exports ({active}); "
+                    f"maximum allowed is {max_concurrent}. "
+                    "Wait for a running export to finish or cancel it."
+                )
+                raise ValueError(msg)
             self._export_progress[export_id] = {
                 "status": "starting",
                 "progress": 0,
@@ -302,6 +316,12 @@ class MapManager:
                 "current": 0,
                 "start_time": time.time(),
             }
+        thread = threading.Thread(
+            target=self._run_export,
+            args=(export_id, bbox, min_zoom, max_zoom, name),
+            daemon=True,
+            name="mcx-mapdl",
+        )
         thread.start()
         self.prune_export_records()
         return export_id

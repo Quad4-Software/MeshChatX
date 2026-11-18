@@ -160,6 +160,21 @@ def test_start_export_rejects_over_cap(mock_config, temp_dir, monkeypatch):
     assert mm.get_export_status("too_big") is None
 
 
+def test_start_export_rejects_when_concurrency_saturated(mock_config, temp_dir):
+    mock_config.map_overlay_max_concurrent_jobs.get.return_value = 2
+    mm = MapManager(mock_config, temp_dir)
+    with patch.object(mm, "_run_export"):
+        mm.start_export("e1", [0, 0, 1, 1], 0, 1)
+        mm.start_export("e2", [0, 0, 1, 1], 0, 1)
+        with pytest.raises(ValueError, match="concurrent map exports"):
+            mm.start_export("e3", [0, 0, 1, 1], 0, 1)
+    assert mm.get_export_status("e3") is None
+    mm._export_progress["e1"]["status"] = "completed"
+    with patch.object(mm, "_run_export"):
+        mm.start_export("e3", [0, 0, 1, 1], 0, 1)
+    assert mm.get_export_status("e3")["status"] == "starting"
+
+
 def test_delete_mbtiles_rejects_nul_and_nonstring(mock_config, temp_dir):
     mm = MapManager(mock_config, temp_dir)
     assert mm.delete_mbtiles("a\x00.mbtiles") is False
