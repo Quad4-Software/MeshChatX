@@ -531,7 +531,7 @@ async def test_hotswap_identity(mock_rns, temp_dir):
         app.websocket_broadcast.assert_called()
         # Check if the broadcast contains identity_switched
         broadcast_call = app.websocket_broadcast.call_args[0][0]
-        assert "identity_switched" in broadcast_call
+        assert broadcast_call["type"] == "identity_switched"
         app.teardown_identity()
 
 

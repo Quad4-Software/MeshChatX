@@ -195,7 +195,7 @@ async def test_hotswap_broadcast_requires_reauth_when_auth_enabled(
     with patch("meshchatx.meshchat.asyncio.sleep", new=AsyncMock()):
         await app.hotswap_identity(new_hash)
 
-    payload = json.loads(app.websocket_broadcast.call_args[0][0])
+    payload = app.websocket_broadcast.call_args[0][0]
     assert payload["type"] == "identity_switched"
     assert payload["requires_reauth"] is True
 
@@ -229,7 +229,7 @@ async def test_hotswap_broadcast_no_reauth_when_auth_disabled(
     with patch("meshchatx.meshchat.asyncio.sleep", new=AsyncMock()):
         await app.hotswap_identity(new_hash)
 
-    payload = json.loads(app.websocket_broadcast.call_args[0][0])
+    payload = app.websocket_broadcast.call_args[0][0]
     assert payload.get("requires_reauth") is False
 
     app = ReticulumMeshChat(

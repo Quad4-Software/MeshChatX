@@ -329,8 +329,7 @@ async def test_handle_lxmf_message_progress_failure_broadcast(mock_app):
         # Verify websocket broadcast was called
         mock_app.websocket_broadcast.assert_called()
 
-        args = mock_app.websocket_broadcast.call_args[0][0]
-        payload = json.loads(args)
+        payload = mock_app.websocket_broadcast.call_args[0][0]
         assert payload["type"] == "lxmf_message_state_updated"
         assert payload["lxmf_message"]["state"] == "failed"
 

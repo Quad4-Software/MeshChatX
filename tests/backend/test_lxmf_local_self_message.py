@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -53,7 +54,11 @@ async def test_send_to_self_persists_delivered_local_without_router(local_self_a
     assert upsert_kw.get("method_override") == "local"
     app.websocket_broadcast.assert_awaited()
     payload = app.websocket_broadcast.await_args[0][0]
-    assert "local" in payload and "delivered" in payload
+    if isinstance(payload, str):
+        payload = json.loads(payload)
+    lxmf_message = payload["lxmf_message"]
+    assert lxmf_message["method"] == "local"
+    assert lxmf_message["state"] == "delivered"
 
 
 @pytest.mark.asyncio

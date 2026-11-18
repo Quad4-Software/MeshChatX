@@ -172,7 +172,9 @@ async def test_resend_broadcasts_deleted_row(web_resend_app):
     web_resend_app.database.messages.delete_lxmf_message_by_hash.assert_called_once_with(
         message_hash,
     )
-    broadcasted = json.loads(web_resend_app.websocket_broadcast.call_args[0][0])
+    broadcasted = web_resend_app.websocket_broadcast.call_args[0][0]
+    if isinstance(broadcasted, str):
+        broadcasted = json.loads(broadcasted)
     assert broadcasted == {"type": "lxmf_message_deleted", "hash": message_hash}
 
 

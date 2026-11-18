@@ -298,6 +298,8 @@ def delivery_ws_payload(app) -> dict | None:
     if not call:
         return None
     raw = call[0][0]
+    if isinstance(raw, dict):
+        return raw
     if not isinstance(raw, str):
         return None
     try:

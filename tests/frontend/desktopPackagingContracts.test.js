@@ -65,7 +65,20 @@ describe("desktop packaging contracts", () => {
         expect(fs.statSync(path.join(dir, "AppRun")).mode & 0o111).toBeTruthy();
         expect(appRun).toContain("APPDIR");
         expect(appRun).toContain('cd "$APPDIR"');
-        expect(appRun).not.toContain("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1");
+
+        // The WebKit sandbox may only be disabled behind a guard: an
+        // explicit MESHCHAT_WEBKIT_SANDBOX opt-out or a failed bwrap
+        // probe, never unconditionally. Every dangerous export must be
+        // indented inside a conditional block.
+        expect(appRun).toContain("MESHCHAT_WEBKIT_SANDBOX");
+        expect(appRun).toContain("bwrap");
+        const dangerousExports = appRun
+            .split("\n")
+            .filter((line) => line.includes("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1"));
+        expect(dangerousExports.length).toBeGreaterThan(0);
+        for (const line of dangerousExports) {
+            expect(line).toMatch(/^\s+export\s/);
+        }
 
         // Tools are pinned by sha256 in tools.tsv; build.sh verifies before use.
         expect(tools).toContain("linuxdeploy\tfile\thttps://github.com/linuxdeploy/");

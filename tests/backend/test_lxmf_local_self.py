@@ -187,8 +187,7 @@ async def test_local_self_websocket_payload_is_delivered_local(local_self_app):
     ):
         await app.send_message(destination_hash=LOCAL_LXMF, content="ws")
 
-    raw = app.websocket_broadcast.await_args[0][0]
-    payload = json.loads(raw)
+    payload = app.websocket_broadcast.await_args[0][0]
     assert payload["type"] == "lxmf_message_created"
     lm = payload["lxmf_message"]
     assert lm["state"] == "delivered"

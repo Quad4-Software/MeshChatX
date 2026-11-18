@@ -252,7 +252,7 @@ async def test_detach_active_session_and_broadcast_payload(mock_rns_minimal, tem
     sent = []
 
     async def capture(data):
-        sent.append(json.loads(data))
+        sent.append(data)
 
     app.websocket_broadcast = capture
     app.active_sessions.add(ip="8.8.8.8", user_agent="Chrome")
@@ -314,7 +314,7 @@ async def test_connect_disconnect_session_lifecycle_unit(mock_rns_minimal, temp_
     broadcasts = []
 
     async def capture(data):
-        broadcasts.append(json.loads(data))
+        broadcasts.append(data)
 
     app.websocket_broadcast = capture
 

@@ -142,7 +142,7 @@ async def test_hotswap_identity_success(mock_rns, temp_dir):
     app.teardown_identity.assert_called_once()
     app.setup_identity.assert_called_once_with(new_id_instance)
     app.websocket_broadcast.assert_called_once()
-    ws_payload = json.loads(app.websocket_broadcast.call_args[0][0])
+    ws_payload = app.websocket_broadcast.call_args[0][0]
     assert ws_payload["type"] == "identity_switched"
     assert ws_payload["identity_hash"] == new_hash
     assert ws_payload["display_name"] == "New User"
