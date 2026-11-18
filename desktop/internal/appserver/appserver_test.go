@@ -188,6 +188,28 @@ func TestProxyOriginRefererRewrite(t *testing.T) {
 	}
 }
 
+func TestProxySetsForwardedHost(t *testing.T) {
+	var gotXFH string
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotXFH = r.Header.Get("X-Forwarded-Host")
+		w.Write([]byte("ok"))
+	}))
+	defer up.Close()
+	u, _ := url.Parse(up.URL)
+	s := startTestServer(t, u)
+
+	req, _ := http.NewRequest("GET", "http://"+s.Addr()+"/nomad-crash-tab.html", nil)
+	req.Header.Set("X-Forwarded-Host", "evil.example")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if gotXFH != s.Addr() {
+		t.Fatalf("X-Forwarded-Host = %q, want incoming host %q", gotXFH, s.Addr())
+	}
+}
+
 func TestUpstreamDownRedirectsHTMLNavigation(t *testing.T) {
 	// Upstream that is guaranteed dead: pick a listener then close it.
 	ln, err := net.Listen("tcp", "127.0.0.1:0")

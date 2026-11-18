@@ -252,6 +252,104 @@ async def test_nomad_crash_tab_csp_is_tighter_than_shell(
         )
 
 
+async def _crash_tab_csp_for_proxy_request(
+    app_instance, remote, forwarded_host, host="127.0.0.1:9337"
+) -> str:
+    request = MagicMock(spec=web.Request)
+    request.path = "/nomad-crash-tab.html"
+    request.app = {}
+    request.host = host
+    request.remote = remote
+    request.headers = {}
+    if forwarded_host is not None:
+        request.headers["X-Forwarded-Host"] = forwarded_host
+
+    async def mock_handler(req):
+        return web.Response(text="test")
+
+    routes = web.RouteTableDef()
+    _, _, _, _, _, security_middleware, _, _, _ = app_instance._define_routes(routes)
+    response = await security_middleware(request, mock_handler)
+    return response.headers.get("Content-Security-Policy", "")
+
+
+@pytest.mark.asyncio
+async def test_crash_tab_csp_uses_forwarded_host_from_loopback(
+    mock_rns_minimal,
+    tmp_path,
+):
+    """CSP names the browser-facing app-server port, not the upstream one."""
+    storage_dir = str(tmp_path / "storage")
+    config_dir = str(tmp_path / "config")
+
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=storage_dir,
+            reticulum_config_dir=config_dir,
+        )
+        csp = await _crash_tab_csp_for_proxy_request(
+            app_instance, "127.0.0.1", "127.0.0.1:9338"
+        )
+        for directive in ("script-src", "connect-src", "font-src", "img-src"):
+            m = re.search(rf"{directive} ([^;]+)", csp)
+            assert m is not None, directive
+            assert "http://127.0.0.1:9338" in m.group(1), directive
+            assert "9337" not in m.group(1), directive
+        assert "127.0.0.1:*" not in csp
+
+
+@pytest.mark.asyncio
+async def test_crash_tab_csp_ignores_forwarded_host_from_remote_peer(
+    mock_rns_minimal,
+    tmp_path,
+):
+    storage_dir = str(tmp_path / "storage")
+    config_dir = str(tmp_path / "config")
+
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=storage_dir,
+            reticulum_config_dir=config_dir,
+        )
+        csp = await _crash_tab_csp_for_proxy_request(
+            app_instance, "203.0.113.9", "127.0.0.1:9338"
+        )
+        assert "http://127.0.0.1:9337" in csp
+        assert "127.0.0.1:9338" not in csp
+
+
+@pytest.mark.asyncio
+async def test_crash_tab_csp_rejects_malformed_forwarded_host(
+    mock_rns_minimal,
+    tmp_path,
+):
+    storage_dir = str(tmp_path / "storage")
+    config_dir = str(tmp_path / "config")
+
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=storage_dir,
+            reticulum_config_dir=config_dir,
+        )
+        for bad in (
+            "127.0.0.1:9338; script-src *",
+            "127.0.0.1:9338 'unsafe-eval'",
+            "127.0.0.1:9338, evil.example",
+            "http://127.0.0.1:9338",
+            "/nomad-crash-tab.html",
+            "",
+            "*",
+            "evil.example/path",
+        ):
+            csp = await _crash_tab_csp_for_proxy_request(app_instance, "127.0.0.1", bad)
+            assert "http://127.0.0.1:9337" in csp, bad
+            if bad:
+                assert bad not in csp, bad
+
+
 @pytest.mark.asyncio
 async def test_security_middleware_does_not_set_cors_on_reticulum_docs(
     mock_rns_minimal,

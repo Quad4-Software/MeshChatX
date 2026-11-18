@@ -10,6 +10,7 @@ csrf, ip_allowlist, demo_mode.
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import re
 from urllib.parse import urlparse
@@ -119,6 +120,28 @@ def build_permissions_policy() -> str:
     ignores unknown tokens quietly in practice. Default autoplay is also self.
     """
     return ", ".join(_PERMISSIONS_POLICY_CORE)
+
+
+_FORWARDED_HOST_RE = re.compile(r"^(\[[0-9a-fA-F:.]+\]|[A-Za-z0-9._-]+)(:[0-9]{1,5})?$")
+
+
+def _crash_tab_csp_host(request: web.Request) -> str | None:
+    """Return the browser-visible host for the opaque crash-tab frame.
+
+    The desktop loopback app server proxies with the real origin in
+    X-Forwarded-Host; trust it only from a loopback peer since remote
+    clients could otherwise inject an arbitrary CSP source.
+    """
+    remote = (request.remote or "").split("%")[0]
+    try:
+        loopback = ipaddress.ip_address(remote).is_loopback
+    except (TypeError, ValueError):
+        loopback = False
+    if loopback:
+        forwarded = request.headers.get("X-Forwarded-Host", "").strip()
+        if _FORWARDED_HOST_RE.fullmatch(forwarded):
+            return forwarded
+    return request.host
 
 
 def build_nomad_crash_tab_csp(request_host: str | None = None) -> str:
@@ -522,7 +545,7 @@ def create_security_middleware(app):
                 response.headers["Access-Control-Allow-Origin"] = "*"
                 response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
             response.headers["Content-Security-Policy"] = build_nomad_crash_tab_csp(
-                request.host
+                _crash_tab_csp_host(request)
             )
             return response
 

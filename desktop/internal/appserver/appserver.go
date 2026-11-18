@@ -257,6 +257,10 @@ func (s *Server) newProxy() *httputil.ReverseProxy {
 	proxy.Director = func(req *http.Request) {
 		req.URL.Scheme = upstream.Scheme
 		req.URL.Host = upstream.Host
+		// The browser-visible origin travels in X-Forwarded-Host so the
+		// backend can stamp the real app-server port into the opaque
+		// crash-tab CSP. Set always overwrites a client-supplied value.
+		req.Header.Set("X-Forwarded-Host", req.Host)
 		req.Host = upstream.Host
 		for _, h := range []string{"Origin", "Referer"} {
 			if v := req.Header.Get(h); v != "" {
