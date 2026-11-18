@@ -21,6 +21,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -110,8 +111,9 @@ type shellState struct {
 	pathGuard     *security.PathGuardRoots
 	closeGuard    settings.CloseRequestGuard
 	tray          *application.SystemTray
-	trayMu        sync.Mutex // serializes syncTray (called from several goroutines)
-	navMu         sync.Mutex // serializes main-window SetURL+pageKind swaps
+	trayMu        sync.Mutex  // serializes syncTray (called from several goroutines)
+	trayWarned    atomic.Bool // logs the missing-tray-host warning once
+	navMu         sync.Mutex  // serializes main-window SetURL+pageKind swaps
 	sysLog        *logger.Logger
 	serialMgr     *serial.Manager
 }
@@ -489,6 +491,10 @@ func (s *shellState) handleWindowClose() {
 	defer s.closeGuard.Leave()
 
 	settingsRaw := settings.LoadCloseSettings(s.storageDir)
+	if settingsRaw.TrayEnabled && !trayHostAvailable() {
+		settingsRaw.TrayEnabled = false
+		s.logTrayUnavailable()
+	}
 	action := settings.ResolveCloseAction(settingsRaw)
 	win := s.mainWindow
 
@@ -501,7 +507,7 @@ func (s *shellState) handleWindowClose() {
 	case "minimize":
 		win.Minimise()
 	case "ask":
-		result, remember, ok := s.askCloseDialog()
+		result, remember, ok := s.askCloseDialog(settingsRaw.TrayEnabled)
 		if !ok {
 			return // cancelled: keep window open
 		}
@@ -511,8 +517,12 @@ func (s *shellState) handleWindowClose() {
 		case "minimize":
 			win.Minimise()
 		case "background":
-			win.Hide()
-			s.onMainWindowHidden()
+			if settingsRaw.TrayEnabled {
+				win.Hide()
+				s.onMainWindowHidden()
+			} else {
+				win.Minimise()
+			}
 		}
 		if partial := settings.RememberedCloseSettings(result, remember); partial != nil {
 			settings.SaveCloseSettings(s.storageDir, partial)
@@ -522,8 +532,10 @@ func (s *shellState) handleWindowClose() {
 }
 
 // askCloseDialog opens close-dialog.html as a small modal-ish child window
-// and waits for its window-result message.
-func (s *shellState) askCloseDialog() (action string, remember bool, ok bool) {
+// and waits for its window-result message. trayEnabled is the effective tray
+// flag (false when no tray host is running) so the dialog does not offer a
+// background option that would orphan the window.
+func (s *shellState) askCloseDialog(trayEnabled bool) (action string, remember bool, ok bool) {
 	_, effective := s.uiTheme()
 	name := "close-dialog"
 	w := s.app.Window.NewWithOptions(application.WebviewWindowOptions{
@@ -532,7 +544,7 @@ func (s *shellState) askCloseDialog() (action string, remember bool, ok bool) {
 		Width:            460,
 		Height:           320,
 		DisableResize:    true,
-		URL:              "/close-dialog.html?theme=" + effective + "&tray=" + map[bool]string{true: "1", false: "0"}[settings.LoadCloseSettings(s.storageDir).TrayEnabled],
+		URL:              "/close-dialog.html?theme=" + effective + "&tray=" + map[bool]string{true: "1", false: "0"}[trayEnabled],
 		BackgroundColour: themeColour(effective),
 		Hidden:           false,
 		AlwaysOnTop:      true,
@@ -591,7 +603,10 @@ func (s *shellState) syncTray() {
 	if want && s.tray == nil {
 		tray := s.app.SystemTray.New()
 		if len(appIconPNG) > 0 {
-			tray.SetIcon(appIconPNG)
+			tray.SetIcon(scaledTrayIconPNG())
+		}
+		if runtime.GOOS == "linux" {
+			tray.SetLabel(appName)
 		}
 		tray.SetTooltip(appName)
 		tray.OnClick(func() { s.toggleMainWindow() })
@@ -606,6 +621,17 @@ func (s *shellState) syncTray() {
 	} else if !want && s.tray != nil {
 		s.tray.Destroy()
 		s.tray = nil
+	}
+}
+
+// logTrayUnavailable records once, in the app log, that the tray setting is
+// on but no tray host is running, so the window will not hide on close.
+func (s *shellState) logTrayUnavailable() {
+	if !s.trayWarned.CompareAndSwap(false, true) {
+		return
+	}
+	if s.sysLog != nil {
+		s.sysLog.Write("tray unavailable: no StatusNotifierWatcher on the session bus (GNOME needs the AppIndicator extension)")
 	}
 }
 
