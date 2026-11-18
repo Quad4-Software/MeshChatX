@@ -7,10 +7,13 @@ import (
 	"strconv"
 )
 
-func killOrphanBackendPids(exclude map[int]bool) int {
-	pids := listWindowsBackendPids(exclude)
+func killOrphanBackendPids(exclude map[int]bool, exePath string) int {
+	pids := listWindowsBackendPids(exclude, exePath)
+	removed := 0
 	for _, pid := range pids {
-		_ = exec.Command("taskkill", "/F", "/T", "/PID", strconv.Itoa(pid)).Run()
+		if err := exec.Command("taskkill", "/F", "/T", "/PID", strconv.Itoa(pid)).Run(); err == nil {
+			removed++
+		}
 	}
-	return len(pids)
+	return removed
 }

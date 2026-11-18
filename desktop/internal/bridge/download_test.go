@@ -178,3 +178,31 @@ func TestSymlinkDirRefused(t *testing.T) {
 		t.Fatalf("symlinked dir accepted: %q", got)
 	}
 }
+
+func TestEndRejectsDeclaredSizeMismatch(t *testing.T) {
+	d := tmpDM(t)
+	r := d.Begin("short.bin", 10, 1)
+	id := r["id"].(string)
+	p := r["path"].(string)
+	if res := d.Chunk(id, b64("five")); res["ok"] != true {
+		t.Fatalf("chunk: %v", res)
+	}
+	res := d.End(id)
+	if res["ok"] != false {
+		t.Fatalf("end should fail on size mismatch: %v", res)
+	}
+	if _, err := os.Stat(p); !os.IsNotExist(err) {
+		t.Fatal("incomplete file not removed")
+	}
+}
+
+func TestChunkRejectsOversizedBase64Input(t *testing.T) {
+	d := tmpDM(t)
+	r := d.Begin("x.bin", 0, 1)
+	id := r["id"].(string)
+	huge := strings.Repeat("A", ((maxChunkBytes+2)/3)*4+4)
+	if res := d.Chunk(id, huge); res["ok"] != false {
+		t.Fatal("oversized base64 payload accepted")
+	}
+	d.Abort(id)
+}

@@ -9,7 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/Quad4-Software/MeshChatX/desktop/internal/updateapply"
+	"github.com/Quad4-Software/MeshChatX/desktop/internal/updater"
 	"io/fs"
 	"log"
 	"net/url"
@@ -219,11 +219,14 @@ func main() {
 	// else to the backend, so loading -> app navigation stays same-origin
 	// (one WebKit web process, no retained loading-page process).
 	// Apply policy "on_restart": swap in a staged update before anything
-	// else starts, then relaunch into the new AppImage.
-	if updateapply.PendingApplyPolicy(s.storageDir) == "on_restart" {
-		if res := updateapply.ApplyPendingUpdate(s.storageDir); res["applied"] == true {
+	// else starts, then relaunch into the new payload. Kinds that cannot
+	// self-apply report their staged status and never block startup.
+	if updater.PendingApplyPolicy(s.storageDir) == "on_restart" {
+		if res := updater.ApplyPending(s.storageDir); res["applied"] == true {
 			s.relaunch()
 			return
+		} else {
+			sysLog.Write(fmt.Sprintf("Staged update not applied on restart: %v", res))
 		}
 	}
 

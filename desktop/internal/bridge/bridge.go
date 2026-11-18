@@ -31,7 +31,7 @@ import (
 	"github.com/Quad4-Software/MeshChatX/desktop/internal/serial"
 	"github.com/Quad4-Software/MeshChatX/desktop/internal/settings"
 	"github.com/Quad4-Software/MeshChatX/desktop/internal/system"
-	"github.com/Quad4-Software/MeshChatX/desktop/internal/updateapply"
+	"github.com/Quad4-Software/MeshChatX/desktop/internal/updater"
 )
 
 // Deps wires the bridge to the running application.
@@ -380,7 +380,7 @@ func (b *Bridge) dispatch(window application.Window, id int, method string, args
 		}
 		result = nil
 	case "update-apply":
-		result = updateapply.ApplyPendingUpdate(b.deps.StorageDir())
+		result = updater.ApplyPending(b.deps.StorageDir())
 		if m, ok := result.(map[string]any); ok {
 			if applied, _ := m["applied"].(bool); applied && b.deps.ApplyUpdateAndExit != nil {
 				go b.deps.ApplyUpdateAndExit()

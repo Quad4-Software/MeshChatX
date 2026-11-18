@@ -79,6 +79,9 @@ tasks:
         STAGE="{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}-portable"
         rm -rf "$STAGE" && mkdir -p "$STAGE/backend"
         cp "{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe" "$STAGE/"
+        # Marks this portable dir as self-updatable: internal/updater only
+        # swaps install dirs carrying this marker.
+        printf 'portable self-updatable install\n' > "$STAGE/updatable.txt"
         if [ -d "{{.ROOT_DIR}}/{{.BIN_DIR}}/backend" ]; then
           cp -r "{{.ROOT_DIR}}/{{.BIN_DIR}}/backend/." "$STAGE/backend/"
         fi

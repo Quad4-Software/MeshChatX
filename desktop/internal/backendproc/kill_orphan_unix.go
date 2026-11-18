@@ -2,8 +2,7 @@
 
 package backendproc
 
-func killOrphanBackendPids(exclude map[int]bool) int {
-	pids := listUnixBackendPids(exclude)
-	KillUnixPids(pids)
-	return len(pids)
+func killOrphanBackendPids(exclude map[int]bool, exePath string) int {
+	pids := listUnixBackendPids(exclude, exePath)
+	return KillUnixPids(pids)
 }

@@ -75,6 +75,7 @@ type Manager struct {
 	resolvedExe  string
 	userArgs     []string
 	integrity    *integrity.Result
+	childKilled  bool
 }
 
 func NewManager(deps Deps) *Manager {
@@ -199,6 +200,23 @@ func (m *Manager) GetStartupDiagnostics() map[string]any {
 	}
 }
 
+const maintenanceOutputCap = 256 * 1024
+
+type cappedWriter struct {
+	buf bytes.Buffer
+	max int
+}
+
+func (w *cappedWriter) Write(p []byte) (int, error) {
+	n, _ := w.buf.Write(p)
+	if w.buf.Len() > w.max {
+		w.buf.Next(w.buf.Len() - w.max)
+	}
+	return n, nil
+}
+
+func (w *cappedWriter) String() string { return w.buf.String() }
+
 func pushLogLine(buf []string, line string) []string {
 	buf = append(buf, line)
 	if len(buf) > LogLineCap {
@@ -231,8 +249,11 @@ func (m *Manager) notifyStartupFailure(code *int, signal string) {
 		if s, ok := m.lastCrash["stderr"].(string); ok {
 			stderr = s
 		}
-		if f, ok := m.lastCrash["at"].(float64); ok {
-			at = int64(f)
+		switch v := m.lastCrash["at"].(type) {
+		case int64:
+			at = v
+		case float64:
+			at = int64(v)
 		}
 	}
 	m.mu.Unlock()
@@ -338,14 +359,9 @@ func (m *Manager) SpawnBackend(exePath string, integrityRef *integrity.Result) (
 		m.mu.Unlock()
 		return nil, fmt.Errorf("A backend maintenance task is still running.")
 	}
-	var maintenancePid *int
-	if m.isMaintenanceRunningLocked() && m.maintenance.Process != nil {
-		pid := m.maintenance.Process.Pid
-		maintenancePid = &pid
-	}
 	m.mu.Unlock()
 
-	removed, err := KillOrphanBackendProcesses(maintenancePid)
+	removed, err := KillOrphanBackendProcesses(nil, exePath)
 	if err != nil {
 		m.deps.Log(fmt.Sprintf("Orphan sweep failed: %v", err))
 	}
@@ -399,6 +415,7 @@ func (m *Manager) SpawnBackend(exePath string, integrityRef *integrity.Result) (
 	m.childDone = make(chan struct{})
 	m.childExitCode = nil
 	m.childExitSignal = ""
+	m.childKilled = false
 	m.logBuffers = map[string][]string{"stdout": {}, "stderr": {}}
 	m.runtimeState = RuntimeState{
 		Started: true, Running: true, Pid: &pid,
@@ -499,7 +516,12 @@ func (m *Manager) handleChildExit(code *int, signal string) {
 		return
 	}
 	if code == nil && signal == "" {
-		return
+		m.mu.Lock()
+		killedByUs := m.childKilled
+		m.mu.Unlock()
+		if killedByUs {
+			return
+		}
 	}
 
 	m.recordCrash(code, signal)
@@ -590,6 +612,9 @@ func (m *Manager) KillChild(sig syscall.Signal) {
 	m.mu.Lock()
 	child, childDone := m.child, m.childDone
 	maint, maintDone := m.maintenance, m.maintenanceDone
+	if procAlive(child, childDone) {
+		m.childKilled = true
+	}
 	m.mu.Unlock()
 	signalProcess(child, childDone, sig)
 	signalProcess(maint, maintDone, sig)
@@ -634,6 +659,12 @@ func (m *Manager) RunMaintenanceTask(extraArgs []string) map[string]any {
 			m.KillChild(syscall.SIGKILL)
 			waitExit(runningDone, 2*time.Second)
 		}
+		if !procExited(runningDone) {
+			return map[string]any{
+				"ok":    false,
+				"error": "Backend did not stop; maintenance task aborted.",
+			}
+		}
 	}
 
 	args := m.buildSpawnArgs(extraArgs)
@@ -641,7 +672,9 @@ func (m *Manager) RunMaintenanceTask(extraArgs []string) map[string]any {
 	cmd.Env = m.buildSpawnEnv()
 	applySysProcAttr(cmd)
 
-	var stdoutBuf, stderrBuf bytes.Buffer
+	var stdoutBuf, stderrBuf cappedWriter
+	stdoutBuf.max = maintenanceOutputCap
+	stderrBuf.max = maintenanceOutputCap
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 
@@ -744,7 +777,31 @@ func isHeadlessBackendArgs(args string) bool {
 	return strings.Contains(args, " --headless ") || strings.HasSuffix(args, " --headless") || strings.Contains(args, "\t--headless")
 }
 
-func listUnixBackendPids(excludePids map[int]bool) []int {
+func sameBackendExe(pid int, args, exePath string) bool {
+	if exePath == "" {
+		return false
+	}
+	resolved, err := filepath.EvalSymlinks(exePath)
+	if err != nil {
+		resolved = filepath.Clean(exePath)
+	}
+	for _, field := range strings.Fields(args) {
+		if r, err := filepath.EvalSymlinks(field); err == nil && r == resolved {
+			return true
+		}
+	}
+	if target, err := os.Readlink(fmt.Sprintf("/proc/%d/exe", pid)); err == nil {
+		if r, err := filepath.EvalSymlinks(target); err == nil && r == resolved {
+			return true
+		}
+		if filepath.Clean(target) == resolved {
+			return true
+		}
+	}
+	return false
+}
+
+func listUnixBackendPids(excludePids map[int]bool, exePath string) []int {
 	if runtime.GOOS == "windows" {
 		return nil
 	}
@@ -773,7 +830,7 @@ func listUnixBackendPids(excludePids map[int]bool) []int {
 		if excludePids[pid] || pid == self {
 			continue
 		}
-		if isHeadlessBackendArgs(args) {
+		if isHeadlessBackendArgs(args) && sameBackendExe(pid, args, exePath) {
 			pids = append(pids, pid)
 		}
 	}
@@ -782,10 +839,10 @@ func listUnixBackendPids(excludePids map[int]bool) []int {
 
 // KillOrphanBackendProcesses terminates leftover headless backend processes,
 // excluding ownPid (e.g. a maintenance child). Returns the killed count.
-func KillOrphanBackendProcesses(ownPid *int) (int, error) {
+func KillOrphanBackendProcesses(ownPid *int, exePath string) (int, error) {
 	exclude := map[int]bool{}
 	if ownPid != nil {
 		exclude[*ownPid] = true
 	}
-	return killOrphanBackendPids(exclude), nil
+	return killOrphanBackendPids(exclude, exePath), nil
 }

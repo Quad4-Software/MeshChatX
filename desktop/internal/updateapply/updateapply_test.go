@@ -155,3 +155,44 @@ func TestApplyPendingUpdateShaMismatch(t *testing.T) {
 		t.Fatal("target modified on mismatch")
 	}
 }
+
+func TestSameFile(t *testing.T) {
+	dir := t.TempDir()
+	real := filepath.Join(dir, "f.bin")
+	if err := os.WriteFile(real, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(dir, "l.bin")
+	if err := os.Symlink(real, link); err != nil {
+		t.Skipf("symlink: %v", err)
+	}
+	if !sameFile(real, link) {
+		t.Fatal("symlinked path not detected as same file")
+	}
+	if !sameFile(real, filepath.Join(dir, "sub", "..", "f.bin")) {
+		t.Fatal("dotdot path not detected as same file")
+	}
+	if sameFile(real, filepath.Join(dir, "other.bin")) {
+		t.Fatal("distinct files reported same")
+	}
+}
+
+func TestCopyFileSync(t *testing.T) {
+	dir := t.TempDir()
+	src := filepath.Join(dir, "src.bin")
+	dst := filepath.Join(dir, "dst.bin")
+	payload := []byte("payload-bytes")
+	if err := os.WriteFile(src, payload, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := copyFileSync(src, dst); err != nil {
+		t.Fatalf("copyFileSync: %v", err)
+	}
+	got, err := os.ReadFile(dst)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(payload) {
+		t.Fatalf("copied %q", got)
+	}
+}

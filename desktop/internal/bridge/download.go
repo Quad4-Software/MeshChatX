@@ -38,6 +38,7 @@ type DownloadManager struct {
 type downloadState struct {
 	path      string
 	file      *os.File
+	size      int64
 	written   int64
 	lastSeen  time.Time
 	windowID  uint
@@ -165,9 +166,23 @@ func (d *DownloadManager) Begin(name string, size int64, windowID uint) map[stri
 	if dir == "" {
 		return map[string]any{"ok": false, "error": "download dir unavailable"}
 	}
+	if size > maxDownloadBytes {
+		return map[string]any{"ok": false, "error": "download exceeds 4 GiB limit"}
+	}
 	clean := sanitizeName(name)
-	path := d.uniquePath(dir, clean)
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	var f *os.File
+	var path string
+	var err error
+	for attempt := 0; attempt < 4; attempt++ {
+		path = d.uniquePath(dir, clean)
+		f, err = os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+		if err == nil {
+			break
+		}
+		if !os.IsExist(err) {
+			return map[string]any{"ok": false, "error": err.Error()}
+		}
+	}
 	if err != nil {
 		return map[string]any{"ok": false, "error": err.Error()}
 	}
@@ -175,7 +190,7 @@ func (d *DownloadManager) Begin(name string, size int64, windowID uint) map[stri
 	_, _ = rand.Read(idBytes[:])
 	id := fmt.Sprintf("dl-%x", idBytes)
 	d.mu.Lock()
-	d.active[id] = &downloadState{path: path, file: f, lastSeen: d.now(), windowID: windowID}
+	d.active[id] = &downloadState{path: path, file: f, size: size, lastSeen: d.now(), windowID: windowID}
 	if !d.janitorStarted {
 		d.janitorStarted = true
 		go d.janitor()
@@ -194,6 +209,9 @@ func (d *DownloadManager) Chunk(id, dataBase64 string) map[string]any {
 	d.mu.Unlock()
 	if st == nil {
 		return map[string]any{"ok": false, "error": "unknown download"}
+	}
+	if len(dataBase64) > ((maxChunkBytes+2)/3)*4 {
+		return map[string]any{"ok": false, "error": "chunk too large"}
 	}
 	raw, err := base64.StdEncoding.DecodeString(dataBase64)
 	if err != nil {
@@ -241,6 +259,13 @@ func (d *DownloadManager) End(id string) map[string]any {
 		return map[string]any{"ok": false, "error": "unknown download"}
 	}
 	_ = st.file.Close()
+	if st.size > 0 && st.written != st.size {
+		_ = os.Remove(st.path)
+		return map[string]any{
+			"ok":    false,
+			"error": fmt.Sprintf("incomplete download: %d of %d bytes", st.written, st.size),
+		}
+	}
 	if d.onSaved != nil {
 		d.onSaved(st.path)
 	}

@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -104,31 +105,80 @@ func ApplyPendingUpdate(storageDir string) map[string]any {
 	}
 
 	targetPath := filepath.Clean(target)
-	if stagedPath == targetPath {
+	if sameFile(stagedPath, targetPath) {
 		return fail("same_path", nil)
 	}
 
 	backup := targetPath + ".bak"
-	if in, err := os.Open(targetPath); err == nil {
-		if out, err := os.Create(backup); err == nil {
-			buf := make([]byte, 1<<20)
-			for {
-				n, rerr := in.Read(buf)
-				if n > 0 {
-					out.Write(buf[:n])
-				}
-				if rerr != nil {
-					break
-				}
-			}
-			out.Close()
+	if _, err := os.Stat(targetPath); err == nil {
+		if err := copyFileSync(targetPath, backup); err != nil {
+			return fail(fmt.Sprintf("backup_failed: %s", err.Error()), nil)
 		}
-		in.Close()
 	}
 	_ = os.Chmod(stagedPath, 0o755)
 	if err := os.Rename(stagedPath, targetPath); err != nil {
-		return fail(fmt.Sprintf("swap_failed: %s", err.Error()), nil)
+		if cerr := copyFileSync(stagedPath, targetPath); cerr != nil {
+			return fail(fmt.Sprintf("swap_failed: %s", err.Error()), nil)
+		}
+		_ = os.Remove(stagedPath)
 	}
+	fsyncFile(targetPath)
+	fsyncDir(filepath.Dir(targetPath))
 	ClearPending(storageDir)
 	return map[string]any{"applied": true}
+}
+
+func sameFile(a, b string) bool {
+	if filepath.Clean(a) == filepath.Clean(b) {
+		return true
+	}
+	ra, errA := filepath.EvalSymlinks(a)
+	rb, errB := filepath.EvalSymlinks(b)
+	if errA == nil && errB == nil && ra == rb {
+		return true
+	}
+	ai, errA := os.Stat(a)
+	bi, errB := os.Stat(b)
+	return errA == nil && errB == nil && os.SameFile(ai, bi)
+}
+
+func copyFileSync(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	info, err := in.Stat()
+	if err != nil {
+		return err
+	}
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	written, err := io.Copy(out, in)
+	if err == nil && written != info.Size() {
+		err = fmt.Errorf("short copy: %d of %d bytes", written, info.Size())
+	}
+	if err == nil {
+		err = out.Sync()
+	}
+	if cerr := out.Close(); err == nil {
+		err = cerr
+	}
+	return err
+}
+
+func fsyncFile(path string) {
+	if f, err := os.Open(path); err == nil {
+		_ = f.Sync()
+		_ = f.Close()
+	}
+}
+
+func fsyncDir(dir string) {
+	if f, err := os.Open(dir); err == nil {
+		_ = f.Sync()
+		_ = f.Close()
+	}
 }

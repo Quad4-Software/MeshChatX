@@ -358,8 +358,9 @@ func TestKillOrphanBackendProcesses(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("unix-only test")
 	}
+	exe := writeStubBackend(t, t.TempDir(), "ReticulumMeshChatX", "#!/bin/sh\nsleep 60\n")
 	// Spawn a process whose cmdline matches the headless-backend pattern.
-	cmd := exec.Command("bash", "-c", "sleep 60 & wait", "ReticulumMeshChatX", "--headless")
+	cmd := exec.Command(exe, "--headless")
 	if err := cmd.Start(); err != nil {
 		t.Skipf("cannot spawn marker process: %v", err)
 	}
@@ -368,22 +369,35 @@ func TestKillOrphanBackendProcesses(t *testing.T) {
 		_ = cmd.Process.Kill()
 		_ = cmd.Wait()
 	}()
+	otherExe := writeStubBackend(t, t.TempDir(), "ReticulumMeshChatX", "#!/bin/sh\nsleep 60\n")
+	other := exec.Command(otherExe, "--headless")
+	if err := other.Start(); err != nil {
+		t.Skipf("cannot spawn other-install process: %v", err)
+	}
+	otherPid := other.Process.Pid
+	defer func() {
+		_ = other.Process.Kill()
+		_ = other.Wait()
+	}()
 	time.Sleep(100 * time.Millisecond)
 
 	// self pid must be excluded
 	selfPid := os.Getpid()
-	pids := listUnixBackendPids(map[int]bool{selfPid: true})
+	pids := listUnixBackendPids(map[int]bool{selfPid: true}, exe)
 	found := false
 	for _, p := range pids {
 		if p == markerPid {
 			found = true
+		}
+		if p == otherPid {
+			t.Fatalf("other install's pid %d must not be reaped", otherPid)
 		}
 	}
 	if !found {
 		t.Fatalf("marker pid %d not found in %v", markerPid, pids)
 	}
 
-	removed, err := KillOrphanBackendProcesses(nil)
+	removed, err := KillOrphanBackendProcesses(nil, exe)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -400,5 +414,55 @@ func TestKillOrphanBackendProcesses(t *testing.T) {
 	}
 	if cmd.ProcessState == nil || cmd.ProcessState.Success() {
 		t.Fatalf("marker should have been killed: %v", cmd.ProcessState)
+	}
+}
+
+func TestCappedWriterKeepsTail(t *testing.T) {
+	w := &cappedWriter{max: 8}
+	if _, err := w.Write([]byte("12345678")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Write([]byte("ab")); err != nil {
+		t.Fatal(err)
+	}
+	if got := w.String(); got != "345678ab" {
+		t.Fatalf("tail: %q", got)
+	}
+}
+
+func TestNotifyStartupFailureUsesInt64CrashAt(t *testing.T) {
+	m, d := newTestManager(t)
+	m.mu.Lock()
+	m.lastCrash = map[string]any{
+		"code": nil, "signal": "", "stdout": "o", "stderr": "e",
+		"at": int64(1234), "platform": "linux", "pid": nil,
+	}
+	m.mu.Unlock()
+	m.notifyStartupFailure(nil, "")
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	for _, e := range d.events {
+		if e.channel == "backend-startup-failed" {
+			payload, _ := e.payload.(map[string]any)
+			if payload["at"] != int64(1234) {
+				t.Fatalf("crash at: %v (%T)", payload["at"], payload["at"])
+			}
+			return
+		}
+	}
+	t.Fatal("backend-startup-failed event not emitted")
+}
+
+func TestMaintenanceTaskOutputCapped(t *testing.T) {
+	m, _ := newTestManager(t)
+	exe := writeStubBackend(t, t.TempDir(), "ReticulumMeshChatX",
+		"#!/bin/sh\nyes | head -c 700000\nexit 0\n")
+	m.ResolveExecutablePath(func() string { return exe })
+	res := m.RunMaintenanceTask(nil)
+	if res["ok"] != true {
+		t.Fatalf("maintenance: %v", res)
+	}
+	if len(res["stdout"].(string)) > maintenanceOutputCap {
+		t.Fatalf("stdout not capped: %d", len(res["stdout"].(string)))
 	}
 }
