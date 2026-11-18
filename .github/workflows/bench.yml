@@ -86,7 +86,7 @@ env:
 
 jobs:
     bench:
-        runs-on: self-hosted
+        runs-on: ubuntu-24.04
         timeout-minutes: 60
         permissions:
             contents: read

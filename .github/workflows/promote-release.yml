@@ -99,7 +99,7 @@ env:
 jobs:
     promote:
         name: Tag and dispatch build-release
-        runs-on: self-hosted
+        runs-on: ubuntu-24.04
         timeout-minutes: 15
         permissions:
             contents: write

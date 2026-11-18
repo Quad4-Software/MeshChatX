@@ -95,7 +95,7 @@ env:
 jobs:
     dependency-audit:
         name: Dependency and config scan
-        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
+        runs-on: ubuntu-24.04
         timeout-minutes: 45
         permissions:
             contents: read
@@ -176,7 +176,7 @@ jobs:
 
     secret-scan:
         name: Secret scan (gitleaks)
-        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
+        runs-on: ubuntu-24.04
         timeout-minutes: 20
         permissions:
             contents: read
@@ -224,7 +224,7 @@ jobs:
     codeql:
         name: CodeQL (${{ matrix.language }})
         if: github.event_name != 'pull_request'
-        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
+        runs-on: ubuntu-24.04
         timeout-minutes: 60
         permissions:
             security-events: write
@@ -255,10 +255,10 @@ jobs:
                   persist-credentials: false
 
             - name: Prepare runner temp
-              # The self-hosted runner has no usable /tmp. CodeQL's CLI and
-              # extractors create temp dirs through the JVM, whose
-              # java.io.tmpdir defaults to /tmp and ignores TMPDIR, so point
-              # it at runner temp via JAVA_TOOL_OPTIONS as well.
+              # Keep temp dirs under runner temp. CodeQL's CLI and extractors
+              # create temp dirs through the JVM, whose java.io.tmpdir defaults
+              # to /tmp and ignores TMPDIR, so point it at runner temp via
+              # JAVA_TOOL_OPTIONS as well.
               run: |
                   mkdir -p "${RUNNER_TEMP}/.meshchatx-ci-tmp"
                   echo "TMPDIR=${RUNNER_TEMP}/.meshchatx-ci-tmp" >> "${GITHUB_ENV}"
@@ -266,7 +266,7 @@ jobs:
 
             - name: Ensure basic CLI tools
               # CodeQL autobuild helpers shell out to `which`; minimal
-              # self-hosted images may not ship it.
+              # runner images may not ship it.
               run: bash scripts/ci/ensure-user-tools.sh which
 
             - name: Set up Go
@@ -298,7 +298,7 @@ jobs:
     codeql-javascript:
         name: CodeQL (javascript-typescript)
         if: github.event_name != 'pull_request'
-        runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
+        runs-on: ubuntu-24.04
         needs: [frontend]
         timeout-minutes: 60
         permissions:

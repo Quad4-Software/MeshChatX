@@ -13,6 +13,14 @@ cd "$ROOT"
 # shellcheck source=scripts/ci/user-space-pkgs.sh
 . "$(dirname "$0")/user-space-pkgs.sh"
 
+# Debian-family runners get browser libs from `playwright install
+# --with-deps`; injecting Arch packages via LD_LIBRARY_PATH could
+# shadow system libraries with mismatched builds.
+if command -v apt-get >/dev/null 2>&1; then
+    echo "ensure-playwright-deps: apt-based runner, playwright --with-deps covers libs"
+    exit 0
+fi
+
 # Skip when the host already ships a working set (e.g. a desktop Arch
 # install). libnspr4 + libnss3 + libgbm are representative canaries.
 if ldconfig -p 2>/dev/null | grep -q 'libnspr4\.so' \

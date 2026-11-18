@@ -42,7 +42,7 @@ env:
 jobs:
     flatpak-pages:
         name: Flatpak OSTree (GitHub Pages)
-        runs-on: self-hosted
+        runs-on: ubuntu-24.04
         environment: release
         timeout-minutes: 90
         permissions:

@@ -97,7 +97,7 @@ env:
 
 jobs:
     mutation:
-        runs-on: self-hosted
+        runs-on: ubuntu-24.04
         # Stats collection runs the whole backend suite serially under a
         # coverage-tracking plugin, which takes well over an hour on its own.
         timeout-minutes: 120
