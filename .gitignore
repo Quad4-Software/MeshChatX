@@ -211,3 +211,7 @@ desktop/bin/
 desktop/build/bin/
 desktop/build/**/*.syso
 desktop/dist/
+
+# Local desktop dev binary and crawler scratch output
+desktop/desktop
+mobile-crawl-out/
