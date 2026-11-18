@@ -5,6 +5,8 @@
 Everything must stay opt-in: defaults perform no network work.
 """
 
+import os
+import sys
 import time
 
 import pytest
@@ -16,6 +18,7 @@ from meshchatx.src.backend.update_types import (
     UpdateUnavailable,
     UpdateVerifyError,
     auto_download_allowed,
+    install_kind,
     jittered_interval_hours,
     online_interface_bitrates,
     pinned_signer_hashes,
@@ -120,6 +123,14 @@ def test_updates_disabled_env(monkeypatch):
     assert updates_disabled() is False
     monkeypatch.setenv("MESHCHATX_UPDATE_DISABLED", "1")
     assert updates_disabled() is True
+
+
+def test_updates_disabled_rollout_gate(monkeypatch):
+    monkeypatch.delenv("MESHCHATX_UPDATE_DISABLED", raising=False)
+    monkeypatch.delenv("MESHCHATX_UPDATE_ROLLOUT", raising=False)
+    assert updates_disabled() is True
+    monkeypatch.setenv("MESHCHATX_UPDATE_ROLLOUT", "1")
+    assert updates_disabled() is False
 
 
 # ---------------------------------------------------------------------------
@@ -514,3 +525,73 @@ def test_disclosure_lists_mirrors_and_signers():
     d2 = T.disclosure_for(s2, "beta")
     assert len(d2["mirrors"]) == 3
     assert d2["channel"] == "beta"
+
+
+# ---------------------------------------------------------------------------
+# install kind detection
+# ---------------------------------------------------------------------------
+
+
+def _bare_install_env(monkeypatch):
+    for var in ("APPIMAGE", "FLATPAK_ID", "container"):
+        monkeypatch.delenv(var, raising=False)
+    real_exists = os.path.exists
+    monkeypatch.setattr(
+        os.path,
+        "exists",
+        lambda p: (
+            False if p in ("/.dockerenv", "/run/.containerenv") else real_exists(p)
+        ),
+    )
+
+
+def test_install_kind_python_default(monkeypatch):
+    _bare_install_env(monkeypatch)
+    assert install_kind() == "python"
+
+
+def test_install_kind_appimage(monkeypatch, tmp_path):
+    _bare_install_env(monkeypatch)
+    f = tmp_path / "MeshChatX.AppImage"
+    f.write_bytes(b"x")
+    monkeypatch.setenv("APPIMAGE", str(f))
+    assert install_kind() == "appimage"
+    f.unlink()
+    assert install_kind() == "python"
+
+
+def test_install_kind_flatpak(monkeypatch):
+    _bare_install_env(monkeypatch)
+    monkeypatch.setenv("FLATPAK_ID", "io.quad4.meshchatx")
+    assert install_kind() == "flatpak"
+    monkeypatch.setenv("container", "flatpak")
+    assert install_kind() == "flatpak"
+
+
+def test_install_kind_container(monkeypatch):
+    _bare_install_env(monkeypatch)
+    monkeypatch.setenv("container", "docker")
+    assert install_kind() == "oci"
+    monkeypatch.delenv("container", raising=False)
+    real_exists = os.path.exists
+    monkeypatch.setattr(
+        os.path, "exists", lambda p: p == "/.dockerenv" or real_exists(p)
+    )
+    assert install_kind() == "oci"
+    monkeypatch.setattr(
+        os.path,
+        "exists",
+        lambda p: p == "/run/.containerenv" or real_exists(p),
+    )
+    assert install_kind() == "oci"
+
+
+def test_install_kind_frozen_packaged(monkeypatch):
+    _bare_install_env(monkeypatch)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "platform", "win32")
+    assert install_kind() == "exe"
+    monkeypatch.setattr(sys, "platform", "darwin")
+    assert install_kind() == "dmg"
+    monkeypatch.setattr(sys, "platform", "linux")
+    assert install_kind() == "python"

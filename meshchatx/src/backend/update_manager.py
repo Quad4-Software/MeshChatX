@@ -52,6 +52,7 @@ from meshchatx.src.backend.update_types import (
     disclosure_for,
     ensure_private_dir,
     host_platform,
+    install_kind,
     jittered_interval_hours,
     normalize_arch,
     now_iso,
@@ -70,6 +71,10 @@ from meshchatx.src.backend.update_types import (
 
 CHECK_BACKOFF_MAX_S = 3600.0
 MAX_MISSING_RANGES = 512
+_EXTERNAL_KINDS = {
+    "oci": "pull the new image with your container runtime",
+    "flatpak": "run flatpak update",
+}
 
 
 class UpdateManager:
@@ -312,6 +317,7 @@ class UpdateManager:
                 link_manager=self._link_manager,
                 rns_session=self._rns_session,
                 storage_dir=self.storage_dir,
+                config=self._config(),
             )
         return self._transports
 
@@ -488,8 +494,15 @@ class UpdateManager:
 
         appimage on linux, wheel/pyz for python installs.
         """
+        kind = install_kind()
+        if kind == "python":
+            install_pref = ("pyz", "wheel", "tarball")
+        elif kind == "portable":
+            install_pref = ("zip", "tarball", "other")
+        else:
+            install_pref = (kind,)
         plat = host_platform()
-        kind_pref = {
+        kind_pref = install_pref + {
             "linux": ("appimage", "deb", "rpm", "flatpak", "tarball"),
             "windows": ("exe", "msi"),
             "macos": ("dmg", "tarball"),
@@ -556,6 +569,14 @@ class UpdateManager:
         settings = self.settings()
         if not settings.enabled:
             raise UpdateUnavailable("updates are not enabled")
+        kind = artifact.get("kind") or "other"
+        if kind in _EXTERNAL_KINDS:
+            return {
+                "status": "external",
+                "artifact": artifact.get("name"),
+                "kind": kind,
+                "detail": f"update externally: {_EXTERNAL_KINDS[kind]}",
+            }
         if not self._download_lock.acquire(blocking=False):
             raise UpdateError("a download is already in progress")
         try:

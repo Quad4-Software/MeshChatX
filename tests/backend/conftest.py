@@ -6,7 +6,9 @@ import os
 # Disable Landlock sandbox globally during backend testing to prevent process lockdown and PermissionError crashes.
 os.environ["MESHCHAT_LANDLOCK"] = "0"
 # Disable Windows AppContainer launcher path in tests (no-op on Linux, safe on Windows CI).
-os.environ["MESHCHAT_APPCONTAINER"] = "0"
+os.environ["MESHCHATX_APPCONTAINER"] = "0"
+# The staged updater is gated off by default until rollout; tests opt in.
+os.environ.setdefault("MESHCHATX_UPDATE_ROLLOUT", "1")
 
 import socket
 from contextlib import ExitStack

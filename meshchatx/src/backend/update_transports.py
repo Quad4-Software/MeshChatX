@@ -18,7 +18,12 @@ import urllib.error
 import urllib.request
 
 from meshchatx.src.backend import update_types as T
+from meshchatx.src.backend.privacy_mode import (
+    OutboundHttpBlockedError,
+    ensure_outbound_http_allowed,
+)
 from meshchatx.src.backend.update_types import (
+    ARTIFACT_MAX_BYTES,
     HTTP_MAX_REDIRECTS,
     MANIFEST_MAX_BYTES,
     RNS_RANGE_MAX_BYTES,
@@ -49,16 +54,18 @@ class _RedirectAllowlist(urllib.request.HTTPRedirectHandler):
 
     def __init__(self, allowed_hosts):
         self.allowed_hosts = set(allowed_hosts)
-        self.hops = 0
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        self.hops += 1
-        if self.hops > HTTP_MAX_REDIRECTS:
+        hops = getattr(req, "_redirect_allowlist_hops", 0) + 1
+        if hops > HTTP_MAX_REDIRECTS:
             raise FetchFailed("too many redirects")
         host = urllib.request.urlparse(newurl).hostname or ""
         if host not in self.allowed_hosts:
             raise FetchFailed(f"redirect to disallowed host {host}")
-        return super().redirect_request(req, fp, code, msg, headers, newurl)
+        new_req = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new_req is not None:
+            new_req._redirect_allowlist_hops = hops
+        return new_req
 
 
 def _mirror_hosts(mirrors) -> set:
@@ -95,7 +102,8 @@ class HttpTransport:
     untrusted; callers verify everything they receive.
     """
 
-    def __init__(self, mirrors=None, timeout: float = 30.0):
+    def __init__(self, mirrors=None, timeout: float = 30.0, config=None):
+        self._config = config
         self.mirrors = list(mirrors) if mirrors else T.default_mirrors()
         env = env_mirrors_override()
         if env:
@@ -127,6 +135,7 @@ class HttpTransport:
     # -- low level ---------------------------------------------------------
 
     def _request(self, url, headers=None, method="GET", data=None):
+        ensure_outbound_http_allowed(self._config, feature="update transport")
         req = urllib.request.Request(url, data=data, method=method)  # noqa: S310 - mirror URLs validated to https or loopback
         req.add_header("User-Agent", USER_AGENT)
         req.add_header("Accept", "*/*")
@@ -271,6 +280,8 @@ class HttpTransport:
                 continue
             except UpdateVerifyError:
                 raise
+            except OutboundHttpBlockedError:
+                raise
             except Exception:
                 continue
         return {"status": "none", "data": None, "etag": None, "source": None}
@@ -323,6 +334,8 @@ class HttpTransport:
                 return self._get_range(url, start, end)
             except FetchNotFound:
                 continue
+            except OutboundHttpBlockedError:
+                raise
             except Exception as e:
                 last_err = e
                 continue
@@ -565,7 +578,7 @@ class RnsTransport:
             if dh in self._seen:
                 return
             if len(self._destinations) >= 32:
-                self._destinations.pop(0)
+                self._seen.discard(self._destinations.pop(0))
             self._seen.add(dh)
             self._destinations.append(dh)
 
@@ -663,21 +676,36 @@ class RnsTransport:
             size = int(resp.get("size") or 0)
             if size <= 0:
                 raise FetchFailed("bad size from rns peer")
+            if size > ARTIFACT_MAX_BYTES:
+                raise UpdateVerifyError("artifact exceeds size cap")
             out = bytearray()
             off = 0
             while off < size:
                 length = min(RNS_RANGE_MAX_BYTES, size - off)
                 chunk = self._range(name, off, off + length - 1)
+                if not chunk:
+                    raise FetchFailed("rns peer returned empty range")
                 self._throttle(len(chunk))
                 out += chunk
-                off += length
+                off += len(chunk)
+                if len(out) > ARTIFACT_MAX_BYTES:
+                    raise UpdateVerifyError("artifact exceeds size cap")
             return bytes(out)
-        length = (end - start + 1) if end is not None else RNS_RANGE_MAX_BYTES
+        start = int(start) if start is not None else 0
+        if start < 0 or (end is not None and int(end) < start):
+            raise UpdateError("bad range")
+        length = (
+            min(int(end) - start + 1, RNS_RANGE_MAX_BYTES)
+            if end is not None
+            else RNS_RANGE_MAX_BYTES
+        )
         return self._range(name, start, end, length=length)
 
     def _range(self, name, start, end, length=None):
         length = length or (
-            (end - start + 1) if end is not None else RNS_RANGE_MAX_BYTES
+            min(end - start + 1, RNS_RANGE_MAX_BYTES)
+            if end is not None
+            else RNS_RANGE_MAX_BYTES
         )
         req = {"op": "range", "name": name, "o": int(start), "l": int(length)}
         last_err = None
@@ -687,7 +715,10 @@ class RnsTransport:
                 if resp.get("s") == "ok" and isinstance(
                     resp.get("d"), (bytes, bytearray)
                 ):
-                    return bytes(resp["d"])
+                    data = bytes(resp["d"])
+                    if len(data) > length:
+                        raise UpdateError("rns peer sent oversized range")
+                    return data
                 if resp.get("s") == "none":
                     raise FetchNotFound(name)
                 raise UpdateError(f"bad rns range response: {resp.get('s')}")
@@ -708,13 +739,13 @@ class RnsTransport:
 
 
 def build_transports(
-    settings, *, link_manager=None, rns_session=None, storage_dir=None
+    settings, *, link_manager=None, rns_session=None, storage_dir=None, config=None
 ):
     """Return ordered list of transports per settings.transport.
 
     auto -> [clearnet, rns]; clearnet -> [clearnet]; rns -> [rns].
     """
-    http = HttpTransport(mirrors=_mirrors_for(settings))
+    http = HttpTransport(mirrors=_mirrors_for(settings), config=config)
     rns = RnsTransport(
         session=rns_session,
         link_manager=link_manager,

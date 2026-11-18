@@ -77,6 +77,8 @@ _KNOWN_KINDS = (
     "wheel",
     "pyz",
     "tarball",
+    "zip",
+    "oci",
     "other",
 )
 _HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
@@ -97,7 +99,15 @@ class UpdateVerifyError(UpdateError):
     """Signature, signer, checksum or manifest validation failure."""
 
 
+# Rollout gate: the updater ships inert until the staged rollout is
+# finalized. MESHCHATX_UPDATE_ROLLOUT=1 re-enables it for development
+# and testing.
+UPDATE_ROLLOUT_ENABLED = False
+
+
 def updates_disabled() -> bool:
+    if not UPDATE_ROLLOUT_ENABLED and not env_bool("MESHCHATX_UPDATE_ROLLOUT"):
+        return True
     return env_bool("MESHCHATX_UPDATE_DISABLED")
 
 
@@ -756,6 +766,55 @@ def current_artifact_path() -> str | None:
     if appimage and os.path.isfile(appimage):
         return appimage
     return None
+
+
+def _portable_install_dir() -> Path | None:
+    """Install dir when this is a self-updatable portable install.
+
+    The desktop shell treats a directory as self-updatable when packaging
+    wrote updatable.txt into it (PORTABLE_EXECUTABLE_DIR wins, then the
+    executable's own dir).
+    """
+    d = env_str("PORTABLE_EXECUTABLE_DIR")
+    candidates = []
+    if d:
+        candidates.append(Path(d))
+    try:
+        exe_dir = Path(sys.executable).resolve().parent
+    except Exception:
+        exe_dir = None
+    if exe_dir is not None:
+        candidates += [exe_dir, exe_dir.parent]
+    for c in candidates:
+        try:
+            if (c / "updatable.txt").is_file():
+                return c
+        except OSError:
+            continue
+    return None
+
+
+def install_kind() -> str:
+    """Deploy kind of this install: which artifact kind applies to it."""
+    if current_artifact_path():
+        return "appimage"
+    if env_str("FLATPAK_ID"):
+        return "flatpak"
+    if (
+        os.path.exists("/.dockerenv")
+        or os.path.exists("/run/.containerenv")
+        or env_str("container")
+    ):
+        return "oci"
+    if _portable_install_dir() is not None:
+        return "portable"
+    if getattr(sys, "frozen", False):
+        plat = host_platform()
+        if plat == "windows":
+            return "exe"
+        if plat == "macos":
+            return "dmg"
+    return "python"
 
 
 def disclosure_for(settings: UpdateSettings, channel: str) -> dict:

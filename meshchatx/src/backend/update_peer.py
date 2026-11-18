@@ -188,10 +188,14 @@ class PeerUpdateServer:
         """Create and announce the destination, register the handler."""
         import RNS
 
-        self._ensure_identity(identity)
+        identity = self._ensure_identity(identity)
         if self._destination is None:
             self._destination = RNS.Destination(
-                RNS_UPDATE_APP, RNS_UPDATE_SUBASPECT, RNS_UPDATE_ASPECT
+                identity,
+                RNS.Destination.IN,
+                RNS.Destination.SINGLE,
+                RNS_UPDATE_APP,
+                RNS_UPDATE_SUBASPECT,
             )
             self._destination.set_link_established_callback(lambda _l: None)
         self._destination.register_request_handler(
@@ -201,7 +205,7 @@ class PeerUpdateServer:
         )
         self.enabled = True
         try:
-            self._destination.announce(self.announce_app_data())
+            self._destination.announce(_mp_pack(self.announce_app_data()))
         except Exception:
             pass
 

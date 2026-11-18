@@ -18,6 +18,7 @@ import RNS
 _REAL_IDENTITY = RNS.Identity
 
 from meshchatx.src.backend import update_peer as up
+from meshchatx.src.backend.privacy_mode import OutboundHttpBlockedError
 from meshchatx.src.backend.update_transports import (
     HttpTransport,
     RnsTransport,
@@ -25,6 +26,7 @@ from meshchatx.src.backend.update_transports import (
     transport_kind,
 )
 from meshchatx.src.backend.update_types import (
+    ARTIFACT_MAX_BYTES,
     HTTP_MAX_REDIRECTS,
     UpdateSettings,
     UpdateVerifyError,
@@ -245,6 +247,32 @@ def test_http_oversize_manifest_rejected(http_server):
         t.fetch_manifest("stable")
 
 
+class _PrivacyConfig:
+    def __init__(self, enabled):
+        self.privacy_mode_enabled = self._Flag(enabled)
+
+    class _Flag:
+        def __init__(self, value):
+            self._value = value
+
+        def get(self):
+            return self._value
+
+
+def test_http_transport_blocked_by_privacy_mode(http_server):
+    signer = _REAL_IDENTITY()
+    rsm = sign_manifest(_manifest(), signer)
+    _RangeHandler.files["/updates/stable/manifest.rsm"] = rsm
+    t = HttpTransport(
+        mirrors=[_static_mirror(http_server)],
+        config=_PrivacyConfig(True),
+    )
+    with pytest.raises(OutboundHttpBlockedError):
+        t.fetch_manifest("stable")
+    with pytest.raises(OutboundHttpBlockedError):
+        t.fetch_file("stable", "pkg-9.9.9.whl", version="1.0.0")
+
+
 def test_build_transports_ordering():
     s = UpdateSettings(transport="auto")
     transports, rns = build_transports(s)
@@ -306,9 +334,16 @@ def test_redirect_allowlist_rules():
         h.redirect_request(req, None, 302, "Found", hdrs, "http://evil.example.com/b")
     hh = _RedirectAllowlist({"127.0.0.1"})
     for _ in range(HTTP_MAX_REDIRECTS):
-        hh.redirect_request(req, None, 302, "Found", hdrs, "http://127.0.0.1/x")
+        req = hh.redirect_request(
+            req, None, 302, "Found", hdrs, "http://127.0.0.1/x"
+        )
     with pytest.raises(FetchFailed):
         hh.redirect_request(req, None, 302, "Found", hdrs, "http://127.0.0.1/y")
+    fresh = urllib.request.Request("http://127.0.0.1/a")
+    assert (
+        hh.redirect_request(fresh, None, 302, "Found", hdrs, "http://127.0.0.1/x")
+        is not None
+    )
 
 
 def test_http_redirect_foreign_host_rejected(redirect_server):
@@ -403,3 +438,73 @@ def test_rns_identity_is_ephemeral():
     assert ident is not None
     assert ident is session.identity
     assert ident.get_public_key() is not None
+
+
+class _ScriptedRnsSession:
+    """Fake session returning canned responses per request op."""
+
+    def __init__(self, handler):
+        self._handler = handler
+        self.identity = _REAL_IDENTITY()
+
+    def open_link(self, dh, timeout=60.0):
+        return True
+
+    def request(self, dh, path, data, timeout=60.0):
+        import meshchatx.src.backend.update_transports as ut
+
+        return ut._mp_pack(self._handler(ut._mp_unpack(data)))
+
+
+def test_rns_seen_evicted_destination_can_relearn():
+    session = _FakeRnsSession(None)
+    t = RnsTransport(session=session, seeds=[])
+    first = hashlib.sha256(b"first").digest()[:16]
+    t.learn_destination(first)
+    for i in range(32):
+        t.learn_destination(hashlib.sha256(str(i).encode()).digest()[:16])
+    assert first not in t.destinations()
+    t.learn_destination(first)
+    assert t.destinations()[-1] == first
+
+
+def test_rns_fetch_file_advances_by_actual_chunk_length():
+    def handler(req):
+        if req["op"] == "head":
+            return {"s": "ok", "size": 10}
+        if req["op"] == "range":
+            return {"s": "ok", "d": b"xy"}
+        raise AssertionError(req)
+
+    t = RnsTransport(
+        session=_ScriptedRnsSession(handler), seeds=["ab" * 16], rate_kbps=0
+    )
+    assert t.fetch_file("stable", "pkg-9.9.9.whl") == b"xy" * 5
+
+
+def test_rns_fetch_file_rejects_oversized_chunk():
+    def handler(req):
+        if req["op"] == "head":
+            return {"s": "ok", "size": 10}
+        if req["op"] == "range":
+            return {"s": "ok", "d": b"x" * (req["l"] + 1)}
+        raise AssertionError(req)
+
+    t = RnsTransport(
+        session=_ScriptedRnsSession(handler), seeds=["ab" * 16], rate_kbps=0
+    )
+    with pytest.raises(Exception, match="rns range failed"):
+        t.fetch_file("stable", "pkg-9.9.9.whl")
+
+
+def test_rns_fetch_file_rejects_oversized_declared_size():
+    def handler(req):
+        if req["op"] == "head":
+            return {"s": "ok", "size": ARTIFACT_MAX_BYTES + 1}
+        raise AssertionError(req)
+
+    t = RnsTransport(
+        session=_ScriptedRnsSession(handler), seeds=["ab" * 16], rate_kbps=0
+    )
+    with pytest.raises(UpdateVerifyError):
+        t.fetch_file("stable", "pkg-9.9.9.whl")

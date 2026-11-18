@@ -34,9 +34,23 @@ from meshchatx.src.backend.update_manager import (
     UpdateVerifyError,
 )
 from meshchatx.src.backend.update_types import ARTIFACT_MAX_BYTES
+from meshchatx.src.backend.update_types import install_kind
 
 
 def _apply_mode(kind: str, platform: str) -> dict:
+    if kind == "oci":
+        return {
+            "mode": "external",
+            "instructions": (
+                "Pull the new image with your container runtime, "
+                "e.g. docker pull <image>."
+            ),
+        }
+    if kind == "flatpak":
+        return {
+            "mode": "external",
+            "instructions": "Update the app with flatpak update.",
+        }
     if kind == "appimage" and platform == "linux":
         return {"mode": "relaunch"}
     if kind == "apk" and platform == "android":
@@ -47,6 +61,8 @@ def _apply_mode(kind: str, platform: str) -> dict:
                 "Android verifies the package signature."
             ),
         }
+    if kind in ("zip", "tarball") and install_kind() == "portable":
+        return {"mode": "relaunch"}
     if kind in ("wheel", "pyz"):
         return {
             "mode": "manual",
@@ -222,7 +238,7 @@ def register_update_routes(routes, app):
         pending = await asyncio.to_thread(mgr.get_pending)
         return web.json_response(
             {
-                "status": "staged",
+                "status": result.get("status") or "staged",
                 "download": result,
                 "pending": _pending_payload(mgr, pending.get("pending"))["pending"],
             }

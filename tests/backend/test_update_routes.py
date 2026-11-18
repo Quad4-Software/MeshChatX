@@ -256,6 +256,42 @@ async def test_discard_route(routes):
 
 
 @pytest.mark.asyncio
+async def test_pending_apply_modes_for_external_kinds(routes):
+    table, mgr = routes
+    mgr.pending_payload = {
+        "pending": {
+            "artifacts": [
+                {"file": "img-ref", "kind": "oci", "platform": "linux"},
+                {"file": "pkg.flatpak", "kind": "flatpak", "platform": "linux"},
+            ]
+        }
+    }
+    status, body = await _call(table, "GET", "/api/v1/update/pending")
+    assert status == 200
+    modes = {a["kind"]: a["apply"] for a in body["pending"]["artifacts"]}
+    assert modes["oci"]["mode"] == "external"
+    assert "docker pull" in modes["oci"]["instructions"]
+    assert modes["flatpak"]["mode"] == "external"
+    assert "flatpak update" in modes["flatpak"]["instructions"]
+
+
+@pytest.mark.asyncio
+async def test_download_route_external_status(routes):
+    table, mgr = routes
+    mgr.download = lambda artifact, **kw: {
+        "status": "external",
+        "artifact": "img-ref",
+        "kind": "oci",
+        "detail": "update externally: pull the new image",
+    }
+    req = json_request({"artifact": {"name": "img-ref", "kind": "oci"}})
+    status, body = await _call(table, "POST", "/api/v1/update/download", req)
+    assert status == 200
+    assert body["status"] == "external"
+    assert body["download"]["kind"] == "oci"
+
+
+@pytest.mark.asyncio
 async def test_disabled_manager_fallback():
     """With no update_manager on the app, routes return disabled shapes."""
     app = SimpleNamespace()  # no update_manager attribute

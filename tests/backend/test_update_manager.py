@@ -757,3 +757,56 @@ def test_missing_blockmap_uses_full_download(tmp_path, http_server, signer):
     pending = mgr.get_pending()["pending"]
     assert pending["artifacts"][0]["bytes_fetched"] == len(payload)
     assert pending["artifacts"][0]["bytes_reused"] == 0
+
+
+# ---------------------------------------------------------------------------
+# install kind / artifact pick
+# ---------------------------------------------------------------------------
+
+
+def test_pick_artifact_prefers_install_kind(tmp_path, signer, monkeypatch):
+    import meshchatx.src.backend.update_manager as umod
+
+    mgr, _cfg = _make_manager(tmp_path, {}, signer)
+    arts = [
+        {"name": "a.AppImage", "kind": "appimage"},
+        {"name": "a.whl", "kind": "wheel"},
+        {"name": "image-ref", "kind": "oci"},
+        {"name": "a.flatpak", "kind": "flatpak"},
+    ]
+    monkeypatch.setattr(umod, "install_kind", lambda: "oci")
+    assert mgr._pick_artifact(arts)["kind"] == "oci"
+    monkeypatch.setattr(umod, "install_kind", lambda: "flatpak")
+    assert mgr._pick_artifact(arts)["kind"] == "flatpak"
+    monkeypatch.setattr(umod, "install_kind", lambda: "appimage")
+    assert mgr._pick_artifact(arts)["kind"] == "appimage"
+    # a plain python install takes the wheel, not the appimage
+    monkeypatch.setattr(umod, "install_kind", lambda: "python")
+    monkeypatch.setattr(umod, "host_platform", lambda: "linux")
+    assert mgr._pick_artifact(arts)["kind"] == "wheel"
+
+
+def test_pick_artifact_falls_back_to_platform_pref(tmp_path, signer, monkeypatch):
+    import meshchatx.src.backend.update_manager as umod
+
+    mgr, _cfg = _make_manager(tmp_path, {}, signer)
+    monkeypatch.setattr(umod, "install_kind", lambda: "oci")
+    monkeypatch.setattr(umod, "host_platform", lambda: "linux")
+    arts = [
+        {"name": "a.AppImage", "kind": "appimage"},
+        {"name": "a.whl", "kind": "wheel"},
+    ]
+    assert mgr._pick_artifact(arts)["kind"] == "appimage"
+
+
+def test_download_refuses_non_file_kinds(tmp_path, signer):
+    mgr, _cfg = _make_manager(tmp_path, {"updates_enabled": "true"}, signer)
+    res = mgr.download({"kind": "oci", "name": "meshchatx:99.0.0"})
+    assert res["status"] == "external"
+    assert "container runtime" in res["detail"]
+    res = mgr.download({"kind": "flatpak", "name": "pkg.flatpak"})
+    assert res["status"] == "external"
+    assert "flatpak update" in res["detail"]
+    # nothing fetched or staged, transports never built
+    assert mgr._transports is None
+    assert mgr.get_pending()["pending"] is None
