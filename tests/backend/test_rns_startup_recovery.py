@@ -554,3 +554,109 @@ def test_install_shared_instance_rpc_deadline_wraps_client(monkeypatch):
         recovery._RPC_PATCHED = False
         real_client.close()
         server.close()
+
+
+def test_deadlined_get_rpc_client_retries_transient_reset(monkeypatch):
+    import RNS
+
+    recovery._RPC_PATCHED = False
+    attempts = {"n": 0}
+
+    def flaky(self):
+        attempts["n"] += 1
+        if attempts["n"] < 3:
+            raise ConnectionResetError(54, "Connection reset by peer")
+        return "conn-ok"
+
+    original = RNS.Reticulum.get_rpc_client
+    try:
+        monkeypatch.setattr(RNS.Reticulum, "get_rpc_client", flaky, raising=False)
+        monkeypatch.setattr(recovery, "_RPC_CONNECT_RETRY_DELAY_S", 0)
+        assert recovery.install_shared_instance_rpc_deadline(timeout_s=5.0) is True
+        conn = RNS.Reticulum.get_rpc_client(object())
+        assert isinstance(conn, recovery._DeadlinedRpcConnection)
+        assert attempts["n"] == 3
+    finally:
+        RNS.Reticulum.get_rpc_client = original
+        recovery._RPC_PATCHED = False
+
+
+def test_deadlined_get_rpc_client_gives_up_after_attempts(monkeypatch):
+    import RNS
+
+    recovery._RPC_PATCHED = False
+    attempts = {"n": 0}
+
+    def dead(self):
+        attempts["n"] += 1
+        raise ConnectionRefusedError(111, "Connection refused")
+
+    original = RNS.Reticulum.get_rpc_client
+    try:
+        monkeypatch.setattr(RNS.Reticulum, "get_rpc_client", dead, raising=False)
+        monkeypatch.setattr(recovery, "_RPC_CONNECT_RETRY_DELAY_S", 0)
+        assert recovery.install_shared_instance_rpc_deadline(timeout_s=5.0) is True
+        with pytest.raises(ConnectionRefusedError):
+            RNS.Reticulum.get_rpc_client(object())
+        assert attempts["n"] == recovery._RPC_CONNECT_ATTEMPTS
+    finally:
+        RNS.Reticulum.get_rpc_client = original
+        recovery._RPC_PATCHED = False
+
+
+def test_deadlined_get_rpc_client_no_retry_on_nonconn_error(monkeypatch):
+    import RNS
+
+    recovery._RPC_PATCHED = False
+    attempts = {"n": 0}
+
+    def bad(self):
+        attempts["n"] += 1
+        raise ValueError("not a transient socket error")
+
+    original = RNS.Reticulum.get_rpc_client
+    try:
+        monkeypatch.setattr(RNS.Reticulum, "get_rpc_client", bad, raising=False)
+        assert recovery.install_shared_instance_rpc_deadline(timeout_s=5.0) is True
+        with pytest.raises(ValueError):
+            RNS.Reticulum.get_rpc_client(object())
+        assert attempts["n"] == 1
+    finally:
+        RNS.Reticulum.get_rpc_client = original
+        recovery._RPC_PATCHED = False
+
+
+def test_install_shared_instance_rpc_backlog_applies_during_init(monkeypatch):
+    import multiprocessing.connection as mp_conn
+
+    import RNS
+
+    recovery._LISTENER_PATCHED = False
+    seen = []
+
+    class RecListener:
+        def __init__(self, *args, **kwargs):
+            seen.append(kwargs)
+
+        def close(self):
+            pass
+
+    real_listener = mp_conn.Listener
+    real_init = RNS.Reticulum.__init__
+    try:
+        monkeypatch.setattr(mp_conn, "Listener", RecListener)
+
+        def fake_init(self, *args, **kwargs):
+            # Mirrors the shape of RNS's own rpc_listener construction.
+            mp_conn.Listener(("127.0.0.1", 0), family="AF_INET", authkey=b"k")
+
+        monkeypatch.setattr(RNS.Reticulum, "__init__", fake_init)
+        assert recovery.install_shared_instance_rpc_backlog() is True
+        RNS.Reticulum.__init__(object())
+        assert seen and seen[0].get("backlog") == recovery._RPC_LISTENER_BACKLOG
+        # Outside __init__ the module attribute is restored.
+        assert mp_conn.Listener is RecListener
+    finally:
+        RNS.Reticulum.__init__ = real_init
+        mp_conn.Listener = real_listener
+        recovery._LISTENER_PATCHED = False

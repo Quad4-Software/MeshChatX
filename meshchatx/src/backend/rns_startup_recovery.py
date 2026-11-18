@@ -194,7 +194,11 @@ def install_rns_panic_containment(*, force: bool = False) -> bool:
 
 
 _RPC_PATCHED = False
+_LISTENER_PATCHED = False
 _SHARED_INSTANCE_RPC_TIMEOUT_S = 10.0
+_RPC_CONNECT_ATTEMPTS = 3
+_RPC_CONNECT_RETRY_DELAY_S = 0.15
+_RPC_LISTENER_BACKLOG = 128
 
 
 class _DeadlinedRpcConnection:
@@ -270,24 +274,37 @@ def install_shared_instance_rpc_deadline(
         # Run construction on a helper thread so a stalled rnsd rpc_loop
         # cannot park the caller. A timed-out attempt leaves one daemon
         # thread blocked on its own socket, bounded per call.
-        result = {}
+        last_error = None
+        for attempt in range(_RPC_CONNECT_ATTEMPTS):
+            result = {}
 
-        def _make():
-            try:
-                result["conn"] = original(self)
-            except Exception as exc:
-                result["error"] = exc
+            def _make(res):
+                try:
+                    res["conn"] = original(self)
+                except Exception as exc:
+                    res["error"] = exc
 
-        t = threading.Thread(target=_make, daemon=True, name="mcx-rns-recovery")
-        t.start()
-        t.join(timeout_s)
-        if "conn" in result:
-            return _DeadlinedRpcConnection(result["conn"], timeout_s)
-        if t.is_alive():
-            raise TimeoutError(
-                f"shared instance RPC connect timed out after {timeout_s}s"
+            t = threading.Thread(
+                target=_make, args=(result,), daemon=True, name="mcx-rns-recovery"
             )
-        raise result["error"]
+            t.start()
+            t.join(timeout_s)
+            if "conn" in result:
+                return _DeadlinedRpcConnection(result["conn"], timeout_s)
+            if t.is_alive():
+                raise TimeoutError(
+                    f"shared instance RPC connect timed out after {timeout_s}s"
+                )
+            error = result["error"]
+            if not isinstance(error, (ConnectionError, OSError)):
+                raise error
+            # A reset or refused handshake means the listener accept queue
+            # overflowed or the shared instance is mid-restart. It clears
+            # in milliseconds, so retry instead of failing the caller.
+            last_error = error
+            if attempt + 1 < _RPC_CONNECT_ATTEMPTS:
+                time.sleep(_RPC_CONNECT_RETRY_DELAY_S * (attempt + 1))
+        raise last_error
 
     RNS.Reticulum.get_rpc_client = _deadlined_get_rpc_client
     _RPC_PATCHED = True
@@ -295,6 +312,47 @@ def install_shared_instance_rpc_deadline(
         "Installed shared-instance RPC deadline (recv_bytes timeout %.1fs)",
         timeout_s,
     )
+    return True
+
+
+def install_shared_instance_rpc_backlog(
+    *, backlog: int = _RPC_LISTENER_BACKLOG
+) -> bool:
+    """Give the shared-instance RPC listener a real accept queue.
+
+    RNS creates rpc_listener with multiprocessing.connection.Listener's
+    default backlog of 1, so a burst of client connects gets reset on
+    systems with small queues (macOS reports it as Errno 54). The override
+    only applies while Reticulum.__init__ runs, so nothing else inherits it.
+    """
+    global _LISTENER_PATCHED
+    if _LISTENER_PATCHED:
+        return True
+    try:
+        import multiprocessing.connection as mp_connection
+
+        import RNS
+    except Exception as exc:
+        logger.warning("Could not install RPC listener backlog patch: %s", exc)
+        return False
+
+    original_init = RNS.Reticulum.__init__
+    original_listener = mp_connection.Listener
+
+    def _backlog_listener(*args, **kwargs):
+        kwargs.setdefault("backlog", backlog)
+        return original_listener(*args, **kwargs)
+
+    def _init_with_backlog(self, *args, **kwargs):
+        mp_connection.Listener = _backlog_listener
+        try:
+            original_init(self, *args, **kwargs)
+        finally:
+            mp_connection.Listener = original_listener
+
+    RNS.Reticulum.__init__ = _init_with_backlog
+    _LISTENER_PATCHED = True
+    logger.info("Installed shared-instance RPC listener backlog %s", backlog)
     return True
 
 

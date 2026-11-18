@@ -216,6 +216,7 @@ from meshchatx.src.backend.rns_startup_recovery import (
     consume_recovery_report,
     create_reticulum_with_recovery,
     install_rns_panic_containment,
+    install_shared_instance_rpc_backlog,
     install_shared_instance_rpc_deadline,
 )
 from meshchatx.src.backend.rrc import protocol as rrc_protocol
@@ -13021,6 +13022,7 @@ def main():
     raise_nofile_soft_limit()
     install_rns_panic_containment()
     install_shared_instance_rpc_deadline()
+    install_shared_instance_rpc_backlog()
     install_bounded_ratchet_persist()
 
     env = MeshchatEnv.load()
