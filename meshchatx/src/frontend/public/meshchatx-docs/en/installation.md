@@ -130,7 +130,7 @@ MESHCHAT_DEMO_AUTH_PASSWORD=demo   # default showcase password
 MESHCHAT_AUTH_PAGE_HINT=...        # optional login-page text
 ```
 
-MESHCHAT_DEMO_MODE=1 blocks outbound mesh actions and almost all API mutations. Optional MESHCHAT_AUTH_PAGE_HINT shows custom text on the login page (for example Username: demo and Password: demo). In demo mode the app drops X-Frame-Options and sends a CSP frame-ancestors list so the public website can embed it. MESHCHAT_DEMO_FRAME_ANCESTORS overrides the default list (meshchatx.com origins). On first start the demo seeds a small fixture of peers, announces, and conversations so the UI is not empty; the seed only runs when the messages table is empty. Assign a domain with container port **8000**, for example https://meshchatx.example.com:8000. Do not set MESHCHAT_AUTH_BYPASS=1 on a public host.
+MESHCHAT_DEMO_MODE=1 blocks outbound mesh actions and almost all API mutations. Optional MESHCHAT_AUTH_PAGE_HINT shows custom text on the login page (for example Username: demo and Password: demo). In demo mode the app drops X-Frame-Options and sends a CSP frame-ancestors list so the public website can embed it. MESHCHAT_DEMO_FRAME_ANCESTORS overrides the default list (meshchatx.com origins). On first start the demo seeds a small fixture of peers, announces, and conversations so the UI is not empty, and the seed only runs when the messages table is empty. Assign a domain with container port **8000**, for example https://meshchatx.example.com:8000. Do not set MESHCHAT_AUTH_BYPASS=1 on a public host.
 
 ## Running behind a reverse proxy
 
@@ -252,9 +252,9 @@ The .deb, .rpm and Arch packages pull these in automatically.
 
 **AppImage**
 
-The AppImage bundles the shell, GTK 4, WebKitGTK 6.0, GStreamer plugins and the backend, but not the C runtime: it runs against the host's glibc, libstdc++ and GPU/X11 driver stack. It is built on a recent distribution (glibc 2.44 at the time of writing), so use it on similarly recent hosts; the deb/rpm packages are the better choice for older distributions.
+The AppImage bundles the shell, GTK 4, WebKitGTK 6.0, GStreamer plugins and the backend, but not the C runtime: it runs against the host's glibc, libstdc++ and GPU/X11 driver stack. It is built on a recent distribution (glibc 2.44 at the time of writing), so use it on similarly recent hosts. The deb/rpm packages are the better choice for older distributions.
 
-The AppImage needs FUSE to mount itself: `/dev/fuse` plus the FUSE 2 userspace pieces the runtime calls (`fusermount` and `libfuse.so.2`). On Ubuntu 24.04 and later that is the `libfuse2t64` package; on older releases it is `libfuse2` or `fuse`. On hosts without FUSE, extract-and-run works instead:
+The AppImage needs FUSE to mount itself: `/dev/fuse` plus the FUSE 2 userspace pieces the runtime calls (`fusermount` and `libfuse.so.2`). On Ubuntu 24.04 and later that is the `libfuse2t64` package. On older releases it is `libfuse2` or `fuse`. On hosts without FUSE, extract-and-run works instead:
 
 ```bash
 chmod +x ./ReticulumMeshChatX-v*-linux-*.AppImage
@@ -263,7 +263,7 @@ chmod +x ./ReticulumMeshChatX-v*-linux-*.AppImage
 ./ReticulumMeshChatX-v*-linux-*.AppImage --appimage-extract-and-run
 ```
 
-WebKitGTK's bubblewrap sandbox runs inside unprivileged user namespaces, which Ubuntu 24.04 and later restrict through AppArmor. The launcher probes bubblewrap once at startup; when the probe fails it disables the WebKit sandbox for that run and logs `[meshchatx] WebKit sandbox disabled: ...` to stderr. You can force the sandbox off with `MESHCHAT_WEBKIT_SANDBOX=0` or force it on (skipping the probe and fallback) with `MESHCHAT_WEBKIT_SANDBOX=1`; setting `WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS` yourself also works but disables a security boundary and is not recommended.
+WebKitGTK's bubblewrap sandbox runs inside unprivileged user namespaces, which Ubuntu 24.04 and later restrict through AppArmor. The launcher probes bubblewrap once at startup. When the probe fails it disables the WebKit sandbox for that run and logs `[meshchatx] WebKit sandbox disabled: ...` to stderr. You can force the sandbox off with `MESHCHAT_WEBKIT_SANDBOX=0` or force it on (skipping the probe and fallback) with `MESHCHAT_WEBKIT_SANDBOX=1`. Setting `WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS` yourself also works but disables a security boundary and is not recommended.
 
 **Debian package**
 
@@ -293,7 +293,7 @@ Swap in `meshchatx-beta.flatpakref` or `meshchatx-testing.flatpakref` for those 
 
 ## Desktop deep links
 
-The desktop shells register `lxmf://` and `rns://` URL handlers. Opening such a link launches the app (or focuses the running instance) and forwards the URL to the app page once it is ready; links arriving during startup are queued, not dropped. On macOS, launching a second copy via a URL scheme is an OS-level limitation — the URL reaches the already-running instance only when the system delivers `open-url` to it; cold `open -a` with a URL argument works.
+The desktop shells register `lxmf://` and `rns://` URL handlers. Opening such a link launches the app (or focuses the running instance) and forwards the URL to the app page once it is ready. Links arriving during startup are queued, not dropped. On macOS, launching a second copy via a URL scheme is an OS-level limitation. The URL reaches the already-running instance only when the system delivers `open-url` to it. Cold `open -a` with a URL argument works.
 
 ## Linux desktop emoji fonts
 

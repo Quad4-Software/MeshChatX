@@ -27,7 +27,7 @@ WASM backends run in a metered runtime. Python backends run inside MeshChatX and
 | -------------- | ------------------------- | ----------------------------------------------- |
 | Frontend JS    | Browser Web Worker        | Medium. Sandboxed worker, capability grants     |
 | Backend WASM   | wasmtime on the server    | Medium. Fuel-metered, capability-gated host     |
-| Backend Python | In-process with MeshChatX | Full app-user privileges; explicit grant required |
+| Backend Python | In-process with MeshChatX | Full app-user privileges, explicit grant required |
 | Sideband *.py  | In-process, flat files    | Highest. Opt-in danger switch, full host access |
 
 A packaged plugin can ship frontend only, backend only, or both.
@@ -57,7 +57,7 @@ After install, MeshChatX hashes the on-disk tree. If files change outside the ap
 
 ## Bundled example: Hello Example
 
-com.meshchatx.mcx-hello ships with MeshChatX. It is a minimal reference plugin: it activates a Python backend, keeps a counter in isolated plugin storage, and renders a small page through api.setUi. Its bundled manifest declares `backend:python`; enabling it runs that code in-process. It requests no manager permissions or network access.
+com.meshchatx.mcx-hello ships with MeshChatX. It is a minimal reference plugin: it activates a Python backend, keeps a counter in isolated plugin storage, and renders a small page through api.setUi. Its bundled manifest declares `backend:python`. Enabling it runs that code in-process. It requests no manager permissions or network access.
 
 ## Plugin UI (uiDescriptor v1)
 
@@ -65,7 +65,7 @@ Frontend plugins push a JSON tree through api.setUi(descriptor). The host render
 
 Styling uses host semantic theme tokens. Plugins choose variants such as primary, secondary, danger, or text variants. They cannot pass arbitrary CSS classes.
 
-Worker helpers: api.callManager(capability, args), api.clipboardWrite(text), api.getTheme(), api.hasPermission(permissionId), api.onThemeChange(handler). `api.hasPermission` is true only for a permission declared by the manifest and granted at install time. `api.clipboardWrite` requires the `clipboard: write` permission. Direct network connections from frontend workers are blocked; use a Python backend for approved network access.
+Worker helpers: api.callManager(capability, args), api.clipboardWrite(text), api.getTheme(), api.hasPermission(permissionId), api.onThemeChange(handler). `api.hasPermission` is true only for a permission declared by the manifest and granted at install time. `api.clipboardWrite` requires the `clipboard: write` permission. Direct network connections from frontend workers are blocked. Use a Python backend for approved network access.
 
 Layout:
 

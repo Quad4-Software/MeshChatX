@@ -83,7 +83,7 @@ grype sbom:sbom.cyclonedx.json --vex openvex.json
 - slsa-verifier "no matching artifact": download the binary under the
   exact release name first - the provenance binds the file name.
 - A failed `sha256sum` after a partial re-download: retry the download
-  before assuming tampering; interrupted fetches are the usual cause.
+  before assuming tampering, since interrupted fetches are the usual cause.
 
 ## See also
 
