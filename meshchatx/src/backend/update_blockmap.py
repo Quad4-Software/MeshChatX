@@ -145,7 +145,7 @@ class BlockMatcher:
             old_size = p.stat().st_size
         except OSError:
             return [None] * len(self.blocks)
-        result = [None] * len(self.blocks)
+        result: list[tuple[int, int] | None] = [None] * len(self.blocks)
         bs = self.block_size
         if old_size < bs:
             return result

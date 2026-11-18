@@ -104,7 +104,7 @@ class UpdateManager:
         self._transports = None
         self._rns_transport = None
         self._last_manifest = {}  # channel -> {"rsm","manifest","entry","ts"}
-        self._progress = {"phase": "idle"}
+        self._progress: dict[str, object] = {"phase": "idle"}
         self._consecutive_failures = 0
 
     # ------------------------------------------------------------------

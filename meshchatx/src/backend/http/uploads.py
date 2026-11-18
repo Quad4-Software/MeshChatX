@@ -14,6 +14,8 @@ import asyncio
 import contextlib
 import json
 import os
+from collections.abc import Awaitable, Callable
+from typing import cast
 
 
 class PayloadTooLargeError(ValueError):
@@ -122,8 +124,9 @@ async def read_body_limited(
     buf = bytearray()
     content_read = getattr(request.content, "read", None)
     if callable(content_read):
+        read_chunk = cast(Callable[[int], Awaitable[bytes]], content_read)
         while True:
-            chunk = await content_read(max_bytes + 1 - len(buf))
+            chunk = await read_chunk(max_bytes + 1 - len(buf))
             if not chunk:
                 break
             buf += chunk

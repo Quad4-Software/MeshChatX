@@ -762,7 +762,7 @@ def read_json_file(path: Path, default=None):
 
 def current_artifact_path() -> str | None:
     """Best-effort path of the currently installed AppImage, if any."""
-    appimage = os.environ.get("APPIMAGE")
+    appimage = env_str("APPIMAGE")
     if appimage and os.path.isfile(appimage):
         return appimage
     return None

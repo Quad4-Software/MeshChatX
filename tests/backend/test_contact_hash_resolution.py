@@ -78,7 +78,7 @@ def test_related_hashes_cached_per_context():
     assert first == second
     db = app.current_context.database
     assert db.announces.get_announces_by_identity_hash.call_count == 1
-    cached = second + ["different"]
+    cached = [*second, "different"]
     assert app._related_hashes_for_contact_lookup(IDENTITY) != cached
 
 

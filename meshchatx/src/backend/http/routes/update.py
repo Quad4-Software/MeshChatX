@@ -33,8 +33,7 @@ from meshchatx.src.backend.update_manager import (
     UpdateUnavailable,
     UpdateVerifyError,
 )
-from meshchatx.src.backend.update_types import ARTIFACT_MAX_BYTES
-from meshchatx.src.backend.update_types import install_kind
+from meshchatx.src.backend.update_types import ARTIFACT_MAX_BYTES, install_kind
 
 
 def _apply_mode(kind: str, platform: str) -> dict:
