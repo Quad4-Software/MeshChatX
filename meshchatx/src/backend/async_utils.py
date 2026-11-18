@@ -147,6 +147,11 @@ class AsyncUtils:
         Returned futures are tracked so they (and the closures they reference)
         can be garbage-collected promptly once finished.
         """
+        if not asyncio.iscoroutine(coroutine):
+            # Callers can hand non-coroutine awaitables (or mocks in tests)
+            # through here; the pre-loop implementation silently buffered
+            # and dropped them, so keep that tolerance.
+            return
         loop = AsyncUtils.main_loop
         if loop is None or not loop.is_running():
             AsyncUtils.ensure_background_loop()
