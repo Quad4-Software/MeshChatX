@@ -522,3 +522,35 @@ def test_upsert_keeps_terminal_state_against_progress_state(real_db):
     )
     row = db.messages.get_lxmf_message_by_hash("a" * 32)
     assert row["state"] == "delivered"
+
+
+def test_is_conversation_unread_tolerates_malformed_last_read_at(real_db):
+    peer = "e" * 32
+    real_db.messages.upsert_lxmf_message(
+        {
+            "hash": "f" * 32,
+            "source_hash": peer,
+            "destination_hash": peer,
+            "peer_hash": peer,
+            "state": "delivered",
+            "progress": 1.0,
+            "is_incoming": 1,
+            "method": "direct",
+            "delivery_attempts": 0,
+            "next_delivery_attempt_at": None,
+            "title": "t",
+            "content": "c",
+            "fields": None,
+            "timestamp": time.time(),
+            "rssi": None,
+            "snr": None,
+            "quality": None,
+            "is_spam": 0,
+            "reply_to_hash": None,
+            "attachments_stripped": 0,
+        },
+    )
+    real_db.messages.import_conversation_read_state(
+        [{"destination_hash": peer, "last_read_at": "not-a-date"}],
+    )
+    assert real_db.messages.is_conversation_unread(peer) is True

@@ -2,6 +2,8 @@
 
 """Unit tests for conservative Nomad crawler policy helpers."""
 
+from datetime import UTC, datetime, timedelta
+
 from meshchatx.src.backend.crawler_manager import (
     CrawlerManager,
     content_signals_nocrawl,
@@ -75,3 +77,37 @@ def test_crawler_manager_opt_out_and_queue(db):
     mgr.record_opt_out(dest, reason="user", source="user")
     assert mgr.is_opted_out(dest)
     assert mgr.queue_if_allowed(dest, "/page/index.mu") is False
+
+
+def test_crawl_task_wedge_recovery(db):
+    dest = "ab" * 16
+    db.misc.upsert_crawl_task(dest, "/page/index.mu", status="pending")
+    task_id = db.misc.get_crawl_task(dest, "/page/index.mu")["id"]
+
+    db.misc.update_crawl_task(
+        task_id,
+        status="crawling",
+        last_retry_at=datetime.now(UTC) - timedelta(seconds=3600),
+    )
+    assert (
+        db.misc.get_prioritized_crawl_tasks(max_retries=5, max_concurrent=4)
+        == []
+    )
+    assert db.misc.count_open_crawl_tasks_for_node(dest) == 1
+
+    db.misc.reset_stale_crawl_tasks(180)
+    task = db.misc.get_crawl_task(dest, "/page/index.mu")
+    assert task["status"] == "failed"
+    assert task["retry_count"] == 1
+
+    db.misc.update_crawl_task(
+        task_id, status="crawling", last_retry_at=datetime.now(UTC)
+    )
+    db.misc.reset_stale_crawl_tasks(180)
+    assert db.misc.get_crawl_task(dest, "/page/index.mu")["status"] == "crawling"
+
+    db.misc.fail_crawl_task_if_crawling(task_id)
+    assert db.misc.get_crawl_task(dest, "/page/index.mu")["status"] == "failed"
+    db.misc.update_crawl_task(task_id, status="completed")
+    db.misc.fail_crawl_task_if_crawling(task_id)
+    assert db.misc.get_crawl_task(dest, "/page/index.mu")["status"] == "completed"

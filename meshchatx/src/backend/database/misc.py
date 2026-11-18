@@ -1,59 +1,101 @@
 # SPDX-License-Identifier: 0BSD
 
-from datetime import UTC, datetime
+import threading
+import unicodedata
+from datetime import UTC, datetime, timedelta
 
 from .provider import DatabaseProvider
+
+
+def _normalize_spam_text(text):
+    normalized = unicodedata.normalize("NFKC", text)
+    normalized = "".join(
+        ch for ch in normalized if unicodedata.category(ch) != "Cf"
+    )
+    return normalized.casefold()
 
 
 class MiscDAO:
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
 
+    def _lookup_cache(self):
+        state = getattr(self.provider, "_misc_dao_lookup_cache", None)
+        if not isinstance(state, dict):
+            state = {"lock": threading.Lock(), "blocked": None, "spam": None}
+            self.provider._misc_dao_lookup_cache = state
+        return state
+
     # Blocked Destinations
     def add_blocked_destination(self, destination_hash):
         now = datetime.now(UTC)
-        self.provider.execute(
-            "INSERT OR IGNORE INTO blocked_destinations (destination_hash, created_at, updated_at) VALUES (?, ?, ?)",
-            (destination_hash, now, now),
-        )
+        state = self._lookup_cache()
+        with state["lock"]:
+            self.provider.execute(
+                "INSERT OR IGNORE INTO blocked_destinations (destination_hash, created_at, updated_at) VALUES (?, ?, ?)",
+                (destination_hash, now, now),
+            )
+            state["blocked"] = None
 
     def is_destination_blocked(self, destination_hash):
-        return (
-            self.provider.fetchone(
-                "SELECT 1 FROM blocked_destinations WHERE destination_hash = ?",
-                (destination_hash,),
-            )
-            is not None
-        )
+        state = self._lookup_cache()
+        with state["lock"]:
+            blocked = state["blocked"]
+            if blocked is None:
+                blocked = {
+                    row["destination_hash"]
+                    for row in self.get_blocked_destinations()
+                }
+                state["blocked"] = blocked
+            return destination_hash in blocked
 
     def get_blocked_destinations(self):
         return self.provider.fetchall("SELECT * FROM blocked_destinations")
 
     def delete_blocked_destination(self, destination_hash):
-        self.provider.execute(
-            "DELETE FROM blocked_destinations WHERE destination_hash = ?",
-            (destination_hash,),
-        )
+        state = self._lookup_cache()
+        with state["lock"]:
+            self.provider.execute(
+                "DELETE FROM blocked_destinations WHERE destination_hash = ?",
+                (destination_hash,),
+            )
+            state["blocked"] = None
 
     # Spam Keywords
     def add_spam_keyword(self, keyword):
         now = datetime.now(UTC)
-        self.provider.execute(
-            "INSERT OR IGNORE INTO spam_keywords (keyword, created_at, updated_at) VALUES (?, ?, ?)",
-            (keyword, now, now),
-        )
+        state = self._lookup_cache()
+        with state["lock"]:
+            self.provider.execute(
+                "INSERT OR IGNORE INTO spam_keywords (keyword, created_at, updated_at) VALUES (?, ?, ?)",
+                (keyword, now, now),
+            )
+            state["spam"] = None
 
     def get_spam_keywords(self):
         return self.provider.fetchall("SELECT * FROM spam_keywords")
 
     def delete_spam_keyword(self, keyword_id):
-        self.provider.execute("DELETE FROM spam_keywords WHERE id = ?", (keyword_id,))
+        state = self._lookup_cache()
+        with state["lock"]:
+            self.provider.execute(
+                "DELETE FROM spam_keywords WHERE id = ?", (keyword_id,)
+            )
+            state["spam"] = None
 
     def check_spam_keywords(self, title, content):
-        keywords = self.get_spam_keywords()
-        search_text = (title + " " + content).lower()
+        state = self._lookup_cache()
+        with state["lock"]:
+            keywords = state["spam"]
+            if keywords is None:
+                keywords = [
+                    _normalize_spam_text(kw["keyword"])
+                    for kw in self.get_spam_keywords()
+                ]
+                state["spam"] = keywords
+        search_text = _normalize_spam_text(title + " " + content)
         for kw in keywords:
-            if kw["keyword"].lower() in search_text:
+            if kw in search_text:
                 return True
         return False
 
@@ -165,7 +207,7 @@ class MiscDAO:
 
     def get_archived_page_versions(self, destination_hash, page_path):
         return self.provider.fetchall(
-            "SELECT * FROM archived_pages WHERE destination_hash = ? AND page_path = ? ORDER BY created_at DESC",
+            "SELECT * FROM archived_pages WHERE destination_hash = ? AND page_path = ? ORDER BY id DESC",
             (destination_hash, page_path),
         )
 
@@ -203,7 +245,7 @@ class MiscDAO:
             )
             params.extend([like_term, like_term, like_term])
 
-        sql += " ORDER BY created_at DESC"
+        sql += " ORDER BY created_at DESC, id DESC"
         if limit is not None:
             sql += " LIMIT ?"
             params.append(int(limit))
@@ -331,6 +373,32 @@ class MiscDAO:
         params.append(task_id)
         query = f"UPDATE crawl_tasks SET {set_clause} WHERE id = ?"  # nosec: BAN-B608
         self.provider.execute(query, params)
+
+    def fail_crawl_task_if_crawling(self, task_id):
+        self.provider.execute(
+            """
+            UPDATE crawl_tasks
+            SET status = 'failed',
+                retry_count = retry_count + 1,
+                updated_at = ?
+            WHERE id = ? AND status = 'crawling'
+            """,
+            (datetime.now(UTC), task_id),
+        )
+
+    def reset_stale_crawl_tasks(self, stale_seconds):
+        cutoff = (datetime.now(UTC) - timedelta(seconds=stale_seconds)).isoformat()
+        self.provider.execute(
+            """
+            UPDATE crawl_tasks
+            SET status = 'failed',
+                retry_count = retry_count + 1,
+                updated_at = ?
+            WHERE status = 'crawling'
+              AND (last_retry_at IS NULL OR last_retry_at < ?)
+            """,
+            (datetime.now(UTC), cutoff),
+        )
 
     def get_pending_or_failed_crawl_tasks(self, max_retries, max_concurrent):
         return self.get_prioritized_crawl_tasks(
@@ -475,7 +543,7 @@ class MiscDAO:
         params = []
         if filter_unread:
             query += " WHERE is_viewed = 0"
-        query += " ORDER BY timestamp DESC LIMIT ?"
+        query += " ORDER BY timestamp DESC, id DESC LIMIT ?"
         params.append(limit)
         return self.provider.fetchall(query, params)
 

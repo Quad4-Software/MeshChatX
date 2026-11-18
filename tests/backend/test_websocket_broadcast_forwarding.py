@@ -124,3 +124,26 @@ async def test_broadcast_from_foreign_loop_drops_when_main_loop_dead():
     finally:
         RealAsyncUtils.main_loop = old
         dead_loop.close()
+
+
+async def test_broadcast_accepts_dict_payload():
+    app = _bare_app()
+    seen = {}
+    client = _FakeWs()
+
+    async def send_str(data):
+        seen["payload"] = json.loads(data)
+
+    client.send_str = send_str
+    app.websocket_clients = [client]
+
+    old = RealAsyncUtils.main_loop
+    RealAsyncUtils.main_loop = asyncio.get_running_loop()
+    try:
+        with patch("meshchatx.meshchat.AsyncUtils", RealAsyncUtils):
+            await app.websocket_broadcast({"type": "test.event", "v": 1})
+    finally:
+        RealAsyncUtils.main_loop = old
+
+    assert seen["payload"]["type"] == "test.event"
+    assert seen["payload"]["v"] == 1

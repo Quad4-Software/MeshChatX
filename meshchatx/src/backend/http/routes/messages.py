@@ -31,6 +31,13 @@ from meshchatx.src.backend.meshchat_utils import (
 )
 
 
+def _safe_timestamp_iso(raw) -> str:
+    try:
+        return datetime.fromtimestamp(raw or 0, UTC).isoformat()
+    except (OverflowError, OSError, ValueError, TypeError):
+        return datetime.fromtimestamp(0, UTC).isoformat()
+
+
 def register_messages_routes(routes, app):
 
     # get custom destination display name
@@ -151,6 +158,13 @@ def register_messages_routes(routes, app):
             return http_payload_too_large()
         destination_hashes = data.get("destination_hashes", [])
         notification_ids = data.get("notification_ids", [])
+        if not isinstance(destination_hashes, list) or not isinstance(
+            notification_ids,
+            list,
+        ):
+            return http_bad_request(
+                "destination_hashes and notification_ids must be lists",
+            )
 
         if destination_hashes:
             # mark LXMF conversations as viewed
@@ -334,10 +348,9 @@ def register_messages_routes(routes, app):
                                     peer_display_name=peer_preview_name,
                                 )[:100]
                             ),
-                            "updated_at": datetime.fromtimestamp(
-                                latest_message_data["timestamp"] or 0,
-                                UTC,
-                            ).isoformat(),
+                            "updated_at": _safe_timestamp_iso(
+                                latest_message_data["timestamp"],
+                            ),
                         },
                     )
 
@@ -381,10 +394,9 @@ def register_messages_routes(routes, app):
                         "title": n["title"],
                         "content": n["content"],
                         "is_viewed": n["is_viewed"] == 1,
-                        "updated_at": datetime.fromtimestamp(
-                            n["timestamp"] or 0,
-                            UTC,
-                        ).isoformat(),
+                        "updated_at": _safe_timestamp_iso(
+                            n["timestamp"],
+                        ),
                     },
                 )
 

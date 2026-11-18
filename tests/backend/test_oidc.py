@@ -1172,6 +1172,28 @@ async def test_oidc_callback_missing_id_token(mock_app, idp):
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("require_loopback_tcp")
+async def test_oidc_callback_missing_metadata_keys_no_500(mock_app, idp, monkeypatch):
+    """Incomplete cached discovery metadata must not leak KeyError as HTTP 500."""
+    _enable_oidc(mock_app, idp.issuer)
+    aio_app = _make_aio_app(mock_app)
+
+    async def incomplete_metadata(app, config, issuer):
+        return {
+            "issuer": issuer,
+            "authorization_endpoint": f"{idp.issuer}/authorize",
+        }
+
+    monkeypatch.setattr(oidc, "fetch_discovery_cached", incomplete_metadata)
+
+    async with TestClient(TestServer(aio_app)) as client:
+        callback_path = await _run_flow_to_callback(client, idp)
+        resp = await client.get(callback_path, allow_redirects=False)
+        assert resp.status == 302
+        assert "oidc_error=unreachable" in resp.headers["Location"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
 async def test_oidc_login_rejects_userinfo_endpoint(mock_app, idp):
     bad_issuer = f"{idp.issuer}/bad"
     _enable_oidc(mock_app, bad_issuer)

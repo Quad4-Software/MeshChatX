@@ -42,9 +42,19 @@ def register_maintenance_routes(routes, app):
         except ValueError as e:
             return http_bad_request(str(e))
         if cutoff is None:
-            await asyncio.to_thread(
-                app.database.messages.delete_all_lxmf_messages,
-            )
+
+            def _clear_all():
+                if app.message_router is not None:
+                    for h in app.database.messages.list_lxmf_message_hashes():
+                        if not h or len(h) % 2 != 0:
+                            continue
+                        try:
+                            app.message_router.cancel_outbound(bytes.fromhex(h))
+                        except Exception:
+                            pass
+                app.database.messages.delete_all_lxmf_messages()
+
+            await asyncio.to_thread(_clear_all)
             return web.json_response(
                 {"message": "All messages cleared", "deleted": None},
             )

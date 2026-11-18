@@ -334,3 +334,106 @@ def test_purge_messages_before_cutoff_and_count(_db_path):
     assert db.messages.count_lxmf_messages() == 1
     db.close_all()
     provider.close_all()
+
+
+def _insert_retention_msg(db, hash_, ts_offset_days, base):
+    db.messages.upsert_lxmf_message(
+        {
+            **base,
+            "hash": hash_,
+            "timestamp": time.time() - ts_offset_days * 86400,
+            "created_at": (
+                __import__("datetime").datetime.now(__import__("datetime").UTC)
+                - __import__("datetime").timedelta(days=ts_offset_days)
+            ).isoformat(),
+        },
+    )
+
+
+def test_get_lxmf_messages_with_timestamp_before_paginates(_db_path):
+    provider = DatabaseProvider(_db_path)
+    DatabaseSchema(provider).initialize()
+    db = Database(_db_path)
+    peer = "c" * 32
+    base = {
+        "source_hash": peer,
+        "destination_hash": peer,
+        "peer_hash": peer,
+        "state": "delivered",
+        "progress": 1.0,
+        "is_incoming": 1,
+        "method": "ephemeral",
+        "delivery_attempts": 0,
+        "next_delivery_attempt_at": None,
+        "title": "t",
+        "content": "c",
+        "fields": None,
+        "rssi": None,
+        "snr": None,
+        "quality": None,
+        "is_spam": 0,
+        "reply_to_hash": None,
+        "attachments_stripped": 0,
+    }
+    _insert_retention_msg(db, "a" * 32, 40, base)
+    _insert_retention_msg(db, "b" * 32, 35, base)
+    _insert_retention_msg(db, "c" * 32, 38, base)
+    _insert_retention_msg(db, "d" * 32, 5, base)
+
+    cutoff = time.time() - 30 * 86400
+    all_old = db.messages.get_lxmf_messages_with_timestamp_before(cutoff, limit=10)
+    assert [r["hash"] for r in all_old] == ["a" * 32, "b" * 32, "c" * 32]
+
+    page1 = db.messages.get_lxmf_messages_with_timestamp_before(
+        cutoff,
+        limit=1,
+        offset=0,
+    )
+    page2 = db.messages.get_lxmf_messages_with_timestamp_before(
+        cutoff,
+        limit=1,
+        offset=1,
+    )
+    page3 = db.messages.get_lxmf_messages_with_timestamp_before(
+        cutoff,
+        limit=1,
+        offset=2,
+    )
+    assert [r["hash"] for r in page1] == ["a" * 32]
+    assert [r["hash"] for r in page2] == ["b" * 32]
+    assert [r["hash"] for r in page3] == ["c" * 32]
+    db.close_all()
+    provider.close_all()
+
+
+def test_list_lxmf_message_hashes(_db_path):
+    provider = DatabaseProvider(_db_path)
+    DatabaseSchema(provider).initialize()
+    db = Database(_db_path)
+    peer = "c" * 32
+    base = {
+        "source_hash": peer,
+        "destination_hash": peer,
+        "peer_hash": peer,
+        "state": "sending",
+        "progress": 0.0,
+        "is_incoming": 0,
+        "method": "opportunistic",
+        "delivery_attempts": 0,
+        "next_delivery_attempt_at": None,
+        "title": "",
+        "content": "x",
+        "fields": None,
+        "timestamp": time.time(),
+        "rssi": None,
+        "snr": None,
+        "quality": None,
+        "is_spam": 0,
+        "reply_to_hash": None,
+        "attachments_stripped": 0,
+    }
+    db.messages.upsert_lxmf_message({**base, "hash": "a" * 32})
+    db.messages.upsert_lxmf_message({**base, "hash": "b" * 32})
+    assert set(db.messages.list_lxmf_message_hashes()) == {"a" * 32, "b" * 32}
+    db.close_all()
+    provider.close_all()

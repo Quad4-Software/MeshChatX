@@ -16,6 +16,7 @@ from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
 )
+from meshchatx.src.backend.meshchat_utils import json_bool
 
 
 def register_spam_routes(routes, app):
@@ -47,9 +48,10 @@ def register_spam_routes(routes, app):
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
-        keyword = data.get("keyword", "").strip()
-        if not keyword:
+        keyword = data.get("keyword")
+        if not isinstance(keyword, str) or not keyword.strip():
             return http_bad_request("Keyword is required")
+        keyword = keyword.strip()
 
         try:
             app.database.misc.add_spam_keyword(keyword)
@@ -66,6 +68,8 @@ def register_spam_routes(routes, app):
         try:
             keyword_id = int(keyword_id)
         except (ValueError, TypeError):
+            return http_bad_request("Invalid keyword ID")
+        if keyword_id < 1:
             return http_bad_request("Invalid keyword ID")
 
         try:
@@ -84,7 +88,7 @@ def register_spam_routes(routes, app):
             data = await read_json_limited(request)
         except PayloadTooLargeError:
             return http_payload_too_large()
-        is_spam = data.get("is_spam", False)
+        is_spam = json_bool(data.get("is_spam"), False)
 
         try:
             # stored hashes are lowercase hex. Normalize so mixed-case paths hit

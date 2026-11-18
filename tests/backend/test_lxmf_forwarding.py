@@ -327,6 +327,19 @@ def test_ws_add_without_forward_to_hash_is_noop(mock_app):
     assert app.database.misc.get_forwarding_rules() == []
 
 
+def test_ws_add_rejects_non_dict_rule(mock_app):
+    app = prepare_messaging_app(mock_app)
+    for bad_rule in ("abc", 42, True, [PEER_FORWARD_TO], None):
+        asyncio.run(
+            handle_lxmf_forwarding_rule_add(
+                app,
+                _ws_client(),
+                {"rule": bad_rule},
+            ),
+        )
+    assert app.database.misc.get_forwarding_rules() == []
+
+
 def test_mapping_roundtrip_sqlite(mock_app):
     app = prepare_messaging_app(mock_app)
     data = {

@@ -313,6 +313,11 @@ _FAILED_PATH_REFRESH_COOLDOWN_S = 60.0
 _FAILED_PATH_REFRESH_WINDOW_S = 60.0
 _FAILED_PATH_REFRESH_MAX_PER_WINDOW = 10
 
+_RNS_LINK_RESPONSE_MAX_BYTES = 64 * 1024 * 1024
+
+_RELATED_HASH_CACHE_TTL_S = 60.0
+_RELATED_HASH_CACHE_MAX = 256
+
 
 def _parse_rns_loglevel_value(raw: str | None) -> int | None:
     if not raw or not str(raw).strip():
@@ -2194,14 +2199,12 @@ class ReticulumMeshChat:
                 try:
                     AsyncUtils.run_async(
                         self.websocket_broadcast(
-                            json.dumps(
-                                {
-                                    "type": "startup_status",
-                                    "status": "ok",
-                                    "stage": "ready",
-                                    "network_ready": True,
-                                },
-                            ),
+                            {
+                                "type": "startup_status",
+                                "status": "ok",
+                                "stage": "ready",
+                                "network_ready": True,
+                            },
                         ),
                     )
                 except Exception:
@@ -2213,17 +2216,15 @@ class ReticulumMeshChat:
                 try:
                     AsyncUtils.run_async(
                         self.websocket_broadcast(
-                            json.dumps(
-                                {
-                                    "type": "startup_status",
-                                    "status": "failed",
-                                    "stage": "failed",
-                                    "network_ready": False,
-                                    "network_degraded": True,
-                                    "ui_ready": True,
-                                    "error": str(exc),
-                                },
-                            ),
+                            {
+                                "type": "startup_status",
+                                "status": "failed",
+                                "stage": "failed",
+                                "network_ready": False,
+                                "network_degraded": True,
+                                "ui_ready": True,
+                                "error": str(exc),
+                            },
                         ),
                     )
                 except Exception:
@@ -2527,15 +2528,13 @@ class ReticulumMeshChat:
     ):
         with contextlib.suppress(Exception):
             await self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "reticulum_reload_status",
-                        "stage": stage,
-                        "message": message,
-                        "level": level,
-                        "in_progress": in_progress,
-                    },
-                ),
+                {
+                    "type": "reticulum_reload_status",
+                    "stage": stage,
+                    "message": message,
+                    "level": level,
+                    "in_progress": in_progress,
+                },
             )
 
     def _force_close_listener(self, listener):
@@ -3416,18 +3415,16 @@ class ReticulumMeshChat:
 
             # 5. broadcast update to clients
             await self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "identity_switched",
-                        "identity_hash": canonical,
-                        "display_name": (
-                            self.config.display_name.get()
-                            if hasattr(self, "config")
-                            else "Unknown"
-                        ),
-                        "requires_reauth": bool(self.auth_enabled),
-                    },
-                ),
+                {
+                    "type": "identity_switched",
+                    "identity_hash": canonical,
+                    "display_name": (
+                        self.config.display_name.get()
+                        if hasattr(self, "config")
+                        else "Unknown"
+                    ),
+                    "requires_reauth": bool(self.auth_enabled),
+                },
             )
 
             # Clean up backup on success
@@ -4281,6 +4278,10 @@ class ReticulumMeshChat:
                         1,
                         min(2, int(ctx.config.crawler_max_concurrent.get() or 1)),
                     )
+                    await asyncio.to_thread(
+                        ctx.database.misc.reset_stale_crawl_tasks,
+                        180,
+                    )
                     if crawler:
                         tasks = crawler.select_next_tasks(
                             max_retries=max_retries,
@@ -4311,6 +4312,16 @@ class ReticulumMeshChat:
                 await asyncio.sleep(1)
 
     async def process_crawler_task(self, task, context=None):
+        ctx = context or self.current_context
+        try:
+            await self._process_crawler_task(task, context=ctx)
+        except BaseException:
+            if ctx and isinstance(task, dict) and task.get("id") is not None:
+                with contextlib.suppress(Exception):
+                    ctx.database.misc.fail_crawl_task_if_crawling(task["id"])
+            raise
+
+    async def _process_crawler_task(self, task, context=None):
         ctx = context or self.current_context
         if not ctx:
             return
@@ -5561,15 +5572,13 @@ class ReticulumMeshChat:
 
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "new_voicemail",
-                        "remote_identity_hash": remote_hash,
-                        "remote_identity_name": remote_name,
-                        "duration": duration,
-                        "timestamp": time.time(),
-                    },
-                ),
+                {
+                    "type": "new_voicemail",
+                    "remote_identity_hash": remote_hash,
+                    "remote_identity_name": remote_name,
+                    "duration": duration,
+                    "timestamp": time.time(),
+                },
             ),
         )
 
@@ -5653,14 +5662,12 @@ class ReticulumMeshChat:
         is_contact = self._is_contact(ch, context=ctx)
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "telephone_ringing",
-                        "remote_identity_hash": ch,
-                        "remote_identity_name": caller_name,
-                        "is_contact": is_contact,
-                    },
-                ),
+                {
+                    "type": "telephone_ringing",
+                    "remote_identity_hash": ch,
+                    "remote_identity_name": caller_name,
+                    "is_contact": is_contact,
+                },
             ),
         )
 
@@ -5675,11 +5682,9 @@ class ReticulumMeshChat:
         print(f"on_telephone_call_established: {caller_identity.hash.hex()}")
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "telephone_call_established",
-                    },
-                ),
+                {
+                    "type": "telephone_call_established",
+                },
             ),
         )
 
@@ -5746,24 +5751,20 @@ class ReticulumMeshChat:
                     ):
                         AsyncUtils.run_async(
                             self.websocket_broadcast(
-                                json.dumps(
-                                    {
-                                        "type": "telephone_missed_call",
-                                        "remote_identity_hash": remote_identity_hash,
-                                        "remote_identity_name": remote_identity_name,
-                                        "timestamp": time.time(),
-                                    },
-                                ),
+                                {
+                                    "type": "telephone_missed_call",
+                                    "remote_identity_hash": remote_identity_hash,
+                                    "remote_identity_name": remote_identity_name,
+                                    "timestamp": time.time(),
+                                },
                             ),
                         )
 
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "telephone_call_ended",
-                    },
-                ),
+                {
+                    "type": "telephone_call_ended",
+                },
             ),
         )
 
@@ -5785,14 +5786,12 @@ class ReticulumMeshChat:
 
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "telephone_initiation_status",
-                        "status": status,
-                        "target_hash": target_hash,
-                        "target_name": target_name,
-                    },
-                ),
+                {
+                    "type": "telephone_initiation_status",
+                    "status": status,
+                    "target_hash": target_hash,
+                    "target_name": target_name,
+                },
             ),
         )
 
@@ -5800,12 +5799,10 @@ class ReticulumMeshChat:
         """Broadcast an RRC hub state change to connected clients."""
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "rrc.change",
-                        "hub_hash": hub.hub_hash.hex() if hub is not None else None,
-                    },
-                ),
+                {
+                    "type": "rrc.change",
+                    "hub_hash": hub.hub_hash.hex() if hub is not None else None,
+                },
             ),
         )
 
@@ -5870,15 +5867,13 @@ class ReticulumMeshChat:
             self._maybe_add_rrc_mention_notification(hub, msg, context=context)
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "rrc.message",
-                        "hub_hash": hub.hub_hash.hex() if hub is not None else None,
-                        "room": msg.room,
-                        "message": msg.to_dict(),
-                        "mention": bool(getattr(msg, "mention", False)),
-                    },
-                ),
+                {
+                    "type": "rrc.message",
+                    "hub_hash": hub.hub_hash.hex() if hub is not None else None,
+                    "room": msg.room,
+                    "message": msg.to_dict(),
+                    "mention": bool(getattr(msg, "mention", False)),
+                },
             ),
         )
 
@@ -5886,12 +5881,10 @@ class ReticulumMeshChat:
         """Broadcast a hosted RRC hub state change to connected clients."""
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "rrc.server.change",
-                        "hub_id": hub.hub_id if hub is not None else None,
-                    },
-                ),
+                {
+                    "type": "rrc.server.change",
+                    "hub_id": hub.hub_id if hub is not None else None,
+                },
             ),
         )
 
@@ -5899,14 +5892,12 @@ class ReticulumMeshChat:
         """Broadcast an RNSh session state change to connected clients."""
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "rnsh.session.change",
-                        "session_id": session.session_id
-                        if session is not None
-                        else None,
-                    },
-                ),
+                {
+                    "type": "rnsh.session.change",
+                    "session_id": session.session_id
+                    if session is not None
+                    else None,
+                },
             ),
         )
 
@@ -5914,15 +5905,13 @@ class ReticulumMeshChat:
         """Broadcast RNSh output chunks to connected clients."""
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "rnsh.output",
-                        "session_id": session.session_id
-                        if session is not None
-                        else None,
-                        "chunk": chunk,
-                    },
-                ),
+                {
+                    "type": "rnsh.output",
+                    "session_id": session.session_id
+                    if session is not None
+                    else None,
+                    "chunk": chunk,
+                },
             ),
         )
 
@@ -5930,14 +5919,12 @@ class ReticulumMeshChat:
         """Broadcast an RNX session state change to connected clients."""
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "rnx.session.change",
-                        "session_id": session.session_id
-                        if session is not None
-                        else None,
-                    },
-                ),
+                {
+                    "type": "rnx.session.change",
+                    "session_id": session.session_id
+                    if session is not None
+                    else None,
+                },
             ),
         )
 
@@ -5945,15 +5932,13 @@ class ReticulumMeshChat:
         """Broadcast RNX output chunks to connected clients."""
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "rnx.output",
-                        "session_id": session.session_id
-                        if session is not None
-                        else None,
-                        "chunk": chunk,
-                    },
-                ),
+                {
+                    "type": "rnx.output",
+                    "session_id": session.session_id
+                    if session is not None
+                    else None,
+                    "chunk": chunk,
+                },
             ),
         )
 
@@ -8268,7 +8253,11 @@ class ReticulumMeshChat:
 
             try:
                 if hasattr(raw, "read") and not isinstance(raw, (bytes, bytearray)):
-                    raw_to_pack = raw.read()
+                    raw_to_pack = raw.read(_RNS_LINK_RESPONSE_MAX_BYTES + 1)
+                    if len(raw_to_pack) > _RNS_LINK_RESPONSE_MAX_BYTES:
+                        with contextlib.suppress(Exception):
+                            raw.close()
+                        raise ValueError("response exceeds size limit")
                 else:
                     raw_to_pack = raw
                 body_b64 = base64.b64encode(umsgpack.packb(raw_to_pack)).decode("ascii")
@@ -8424,7 +8413,7 @@ class ReticulumMeshChat:
     def _broadcast_to_websocket_clients(self, payload: dict) -> None:
         """Thread-safe fire-and-forget broadcast from RNS callback threads."""
         try:
-            AsyncUtils.run_async(self.websocket_broadcast(json.dumps(payload)))
+            AsyncUtils.run_async(self.websocket_broadcast(payload))
         except Exception as e:
             print(f"websocket broadcast failed: {e}")
 
@@ -8519,44 +8508,47 @@ class ReticulumMeshChat:
             clients = list(self.websocket_clients)
             targets = [c for c in clients if client_allows_topic(c, topic)]
 
-            async def _send_one(websocket_client):
-                try:
-                    await send_str_on_client_loop(
-                        websocket_client,
-                        data,
-                        timeout=WS_BROADCAST_SEND_TIMEOUT_SEC,
-                    )
-                    touch_client_activity(websocket_client)
-                    counters = getattr(self, "ws_counters", None)
-                    if counters is not None:
-                        counters.msgs_out += 1
-                    return None
-                except Exception as e:
-                    print(f"Failed to broadcast to websocket client: {e}")
-                    counters = getattr(self, "ws_counters", None)
-                    if counters is not None:
-                        counters.broadcast_failures += 1
-                        if isinstance(e, (TimeoutError, asyncio.TimeoutError)):
-                            counters.slow_drops += 1
-                    return websocket_client
+        async def _send_one(websocket_client):
+            try:
+                await send_str_on_client_loop(
+                    websocket_client,
+                    data,
+                    timeout=WS_BROADCAST_SEND_TIMEOUT_SEC,
+                )
+                touch_client_activity(websocket_client)
+                counters = getattr(self, "ws_counters", None)
+                if counters is not None:
+                    counters.msgs_out += 1
+                return None
+            except Exception as e:
+                print(f"Failed to broadcast to websocket client: {e}")
+                counters = getattr(self, "ws_counters", None)
+                if counters is not None:
+                    counters.broadcast_failures += 1
+                    if isinstance(e, (TimeoutError, asyncio.TimeoutError)):
+                        counters.slow_drops += 1
+                return websocket_client
 
-            results = await asyncio.gather(
-                *[_send_one(c) for c in targets],
-                return_exceptions=True,
-            )
-            dead = []
-            for item in results:
-                if isinstance(item, BaseException):
-                    continue
-                if item is not None:
-                    dead.append(item)
+        results = await asyncio.gather(
+            *[_send_one(c) for c in targets],
+            return_exceptions=True,
+        )
+        dead = []
+        for item in results:
+            if isinstance(item, BaseException):
+                continue
+            if item is not None:
+                dead.append(item)
+        if dead:
+            async with self._websocket_broadcast_lock:
+                for client in dead:
+                    try:
+                        self.websocket_clients.remove(client)
+                    except ValueError:
+                        pass
+                    if self._detach_active_session(client):
+                        sessions_changed = True
             for client in dead:
-                try:
-                    self.websocket_clients.remove(client)
-                except ValueError:
-                    pass
-                if self._detach_active_session(client):
-                    sessions_changed = True
                 try:
                     await client.close(code=WSCloseCode.GOING_AWAY)
                 except Exception:
@@ -8621,7 +8613,7 @@ class ReticulumMeshChat:
     async def send_active_sessions_to_websocket_clients(self):
         payload = self.get_active_sessions_payload()
         payload["type"] = "app.sessions.updated"
-        await self.websocket_broadcast(json.dumps(payload))
+        await self.websocket_broadcast(payload)
 
     # broadcasts config to all websocket clients
     async def send_config_to_websocket_clients(self, context=None, changed_keys=None):
@@ -8651,13 +8643,11 @@ class ReticulumMeshChat:
         if not ctx:
             return
         await self.websocket_broadcast(
-            json.dumps(
-                {
-                    "type": "announced",
-                    "identity_hash": ctx.identity_hash,
-                    "last_announced_at": ctx.config.last_announced_at.get(),
-                },
-            ),
+            {
+                "type": "announced",
+                "identity_hash": ctx.identity_hash,
+                "last_announced_at": ctx.config.last_announced_at.get(),
+            },
         )
 
     async def _broadcast_blocked_destinations(self):
@@ -8671,12 +8661,10 @@ class ReticulumMeshChat:
                 for b in blocked
             ]
             await self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "blocked_destinations",
-                        "blocked_destinations": blocked_list,
-                    },
-                ),
+                {
+                    "type": "blocked_destinations",
+                    "blocked_destinations": blocked_list,
+                },
             )
         except Exception as e:
             print(f"_broadcast_blocked_destinations: failed: {e}")
@@ -9436,12 +9424,10 @@ class ReticulumMeshChat:
     def _broadcast_announce_event(self, announce_dict):
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "announce",
-                        "announce": announce_dict,
-                    },
-                ),
+                {
+                    "type": "announce",
+                    "announce": announce_dict,
+                },
             ),
         )
 
@@ -9483,6 +9469,14 @@ class ReticulumMeshChat:
     def _related_hashes_for_contact_lookup(self, source_hash: str, context=None):
         """Collect identity/LXMF/LXST hashes that may identify the same peer."""
         ctx = context or self.current_context
+        cache = getattr(ctx, "_related_hash_cache", None) if ctx is not None else None
+        if cache is None and ctx is not None:
+            cache = {}
+            ctx._related_hash_cache = cache
+        if isinstance(cache, dict):
+            entry = cache.get(source_hash)
+            if entry is not None and entry[0] > time.time():
+                return list(entry[1])
         related = []
         seen = set()
 
@@ -9532,6 +9526,13 @@ class ReticulumMeshChat:
         except Exception:
             pass
 
+        if isinstance(cache, dict):
+            if len(cache) >= _RELATED_HASH_CACHE_MAX:
+                cache.clear()
+            cache[source_hash] = (
+                time.time() + _RELATED_HASH_CACHE_TTL_S,
+                list(related),
+            )
         return related
 
     def _resolve_contact_for_hash(self, source_hash: str, context=None):
@@ -10675,14 +10676,12 @@ class ReticulumMeshChat:
             if not is_redelivery:
                 AsyncUtils.run_async(
                     self.websocket_broadcast(
-                        json.dumps(
-                            {
-                                "type": "lxmf.delivery",
-                                "remote_identity_name": sender_name,
-                                "lxmf_message": msg_dict,
-                                "sieve_suppress_notifications": suppress_notifications,
-                            },
-                        ),
+                        {
+                            "type": "lxmf.delivery",
+                            "remote_identity_name": sender_name,
+                            "lxmf_message": msg_dict,
+                            "sieve_suppress_notifications": suppress_notifications,
+                        },
                     ),
                 )
 
@@ -10975,12 +10974,10 @@ class ReticulumMeshChat:
 
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "lxmf_message_state_updated",
-                        "lxmf_message": msg_dict,
-                    },
-                ),
+                {
+                    "type": "lxmf_message_state_updated",
+                    "lxmf_message": msg_dict,
+                },
             ),
         )
 
@@ -11541,12 +11538,10 @@ class ReticulumMeshChat:
                 ws_payload["method"] = "local"
                 ws_payload["progress"] = 100.0
                 await self.websocket_broadcast(
-                    json.dumps(
-                        {
-                            "type": "lxmf_message_created",
-                            "lxmf_message": ws_payload,
-                        },
-                    ),
+                    {
+                        "type": "lxmf_message_created",
+                        "lxmf_message": ws_payload,
+                    },
                 )
             return lxmf_message
 
@@ -11592,17 +11587,15 @@ class ReticulumMeshChat:
                     state_override="failed",
                 )
                 await self.websocket_broadcast(
-                    json.dumps(
-                        {
-                            "type": "lxmf_message_created",
-                            "lxmf_message": convert_lxmf_message_to_dict(
-                                lxmf_message,
-                                include_attachments=False,
-                                reticulum=getattr(self, "reticulum", None),
-                                message_router=ctx.message_router,
-                            ),
-                        },
-                    ),
+                    {
+                        "type": "lxmf_message_created",
+                        "lxmf_message": convert_lxmf_message_to_dict(
+                            lxmf_message,
+                            include_attachments=False,
+                            reticulum=getattr(self, "reticulum", None),
+                            message_router=ctx.message_router,
+                        ),
+                    },
                 )
             if wants_propagated:
                 msg = (
@@ -11656,17 +11649,15 @@ class ReticulumMeshChat:
         # tell all websocket clients that old failed message was deleted so it can remove from ui
         if not no_display:
             await self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "lxmf_message_created",
-                        "lxmf_message": convert_lxmf_message_to_dict(
-                            lxmf_message,
-                            include_attachments=False,
-                            reticulum=getattr(self, "reticulum", None),
-                            message_router=ctx.message_router,
-                        ),
-                    },
-                ),
+                {
+                    "type": "lxmf_message_created",
+                    "lxmf_message": convert_lxmf_message_to_dict(
+                        lxmf_message,
+                        include_attachments=False,
+                        reticulum=getattr(self, "reticulum", None),
+                        message_router=ctx.message_router,
+                    ),
+                },
             )
 
         # handle lxmf message progress loop without blocking or awaiting
@@ -11768,18 +11759,16 @@ class ReticulumMeshChat:
                 # broadcast telemetry update via websocket
                 AsyncUtils.run_async(
                     self.websocket_broadcast(
-                        json.dumps(
-                            {
-                                "type": "lxmf.telemetry",
-                                "destination_hash": source_hash,
-                                "timestamp": timestamp,
-                                "telemetry": unpacked,
-                                "physical_link": physical_link,
-                                "is_tracking": ctx.database.telemetry.is_tracking(
-                                    source_hash,
-                                ),
-                            },
-                        ),
+                        {
+                            "type": "lxmf.telemetry",
+                            "destination_hash": source_hash,
+                            "timestamp": timestamp,
+                            "telemetry": unpacked,
+                            "physical_link": physical_link,
+                            "is_tracking": ctx.database.telemetry.is_tracking(
+                                source_hash,
+                            ),
+                        },
                     ),
                 )
         except Exception as e:
@@ -11878,12 +11867,10 @@ class ReticulumMeshChat:
                 )
 
                 await self.websocket_broadcast(
-                    json.dumps(
-                        {
-                            "type": "lxmf_message_state_updated",
-                            "lxmf_message": msg_dict,
-                        },
-                    ),
+                    {
+                        "type": "lxmf_message_state_updated",
+                        "lxmf_message": msg_dict,
+                    },
                 )
             except Exception:
                 # A torn-down context raises through the closed provider;
@@ -11984,12 +11971,10 @@ class ReticulumMeshChat:
         # send database announce to all websocket clients
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "announce",
-                        "announce": self.convert_db_announce_to_dict(announce),
-                    },
-                ),
+                {
+                    "type": "announce",
+                    "announce": self.convert_db_announce_to_dict(announce),
+                },
             ),
         )
 
@@ -12081,12 +12066,10 @@ class ReticulumMeshChat:
         # send database announce to all websocket clients
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "announce",
-                        "announce": self.convert_db_announce_to_dict(announce),
-                    },
-                ),
+                {
+                    "type": "announce",
+                    "announce": self.convert_db_announce_to_dict(announce),
+                },
             ),
         )
 
@@ -12178,12 +12161,10 @@ class ReticulumMeshChat:
         # send database announce to all websocket clients
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "announce",
-                        "announce": self.convert_db_announce_to_dict(announce),
-                    },
-                ),
+                {
+                    "type": "announce",
+                    "announce": self.convert_db_announce_to_dict(announce),
+                },
             ),
         )
 
@@ -12237,7 +12218,7 @@ class ReticulumMeshChat:
                         continue
 
                     if ctx.database.messages.has_recent_outbound_with_content(
-                        destination_hash,
+                        lookup_hash,
                         failed_message.get("content"),
                         within_seconds=RECENT_SAME_CONTENT_SECONDS,
                         now=now,
@@ -12352,12 +12333,10 @@ class ReticulumMeshChat:
 
                         # tell all websocket clients that old failed message was deleted so it can remove from ui
                         await self.websocket_broadcast(
-                            json.dumps(
-                                {
-                                    "type": "lxmf_message_deleted",
-                                    "hash": message_hash,
-                                },
-                            ),
+                            {
+                                "type": "lxmf_message_deleted",
+                                "hash": message_hash,
+                            },
                         )
                     else:
                         # An identical resend carries the original hash. The
@@ -12484,12 +12463,10 @@ class ReticulumMeshChat:
 
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "announce",
-                        "announce": self.convert_db_announce_to_dict(announce),
-                    },
-                ),
+                {
+                    "type": "announce",
+                    "announce": self.convert_db_announce_to_dict(announce),
+                },
             ),
         )
 
@@ -12577,12 +12554,10 @@ class ReticulumMeshChat:
         # send database announce to all websocket clients
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "announce",
-                        "announce": self.convert_db_announce_to_dict(announce),
-                    },
-                ),
+                {
+                    "type": "announce",
+                    "announce": self.convert_db_announce_to_dict(announce),
+                },
             ),
         )
 
@@ -12656,12 +12631,10 @@ class ReticulumMeshChat:
             return
         AsyncUtils.run_async(
             self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "announce",
-                        "announce": self.convert_db_announce_to_dict(announce),
-                    },
-                ),
+                {
+                    "type": "announce",
+                    "announce": self.convert_db_announce_to_dict(announce),
+                },
             ),
         )
 
@@ -12900,12 +12873,10 @@ class ReticulumMeshChat:
         if announce:
             AsyncUtils.run_async(
                 self.websocket_broadcast(
-                    json.dumps(
-                        {
-                            "type": "announce",
-                            "announce": self.convert_db_announce_to_dict(announce),
-                        },
-                    ),
+                    {
+                        "type": "announce",
+                        "announce": self.convert_db_announce_to_dict(announce),
+                    },
                 ),
             )
 

@@ -36,6 +36,8 @@ def register_config_routes(routes, app):
         # get request body as json
         try:
             data = await read_json_limited(request)
+            if not isinstance(data, dict):
+                return http_bad_request("Expected a JSON object")
             await app.update_config(data)
 
             return web.json_response(

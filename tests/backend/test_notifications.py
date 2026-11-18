@@ -47,6 +47,19 @@ def test_mark_notifications_as_viewed(db):
     assert len(unread_all) == 0
 
 
+def test_get_notifications_equal_timestamps_order_by_id(db):
+    """Rows sharing a timestamp must have a stable id tie-break."""
+    for i in range(4):
+        db.misc.provider.execute(
+            "INSERT INTO notifications (type, remote_hash, title, content, timestamp, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            ("t", f"h{i}", f"title{i}", f"c{i}", 1700000000.0, "2024-01-01"),
+        )
+    notifications = db.misc.get_notifications(limit=4)
+    ids = [n["id"] for n in notifications]
+    assert len(ids) == 4
+    assert ids == sorted(ids, reverse=True)
+
+
 def test_missed_call_notification(mock_app):
     """Test that a missed call triggers a notification."""
     caller_identity = MagicMock()

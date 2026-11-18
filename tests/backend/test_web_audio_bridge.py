@@ -445,12 +445,16 @@ def test_detach_last_client_skips_restore_when_allow_fallback_disabled():
 
 def test_on_call_ended_clears_clients_and_pipeline_handles():
     bridge = WebAudioBridge(MagicMock(), MagicMock())
-    bridge.clients.update({MagicMock(), MagicMock()})
+    clients = {MagicMock(), MagicMock()}
+    bridge.clients.update(clients)
+    for c in clients:
+        bridge._pcm_state[id(c)] = {"inflight": False, "pending": None}
     bridge.tx_source = MagicMock()
     bridge.rx_sink = MagicMock()
     bridge.rx_tee = MagicMock()
     bridge.on_call_ended()
     assert len(bridge.clients) == 0
+    assert bridge._pcm_state == {}
     assert bridge.tx_source is None
     assert bridge.rx_sink is None
     assert bridge.rx_tee is None

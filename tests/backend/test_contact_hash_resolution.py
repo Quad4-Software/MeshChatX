@@ -68,3 +68,23 @@ def test_is_contact_true_when_saved_under_lxmf_primary_key():
 def test_is_contact_false_for_unknown_peer():
     app = _app_with_db(contact_row=None)
     assert app._is_contact(IDENTITY) is False
+
+
+def test_related_hashes_cached_per_context():
+    app = _app_with_db()
+    app.current_context._related_hash_cache = {}
+    first = app._related_hashes_for_contact_lookup(IDENTITY)
+    second = app._related_hashes_for_contact_lookup(IDENTITY)
+    assert first == second
+    db = app.current_context.database
+    assert db.announces.get_announces_by_identity_hash.call_count == 1
+    cached = second + ["different"]
+    assert app._related_hashes_for_contact_lookup(IDENTITY) != cached
+
+
+def test_related_hashes_cache_expires():
+    app = _app_with_db()
+    app.current_context._related_hash_cache = {IDENTITY: (0.0, ["stale"])}
+    related = app._related_hashes_for_contact_lookup(IDENTITY)
+    assert "stale" not in related
+    assert IDENTITY in related

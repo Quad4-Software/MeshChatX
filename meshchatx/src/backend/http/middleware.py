@@ -379,6 +379,15 @@ def create_auth_middleware(app):
         is_authenticated = session.get("authenticated", False)
         session_identity = session.get("identity_hash")
 
+        if app.identity is None:
+            return http_unavailable(
+                "Application is initializing or switching identity",
+                code="starting",
+                status="starting",
+                stage=app._startup_stage,
+                network_ready=False,
+            )
+
         # Check if authenticated AND matches current identity and session epoch
         if (
             not is_authenticated

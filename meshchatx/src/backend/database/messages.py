@@ -84,6 +84,15 @@ def _lxmf_created_at_epoch(raw) -> float | None:
     return dt.timestamp()
 
 
+def _lxmf_created_at_cutoff_iso(cutoff_ts: float) -> str:
+    try:
+        return datetime.fromtimestamp(float(cutoff_ts), UTC).isoformat()
+    except (OverflowError, OSError, ValueError, TypeError):
+        if isinstance(cutoff_ts, (int, float)) and cutoff_ts > 0:
+            return "9999-12-31T23:59:59.999999+00:00"
+        return ""
+
+
 class MessageDAO:
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -619,9 +628,20 @@ class MessageDAO:
             self.set_peer_pinned(peer_hash, True)
             return True
 
-    def list_message_hashes_with_timestamp_before(self, cutoff_ts: float) -> list[str]:
+    def list_lxmf_message_hashes(self) -> list[str]:
         rows = self.provider.fetchall(
-            "SELECT hash, created_at FROM lxmf_messages WHERE created_at IS NOT NULL",
+            "SELECT hash FROM lxmf_messages WHERE hash IS NOT NULL",
+        )
+        return [r["hash"] for r in rows if r.get("hash")]
+
+    def list_message_hashes_with_timestamp_before(self, cutoff_ts: float) -> list[str]:
+        cutoff_iso = _lxmf_created_at_cutoff_iso(cutoff_ts)
+        if not cutoff_iso:
+            return []
+        rows = self.provider.fetchall(
+            "SELECT hash, created_at FROM lxmf_messages "
+            "WHERE created_at IS NOT NULL AND created_at < ?",
+            (cutoff_iso,),
         )
         return [
             r["hash"]
@@ -632,8 +652,13 @@ class MessageDAO:
         ]
 
     def count_lxmf_messages_with_timestamp_before(self, cutoff_ts: float) -> int:
+        cutoff_iso = _lxmf_created_at_cutoff_iso(cutoff_ts)
+        if not cutoff_iso:
+            return 0
         rows = self.provider.fetchall(
-            "SELECT created_at FROM lxmf_messages WHERE created_at IS NOT NULL",
+            "SELECT created_at FROM lxmf_messages "
+            "WHERE created_at IS NOT NULL AND created_at < ?",
+            (cutoff_iso,),
         )
         total = 0
         for r in rows:
@@ -648,16 +673,36 @@ class MessageDAO:
         limit: int = 5000,
         offset: int = 0,
     ):
-        rows = self.provider.fetchall(
-            "SELECT * FROM lxmf_messages WHERE created_at IS NOT NULL ORDER BY id",
-        )
-        out = [
-            r
-            for r in rows
-            if (ts := _lxmf_created_at_epoch(r.get("created_at"))) is not None
-            and ts < cutoff_ts
-        ]
-        return out[offset : offset + limit]
+        cutoff_iso = _lxmf_created_at_cutoff_iso(cutoff_ts)
+        if not cutoff_iso:
+            return []
+        out = []
+        skipped = 0
+        sql_offset = 0
+        while len(out) < limit:
+            batch = max(limit - len(out), 500)
+            rows = self.provider.fetchall(
+                "SELECT * FROM lxmf_messages "
+                "WHERE created_at IS NOT NULL AND created_at < ? "
+                "ORDER BY id LIMIT ? OFFSET ?",
+                (cutoff_iso, batch, sql_offset),
+            )
+            if not rows:
+                break
+            sql_offset += len(rows)
+            for r in rows:
+                if len(out) >= limit:
+                    break
+                ts = _lxmf_created_at_epoch(r.get("created_at"))
+                if ts is None or ts >= cutoff_ts:
+                    continue
+                if skipped < offset:
+                    skipped += 1
+                    continue
+                out.append(r)
+            if len(rows) < batch:
+                break
+        return out
 
     def prune_conversation_metadata_for_peers_with_no_messages(self) -> None:
         self.provider.execute(
@@ -747,7 +792,7 @@ class MessageDAO:
 
     def get_conversation_messages(self, destination_hash, limit=100, offset=0):
         return self.provider.fetchall(
-            "SELECT * FROM lxmf_messages WHERE peer_hash = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?",
+            "SELECT * FROM lxmf_messages WHERE peer_hash = ? ORDER BY timestamp DESC, id DESC LIMIT ? OFFSET ?",
             (destination_hash, limit, offset),
         )
 
@@ -957,7 +1002,10 @@ class MessageDAO:
         if not row["last_read_at"]:
             return True
 
-        last_read_at = datetime.fromisoformat(row["last_read_at"])
+        try:
+            last_read_at = datetime.fromisoformat(row["last_read_at"])
+        except (TypeError, ValueError):
+            return True
         if last_read_at.tzinfo is None:
             last_read_at = last_read_at.replace(tzinfo=UTC)
 

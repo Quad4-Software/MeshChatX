@@ -20,6 +20,7 @@ from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
 )
+from meshchatx.src.backend.meshchat_utils import json_bool
 
 
 def register_status_routes(routes, app):
@@ -62,7 +63,7 @@ def register_status_routes(routes, app):
         if not isinstance(data, dict):
             data = {}
 
-        disable_all = bool(data.get("disable_all_interfaces"))
+        disable_all = json_bool(data.get("disable_all_interfaces"))
         named = data.get("disable_interfaces")
 
         def _apply_recovery_steps() -> list[str]:

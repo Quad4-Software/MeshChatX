@@ -16,13 +16,19 @@ from threading import Thread as _RealThread
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aiohttp import FormData, web
+from aiohttp import FormData, WSMsgType, web
 from aiohttp.test_utils import TestClient, TestServer
 from aiohttp_session import setup as setup_session
 
+from meshchatx.src.backend.http.ws.handlers_core import (
+    handle_keyboard_shortcuts_delete,
+    handle_keyboard_shortcuts_set,
+    handle_ping,
+)
 from meshchatx.src.backend.http.ws.handlers_lxmf import handle_lxm_ingest_uri
 from meshchatx.src.backend.http.ws.handlers_nomad import (
     handle_nomadnet_download_cancel,
+    handle_nomadnet_page_archives_get,
 )
 from tests.backend.conftest import (
     extend_meshchat_middlewares,
@@ -426,3 +432,239 @@ async def test_coalesce_buffer_drops_pending_when_flush_raises():
     # flush raised. Currently it is silently discarded with the batch.
     assert len(flushed) == 1
     assert flushed[0]["type"] == "lxmf.telemetry"
+
+
+# ---------------------------------------------------------------------------
+# 8. WS handlers must validate malformed nested payloads and await sends
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_handle_ping_awaits_send_str():
+    client = MagicMock()
+    client.send_str = AsyncMock()
+
+    await handle_ping(MagicMock(), client, {})
+
+    client.send_str.assert_awaited_once()
+    assert json.loads(client.send_str.await_args.args[0])["type"] == "pong"
+
+
+@pytest.mark.asyncio
+async def test_keyboard_shortcut_handlers_reject_malformed_payloads():
+    app = MagicMock()
+    client = MagicMock()
+
+    await handle_keyboard_shortcuts_set(app, client, {})
+    await handle_keyboard_shortcuts_set(app, client, {"action": 42, "keys": ["x"]})
+    await handle_keyboard_shortcuts_set(
+        app,
+        client,
+        {"action": "open", "keys": "not-a-list"},
+    )
+    app.database.misc.upsert_keyboard_shortcut.assert_not_called()
+
+    await handle_keyboard_shortcuts_delete(app, client, {})
+    await handle_keyboard_shortcuts_delete(app, client, {"action": 7})
+    app.database.misc.delete_keyboard_shortcut.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_page_archives_get_rejects_non_string_page_path(monkeypatch):
+    from meshchatx.src.backend.http.ws import handlers_nomad
+
+    futures = []
+
+    def _run(coro):
+        futures.append(asyncio.ensure_future(coro))
+
+    monkeypatch.setattr(handlers_nomad.AsyncUtils, "run_async", _run)
+
+    app = MagicMock()
+    client = MagicMock()
+    client.send_str = AsyncMock()
+
+    await handle_nomadnet_page_archives_get(
+        app,
+        client,
+        {"destination_hash": "aa" * 16, "page_path": 123},
+    )
+    if futures:
+        await asyncio.gather(*futures)
+
+    app.get_archived_page_versions.assert_not_called()
+    payload = json.loads(client.send_str.await_args.args[0])
+    assert payload["type"] == "nomadnet.page.archives"
+    assert payload["archives"] == []
+
+
+@pytest.mark.asyncio
+async def test_lxmf_forwarding_rule_add_rejects_non_dict_rule():
+    from meshchatx.src.backend.http.ws.handlers_lxmf import (
+        handle_lxmf_forwarding_rule_add,
+    )
+
+    app = MagicMock()
+    client = MagicMock()
+
+    for bad_rule in ("abc", 42, True, ["x"]):
+        await handle_lxmf_forwarding_rule_add(app, client, {"rule": bad_rule})
+
+    app.database.misc.create_forwarding_rule.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# 9. DELETE /maintenance/messages must cancel pending outbound before delete
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+async def test_maintenance_clear_all_messages_cancels_pending_outbound(mock_app):
+    msg_hash = "ab" * 16
+    mock_app.database.messages.upsert_lxmf_message(
+        {
+            "hash": msg_hash,
+            "source_hash": msg_hash,
+            "destination_hash": msg_hash,
+            "peer_hash": msg_hash,
+            "state": "sending",
+            "progress": 0.0,
+            "is_incoming": 0,
+            "method": "opportunistic",
+            "delivery_attempts": 0,
+            "next_delivery_attempt_at": None,
+            "title": "",
+            "content": "x",
+            "fields": None,
+            "timestamp": time.time(),
+            "rssi": None,
+            "snr": None,
+            "quality": None,
+            "is_spam": 0,
+            "reply_to_hash": None,
+            "attachments_stripped": 0,
+        },
+    )
+    mock_app.message_router = MagicMock()
+
+    aio_app = build_test_aio_app(mock_app)
+    async with TestClient(TestServer(aio_app)) as client:
+        headers = await fetch_api_csrf_headers(client)
+        resp = await client.delete("/api/v1/maintenance/messages", headers=headers)
+        assert resp.status == 200
+
+    mock_app.message_router.cancel_outbound.assert_any_call(
+        bytes.fromhex(msg_hash),
+    )
+    assert mock_app.database.messages.count_lxmf_messages() == 0
+
+
+# ---------------------------------------------------------------------------
+# 10. notifications/mark-as-viewed must reject non-list fields
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+async def test_notifications_mark_as_viewed_rejects_non_list_fields(mock_app):
+    aio_app = build_test_aio_app(mock_app)
+    async with TestClient(TestServer(aio_app)) as client:
+        headers = await fetch_api_csrf_headers(client)
+
+        resp = await client.post(
+            "/api/v1/notifications/mark-as-viewed",
+            json={"destination_hashes": "not-a-list"},
+            headers=headers,
+        )
+        assert resp.status == 400
+
+        resp = await client.post(
+            "/api/v1/notifications/mark-as-viewed",
+            json={"notification_ids": 42},
+            headers=headers,
+        )
+        assert resp.status == 400
+
+        resp = await client.post(
+            "/api/v1/notifications/mark-as-viewed",
+            json={"destination_hashes": ["aa" * 16], "notification_ids": []},
+            headers=headers,
+        )
+        assert resp.status == 200
+
+
+# ---------------------------------------------------------------------------
+# 11. POST /path-table must 400 on malformed JSON instead of ignoring it
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+async def test_path_table_post_invalid_json_returns_400(mock_app):
+    aio_app = build_test_aio_app(mock_app)
+    async with TestClient(TestServer(aio_app)) as client:
+        headers = await fetch_api_csrf_headers(client)
+
+        resp = await client.post(
+            "/api/v1/path-table",
+            data="{not-json",
+            headers={**headers, "Content-Type": "application/json"},
+        )
+        assert resp.status == 400
+
+        # A POST with no body keeps the previous unfiltered behaviour.
+        resp = await client.post("/api/v1/path-table", headers=headers)
+        assert resp.status == 200
+
+
+# ---------------------------------------------------------------------------
+# 12. The 64-client cap must hold when a slot is stolen mid-upgrade
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+async def test_ws_client_cap_rechecks_after_prepare(mock_app, monkeypatch):
+    _ws_broadcast_stubs(mock_app)
+    mock_app.max_websocket_clients = 1
+
+    real_prepare = web.WebSocketResponse.prepare
+    injected = []
+
+    async def racing_prepare(self, request):
+        # Simulate a concurrent upgrade taking the last client slot while
+        # this request was suspended in prepare(). aiohttp may call
+        # prepare() again on the returned response, so only inject once.
+        if not injected:
+            injected.append(True)
+            mock_app.websocket_clients.append(MagicMock())
+        return await real_prepare(self, request)
+
+    monkeypatch.setattr(web.WebSocketResponse, "prepare", racing_prepare)
+
+    aio_app = build_test_aio_app(mock_app)
+    async with TestClient(TestServer(aio_app)) as client:
+        ws = await client.ws_connect("/ws")
+        msg = await ws.receive(timeout=5)
+        assert msg.type in (
+            WSMsgType.CLOSE,
+            WSMsgType.CLOSING,
+            WSMsgType.CLOSED,
+        )
+
+    # The raced-out socket was closed, not appended to the client list.
+    assert len(mock_app.websocket_clients) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+async def test_ws_client_cap_fast_path_still_503s(mock_app):
+    _ws_broadcast_stubs(mock_app)
+    mock_app.max_websocket_clients = 1
+    mock_app.websocket_clients.append(MagicMock())
+
+    aio_app = build_test_aio_app(mock_app)
+    async with TestClient(TestServer(aio_app)) as client:
+        resp = await client.get("/ws")
+        assert resp.status == 503

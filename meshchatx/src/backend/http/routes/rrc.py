@@ -19,6 +19,7 @@ from meshchatx.src.backend.http.uploads import (
     PayloadTooLargeError,
     read_json_limited,
 )
+from meshchatx.src.backend.meshchat_utils import json_bool
 from meshchatx.src.backend.rrc import protocol as rrc_protocol
 from meshchatx.src.backend.rrc import search as rrc_search
 from meshchatx.src.backend.rrc.manager import RateLimitedError
@@ -106,11 +107,11 @@ def register_rrc_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         if "auto_reconnect" in data:
-            hub.set_auto_reconnect(bool(data["auto_reconnect"]))
+            hub.set_auto_reconnect(json_bool(data["auto_reconnect"]))
         if "auto_list" in data:
-            hub.set_auto_list(bool(data["auto_list"]))
+            hub.set_auto_list(json_bool(data["auto_list"]))
         if "auto_who" in data:
-            hub.set_auto_who(bool(data["auto_who"]))
+            hub.set_auto_who(json_bool(data["auto_who"]))
         if "nick" in data:
             hub.set_nick_override(data["nick"])
         if "custom_name" in data:
@@ -158,7 +159,7 @@ def register_rrc_routes(routes, app):
         applied = {}
         for key in ("auto_reconnect", "auto_list", "auto_who"):
             if key in data:
-                applied[key] = bool(data[key])
+                applied[key] = json_bool(data[key])
         if not applied:
             return http_bad_request("No hub options supplied")
         for hub in list(manager.hubs):
@@ -236,7 +237,7 @@ def register_rrc_routes(routes, app):
             key = key.strip() or None
         else:
             key = None
-        remember = bool(data.get("remember", True))
+        remember = json_bool(data.get("remember"), True)
         if key is None:
             with contextlib.suppress(Exception):
                 key = manager.get_room_key(hub, room)
@@ -400,7 +401,7 @@ def register_rrc_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         text = data.get("text")
-        is_action = bool(data.get("action"))
+        is_action = json_bool(data.get("action"))
         try:
             if is_action:
                 hub.send_action(room, text)
@@ -538,8 +539,8 @@ def register_rrc_routes(routes, app):
         if greeting is not None and not isinstance(greeting, str):
             return http_bad_request("greeting must be a string")
         greeting = (greeting or "").strip() or None
-        announce = bool(data.get("announce", True))
-        enabled = bool(data.get("enabled", True))
+        announce = json_bool(data.get("announce"), True)
+        enabled = json_bool(data.get("enabled"), True)
         create_kwargs = {
             "name": name,
             "greeting": greeting,
@@ -658,11 +659,11 @@ def register_rrc_routes(routes, app):
         if topic is not None and not isinstance(topic, str):
             return http_bad_request("topic must be a string")
         topic = (topic or "").strip() or None
-        private = bool(data.get("private", False))
-        moderated = bool(data.get("moderated", False))
-        invite_only = bool(data.get("invite_only", False))
-        topic_ops_only = bool(data.get("topic_ops_only", False))
-        no_outside_msgs = bool(data.get("no_outside_msgs", False))
+        private = json_bool(data.get("private"), False)
+        moderated = json_bool(data.get("moderated"), False)
+        invite_only = json_bool(data.get("invite_only"), False)
+        topic_ops_only = json_bool(data.get("topic_ops_only"), False)
+        no_outside_msgs = json_bool(data.get("no_outside_msgs"), False)
         key = data.get("key")
         if key is not None and not isinstance(key, str):
             return http_bad_request("key must be a string")

@@ -189,6 +189,19 @@ def parse_bool_query_param(value: str | None) -> bool:
     return value in {"1", "true", "yes", "on"}
 
 
+def json_bool(value, default=False):
+    """Coerce a JSON value to bool. bool("false") must not read as True."""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return default
+
+
 def message_fields_have_attachments(fields_json: str | None):
     if not fields_json:
         return False

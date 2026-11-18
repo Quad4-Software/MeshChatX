@@ -239,7 +239,7 @@ def register_path_probe_routes(routes, app):
         if destination_hash_hex in local_destination_hashes(app):
             return local_path_response(destination_hash_hex)
 
-        timeout_after_seconds = time.time() + timeout_seconds
+        timeout_after_seconds = time.monotonic() + timeout_seconds
         reticulum = app.reticulum if hasattr(app, "reticulum") else None
         await asyncio.to_thread(
             reticulum_pathfinding.prepare_fresh_path_request,
@@ -249,7 +249,7 @@ def register_path_probe_routes(routes, app):
 
         while (
             not RNS.Transport.has_path(destination_hash_bytes)
-            and time.time() < timeout_after_seconds
+            and time.monotonic() < timeout_after_seconds
         ):
             await asyncio.sleep(0.1)
 
@@ -432,7 +432,7 @@ def register_path_probe_routes(routes, app):
         # Split the budget so path discovery cannot consume the whole timeout.
         path_budget_seconds = max(1, timeout_seconds // 2)
         delivery_budget_seconds = max(1, timeout_seconds - path_budget_seconds)
-        path_deadline = time.time() + path_budget_seconds
+        path_deadline = time.monotonic() + path_budget_seconds
 
         # request path if we don't have it
         if not RNS.Transport.has_path(destination_hash):
@@ -440,7 +440,8 @@ def register_path_probe_routes(routes, app):
 
         # wait until we have a path, or give up after the path budget
         while (
-            not RNS.Transport.has_path(destination_hash) and time.time() < path_deadline
+            not RNS.Transport.has_path(destination_hash)
+            and time.monotonic() < path_deadline
         ):
             await asyncio.sleep(0.1)
 
@@ -467,11 +468,11 @@ def register_path_probe_routes(routes, app):
         packet = RNS.Packet(request_destination, b"")
         receipt = packet.send()
 
-        delivery_deadline = time.time() + delivery_budget_seconds
+        delivery_deadline = time.monotonic() + delivery_budget_seconds
         # wait until delivered, or give up after the delivery budget
         while (
             receipt.status != RNS.PacketReceipt.DELIVERED
-            and time.time() < delivery_deadline
+            and time.monotonic() < delivery_deadline
         ):
             await asyncio.sleep(0.1)
 
@@ -547,7 +548,7 @@ def register_path_probe_routes(routes, app):
         limit = request.query.get("limit", None)
         offset = request.query.get("offset", None)
         destination_hashes = None
-        if request.method == "POST":
+        if request.method == "POST" and request.can_read_body:
             try:
                 body = await read_json_limited(request)
                 destination_hashes = body.get("destination_hashes")
@@ -556,7 +557,7 @@ def register_path_probe_routes(routes, app):
             except PayloadTooLargeError:
                 return http_payload_too_large()
             except Exception:
-                pass
+                return http_bad_request("invalid json")
 
         all_paths = []
         if hasattr(app, "reticulum") and app.reticulum:

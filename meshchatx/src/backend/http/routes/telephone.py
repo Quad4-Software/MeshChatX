@@ -31,6 +31,7 @@ from meshchatx.src.backend.http.uploads import (
     read_json_limited,
     write_field_to_path,
 )
+from meshchatx.src.backend.meshchat_utils import json_bool
 from meshchatx.src.path_utils import safe_path_under_dir
 
 logger = logging.getLogger(__name__)
@@ -475,7 +476,7 @@ def register_telephone_routes(routes, app):
             return http_payload_too_large()
         except Exception:
             data = {}
-        active = bool(data.get("active", False)) if isinstance(data, dict) else False
+        active = json_bool(data.get("active"), False) if isinstance(data, dict) else False
         ok = await asyncio.to_thread(app.telephone_manager.set_ptt_active, active)
         if not ok and active:
             return http_bad_request(
@@ -1195,7 +1196,7 @@ def register_telephone_routes(routes, app):
             data = await read_json_limited(request)
 
             display_name = data.get("display_name")
-            is_primary = 1 if data.get("is_primary") else None
+            is_primary = 1 if json_bool(data.get("is_primary")) else None
 
             app.database.ringtones.update(
                 ringtone_id,
@@ -1375,7 +1376,7 @@ def register_telephone_routes(routes, app):
             data = await read_json_limited(request)
 
             display_name = data.get("display_name")
-            is_primary = 1 if data.get("is_primary") else None
+            is_primary = 1 if json_bool(data.get("is_primary")) else None
 
             app.database.notification_sounds.update(
                 sound_id,

@@ -75,3 +75,18 @@ def test_archive_page_enforce_storage_limit(mock_db):
         "DELETE FROM archived_pages WHERE id = ?",
         (10,),
     )
+
+
+def test_archive_page_check_and_insert_run_in_transaction(mock_db):
+    manager = ArchiverManager(mock_db)
+    mock_db.provider.fetchone.side_effect = [None, {"total_size": 100}]
+    mock_db.misc.get_archived_page_versions.return_value = []
+
+    calls = []
+    mock_db.provider.__enter__.side_effect = lambda: calls.append("enter")
+    mock_db.provider.__exit__.side_effect = lambda *args: calls.append("exit")
+    mock_db.misc.archive_page.side_effect = lambda *args: calls.append("insert")
+
+    manager.archive_page("dest", "/path", "content")
+
+    assert calls.index("enter") < calls.index("insert") < calls.index("exit")

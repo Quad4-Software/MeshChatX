@@ -233,7 +233,7 @@ def register_auth_routes(routes, app):
             return http_bad_request("Invalid request body")
         password = data.get("password")
 
-        if not password or len(password) < 8:
+        if not isinstance(password, str) or len(password) < 8:
             if dao:
                 dao.insert(
                     id_hash,
@@ -245,6 +245,18 @@ def register_auth_routes(routes, app):
                     "",
                 )
             return http_bad_request("Password must be at least 8 characters long")
+        if len(password.encode("utf-8")) > 72:
+            if dao:
+                dao.insert(
+                    id_hash,
+                    ip,
+                    ua,
+                    SETUP_PATH,
+                    request.method,
+                    "weak_password",
+                    "",
+                )
+            return http_bad_request("Password must be 72 bytes or fewer")
 
         password_hash = bcrypt.hashpw(
             password.encode("utf-8"),
@@ -325,7 +337,7 @@ def register_auth_routes(routes, app):
                 )
             return http_forbidden("Auth not setup")
 
-        if not password:
+        if not isinstance(password, str) or not password:
             if dao:
                 dao.insert(
                     id_hash,
@@ -337,6 +349,8 @@ def register_auth_routes(routes, app):
                     "",
                 )
             return http_bad_request("Password required")
+        if len(password.encode("utf-8")) > 72:
+            return http_bad_request("Password must be 72 bytes or fewer")
 
         if bcrypt.checkpw(
             password.encode("utf-8"),
@@ -381,6 +395,7 @@ def register_auth_routes(routes, app):
     async def auth_logout(request):
         session = await get_session(request)
         session.invalidate()
+        app._bump_auth_session_epoch()
         return web.json_response({"message": "Logged out successfully"})
 
     # fetch com ports

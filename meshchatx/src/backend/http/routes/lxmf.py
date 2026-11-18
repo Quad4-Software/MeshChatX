@@ -511,7 +511,7 @@ def register_lxmf_routes(routes, app):
         limit = request.query.get("limit", None)
         offset = request.query.get("offset", None)
         destination_hashes = None
-        if request.method == "POST":
+        if request.method == "POST" and request.can_read_body:
             try:
                 body = await read_json_limited(request)
                 destination_hashes = body.get("destination_hashes")
@@ -520,7 +520,7 @@ def register_lxmf_routes(routes, app):
             except PayloadTooLargeError:
                 return http_payload_too_large()
             except Exception:
-                pass
+                return http_bad_request("invalid json")
 
         all_paths = []
         if hasattr(app, "reticulum") and app.reticulum:
@@ -1459,17 +1459,17 @@ def register_lxmf_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         name = data.get("name")
-        if not name:
+        if not isinstance(name, str) or not name.strip():
             return http_bad_request("Name is required")
         try:
-            app.database.messages.create_folder(name)
+            app.database.messages.create_folder(name.strip())
             return web.json_response({"message": "Folder created"})
         except Exception as e:
             return http_error_from_exception(e, key="message", fallback_status=500)
 
     @routes.patch(API_V1_PREFIX + "/lxmf/folders/{id}")
     async def lxmf_folders_patch(request):
-        folder_id = parse_int_param(request.match_info["id"])
+        folder_id = parse_int_param(request.match_info["id"], minimum=1)
         if folder_id is None:
             return http_bad_request("invalid folder id")
         try:
@@ -1477,14 +1477,14 @@ def register_lxmf_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         name = data.get("name")
-        if not name:
+        if not isinstance(name, str) or not name.strip():
             return http_bad_request("Name is required")
-        app.database.messages.rename_folder(folder_id, name)
+        app.database.messages.rename_folder(folder_id, name.strip())
         return web.json_response({"message": "Folder renamed"})
 
     @routes.delete(API_V1_PREFIX + "/lxmf/folders/{id}")
     async def lxmf_folders_delete(request):
-        folder_id = parse_int_param(request.match_info["id"])
+        folder_id = parse_int_param(request.match_info["id"], minimum=1)
         if folder_id is None:
             return http_bad_request("invalid folder id")
         app.database.messages.delete_folder(folder_id)
@@ -1538,6 +1538,8 @@ def register_lxmf_routes(routes, app):
             return http_payload_too_large()
         mark_all = bool(data.get("mark_all"))
         destination_hashes = data.get("destination_hashes", [])
+        if not isinstance(destination_hashes, list):
+            return http_bad_request("destination_hashes must be a list")
         if mark_all:
             app.database.messages.mark_all_conversations_as_read()
             app.database.messages.mark_all_notifications_as_viewed()
@@ -1559,7 +1561,7 @@ def register_lxmf_routes(routes, app):
         except PayloadTooLargeError:
             return http_payload_too_large()
         destination_hashes = data.get("destination_hashes", [])
-        if not destination_hashes:
+        if not isinstance(destination_hashes, list) or not destination_hashes:
             return http_bad_request("destination_hashes is required")
         local_hash = app.local_lxmf_destination.hexhash
         for dest_hash in destination_hashes:
@@ -1589,6 +1591,22 @@ def register_lxmf_routes(routes, app):
             return http_payload_too_large()
         folders = data.get("folders", [])
         mappings = data.get("mappings", [])
+        if not isinstance(folders, list) or not isinstance(mappings, list):
+            return http_bad_request("folders and mappings must be lists")
+        for f in folders:
+            if (
+                not isinstance(f, dict)
+                or not isinstance(f.get("name"), str)
+                or "id" not in f
+            ):
+                return http_bad_request("invalid folder entry")
+        for m in mappings:
+            if (
+                not isinstance(m, dict)
+                or not isinstance(m.get("peer_hash"), str)
+                or "folder_id" not in m
+            ):
+                return http_bad_request("invalid mapping entry")
 
         # We'll try to recreate folders by name to avoid ID conflicts
         folder_name_to_new_id = {}

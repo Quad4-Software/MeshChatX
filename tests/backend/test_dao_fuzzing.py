@@ -27,6 +27,7 @@ from hypothesis import strategies as st
 from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.markdown_renderer import _safe_href
 from meshchatx.src.backend.meshchat_utils import (
+    json_bool,
     message_fields_have_attachments,
     parse_bool_query_param,
 )
@@ -269,6 +270,38 @@ class TestMiscDAOFuzzing:
             query=query or None,
         )
         assert isinstance(results, list)
+
+
+def test_archived_pages_equal_timestamps_paginate_stably(db):
+    for i in range(4):
+        db.misc.provider.execute(
+            "INSERT INTO archived_pages (destination_hash, page_path, content, hash, created_at) VALUES (?, ?, ?, ?, ?)",
+            ("ab" * 16, f"/p{i}", "c", f"h{i}", "2024-01-01T00:00:00+00:00"),
+        )
+    seen = []
+    for offset in (0, 2):
+        rows = db.misc.get_archived_pages_paginated(
+            destination_hash="ab" * 16,
+            limit=2,
+            offset=offset,
+        )
+        seen.extend(r["id"] for r in rows)
+    assert len(seen) == 4
+    assert len(set(seen)) == 4
+
+
+def test_check_spam_keywords_strips_format_chars_and_casefolds(db):
+    db.misc.add_spam_keyword("spam")
+    assert db.misc.check_spam_keywords("", "s\u200bpa\ufeffm")
+    db.misc.add_spam_keyword("straße")
+    assert db.misc.check_spam_keywords("", "STRASSE")
+
+
+def test_check_spam_keywords_normalization_cache_invalidation(db):
+    db.misc.add_spam_keyword("first")
+    assert not db.misc.check_spam_keywords("", "se\u200bcond")
+    db.misc.add_spam_keyword("se\u200bcond")
+    assert db.misc.check_spam_keywords("", "second")
 
 
 # ===================================================================
@@ -704,6 +737,38 @@ class TestParseBoolQueryParam:
     )
     def test_known_values(self, value, expected):
         assert parse_bool_query_param(value) is expected
+
+
+class TestJsonBool:
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ("1", True),
+            ("true", True),
+            ("True", True),
+            ("yes", True),
+            ("on", True),
+            ("0", False),
+            ("false", False),
+            ("no", False),
+            ("", False),
+            ("anything", False),
+            (True, True),
+            (False, False),
+            (1, True),
+            (0, False),
+            (2.5, True),
+            (None, False),
+            ([], False),
+            ({}, False),
+        ],
+    )
+    def test_known_values(self, value, expected):
+        assert json_bool(value) is expected
+
+    def test_defaults(self):
+        assert json_bool(None, True) is True
+        assert json_bool(object(), True) is True
 
 
 # ===================================================================

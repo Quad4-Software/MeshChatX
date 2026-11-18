@@ -182,17 +182,25 @@ def register_oidc_routes(routes, app):
                 app.config,
                 settings.issuer,
             )
+            token_endpoint = metadata.get("token_endpoint")
+            if not token_endpoint:
+                raise oidc.OidcError("OIDC metadata missing token_endpoint")
             token_response = await oidc.exchange_code(
                 app.config,
-                metadata["token_endpoint"],
+                token_endpoint,
                 code=code,
                 redirect_uri=redirect_uri,
                 client_id=settings.client_id,
                 client_secret=settings.client_secret,
                 code_verifier=verifier,
             )
-            id_token = token_response["id_token"]
-            jwks = await oidc.fetch_jwks_cached(app, app.config, metadata["jwks_uri"])
+            id_token = token_response.get("id_token")
+            if not isinstance(id_token, str) or not id_token:
+                raise oidc.OidcTokenError("OIDC token response missing id_token")
+            jwks_uri = metadata.get("jwks_uri")
+            if not jwks_uri:
+                raise oidc.OidcError("OIDC metadata missing jwks_uri")
+            jwks = await oidc.fetch_jwks_cached(app, app.config, jwks_uri)
             try:
                 claims = oidc.verify_id_token(
                     id_token,
@@ -209,7 +217,7 @@ def register_oidc_routes(routes, app):
                 jwks = await oidc.fetch_jwks_cached(
                     app,
                     app.config,
-                    metadata["jwks_uri"],
+                    jwks_uri,
                     refresh=True,
                 )
                 claims = oidc.verify_id_token(

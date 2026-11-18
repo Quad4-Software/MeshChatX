@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from typing import cast
@@ -36,6 +37,8 @@ from meshchatx.src.backend.websocket_runtime import (
 from meshchatx.src.path_utils import is_loopback_bind_host
 
 logger = logging.getLogger(__name__)
+
+_ws_upgrade_lock = asyncio.Lock()
 
 
 async def _reject_forbidden_ws_session(app, request):
@@ -127,14 +130,18 @@ def register_websocket_upgrade_routes(routes, app):
         websocket_response = web.WebSocketResponse(
             max_msg_size=max_msg,
         )
-        await websocket_response.prepare(request)
-        # aiohttp WebSocketResponse does not expose .request, so keep it for
-        # session checks on authenticated mutators (nomadnet downloads, etc).
-        websocket_response._meshchatx_request = request
-        init_client_runtime(websocket_response)
+        async with _ws_upgrade_lock:
+            await websocket_response.prepare(request)
+            if len(app.websocket_clients) >= max_clients:
+                await websocket_response.close()
+                return websocket_response
+            # aiohttp WebSocketResponse does not expose .request, so keep it for
+            # session checks on authenticated mutators (nomadnet downloads, etc).
+            websocket_response._meshchatx_request = request
+            init_client_runtime(websocket_response)
 
-        # add client to connected clients list
-        app.websocket_clients.append(websocket_response)
+            # add client to connected clients list
+            app.websocket_clients.append(websocket_response)
         session = app.active_sessions.add(
             ip=request.remote,
             user_agent=request.headers.get("User-Agent"),

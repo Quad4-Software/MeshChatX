@@ -22,6 +22,8 @@ def register_nomad_routes(routes, app):
         destination_hash = request.match_info.get("destination_hash", "")
 
         # convert destination hash to bytes
+        if len(destination_hash) != 32:
+            return http_bad_request("Invalid destination hash")
         try:
             destination_hash = bytes.fromhex(destination_hash)
         except ValueError:

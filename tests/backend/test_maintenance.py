@@ -74,6 +74,26 @@ class TestMaintenance(unittest.TestCase):
         self.assertEqual(len(message_inserts), 1)
         self.assertIn("ON CONFLICT(hash) DO UPDATE SET", message_inserts[0])
 
+    def test_list_lxmf_message_hashes(self):
+        self.provider.fetchall.return_value = [
+            {"hash": "aa" * 16},
+            {"hash": "bb" * 16},
+            {"hash": None},
+        ]
+        self.assertEqual(
+            self.messages_dao.list_lxmf_message_hashes(),
+            ["aa" * 16, "bb" * 16],
+        )
+        self.assertIn(
+            "SELECT hash FROM lxmf_messages",
+            self.provider.fetchall.call_args[0][0],
+        )
+
+    def test_get_archived_page_versions_orders_by_id(self):
+        self.misc_dao.get_archived_page_versions("dest", "/path")
+        sql = self.provider.fetchall.call_args[0][0]
+        self.assertIn("ORDER BY id DESC", sql)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -111,6 +111,24 @@ class TestConversationMessages(unittest.TestCase):
         )
         self.assertEqual(rows, [])
 
+    def test_equal_timestamps_paginate_without_skip_or_dup(self):
+        peer = secrets.token_hex(16)
+        ts = time.time()
+        for i in range(6):
+            msg = _message(peer, i)
+            msg["timestamp"] = ts
+            self.db.messages.upsert_lxmf_message(msg)
+        seen = []
+        for offset in range(0, 6, 2):
+            rows = self.db.messages.get_conversation_messages(
+                peer,
+                limit=2,
+                offset=offset,
+            )
+            seen.extend(row["id"] for row in rows)
+        self.assertEqual(len(seen), 6)
+        self.assertEqual(len(set(seen)), 6)
+
 
 if __name__ == "__main__":
     unittest.main()

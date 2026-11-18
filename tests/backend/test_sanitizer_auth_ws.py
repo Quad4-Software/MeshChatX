@@ -126,7 +126,7 @@ def test_kml_description_child_html_is_flattened():
         <Point><coordinates>1,2,0</coordinates></Point>
       </Placemark>
     </Document></kml>"""
-    result = sanitize_geo_bytes(kml)
+    result = sanitize_geo_bytes(kml, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
     assert result.feature_count == 1
     lower = result.data.lower()
     assert b"<script" not in lower
@@ -153,7 +153,7 @@ def test_geojson_strips_data_html_and_vbscript_icon_keys():
             ],
         },
     ).encode()
-    result = sanitize_geo_bytes(payload)
+    result = sanitize_geo_bytes(payload, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
     obj = json.loads(result.data)
     props = obj["features"][0]["properties"]
     assert "href" not in props

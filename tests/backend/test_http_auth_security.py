@@ -308,3 +308,115 @@ async def test_auth_middleware_does_not_treat_api_static_suffixes_as_public():
     public = await call("/manifest.json")
     assert public.status == 200
     handler.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+async def test_auth_login_rejects_non_string_password(mock_app):
+    mock_app.config.auth_enabled.set(True)
+    mock_app.config.auth_password_hash.set(
+        bcrypt.hashpw(b"x", bcrypt.gensalt()).decode("utf-8"),
+    )
+    aio_app = _make_aio_app(mock_app, use_https=False)
+
+    async with TestClient(TestServer(aio_app)) as client:
+        headers = await fetch_api_csrf_headers(client)
+        r = await client.post(
+            "/api/v1/auth/login",
+            json={"password": 12345},
+            headers=headers,
+        )
+        assert r.status == 400
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+async def test_auth_login_rejects_password_over_bcrypt_limit(mock_app):
+    mock_app.config.auth_enabled.set(True)
+    mock_app.config.auth_password_hash.set(
+        bcrypt.hashpw(b"x", bcrypt.gensalt()).decode("utf-8"),
+    )
+    aio_app = _make_aio_app(mock_app, use_https=False)
+
+    async with TestClient(TestServer(aio_app)) as client:
+        headers = await fetch_api_csrf_headers(client)
+        r = await client.post(
+            "/api/v1/auth/login",
+            json={"password": "a" * 100},
+            headers=headers,
+        )
+        assert r.status == 400
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+async def test_auth_setup_rejects_non_string_password(mock_app):
+    mock_app.config.auth_enabled.set(True)
+    aio_app = _make_aio_app(mock_app, use_https=False)
+
+    async with TestClient(TestServer(aio_app)) as client:
+        headers = await fetch_api_csrf_headers(client)
+        r = await client.post(
+            "/api/v1/auth/setup",
+            json={"password": 12345},
+            headers=headers,
+        )
+        assert r.status == 400
+        r = await client.post(
+            "/api/v1/auth/setup",
+            json={"password": "a" * 100},
+            headers=headers,
+        )
+        assert r.status == 400
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+async def test_logout_bumps_auth_session_epoch(mock_app):
+    mock_app.config.auth_enabled.set(True)
+    pw = b"epoch-test-password-ok"
+    mock_app.config.auth_password_hash.set(
+        bcrypt.hashpw(pw, bcrypt.gensalt()).decode("utf-8"),
+    )
+    aio_app = _make_aio_app(mock_app, use_https=False)
+
+    async with TestClient(TestServer(aio_app)) as client:
+        headers = await fetch_api_csrf_headers(client)
+        await client.post(
+            "/api/v1/auth/login",
+            json={"password": pw.decode("utf-8")},
+            headers=headers,
+        )
+        epoch_before = mock_app._current_auth_session_epoch()
+
+        headers = await fetch_api_csrf_headers(client)
+        out = await client.post("/api/v1/auth/logout", headers=headers)
+        assert out.status == 200
+
+        assert mock_app._current_auth_session_epoch() == epoch_before + 1
+
+
+@pytest.mark.asyncio
+async def test_auth_middleware_returns_503_when_identity_is_none():
+    app = MagicMock()
+    app.auth_enabled = True
+    app.current_context = MagicMock(running=True)
+    app.identity = None
+    app._startup_stage = "identity-swap"
+
+    handler = AsyncMock(return_value=web.Response(status=200, text="ok"))
+    mw = create_auth_middleware(app)
+    authed_session = AsyncMock(
+        return_value={"authenticated": True, "identity_hash": "aa" * 16},
+    )
+
+    request = MagicMock()
+    request.path = "/api/v1/config"
+    with patch(
+        "meshchatx.src.backend.http.middleware.get_session",
+        authed_session,
+    ):
+        resp = await mw(request, handler)
+
+    assert resp.status == 503
+    handler.assert_not_awaited()

@@ -14,13 +14,11 @@ from meshchatx.src.backend.websocket_config_guard import (
 
 
 async def handle_ping(app, client, data):
-    AsyncUtils.run_async(
-        client.send_str(
-            json.dumps(
-                {
-                    "type": "pong",
-                },
-            ),
+    await client.send_str(
+        json.dumps(
+            {
+                "type": "pong",
+            },
         ),
     )
 
@@ -88,8 +86,12 @@ async def handle_keyboard_shortcuts_get(app, client, data):
 
 
 async def handle_keyboard_shortcuts_set(app, client, data):
-    action = data["action"]
-    keys = json.dumps(data["keys"])
+    action = data.get("action")
+    shortcut_keys = data.get("keys")
+    if not isinstance(action, str) or not action or not isinstance(shortcut_keys, list):
+        print("Invalid action or keys in keyboard_shortcuts.set")
+        return
+    keys = json.dumps(shortcut_keys)
     app.database.misc.upsert_keyboard_shortcut(
         app.identity.hash.hex(),
         action,
@@ -110,7 +112,10 @@ async def handle_keyboard_shortcuts_set(app, client, data):
 
 
 async def handle_keyboard_shortcuts_delete(app, client, data):
-    action = data["action"]
+    action = data.get("action")
+    if not isinstance(action, str) or not action:
+        print("Invalid action in keyboard_shortcuts.delete")
+        return
     app.database.misc.delete_keyboard_shortcut(
         app.identity.hash.hex(),
         action,

@@ -13,7 +13,10 @@ import RNS
 
 from meshchatx.src.backend.async_utils import AsyncUtils
 from meshchatx.src.backend.constants import WsInboundType
-from meshchatx.src.backend.meshchat_utils import normalize_identity_storage_hash
+from meshchatx.src.backend.meshchat_utils import (
+    json_bool,
+    normalize_identity_storage_hash,
+)
 
 
 async def handle_lxmf_forwarding_rules_get(app, client, data):
@@ -53,7 +56,7 @@ def _canonical_forwarding_dest_hash(raw) -> str | None:
 
 async def handle_lxmf_forwarding_rule_add(app, client, data):
     rule_data = data.get("rule")
-    if not rule_data or "forward_to_hash" not in rule_data:
+    if not isinstance(rule_data, dict) or "forward_to_hash" not in rule_data:
         print(
             "Missing rule data or forward_to_hash in lxmf.forwarding.rule.add",
         )
@@ -84,7 +87,7 @@ async def handle_lxmf_forwarding_rule_add(app, client, data):
         identity_hash=identity_hash,
         forward_to_hash=forward_to_hash,
         source_filter_hash=source_filter_hash,
-        is_active=rule_data.get("is_active", True),
+        is_active=json_bool(rule_data.get("is_active"), True),
         name=rule_data.get("name"),
     )
     # notify updated

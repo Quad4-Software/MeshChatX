@@ -20,15 +20,21 @@ class ArchiverManager:
         content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
 
         # Check if already exists
-        existing = self.db.provider.fetchone(
-            "SELECT id FROM archived_pages WHERE destination_hash = ? AND page_path = ? AND hash = ?",
-            (destination_hash, page_path, content_hash),
-        )
-        if existing:
-            return
+        with self.db.provider:
+            existing = self.db.provider.fetchone(
+                "SELECT id FROM archived_pages WHERE destination_hash = ? AND page_path = ? AND hash = ?",
+                (destination_hash, page_path, content_hash),
+            )
+            if existing:
+                return
 
-        # Insert new version
-        self.db.misc.archive_page(destination_hash, page_path, content, content_hash)
+            # Insert new version
+            self.db.misc.archive_page(
+                destination_hash,
+                page_path,
+                content,
+                content_hash,
+            )
 
         # Enforce max versions per page
         versions = self.db.misc.get_archived_page_versions(destination_hash, page_path)

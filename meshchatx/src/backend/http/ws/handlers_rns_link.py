@@ -50,6 +50,27 @@ async def handle_rns_link_identify(app, client, data):
 
 
 async def handle_rns_link_request(app, client, data):
+    aspect = data.get("aspect")
+    timeout = data.get("timeout")
+    failure = None
+    if not isinstance(aspect, str) or not aspect:
+        failure = "invalid_aspect"
+    elif timeout is not None and (
+        isinstance(timeout, bool) or not isinstance(timeout, (int, float))
+    ):
+        failure = "invalid_timeout"
+    if failure is not None:
+        await client.send_str(
+            json.dumps(
+                {
+                    "type": WsInboundType.RNS_LINK_REQUEST,
+                    "request_id": data.get("request_id"),
+                    "status": "failure",
+                    "failure_reason": failure,
+                },
+            ),
+        )
+        return
     app._track_rns_link_task(
         client,
         asyncio.create_task(
