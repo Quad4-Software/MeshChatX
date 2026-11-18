@@ -4,6 +4,11 @@ MeshChatX can check for and install signed updates. The whole feature is
 off by default. With default settings the app makes no update-related
 network requests, registers no RNS destination, and announces nothing.
 
+Current builds ship the updater disabled while the staged rollout is
+finalized. The settings section is hidden and staged apply is a no-op.
+Set `MESHCHATX_UPDATE_ROLLOUT=1` in the environment to exercise it
+during development.
+
 This page describes what is contacted, what is trusted, and how to pin
 your own signer and mirrors.
 
@@ -57,7 +62,7 @@ Artifacts download over HTTPS Range requests or RNS byte ranges, then
 verify against the signed manifest before staging. Blockmaps let the
 client reuse unchanged blocks from the installed copy, so a small
 release delta costs only the changed ranges. A whole-file SHA-256 check
-still runs after assembly; on mismatch the client retries once as a
+still runs after assembly. On mismatch the client retries once as a
 full download and discards on a second failure.
 
 ## Clearnet and RNS
@@ -106,13 +111,19 @@ Verified artifacts stage into private update storage with an atomic
 `pending.json` marker. Nothing applies mid-session.
 
 - `manual` (default): the UI shows the staged file and offers to reveal
-  it. On AppImage installs the desktop shell can swap and relaunch on
-  your command.
-- `on_restart`: the desktop shell applies the staged AppImage before
-  starting the backend on the next launch.
+  it. Self-apply covers AppImage installs (shell swap and relaunch) and
+  portable installs marked `updatable.txt` by packaging (atomic install
+  dir swap and relaunch).
+- `on_restart`: the desktop shell applies the staged artifact before
+  starting the backend on the next launch. Only kinds the shell can
+  apply swap automatically, the rest report as staged.
 
-Non-AppImage artifacts are staged for manual install with instructions.
-Rollback keeps the previous AppImage as `.bak`.
+Windows MSI/NSIS installers, macOS `.dmg`, and `deb`/`rpm` packages
+stage for manual install with instructions. The package manager or
+installer owns those files. Container and flatpak installs are
+external: the client reports the new version and tells you to pull the
+image or run `flatpak update`. Rollback keeps the previous AppImage as
+`.bak`, or the previous install directory as `<dir>.bak`.
 
 ## Offline and manual verification
 

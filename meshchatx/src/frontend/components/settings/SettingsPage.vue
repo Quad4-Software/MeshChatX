@@ -559,7 +559,7 @@
                         </section>
 
                         <PluginsSettingsSection :visible="showSection('plugins')" />
-                        <UpdatesSettingsSection :visible="showSection('updates')" />
+                        <UpdatesSettingsSection v-if="UPDATE_SYSTEM_ROLLOUT" :visible="showSection('updates')" />
 
                         <TelephonySettingsSection
                             :visible="showSection('telephony')"
@@ -3270,6 +3270,10 @@ import {
     saveNomadFavouritesLayout,
 } from "../../js/nomadFavouritesLayoutStore.js";
 
+// Rollout gate: keep the updates section hidden until the staged update
+// rollout is finalized. Mirrors UPDATE_ROLLOUT_ENABLED in update_types.py.
+const UPDATE_SYSTEM_ROLLOUT = false;
+
 export default {
     name: "SettingsPage",
     components: {
@@ -3321,6 +3325,7 @@ export default {
         return {
             DesktopUtils,
             KeyboardShortcuts,
+            UPDATE_SYSTEM_ROLLOUT,
             shortcutsExpanded: typeof window !== "undefined" ? window.innerWidth >= 1024 : true,
             config: {
                 display_name: "",
@@ -4020,6 +4025,9 @@ export default {
         },
         sectionAvailable(sectionKey) {
             if (sectionKey === "plugins" && useAuthStore().pluginsEnabled === false) {
+                return false;
+            }
+            if (sectionKey === "updates" && !UPDATE_SYSTEM_ROLLOUT) {
                 return false;
             }
             return true;
