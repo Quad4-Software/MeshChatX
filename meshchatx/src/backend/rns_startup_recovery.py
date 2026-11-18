@@ -336,6 +336,11 @@ def install_shared_instance_rpc_backlog(
         logger.warning("Could not install RPC listener backlog patch: %s", exc)
         return False
 
+    if not isinstance(RNS.Reticulum, type):
+        # Tests swap RNS.Reticulum for a MagicMock; assigning __init__ on a
+        # mock instance is rejected, and there is no real listener anyway.
+        return False
+
     original_init = RNS.Reticulum.__init__
     original_listener = mp_connection.Listener
 
