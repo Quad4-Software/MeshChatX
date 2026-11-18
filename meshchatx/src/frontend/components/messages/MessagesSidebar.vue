@@ -1392,9 +1392,15 @@ export default {
                 if (!search) {
                     return true;
                 }
-                const matchesDisplayName = peer.display_name.toLowerCase().includes(search);
-                const matchesCustomDisplayName = peer.custom_display_name?.toLowerCase()?.includes(search) === true;
-                const matchesDestinationHash = peer.destination_hash.toLowerCase().includes(search);
+                const matchesDisplayName = String(peer.display_name ?? "")
+                    .toLowerCase()
+                    .includes(search);
+                const matchesCustomDisplayName = String(peer.custom_display_name ?? "")
+                    .toLowerCase()
+                    .includes(search);
+                const matchesDestinationHash = String(peer.destination_hash ?? "")
+                    .toLowerCase()
+                    .includes(search);
                 return matchesDisplayName || matchesCustomDisplayName || matchesDestinationHash;
             });
         },

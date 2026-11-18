@@ -2126,7 +2126,7 @@ export default {
         async _handleNomadWsPayload(json) {
             switch (json.type) {
                 case "announce": {
-                    const aspect = json.announce.aspect;
+                    const aspect = json?.announce?.aspect;
                     if (aspect === "nomadnetwork.node") {
                         this.updateNodeFromAnnounce(json.announce);
                     }

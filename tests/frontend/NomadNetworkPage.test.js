@@ -2185,4 +2185,26 @@ describe("NomadNetworkPage.vue", () => {
             wrapper.unmount();
         });
     });
+
+    describe("announce payload hardening", () => {
+        it("ignores announce payloads without a usable announce object", async () => {
+            const wrapper = mountNomadNetworkPage({
+                destinationHash: "",
+                embedded: true,
+                isActive: true,
+            });
+            await wrapper.vm.$nextTick();
+            const updateSpy = vi.spyOn(wrapper.vm, "updateNodeFromAnnounce");
+
+            await expect(
+                wrapper.vm.onWebsocketMessage({ data: JSON.stringify({ type: "announce", announce: null }) })
+            ).resolves.toBeUndefined();
+            await expect(wrapper.vm.onWebsocketMessage({ type: "announce" })).resolves.toBeUndefined();
+            await expect(
+                wrapper.vm.onWebsocketMessage({ type: "announce", announce: { aspect: "lxmf.delivery" } })
+            ).resolves.toBeUndefined();
+            expect(updateSpy).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+    });
 });

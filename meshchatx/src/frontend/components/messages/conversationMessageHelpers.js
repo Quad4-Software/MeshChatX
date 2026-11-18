@@ -19,7 +19,7 @@ export function isTelemetryOnly(msg) {
     const hasContent = msg.content && msg.content.trim() !== "";
     const hasAttachments = msg.fields?.image || msg.fields?.audio || hasFileAttachments(msg);
     const hasTelemetry = msg.fields?.telemetry || msg.fields?.telemetry_stream;
-    const hasCommands = msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"]);
+    const hasCommands = Array.isArray(msg.fields?.commands) && msg.fields.commands.some((c) => c["0x01"]);
 
     return !hasContent && !hasAttachments && !!(hasTelemetry || hasCommands);
 }
@@ -34,7 +34,8 @@ export function hasRenderableContent(msg) {
     if (msg.fields?.audio) return true;
     if (hasFileAttachments(msg)) return true;
     if (msg.fields?.telemetry || msg.fields?.telemetry_stream) return true;
-    if (msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"] || c["1"] || c["0x1"])) return true;
+    if (Array.isArray(msg.fields?.commands) && msg.fields.commands.some((c) => c["0x01"] || c["1"] || c["0x1"]))
+        return true;
     return false;
 }
 
@@ -51,7 +52,8 @@ export function isFileOnlyMessage(chatItem, shouldHideAutoImageCaption) {
     if (content && !shouldHideAutoImageCaption(chatItem)) return false;
     if (msg.reply_to_hash) return false;
     if (msg.fields?.telemetry || msg.fields?.telemetry_stream) return false;
-    if (msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"] || c["1"] || c["0x1"])) return false;
+    if (Array.isArray(msg.fields?.commands) && msg.fields.commands.some((c) => c["0x01"] || c["1"] || c["0x1"]))
+        return false;
     return true;
 }
 
@@ -83,7 +85,8 @@ export function isImageOnlyMessage(chatItem, shouldHideAutoImageCaption) {
     if (content && !shouldHideAutoImageCaption(chatItem)) return false;
     if (msg.reply_to_hash) return false;
     if (msg.fields?.telemetry || msg.fields?.telemetry_stream) return false;
-    if (msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"] || c["1"] || c["0x1"])) return false;
+    if (Array.isArray(msg.fields?.commands) && msg.fields.commands.some((c) => c["0x01"] || c["1"] || c["0x1"]))
+        return false;
     return true;
 }
 

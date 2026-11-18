@@ -756,7 +756,7 @@ export default {
             }
         },
         onAnnounceEvent(json) {
-            const aspect = json.announce.aspect;
+            const aspect = json?.announce?.aspect;
             if (aspect === "lxmf.delivery") {
                 this.updatePeerFromAnnounce(json.announce);
             }

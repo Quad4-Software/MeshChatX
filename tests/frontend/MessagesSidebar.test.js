@@ -316,6 +316,22 @@ describe("MessagesSidebar UI", () => {
         expect(wrapper.text()).not.toContain("messages.no_peers_discovered");
     });
 
+    it("tolerates peers with missing name or hash fields when searching announces", async () => {
+        const wrapper = mountSidebar({
+            peers: {
+                peer1: { updated_at: new Date().toISOString() },
+                peer2: { display_name: "Relay", updated_at: new Date().toISOString() },
+            },
+            totalPeersCount: 2,
+            peersSearchTerm: "abc",
+            isSearchingAnnounces: false,
+        });
+        await openAnnouncesTab(wrapper);
+
+        expect(() => wrapper.vm.searchedPeers).not.toThrow();
+        expect(wrapper.vm.searchedPeers.length).toBe(0);
+    });
+
     it("does not show the LXMF hash on conversation rows", async () => {
         const conversations = [
             {

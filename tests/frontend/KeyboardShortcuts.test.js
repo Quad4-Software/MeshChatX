@@ -172,4 +172,22 @@ describe("KeyboardShortcuts", () => {
             })
         );
     });
+
+    it("installListeners is idempotent", () => {
+        KeyboardShortcuts.installListeners();
+        KeyboardShortcuts.installListeners();
+        dispatchKeyDown({ key: "1", altKey: true, code: "Digit1" });
+        expect(emitSpy).toHaveBeenCalledTimes(1);
+        expect(emitSpy).toHaveBeenCalledWith("keyboard-shortcut", "nav_messages");
+    });
+
+    it("dispose removes the window listeners and installListeners restores them", () => {
+        KeyboardShortcuts.dispose();
+        dispatchKeyDown({ key: "1", altKey: true, code: "Digit1" });
+        expect(emitSpy).not.toHaveBeenCalledWith("keyboard-shortcut", "nav_messages");
+
+        KeyboardShortcuts.installListeners();
+        dispatchKeyDown({ key: "1", altKey: true, code: "Digit1" });
+        expect(emitSpy).toHaveBeenCalledWith("keyboard-shortcut", "nav_messages");
+    });
 });

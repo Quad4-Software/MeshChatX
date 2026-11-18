@@ -92,7 +92,11 @@ export default {
         window.removeEventListener("keydown", this.onWindowKeydown, true);
     },
     methods: {
-        show({ message, defaultValue, resolve, inputType } = {}) {
+        show(payload = {}) {
+            if (payload && typeof payload === "object") {
+                payload.handled = true;
+            }
+            const { message, defaultValue, resolve, inputType } = payload;
             if (typeof this.resolvePromise === "function") {
                 this.resolvePromise(null);
             }

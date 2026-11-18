@@ -37,6 +37,26 @@ describe("conversationMessageHelpers", () => {
         expect(hasMessageBubble(chatItem, () => false)).toBe(true);
     });
 
+    it("tolerates non-array commands fields from malformed messages", () => {
+        const malformed = [
+            { fields: { commands: "0x01" } },
+            { fields: { commands: 5 } },
+            { fields: { commands: { "0x01": {} } } },
+        ];
+        for (const msg of malformed) {
+            expect(() => isTelemetryOnly({ content: "", ...msg })).not.toThrow();
+            expect(() => hasRenderableContent({ content: "", ...msg })).not.toThrow();
+            expect(() =>
+                isFileOnlyMessage({ lxmf_message: { fields: { file_attachments: [{}], ...msg.fields } } }, () => false)
+            ).not.toThrow();
+            expect(() =>
+                isImageOnlyMessage({ lxmf_message: { fields: { image: {}, ...msg.fields } } }, () => false)
+            ).not.toThrow();
+        }
+        expect(hasRenderableContent({ content: "", fields: { commands: [{ "0x01": {} }] } })).toBe(true);
+        expect(isTelemetryOnly({ content: "", fields: { commands: [{ "0x01": {} }] } })).toBe(true);
+    });
+
     it("isTelemetryOnly when only telemetry fields", () => {
         expect(
             isTelemetryOnly({

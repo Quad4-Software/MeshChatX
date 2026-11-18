@@ -389,7 +389,7 @@
                     class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-fg-muted px-3 py-1.5 text-xs font-semibold text-sem-canvas shadow-xs hover:bg-sem-fg transition-colors"
                     @click.stop="cv.showRawMessage(entry.items[0])"
                 >
-                    Raw LXM
+                    {{ $t("messages.raw_lxm") }}
                 </button>
             </div>
         </div>
@@ -732,7 +732,11 @@
                     >
                         <MaterialDesignIcon icon-name="satellite-variant" class="size-4 opacity-60" />
                         <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
-                            {{ chatItem.is_outbound ? "Telemetry update sent" : "Telemetry update received" }}
+                            {{
+                                chatItem.is_outbound
+                                    ? $t("messages.telemetry_update_sent")
+                                    : $t("messages.telemetry_update_received")
+                            }}
                         </span>
                     </div>
 
@@ -741,24 +745,30 @@
                         class="flex items-center gap-2 mb-2 pb-2 border-b border-sem-border/20"
                     >
                         <MaterialDesignIcon icon-name="database-sync" class="size-4 opacity-60" />
-                        <span class="text-[10px] font-bold uppercase tracking-wider opacity-60"
-                            >Telemetry stream received ({{
-                                chatItem.lxmf_message.fields.telemetry_stream.length
+                        <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                            {{
+                                $t("messages.telemetry_stream_received", {
+                                    count: chatItem.lxmf_message.fields.telemetry_stream.length,
+                                })
                             }}
-                            entries)</span
-                        >
+                        </span>
                     </div>
 
                     <div
                         v-if="
                             !chatItem.lxmf_message.content &&
-                            chatItem.lxmf_message.fields?.commands?.some((c) => c['0x01'] || c['1'] || c['0x1'])
+                            Array.isArray(chatItem.lxmf_message.fields?.commands) &&
+                            chatItem.lxmf_message.fields.commands.some((c) => c['0x01'] || c['1'] || c['0x1'])
                         "
                         class="flex items-center gap-2 mb-2 pb-2 border-b border-sem-border/20"
                     >
                         <MaterialDesignIcon icon-name="crosshairs-question" class="size-4 opacity-60" />
                         <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
-                            {{ chatItem.is_outbound ? "Location Request Sent" : "Location Request Received" }}
+                            {{
+                                chatItem.is_outbound
+                                    ? $t("messages.location_request_sent_label")
+                                    : $t("messages.location_request_received_label")
+                            }}
                         </span>
                     </div>
 
@@ -787,7 +797,7 @@
                                 "
                             >
                                 <MaterialDesignIcon icon-name="account-plus-outline" class="size-5" />
-                                <span class="text-sm font-bold">Contact Shared</span>
+                                <span class="text-sm font-bold">{{ $t("messages.contact_shared") }}</span>
                             </div>
                             <div class="flex items-center gap-3">
                                 <LxmfUserIcon
@@ -1104,7 +1114,7 @@
                                         {{ $t("messages.location_requested") }}
                                     </div>
                                     <div v-if="!chatItem.is_outbound" class="text-[10px] opacity-70">
-                                        Peer is requesting your location
+                                        {{ $t("messages.peer_requesting_location") }}
                                     </div>
                                 </div>
                             </div>
@@ -1128,7 +1138,7 @@
                                 <MaterialDesignIcon icon-name="map-marker" class="size-5" />
                                 <div class="text-left">
                                     <div class="font-bold text-[10px] uppercase tracking-wider opacity-80">
-                                        Location
+                                        {{ $t("messages.location") }}
                                     </div>
                                     <div class="text-[9px] font-mono opacity-70">
                                         {{
@@ -1161,13 +1171,17 @@
                                 />
                                 <div class="text-left">
                                     <div class="font-bold text-[10px] uppercase tracking-wider opacity-80">
-                                        {{ cv.selectedPeer?.is_tracking ? "Tracking Active" : "Live Track" }}
+                                        {{
+                                            cv.selectedPeer?.is_tracking
+                                                ? $t("messages.tracking_active")
+                                                : $t("messages.live_track")
+                                        }}
                                     </div>
                                     <div class="text-[9px] opacity-70">
                                         {{
                                             cv.selectedPeer?.is_tracking
-                                                ? "Auto-requesting location"
-                                                : "Enable live tracking"
+                                                ? $t("messages.auto_requesting_location")
+                                                : $t("messages.enable_live_tracking")
                                         }}
                                     </div>
                                 </div>
@@ -1194,7 +1208,11 @@
                                 class="flex items-center gap-1 opacity-60 text-[10px]"
                             >
                                 <MaterialDesignIcon icon-name="antenna" class="size-3" />
-                                <span>SNR: {{ chatItem.lxmf_message.fields.telemetry.physical_link.snr }}dB</span>
+                                <span>{{
+                                    $t("messages.snr_val", {
+                                        snr: chatItem.lxmf_message.fields.telemetry.physical_link.snr,
+                                    })
+                                }}</span>
                             </div>
                         </div>
                     </div>
@@ -1368,7 +1386,7 @@
                             class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-fg-muted px-3 py-1.5 text-xs font-semibold text-sem-canvas shadow-xs hover:bg-sem-fg transition-colors"
                             @click.stop="cv.showRawMessage(chatItem)"
                         >
-                            Raw LXM
+                            {{ $t("messages.raw_lxm") }}
                         </button>
                     </div>
                 </div>

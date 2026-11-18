@@ -341,4 +341,98 @@ describe("ConversationMessageEntry wiring", () => {
         const ingestBtn = wrapper.findAll("button").find((b) => b.text().trim() === "messages.paper_message_ingest");
         expect(ingestBtn).toBeUndefined();
     });
+
+    it("renders without crashing when fields.commands is a non-array value", () => {
+        for (const commands of ["bogus", 7, { "0x01": {} }]) {
+            const chatItem = {
+                type: "lxmf_message",
+                is_outbound: false,
+                lxmf_message: {
+                    hash: "dd".repeat(16),
+                    state: "delivered",
+                    content: "",
+                    destination_hash: "bb".repeat(16),
+                    source_hash: "cc".repeat(16),
+                    fields: { commands },
+                },
+            };
+            const wrapper = mount(ConversationMessageEntry, {
+                props: {
+                    entry: { type: "message", key: `cmd-${typeof commands}`, chatItem, showTimestamp: true },
+                    cv: makeCv(),
+                },
+                global: {
+                    mocks: { $t: (key) => key },
+                    stubs: {
+                        MaterialDesignIcon: { template: "<span />" },
+                        MessageReactionsOverlay: true,
+                        OutboundTransferProgressFooter: true,
+                    },
+                },
+            });
+            expect(wrapper.text()).not.toContain("messages.location_request_sent_label");
+            expect(wrapper.text()).not.toContain("messages.location_request_received_label");
+        }
+    });
+
+    it("renders localized telemetry and location-request banners", () => {
+        const base = {
+            type: "lxmf_message",
+            lxmf_message: {
+                hash: "ee".repeat(16),
+                state: "delivered",
+                content: "",
+                destination_hash: "bb".repeat(16),
+                source_hash: "cc".repeat(16),
+                fields: {},
+            },
+        };
+        const mountEntry = (chatItem) =>
+            mount(ConversationMessageEntry, {
+                props: {
+                    entry: { type: "message", key: "i18n", chatItem, showTimestamp: true },
+                    cv: makeCv({
+                        outboundBubbleStatusIconName: () => "check",
+                        outboundBubbleStatusTitle: () => "",
+                        retrySendingMessage: vi.fn(),
+                    }),
+                },
+                global: {
+                    mocks: { $t: (key) => key },
+                    stubs: {
+                        MaterialDesignIcon: { template: "<span />" },
+                        MessageReactionsOverlay: true,
+                        OutboundTransferProgressFooter: true,
+                    },
+                },
+            });
+
+        const outboundTelemetry = mountEntry({
+            ...base,
+            is_outbound: true,
+            lxmf_message: { ...base.lxmf_message, fields: { telemetry: {} } },
+        });
+        expect(outboundTelemetry.text()).toContain("messages.telemetry_update_sent");
+
+        const inboundStream = mountEntry({
+            ...base,
+            is_outbound: false,
+            lxmf_message: { ...base.lxmf_message, fields: { telemetry_stream: [{}, {}] } },
+        });
+        expect(inboundStream.text()).toContain("messages.telemetry_stream_received");
+
+        const outboundCommand = mountEntry({
+            ...base,
+            is_outbound: true,
+            lxmf_message: { ...base.lxmf_message, fields: { commands: [{ "0x01": {} }] } },
+        });
+        expect(outboundCommand.text()).toContain("messages.location_request_sent_label");
+
+        const inboundCommand = mountEntry({
+            ...base,
+            is_outbound: false,
+            lxmf_message: { ...base.lxmf_message, fields: { commands: [{ "0x01": {} }] } },
+        });
+        expect(inboundCommand.text()).toContain("messages.location_request_received_label");
+    });
 });

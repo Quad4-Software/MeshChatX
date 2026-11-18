@@ -38,7 +38,11 @@
                     </div>
 
                     <div
-                        v-if="!msg.content && msg.fields?.commands?.some((c) => c['0x01'] || c['1'] || c['0x1'])"
+                        v-if="
+                            !msg.content &&
+                            Array.isArray(msg.fields?.commands) &&
+                            msg.fields.commands.some((c) => c['0x01'] || c['1'] || c['0x1'])
+                        "
                         class="flex items-center gap-1 mb-1 pb-1 border-b border-white/10 opacity-80"
                     >
                         <MaterialDesignIcon icon-name="crosshairs-question" class="size-2.5" />

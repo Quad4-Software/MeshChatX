@@ -10,6 +10,11 @@ import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 describe("DialogUtils.confirm", () => {
     beforeEach(() => {
         vi.mocked(GlobalEmitter.emit).mockClear();
+        vi.mocked(GlobalEmitter.emit).mockImplementation((type, payload) => {
+            if (payload && typeof payload === "object") {
+                payload.handled = true;
+            }
+        });
         vi.mocked(GlobalEmitter.listenerCount).mockClear();
         vi.mocked(GlobalEmitter.listenerCount).mockReturnValue(1);
         delete window.desktop;
@@ -60,11 +65,25 @@ describe("DialogUtils.confirm", () => {
         await expect(DialogUtils.confirm("Delete this?")).resolves.toBe(false);
         expect(GlobalEmitter.emit).not.toHaveBeenCalled();
     });
+
+    it("resolves false when no dialog host consumes the emitted payload", async () => {
+        vi.mocked(GlobalEmitter.emit).mockImplementation(() => {});
+        await expect(DialogUtils.confirm("Delete this?")).resolves.toBe(false);
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith(
+            "confirm",
+            expect.objectContaining({ message: "Delete this?" })
+        );
+    });
 });
 
 describe("DialogUtils.prompt", () => {
     beforeEach(() => {
         vi.mocked(GlobalEmitter.emit).mockClear();
+        vi.mocked(GlobalEmitter.emit).mockImplementation((type, payload) => {
+            if (payload && typeof payload === "object") {
+                payload.handled = true;
+            }
+        });
         vi.mocked(GlobalEmitter.listenerCount).mockClear();
         vi.mocked(GlobalEmitter.listenerCount).mockReturnValue(1);
         delete window.desktop;
@@ -127,5 +146,14 @@ describe("DialogUtils.prompt", () => {
         vi.mocked(GlobalEmitter.listenerCount).mockReturnValue(0);
         await expect(DialogUtils.prompt("Enter version")).resolves.toBeNull();
         expect(GlobalEmitter.emit).not.toHaveBeenCalled();
+    });
+
+    it("resolves null when no dialog host consumes the emitted payload", async () => {
+        vi.mocked(GlobalEmitter.emit).mockImplementation(() => {});
+        await expect(DialogUtils.prompt("Enter version")).resolves.toBeNull();
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith(
+            "prompt",
+            expect.objectContaining({ message: "Enter version" })
+        );
     });
 });

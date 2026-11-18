@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useVirtualizer } from "@tanstack/vue-virtual";
 import ConversationMessageEntry from "./ConversationMessageEntry.vue";
 import {
@@ -63,13 +63,24 @@ const totalSize = computed(() => virtualizer.value.getTotalSize());
 // entrance animation on the inner entry. Scroll remounts and history
 // prepends stay static because only tail additions are tracked.
 const freshInboundKeys = ref(new Set());
+const freshInboundTimers = new Set();
 let knownKeys = new Set();
 let primedKey = null;
+
+function clearFreshInboundTimers() {
+    for (const id of freshInboundTimers) {
+        clearTimeout(id);
+    }
+    freshInboundTimers.clear();
+}
+
+onBeforeUnmount(clearFreshInboundTimers);
 
 watch([() => props.groups, () => props.listKey], ([groups]) => {
     if (primedKey !== props.listKey) {
         primedKey = props.listKey;
         knownKeys = new Set(groups.map((g) => g.key));
+        clearFreshInboundTimers();
         freshInboundKeys.value = new Set();
         return;
     }
@@ -81,11 +92,13 @@ watch([() => props.groups, () => props.listKey], ([groups]) => {
     const merged = new Set(freshInboundKeys.value);
     fresh.forEach((k) => merged.add(k));
     freshInboundKeys.value = merged;
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+        freshInboundTimers.delete(timer);
         const pruned = new Set(freshInboundKeys.value);
         fresh.forEach((k) => pruned.delete(k));
         freshInboundKeys.value = pruned;
     }, 700);
+    freshInboundTimers.add(timer);
 });
 
 function measureElement(el) {

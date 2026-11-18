@@ -2522,6 +2522,7 @@ export default {
                         peerKey,
                         known: new Set((groups || []).map((g) => g.key)),
                     };
+                    this.clearFreshInboundFlowTimers();
                     this.freshInboundFlowKeys = new Set();
                     return;
                 }
@@ -2533,11 +2534,13 @@ export default {
                 const merged = new Set(this.freshInboundFlowKeys);
                 fresh.forEach((k) => merged.add(k));
                 this.freshInboundFlowKeys = merged;
-                setTimeout(() => {
+                const timer = setTimeout(() => {
+                    this._freshInboundFlowTimers.delete(timer);
                     const pruned = new Set(this.freshInboundFlowKeys);
                     fresh.forEach((k) => pruned.delete(k));
                     this.freshInboundFlowKeys = pruned;
                 }, 700);
+                this._freshInboundFlowTimers.add(timer);
             },
         },
         showTelemetryInChat() {
@@ -2578,6 +2581,7 @@ export default {
     },
     created() {
         this._outboundQueue = createOutboundQueue((job) => this._executeOutboundSendJob(job));
+        this._freshInboundFlowTimers = new Set();
         this.sendStatusUiMs = Date.now();
         this.lastDraftIdentityKey = this._draftIdentityKey();
     },
@@ -2652,6 +2656,7 @@ export default {
             this._composerOverlayObserver = null;
         }
         clearTimeout(this.paperGenerateTimeout);
+        this.clearFreshInboundFlowTimers();
         this._cleanupReactionPickerDrag();
         this.closeReactionPicker();
         this.teardownPeerHeaderResizeObserver();
@@ -4327,6 +4332,13 @@ export default {
         },
         resetStaleConversationScrollSurface() {
             resetMessagesScrollSurface(this.$refs.messagesScroll ?? null);
+        },
+
+        clearFreshInboundFlowTimers() {
+            for (const id of this._freshInboundFlowTimers) {
+                clearTimeout(id);
+            }
+            this._freshInboundFlowTimers.clear();
         },
 
         disconnectOpenConversationScrollObserver() {

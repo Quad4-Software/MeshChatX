@@ -30,11 +30,14 @@ class DialogUtils {
                 resolve(false);
                 return;
             }
-            const payload = { message: dialogMessage(message), resolve };
+            const payload = { message: dialogMessage(message), resolve, handled: false };
             if (typeof title === "string" && title.trim()) {
                 payload.title = title.trim();
             }
             GlobalEmitter.emit(EMITTER_EVENTS.CONFIRM, payload);
+            if (payload.handled !== true) {
+                resolve(false);
+            }
         });
     }
 
@@ -50,12 +53,17 @@ class DialogUtils {
                 resolve(null);
                 return;
             }
-            GlobalEmitter.emit(EMITTER_EVENTS.PROMPT, {
+            const payload = {
                 message: dialogMessage(message),
                 defaultValue: defaultValue == null ? "" : String(defaultValue),
                 inputType,
                 resolve,
-            });
+                handled: false,
+            };
+            GlobalEmitter.emit(EMITTER_EVENTS.PROMPT, payload);
+            if (payload.handled !== true) {
+                resolve(null);
+            }
         });
     }
 }

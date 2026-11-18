@@ -8,11 +8,37 @@ class KeyboardShortcuts {
         this.activeKeys = new Set();
         this.isRecording = false;
         this.onRecordCallback = null;
+        this._listenersInstalled = false;
+        this._boundHandlers = null;
+        this.installListeners();
+    }
 
-        window.addEventListener("keydown", (e) => this.handleKeyDown(e));
-        window.addEventListener("keyup", (e) => this.handleKeyUp(e));
-        window.addEventListener("blur", () => this.activeKeys.clear());
-        window.addEventListener("mousedown", () => this.activeKeys.clear()); // Clear on mouse click to prevent stuck modifiers
+    installListeners() {
+        if (this._listenersInstalled) {
+            return;
+        }
+        this._boundHandlers = {
+            keydown: (e) => this.handleKeyDown(e),
+            keyup: (e) => this.handleKeyUp(e),
+            clearActive: () => this.activeKeys.clear(),
+        };
+        window.addEventListener("keydown", this._boundHandlers.keydown);
+        window.addEventListener("keyup", this._boundHandlers.keyup);
+        window.addEventListener("blur", this._boundHandlers.clearActive);
+        window.addEventListener("mousedown", this._boundHandlers.clearActive); // Clear on mouse click to prevent stuck modifiers
+        this._listenersInstalled = true;
+    }
+
+    dispose() {
+        if (!this._listenersInstalled) {
+            return;
+        }
+        window.removeEventListener("keydown", this._boundHandlers.keydown);
+        window.removeEventListener("keyup", this._boundHandlers.keyup);
+        window.removeEventListener("blur", this._boundHandlers.clearActive);
+        window.removeEventListener("mousedown", this._boundHandlers.clearActive);
+        this._boundHandlers = null;
+        this._listenersInstalled = false;
     }
 
     getDefaultShortcuts() {

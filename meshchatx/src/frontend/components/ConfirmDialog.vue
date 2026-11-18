@@ -105,7 +105,11 @@ export default {
         window.removeEventListener("keyup", this.onWindowKeyup, true);
     },
     methods: {
-        show({ message, title, resolve } = {}) {
+        show(payload = {}) {
+            if (payload && typeof payload === "object") {
+                payload.handled = true;
+            }
+            const { message, title, resolve } = payload;
             if (typeof this.resolvePromise === "function") {
                 this.resolvePromise(false);
             }

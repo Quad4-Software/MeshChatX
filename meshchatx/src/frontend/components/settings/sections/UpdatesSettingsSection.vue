@@ -42,7 +42,7 @@
                 <label class="block text-sm">
                     <span class="text-sem-fg-muted">{{ $t("updates.transport") }}</span>
                     <select
-                        class="mt-1 w-full rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-sm"
+                        class="mt-1 w-full rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-sm text-sem-fg"
                         :value="settings.transport"
                         :disabled="busy"
                         @change="savePatch({ transport: $event.target.value })"
@@ -55,7 +55,7 @@
                 <label class="block text-sm">
                     <span class="text-sem-fg-muted">{{ $t("updates.channel") }}</span>
                     <select
-                        class="mt-1 w-full rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-sm"
+                        class="mt-1 w-full rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-sm text-sem-fg"
                         :value="settings.channel || status.channel"
                         :disabled="busy"
                         @change="savePatch({ channel: $event.target.value })"
@@ -68,7 +68,7 @@
                 <label class="block text-sm">
                     <span class="text-sem-fg-muted">{{ $t("updates.apply_policy") }}</span>
                     <select
-                        class="mt-1 w-full rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-sm"
+                        class="mt-1 w-full rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-sm text-sem-fg"
                         :value="settings.apply_policy"
                         :disabled="busy"
                         @change="savePatch({ apply_policy: $event.target.value })"

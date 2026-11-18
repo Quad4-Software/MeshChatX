@@ -3067,4 +3067,31 @@ describe("ConversationViewer.vue", () => {
             wrapper.unmount();
         });
     });
+
+    describe("fresh inbound flow timers", () => {
+        it("clears pending entrance timers on peer switch and unmount", async () => {
+            vi.useFakeTimers();
+            const wrapper = mountConversationViewer();
+            await flushPromises();
+            const handler =
+                wrapper.vm.$options.watch.selectedPeerChatDisplayGroupsOldestFirstAugmented.handler;
+            const inbound = (key) => ({ key, chatItem: { is_outbound: false } });
+
+            handler.call(wrapper.vm, [inbound("g1")]);
+            handler.call(wrapper.vm, [inbound("g1"), inbound("g2")]);
+            expect(wrapper.vm.freshInboundFlowKeys.has("g2")).toBe(true);
+            expect(wrapper.vm._freshInboundFlowTimers.size).toBe(1);
+
+            wrapper.vm._flowMsgListState.peerKey = "stale-peer";
+            handler.call(wrapper.vm, [inbound("h1")]);
+            expect(wrapper.vm._freshInboundFlowTimers.size).toBe(0);
+            expect(wrapper.vm.freshInboundFlowKeys.size).toBe(0);
+
+            handler.call(wrapper.vm, [inbound("h1"), inbound("h2")]);
+            expect(wrapper.vm._freshInboundFlowTimers.size).toBe(1);
+            wrapper.unmount();
+            expect(wrapper.vm._freshInboundFlowTimers.size).toBe(0);
+            vi.useRealTimers();
+        });
+    });
 });

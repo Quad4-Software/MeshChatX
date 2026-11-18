@@ -41,7 +41,10 @@
         </div>
 
         <div
-            v-if="item.lxmf_message.fields?.commands?.some((c) => c['0x01'])"
+            v-if="
+                Array.isArray(item.lxmf_message.fields?.commands) &&
+                item.lxmf_message.fields.commands.some((c) => c['0x01'])
+            "
             class="flex items-center gap-2 text-[10px] text-sem-success mt-1"
         >
             <MaterialDesignIcon icon-name="crosshairs-question" class="size-3" />

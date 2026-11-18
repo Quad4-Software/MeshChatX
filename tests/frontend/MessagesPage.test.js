@@ -875,4 +875,15 @@ describe("MessagesPage.vue", () => {
 
         expect(takeConversationPrefetch(peerHash)).toBeNull();
     });
+
+    it("ignores announce events without a usable announce payload", async () => {
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+        const updateSpy = vi.spyOn(wrapper.vm, "updatePeerFromAnnounce");
+
+        expect(() => wrapper.vm.onAnnounceEvent({})).not.toThrow();
+        expect(() => wrapper.vm.onAnnounceEvent({ announce: null })).not.toThrow();
+        expect(() => wrapper.vm.onAnnounceEvent({ announce: "malformed" })).not.toThrow();
+        expect(updateSpy).not.toHaveBeenCalled();
+    });
 });
