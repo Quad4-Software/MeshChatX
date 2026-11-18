@@ -325,7 +325,7 @@ def test_delete_all_lxmf_messages(message_dao, mock_provider):
 def test_get_conversation_messages(message_dao, mock_provider):
     message_dao.get_conversation_messages("peer1", limit=10, offset=5)
     mock_provider.fetchall.assert_called_with(
-        "SELECT * FROM lxmf_messages WHERE peer_hash = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?",
+        "SELECT * FROM lxmf_messages WHERE peer_hash = ? ORDER BY timestamp DESC, id DESC LIMIT ? OFFSET ?",
         ("peer1", 10, 5),
     )
 

@@ -827,7 +827,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         """Notification unread filter should use the is_viewed index."""
         print("\n[Query Plan] Notifications unread:")
         rows = self.db.provider.fetchall(
-            "EXPLAIN QUERY PLAN SELECT * FROM notifications WHERE is_viewed = 0 ORDER BY timestamp DESC LIMIT 50",
+            "EXPLAIN QUERY PLAN SELECT * FROM notifications WHERE is_viewed = 0 ORDER BY timestamp DESC, id DESC LIMIT 50",
         )
         plan = " ".join(str(r["detail"]) for r in rows)
         print(f"  {plan}")
