@@ -304,6 +304,8 @@ def install_shared_instance_rpc_deadline(
             last_error = error
             if attempt + 1 < _RPC_CONNECT_ATTEMPTS:
                 time.sleep(_RPC_CONNECT_RETRY_DELAY_S * (attempt + 1))
+        if last_error is None:
+            raise RuntimeError("shared instance RPC connect failed")
         raise last_error
 
     RNS.Reticulum.get_rpc_client = _deadlined_get_rpc_client
