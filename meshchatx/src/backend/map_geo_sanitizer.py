@@ -12,6 +12,8 @@ from io import BytesIO
 from xml.etree import ElementTree as ET  # nosec: BAN-B405
 
 from meshchatx.src.backend.map_geo_validator import (
+    MAX_COMPRESSION_RATIO,
+    MAX_KMZ_ENTRIES,
     ZIP_LOCAL_HEADER,
     GeoValidationError,
     _looks_like_dtd,
@@ -344,7 +346,11 @@ def _zip_entry_ext(name: str) -> str:
     return "." + lower.rsplit(".", 1)[-1]
 
 
-def sanitize_kmz_bytes(data: bytes) -> SanitizeResult:
+def sanitize_kmz_bytes(
+    data: bytes,
+    *,
+    max_uncompressed_bytes: int,
+) -> SanitizeResult:
     if not data.startswith(ZIP_LOCAL_HEADER):
         raise GeoValidationError("invalid_kmz")
     try:
@@ -354,12 +360,24 @@ def sanitize_kmz_bytes(data: bytes) -> SanitizeResult:
     stripped: list[str] = []
     with zf:
         infos = [i for i in zf.infolist() if not i.is_dir()]
-        kml_name = None
-        kept: dict[str, bytes] = {}
+        if len(infos) > MAX_KMZ_ENTRIES:
+            raise GeoValidationError("kmz_too_many_entries")
+        total_uncomp = 0
         for info in infos:
             name = info.filename.replace("\\", "/")
             if ".." in name.split("/"):
                 raise GeoValidationError("path_traversal")
+            total_uncomp += int(info.file_size)
+            if total_uncomp > max_uncompressed_bytes:
+                raise GeoValidationError("kmz_uncompressed_too_large")
+            if info.compress_size > 0:
+                ratio = float(info.file_size) / float(info.compress_size)
+                if ratio > MAX_COMPRESSION_RATIO and info.file_size > 1024 * 1024:
+                    raise GeoValidationError("kmz_compression_ratio")
+        kml_name = None
+        kept: dict[str, bytes] = {}
+        for info in infos:
+            name = info.filename.replace("\\", "/")
             ext = _zip_entry_ext(name)
             if ext not in ALLOWED_KMZ_EXTS:
                 # ArcGIS KMZ exports include unused .xsl balloon stylesheets.
@@ -423,25 +441,26 @@ def _resolve_zip_href(kml_path: str, href: str) -> str | None:
 
 
 def _strip_geojson_remote_urls(obj, stripped: list[str]) -> None:
-    if isinstance(obj, dict):
-        props = obj.get("properties")
-        if isinstance(props, dict):
-            for key, val in list(props.items()):
-                if not isinstance(val, str):
-                    continue
-                key_l = str(key).lower()
-                if not any(tok in key_l for tok in ICON_URL_KEYS):
-                    continue
-                if is_allowed_data_image_href(val):
-                    continue
-                if is_remote_href(val) or val.strip().lower().startswith("data:"):
-                    stripped.append("remote_href")
-                    del props[key]
-        for v in obj.values():
-            _strip_geojson_remote_urls(v, stripped)
-    elif isinstance(obj, list):
-        for item in obj:
-            _strip_geojson_remote_urls(item, stripped)
+    stack = [obj]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, dict):
+            props = node.get("properties")
+            if isinstance(props, dict):
+                for key, val in list(props.items()):
+                    if not isinstance(val, str):
+                        continue
+                    key_l = str(key).lower()
+                    if not any(tok in key_l for tok in ICON_URL_KEYS):
+                        continue
+                    if is_allowed_data_image_href(val):
+                        continue
+                    if is_remote_href(val) or val.strip().lower().startswith("data:"):
+                        stripped.append("remote_href")
+                        del props[key]
+            stack.extend(node.values())
+        elif isinstance(node, list):
+            stack.extend(node)
 
 
 def sanitize_geojson_bytes(data: bytes) -> SanitizeResult:
@@ -483,6 +502,7 @@ def sanitize_geo_bytes(
     data: bytes,
     *,
     hinted_format: str | None = None,
+    max_kmz_uncompressed_bytes: int,
 ) -> SanitizeResult:
     if not data:
         raise GeoValidationError("empty_file")
@@ -492,5 +512,8 @@ def sanitize_geo_bytes(
     if fmt == "kml":
         return sanitize_kml_bytes(data, zip_local_ok=False)
     if fmt == "kmz":
-        return sanitize_kmz_bytes(data)
+        return sanitize_kmz_bytes(
+            data,
+            max_uncompressed_bytes=max_kmz_uncompressed_bytes,
+        )
     raise GeoValidationError("unknown_format")

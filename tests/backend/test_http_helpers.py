@@ -345,6 +345,33 @@ class TestReadBodyLimited:
         with pytest.raises(PayloadTooLargeError):
             await read_body_limited(request, 3)
 
+    @pytest.mark.asyncio
+    async def test_content_read_path(self):
+        class _ReadableContent:
+            def __init__(self):
+                self._sent = False
+
+            async def read(self, _n=-1):
+                if self._sent:
+                    return b""
+                self._sent = True
+                return b"abcdef"
+
+        request = _FakeRequest([])
+        request.content = _ReadableContent()
+        assert await read_body_limited(request, 16) == b"abcdef"
+
+    @pytest.mark.asyncio
+    async def test_content_read_over_cap_raises(self):
+        class _ReadableContent:
+            async def read(self, n=-1):
+                return b"abcdef"[:n] if n >= 0 else b"abcdef"
+
+        request = _FakeRequest([])
+        request.content = _ReadableContent()
+        with pytest.raises(PayloadTooLargeError):
+            await read_body_limited(request, 3)
+
     @given(
         pair=chunked_bytes(st.binary(min_size=0, max_size=4096)),
         cap=st.integers(min_value=0, max_value=4096),

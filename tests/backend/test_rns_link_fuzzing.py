@@ -313,6 +313,55 @@ async def test_rns_link_request_missing_path():
     assert sent[-1]["failure_reason"] == "missing_path"
 
 
+@pytest.mark.asyncio
+async def test_rns_link_request_handler_rejects_invalid_aspect():
+    from meshchatx.src.backend.http.ws.handlers_rns_link import (
+        handle_rns_link_request,
+    )
+
+    app = _make_app()
+    client, sent = _capture_client()
+    await handle_rns_link_request(
+        app,
+        client,
+        {
+            "destination_hash": "aa" * 16,
+            "aspect": 123,
+            "path": "/status",
+            "request_id": "bad-aspect",
+        },
+    )
+    assert sent[-1]["type"] == "rns.link.request"
+    assert sent[-1]["status"] == "failure"
+    assert sent[-1]["failure_reason"] == "invalid_aspect"
+    assert sent[-1]["request_id"] == "bad-aspect"
+
+
+@pytest.mark.asyncio
+async def test_rns_link_request_handler_rejects_invalid_timeout():
+    from meshchatx.src.backend.http.ws.handlers_rns_link import (
+        handle_rns_link_request,
+    )
+
+    app = _make_app()
+    client, sent = _capture_client()
+    for bad_timeout in ("fast", {"secs": 5}, [10], True):
+        await handle_rns_link_request(
+            app,
+            client,
+            {
+                "destination_hash": "aa" * 16,
+                "aspect": "microrn.mgmt",
+                "path": "/status",
+                "timeout": bad_timeout,
+                "request_id": "bad-timeout",
+            },
+        )
+        assert sent[-1]["type"] == "rns.link.request"
+        assert sent[-1]["status"] == "failure"
+        assert sent[-1]["failure_reason"] == "invalid_timeout"
+
+
 def _run_async_immediate(coro):
     return asyncio.create_task(coro)
 
@@ -365,3 +414,47 @@ def test_rns_link_event_schema_property(event, dest, aspect, payload):
     if payload is not None:
         message["payload_b64"] = base64.b64encode(payload).decode("ascii")
     assert_ws_message_matches_schema(message)
+
+
+@pytest.mark.asyncio
+async def test_rns_link_request_file_response_capped_and_closed():
+    import io
+    import time
+
+    import meshchatx.meshchat as meshchat_mod
+    from meshchatx.meshchat import _RNS_LINK_RESPONSE_MAX_BYTES
+
+    meshchat_mod.AsyncUtils.run_async.side_effect = asyncio.ensure_future
+    app = _make_app()
+    captured = {}
+
+    def fake_request(*_args, **kwargs):
+        captured["cb"] = kwargs["response_callback"]
+        return MagicMock()
+
+    app.rns_link_manager.open_link = AsyncMock(
+        return_value=(MagicMock(), False, None),
+    )
+    app.rns_link_manager.request = MagicMock(side_effect=fake_request)
+    client, sent = _capture_client()
+    await app._handle_rns_link_request(
+        client,
+        {
+            "destination_hash": "aa" * 16,
+            "aspect": "microrn.mgmt",
+            "path": "big",
+            "request_id": "cap-1",
+        },
+    )
+    assert "cb" in captured
+    raw = io.BytesIO(b"\x00" * (_RNS_LINK_RESPONSE_MAX_BYTES + 1))
+    captured["cb"](MagicMock(response=raw))
+    assert raw.closed
+    deadline = time.time() + 5
+    while time.time() < deadline and not any(
+        p.get("status") == "success" for p in sent
+    ):
+        await asyncio.sleep(0.05)
+    success = [p for p in sent if p.get("status") == "success"]
+    assert success
+    assert success[-1]["body_b64"] == ""

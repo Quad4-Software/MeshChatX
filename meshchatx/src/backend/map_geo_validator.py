@@ -42,6 +42,9 @@ def _looks_like_dtd(text: str) -> bool:
     i, n = 0, len(text)
     parts: list[str] = []
     while i < n:
+        if i == 0 and text[i] == "\ufeff":
+            i += 1
+            continue
         if text[i].isspace():
             i += 1
             continue

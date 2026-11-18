@@ -434,7 +434,6 @@ class MapDataManager:
             raise MapDataError("file_too_large")
         if self._published_count() >= MAX_PUBLISHED_MAPS:
             raise MapDataError("max_published_exceeded")
-        sanitized = sanitize_geo_bytes(payload, hinted_format=hinted_format)
         limits = {
             "max_bytes": max_bytes,
             "max_features": int(self.config.map_overlay_max_features.get() or 50_000),
@@ -443,6 +442,11 @@ class MapDataManager:
                 or (16 * 1024 * 1024),
             ),
         }
+        sanitized = sanitize_geo_bytes(
+            payload,
+            hinted_format=hinted_format,
+            max_kmz_uncompressed_bytes=limits["max_kmz"],
+        )
         validated = validate_geo_bytes(
             sanitized.data,
             hinted_format=sanitized.format,
@@ -719,17 +723,22 @@ class MapDataManager:
                 raise MapDataError("sha256_mismatch")
             if hashlib.sha256(body).hexdigest() != want:
                 raise MapDataError("sha256_mismatch")
+        max_kmz = int(
+            self.config.map_overlay_max_kmz_uncompressed_bytes.get()
+            or (16 * 1024 * 1024),
+        )
         try:
-            sanitized = sanitize_geo_bytes(body, hinted_format=hinted_format)
+            sanitized = sanitize_geo_bytes(
+                body,
+                hinted_format=hinted_format,
+                max_kmz_uncompressed_bytes=max_kmz,
+            )
             validate_geo_bytes(
                 sanitized.data,
                 hinted_format=sanitized.format,
                 max_bytes=max_bytes,
                 max_features=int(self.config.map_overlay_max_features.get() or 50_000),
-                max_kmz_uncompressed_bytes=int(
-                    self.config.map_overlay_max_kmz_uncompressed_bytes.get()
-                    or (16 * 1024 * 1024),
-                ),
+                max_kmz_uncompressed_bytes=max_kmz,
             )
         except GeoValidationError as exc:
             raise MapDataError(exc.code) from exc

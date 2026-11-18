@@ -541,6 +541,16 @@ class TestPageNodeFiles:
         assert files[0]["size"] == 1
         assert files[1]["size"] == 2
 
+    def test_read_hosted_file_rejects_oversized(self, node_dir, mock_rns):
+        from meshchatx.src.backend import page_node as page_node_mod
+
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        big_path = os.path.join(node.files_dir, "big.bin")
+        with open(big_path, "wb") as f:
+            f.truncate(page_node_mod.HOSTED_FILE_MAX_BYTES + 1)
+        assert node.read_hosted_file("big.bin") is None
+
 
 class TestPageNodeResponders:
     def test_page_responder_returns_content(self, node_dir, mock_rns):
@@ -549,7 +559,11 @@ class TestPageNodeResponders:
         node.add_page("index.mu", "page content")
         responder = node._make_page_responder("index.mu")
         result = responder("/page/index.mu", None, "req1", "link1", None, 0)
-        assert result == b"page content"
+        assert isinstance(result, list)
+        handle, metadata = result
+        assert handle.read() == b"page content"
+        handle.close()
+        assert metadata["name"] == b"index.mu"
 
     def test_page_responder_records_remote_identity(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)

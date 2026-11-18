@@ -78,6 +78,8 @@ MEDIA_HASH_CACHE_MAX_ENTRIES = 1024
 # every request. The marker is retried after this many seconds so a backend
 # installed later still gets a chance.
 MEDIA_CONVERT_FAILURE_RETRY_SECONDS = 3600
+HOSTED_FILE_MAX_BYTES = 64 * 1024 * 1024
+_FILE_READ_CHUNK_BYTES = 64 * 1024
 # tempfile.tempdir / os.environ are process-global, so every media convert
 # across every PageNode instance must serialize on one shared lock.
 _MEDIA_ENV_LOCK = threading.Lock()
@@ -949,12 +951,24 @@ class PageNode:
 
         def responder(path, data, request_id, link_id, remote_identity, requested_at):
             self._note_remote_identity(remote_identity)
-            content = self.serve_page_content(
-                page_name,
-                data=data,
-                link_id=link_id,
-                remote_identity=remote_identity,
-            )
+            page_path = self._resolve_page_path(page_name)
+            if page_path is None:
+                return None
+            if self._should_execute_page(page_path):
+                content = self.serve_page_content(
+                    page_name,
+                    data=data,
+                    link_id=link_id,
+                    remote_identity=remote_identity,
+                )
+            else:
+                try:
+                    fh = self._open_jailed(page_path)
+                except OSError:
+                    return None
+                metadata = {"name": os.path.basename(page_path).encode("utf-8")}
+                self._stats["pages_served"] += 1
+                content = [fh, metadata]
             if content is not None:
                 self._grant_file_access(link_id, remote_identity)
             return content
@@ -1000,6 +1014,8 @@ class PageNode:
         if file_path is None:
             return None
         try:
+            if os.path.getsize(file_path) > HOSTED_FILE_MAX_BYTES:
+                return None
             with self._open_jailed(file_path) as f:
                 file_bytes = f.read()
         except OSError:
@@ -1095,8 +1111,11 @@ class PageNode:
             source_hash = cached[1]
         else:
             try:
+                hasher = hashlib.sha256()
                 with open(source_path, "rb") as f:
-                    source_hash = hashlib.sha256(f.read()).hexdigest()
+                    for chunk in iter(lambda: f.read(_FILE_READ_CHUNK_BYTES), b""):
+                        hasher.update(chunk)
+                source_hash = hasher.hexdigest()
             except OSError:
                 return None
             if len(self._media_hash_cache) >= MEDIA_HASH_CACHE_MAX_ENTRIES:

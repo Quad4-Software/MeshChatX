@@ -58,7 +58,7 @@ def test_sanitize_kml_strips_remote_icon_keeps_placemark():
         <Point><coordinates>1,2,0</coordinates></Point>
       </Placemark>
     </Document></kml>"""
-    result = sanitize_geo_bytes(kml)
+    result = sanitize_geo_bytes(kml, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
     assert result.format == "kml"
     assert result.feature_count == 1
     assert "remote_href" in result.stripped
@@ -71,7 +71,7 @@ def test_sanitize_kml_network_link_only_rejected():
       <NetworkLink><Link><href>https://evil.example/layer.kml</href></Link></NetworkLink>
     </Document></kml>"""
     with pytest.raises(GeoValidationError) as exc:
-        sanitize_geo_bytes(kml)
+        sanitize_geo_bytes(kml, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
     assert exc.value.code == "remote_content"
 
 
@@ -84,7 +84,7 @@ def test_sanitize_kml_rejects_dtd():
       </Placemark>
     </Document></kml>"""
     with pytest.raises(GeoValidationError) as exc:
-        sanitize_geo_bytes(kml)
+        sanitize_geo_bytes(kml, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
     assert exc.value.code == "dtd_forbidden"
 
 
@@ -96,7 +96,7 @@ def test_sanitize_kml_keeps_data_png_icon():
         <Point><coordinates>1,2,0</coordinates></Point>
       </Placemark>
     </Document></kml>""".encode()
-    result = sanitize_geo_bytes(kml)
+    result = sanitize_geo_bytes(kml, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
     assert result.feature_count == 1
     assert b"data:image/png" in result.data
 
@@ -109,7 +109,7 @@ def test_sanitize_kml_flattens_cdata_html_description():
         <Point><coordinates>-117.99,33.78,0</coordinates></Point>
       </Placemark>
     </Document></kml>"""
-    result = sanitize_geo_bytes(kml)
+    result = sanitize_geo_bytes(kml, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
     assert result.feature_count == 1
     assert "html_description" in result.stripped
     lower = result.data.lower()
@@ -131,7 +131,7 @@ def test_sanitize_kml_flattens_table_balloon_and_drops_nulls():
         <Point><coordinates>-94.2,36.3,0</coordinates></Point>
       </Placemark>
     </Document></kml>"""
-    result = sanitize_geo_bytes(kml)
+    result = sanitize_geo_bytes(kml, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
     assert result.feature_count == 1
     text = result.data.decode("utf-8")
     assert "AttackType: Vandalism" in text
@@ -146,7 +146,7 @@ def test_sanitize_kmz_skips_unreferenced_svg_keeps_placemark():
       <Placemark><Point><coordinates>1,2,0</coordinates></Point></Placemark>
     </Document></kml>"""
     data = _kmz({"doc.kml": kml, "icon.svg": b"<svg></svg>"})
-    result = sanitize_geo_bytes(data)
+    result = sanitize_geo_bytes(data, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
     assert result.format == "kmz"
     assert result.feature_count == 1
     assert "skipped_kmz_entry" in result.stripped
@@ -177,7 +177,7 @@ def test_sanitize_kmz_skips_arcgis_xsl_sidecar():
             "Layer0_Symbol.png": TINY_PNG,
         },
     )
-    result = sanitize_geo_bytes(data)
+    result = sanitize_geo_bytes(data, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
     assert result.format == "kmz"
     assert result.feature_count == 1
     assert "skipped_kmz_entry" in result.stripped
@@ -197,7 +197,7 @@ def test_sanitize_kmz_keeps_zip_local_png():
       </Placemark>
     </Document></kml>"""
     data = _kmz({"doc.kml": kml, "files/icon.png": TINY_PNG})
-    result = sanitize_geo_bytes(data)
+    result = sanitize_geo_bytes(data, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
     assert result.format == "kmz"
     assert result.feature_count == 1
     with zipfile.ZipFile(io.BytesIO(result.data)) as zf:
@@ -209,7 +209,7 @@ def test_sanitize_kmz_keeps_zip_local_png():
 def test_sanitize_kmz_path_traversal_rejected():
     data = _kmz({"../evil.kml": b"<kml></kml>"})
     with pytest.raises(GeoValidationError) as exc:
-        sanitize_geo_bytes(data)
+        sanitize_geo_bytes(data, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
     assert exc.value.code in ("path_traversal", "kmz_missing_kml")
 
 
@@ -224,7 +224,7 @@ def test_sanitize_kml_strips_remote_groundoverlay():
         <LatLonBox><north>1</north><south>0</south><east>1</east><west>0</west></LatLonBox>
       </GroundOverlay>
     </Document></kml>"""
-    result = sanitize_geo_bytes(kml)
+    result = sanitize_geo_bytes(kml, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
     assert result.feature_count == 1
     assert "remote_overlay" in result.stripped
     assert b"https://evil.example" not in result.data
@@ -246,8 +246,66 @@ def test_sanitize_geojson_strips_http_icon():
             ],
         },
     ).encode()
-    result = sanitize_geo_bytes(payload)
+    result = sanitize_geo_bytes(payload, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
     obj = json.loads(result.data)
     assert "href" not in obj["features"][0]["properties"]
     assert obj["features"][0]["properties"]["name"] == "A"
     assert "remote_href" in result.stripped
+
+
+def test_sanitize_kmz_rejects_uncompressed_over_limit():
+    kml = b"""<?xml version="1.0"?>
+    <kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+      <Placemark><name>P</name>
+        <Point><coordinates>1,2,0</coordinates></Point>
+      </Placemark>
+    </Document></kml>"""
+    data = _kmz({"doc.kml": kml, "big.png": b"\x89PNG" + b"\x00" * (2 * 1024 * 1024)})
+    with pytest.raises(GeoValidationError) as exc:
+        sanitize_geo_bytes(data, max_kmz_uncompressed_bytes=1024 * 1024)
+    assert exc.value.code == "kmz_uncompressed_too_large"
+
+
+def test_sanitize_kmz_rejects_compression_ratio():
+    kml = b"""<?xml version="1.0"?>
+    <kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+      <Placemark><name>P</name>
+        <Point><coordinates>1,2,0</coordinates></Point>
+      </Placemark>
+    </Document></kml>"""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("doc.kml", kml)
+        zf.writestr("big.png", b"\x89PNG" + b"\x00" * (2 * 1024 * 1024))
+    with pytest.raises(GeoValidationError) as exc:
+        sanitize_geo_bytes(
+            buf.getvalue(),
+            max_kmz_uncompressed_bytes=16 * 1024 * 1024,
+        )
+    assert exc.value.code == "kmz_compression_ratio"
+
+
+def test_sanitize_kmz_rejects_too_many_entries():
+    files = {"doc.kml": b'<kml xmlns="http://www.opengis.net/kml/2.2"/>'}
+    for i in range(600):
+        files[f"f{i}.png"] = TINY_PNG
+    data = _kmz(files)
+    with pytest.raises(GeoValidationError) as exc:
+        sanitize_geo_bytes(data, max_kmz_uncompressed_bytes=16 * 1024 * 1024)
+    assert exc.value.code == "kmz_too_many_entries"
+
+
+def test_sanitize_geojson_deep_nesting_does_not_recurse():
+    inner = "1"
+    for _ in range(3000):
+        inner = '{"a":' + inner + "}"
+    payload = (
+        '{"type":"Feature","properties":'
+        + inner
+        + ',"geometry":{"type":"Point","coordinates":[1,2]}}'
+    ).encode()
+    result = sanitize_geo_bytes(
+        payload,
+        max_kmz_uncompressed_bytes=16 * 1024 * 1024,
+    )
+    assert result.format == "geojson"

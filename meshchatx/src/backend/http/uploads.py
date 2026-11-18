@@ -63,17 +63,15 @@ async def read_field_limited(
     legitimately fit in memory (archives, images). Stream to disk for
     larger uploads.
     """
-    chunks: list[bytes] = []
-    total = 0
+    buf = bytearray()
     while True:
         chunk = await field.read_chunk(chunk_size)
         if not chunk:
             break
-        total += len(chunk)
-        if total > max_bytes:
+        if len(buf) + len(chunk) > max_bytes:
             raise PayloadTooLargeError("Upload exceeds size limit")
-        chunks.append(chunk)
-    return b"".join(chunks)
+        buf += chunk
+    return bytes(buf)
 
 
 async def write_field_to_path(
@@ -121,14 +119,22 @@ async def read_body_limited(
     chunk_size: int = 65536,
 ) -> bytes:
     """Read a non-multipart request body fully, capped at max_bytes."""
-    chunks: list[bytes] = []
-    total = 0
+    buf = bytearray()
+    content_read = getattr(request.content, "read", None)
+    if callable(content_read):
+        while True:
+            chunk = await content_read(max_bytes + 1 - len(buf))
+            if not chunk:
+                break
+            buf += chunk
+            if len(buf) > max_bytes:
+                raise PayloadTooLargeError("Request body exceeds size limit")
+        return bytes(buf)
     async for chunk in request.content.iter_chunked(chunk_size):
-        total += len(chunk)
-        if total > max_bytes:
+        if len(buf) + len(chunk) > max_bytes:
             raise PayloadTooLargeError("Request body exceeds size limit")
-        chunks.append(chunk)
-    return b"".join(chunks)
+        buf += chunk
+    return bytes(buf)
 
 
 async def read_field_text_limited(

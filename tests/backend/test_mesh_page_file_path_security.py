@@ -174,7 +174,9 @@ class TestPageRespondersTraversal:
         node.add_page("safe.mu", "ok")
         responder = node._make_page_responder("safe.mu")
         result = responder("/page/../../../etc/passwd", None, "r", "l", None, 0)
-        assert result == b"ok"
+        assert isinstance(result, list)
+        assert result[0].read() == b"ok"
+        result[0].close()
 
     def test_file_responder_ignores_path_prefix_in_request_path(
         self,

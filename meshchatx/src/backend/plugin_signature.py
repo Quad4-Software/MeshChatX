@@ -13,6 +13,7 @@ from meshchatx.src.backend.plugin_rsg import SignatureInfo, verify_rsg_payload
 PRIMARY_SIGNATURE_FILE = "meshchatx.plugin.rsg"
 MAX_CANONICAL_MEMBER_BYTES = 50 * 1024 * 1024
 MAX_CANONICAL_TOTAL_BYTES = 64 * 1024 * 1024
+MAX_SIGNATURE_BYTES = 64 * 1024
 
 SIGNATURE_FILE_NAMES = (PRIMARY_SIGNATURE_FILE,)
 FIXED_ZIP_DATE_TIME = (1980, 1, 1, 0, 0, 0)
@@ -53,6 +54,7 @@ def canonical_dir_payload(directory: str) -> bytes:
 
 def canonical_zip_payload_from_bytes(payload: bytes) -> bytes:
     entries: dict[str, bytes] = {}
+    total_bytes = 0
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         for info in archive.infolist():
             if info.is_dir():
@@ -69,12 +71,13 @@ def canonical_zip_payload_from_bytes(payload: bytes) -> bytes:
                 continue
             # Stream with a hard byte cap: declared member sizes are metadata,
             # so a zip bomb would otherwise decompress fully into memory.
-            with archive.open(info.filename) as src:
+            with archive.open(info) as src:
                 buf = src.read(MAX_CANONICAL_MEMBER_BYTES + 1)
             if len(buf) > MAX_CANONICAL_MEMBER_BYTES:
                 raise ValueError(f"zip member too large: {info.filename}")
             entries[clean] = buf
-            if sum(len(v) for v in entries.values()) > MAX_CANONICAL_TOTAL_BYTES:
+            total_bytes += len(buf)
+            if total_bytes > MAX_CANONICAL_TOTAL_BYTES:
                 raise ValueError("zip payload too large")
     return build_canonical_zip(entries)
 
@@ -109,7 +112,13 @@ def verify_zip_signature(payload: bytes) -> SignatureInfo:
                     "/",
                 )
                 if is_signature_basename(clean):
-                    rsg_data = archive.read(info.filename)
+                    with archive.open(info) as src:
+                        rsg_data = src.read(MAX_SIGNATURE_BYTES + 1)
+                    if len(rsg_data) > MAX_SIGNATURE_BYTES:
+                        return SignatureInfo(
+                            present=True,
+                            error="signature too large",
+                        )
                     break
         if not rsg_data:
             return SignatureInfo()

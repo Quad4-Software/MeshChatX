@@ -879,7 +879,11 @@ class MapOverlayManager:
         if len(payload) > limits["map_overlay_max_bytes"]:
             raise GeoValidationError("file_too_large")
         self._set_phase(job_id, "validating")
-        sanitized = sanitize_geo_bytes(payload, hinted_format=hinted_format)
+        sanitized = sanitize_geo_bytes(
+            payload,
+            hinted_format=hinted_format,
+            max_kmz_uncompressed_bytes=limits["map_overlay_max_kmz_uncompressed_bytes"],
+        )
         payload = sanitized.data
         hinted_format = sanitized.format
         validated = validate_geo_bytes(

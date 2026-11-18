@@ -111,3 +111,17 @@ def test_signed_dir_and_zip_install(tmp_path):
     bad_zip = embed_signature_in_zip_bytes(unsigned_zip, b"y" * 80)
     with pytest.raises(ValueError, match="invalid plugin signature"):
         manager.install_from_zip_bytes(bad_zip)
+
+
+def test_verify_zip_signature_rejects_oversized_signature_member():
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("plugin.json", b"{}")
+        archive.writestr(
+            PRIMARY_SIGNATURE_FILE,
+            b"\x00" * (256 * 1024),
+        )
+    info = verify_zip_signature(buf.getvalue())
+    assert info.present is True
+    assert info.valid is False
+    assert info.error == "signature too large"

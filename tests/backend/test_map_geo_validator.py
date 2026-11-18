@@ -154,3 +154,36 @@ def test_validate_kmz_path_traversal_entry():
             max_kmz_uncompressed_bytes=1024 * 1024,
         )
     assert exc.value.code == "path_traversal"
+
+
+def test_validate_kml_rejects_doctype_after_bom():
+    kml = (
+        "\ufeff<!DOCTYPE kml [<!ENTITY x \"y\">]>"
+        '<kml xmlns="http://www.opengis.net/kml/2.2"></kml>'
+    ).encode()
+    with pytest.raises(GeoValidationError) as exc:
+        validate_geo_bytes(
+            kml,
+            hinted_format="kml",
+            max_bytes=1024 * 1024,
+            max_features=100,
+            max_kmz_uncompressed_bytes=1024 * 1024,
+        )
+    assert exc.value.code == "dtd_forbidden"
+
+
+def test_validate_kml_accepts_bom_without_doctype():
+    kml = (
+        "\ufeff<kml xmlns=\"http://www.opengis.net/kml/2.2\">"
+        "<Document><Placemark><Point><coordinates>1,2,0</coordinates></Point>"
+        "</Placemark></Document></kml>"
+    ).encode()
+    result = validate_geo_bytes(
+        kml,
+        hinted_format="kml",
+        max_bytes=1024 * 1024,
+        max_features=100,
+        max_kmz_uncompressed_bytes=1024 * 1024,
+    )
+    assert result.format == "kml"
+    assert result.feature_count == 1
