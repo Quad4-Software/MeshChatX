@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: 0BSD
 
-import json
 import os
 import shutil
 import tempfile
