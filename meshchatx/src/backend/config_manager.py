@@ -794,9 +794,7 @@ class ConfigManager:
         self.update_check_interval_hours = self.FloatConfig(
             self, "update_check_interval_hours", 24.0
         )
-        self.update_auto_download = self.BoolConfig(
-            self, "update_auto_download", False
-        )
+        self.update_auto_download = self.BoolConfig(self, "update_auto_download", False)
         self.update_apply_policy = self.StringConfig(
             self, "update_apply_policy", "manual"
         )

@@ -89,10 +89,7 @@ def test_crawl_task_wedge_recovery(db):
         status="crawling",
         last_retry_at=datetime.now(UTC) - timedelta(seconds=3600),
     )
-    assert (
-        db.misc.get_prioritized_crawl_tasks(max_retries=5, max_concurrent=4)
-        == []
-    )
+    assert db.misc.get_prioritized_crawl_tasks(max_retries=5, max_concurrent=4) == []
     assert db.misc.count_open_crawl_tasks_for_node(dest) == 1
 
     db.misc.reset_stale_crawl_tasks(180)

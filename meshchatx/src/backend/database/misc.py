@@ -9,9 +9,7 @@ from .provider import DatabaseProvider
 
 def _normalize_spam_text(text):
     normalized = unicodedata.normalize("NFKC", text)
-    normalized = "".join(
-        ch for ch in normalized if unicodedata.category(ch) != "Cf"
-    )
+    normalized = "".join(ch for ch in normalized if unicodedata.category(ch) != "Cf")
     return normalized.casefold()
 
 
@@ -43,8 +41,7 @@ class MiscDAO:
             blocked = state["blocked"]
             if blocked is None:
                 blocked = {
-                    row["destination_hash"]
-                    for row in self.get_blocked_destinations()
+                    row["destination_hash"] for row in self.get_blocked_destinations()
                 }
                 state["blocked"] = blocked
             return destination_hash in blocked

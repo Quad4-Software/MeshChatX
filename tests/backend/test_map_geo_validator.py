@@ -158,7 +158,7 @@ def test_validate_kmz_path_traversal_entry():
 
 def test_validate_kml_rejects_doctype_after_bom():
     kml = (
-        "\ufeff<!DOCTYPE kml [<!ENTITY x \"y\">]>"
+        '\ufeff<!DOCTYPE kml [<!ENTITY x "y">]>'
         '<kml xmlns="http://www.opengis.net/kml/2.2"></kml>'
     ).encode()
     with pytest.raises(GeoValidationError) as exc:
@@ -174,7 +174,7 @@ def test_validate_kml_rejects_doctype_after_bom():
 
 def test_validate_kml_accepts_bom_without_doctype():
     kml = (
-        "\ufeff<kml xmlns=\"http://www.opengis.net/kml/2.2\">"
+        '\ufeff<kml xmlns="http://www.opengis.net/kml/2.2">'
         "<Document><Placemark><Point><coordinates>1,2,0</coordinates></Point>"
         "</Placemark></Document></kml>"
     ).encode()

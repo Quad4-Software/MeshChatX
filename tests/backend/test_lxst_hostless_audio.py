@@ -589,17 +589,13 @@ def test_probe_host_audio_skips_lxst_when_no_pulse_socket(monkeypatch):
     from meshchatx.meshchat import ReticulumMeshChat
 
     monkeypatch.setattr(sys, "platform", "linux")
-    monkeypatch.setattr(
-        meshchat_module, "_linux_pulse_server_present", lambda: False
-    )
+    monkeypatch.setattr(meshchat_module, "_linux_pulse_server_present", lambda: False)
 
     real_import = builtins.__import__
 
     def _no_lxst_import(name, *args, **kwargs):
         if name == "LXST" or name.startswith("LXST."):
-            raise AssertionError(
-                f"probe imported {name} despite missing pulse socket"
-            )
+            raise AssertionError(f"probe imported {name} despite missing pulse socket")
         return real_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", _no_lxst_import)
@@ -615,9 +611,7 @@ def test_probe_host_audio_runs_lxst_when_pulse_socket_present(monkeypatch):
     from meshchatx.meshchat import ReticulumMeshChat
 
     monkeypatch.setattr(sys, "platform", "linux")
-    monkeypatch.setattr(
-        meshchat_module, "_linux_pulse_server_present", lambda: True
-    )
+    monkeypatch.setattr(meshchat_module, "_linux_pulse_server_present", lambda: True)
 
     sources = types.ModuleType("LXST.Sources")
     sources.Backend = MagicMock(side_effect=RuntimeError("no pulse server"))
@@ -634,9 +628,7 @@ def test_probe_host_audio_ok_when_backend_constructs(monkeypatch):
     from meshchatx.meshchat import ReticulumMeshChat
 
     monkeypatch.setattr(sys, "platform", "linux")
-    monkeypatch.setattr(
-        meshchat_module, "_linux_pulse_server_present", lambda: True
-    )
+    monkeypatch.setattr(meshchat_module, "_linux_pulse_server_present", lambda: True)
 
     sources = types.ModuleType("LXST.Sources")
     sources.Backend = MagicMock()

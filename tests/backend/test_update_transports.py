@@ -334,9 +334,7 @@ def test_redirect_allowlist_rules():
         h.redirect_request(req, None, 302, "Found", hdrs, "http://evil.example.com/b")
     hh = _RedirectAllowlist({"127.0.0.1"})
     for _ in range(HTTP_MAX_REDIRECTS):
-        req = hh.redirect_request(
-            req, None, 302, "Found", hdrs, "http://127.0.0.1/x"
-        )
+        req = hh.redirect_request(req, None, 302, "Found", hdrs, "http://127.0.0.1/x")
     with pytest.raises(FetchFailed):
         hh.redirect_request(req, None, 302, "Found", hdrs, "http://127.0.0.1/y")
     fresh = urllib.request.Request("http://127.0.0.1/a")

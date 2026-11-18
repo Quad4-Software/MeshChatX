@@ -5894,9 +5894,7 @@ class ReticulumMeshChat:
             self.websocket_broadcast(
                 {
                     "type": "rnsh.session.change",
-                    "session_id": session.session_id
-                    if session is not None
-                    else None,
+                    "session_id": session.session_id if session is not None else None,
                 },
             ),
         )
@@ -5907,9 +5905,7 @@ class ReticulumMeshChat:
             self.websocket_broadcast(
                 {
                     "type": "rnsh.output",
-                    "session_id": session.session_id
-                    if session is not None
-                    else None,
+                    "session_id": session.session_id if session is not None else None,
                     "chunk": chunk,
                 },
             ),
@@ -5921,9 +5917,7 @@ class ReticulumMeshChat:
             self.websocket_broadcast(
                 {
                     "type": "rnx.session.change",
-                    "session_id": session.session_id
-                    if session is not None
-                    else None,
+                    "session_id": session.session_id if session is not None else None,
                 },
             ),
         )
@@ -5934,9 +5928,7 @@ class ReticulumMeshChat:
             self.websocket_broadcast(
                 {
                     "type": "rnx.output",
-                    "session_id": session.session_id
-                    if session is not None
-                    else None,
+                    "session_id": session.session_id if session is not None else None,
                     "chunk": chunk,
                 },
             ),

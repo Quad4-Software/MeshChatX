@@ -476,7 +476,9 @@ def register_telephone_routes(routes, app):
             return http_payload_too_large()
         except Exception:
             data = {}
-        active = json_bool(data.get("active"), False) if isinstance(data, dict) else False
+        active = (
+            json_bool(data.get("active"), False) if isinstance(data, dict) else False
+        )
         ok = await asyncio.to_thread(app.telephone_manager.set_ptt_active, active)
         if not ok and active:
             return http_bad_request(
