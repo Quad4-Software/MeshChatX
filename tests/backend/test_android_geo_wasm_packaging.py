@@ -47,7 +47,7 @@ def test_android_gradle_syncs_frontend_public_tree():
     gradle = _read("android/app/build.gradle")
     assert 'new File(repoRoot, "meshchatx")' in gradle
     sync_block = re.search(
-        r'syncMeshchatPython.*?from\(meshchatSourceDir\)', gradle, re.DOTALL
+        r"syncMeshchatPython.*?from\(meshchatSourceDir\)", gradle, re.DOTALL
     )
     assert sync_block, (
         "syncMeshchatPython no longer copies the meshchatx tree; "

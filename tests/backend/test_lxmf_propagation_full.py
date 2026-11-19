@@ -311,7 +311,9 @@ async def test_user_provided_node_hash(mock_app):
     # Set this node as preferred. No path is known, so a path request is
     # expected (has_path is a truthy MagicMock unless pinned to False).
     with patch("meshchatx.meshchat.RNS.Transport.has_path", return_value=False):
-        with patch("meshchatx.meshchat.RNS.Transport.request_path") as mock_request_path:
+        with patch(
+            "meshchatx.meshchat.RNS.Transport.request_path"
+        ) as mock_request_path:
             await mock_app.update_config(
                 {"lxmf_preferred_propagation_node_destination_hash": node_hash_hex},
             )

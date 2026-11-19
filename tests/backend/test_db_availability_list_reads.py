@@ -28,13 +28,9 @@ def test_require_database():
 
 def test_require_announce_manager():
     assert (
-        require_announce_manager(SimpleNamespace(announce_manager=None)).status
-        == 503
+        require_announce_manager(SimpleNamespace(announce_manager=None)).status == 503
     )
-    assert (
-        require_announce_manager(SimpleNamespace(announce_manager=object()))
-        is None
-    )
+    assert require_announce_manager(SimpleNamespace(announce_manager=object())) is None
 
 
 def test_http_for_database_exception():

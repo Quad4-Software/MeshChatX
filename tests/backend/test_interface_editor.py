@@ -203,6 +203,4 @@ def test_sanitize_imported_hop_limiter_and_client_limit():
         {"client_limit": 1_000_001},
         {"client_limit": "many"},
     ):
-        assert (
-            InterfaceEditor.sanitize_imported_rns_options(dict(bad)) is not None
-        ), bad
+        assert InterfaceEditor.sanitize_imported_rns_options(dict(bad)) is not None, bad

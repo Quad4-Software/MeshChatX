@@ -368,9 +368,7 @@ def test_map_tile_server_migrates_legacy_osm_default(db):
     )
 
     # A deliberate OSM pick made after migration persists unchanged.
-    config.map_tile_server_url.set(
-        "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-    )
+    config.map_tile_server_url.set("https://tile.openstreetmap.org/{z}/{x}/{y}.png")
     reloaded = ConfigManager(db)
     assert reloaded.map_tile_server_url.get() == (
         "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
