@@ -127,7 +127,7 @@
   },
   {
     "name": "lxmf",
-    "version": "1.3.0",
+    "version": "1.3.1",
     "author": "Mark Qvist",
     "license": "Reticulum License"
   },
@@ -139,7 +139,7 @@
   },
   {
     "name": "lxst",
-    "version": "0.6.0",
+    "version": "0.6.1",
     "author": "Mark Qvist",
     "license": "Other/Proprietary License"
   },
@@ -217,7 +217,7 @@
   },
   {
     "name": "rns",
-    "version": "1.6.0",
+    "version": "1.6.1",
     "author": "Mark Qvist",
     "license": "Reticulum License"
   },

@@ -33,11 +33,11 @@ Options:
   --api-level N              Android API level for wheel tag (default: 24)
   --pycodec2-version V       pycodec2 version to build (default: 4.1.1)
   --numpy-version V          NumPy version used during pycodec2 build (default: 1.26.2)
-  --lxst-version V           LXST wheel version for metadata patch (default: 0.6.0)
+  --lxst-version V           LXST wheel version for metadata patch (default: 0.6.1)
   --bleak-version V          bleak pure-python wheel version to vendor (default: 3.0.2)
   --httpx-version V          httpx pure-python wheel version to vendor (default: 0.28.1)
   --usbserial4a-version V    usbserial4a version to build from sdist (default: 0.4.0)
-  --rns-version V            rns wheel version to patch (default: 1.6.0)
+  --rns-version V            rns wheel version to patch (default: 1.6.1)
   --no-lxst-patch            Skip LXST metadata patch
   --no-rns-patch             Skip RNS Android RNodeInterface patch
   --only-recipes LIST        Comma-separated recipe directory names under
@@ -65,7 +65,7 @@ API_LEVEL="24"
 PYCODEC2_VERSION="4.1.1"
 LIBCODEC2_VERSION="1.2.0"
 NUMPY_VERSION="1.26.2"
-LXST_VERSION="0.6.0"
+LXST_VERSION="0.6.1"
 BLEAK_VERSION="3.0.2"
 HTTPX_VERSION="0.28.1"
 USBSERIAL4A_VERSION="0.4.0"
@@ -73,7 +73,7 @@ PYOPENSSL_VERSION="26.4.0"
 CERTIFI_VERSION="2026.10.23"
 SERVICE_IDENTITY_VERSION="26.1.0"
 ATTRS_VERSION="26.1.0"
-RNS_VERSION="1.6.0"
+RNS_VERSION="1.6.1"
 PATCH_LXST="1"
 PATCH_RNS="1"
 ONLY_RECIPES=""

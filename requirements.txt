@@ -713,14 +713,14 @@ landlockpy==0.2.1 \
     --hash=sha256:1fdd407136e7cffe433c37da4af9e988dcf179db017d7ade0fa654d237cee503 \
     --hash=sha256:ec25c9975a6e8a1803f021394cc21debe6c37e1daaa9a790af9cec7c452cc454
     # via reticulum-meshchatx
-lxmf==1.3.0 \
-    --hash=sha256:5847534a7e69768425e02ff159096baf385ac99c0919da79e9ed0100e8f46814 \
-    --hash=sha256:bd26a8f7218519365b1a1940dd0fd1d3a4785aa4970d2de85807c3f846acd382
+lxmf==1.3.1 \
+    --hash=sha256:42795725445177c78522154c234bc0aabcdb93b7f85883a27921a37ec86d9416 \
+    --hash=sha256:f74e728197a9599a1f694cb057b82f6c896bf20ded8613eeb1b167df02bb199f
     # via
     #   lxst
     #   reticulum-meshchatx
-lxst==0.6.0 \
-    --hash=sha256:c458b4d7461749b004de02821953b7d6782a65c1c481e95a36219768cd2ea004
+lxst==0.6.1 \
+    --hash=sha256:824abfb95a8ed38adf9eb81cf19f8b320ece8376992cc1528fb31e72c8798998
     # via reticulum-meshchatx
 miniaudio==1.71 \
     --hash=sha256:06222d80b057ca4beccb6f97a134c2c2bf646ef7890e1759cfc09db7eecec44d \
@@ -1314,9 +1314,9 @@ pyserial==3.5 \
     # via
     #   reticulum-meshchatx
     #   rns
-rns==1.6.0 \
-    --hash=sha256:aa99d550dacd0c895d81cac6d0740fbd8e89bdb3d452c555a51ef2305a6e5e4d \
-    --hash=sha256:fcf2d07eebafea7e56a94542bd74646e451b0f33bb3efb5f914bbbba38b39f36
+rns==1.6.1 \
+    --hash=sha256:7f07563a8b87dd750a5f2f310f837e42ffbeb5818469b22956fe2c60c70efb00 \
+    --hash=sha256:ea6a77a5fb906291cb1882102714419562ec3e7de7d0302db11bd08c79930e9e
     # via
     #   lxmf
     #   lxst
