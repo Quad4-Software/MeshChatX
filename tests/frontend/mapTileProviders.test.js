@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+    KNOWN_DEFAULT_BASEMAP_URLS,
+    PLANET_PM_TILES_URL,
+} from "../../meshchatx/src/frontend/js/mapTileProviders.js";
+import {
     DEFAULT_TILE_SERVER_URL,
     detectRasterTileProviderId,
     nextRasterTileProviderId,
@@ -28,5 +32,20 @@ describe("mapTileProviders", () => {
         expect(nextRasterTileProviderId("carto-dark", [])).toBe("carto-voyager");
         expect(nextRasterTileProviderId("carto-light", [])).toBe("osm");
         expect(nextRasterTileProviderId("osm", ["carto-dark", "carto-voyager", "carto-light"])).toBe(null);
+    });
+});
+
+describe("planet PMTiles preset", () => {
+    it("exposes the Quad4 planet archive as an explicit preset", () => {
+        expect(TILE_PROVIDER_URLS["planet-pmtiles"]).toBe(PLANET_PM_TILES_URL);
+        expect(PLANET_PM_TILES_URL).toBe("https://s3.quad4.io/pmtiles/planet.pmtiles");
+        expect(KNOWN_DEFAULT_BASEMAP_URLS.has(PLANET_PM_TILES_URL)).toBe(true);
+        expect(KNOWN_DEFAULT_BASEMAP_URLS.has(DEFAULT_TILE_SERVER_URL)).toBe(true);
+        expect(KNOWN_DEFAULT_BASEMAP_URLS.has("https://tiles.example.com/x.png")).toBe(false);
+    });
+
+    it("is a vector preset, not part of the raster failover order", () => {
+        expect(RASTER_TILE_PROVIDER_ORDER).not.toContain("planet-pmtiles");
+        expect(detectRasterTileProviderId(PLANET_PM_TILES_URL)).toBe(null);
     });
 });

@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: 0BSD
 
+MAP_TILE_SERVER_OSM_DEFAULT = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+MAP_TILE_SERVER_PM_TILES_DEFAULT = "https://s3.quad4.io/pmtiles/planet.pmtiles"
+
 
 class ConfigManager:
     def __init__(self, db):
@@ -372,7 +375,7 @@ class ConfigManager:
         self.map_tile_server_url = self.StringConfig(
             self,
             "map_tile_server_url",
-            "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            MAP_TILE_SERVER_PM_TILES_DEFAULT,
         )
         self.map_nominatim_api_url = self.StringConfig(
             self,
@@ -821,6 +824,7 @@ class ConfigManager:
         self._migrate_legacy_announce_limit_keys()
         self._migrate_translator_from_legacy()
         self._migrate_invalid_telephone_audio_profile()
+        self._migrate_map_tile_server_default()
         self._migrate_map_data_announce_interval()
 
     def get(self, key: str, default_value=None) -> str | None:
@@ -859,6 +863,21 @@ class ConfigManager:
                 if str(raw).lower() == "true":
                     enabled = True
             self.translation_enabled.set(enabled)
+
+    def _migrate_map_tile_server_default(self):
+        """Move the old stock OSM tile default to the planet PMTiles archive.
+
+        Runs once. Configs holding the pre-PMTiles stock OSM URL or no value
+        are repointed; a URL the user actually customised stays untouched,
+        and an explicit OSM selection made after this migration persists.
+        """
+        marker = "map_tile_server_pmtiles_migrated"
+        if self.db.config.get(marker, default=None) is not None:
+            return
+        self.db.config.set(marker, "1")
+        raw = self.db.config.get("map_tile_server_url", default=None)
+        if raw is None or raw.strip() in ("", MAP_TILE_SERVER_OSM_DEFAULT):
+            self.map_tile_server_url.set(MAP_TILE_SERVER_PM_TILES_DEFAULT)
 
     def _migrate_map_data_announce_interval(self):
         """Bump the old 15 minute map announce default to the 6 hour cadence once."""

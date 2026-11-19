@@ -787,9 +787,14 @@
                             <p class="text-[9px] text-sem-fg-muted leading-snug">
                                 {{ $t("map.online_sources_hint") }}
                             </p>
-                            <div class="grid grid-cols-5 gap-1">
+                            <div class="grid grid-cols-3 gap-1">
                                 <button
                                     v-for="style in [
+                                        {
+                                            id: 'planet-pmtiles',
+                                            label: 'PMTiles',
+                                            title: $t('map.tile_source_planet_pmtiles'),
+                                        },
                                         { id: 'osm', label: 'OSM' },
                                         { id: 'openfreemap', label: 'OFM' },
                                         { id: 'carto-dark', label: 'Dark' },
@@ -797,8 +802,10 @@
                                         { id: 'carto-light', label: 'Lite' },
                                     ]"
                                     :key="style.id"
+                                    :title="style.title || style.label"
                                     class="py-1.5 text-[8px] font-bold uppercase rounded-md transition-all border leading-tight"
                                     :class="
+                                        (style.id === 'planet-pmtiles' && tileServerUrl.includes('s3.quad4.io')) ||
                                         (style.id === 'openfreemap' &&
                                             tileServerUrl.includes('tiles.openfreemap.org/styles/')) ||
                                         (style.id === 'osm' && tileServerUrl.includes('openstreetmap.org')) ||
@@ -1197,6 +1204,8 @@ import {
     nextRasterTileProviderId,
     TILE_PROVIDER_URLS,
     DEFAULT_TILE_SERVER_URL,
+    PLANET_PM_TILES_URL,
+    KNOWN_DEFAULT_BASEMAP_URLS,
 } from "../../js/mapTileProviders.js";
 import {
     fetchTileBlobWithRetry,
@@ -1242,7 +1251,6 @@ import { isLocalMapServiceUrl } from "../../js/mapLocalUrl.js";
 import * as lxmfApi from "../../js/api/lxmf.js";
 import { useMapPing } from "../../js/map/useMapPing.js";
 
-const OPENFREEMAP_DEFAULT_STYLE = "https://tiles.openfreemap.org/styles/bright";
 const DEFAULT_OSM_RASTER = DEFAULT_TILE_SERVER_URL;
 const OFFLINE_MB_TILES_URL = apiPath("/map/tiles/{z}/{x}/{y}.png");
 const OFFLINE_TRANSPARENT_TILE_PNG =
@@ -1345,7 +1353,7 @@ export default {
             cachingEnabled: true,
 
             // tile server
-            tileServerUrl: DEFAULT_OSM_RASTER,
+            tileServerUrl: PLANET_PM_TILES_URL,
 
             // search
             searchQuery: "",
@@ -2607,6 +2615,7 @@ export default {
                 "openstreetmap.org",
                 "openfreemap.org",
                 "cartocdn.com",
+                "s3.quad4.io",
                 "thunderforest.com",
                 "stamen.com",
                 "google.com",
@@ -2659,11 +2668,17 @@ export default {
         },
         isKnownDefaultBasemapUrl(url) {
             const normalized = (url || "").trim();
-            return normalized === OPENFREEMAP_DEFAULT_STYLE || normalized === DEFAULT_OSM_RASTER;
+            return KNOWN_DEFAULT_BASEMAP_URLS.has(normalized);
         },
         resolveRasterTileUrl(url) {
             let normalized = (url || DEFAULT_OSM_RASTER).trim();
             if (this.isOpenFreeMapStyleUrl(normalized)) {
+                return DEFAULT_OSM_RASTER;
+            }
+            // The PMTiles archive is a vector source, not a raster template.
+            // When it is selected but unavailable, raster paths fall back to
+            // the stock OSM tiles instead of 404ing every request.
+            if (normalized === PLANET_PM_TILES_URL) {
                 return DEFAULT_OSM_RASTER;
             }
             // Scheme-less hosts or //host paths resolve relative to the app
@@ -2681,7 +2696,7 @@ export default {
         },
         usesOfflineMbtilesRaster() {
             if (!this.offlineEnabled) return false;
-            const customTileUrl = this.tileServerUrl || DEFAULT_OSM_RASTER;
+            const customTileUrl = this.tileServerUrl || PLANET_PM_TILES_URL;
             const isCustomLocal = this.isLocalUrl(customTileUrl);
             if (isCustomLocal) return false;
             const isDefaultOnline = this.isDefaultOnlineUrl(customTileUrl);
@@ -2701,8 +2716,8 @@ export default {
             };
         },
         async buildBaseMapLayer() {
-            const url = (this.tileServerUrl || DEFAULT_OSM_RASTER).trim();
-            if (!this.offlineEnabled && url === DEFAULT_OSM_RASTER) {
+            const url = (this.tileServerUrl || PLANET_PM_TILES_URL).trim();
+            if (!this.offlineEnabled && url === PLANET_PM_TILES_URL) {
                 try {
                     // Bound the wait: header + sprite fetches must not stall
                     // map boot on dead networks; raster fallback loads instantly.
@@ -2972,7 +2987,7 @@ export default {
         },
         getTileSource() {
             const isOffline = this.offlineEnabled;
-            const customTileUrl = this.tileServerUrl || DEFAULT_OSM_RASTER;
+            const customTileUrl = this.tileServerUrl || PLANET_PM_TILES_URL;
             const isCustomLocal = this.isLocalUrl(customTileUrl);
             const isDefaultOnline = this.isDefaultOnlineUrl(customTileUrl);
 

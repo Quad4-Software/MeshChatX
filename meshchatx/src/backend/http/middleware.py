@@ -22,6 +22,10 @@ from meshchatx.src.backend.app_security_settings import (
     get_trusted_proxy_cidrs,
     get_web_ui_ip_allowlist,
 )
+from meshchatx.src.backend.config_manager import (
+    MAP_TILE_SERVER_OSM_DEFAULT,
+    MAP_TILE_SERVER_PM_TILES_DEFAULT,
+)
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.csrf import validate_csrf_header
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
@@ -582,6 +586,9 @@ def create_security_middleware(app):
                     "https://*.cartocdn.com",
                     "https://tiles.openfreemap.org",
                     "https://*.openfreemap.org",
+                    # Planet PMTiles archive plus Protomaps glyph/sprite hosts.
+                    "https://s3.quad4.io",
+                    "https://protomaps.github.io",
                 ],
             )
             img_sources.extend(
@@ -591,6 +598,9 @@ def create_security_middleware(app):
                     "https://*.cartocdn.com",
                     "https://tiles.openfreemap.org",
                     "https://*.openfreemap.org",
+                    # PMTiles style sprite PNGs.
+                    "https://s3.quad4.io",
+                    "https://protomaps.github.io",
                 ],
             )
 
@@ -666,13 +676,17 @@ def create_security_middleware(app):
                 connect_sources,
             )
 
-            # Add map tile server domain. The shipped public default is still
-            # gated by privacy mode. Anything else is a deliberate user opt-in.
+            # Add map tile server domain. The shipped public defaults are
+            # still gated by privacy mode. Anything else is a deliberate
+            # user opt-in.
             map_tile_url = app.current_context.config.map_tile_server_url.get()
             if not privacy_mode or (
                 map_tile_url
                 and map_tile_url.strip()
-                != "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                not in (
+                    MAP_TILE_SERVER_OSM_DEFAULT,
+                    MAP_TILE_SERVER_PM_TILES_DEFAULT,
+                )
             ):
                 add_domain_from_url(map_tile_url, img_sources)
                 add_domain_from_url(map_tile_url, connect_sources)

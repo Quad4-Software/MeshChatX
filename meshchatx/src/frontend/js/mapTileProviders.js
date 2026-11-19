@@ -1,16 +1,27 @@
 /** Canonical default basemap (OpenStreetMap raster). */
 export const DEFAULT_TILE_SERVER_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
+/** Quad4 planet PMTiles vector archive. The shipped default basemap. */
+export const PLANET_PM_TILES_URL = "https://s3.quad4.io/pmtiles/planet.pmtiles";
+
 /** Raster basemap providers tried in order when tiles fail to load. */
 export const RASTER_TILE_PROVIDER_ORDER = ["osm", "carto-dark", "carto-voyager", "carto-light"];
 
 export const TILE_PROVIDER_URLS = {
+    "planet-pmtiles": PLANET_PM_TILES_URL,
     osm: DEFAULT_TILE_SERVER_URL,
     openfreemap: "https://tiles.openfreemap.org/styles/bright",
     "carto-dark": "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
     "carto-voyager": "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
     "carto-light": "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
 };
+
+/** Tile-server values that count as shipped defaults rather than custom URLs. */
+export const KNOWN_DEFAULT_BASEMAP_URLS = new Set([
+    PLANET_PM_TILES_URL,
+    DEFAULT_TILE_SERVER_URL,
+    "https://tiles.openfreemap.org/styles/bright",
+]);
 
 const OSM_ATTR =
     '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors';

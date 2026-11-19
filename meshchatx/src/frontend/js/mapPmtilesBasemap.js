@@ -16,7 +16,9 @@ import { createXYZ } from "ol/tilegrid.js";
 import { applyStyle } from "ol-mapbox-style";
 import { layers as basemapLayers, namedFlavor } from "@protomaps/basemaps";
 
-export const PLANET_PM_TILES_URL = "https://s3.quad4.io/pmtiles/planet.pmtiles";
+import { PLANET_PM_TILES_URL } from "./mapTileProviders.js";
+
+export { PLANET_PM_TILES_URL };
 
 const PLANET_GLYPHS = "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf";
 const PLANET_SPRITE = "https://protomaps.github.io/basemaps-assets/sprites/v4/light";

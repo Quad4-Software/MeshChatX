@@ -11,6 +11,8 @@ import time
 import aiohttp
 import RNS
 
+from meshchatx.src.backend.config_manager import MAP_TILE_SERVER_OSM_DEFAULT
+
 # 1x1 transparent PNG to return when a tile is not found in offline mode
 TRANSPARENT_TILE = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
@@ -418,6 +420,11 @@ class MapManager:
             conn.commit()
 
             tile_server_url = self.config.map_tile_server_url.get()
+            if not tile_server_url or "{z}" not in tile_server_url:
+                # Non-template sources such as the PMTiles archive cannot
+                # expand to per-tile raster URLs. Without this the export
+                # would re-download the whole archive for every tile.
+                tile_server_url = MAP_TILE_SERVER_OSM_DEFAULT
             asyncio.run(
                 self._export_download_tiles(
                     export_id,

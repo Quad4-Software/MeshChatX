@@ -348,3 +348,37 @@ def test_font_family_whitelist_matches_frontend_bundled_fonts():
     assert backend_fonts == expected, (
         f"backend whitelist {sorted(backend_fonts)} != frontend fonts {sorted(expected)}"
     )
+
+
+def test_map_tile_server_defaults_to_pmtiles(db):
+    config = ConfigManager(db)
+    assert config.map_tile_server_url.get() == (
+        "https://s3.quad4.io/pmtiles/planet.pmtiles"
+    )
+
+
+def test_map_tile_server_migrates_legacy_osm_default(db):
+    db.config.set(
+        "map_tile_server_url",
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    )
+    config = ConfigManager(db)
+    assert config.map_tile_server_url.get() == (
+        "https://s3.quad4.io/pmtiles/planet.pmtiles"
+    )
+
+    # A deliberate OSM pick made after migration persists unchanged.
+    config.map_tile_server_url.set(
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+    )
+    reloaded = ConfigManager(db)
+    assert reloaded.map_tile_server_url.get() == (
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+    )
+
+
+def test_map_tile_server_migration_keeps_custom_url(db):
+    custom = "https://tiles.example.com/{z}/{x}/{y}.png"
+    db.config.set("map_tile_server_url", custom)
+    config = ConfigManager(db)
+    assert config.map_tile_server_url.get() == custom
