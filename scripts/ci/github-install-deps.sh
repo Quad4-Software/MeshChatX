@@ -264,9 +264,16 @@ WRAPPER
     MESHCHATX_LINUX_CODEC2=""
     if [[ "$(uname -s)" == "Linux" ]]; then
         if command -v apt-get >/dev/null 2>&1 && have_priv; then
-            run_priv apt-get update -y
-            run_priv apt-get install -y libopus0 libogg0 libcodec2-dev
-            MESHCHATX_LINUX_CODEC2="system"
+            # A degraded runner image (missing ubuntu.sources, partial mirror
+            # sync) makes apt update succeed with empty package lists and the
+            # install then fails with "Unable to locate package". Fall back to
+            # the user-space syslibs below instead of aborting the job.
+            if run_priv apt-get update -y \
+                && run_priv apt-get install -y libopus0 libogg0 libcodec2-dev; then
+                MESHCHATX_LINUX_CODEC2="system"
+            else
+                echo "::warning::apt codec libs unavailable; falling back to user-space syslibs"
+            fi
         elif command -v pacman >/dev/null 2>&1; then
             # Arch-based self-hosted runners: codec2/opus/ogg headers for the
             # pycodec2 and LXST pyogg source builds during uv sync. Skip when
