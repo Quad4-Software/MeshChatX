@@ -168,11 +168,14 @@ jobs:
                   fi
 
             - name: Argus supply-chain indicator scan
-              uses: Quad4-Software/argus@35d2d5fc3d0569f60dc7481b64fd922092e4886a # v0.3.1
-              with:
-                  paths: .
-                  fail-on: high
-                  format: markdown
+              # Quad4-Software/argus is gone (404 since 2026-11-19). The action
+              # was a thin composite wrapper around the published
+              # argus-scanner crate; run the same scan directly, pinned to the
+              # version the action's install step produced (v0.3.1).
+              run: |
+                  set -euo pipefail
+                  cargo install --locked --version 0.3.1 argus-scanner
+                  argus scan . --ci --fail-on high --format markdown
 
     secret-scan:
         name: Secret scan (gitleaks)
