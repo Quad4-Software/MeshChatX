@@ -2,13 +2,15 @@
 
 ### Added
 
+- Reticulum 1.6.1: Backbone listener `client_limit` and a per-interface hop limiter are editable in the interface form, stamp worker count and niceness are tunable in Settings, and RNStatus shows filtered traffic, link traffic, tunnel and remote transport info when RNS reports it. Path table entries expose `interface_hash`. A first-start hint explains that stamp generation can take a few minutes.
+- Tests: local loopback RNS e2e for LXMF and NomadNet requests, network send scenarios with exact path request counts, Playwright layout specs for onboarding and popup containment, and a geo-wasm Android packaging test.
 - Updates: new opt-in signed update system. Everything is off by default: no checks, no polling, no announcements until you enable it in Settings under Maintenance. Updates verify a signed msgpack manifest against a pinned signer identity, download over HTTPS mirrors or RNS with ETag and Range support, reuse unchanged blocks from the installed copy, and stage verified artifacts for manual or on-restart apply. Peer relay, custom mirrors, signer pinning, and a slow-link guard for automatic downloads are included. See docs/en/updates.md.
 - Relay chat: NomadNet Micron colour and formatting now renders in relay messages. Bodies carrying the broken-bar tag form get 12-bit and 24-bit foreground and background colours, bold, italic, underline, and full or partial resets. Layout and link tags are dropped, unknown bars stay as text, and raw backtick Micron still behaves as Markdown inline code. A message that sets a colour draws as one unwrapped monospace line with whitespace preserved, so multi-line colour art keeps its shape.
 
 ### Changed
 
 - Desktop shell: the desktop app is now a Go/Wails v3 shell instead of Electron. IPC channel names are unchanged, the Python backend is untouched, and the shell cross-compiles to Windows and macOS from Linux. The app now serves the UI through a loopback app server so the loading and app pages share one web process, which reduces memory use on software-rendered systems.
-- Dependencies: RNS 1.6.0, LXMF 1.3.0, and a refresh of frontend and backend packages. RNS now keeps known destinations and announces in SQLite storage, and MeshChatX writes ratchets through that store instead of a thread per write. The local propagation node address resolves lazily, and path expiry follows RNS's PATH_TIMEOUT.
+- Dependencies: RNS 1.6.1, LXMF 1.3.1, and a refresh of frontend and backend packages. RNS now keeps known destinations and announces in SQLite storage, and MeshChatX writes ratchets through that store instead of a thread per write. The local propagation node address resolves lazily, and path expiry follows RNS's PATH_TIMEOUT.
 - Reticulum 1.6: the Settings transport section gains a "Reticulum 1.6 tuning" group exposing the new `[filter]` options (required announces only, hop limiter) and `[stamps]` options (destination/path/link-request stamping, cost/value, timeouts, enforcement), all optional and off by default. The RNStatus page now shows path-table pool counts and which storage backend is active, and the RNPath table surfaces per-path stamp value, usage and link-request cost.
 - CI: workflows migrated to Blacksmith runners.
 - CI: CI and release workflows now run on GitHub-hosted ubuntu-24.04 runners instead of the self-hosted runner, which has been retired. The fork fallback ternaries are gone, Node setup uses actions/setup-node again, and backend test, E2E, and live LXMF job timeouts were raised for the slower hosted machines.
@@ -18,11 +20,18 @@
 - Docker: refreshed pinned digests for the node:24-alpine, python:3.15.0-alpine3.24, python:3.15.0-slim-trixie, and Chainguard node/python latest-dev base images.
 - Go: TinyGo 0.43.0 to 0.44.0 and the go directive to 1.27.3 across the visualiser-wasm and geo-wasm modules, with the WASM artifacts rebuilt and their SRI manifests refreshed.
 - Dependencies: refreshed frontend, Python, and Go modules to the newest releases inside the seven-day release-age window, and moved the package manager pin to pnpm 12.18.0. The pnpm patches were re-keyed to the resolved ol-mapbox-style and maplibre-gl-style-spec versions.
+- Map: the Quad4 planet PMTiles archive (s3.quad4.io) is now an explicit option in the tile source dropdown and the default for new installs. Existing configs that still hold the old stock OSM default are migrated once, custom URLs are kept, and OSM raster stays selectable and is the automatic fallback. The CSP allows the archive host.
 - Map: the online default basemap is now a vector basemap read from a single PMTiles archive (planet.pmtiles) instead of raster OpenStreetMap tiles. The client fetches the archive header, tile directory, and only the tile byte ranges it needs through HTTP range requests, so the browser never downloads the whole archive, and the Protomaps light style renders landcover, landuse, water, roads, buildings, boundaries, places, and points of interest to zoom 15. If the archive cannot be reached or validated within ten seconds the map falls back to the previous raster source. Offline mode, custom tile server URLs, and tile caching are unchanged.
-- Dependencies: LXST 0.5.4 to 0.6.0. Telephony now declares its destination type to Reticulum 1.6 announce-interest filtering, adds an opt-in low-latency output mode, and the Android audio backend fixes the recording buffer size query and gains low-latency frame timing. The install-time patch guards the new destination-type call so Telephone still constructs without a live Reticulum instance, and the Android wheel patch applies the same guard.
+- Dependencies: LXST 0.5.4 to 0.6.1. Telephony now declares its destination type to Reticulum 1.6 announce-interest filtering, adds an opt-in low-latency output mode, and the Android audio backend fixes the recording buffer size query and gains low-latency frame timing. The install-time patch guards the new destination-type call so Telephone still constructs without a live Reticulum instance, and the Android wheel patch applies the same guard.
 
 ### Fixed
 
+- NomadNet: on a fresh install the announce list stayed empty until you typed in search because a failed first load was never retried. It now retries with backoff.
+- Onboarding: the viewport now sets `viewport-fit=cover` and keyboard resizing so safe-area insets work on notched phones, short and landscape screens use the fullscreen dialog with compact spacing, and the changelog modal no longer opens over the tutorial.
+- Network: path requests are deduplicated per destination over a short window, a failed request no longer consumes that window, and propagation node selection no longer re-requests a path that already exists. Errors from `has_path` are no longer swallowed.
+- RNode: patched an RNS 1.6.1 regression that dropped received byte accounting.
+- Android: the embedded server registers the `application/wasm` MIME type so geo wasm loads in the APK.
+- Web UI: disabled controls show a not-allowed cursor.
 - Integrity check: the stat fast path trusted size and mtime alone, so a file changed within the same timestamp tick as the manifest write could pass verification on stale metadata. It now only trusts files last modified before the manifest.
 - Database wedge recovery: the reset cooldown used 0.0 as its never-reset sentinel, but monotonic time can sit below the cooldown right after boot, so a wedge on a fresh boot could go unrecovered. The sentinel is now None.
 - Codec2: the two live encode/decode tests skip when pycodec2 or libcodec2 is absent instead of failing on hosts without it.
@@ -231,7 +240,7 @@
 
 - Config: ui_font_family, ui_custom_font_name, nomad_* and other newer settings now round-trip through GET /config instead of silently reverting, and multi-megabyte custom font data serves on demand via /api/v1/app/custom-font.
 - Icons: LxmfUserIcon badges render their glyph again. Percentage padding was measured against the card width instead of the icon and collapsed the SVG to zero size, leaving empty colored circles on bot and contact rows.
-- Docs: ![alt](src) markdown no longer renders as a stray bang plus a link, unsafe image sources are dropped, and relative image paths resolve under /meshchatx-docs/ in-app.
+- Docs: `![alt](src)` markdown no longer renders as a stray bang plus a link, unsafe image sources are dropped, and relative image paths resolve under /meshchatx-docs/ in-app.
 - UI: the Banished page screenshot path no longer exposes the skeleton grid. Loaded-state markers gate capture.
 
 ### Security
