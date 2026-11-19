@@ -226,3 +226,102 @@ def test_rnstatus_mode_labels_match_rns_constants():
             include_local_blackhole=False,
         )
         assert status["interfaces"][0]["mode"] == label, mode_value
+
+
+def test_rnstatus_filtered_and_link_traffic():
+    from unittest.mock import MagicMock
+
+    from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
+
+    handler = RNStatusHandler(MagicMock())
+    status = handler.get_status(
+        stats={
+            "interfaces": [
+                {
+                    "name": "BackboneInterface[Hub]",
+                    "status": True,
+                    "mode": 0,
+                    "rxb": 1000,
+                    "txb": 2000,
+                    "rxs": 10,
+                    "txs": 20,
+                    "frxb": 300,
+                    "ftxb": 400,
+                    "frxs": 5,
+                    "ftxs": 7,
+                    "afrxc": 11,
+                    "tunnel_id": b"\x12" * 16,
+                    "remote_transport_id": b"\x34" * 16,
+                    "rem_impl": "rns",
+                    "rem_vers": [1, 6, 1],
+                    "rem_is_tn": True,
+                    "rem_dst_cost": 16,
+                    "rem_pr_cost": 0,
+                },
+                {
+                    "name": "TCPServerInterface[Small]",
+                    "status": True,
+                    "mode": 0,
+                    "rxb": 10,
+                    "txb": 20,
+                    "rxs": 1,
+                    "txs": 2,
+                },
+            ],
+            "rxb": 3000,
+            "txb": 4000,
+            "rxs": 100,
+            "txs": 200,
+            "frxb": 150,
+            "ftxb": 250,
+            "frxs": 15,
+            "ftxs": 25,
+            "lrxb": 700,
+            "ltxb": 800,
+            "lrxs": 70,
+            "ltxs": 80,
+        },
+        include_local_blackhole=False,
+    )
+    iface = status["interfaces"][0]
+    assert iface["filtered_rx_bytes_str"]
+    assert iface["filtered_tx_bytes_str"]
+    assert iface["filtered_rx_speed_str"]
+    assert iface["filtered_tx_speed_str"]
+    assert iface["announce_filtered"] == "11"
+    assert iface["tunnel_id"] == "12" * 16
+    assert iface["remote_transport_id"] == "34" * 16
+    assert iface["remote_implementation"] == "rns 1.6.1, transport enabled"
+    assert iface["remote_costs"]
+
+    plain = status["interfaces"][1]
+    assert "filtered_rx_bytes_str" not in plain
+    assert "tunnel_id" not in plain
+    assert "remote_transport_id" not in plain
+
+    totals = status["totals"]
+    assert totals["filtered"]["rx_bytes_str"]
+    assert totals["filtered"]["tx_speed_str"]
+    assert totals["links"]["rx_bytes_str"]
+    assert totals["links"]["rx_data_flow_pct"] == 70
+
+
+def test_rnstatus_sorting_by_filtered_traffic():
+    from unittest.mock import MagicMock
+
+    from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
+
+    handler = RNStatusHandler(MagicMock())
+    stats = {
+        "interfaces": [
+            {"name": "Iface[Low]", "status": True, "mode": 0, "frxb": 10},
+            {"name": "Iface[High]", "status": True, "mode": 0, "frxb": 500},
+        ]
+    }
+    status = handler.get_status(
+        stats=stats,
+        sorting="frx",
+        sort_reverse=True,
+        include_local_blackhole=False,
+    )
+    assert [i["name"] for i in status["interfaces"]] == ["Iface[High]", "Iface[Low]"]

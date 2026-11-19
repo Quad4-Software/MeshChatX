@@ -165,6 +165,8 @@ export function useReticulumInstance(options = {}) {
         "lr_cost",
         "lr_stamp_timeout",
         "pr_stamp_timeout",
+        "max_workers",
+        "worker_niceness",
     ]);
 
     function onTuningChange(section, key, rawValue) {

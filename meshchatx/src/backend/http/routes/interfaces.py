@@ -971,6 +971,16 @@ def register_interfaces_routes(routes, app):
                 )
                 if flap_error is not None:
                     return http_error(422, flap_error)
+                client_limit_error = InterfaceEditor.apply_positive_number(
+                    interface_details,
+                    data,
+                    "client_limit",
+                    as_int=True,
+                    minimum=1,
+                    maximum=1_000_000,
+                )
+                if client_limit_error is not None:
+                    return http_error(422, client_limit_error)
             else:
                 remote = data.get("remote") or data.get("target_host")
                 if remote is None or str(remote).strip() == "":
@@ -1529,6 +1539,19 @@ def register_interfaces_routes(routes, app):
         )
         if gravity_error is not None:
             return http_error(422, gravity_error)
+        hop_limiter_max = getattr(RNS.Transport, "PATHFINDER_M", None)
+        if not isinstance(hop_limiter_max, int):
+            hop_limiter_max = 128
+        hop_limiter_error = InterfaceEditor.apply_positive_number(
+            interface_details,
+            data,
+            "hop_limiter",
+            as_int=True,
+            minimum=0,
+            maximum=hop_limiter_max,
+        )
+        if hop_limiter_error is not None:
+            return http_error(422, hop_limiter_error)
         InterfaceEditor.update_value(interface_details, data, "network_name")
         InterfaceEditor.update_value(interface_details, data, "passphrase")
         InterfaceEditor.update_value(interface_details, data, "ifac_size")

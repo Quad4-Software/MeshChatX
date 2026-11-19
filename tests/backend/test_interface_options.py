@@ -1259,3 +1259,78 @@ async def test_aware_extra_config_is_ignored(temp_dir):
             assert saved["mode"] == "subscribe"
             assert "peers" not in saved
             assert "injected_key" not in saved
+
+
+@pytest.mark.asyncio
+async def test_backbone_listener_persists_client_limit(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    free_port = _free_port("tcp")
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "BackboneLimit",
+            "type": "BackboneInterface",
+            "listen_ip": "127.0.0.1",
+            "listen_port": free_port,
+            "client_limit": 750,
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        assert config["interfaces"]["BackboneLimit"]["client_limit"] == 750
+
+
+@pytest.mark.asyncio
+async def test_backbone_listener_rejects_invalid_client_limit(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    free_port = _free_port("tcp")
+    async with make_app(temp_dir, config) as handler:
+        for bad in (0, -5, 1_000_001, "many"):
+            payload = {
+                "name": "BackboneLimit",
+                "type": "BackboneInterface",
+                "listen_ip": "127.0.0.1",
+                "listen_port": free_port,
+                "client_limit": bad,
+            }
+            response = await handler(make_request(payload))
+            body = json.loads(response.body)
+            assert response.status == 422, (bad, body)
+
+
+@pytest.mark.asyncio
+async def test_tcp_server_persists_hop_limiter(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    free_port = _free_port("tcp")
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "HopLimited",
+            "type": "TCPInterface",
+            "listen_ip": "127.0.0.1",
+            "listen_port": free_port,
+            "hop_limiter": 32,
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        assert config["interfaces"]["HopLimited"]["hop_limiter"] == 32
+
+
+@pytest.mark.asyncio
+async def test_tcp_server_rejects_out_of_range_hop_limiter(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    free_port = _free_port("tcp")
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "HopLimited",
+            "type": "TCPInterface",
+            "listen_ip": "127.0.0.1",
+            "listen_port": free_port,
+            "hop_limiter": 129,
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 422, body

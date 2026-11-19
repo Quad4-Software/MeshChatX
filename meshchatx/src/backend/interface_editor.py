@@ -433,6 +433,26 @@ class InterfaceEditor:
                     iface_body["gravity"] = int(grav)
                 except (TypeError, ValueError):
                     return "Imported interface gravity must be an integer"
+        for int_key, minimum, maximum in (
+            ("hop_limiter", 0, 128),
+            ("client_limit", 1, 1_000_000),
+        ):
+            if int_key not in iface_body:
+                continue
+            raw = iface_body.get(int_key)
+            if raw is None or raw == "":
+                iface_body.pop(int_key, None)
+                continue
+            try:
+                number = int(raw)
+            except (TypeError, ValueError):
+                return f"Imported interface {int_key} must be an integer"
+            if number < minimum or number > maximum:
+                return (
+                    f"Imported interface {int_key} must be "
+                    f"between {minimum} and {maximum}"
+                )
+            iface_body[int_key] = number
         if "location_cmd" in iface_body:
             loc = iface_body.get("location_cmd")
             if loc is None or loc == "":

@@ -231,6 +231,58 @@ def _format_traffic_totals(stats: dict) -> dict[str, Any] | None:
     if announce:
         payload["announces"] = announce
 
+    filtered = _format_transport_flow_section(
+        stats,
+        rxb_key="frxb",
+        txb_key="ftxb",
+        rxs_key="frxs",
+        txs_key="ftxs",
+        rxf_key="frxf",
+        txf_key="ftxf",
+        total_rxs=rxs,
+        total_txs=txs,
+    )
+    if filtered:
+        payload["filtered"] = filtered
+
+    # RNS 1.6.1 link-traffic counters. Flow share is measured against the
+    # non-control data flow (total minus announce and path-request speeds),
+    # matching upstream rnstatus.
+    links = _format_transport_flow_section(
+        stats,
+        rxb_key="lrxb",
+        txb_key="ltxb",
+        rxs_key="lrxs",
+        txs_key="ltxs",
+        rxf_key="lrxf",
+        txf_key="ltxf",
+        total_rxs=None,
+        total_txs=None,
+    )
+    if links:
+        try:
+            data_rxs = max(
+                0.0,
+                float(rxs or 0)
+                - float(stats.get("prxs") or 0)
+                - float(stats.get("arxs") or 0),
+            )
+            data_txs = max(
+                0.0,
+                float(txs or 0)
+                - float(stats.get("ptxs") or 0)
+                - float(stats.get("atxs") or 0),
+            )
+            lrx_pct = _flow_share_percent(stats.get("lrxs"), data_rxs)
+            ltx_pct = _flow_share_percent(stats.get("ltxs"), data_txs)
+            if lrx_pct is not None:
+                links["rx_data_flow_pct"] = lrx_pct
+            if ltx_pct is not None:
+                links["tx_data_flow_pct"] = ltx_pct
+        except (TypeError, ValueError):
+            pass
+        payload["links"] = links
+
     path_requests = _format_transport_flow_section(
         stats,
         rxb_key="prxb",
@@ -553,6 +605,23 @@ class RNStatusHandler:
                     key=lambda i: i.get("held_announces", 0) or 0,
                     reverse=sort_reverse,
                 )
+            elif sorting in ("frx", "ftx"):
+                key = "frxb" if sorting == "frx" else "ftxb"
+                interfaces.sort(
+                    key=lambda i: i.get(key, 0) or 0,
+                    reverse=sort_reverse,
+                )
+            elif sorting in ("frxs", "ftxs"):
+                key = "frxs" if sorting == "frxs" else "ftxs"
+                interfaces.sort(
+                    key=lambda i: i.get(key, 0) or 0,
+                    reverse=sort_reverse,
+                )
+            elif sorting == "afrxc":
+                interfaces.sort(
+                    key=lambda i: i.get("afrxc", 0) or 0,
+                    reverse=sort_reverse,
+                )
 
         formatted_interfaces = []
         for ifstat in interfaces:
@@ -717,6 +786,17 @@ class RNStatusHandler:
         announce_totals = _format_count_pair(ifstat.get("arxc"), ifstat.get("atxc"))
         if announce_totals:
             formatted_if["announce_totals"] = announce_totals
+        afrxc = ifstat.get("afrxc")
+        if afrxc:
+            formatted_if["announce_filtered"] = fmt_packet_count(afrxc)
+        if ifstat.get("frxb") is not None:
+            formatted_if["filtered_rx_bytes_str"] = size_str(ifstat["frxb"])
+        if ifstat.get("ftxb") is not None:
+            formatted_if["filtered_tx_bytes_str"] = size_str(ifstat["ftxb"])
+        if ifstat.get("frxs") is not None:
+            formatted_if["filtered_rx_speed_str"] = speed_str(ifstat["frxs"])
+        if ifstat.get("ftxs") is not None:
+            formatted_if["filtered_tx_speed_str"] = speed_str(ifstat["ftxs"])
         path_totals = _format_count_pair(ifstat.get("prxc"), ifstat.get("ptxc"))
         if path_totals:
             formatted_if["path_request_totals"] = path_totals
@@ -785,6 +865,36 @@ class RNStatusHandler:
             "autoconnect_source",
             ifstat.get("autoconnect_source"),
         )
+        # RNS 1.6.1 tunnel/remote-transport fields, present only when the
+        # interface carries tunnel info.
+        _set_if_present(formatted_if, "tunnel_id", _hex_value(ifstat.get("tunnel_id")))
+        _set_if_present(
+            formatted_if,
+            "remote_transport_id",
+            _hex_value(ifstat.get("remote_transport_id")),
+        )
+        rem_impl = ifstat.get("rem_impl")
+        rem_vers = ifstat.get("rem_vers")
+        if rem_impl or rem_vers:
+            vers = ""
+            if isinstance(rem_vers, (list, tuple)) and rem_vers:
+                vers = " " + ".".join(str(v) for v in rem_vers)
+            impl = str(rem_impl) if rem_impl else "Unknown implementation"
+            if ifstat.get("rem_is_tn") is True:
+                impl += f"{vers}, transport enabled"
+            elif ifstat.get("rem_is_tn") is False:
+                impl += f"{vers}, no transport"
+            else:
+                impl += vers
+            formatted_if["remote_implementation"] = impl
+        rem_costs = []
+        if ifstat.get("rem_dst_cost") is not None:
+            rem_costs.append(f"Dst {RNS.prettycost(ifstat['rem_dst_cost'])}")
+        if ifstat.get("rem_pr_cost") is not None:
+            rem_costs.append(f"PR {RNS.prettycost(ifstat['rem_pr_cost'])}")
+        if rem_costs:
+            formatted_if["remote_costs"] = ", ".join(rem_costs)
+
         if ifstat.get("blocked_ips"):
             formatted_if["blocked_ips"] = ifstat["blocked_ips"]
         blocked_list = ifstat.get("blocked_ip_list")

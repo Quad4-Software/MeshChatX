@@ -2889,8 +2889,9 @@ components:
             properties:
               hash: { $ref: "#/components/schemas/HexHash" }
               via: { $ref: "#/components/schemas/HexHash" }
+              interface_hash: { $ref: "#/components/schemas/HexHash" }
             additionalProperties: true
-            description: Path table entry as returned by Reticulum; hash and via are hex-encoded
+            description: Path table entry as returned by Reticulum; hash, via and interface_hash are hex-encoded
         total_count:
           type: integer
           description: Total paths before pagination

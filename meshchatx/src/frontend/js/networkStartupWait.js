@@ -7,7 +7,7 @@ const PER_POLL_TIMEOUT_MS = 8000;
 export const STARTUP_STAGE_LABELS = {
     http: "Getting things ready…",
     starting: "Getting RNS ready…",
-    rns: "Starting RNS…",
+    rns: "Starting RNS… first launch can take a few minutes while network stamps are generated.",
     identity: "Almost there…",
     ready: "Ready",
     failed: "Startup failed",

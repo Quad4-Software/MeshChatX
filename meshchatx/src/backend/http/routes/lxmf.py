@@ -550,6 +550,13 @@ def register_lxmf_routes(routes, app):
         for path in paginated_paths:
             path["hash"] = path["hash"].hex()
             path["via"] = path["via"].hex()
+            interface_hash = path.get("interface_hash")
+            if interface_hash is not None:
+                path["interface_hash"] = (
+                    interface_hash.hex()
+                    if hasattr(interface_hash, "hex")
+                    else str(interface_hash)
+                )
             path_table.append(path)
 
         return web.json_response(

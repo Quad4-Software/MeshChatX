@@ -60,6 +60,9 @@
                                 <option value="prx">{{ $t("rnstatus.path_requests") }}</option>
                                 <option value="held">{{ $t("rnstatus.held_announces") }}</option>
                                 <option value="gravity">{{ $t("rnstatus.gravity") }}</option>
+                                <option value="frx">{{ $t("rnstatus.filtered_rx") }}</option>
+                                <option value="ftx">{{ $t("rnstatus.filtered_tx") }}</option>
+                                <option value="afrxc">{{ $t("rnstatus.announce_filtered") }}</option>
                             </select>
                         </div>
                     </div>
@@ -206,7 +209,10 @@
                     </div>
                 </div>
 
-                <div v-if="totalsAnnounces || totalsPathRequests" class="grid gap-3 lg:grid-cols-2">
+                <div
+                    v-if="totalsAnnounces || totalsPathRequests || totalsFiltered || totalsLinks"
+                    class="grid gap-3 lg:grid-cols-2"
+                >
                     <div
                         v-if="totalsAnnounces"
                         class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-2"
@@ -229,6 +235,34 @@
                         <div class="text-sm tabular-nums text-sem-fg">
                             <div>↑ {{ totalsPathRequests.tx_bytes_str }} {{ totalsPathRequests.tx_speed_str }}</div>
                             <div>↓ {{ totalsPathRequests.rx_bytes_str }} {{ totalsPathRequests.rx_speed_str }}</div>
+                        </div>
+                    </div>
+                    <div v-if="totalsFiltered" class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-2">
+                        <h2 class="text-sm font-semibold text-sem-fg">
+                            {{ $t("rnstatus.transport_filtered") }}
+                        </h2>
+                        <div class="text-sm tabular-nums text-sem-fg">
+                            <div>↑ {{ totalsFiltered.tx_bytes_str }} {{ totalsFiltered.tx_speed_str }}</div>
+                            <div>↓ {{ totalsFiltered.rx_bytes_str }} {{ totalsFiltered.rx_speed_str }}</div>
+                        </div>
+                    </div>
+                    <div v-if="totalsLinks" class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-2">
+                        <h2 class="text-sm font-semibold text-sem-fg">
+                            {{ $t("rnstatus.transport_links") }}
+                        </h2>
+                        <div class="text-sm tabular-nums text-sem-fg">
+                            <div>
+                                ↑ {{ totalsLinks.tx_bytes_str }} {{ totalsLinks.tx_speed_str
+                                }}<template v-if="totalsLinks.tx_data_flow_pct !== undefined">{{
+                                    " " + $t("rnstatus.data_flow_share", { pct: totalsLinks.tx_data_flow_pct })
+                                }}</template>
+                            </div>
+                            <div>
+                                ↓ {{ totalsLinks.rx_bytes_str }} {{ totalsLinks.rx_speed_str
+                                }}<template v-if="totalsLinks.rx_data_flow_pct !== undefined">{{
+                                    " " + $t("rnstatus.data_flow_share", { pct: totalsLinks.rx_data_flow_pct })
+                                }}</template>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -471,6 +505,8 @@ export default {
             totals: null,
             totalsAnnounces: null,
             totalsPathRequests: null,
+            totalsFiltered: null,
+            totalsLinks: null,
             queues: null,
             rnsVersion: "",
             activeLinkCount: null,
@@ -622,6 +658,18 @@ export default {
             add("announce_rate_limits", iface.announce_rate_limits);
             add("violations", iface.violations);
             add("filter_hits", iface.filter_hits);
+            if (iface.announce_filtered !== undefined) {
+                add("announce_filtered", `${iface.announce_filtered} ${this.$t("rnstatus.filtered_suffix")}`);
+            }
+            if (iface.filtered_tx_bytes_str !== undefined || iface.filtered_rx_bytes_str !== undefined) {
+                const ftx = [iface.filtered_tx_bytes_str, iface.filtered_tx_speed_str].filter(Boolean).join(" ");
+                const frx = [iface.filtered_rx_bytes_str, iface.filtered_rx_speed_str].filter(Boolean).join(" ");
+                add("filtered_traffic", `↑ ${ftx} ↓ ${frx}`);
+            }
+            add("tunnel_id", iface.tunnel_id);
+            add("remote_transport_id", iface.remote_transport_id);
+            add("remote_implementation", iface.remote_implementation);
+            add("remote_costs", iface.remote_costs);
             if (Array.isArray(iface.blocked_ip_list) && iface.blocked_ip_list.length > 0) {
                 add("blocked_ip_list", iface.blocked_ip_list.join(", "));
             }
@@ -727,6 +775,8 @@ export default {
                 this.totals = data.totals || null;
                 this.totalsAnnounces = data.totals?.announces || null;
                 this.totalsPathRequests = data.totals?.path_requests || null;
+                this.totalsFiltered = data.totals?.filtered || null;
+                this.totalsLinks = data.totals?.links || null;
                 this.queues = data.queues || null;
                 this.rnsVersion = data.rns_version || "";
                 this.pathTable = data.path_table || null;

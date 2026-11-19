@@ -595,6 +595,13 @@ def register_path_probe_routes(routes, app):
                 path_hash.hex() if hasattr(path_hash, "hex") else str(path_hash)
             )
             path["via"] = path_via.hex() if hasattr(path_via, "hex") else str(path_via)
+            interface_hash = path.get("interface_hash")
+            if interface_hash is not None:
+                path["interface_hash"] = (
+                    interface_hash.hex()
+                    if hasattr(interface_hash, "hex")
+                    else str(interface_hash)
+                )
             path_table.append(path)
 
         return web.json_response(

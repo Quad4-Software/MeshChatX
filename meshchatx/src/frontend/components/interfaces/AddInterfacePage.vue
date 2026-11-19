@@ -515,6 +515,21 @@
                                                                 class="input-field"
                                                             />
                                                         </div>
+                                                        <div>
+                                                            <FormLabel class="glass-label">{{
+                                                                $t("interfaces.client_limit_label")
+                                                            }}</FormLabel>
+                                                            <input
+                                                                v-model.number="newInterfaceClientLimit"
+                                                                type="number"
+                                                                min="1"
+                                                                class="input-field"
+                                                                :placeholder="$t('interfaces.client_limit_placeholder')"
+                                                            />
+                                                            <p class="text-xs text-sem-fg-muted mt-1">
+                                                                {{ $t("interfaces.client_limit_hint") }}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2081,6 +2096,22 @@
                                                         {{ $t("interfaces.gravity_hint") }}
                                                     </p>
                                                 </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">{{
+                                                        $t("interfaces.hop_limiter_label")
+                                                    }}</FormLabel>
+                                                    <input
+                                                        v-model="sharedInterfaceSettings.hop_limiter"
+                                                        type="number"
+                                                        min="0"
+                                                        max="128"
+                                                        :placeholder="$t('interfaces.hop_limiter_placeholder')"
+                                                        class="input-field"
+                                                    />
+                                                    <p class="text-xs text-sem-fg-muted mt-1">
+                                                        {{ $t("interfaces.hop_limiter_hint") }}
+                                                    </p>
+                                                </div>
                                             </div>
                                             <div class="space-y-4 pt-4 border-t border-sem-border">
                                                 <FormLabel class="glass-label">Interface Access Code (IFAC)</FormLabel>
@@ -2468,6 +2499,7 @@ export default {
             newInterfaceFastFlappingBlockTime: 720,
             newInterfaceFastFlappingThreshold: 20,
             newInterfaceFastFlappingGrace: 5,
+            newInterfaceClientLimit: null,
             newInterfaceHttpTunnelMode: "client",
             newInterfaceHttpServerUrl: null,
             newInterfaceHttpPollInterval: 0.1,
@@ -2511,6 +2543,7 @@ export default {
                 announces_from_internal: true,
                 announces_to_internal: false,
                 gravity: null,
+                hop_limiter: null,
             },
 
             discovery: {
@@ -3072,6 +3105,8 @@ export default {
                         iface.fast_flapping_grace != null && iface.fast_flapping_grace !== ""
                             ? Number(iface.fast_flapping_grace)
                             : 5;
+                    this.newInterfaceClientLimit =
+                        iface.client_limit != null && iface.client_limit !== "" ? Number(iface.client_limit) : null;
                 }
 
                 if (
@@ -3189,6 +3224,10 @@ export default {
                 this.sharedInterfaceSettings.gravity =
                     iface.gravity !== undefined && iface.gravity !== null && iface.gravity !== ""
                         ? Number(iface.gravity)
+                        : null;
+                this.sharedInterfaceSettings.hop_limiter =
+                    iface.hop_limiter !== undefined && iface.hop_limiter !== null && iface.hop_limiter !== ""
+                        ? Number(iface.hop_limiter)
                         : null;
 
                 if (iface.frequency) {
@@ -3398,6 +3437,12 @@ export default {
             if (config.gravity !== undefined && config.gravity !== null && config.gravity !== "") {
                 this.sharedInterfaceSettings.gravity = Number(config.gravity);
             }
+            if (config.hop_limiter !== undefined && config.hop_limiter !== null && config.hop_limiter !== "") {
+                this.sharedInterfaceSettings.hop_limiter = Number(config.hop_limiter);
+            }
+            if (config.client_limit !== undefined && config.client_limit !== null && config.client_limit !== "") {
+                this.newInterfaceClientLimit = Number(config.client_limit);
+            }
             if (
                 config.block_fast_flapping !== undefined &&
                 config.block_fast_flapping !== null &&
@@ -3531,6 +3576,10 @@ export default {
                     config.gravity !== undefined && config.gravity !== null && config.gravity !== ""
                         ? this.numOrNull(config.gravity)
                         : null,
+                hop_limiter:
+                    config.hop_limiter !== undefined && config.hop_limiter !== null && config.hop_limiter !== ""
+                        ? this.numOrNull(config.hop_limiter)
+                        : null,
                 bitrate: this.numOrNull(config.bitrate),
                 network_name: config.network_name || null,
                 passphrase: config.passphrase || null,
@@ -3568,6 +3617,12 @@ export default {
                     config.listen_port != null &&
                     String(config.listen_port).trim() !== ""
                         ? this.numOrNull(config.fast_flapping_grace)
+                        : null,
+                client_limit:
+                    config.type === "BackboneInterface" &&
+                    config.listen_port != null &&
+                    String(config.listen_port).trim() !== ""
+                        ? this.numOrNull(config.client_limit)
                         : null,
                 kiss_framing:
                     config.kiss_framing !== undefined && config.kiss_framing !== null && config.kiss_framing !== ""
@@ -3873,6 +3928,7 @@ export default {
                         announces_from_internal: this.sharedInterfaceSettings.announces_from_internal !== false,
                         announces_to_internal: this.sharedInterfaceSettings.announces_to_internal === true,
                         gravity: this.numOrNull(this.sharedInterfaceSettings.gravity),
+                        hop_limiter: this.numOrNull(this.sharedInterfaceSettings.hop_limiter),
                         bitrate: this.sharedInterfaceSettings.bitrate,
                         network_name: this.sharedInterfaceSettings.network_name,
                         passphrase: this.sharedInterfaceSettings.passphrase,
@@ -3930,6 +3986,7 @@ export default {
                         ? this.numOrNull(this.newInterfaceFastFlappingThreshold)
                         : null,
                     fast_flapping_grace: isBackboneListener ? this.numOrNull(this.newInterfaceFastFlappingGrace) : null,
+                    client_limit: isBackboneListener ? this.numOrNull(this.newInterfaceClientLimit) : null,
                     kiss_framing: this.newInterfaceKISSFramingEnabled === true,
                     i2p_tunneled: this.newInterfaceI2PTunnelingEnabled === true,
                     connect_timeout: this.numOrNull(this.newInterfaceConnectTimeout),
@@ -4041,6 +4098,7 @@ export default {
                     announces_from_internal: this.sharedInterfaceSettings.announces_from_internal !== false,
                     announces_to_internal: this.sharedInterfaceSettings.announces_to_internal === true,
                     gravity: this.numOrNull(this.sharedInterfaceSettings.gravity),
+                    hop_limiter: this.numOrNull(this.sharedInterfaceSettings.hop_limiter),
                     bitrate: this.sharedInterfaceSettings.bitrate,
                     network_name: this.sharedInterfaceSettings.network_name,
                     passphrase: this.sharedInterfaceSettings.passphrase,

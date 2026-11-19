@@ -182,3 +182,27 @@ def test_sanitize_imported_rns_options_accepts_internal():
     assert body["mode"] == "internal"
     assert body["recursive_prs"] == "yes"
     assert body["announces_from_internal"] == "no"
+
+
+def test_sanitize_imported_hop_limiter_and_client_limit():
+    body = {"hop_limiter": "64", "client_limit": "250"}
+    assert InterfaceEditor.sanitize_imported_rns_options(body) is None
+    assert body["hop_limiter"] == 64
+    assert body["client_limit"] == 250
+
+    body = {"hop_limiter": "", "client_limit": None}
+    assert InterfaceEditor.sanitize_imported_rns_options(body) is None
+    assert "hop_limiter" not in body
+    assert "client_limit" not in body
+
+    for bad in (
+        {"hop_limiter": 129},
+        {"hop_limiter": -1},
+        {"hop_limiter": "abc"},
+        {"client_limit": 0},
+        {"client_limit": 1_000_001},
+        {"client_limit": "many"},
+    ):
+        assert (
+            InterfaceEditor.sanitize_imported_rns_options(dict(bad)) is not None
+        ), bad

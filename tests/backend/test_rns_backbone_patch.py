@@ -106,6 +106,9 @@ def test_degraded_client_connects_to_real_tcp_listener(
         MagicMock(),
         {"name": "t", "target_host": "127.0.0.1", "target_port": port},
     )
+    # RNS 1.6.1 defers the connect loop to final_init(), which Reticulum
+    # calls after Transport.add_interface. Direct constructions must do it.
+    interface.final_init()
     try:
         deadline = time.time() + 5
         while not interface.online and time.time() < deadline:

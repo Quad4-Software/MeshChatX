@@ -850,3 +850,31 @@ async def test_reticulum_instance_patch_tuning(temp_dir):
 
         bad_response = await patch_handler(BadTuningRequest())
         assert bad_response.status == 400
+
+
+def test_apply_rns_tuning_patch_stamp_worker_options(temp_dir):
+    app_instance, config = _make_tuning_app(temp_dir)
+
+    changed, error = app_instance._apply_rns_tuning_patch(
+        {"stamps": {"max_workers": 4, "worker_niceness": 10}},
+    )
+    assert error is None
+    assert changed is True
+    assert config["stamps"]["max_workers"] == "4"
+    assert config["stamps"]["worker_niceness"] == "10"
+
+    changed, error = app_instance._apply_rns_tuning_patch(
+        {"stamps": {"max_workers": "fast"}},
+    )
+    assert changed is False
+    assert error is not None and "max_workers" in error
+
+
+def test_build_rns_tuning_settings_reads_stamp_module(temp_dir):
+    app_instance, _config = _make_tuning_app(temp_dir)
+    with patch("RNS.Stamps") as mock_stamps:
+        mock_stamps.MAX_WORKERS = 6
+        mock_stamps.NICENESS = "5"
+        tuning = app_instance._build_rns_tuning_settings()
+    assert tuning["stamps"]["max_workers"] == 6
+    assert tuning["stamps"]["worker_niceness"] == 5

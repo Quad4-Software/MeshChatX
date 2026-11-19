@@ -16,6 +16,7 @@ import io
 import json
 import logging
 import math
+import mimetypes
 import os
 import re
 import runpy
@@ -627,10 +628,10 @@ def _apply_generic_config_fields(cm, data) -> None:
 
 class ReticulumMeshChat:
     DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES = 3
-    # Upper bound for autoconnect_discovered_interfaces. Upstream guidance is
-    # ~3 slots for home nodes and ~12 for backbone nodes; anything near this
-    # cap is already far past what extra interfaces can help.
-    MAX_AUTOCONNECT_DISCOVERED_INTERFACES = 32
+    # Upper bound for autoconnect_discovered_interfaces. RNS 1.6.1 clamps the
+    # option to 12 unless the config opts out, so matching it here avoids the
+    # app accepting values Reticulum silently ignores.
+    MAX_AUTOCONNECT_DISCOVERED_INTERFACES = 12
 
     def __init__(
         self,
@@ -4574,8 +4575,13 @@ class ReticulumMeshChat:
                 ctx.message_router.set_outbound_propagation_node(
                     destination_hash_bytes,
                 )
-                with contextlib.suppress(Exception):
-                    RNS.Transport.request_path(destination_hash_bytes)
+                try:
+                    have_path = RNS.Transport.has_path(destination_hash_bytes)
+                except Exception:
+                    have_path = False
+                if not have_path:
+                    with contextlib.suppress(Exception):
+                        RNS.Transport.request_path(destination_hash_bytes)
             except Exception:
                 # failed to set propagation node, clear it to ensure we don't use an old one by mistake
                 self.remove_active_propagation_node(context=ctx)
@@ -4923,6 +4929,10 @@ class ReticulumMeshChat:
                 "always_stamp_lrs",
                 "enforce_stamps",
             },
+            "int": {
+                "max_workers",
+                "worker_niceness",
+            },
             "float": {
                 "destination_cost",
                 "destination_value",
@@ -4935,7 +4945,9 @@ class ReticulumMeshChat:
         },
     }
 
-    # Effective-value sources on RNS.Transport for the tuning keys above.
+    # Effective-value sources for the tuning keys above. Plain names resolve
+    # on RNS.Transport; a "Stamps." prefix resolves on RNS.Stamps (RNS 1.6.1
+    # moved the worker-pool settings there).
     _RNS_TUNING_TRANSPORT_ATTRS: ClassVar[dict] = {
         ("filter", "required_only"): "required_destinations_only",
         ("filter", "hop_limiter"): "HOP_LIMITER",
@@ -4950,6 +4962,8 @@ class ReticulumMeshChat:
         ("stamps", "lr_cost"): "LR_COST",
         ("stamps", "lr_stamp_timeout"): "LINK_STAMP_TIMEOUT",
         ("stamps", "pr_stamp_timeout"): "PR_STAMP_TIMEOUT",
+        ("stamps", "max_workers"): "Stamps.MAX_WORKERS",
+        ("stamps", "worker_niceness"): "Stamps.NICENESS",
     }
 
     def _get_rns_config_section(self, name: str) -> dict:
@@ -4983,7 +4997,17 @@ class ReticulumMeshChat:
             for group in ("bool", "int", "float"):
                 for key in sorted(spec.get(group, set())):
                     attr = self._RNS_TUNING_TRANSPORT_ATTRS.get((section, key))
-                    value = getattr(transport, attr, None) if attr else None
+                    value = None
+                    if attr:
+                        if attr.startswith("Stamps."):
+                            stamps_mod = getattr(RNS, "Stamps", None)
+                            value = (
+                                getattr(stamps_mod, attr.split(".", 1)[1], None)
+                                if stamps_mod
+                                else None
+                            )
+                        else:
+                            value = getattr(transport, attr, None)
                     if group == "bool":
                         values[key] = (
                             bool(value)
@@ -6475,6 +6499,7 @@ class ReticulumMeshChat:
 
         app.router.add_get("/meshchatx-docs/{filename:.*}", meshchatx_docs_handler)
 
+        mimetypes.add_type("application/wasm", ".wasm")
         if os.path.exists(public_dir):
             app.router.add_static("/", public_dir, name="static")
         else:
