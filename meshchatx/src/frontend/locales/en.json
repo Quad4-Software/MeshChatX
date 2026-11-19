@@ -632,7 +632,7 @@
         "backend_reconnected": "Reconnected to backend",
         "offline": "Offline",
         "restart_backend": "Restart backend",
-        "network_starting": "Starting RNS…",
+        "network_starting": "Starting RNS… first launch can take a few minutes while network stamps are generated.",
         "network_degraded": "RNS unavailable. The app is still running so you can diagnose and recover without wiping data.",
         "recover_network": "Retry RNS",
         "open_settings": "Open settings",
@@ -1805,7 +1805,13 @@
         "discovered_import_failed": "Failed to import discovered interfaces",
         "previous": "Previous",
         "next": "Next",
-        "rnode_bt_permission_denied": "Bluetooth permission is required for this RNode transport. Grant it in app settings and try again."
+        "rnode_bt_permission_denied": "Bluetooth permission is required for this RNode transport. Grant it in app settings and try again.",
+        "client_limit_label": "Client limit",
+        "client_limit_placeholder": "500",
+        "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
+        "hop_limiter_label": "Hop limiter",
+        "hop_limiter_placeholder": "128",
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
     },
     "map": {
         "title": "Map",
@@ -2085,7 +2091,8 @@
         "coords_copied": "Coordinates copied to clipboard",
         "geo_parse_failed": "Could not resolve that location",
         "filter_type": "Filter by type",
-        "all_types": "All types"
+        "all_types": "All types",
+        "tile_source_planet_pmtiles": "Planet PMTiles (Quad4)"
     },
     "interface": {
         "disable": "Disable",
@@ -4802,7 +4809,19 @@
         "network_internals": "Network internals",
         "path_table_detail": "{total} paths · {unused} unused",
         "storage_known_destinations": "Known destinations",
-        "storage_announce_cache": "Announce cache"
+        "storage_announce_cache": "Announce cache",
+        "filtered_rx": "Filtered RX",
+        "filtered_tx": "Filtered TX",
+        "announce_filtered": "Filtered announces",
+        "filtered_suffix": "filtered",
+        "filtered_traffic": "Filtered traffic",
+        "tunnel_id": "Tunnel ID",
+        "remote_transport_id": "Remote transport",
+        "remote_implementation": "Remote implementation",
+        "remote_costs": "Remote stamp costs",
+        "transport_filtered": "Filtered traffic",
+        "transport_links": "Links",
+        "data_flow_share": "{pct}% of data flow"
     },
     "remote_mgmt": {
         "management_identity": "Management identity",

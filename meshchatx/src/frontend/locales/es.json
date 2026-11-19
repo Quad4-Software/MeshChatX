@@ -628,7 +628,7 @@
         "backend_reconnected": "Reconectado al backend",
         "offline": "Sin conexión",
         "restart_backend": "Reiniciar backend",
-        "network_starting": "Iniciando RNS…",
+        "network_starting": "Starting RNS… first launch can take a few minutes while network stamps are generated.",
         "network_degraded": "RNS no disponible. La aplicación sigue en ejecución para que pueda diagnosticar y recuperar sin borrar datos.",
         "recover_network": "Reintentar RNS",
         "open_settings": "Abrir configuración",
@@ -1805,7 +1805,13 @@
         "community_filter_i2p": "I2P",
         "community_filter_yggdrasil": "Yggdrasil",
         "community_filter_other": "Other",
-        "rnode_bt_permission_denied": "Bluetooth permission is required for this RNode transport. Grant it in app settings and try again."
+        "rnode_bt_permission_denied": "Bluetooth permission is required for this RNode transport. Grant it in app settings and try again.",
+        "client_limit_label": "Client limit",
+        "client_limit_placeholder": "500",
+        "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
+        "hop_limiter_label": "Hop limiter",
+        "hop_limiter_placeholder": "128",
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
     },
     "map": {
         "title": "Mapa",
@@ -2085,7 +2091,8 @@
         "coords_copied": "Coordenadas copiadas al portapapeles",
         "geo_parse_failed": "No se pudo resolver esa ubicación",
         "filter_type": "Filter by type",
-        "all_types": "All types"
+        "all_types": "All types",
+        "tile_source_planet_pmtiles": "Planet PMTiles (Quad4)"
     },
     "interface": {
         "disable": "Inhabilitación",
@@ -4802,7 +4809,19 @@
         "network_internals": "Internos de red",
         "path_table_detail": "{total} rutas · {unused} sin usar",
         "storage_known_destinations": "Destinos conocidos",
-        "storage_announce_cache": "Caché de announces"
+        "storage_announce_cache": "Caché de announces",
+        "filtered_rx": "Filtered RX",
+        "filtered_tx": "Filtered TX",
+        "announce_filtered": "Filtered announces",
+        "filtered_suffix": "filtered",
+        "filtered_traffic": "Filtered traffic",
+        "tunnel_id": "Tunnel ID",
+        "remote_transport_id": "Remote transport",
+        "remote_implementation": "Remote implementation",
+        "remote_costs": "Remote stamp costs",
+        "transport_filtered": "Filtered traffic",
+        "transport_links": "Links",
+        "data_flow_share": "{pct}% of data flow"
     },
     "remote_mgmt": {
         "management_identity": "Identidad de gestión",

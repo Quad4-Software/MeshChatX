@@ -628,7 +628,7 @@
         "backend_reconnected": "已重新连接到后端",
         "offline": "离线",
         "restart_backend": "重启后端",
-        "network_starting": "正在启动 RNS…",
+        "network_starting": "Starting RNS… first launch can take a few minutes while network stamps are generated.",
         "network_degraded": "RNS 不可用。应用仍在运行，便于诊断和恢复而无需清除数据。",
         "recover_network": "重试 RNS",
         "open_settings": "打开设置",
@@ -1805,7 +1805,13 @@
         "community_filter_i2p": "I2P",
         "community_filter_yggdrasil": "Yggdrasil",
         "community_filter_other": "Other",
-        "rnode_bt_permission_denied": "Bluetooth permission is required for this RNode transport. Grant it in app settings and try again."
+        "rnode_bt_permission_denied": "Bluetooth permission is required for this RNode transport. Grant it in app settings and try again.",
+        "client_limit_label": "Client limit",
+        "client_limit_placeholder": "500",
+        "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
+        "hop_limiter_label": "Hop limiter",
+        "hop_limiter_placeholder": "128",
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
     },
     "map": {
         "title": "地图",
@@ -2085,7 +2091,8 @@
         "coords_copied": "坐标已复制到剪贴板",
         "geo_parse_failed": "无法解析该位置",
         "filter_type": "Filter by type",
-        "all_types": "All types"
+        "all_types": "All types",
+        "tile_source_planet_pmtiles": "Planet PMTiles (Quad4)"
     },
     "interface": {
         "disable": "禁用",
@@ -4802,7 +4809,19 @@
         "network_internals": "网络内部",
         "path_table_detail": "路径 {total} 条 · 未使用 {unused} 条",
         "storage_known_destinations": "已知目标",
-        "storage_announce_cache": "公告缓存"
+        "storage_announce_cache": "公告缓存",
+        "filtered_rx": "Filtered RX",
+        "filtered_tx": "Filtered TX",
+        "announce_filtered": "Filtered announces",
+        "filtered_suffix": "filtered",
+        "filtered_traffic": "Filtered traffic",
+        "tunnel_id": "Tunnel ID",
+        "remote_transport_id": "Remote transport",
+        "remote_implementation": "Remote implementation",
+        "remote_costs": "Remote stamp costs",
+        "transport_filtered": "Filtered traffic",
+        "transport_links": "Links",
+        "data_flow_share": "{pct}% of data flow"
     },
     "remote_mgmt": {
         "management_identity": "管理身份",

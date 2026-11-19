@@ -628,7 +628,7 @@
         "backend_reconnected": "백엔드에 다시 연결되었습니다",
         "offline": "오프라인",
         "restart_backend": "백엔드 다시 시작",
-        "network_starting": "RNS 시작 중…",
+        "network_starting": "Starting RNS… first launch can take a few minutes while network stamps are generated.",
         "network_degraded": "RNS를 사용할 수 없습니다. 앱은 계속 실행 중이므로 데이터를 지우지 않고도 진단하고 복구할 수 있습니다.",
         "recover_network": "RNS 다시 시도",
         "open_settings": "설정 열기",
@@ -1805,7 +1805,13 @@
         "community_filter_i2p": "I2P",
         "community_filter_yggdrasil": "Yggdrasil",
         "community_filter_other": "Other",
-        "rnode_bt_permission_denied": "Bluetooth permission is required for this RNode transport. Grant it in app settings and try again."
+        "rnode_bt_permission_denied": "Bluetooth permission is required for this RNode transport. Grant it in app settings and try again.",
+        "client_limit_label": "Client limit",
+        "client_limit_placeholder": "500",
+        "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
+        "hop_limiter_label": "Hop limiter",
+        "hop_limiter_placeholder": "128",
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
     },
     "map": {
         "title": "지도",
@@ -2085,7 +2091,8 @@
         "coords_copied": "좌표가 클립보드에 복사되었습니다",
         "geo_parse_failed": "해당 위치를 확인할 수 없습니다",
         "filter_type": "Filter by type",
-        "all_types": "All types"
+        "all_types": "All types",
+        "tile_source_planet_pmtiles": "Planet PMTiles (Quad4)"
     },
     "interface": {
         "disable": "비활성화",
@@ -4802,7 +4809,19 @@
         "network_internals": "네트워크 내부",
         "path_table_detail": "경로 {total}개 · 미사용 {unused}개",
         "storage_known_destinations": "알려진 대상",
-        "storage_announce_cache": "announce 캐시"
+        "storage_announce_cache": "announce 캐시",
+        "filtered_rx": "Filtered RX",
+        "filtered_tx": "Filtered TX",
+        "announce_filtered": "Filtered announces",
+        "filtered_suffix": "filtered",
+        "filtered_traffic": "Filtered traffic",
+        "tunnel_id": "Tunnel ID",
+        "remote_transport_id": "Remote transport",
+        "remote_implementation": "Remote implementation",
+        "remote_costs": "Remote stamp costs",
+        "transport_filtered": "Filtered traffic",
+        "transport_links": "Links",
+        "data_flow_share": "{pct}% of data flow"
     },
     "remote_mgmt": {
         "management_identity": "관리 신원",

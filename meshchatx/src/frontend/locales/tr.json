@@ -628,7 +628,7 @@
         "backend_reconnected": "Arka uca yeniden bağlanıldı",
         "offline": "Çevrimdışı",
         "restart_backend": "Arka ucu yeniden başlat",
-        "network_starting": "RNS başlatılıyor…",
+        "network_starting": "Starting RNS… first launch can take a few minutes while network stamps are generated.",
         "network_degraded": "RNS kullanılamıyor. Uygulama hâlâ çalışıyor. Böylece verileri silmeden sorunu teşhis edip kurtarabilirsiniz.",
         "recover_network": "RNS'yi Yeniden Dene",
         "open_settings": "Ayarları aç",
@@ -1805,7 +1805,13 @@
         "community_filter_i2p": "I2P",
         "community_filter_yggdrasil": "Yggdrasil",
         "community_filter_other": "Other",
-        "rnode_bt_permission_denied": "Bluetooth permission is required for this RNode transport. Grant it in app settings and try again."
+        "rnode_bt_permission_denied": "Bluetooth permission is required for this RNode transport. Grant it in app settings and try again.",
+        "client_limit_label": "Client limit",
+        "client_limit_placeholder": "500",
+        "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
+        "hop_limiter_label": "Hop limiter",
+        "hop_limiter_placeholder": "128",
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
     },
     "map": {
         "title": "Harita",
@@ -2085,7 +2091,8 @@
         "coords_copied": "Koordinatlar panoya kopyalandı",
         "geo_parse_failed": "Bu konum çözümlenemedi",
         "filter_type": "Filter by type",
-        "all_types": "All types"
+        "all_types": "All types",
+        "tile_source_planet_pmtiles": "Planet PMTiles (Quad4)"
     },
     "interface": {
         "disable": "Devre dışı bırak",
@@ -4802,7 +4809,19 @@
         "network_internals": "Ağ iç detayları",
         "path_table_detail": "{total} yol · {unused} kullanılmıyor",
         "storage_known_destinations": "Bilinen hedefler",
-        "storage_announce_cache": "Duyuru önbelleği"
+        "storage_announce_cache": "Duyuru önbelleği",
+        "filtered_rx": "Filtered RX",
+        "filtered_tx": "Filtered TX",
+        "announce_filtered": "Filtered announces",
+        "filtered_suffix": "filtered",
+        "filtered_traffic": "Filtered traffic",
+        "tunnel_id": "Tunnel ID",
+        "remote_transport_id": "Remote transport",
+        "remote_implementation": "Remote implementation",
+        "remote_costs": "Remote stamp costs",
+        "transport_filtered": "Filtered traffic",
+        "transport_links": "Links",
+        "data_flow_share": "{pct}% of data flow"
     },
     "remote_mgmt": {
         "management_identity": "Yönetim kimliği",
