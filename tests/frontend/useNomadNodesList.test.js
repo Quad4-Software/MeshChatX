@@ -230,6 +230,57 @@ describe("useNomadNodesList", () => {
         expect(node._updated_at_ts).toBe(new Date("2025-01-01").getTime());
     });
 
+
+    it("retries a failed non-append fetch and repopulates on recovery", async () => {
+        vi.useFakeTimers();
+        const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+        api.get.mockRejectedValueOnce(new Error("backend not ready"));
+        const list = useNomadNodesList();
+        await list.getNomadnetworkNodeAnnounces();
+        expect(logSpy).toHaveBeenCalled();
+        expect(list.isSearchingNodes.value).toBe(false);
+        expect(api.get).toHaveBeenCalledTimes(1);
+
+        // backoff retry repopulates the list without a search keystroke
+        api.get.mockResolvedValueOnce({
+            data: {
+                announces: [{ destination_hash: "f".repeat(32), display_name: "F" }],
+                total_count: 1,
+            },
+        });
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(api.get).toHaveBeenCalledTimes(2);
+        expect(list.nodes.value["f".repeat(32)]?.display_name).toBe("F");
+        expect(list.totalNodesCount.value).toBe(1);
+        logSpy.mockRestore();
+    });
+
+    it("does not retry failed append fetches", async () => {
+        vi.useFakeTimers();
+        const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+        api.get.mockRejectedValueOnce(new Error("boom"));
+        const list = useNomadNodesList();
+        list.hasMoreNodes.value = true;
+        await list.getNomadnetworkNodeAnnounces(true);
+        await vi.advanceTimersByTimeAsync(60000);
+        expect(api.get).toHaveBeenCalledTimes(1);
+        logSpy.mockRestore();
+    });
+
+    it("stops retrying after the bounded retry budget", async () => {
+        vi.useFakeTimers();
+        const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+        api.get.mockRejectedValue(new Error("always down"));
+        const list = useNomadNodesList();
+        await list.getNomadnetworkNodeAnnounces();
+        for (let i = 0; i < 10; i++) {
+            await vi.advanceTimersByTimeAsync(30000);
+        }
+        // initial call + 8 bounded retries, then it gives up quietly
+        expect(api.get).toHaveBeenCalledTimes(9);
+        logSpy.mockRestore();
+    });
+
     it("swallows cancel errors and logs other failures", async () => {
         const list = useNomadNodesList();
         api.isCancel.mockReturnValueOnce(true);

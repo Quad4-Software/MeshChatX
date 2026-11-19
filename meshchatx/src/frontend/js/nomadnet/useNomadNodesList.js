@@ -11,6 +11,10 @@ import * as announcesApi from "../api/announces.js";
  * handling. Each non-append fetch aborts the previous in-flight request
  * and only the latest request is allowed to clear isSearchingNodes.
  */
+const NODES_LOAD_MAX_RETRIES = 8;
+const NODES_LOAD_RETRY_BASE_MS = 1000;
+const NODES_LOAD_RETRY_CAP_MS = 30000;
+
 export function useNomadNodesList() {
     const nodes = ref({});
     const totalNodesCount = ref(0);
@@ -25,6 +29,7 @@ export function useNomadNodesList() {
     const fetchedCount = ref(0);
     const nodesRefreshTimeout = ref(null);
     const nodesListAbortController = ref(null);
+    const nodesLoadRetryCount = ref(0);
 
     function updateNodeFromAnnounce(announce) {
         const existing = nodes.value[announce.destination_hash];
@@ -107,10 +112,27 @@ export function useNomadNodesList() {
                 updateNodeFromAnnounce(nodeAnnounce);
             }
 
+            nodesLoadRetryCount.value = 0;
             hasMoreNodes.value = nodeAnnounces.length === pageSize.value;
         } catch (e) {
-            if (window.api.isCancel?.(e)) return;
+            if (window.api?.isCancel?.(e)) return;
             console.log(e);
+            // A failed first page must self-heal. Startup and identity
+            // switch can outlast the HTTP retry window, and nothing else
+            // refetches this list except typing in the search box.
+            if (!append && nodesLoadRetryCount.value < NODES_LOAD_MAX_RETRIES) {
+                const delay = Math.min(
+                    NODES_LOAD_RETRY_BASE_MS * 2 ** nodesLoadRetryCount.value,
+                    NODES_LOAD_RETRY_CAP_MS
+                );
+                nodesLoadRetryCount.value += 1;
+                if (nodesRefreshTimeout.value) {
+                    clearTimeout(nodesRefreshTimeout.value);
+                }
+                nodesRefreshTimeout.value = setTimeout(() => {
+                    getNomadnetworkNodeAnnounces();
+                }, delay);
+            }
         } finally {
             isLoadingMoreNodes.value = false;
             if (!append && nodesListAbortController.value === myController) {
