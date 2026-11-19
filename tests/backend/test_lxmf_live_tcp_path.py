@@ -119,6 +119,10 @@ _PONG_SCRIPT = textwrap.dedent(
     config_dir, share_dir, timeout_s = sys.argv[1], sys.argv[2], float(sys.argv[3])
     stop_path = os.path.join(share_dir, "stop")
     ready_path = os.path.join(share_dir, "pong.json")
+    # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
+    # them by default; 1.6.0 had them off and CI runners are slow).
+    RNS.Transport.STAMP_DESTINATIONS = False
+    RNS.Transport.STAMP_PRS = False
     RNS.Reticulum(configdir=config_dir, loglevel=RNS.LOG_ERROR)
     identity = RNS.Identity()
     dest = RNS.Destination(
@@ -142,6 +146,10 @@ _PING_SCRIPT = textwrap.dedent(
     config_dir, share_dir, timeout_s = sys.argv[1], sys.argv[2], float(sys.argv[3])
     ready_path = os.path.join(share_dir, "pong.json")
     result_path = os.path.join(share_dir, "ping.json")
+    # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
+    # them by default; 1.6.0 had them off and CI runners are slow).
+    RNS.Transport.STAMP_DESTINATIONS = False
+    RNS.Transport.STAMP_PRS = False
     RNS.Reticulum(configdir=config_dir, loglevel=RNS.LOG_ERROR)
     identity = RNS.Identity()
     local = RNS.Destination(

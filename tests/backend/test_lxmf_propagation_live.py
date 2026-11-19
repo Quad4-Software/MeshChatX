@@ -69,6 +69,10 @@ _PN_SCRIPT = _FIELD_CODEC + textwrap.dedent(
     ready_path = os.path.join(share_dir, "pn_ready.json")
     store_path = os.path.join(share_dir, "pn_store.json")
 
+    # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
+    # them by default; 1.6.0 had them off and CI runners are slow).
+    RNS.Transport.STAMP_DESTINATIONS = False
+    RNS.Transport.STAMP_PRS = False
     RNS.Reticulum(configdir=config_dir, loglevel=RNS.LOG_ERROR)
     identity = RNS.Identity()
     storage = os.path.join(config_dir, "lxmf_storage")
@@ -119,6 +123,10 @@ _BOB_SCRIPT = _FIELD_CODEC + textwrap.dedent(
     pn_ready = os.path.join(share_dir, "pn_ready.json")
     inbox_path = os.path.join(share_dir, "inbox.json")
 
+    # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
+    # them by default; 1.6.0 had them off and CI runners are slow).
+    RNS.Transport.STAMP_DESTINATIONS = False
+    RNS.Transport.STAMP_PRS = False
     RNS.Reticulum(configdir=config_dir, loglevel=RNS.LOG_ERROR)
     identity = RNS.Identity()
     storage = os.path.join(config_dir, "lxmf_storage")
@@ -199,6 +207,10 @@ _ALICE_SCRIPT = _FIELD_CODEC + textwrap.dedent(
     bob_ready = os.path.join(share_dir, "bob_ready.json")
     result_path = os.path.join(share_dir, "send.json")
 
+    # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
+    # them by default; 1.6.0 had them off and CI runners are slow).
+    RNS.Transport.STAMP_DESTINATIONS = False
+    RNS.Transport.STAMP_PRS = False
     RNS.Reticulum(configdir=config_dir, loglevel=RNS.LOG_ERROR)
     identity = RNS.Identity()
     storage = os.path.join(config_dir, "lxmf_storage")

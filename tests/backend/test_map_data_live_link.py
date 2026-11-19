@@ -68,6 +68,10 @@ _PUB_SCRIPT = textwrap.dedent(
     config_dir, share_dir = sys.argv[1], sys.argv[2]
     stop_path = os.path.join(share_dir, "stop")
     ready_path = os.path.join(share_dir, "ready.json")
+    # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
+    # them by default; 1.6.0 had them off and CI runners are slow).
+    RNS.Transport.STAMP_DESTINATIONS = False
+    RNS.Transport.STAMP_PRS = False
     RNS.Reticulum(configdir=config_dir, loglevel=RNS.LOG_ERROR)
     identity = RNS.Identity()
     db = Database(os.path.join(config_dir, "db.sqlite"))
@@ -145,6 +149,10 @@ _CLI_SCRIPT = textwrap.dedent(
     config_dir, share_dir = sys.argv[1], sys.argv[2]
     ready_path = os.path.join(share_dir, "ready.json")
     result_path = os.path.join(share_dir, "result.json")
+    # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
+    # them by default; 1.6.0 had them off and CI runners are slow).
+    RNS.Transport.STAMP_DESTINATIONS = False
+    RNS.Transport.STAMP_PRS = False
     RNS.Reticulum(configdir=config_dir, loglevel=RNS.LOG_ERROR)
     identity = RNS.Identity()
     deadline = time.time() + 20

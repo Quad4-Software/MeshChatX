@@ -445,6 +445,10 @@ def test_lxmf_pack_preserves_pinned_timestamp_hash():
                 "\\n"
                 "[interfaces]\\n"
             )
+        # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
+        # them by default; 1.6.0 had them off and CI runners are slow).
+        RNS.Transport.STAMP_DESTINATIONS = False
+        RNS.Transport.STAMP_PRS = False
         RNS.Reticulum(configdir=tmpdir, loglevel=RNS.LOG_NONE)
         identity = RNS.Identity()
         dest = RNS.Destination(

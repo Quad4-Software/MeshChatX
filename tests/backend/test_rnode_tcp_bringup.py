@@ -205,6 +205,10 @@ def test_rnode_old_firmware_panics_are_contained(tmp_path, monkeypatch):
             raising=True,
         )
         (tmp_path / "config").write_text(_CONFIG, encoding="utf-8")
+        # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
+        # them by default; 1.6.0 had them off and CI runners are slow).
+        RNS.Transport.STAMP_DESTINATIONS = False
+        RNS.Transport.STAMP_PRS = False
         RNS.Reticulum(configdir=str(tmp_path), loglevel=RNS.LOG_ERROR)
         try:
             iface = _find_rnode()[0]
@@ -234,6 +238,10 @@ def test_rnode_bt_port_translates_to_serial_target(tmp_path, monkeypatch):
         )
         config = _CONFIG.replace("port = tcp://127.0.0.1", "port = bt://MyRNode")
         (tmp_path / "config").write_text(config, encoding="utf-8")
+        # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
+        # them by default; 1.6.0 had them off and CI runners are slow).
+        RNS.Transport.STAMP_DESTINATIONS = False
+        RNS.Transport.STAMP_PRS = False
         RNS.Reticulum(configdir=str(tmp_path), loglevel=RNS.LOG_ERROR)
         try:
             iface = _find_rnode()[0]
@@ -277,6 +285,10 @@ def test_rnode_bt_unresolvable_retries_without_panic(tmp_path, monkeypatch):
         )
         config = _CONFIG.replace("port = tcp://127.0.0.1", "port = bt://MyRNode")
         (tmp_path / "config").write_text(config, encoding="utf-8")
+        # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
+        # them by default; 1.6.0 had them off and CI runners are slow).
+        RNS.Transport.STAMP_DESTINATIONS = False
+        RNS.Transport.STAMP_PRS = False
         RNS.Reticulum(configdir=str(tmp_path), loglevel=RNS.LOG_ERROR)
         try:
             iface = _find_rnode()[0]

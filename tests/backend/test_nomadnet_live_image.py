@@ -122,6 +122,10 @@ _SERVER_SCRIPT = textwrap.dedent(
     stop_path = os.path.join(share_dir, "stop")
     data_dir = os.path.join(share_dir, "node")
 
+    # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
+    # them by default; 1.6.0 had them off and CI runners are slow).
+    RNS.Transport.STAMP_DESTINATIONS = False
+    RNS.Transport.STAMP_PRS = False
     RNS.Reticulum(configdir=server_dir, loglevel=RNS.LOG_ERROR)
     identity = RNS.Identity()
     node = PageNode(
@@ -160,6 +164,10 @@ _CLIENT_SCRIPT = textwrap.dedent(
     ready_path = os.path.join(share_dir, "server.json")
     result_path = os.path.join(share_dir, "client.json")
 
+    # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
+    # them by default; 1.6.0 had them off and CI runners are slow).
+    RNS.Transport.STAMP_DESTINATIONS = False
+    RNS.Transport.STAMP_PRS = False
     RNS.Reticulum(configdir=client_dir, loglevel=RNS.LOG_ERROR)
 
     deadline = time.time() + 30

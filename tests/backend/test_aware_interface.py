@@ -52,6 +52,10 @@ def reticulum(tmp_path_factory):
         "[reticulum]\nenable_transport = no\nshare_instance = no\n\n[interfaces]\n",
         encoding="utf-8",
     )
+    # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
+    # them by default; 1.6.0 had them off and CI runners are slow).
+    RNS.Transport.STAMP_DESTINATIONS = False
+    RNS.Transport.STAMP_PRS = False
     yield RNS.Reticulum(configdir=str(config_dir), loglevel=RNS.LOG_ERROR)
     # Reset the RNS singleton so later tests can init their own Reticulum.
     try:
