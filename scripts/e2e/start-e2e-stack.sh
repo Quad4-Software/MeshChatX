@@ -12,6 +12,10 @@ export MESHCHAT_TRUSTED_PROXIES="${MESHCHAT_TRUSTED_PROXIES:-127.0.0.1/32}"
 # E2E exercises /api/v1/self-test (subprocess + bots). Keep Landlock off so
 # uv-managed interpreters and temp paths are not a sandbox variable.
 export MESHCHAT_LANDLOCK=0
+# RNS 1.6.1 stamps announces/path requests with PoW by default. Loopback
+# e2e peers only need delivery, so the backend skips stamping like the
+# live-peer subprocess does.
+export MESHCHAT_RNS_DISABLE_STAMPS=1
 BACKEND_PORT="$E2E_BACKEND_PORT"
 VITE_HOST="${E2E_VITE_HOST:-127.0.0.1}"
 VITE_PORT="${E2E_VITE_PORT:-5173}"

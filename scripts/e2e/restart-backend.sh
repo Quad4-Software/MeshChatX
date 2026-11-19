@@ -26,6 +26,7 @@ fi
 export MESHCHAT_NO_HTTPS=1
 export MESHCHAT_TRUSTED_PROXIES="${MESHCHAT_TRUSTED_PROXIES:-127.0.0.1/32}"
 export MESHCHAT_LANDLOCK=0
+export MESHCHAT_RNS_DISABLE_STAMPS=1
 export MESHCHAT_LOG_DIR="$TMP_ROOT/logs"
 
 uv run python -m meshchatx.meshchat \

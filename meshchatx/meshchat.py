@@ -436,6 +436,19 @@ def _apply_interface_discovery_thresholds(config_dir: str):
             pass
 
 
+def _apply_stamp_env_overrides() -> None:
+    """Apply opt-in stamp override for test stacks.
+
+    MESHCHAT_RNS_DISABLE_STAMPS=1 restores the RNS 1.6.0 defaults and skips
+    PoW stamps on announces and path requests. E2E stacks enable it so
+    loopback peers do not burn seconds per request on small CI runners.
+    Production launches never set it.
+    """
+    if env_bool("MESHCHAT_RNS_DISABLE_STAMPS"):
+        RNS.Transport.STAMP_DESTINATIONS = False
+        RNS.Transport.STAMP_PRS = False
+
+
 def _create_reticulum_instance(
     config_dir: str,
     loglevel: int | None = None,
@@ -461,6 +474,7 @@ def _create_reticulum_instance(
 
     def _construct():
         _apply_interface_discovery_thresholds(config_dir)
+        _apply_stamp_env_overrides()
         if threading.current_thread() is threading.main_thread():
             return RNS.Reticulum(config_dir, **kwargs)
 
