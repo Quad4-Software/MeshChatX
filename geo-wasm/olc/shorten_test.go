@@ -1,6 +1,7 @@
 package olc
 
 import "testing"
+
 func TestRecoverNearestLongTail(t *testing.T) {
 	// Long-but-valid short codes must not overflow the merged buffer.
 	c, err := RecoverNearest("2345+CFGHJMPQRVWX", 51.0, 0.1)

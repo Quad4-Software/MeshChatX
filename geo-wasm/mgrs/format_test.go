@@ -1,6 +1,7 @@
 package mgrs
 
 import "testing"
+
 func TestFormatSpacedSingleDigitZone(t *testing.T) {
 	out, err := FormatSpaced("4QFJ123456")
 	if err != nil {
