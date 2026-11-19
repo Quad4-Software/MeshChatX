@@ -91,6 +91,15 @@ def _make_rnode_subclass():
                 self.port = resolved
             super().open_port()
 
+        def process_incoming(self, data):
+            # RNS 1.6.1 dropped rxb accounting in process_incoming. Top the
+            # counter up only when upstream did not, so the patch stays
+            # correct if a later release restores it.
+            before = self.rxb
+            super().process_incoming(data)
+            if data and self.rxb == before:
+                self.rxb += len(data)
+
     return MeshChatRNodeInterface
 
 
