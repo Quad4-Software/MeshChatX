@@ -90,6 +90,23 @@ the Crow UI via the repository's manual-run button. Only workflows that list
 
 Pinned versions: `scripts/ci/versions.env`.
 
+## Local network scenario tests
+
+`tests/backend/test_network_send_scenarios.py` exercises the outbound
+send-side code paths (path requests, failed-send refresh, propagation
+fallback, announce scheduling) against the real app code with
+`RNS.Transport` patched at the boundary. It asserts exact call counts so
+redundant network traffic shows up as a test failure:
+
+```bash
+.venv/bin/pytest tests/backend/test_network_send_scenarios.py -q
+```
+
+The suite is fast and runs inside the default pytest pass. Heavier
+loopback and subprocess suites use the `integration`, `lxst_real`, and
+`long_running` markers registered in `pytest.ini`.
+
+
 ## Lockfiles and install scripts
 
 From a clean clone:
