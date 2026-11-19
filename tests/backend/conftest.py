@@ -133,6 +133,15 @@ def global_mocks():
 
 
 @pytest.fixture(autouse=True)
+def reset_path_request_rate_limit():
+    from meshchatx.src.backend import reticulum_pathfinding
+
+    reticulum_pathfinding.reset_path_request_rate_limit_for_tests()
+    yield
+    reticulum_pathfinding.reset_path_request_rate_limit_for_tests()
+
+
+@pytest.fixture(autouse=True)
 def cleanup_sqlite_connections():
     yield
     import gc

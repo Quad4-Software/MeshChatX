@@ -655,7 +655,8 @@ async def test_auto_propagation_keeps_recently_verified_without_probe():
     mock_wait.assert_not_called()
     mock_probe.assert_not_called()
     app.set_active_propagation_node.assert_not_called()
-    mock_request_path.assert_called()
+    # A live path must not trigger a redundant request_path.
+    mock_request_path.assert_not_called()
     assert MEMORY_CONFIG_KEY in store or _VALID_HASH_A in manager._memory
 
 
@@ -738,3 +739,30 @@ async def test_wait_for_usable_path_rejects_unresponsive_paths():
 
     assert ok is False
     mock_nudge.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_auto_propagation_does_not_re_request_existing_path():
+    """A kept preferred node with a live path must not get a redundant request_path."""
+    manager, app, context, config, database, _store = _make_manager()
+
+    config.lxmf_preferred_propagation_node_auto_select.get.return_value = True
+    config.lxmf_preferred_propagation_node_destination_hash.get.return_value = (
+        _VALID_HASH_A
+    )
+
+    announce1 = {
+        "destination_hash": _VALID_HASH_B,
+        "app_data": _APP_DATA_ENABLED,
+    }
+    database.announces.get_announces.return_value = [announce1]
+
+    with (
+        patch.object(RNS.Transport, "has_path", return_value=True),
+        patch.object(manager, "_wait_for_usable_path", return_value=False),
+        patch.object(RNS.Transport, "request_path") as mock_request_path,
+    ):
+        await manager.check_and_update_propagation_node()
+
+    app.set_active_propagation_node.assert_called_with(_VALID_HASH_A, context=context)
+    mock_request_path.assert_not_called()

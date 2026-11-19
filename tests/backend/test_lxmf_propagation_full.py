@@ -308,12 +308,14 @@ async def test_user_provided_node_hash(mock_app):
     """Specifically test the node hash provided by the user."""
     node_hash_hex = "d81255ae2ff367d4883b16c9cc8c6178"
 
-    # Set this node as preferred
-    with patch("meshchatx.meshchat.RNS.Transport.request_path") as mock_request_path:
-        await mock_app.update_config(
-            {"lxmf_preferred_propagation_node_destination_hash": node_hash_hex},
-        )
-        mock_request_path.assert_called_with(bytes.fromhex(node_hash_hex))
+    # Set this node as preferred. No path is known, so a path request is
+    # expected (has_path is a truthy MagicMock unless pinned to False).
+    with patch("meshchatx.meshchat.RNS.Transport.has_path", return_value=False):
+        with patch("meshchatx.meshchat.RNS.Transport.request_path") as mock_request_path:
+            await mock_app.update_config(
+                {"lxmf_preferred_propagation_node_destination_hash": node_hash_hex},
+            )
+            mock_request_path.assert_called_with(bytes.fromhex(node_hash_hex))
 
     # Check if the router was updated with the correct bytes
     mock_app.current_context.message_router.set_outbound_propagation_node.assert_called_with(

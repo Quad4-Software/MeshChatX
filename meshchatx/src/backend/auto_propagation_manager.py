@@ -595,8 +595,17 @@ class AutoPropagationManager:
             ):
                 self.app.set_active_propagation_node(previous_hex, context=self.context)
             else:
+                previous_bytes = None
                 with contextlib.suppress(Exception):
-                    RNS.Transport.request_path(bytes.fromhex(previous_hex))
+                    previous_bytes = bytes.fromhex(previous_hex)
+                if previous_bytes is not None:
+                    try:
+                        prev_have_path = RNS.Transport.has_path(previous_bytes)
+                    except Exception:
+                        prev_have_path = False
+                    if not prev_have_path:
+                        with contextlib.suppress(Exception):
+                            RNS.Transport.request_path(previous_bytes)
             return
 
         probed_any = False
@@ -641,8 +650,17 @@ class AutoPropagationManager:
             entry = self._memory.get(previous_hex, {})
             consecutive = int(entry.get("consecutive_failures") or 0)
             if consecutive < MAX_CONSECUTIVE_FAILURES_BEFORE_CLEAR:
+                previous_bytes = None
                 with contextlib.suppress(Exception):
-                    RNS.Transport.request_path(bytes.fromhex(previous_hex))
+                    previous_bytes = bytes.fromhex(previous_hex)
+                if previous_bytes is not None:
+                    try:
+                        prev_have_path = RNS.Transport.has_path(previous_bytes)
+                    except Exception:
+                        prev_have_path = False
+                    if not prev_have_path:
+                        with contextlib.suppress(Exception):
+                            RNS.Transport.request_path(previous_bytes)
                 self.app.set_active_propagation_node(previous_hex, context=self.context)
                 return
 
