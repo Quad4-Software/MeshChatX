@@ -2568,6 +2568,7 @@ export default {
             discoveryInterval: null,
             markingSeen: false,
             windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
+            windowHeight: typeof window !== "undefined" ? window.innerHeight : 768,
             defaultBootstrapOnly: false,
             bootstrapListSearch: "",
             bootstrapDiscoveredSectionOpen: true,
@@ -2588,7 +2589,9 @@ export default {
             return this.$route?.meta?.isPage === true;
         },
         dialogFullscreen() {
-            return this.windowWidth < 768;
+            // landscape phones and the on-screen keyboard leave too little
+            // height for a floating card, so use the whole viewport
+            return this.windowWidth < 768 || this.windowHeight < 500;
         },
         config() {
             return useConfigStore().config;
@@ -2715,6 +2718,7 @@ export default {
     mounted() {
         this.onWindowResize = () => {
             this.windowWidth = window.innerWidth;
+            this.windowHeight = window.innerHeight;
         };
         window.addEventListener("resize", this.onWindowResize, { passive: true });
         // The backend broadcasts reticulum_reload_status for every stack
@@ -3812,6 +3816,65 @@ export default {
 
 .tutorial-action-btn-ghost:hover:not(:disabled) {
     @apply bg-sem-surface-muted text-sem-fg;
+}
+
+/* ---------- short viewports (landscape phones, on-screen keyboard) ---------- */
+
+@media (max-height: 500px) {
+    .tutorial-topbar {
+        @apply py-1;
+    }
+
+    .tutorial-step {
+        @apply gap-3;
+    }
+
+    .tutorial-step-header {
+        @apply gap-2;
+    }
+
+    .tutorial-step-icon {
+        @apply size-9 rounded-xl;
+    }
+
+    .tutorial-step-title {
+        @apply text-lg;
+    }
+
+    .tutorial-step-desc {
+        @apply text-xs;
+    }
+
+    .tutorial-card,
+    .tutorial-notice,
+    .tutorial-choice,
+    .tutorial-link-card {
+        @apply p-3;
+    }
+
+    .tutorial-icon-tile {
+        @apply size-9;
+    }
+
+    .tutorial-feature-grid {
+        @apply gap-2;
+    }
+
+    .tutorial-feature-card {
+        @apply p-2;
+    }
+
+    .tutorial-action-btn {
+        @apply px-3 py-2 text-xs;
+    }
+
+    .tutorial-step h1 {
+        @apply text-2xl;
+    }
+
+    .tutorial-step .size-24 {
+        @apply size-16;
+    }
 }
 
 /* ---------- step transition ---------- */

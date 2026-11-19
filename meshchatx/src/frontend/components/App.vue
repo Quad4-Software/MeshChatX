@@ -2085,7 +2085,9 @@ export default {
                     const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : "");
                     window.history.replaceState({}, "", newUrl);
                 } else if (urlParams.has("changelog")) {
-                    this.$refs.changelogModal.show();
+                    if (!this.$refs.tutorialModal?.visible) {
+                        this.$refs.changelogModal.show();
+                    }
                     // remove param from URL
                     urlParams.delete("changelog");
                     const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : "");
@@ -2105,6 +2107,11 @@ export default {
                         this.appInfo.changelog_seen_version !== "999.999.999" &&
                         this.appInfo.changelog_seen_version !== this.appInfo.version
                     ) {
+                        // never stack the changelog over a tutorial that is
+                        // already on screen; it wins the next check instead
+                        if (this.$refs.tutorialModal?.visible) {
+                            return;
+                        }
                         // show changelog if version changed and not silenced forever
                         this.$refs.changelogModal.show();
                     } else if (this.maybeShowChannelPrompt()) {

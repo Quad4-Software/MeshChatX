@@ -697,6 +697,14 @@ a[href] {
     cursor: pointer;
 }
 
+button:disabled,
+select:disabled,
+input:disabled,
+[role="button"][aria-disabled="true"],
+a[aria-disabled="true"] {
+    cursor: not-allowed;
+}
+
 /* Toggle knob: default white works on colored tracks, but glass dark uses a
    white primary so the knob would vanish. Drive it from the action-primary
    text var so it always contrasts with the checked track. */

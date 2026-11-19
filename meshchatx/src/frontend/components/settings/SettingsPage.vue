@@ -2080,6 +2080,8 @@
                                                 'lr_cost',
                                                 'lr_stamp_timeout',
                                                 'pr_stamp_timeout',
+                                                'max_workers',
+                                                'worker_niceness',
                                             ]"
                                             :key="field"
                                             class="space-y-1"
@@ -3402,7 +3404,7 @@ export default {
                 map_default_lat: "0.0",
                 map_default_lon: "0.0",
                 map_default_zoom: 2,
-                map_tile_server_url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                map_tile_server_url: "https://s3.quad4.io/pmtiles/planet.pmtiles",
                 map_nominatim_api_url: "https://nominatim.openstreetmap.org",
                 map_offline_enabled: true,
                 map_tile_cache_enabled: true,
