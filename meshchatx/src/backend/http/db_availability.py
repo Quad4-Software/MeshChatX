@@ -17,6 +17,18 @@ def require_database(app):
     return None
 
 
+def require_announce_manager(app):
+    """Return a 503 response when the announce manager is not mounted.
+
+    IdentityContext mounts announce_manager after the database, so a DB
+    guard alone lets requests through into None.get_filtered_announces
+    during startup and identity switch.
+    """
+    if getattr(app, "announce_manager", None) is None:
+        return http_unavailable(DB_TEMPORARILY_UNAVAILABLE)
+    return None
+
+
 def http_for_database_exception(exc, *, unexpected_message="Internal error"):
     """Map retryable SQLite failures to 503 and other failures to 500."""
     if sqlite_error_is_retryable(exc):

@@ -13,6 +13,7 @@ import pytest
 from meshchatx.src.backend.http.db_availability import (
     DB_TEMPORARILY_UNAVAILABLE,
     http_for_database_exception,
+    require_announce_manager,
     require_database,
 )
 from meshchatx.src.backend.http.routes.blocklist import register_blocklist_routes
@@ -23,6 +24,17 @@ from meshchatx.src.backend.http.routes.lxmf import register_lxmf_routes
 def test_require_database():
     assert require_database(SimpleNamespace(database=None)).status == 503
     assert require_database(SimpleNamespace(database=object())) is None
+
+
+def test_require_announce_manager():
+    assert (
+        require_announce_manager(SimpleNamespace(announce_manager=None)).status
+        == 503
+    )
+    assert (
+        require_announce_manager(SimpleNamespace(announce_manager=object()))
+        is None
+    )
 
 
 def test_http_for_database_exception():
@@ -48,10 +60,21 @@ def _capture_gets(register_fn, app):
         return decorator
 
     routes.get = _get
-    routes.post = MagicMock(side_effect=lambda path: lambda fn: fn)
-    routes.put = MagicMock(side_effect=lambda path: lambda fn: fn)
-    routes.delete = MagicMock(side_effect=lambda path: lambda fn: fn)
-    routes.patch = MagicMock(side_effect=lambda path: lambda fn: fn)
+
+    def _capture_other(method):
+        def wrapper(path):
+            def decorator(fn):
+                captured[f"{method} {path}"] = fn
+                return fn
+
+            return decorator
+
+        return wrapper
+
+    routes.post = _capture_other("POST")
+    routes.put = _capture_other("PUT")
+    routes.delete = _capture_other("DELETE")
+    routes.patch = _capture_other("PATCH")
     register_fn(routes, app)
     return captured
 
@@ -133,3 +156,39 @@ async def test_lxmf_conversations_returns_503_if_identity_switches_during_load(
 
     assert response.status == 503
     telemetry.get_tracking_states.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_announces_get_returns_503_when_announce_manager_missing():
+    app = SimpleNamespace(database=object(), announce_manager=None)
+    handlers = _capture_gets(register_favourites_routes, app)
+    request = MagicMock()
+    request.query = {}
+    response = await handlers["/api/v1/announces"](request)
+    assert response.status == 503
+
+
+@pytest.mark.asyncio
+async def test_announces_nearby_returns_503_when_announce_manager_missing():
+    app = SimpleNamespace(database=object(), announce_manager=None)
+    handlers = _capture_gets(register_favourites_routes, app)
+    request = MagicMock()
+    request.query = {}
+    response = await handlers["/api/v1/announces/nearby"](request)
+    assert response.status == 503
+
+
+@pytest.mark.asyncio
+async def test_announces_query_returns_503_when_announce_manager_missing():
+    app = SimpleNamespace(database=object(), announce_manager=None)
+    handlers = _capture_gets(register_favourites_routes, app)
+    response = await handlers["POST /api/v1/announces/query"](MagicMock())
+    assert response.status == 503
+
+
+@pytest.mark.asyncio
+async def test_announces_query_returns_503_when_database_missing():
+    app = SimpleNamespace(database=None, announce_manager=None)
+    handlers = _capture_gets(register_favourites_routes, app)
+    response = await handlers["POST /api/v1/announces/query"](MagicMock())
+    assert response.status == 503

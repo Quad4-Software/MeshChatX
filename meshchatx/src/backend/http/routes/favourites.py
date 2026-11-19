@@ -16,6 +16,7 @@ from meshchatx.src.backend.announce_manager import (
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.db_availability import (
     http_for_database_exception,
+    require_announce_manager,
     require_database,
 )
 from meshchatx.src.backend.http.errors import (
@@ -57,6 +58,9 @@ def register_favourites_routes(routes, app):
     @routes.get(API_V1_PREFIX + "/announces")
     async def announces_get(request):
         unavailable = require_database(app)
+        if unavailable is not None:
+            return unavailable
+        unavailable = require_announce_manager(app)
         if unavailable is not None:
             return unavailable
 
@@ -173,6 +177,12 @@ def register_favourites_routes(routes, app):
 
     @routes.post(API_V1_PREFIX + "/announces/query")
     async def announces_query(request):
+        unavailable = require_database(app)
+        if unavailable is not None:
+            return unavailable
+        unavailable = require_announce_manager(app)
+        if unavailable is not None:
+            return unavailable
         try:
             data = await read_json_limited(request)
         except PayloadTooLargeError:
@@ -216,6 +226,9 @@ def register_favourites_routes(routes, app):
     @routes.get(API_V1_PREFIX + "/announces/nearby")
     async def announces_nearby_get(request):
         unavailable = require_database(app)
+        if unavailable is not None:
+            return unavailable
+        unavailable = require_announce_manager(app)
         if unavailable is not None:
             return unavailable
 
