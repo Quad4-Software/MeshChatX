@@ -103,19 +103,48 @@ export function mergeRelayMessages(base, extras) {
     if (!Array.isArray(extras) || extras.length === 0) {
         return out;
     }
-    for (const msg of extras) {
-        if (!msg || relayMessageAlreadyPresent(out, msg)) {
-            continue;
-        }
-        let idx = out.length;
-        for (let i = 0; i < out.length; i++) {
-            if (relayMessageSortsAfter(out[i], msg)) {
-                idx = i;
-                break;
+    // Dedup with the same seq-first-then-fallback-key semantics as
+    // relayMessageAlreadyPresent, but with set lookups instead of a linear
+    // scan per extra: the old implementation was O((n + m)^2) which made
+    // history loads read ~30M properties on a 2000+2000 merge.
+    const seenSeqs = new Set();
+    const seenKeys = new Set();
+    for (const m of out) {
+        if (m && m.seq != null && m.seq !== "") {
+            seenSeqs.add(String(m.seq));
+        } else {
+            const key = relayMessageKey(m);
+            if (key) {
+                seenKeys.add(key);
             }
         }
-        out.splice(idx, 0, msg);
     }
+    for (const msg of extras) {
+        if (!msg) {
+            continue;
+        }
+        const seq = msg.seq;
+        if (seq != null && seq !== "") {
+            const seqText = String(seq);
+            if (seenSeqs.has(seqText)) {
+                continue;
+            }
+            seenSeqs.add(seqText);
+        } else {
+            const key = relayMessageKey(msg);
+            if (key && seenKeys.has(key)) {
+                continue;
+            }
+            if (key) {
+                seenKeys.add(key);
+            }
+        }
+        out.push(msg);
+    }
+    // One stable sort instead of a per-extra insertion scan. Equal seq/ts
+    // pairs keep input order (base before extras), matching the old
+    // insert-after-equals placement.
+    out.sort((a, b) => (relayMessageSortsAfter(a, b) ? 1 : relayMessageSortsAfter(b, a) ? -1 : 0));
     return out;
 }
 
