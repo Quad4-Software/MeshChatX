@@ -26,7 +26,6 @@
 - LXMF: file attachment names with NUL characters are cleaned before they are published.
 - Relay chat: messages whose sequence number arrives as a string no longer defeat dedup or sort order.
 - Maidenhead locators past the poles are no longer turned into map links.
-
 - NomadNet: on a fresh install the announce list stayed empty until you typed in search because a failed first load was never retried. It now retries with backoff.
 - Onboarding: the viewport now sets `viewport-fit=cover` and keyboard resizing so safe-area insets work on notched phones, short and landscape screens use the fullscreen dialog with compact spacing, and the changelog modal no longer opens over the tutorial.
 - Network: path requests are deduplicated per destination over a short window, a failed request no longer consumes that window, and propagation node selection no longer re-requests a path that already exists. Errors from `has_path` are no longer swallowed.
