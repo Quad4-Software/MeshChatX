@@ -2092,7 +2092,10 @@
         "geo_parse_failed": "Не удалось определить это местоположение",
         "filter_type": "Filter by type",
         "all_types": "All types",
-        "tile_source_planet_pmtiles": "Planet PMTiles (Quad4)"
+        "tile_source_planet_pmtiles": "Planet PMTiles (Quad4)",
+        "upload_offline_map": "Upload offline map (MBTiles or PMTiles)",
+        "pmtiles_file": "PMTiles",
+        "invalid_map_file": "Invalid map file (MBTiles or PMTiles archive expected)"
     },
     "interface": {
         "disable": "Выключить",
