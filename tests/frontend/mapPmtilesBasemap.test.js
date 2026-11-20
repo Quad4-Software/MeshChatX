@@ -11,6 +11,9 @@ vi.mock("pmtiles", () => ({
             getMetadata: vi.fn().mockResolvedValue({}),
         };
     }),
+    SharedPromiseCache: vi.fn(function () {
+        return {};
+    }),
 }));
 
 const applyStyleMock = vi.fn().mockResolvedValue(undefined);
