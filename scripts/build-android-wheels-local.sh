@@ -182,6 +182,30 @@ abi_to_platform_tag() {
     esac
 }
 
+# pip picks the best wheel candidate on PyPI, which may carry a build tag
+# (name-VERSION-BUILD-py3-none-any.whl). Resolve whatever single matching
+# file was downloaded instead of assuming the untagged filename.
+resolve_downloaded_wheel() {
+    local dir="$1" name="$2" version="$3"
+    local found="" candidate
+    for candidate in \
+        "${dir}/${name}-${version}-py3-none-any.whl" \
+        "${dir}/${name}-${version}-"*-py3-none-any.whl
+    do
+        [[ -f "${candidate}" ]] || continue
+        if [[ -n "${found}" ]]; then
+            echo "Multiple ${name} ${version} wheels in ${dir}" >&2
+            return 1
+        fi
+        found="${candidate}"
+    done
+    if [[ -z "${found}" ]]; then
+        echo "No ${name} ${version} wheel found in ${dir}" >&2
+        return 1
+    fi
+    printf '%s\n' "${found}"
+}
+
 discover_latest_target() {
     local python_minor="$1"
     local metadata versions latest
@@ -767,7 +791,7 @@ if [[ "${PATCH_LXST}" == "1" && -z "${ONLY_RECIPES}" ]]; then
         --dest "${TMP_DIR}" \
         --index-url https://pypi.org/simple
 
-    LXST_WHEEL="$(ls "${TMP_DIR}"/lxst-"${LXST_VERSION}"-py3-none-any.whl)"
+    LXST_WHEEL="$(resolve_downloaded_wheel "${TMP_DIR}" lxst "${LXST_VERSION}")"
     PATCHED_LXST_WHEEL="${OUT_DIR}/lxst-${LXST_VERSION}-py3-none-any.whl"
 
     "${VENV_DIR}/bin/python" - <<PY
@@ -915,7 +939,7 @@ if [[ -z "${ONLY_RECIPES}" ]]; then
         --dest "${BLEAK_TMP_DIR}" \
         --index-url https://pypi.org/simple
 
-    BLEAK_WHEEL="$(ls "${BLEAK_TMP_DIR}"/bleak-"${BLEAK_VERSION}"-py3-none-any.whl)"
+    BLEAK_WHEEL="$(resolve_downloaded_wheel "${BLEAK_TMP_DIR}" bleak "${BLEAK_VERSION}")"
     PATCHED_BLEAK_WHEEL="${OUT_DIR}/bleak-${BLEAK_VERSION}-py3-none-any.whl"
 
     # Android uses bleak's p4android backend (pyjnius). The platform-specific
@@ -959,7 +983,7 @@ PY
         --dest "${HTTPX_TMP_DIR}" \
         --index-url https://pypi.org/simple
 
-    HTTPX_WHEEL="$(ls "${HTTPX_TMP_DIR}"/httpx-"${HTTPX_VERSION}"-py3-none-any.whl)"
+    HTTPX_WHEEL="$(resolve_downloaded_wheel "${HTTPX_TMP_DIR}" httpx "${HTTPX_VERSION}")"
     cp -f "${HTTPX_WHEEL}" "${OUT_DIR}/"
     # Vendor transitive pure-python deps so offline/find-links builds resolve.
     for dep_wheel in "${HTTPX_TMP_DIR}"/*.whl; do
@@ -971,8 +995,8 @@ PY
     done
     rm -rf "${HTTPX_TMP_DIR}"
 
-    if ! ls "${OUT_DIR}/httpx-${HTTPX_VERSION}-py3-none-any.whl" >/dev/null 2>&1; then
-        echo "Expected httpx-${HTTPX_VERSION}-py3-none-any.whl in ${OUT_DIR}" >&2
+    if ! resolve_downloaded_wheel "${OUT_DIR}" httpx "${HTTPX_VERSION}" >/dev/null 2>&1; then
+        echo "Expected httpx-${HTTPX_VERSION} wheel in ${OUT_DIR}" >&2
         exit 1
     fi
     for required_prefix in httpcore- h2- h11- anyio- hpack- hyperframe-; do
@@ -1015,7 +1039,7 @@ if [[ "${PATCH_RNS}" == "1" && -z "${ONLY_RECIPES}" ]]; then
         --dest "${RNS_TMP_DIR}" \
         --index-url https://pypi.org/simple
 
-    RNS_WHEEL="$(ls "${RNS_TMP_DIR}"/rns-"${RNS_VERSION}"-py3-none-any.whl)"
+    RNS_WHEEL="$(resolve_downloaded_wheel "${RNS_TMP_DIR}" rns "${RNS_VERSION}")"
     PATCHED_RNS_WHEEL="${OUT_DIR}/rns-${RNS_VERSION}-py3-none-any.whl"
 
     # RNS's Android-specific RNodeInterface calls RNS.panic() (os._exit) when
