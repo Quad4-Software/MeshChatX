@@ -1,4 +1,4 @@
-## [4.12.0] - 2026-11-08 [unreleased]
+## [4.12.0] - 2026-11-20
 
 ### Added
 
@@ -14,6 +14,8 @@
 - Reticulum 1.6: the Settings transport section gains a "Reticulum 1.6 tuning" group exposing the new `[filter]` options (required announces only, hop limiter) and `[stamps]` options (destination/path/link-request stamping, cost/value, timeouts, enforcement), all optional and off by default. The RNStatus page now shows path-table pool counts and which storage backend is active, and the RNPath table surfaces per-path stamp value, usage and link-request cost.
 - Map: the Quad4 planet PMTiles archive (s3.quad4.io) is now an explicit option in the tile source dropdown and the default for new installs. Existing configs that still hold the old stock OSM default are migrated once, custom URLs are kept, and OSM raster stays selectable and is the automatic fallback. The CSP allows the archive host.
 - Map: the online default basemap is now a vector basemap read from a single PMTiles archive (planet.pmtiles) instead of raster OpenStreetMap tiles. The client fetches the archive header, tile directory, and only the tile byte ranges it needs through HTTP range requests, so the browser never downloads the whole archive, and the Protomaps light style renders landcover, landuse, water, roads, buildings, boundaries, places, and points of interest to zoom 15. If the archive cannot be reached or validated within ten seconds the map falls back to the previous raster source. Offline mode, custom tile server URLs, and tile caching are unchanged.
+- Map: local .pmtiles archives are now a first-class offline source alongside mbtiles. Files in the map storage directory can be uploaded, listed, activated and deleted from the Offline panel, the backend serves them through a ranged endpoint with strong validators, and both raster and vector (MVT) archives render offline, vector ones with the Protomaps style. See docs/en/offline-maps.md.
+- Map: PMTiles range requests now share one archive source per URL with a persistent cache. Header, directory and hot tile bytes are kept in a bounded in-memory LRU and a Cache API store keyed by an archive fingerprint (ETag when readable, else Last-Modified or a hash of the archive header bytes), identical in-flight ranges are deduplicated, and stale entries are revalidated with a conditional 127-byte probe so an unchanged archive costs almost nothing and a rebuilt one invalidates cleanly. The basemap style is trimmed so detail layers only render inside their useful zoom range, and tile fade-ins, interim tiles from other zoom levels, and mid-interaction rebuilds are disabled; at 4x CPU throttle zoom long-task time drops by roughly half and worst frames about halve too.
 - Dependencies: LXST 0.5.4 to 0.6.1. Telephony now declares its destination type to Reticulum 1.6 announce-interest filtering, adds an opt-in low-latency output mode, and the Android audio backend fixes the recording buffer size query and gains low-latency frame timing. The install-time patch guards the new destination-type call so Telephone still constructs without a live Reticulum instance, and the Android wheel patch applies the same guard.
 
 ### Fixed
@@ -34,6 +36,10 @@
 - Network: path requests are deduplicated per destination over a short window, a failed request no longer consumes that window, and propagation node selection no longer re-requests a path that already exists. Errors from `has_path` are no longer swallowed.
 - RNode: patched an RNS 1.6.1 regression that dropped received byte accounting.
 - Android: the embedded server registers the `application/wasm` MIME type so geo wasm loads in the APK.
+- Android: the wheel build scripts now accept build-tagged wheel filenames (for example `rns-1.6.1-0-py3-none-any.whl`), which newer PyPI uploads produce and the exact-name globs missed.
+- Map: the drawing toolbar is now anchored at a fixed offset below the header at every window size. A stray responsive offset moved it 48px lower between 640 and 1280px wide, and the bar now caps at the map width and scrolls instead of overflowing small screens or covering the zoom control.
+- Map: offline map uploads now stage to a temporary file, check the archive magic, and rename atomically, so a concurrent reader never sees a partial file and two same-name uploads can no longer interleave.
+- Relay chat: merging a fetched page of history is now linear instead of quadratic. Deduplication uses sets built once and ordering uses a single stable sort, which removes the multi-second stall when opening a busy relay chat.
 - Web UI: disabled controls show a not-allowed cursor.
 - Integrity check: the stat fast path trusted size and mtime alone, so a file changed within the same timestamp tick as the manifest write could pass verification on stale metadata. It now only trusts files last modified before the manifest.
 - Database wedge recovery: the reset cooldown used 0.0 as its never-reset sentinel, but monotonic time can sit below the cooldown right after boot, so a wedge on a fresh boot could go unrecovered. The sentinel is now None.
