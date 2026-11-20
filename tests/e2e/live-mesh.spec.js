@@ -931,3 +931,28 @@ test.describe("Live mesh RRC history and pagination", () => {
         }
     });
 });
+
+test.describe("Live mesh UI reactivity", () => {
+    test.setTimeout(180000);
+    test.skip(!peerReady(), "live peer subprocess not running");
+
+    test("inbound message surfaces in the messages list exactly once, no typing", async ({ page, request }) => {
+        await prepareE2eSession(request);
+        const peer = peerReady();
+        const localHash = await localLxmfHash(request);
+        const marker = `e2e-ui-inbound-${Date.now()}`;
+        fs.appendFileSync(PEER_OUTBOX, `${JSON.stringify({ dest: localHash, content: marker })}\n`);
+
+        // Open the messages UI before the delivery lands: the conversation
+        // must surface by itself via the websocket broadcast. The preview
+        // text legitimately renders in both the sidebar list and the "Recent"
+        // block of the empty-state pane, so assert visibility not uniqueness.
+        await page.goto("/#/messages");
+        await expect(page.getByText(marker).first()).toBeVisible({ timeout: 90000 });
+
+        // Exactly-once is the real invariant inside the conversation itself:
+        // one delivery -> one bubble.
+        await page.goto(`/#/messages/${peer.lxmf_dest}`);
+        await expect(page.getByText(marker)).toHaveCount(1, { timeout: 30000 });
+    });
+});
