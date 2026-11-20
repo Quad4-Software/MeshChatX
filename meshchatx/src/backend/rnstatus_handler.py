@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: 0BSD
 
 import contextlib
+import math
 import time
 from typing import Any
 
@@ -13,9 +14,25 @@ except Exception:
     RNS_VERSION = None
 
 
+def _as_finite_float(value):
+    """float(value) that tolerates None, strings, and non-finite results."""
+    try:
+        x = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(x):
+        return None
+    return x
+
+
 def size_str(num, suffix="B"):
     units = ["", "K", "M", "G", "T", "P", "E", "Z"]
     last_unit = "Y"
+
+    coerced = _as_finite_float(num)
+    if coerced is None:
+        return str(num)
+    num = coerced
 
     if suffix == "b":
         num *= 8
@@ -36,6 +53,11 @@ def speed_str(num, suffix="bps"):
     units = ["", "k", "M", "G", "T", "P", "E", "Z"]
     last_unit = "Y"
 
+    coerced = _as_finite_float(num)
+    if coerced is None:
+        return str(num)
+    num = coerced
+
     if suffix == "Bps":
         num /= 8
         units = ["", "K", "M", "G", "T", "P", "E", "Z"]
@@ -52,9 +74,8 @@ def speed_str(num, suffix="bps"):
 def fmt_per_second(value: Any) -> str | None:
     if value is None:
         return None
-    try:
-        x = float(value)
-    except (TypeError, ValueError):
+    x = _as_finite_float(value)
+    if x is None:
         return str(value)
     ax = abs(x)
     if ax == 0:
@@ -69,9 +90,8 @@ def fmt_per_second(value: Any) -> str | None:
 def fmt_packet_count(value: Any) -> str | None:
     if value is None:
         return None
-    try:
-        x = float(value)
-    except (TypeError, ValueError):
+    x = _as_finite_float(value)
+    if x is None:
         return str(value)
     return f"{round(x):,}"
 
@@ -79,9 +99,8 @@ def fmt_packet_count(value: Any) -> str | None:
 def fmt_percentage(value: Any) -> str | None:
     if value is None:
         return None
-    try:
-        x = float(value)
-    except (TypeError, ValueError):
+    x = _as_finite_float(value)
+    if x is None:
         return str(value)
     ax = abs(x)
     if ax >= 100:
@@ -199,17 +218,21 @@ def _format_traffic_totals(stats: dict) -> dict[str, Any] | None:
     if "txs" in stats:
         payload["tx_speed_str"] = speed_str(stats["txs"])
 
-    rxs = stats.get("rxs")
-    txs = stats.get("txs")
-    if rxs and txs:
-        non_data_rx = (stats.get("prxs") or 0) + (stats.get("arxs") or 0)
-        non_data_tx = (stats.get("ptxs") or 0) + (stats.get("atxs") or 0)
+    rxs = _as_finite_float(stats.get("rxs"))
+    txs = _as_finite_float(stats.get("txs"))
+    if rxs is not None and txs is not None and rxs > 0 and txs > 0:
+        non_data_rx = (_as_finite_float(stats.get("prxs")) or 0.0) + (
+            _as_finite_float(stats.get("arxs")) or 0.0
+        )
+        non_data_tx = (_as_finite_float(stats.get("ptxs")) or 0.0) + (
+            _as_finite_float(stats.get("atxs")) or 0.0
+        )
         data_rx = _flow_share_percent(
-            max(0.0, float(rxs) - float(non_data_rx)),
+            max(0.0, rxs - non_data_rx),
             rxs,
         )
         data_tx = _flow_share_percent(
-            max(0.0, float(txs) - float(non_data_tx)),
+            max(0.0, txs - non_data_tx),
             txs,
         )
         if data_rx is not None:
@@ -360,10 +383,10 @@ def _format_queue_stats(stats: dict) -> dict[str, Any] | None:
     def _pressure(value: Any) -> str | None:
         if value is None:
             return None
-        try:
-            return f"{round(float(value) * 100.0, 1)}%"
-        except (TypeError, ValueError):
+        x = _as_finite_float(value)
+        if x is None:
             return str(value)
+        return f"{round(x * 100.0, 1)}%"
 
     payload: dict[str, Any] = {}
     for key in keys:

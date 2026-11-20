@@ -110,20 +110,30 @@ def _validate_coords_finite(obj, *, depth: int = 0) -> None:
 def _walk_coords(node, *, depth: int) -> None:
     if depth > 16:
         raise GeoValidationError("geometry_too_deep")
-    if isinstance(node, (int, float)):
+    if isinstance(node, (int, float)) and not isinstance(node, bool):
         if node != node or node in (float("inf"), float("-inf")):
             raise GeoValidationError("invalid_coordinates")
         return
     if isinstance(node, list):
-        if node and all(isinstance(x, (int, float)) for x in node):
+        if node and all(
+            isinstance(x, (int, float)) and not isinstance(x, bool) for x in node
+        ):
             if len(node) < 2:
                 raise GeoValidationError("invalid_coordinates")
+            # Every ordinate must be finite: a NaN altitude past position 1
+            # would otherwise sail through and corrupt downstream math.
+            for x in node:
+                v = float(x)
+                if v != v or v in (float("inf"), float("-inf")):
+                    raise GeoValidationError("invalid_coordinates")
             lon, lat = float(node[0]), float(node[1])
-            if lon != lon or lat != lat:
-                raise GeoValidationError("invalid_coordinates")
             if lon < -180.0 or lon > 180.0 or lat < -90.0 or lat > 90.0:
                 raise GeoValidationError("coordinates_out_of_range")
             return
+        if not node:
+            # An empty list is not a position and not a container of
+            # positions; accepting it lets malformed uploads pass validation.
+            raise GeoValidationError("invalid_coordinates")
         for item in node:
             _walk_coords(item, depth=depth + 1)
         return
@@ -148,6 +158,8 @@ def validate_geojson_bytes(
         obj = json.loads(text)
     except json.JSONDecodeError as exc:
         raise GeoValidationError("invalid_geojson") from exc
+    except RecursionError as exc:
+        raise GeoValidationError("geometry_too_deep") from exc
     count = _count_geojson_features(obj)
     if count > max_features:
         raise GeoValidationError("too_many_features")
@@ -184,6 +196,8 @@ def validate_kml_bytes(
     try:
         root = ET.fromstring(text)  # noqa: S314 - DTD rejected above
     except ET.ParseError as exc:
+        raise GeoValidationError("invalid_kml") from exc
+    except RecursionError as exc:
         raise GeoValidationError("invalid_kml") from exc
     if _strip_ns(root.tag).lower() != "kml":
         raise GeoValidationError("invalid_kml")

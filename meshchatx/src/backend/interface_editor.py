@@ -431,7 +431,7 @@ class InterfaceEditor:
             else:
                 try:
                     iface_body["gravity"] = int(grav)
-                except (TypeError, ValueError):
+                except (TypeError, ValueError, OverflowError):
                     return "Imported interface gravity must be an integer"
         for int_key, minimum, maximum in (
             ("hop_limiter", 0, 128),
@@ -445,7 +445,7 @@ class InterfaceEditor:
                 continue
             try:
                 number = int(raw)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 return f"Imported interface {int_key} must be an integer"
             if number < minimum or number > maximum:
                 return (

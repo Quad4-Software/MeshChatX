@@ -87,6 +87,10 @@ def prune_expired_path_table_entries(
             for dest_hash, entry in RNS.Transport.path_table.items():
                 if _path_table_entry_is_expired_by_reticulum_rules(entry):
                     ts = entry[IDX_PT_TIMESTAMP] if entry else 0.0
+                    if not isinstance(ts, (int, float)):
+                        # Corrupt entry timestamps must not crash the sort
+                        # below; treat them as oldest so they prune first.
+                        ts = 0.0
                     expired.append((ts, dest_hash))
     except Exception:
         return 0
