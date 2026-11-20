@@ -932,7 +932,9 @@ class TestPropagationNode:
 
             entries_before = len(router_node.propagation_entries)
             result = router_node.lxmf_propagation(
-                raw_lxmf_data, stamp_value=0, stamp_data=b"",
+                raw_lxmf_data,
+                stamp_value=16,
+                stamp_data=os.urandom(LXStamper.STAMP_SIZE),
             )
             entries_after = len(router_node.propagation_entries)
 

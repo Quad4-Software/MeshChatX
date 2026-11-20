@@ -60,6 +60,9 @@ def _install_lxst_stubs(monkeypatch):
             deregister_destination=MagicMock(),
             has_path=lambda *_args, **_kwargs: True,
             request_path=lambda *_args, **_kwargs: None,
+            application_identity=SimpleNamespace(hash=b"\x02" * 16),
+            _wants_destination_type=lambda *_args, **_kwargs: True,
+            _unwants_destination_type=lambda *_args, **_kwargs: True,
         ),
     )
     monkeypatch.setattr(LXSTTelephony.threading, "Thread", _DummyThread)
