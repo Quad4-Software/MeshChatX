@@ -2,6 +2,7 @@
 
 import asyncio
 import contextlib
+import threading
 import time
 from dataclasses import dataclass
 from typing import Any, Optional, Protocol
@@ -228,10 +229,12 @@ def lxmf_delivery_hash_bytes(identity, fallback_hash: bytes) -> bytes:
 
 _PATH_REQUEST_MIN_INTERVAL_SECONDS = 5.0
 _last_path_request_at: dict[bytes, float] = {}
+_path_request_lock = threading.Lock()
 
 
 def reset_path_request_rate_limit_for_tests() -> None:
-    _last_path_request_at.clear()
+    with _path_request_lock:
+        _last_path_request_at.clear()
 
 
 def _request_path_once_per_window(destination_hash: bytes) -> bool:
@@ -239,19 +242,21 @@ def _request_path_once_per_window(destination_hash: bytes) -> bool:
 
     Repeated sends and concurrent waiters to the same unreachable peer must
     not fan out into one path request per caller; an in-flight request already
-    covers them.
+    covers them. The window check and the request are inside the lock so two
+    threads cannot both observe an empty window and each send a request.
     """
     now = time.monotonic()
-    last = _last_path_request_at.get(destination_hash)
-    if last is not None and now - last < _PATH_REQUEST_MIN_INTERVAL_SECONDS:
-        return False
-    if len(_last_path_request_at) > 512:
-        _last_path_request_at.clear()
-    # Record after the call: a raised request must not consume the window,
-    # or callers retrying a failed request would be suppressed.
-    RNS.Transport.request_path(destination_hash)
-    _last_path_request_at[destination_hash] = now
-    return True
+    with _path_request_lock:
+        last = _last_path_request_at.get(destination_hash)
+        if last is not None and now - last < _PATH_REQUEST_MIN_INTERVAL_SECONDS:
+            return False
+        if len(_last_path_request_at) > 512:
+            _last_path_request_at.clear()
+        # Record after the call: a raised request must not consume the window,
+        # or callers retrying a failed request would be suppressed.
+        RNS.Transport.request_path(destination_hash)
+        _last_path_request_at[destination_hash] = now
+        return True
 
 
 def prepare_fresh_path_request(
