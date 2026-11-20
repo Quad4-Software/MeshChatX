@@ -37,8 +37,19 @@ def http_for_database_exception(exc, *, unexpected_message="Internal error"):
 
 
 def exception_looks_like_missing_database(exc: BaseException, app) -> bool:
-    """True when a route touched app.database while it was None mid-switch."""
-    if getattr(app, "database", None) is not None:
+    """True when a route touched an unmounted context object mid-switch.
+
+    current_context is assigned before setup() finishes, so database,
+    message_handler, and announce_manager each pass through a None window.
+    An AttributeError raised while any of them is unmounted is a transient
+    identity-switch race, not a handler bug, so it maps to 503 like a
+    retryable SQLite error.
+    """
+    mounted = all(
+        getattr(app, attr, None) is not None
+        for attr in ("database", "message_handler", "announce_manager")
+    )
+    if mounted:
         return False
     if not isinstance(exc, AttributeError):
         return False
