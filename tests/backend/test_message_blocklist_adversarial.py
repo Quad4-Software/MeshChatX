@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 """Properties for message blocklist normalize/match/export roundtrip."""
 
-
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -150,3 +149,18 @@ class TestMatchingSemantics:
             first_matching_blocklist_entry(bl, "", message_haystack="Free money now")
             is not None
         )
+
+
+class TestNormalizeEntryKeys:
+    def test_present_but_falsy_text_not_replaced_by_sibling(self):
+        from meshchatx.src.backend.message_blocklist import _normalize_entry
+
+        # text=0 must not silently fall through to a sibling `term` key.
+        out = _normalize_entry({"text": 0, "term": "spam"})
+        assert out["text"] == "0"
+
+    def test_missing_text_falls_through_to_term(self):
+        from meshchatx.src.backend.message_blocklist import _normalize_entry
+
+        out = _normalize_entry({"term": "spam"})
+        assert out["text"] == "spam"

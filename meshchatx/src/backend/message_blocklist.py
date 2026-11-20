@@ -50,7 +50,14 @@ def _normalize_scope(raw: str | None) -> str:
 
 
 def _normalize_entry(item: dict[str, Any]) -> dict[str, Any] | None:
-    text_in = item.get("text") or item.get("term") or item.get("pattern") or ""
+    # First present key wins: an `or` chain would silently substitute a
+    # sibling key when text is set but falsy (0, "", []).
+    text_in = ""
+    for key in ("text", "term", "pattern"):
+        value = item.get(key)
+        if value is not None:
+            text_in = value
+            break
     text = str(text_in).strip()[:MAX_TERM_LEN]
     if not text:
         return None
