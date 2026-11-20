@@ -47,7 +47,14 @@ export function decodeMaidenhead(locator) {
         w /= 10;
         h /= 10;
     }
-    return { lat: lat + h / 2, lon: lon + w / 2 };
+    const centerLat = lat + h / 2;
+    const centerLon = lon + w / 2;
+    // Extremal locators (e.g. RR99XX99) decode just past the poles. The grid
+    // has no squares there, so treat them as not-a-locator.
+    if (centerLat < -90 || centerLat > 90 || centerLon < -180 || centerLon > 180) {
+        return null;
+    }
+    return { lat: centerLat, lon: centerLon };
 }
 
 function isMaidenhead(token) {

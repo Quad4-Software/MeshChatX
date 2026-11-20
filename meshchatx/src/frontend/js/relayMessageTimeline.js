@@ -39,7 +39,10 @@ export function relayMessageAlreadyPresent(messages, incoming) {
     }
     const incomingSeq = incoming.seq;
     if (incomingSeq != null && incomingSeq !== "") {
-        return messages.some((m) => m && m.seq === incomingSeq);
+        // Keys canonicalize seq through string interpolation, so 5 and "5"
+        // are the same message. Compare the same way to keep dedup in sync.
+        const seqText = String(incomingSeq);
+        return messages.some((m) => m && m.seq != null && m.seq !== "" && String(m.seq) === seqText);
     }
     const key = relayMessageKey(incoming);
     if (!key) {
@@ -55,9 +58,20 @@ export function relayMessageAlreadyPresent(messages, incoming) {
  * @param {object} msg
  * @returns {boolean}
  */
+export function relaySeqValue(seq) {
+    if (typeof seq === "number") {
+        return Number.isFinite(seq) ? seq : null;
+    }
+    if (typeof seq === "string" && seq.trim() !== "") {
+        const n = Number(seq);
+        return Number.isFinite(n) ? n : null;
+    }
+    return null;
+}
+
 function relayMessageSortsAfter(existing, msg) {
-    const existingSeq = typeof existing?.seq === "number" ? existing.seq : null;
-    const msgSeq = typeof msg?.seq === "number" ? msg.seq : null;
+    const existingSeq = relaySeqValue(existing?.seq);
+    const msgSeq = relaySeqValue(msg?.seq);
     if (existingSeq !== null && msgSeq !== null) {
         return existingSeq > msgSeq;
     }
@@ -336,7 +350,8 @@ export function filterUniqueOlderRelayMessages(older, existingMessages) {
     if (Array.isArray(existingMessages)) {
         for (const msg of existingMessages) {
             if (msg && msg.seq != null) {
-                existingSeqs.add(msg.seq);
+                // String() so numeric 5 and wire string "5" dedupe together.
+                existingSeqs.add(String(msg.seq));
             }
         }
     }
@@ -346,10 +361,10 @@ export function filterUniqueOlderRelayMessages(older, existingMessages) {
             continue;
         }
         if (msg.seq != null) {
-            if (existingSeqs.has(msg.seq)) {
+            if (existingSeqs.has(String(msg.seq))) {
                 continue;
             }
-            existingSeqs.add(msg.seq);
+            existingSeqs.add(String(msg.seq));
             out.push(msg);
             continue;
         }

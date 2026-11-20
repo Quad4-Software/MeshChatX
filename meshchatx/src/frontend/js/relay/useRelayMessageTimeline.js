@@ -7,6 +7,7 @@ import {
     buildRelayMessageTimeline,
     filterUniqueOlderRelayMessages,
     relayMessageKey,
+    relaySeqValue,
     relayMessageTimelineSignature,
     RELAY_MESSAGES_PREVIOUS_PAGE_SIZE,
 } from "../relayMessageTimeline.js";
@@ -89,11 +90,12 @@ export function useRelayMessageTimeline(options = {}) {
     const oldestLoadedSeq = computed(() => {
         let minSeq = null;
         for (const msg of messages.value) {
-            if (typeof msg.seq !== "number") {
+            const seq = relaySeqValue(msg?.seq);
+            if (seq === null) {
                 continue;
             }
-            if (minSeq === null || msg.seq < minSeq) {
-                minSeq = msg.seq;
+            if (minSeq === null || seq < minSeq) {
+                minSeq = seq;
             }
         }
         return minSeq;
@@ -142,9 +144,10 @@ export function useRelayMessageTimeline(options = {}) {
             const older = response.data?.messages || [];
             hasMorePrevious.value = Boolean(response.data?.has_more);
             for (const msg of older) {
-                if (typeof msg?.seq === "number") {
+                const seq = relaySeqValue(msg?.seq);
+                if (seq !== null) {
                     oldestFetchedSeq.value =
-                        oldestFetchedSeq.value === null ? msg.seq : Math.min(oldestFetchedSeq.value, msg.seq);
+                        oldestFetchedSeq.value === null ? seq : Math.min(oldestFetchedSeq.value, seq);
                 }
             }
             if (older.length === 0) {
