@@ -32,58 +32,64 @@ function timeMs(fn) {
     return performance.now() - t0;
 }
 
-// Bounds in this file only guard against pathological blowup, but fixed
-// wall-clock limits flake on shared CI runners (the same 2000-push run
-// measured 4.7s on one run and 8.6s on another with identical code). Scale
-// every bound by a machine-speed factor measured with a fixed CPU workload
-// that is independent of the code under test. Capped so a genuinely
-// pathological regression still fails on arbitrarily slow hardware.
-const CALIBRATION_MS = 40;
-const MAX_SPEED_FACTOR = 4;
+// Fixed wall-clock bounds flake on shared CI runners: the same 2000-push
+// run measured 4.7s on one run and 8.6s on another with identical code, and
+// a synthetic CPU calibration loop does not track the allocation/GC cost
+// that dominates these paths. Instead these tests calibrate with the
+// operation itself at a small size and bound the growth ratio at the large
+// size. Linear work grows ~4x from quarter-size to full-size inputs; the
+// bounds below allow 2x of headroom over that, so they only fire on
+// super-linear blowup, not on slow hardware. Each bound also has a floor
+// so sub-millisecond calibration noise cannot make the test tautological,
+// and a loose absolute ceiling so a hang still fails.
 
-function speedFactor() {
-    let acc = 0;
-    let best = Infinity;
-    for (let round = 0; round < 3; round++) {
-        const t0 = performance.now();
-        for (let i = 0; i < 2_000_000; i++) {
-            acc += (i * 2654435761) % 97;
-        }
-        best = Math.min(best, performance.now() - t0);
-    }
-    expect(acc).toBeGreaterThan(0);
-    const factor = best / CALIBRATION_MS;
-    return Math.min(MAX_SPEED_FACTOR, Math.max(1, factor));
+// Merge is linear in total rows. 4x the rows -> expect ~4x the time.
+const MERGE_RATIO = 8;
+// Pushes are O(n) each on a growing list, so the total is O(n^2): 4x the
+// pushes at 4x the list size -> up to 16x the time.
+const PUSH_RATIO = 32;
+// "Something is deeply wrong" ceilings, not perf assertions.
+const MERGE_CEILING_MS = 15_000;
+const PUSH_CEILING_MS = 90_000;
+
+function merged(baseN, loadedN, startSeq = 1, nullSeq = false) {
+    const base = Array.from({ length: baseN }, (_, i) =>
+        msg(nullSeq ? null : startSeq + i, `b${i}`, { ts: (startSeq + i) * 1000 })
+    );
+    const loaded = Array.from({ length: loadedN }, (_, i) =>
+        msg(nullSeq ? null : startSeq + baseN + i, `l${i}`, {
+            ts: (startSeq + baseN + i) * 1000,
+        })
+    );
+    return timeMs(() => mergeRelayMessages(base, loaded));
 }
 
 describe("bughunt: mergeRelayMessages complexity", () => {
-    it("room-open merge (2000 existing + 150 loaded) stays fast", () => {
-        const k = speedFactor();
-        const base = Array.from({ length: 2000 }, (_, i) => msg(i + 1));
-        const loaded = Array.from({ length: 150 }, (_, i) => msg(2001 + i));
-        const t = timeMs(() => mergeRelayMessages(base, loaded));
-        console.log(`merge 2000+150: ${t.toFixed(1)}ms (speed factor ${k.toFixed(2)})`);
-        expect(t).toBeLessThan(250 * k);
+    it("room-open merge (2000 existing + 150 loaded) scales linearly", () => {
+        const warm = Math.min(merged(500, 40, 1), merged(500, 40, 1));
+        const t = merged(2000, 150, 1);
+        console.log(`merge 2000+150: ${t.toFixed(1)}ms (calibration ${warm.toFixed(1)}ms)`);
+        const bound = Math.max(warm * MERGE_RATIO, 250);
+        expect(t, `merge took ${t.toFixed(0)}ms vs bound ${bound.toFixed(0)}ms`).toBeLessThan(bound);
+        expect(t).toBeLessThan(MERGE_CEILING_MS);
     });
 
-    it("worst-case merge (2000 + 2000 fresh) does not take seconds", () => {
-        const k = speedFactor();
-        const base = Array.from({ length: 2000 }, (_, i) => msg(i + 1));
-        const loaded = Array.from({ length: 2000 }, (_, i) => msg(2001 + i));
-        const t = timeMs(() => mergeRelayMessages(base, loaded));
-        console.log(`merge 2000+2000: ${t.toFixed(1)}ms (speed factor ${k.toFixed(2)})`);
-        expect(t, `mergeRelayMessages took ${t.toFixed(0)}ms`).toBeLessThan(1000 * k);
+    it("worst-case merge (2000 + 2000 fresh) scales linearly", () => {
+        const warm = Math.min(merged(500, 500, 1), merged(500, 500, 1));
+        const t = merged(2000, 2000, 1);
+        console.log(`merge 2000+2000: ${t.toFixed(1)}ms (calibration ${warm.toFixed(1)}ms)`);
+        const bound = Math.max(warm * MERGE_RATIO, 500);
+        expect(t, `merge took ${t.toFixed(0)}ms vs bound ${bound.toFixed(0)}ms`).toBeLessThan(bound);
+        expect(t).toBeLessThan(MERGE_CEILING_MS);
     });
 
     it("merge without seq (fallback key path) is not pathological", () => {
-        const k = speedFactor();
-        const base = Array.from({ length: 1000 }, (_, i) => msg(null, `text-${i}`, { ts: i * 1000, kind: "msg" }));
-        const loaded = Array.from({ length: 200 }, (_, i) =>
-            msg(null, `old-${i}`, { ts: (i + 5000) * 1000, kind: "msg" })
-        );
-        const t = timeMs(() => mergeRelayMessages(base, loaded));
-        console.log(`merge noseq 1000+200: ${t.toFixed(1)}ms (speed factor ${k.toFixed(2)})`);
-        expect(t).toBeLessThan(1000 * k);
+        const warm = Math.min(merged(250, 50, 1, true), merged(250, 50, 1, true));
+        const t = merged(1000, 200, 1, true);
+        console.log(`merge noseq 1000+200: ${t.toFixed(1)}ms (calibration ${warm.toFixed(1)}ms)`);
+        const bound = Math.max(warm * MERGE_RATIO, 500);
+        expect(t, `noseq merge took ${t.toFixed(0)}ms vs bound ${bound.toFixed(0)}ms`).toBeLessThan(bound);
+        expect(t).toBeLessThan(MERGE_CEILING_MS);
     });
 });
 
@@ -96,48 +102,52 @@ describe("bughunt: useRelayMessageTimeline live-push cost", () => {
         vi.restoreAllMocks();
     });
 
-    it("pushing 2000 live messages does not take seconds (deep watch + signature + keyset)", async () => {
+    it("pushing 2000 live messages does not blow up super-quadratically", async () => {
         const tl = makeTimeline();
-        // Warm up.
         tl.messages.value = [msg(1)];
         await nextTick();
-        const k = speedFactor();
-        const t0 = performance.now();
-        for (let i = 2; i <= 2000; i++) {
-            tl.pushLiveMessage(msg(i, `m${i}`));
-        }
+        // First 500 pushes calibrate the O(n)-per-push cost on this machine.
+        const tEarly = timeMs(() => {
+            for (let i = 2; i <= 500; i++) {
+                tl.pushLiveMessage(msg(i, `m${i}`));
+            }
+        });
+        const tRest = timeMs(() => {
+            for (let i = 501; i <= 2000; i++) {
+                tl.pushLiveMessage(msg(i, `m${i}`));
+            }
+        });
         await nextTick();
-        const total = performance.now() - t0;
-        console.log(`2000 live pushes: ${total.toFixed(0)}ms (speed factor ${k.toFixed(2)})`);
+        console.log(`live pushes 2..500: ${tEarly.toFixed(0)}ms, 501..2000: ${tRest.toFixed(0)}ms`);
         expect(tl.messages.value.length).toBe(2000);
-        // Each push triggers a deep watch traversal + O(n) signature + O(n)
-        // keySet rebuild + O(n) timeline rebuild => O(n^2) overall. The bound
-        // only guards against pathological blowup and scales with the
-        // measured runner speed.
-        expect(total, `2000 pushes took ${total.toFixed(0)}ms`).toBeLessThan(8000 * k);
+        // O(n^2) total: the 501..2000 segment does ~15x the work of 2..500.
+        // Bound at 32x so only worse-than-quadratic behaviour fails.
+        const bound = Math.max(tEarly * PUSH_RATIO, 8000);
+        expect(tRest, `2000 pushes took ${tRest.toFixed(0)}ms vs bound ${bound.toFixed(0)}ms`).toBeLessThan(bound);
+        expect(tEarly + tRest).toBeLessThan(PUSH_CEILING_MS);
     });
 
-    it("per-push cost grows with list size (last 100 pushes vs first 100)", async () => {
+    it("per-push cost stays linear at the 2000-message cap", async () => {
         const tl = makeTimeline();
         tl.messages.value = [msg(1)];
         await nextTick();
-        // Fill to 1900 without timing.
         for (let i = 2; i <= 1900; i++) {
             tl.pushLiveMessage(msg(i));
         }
         await nextTick();
-        const k = speedFactor();
         const tEarly = timeMs(() => {
             for (let i = 1901; i <= 2000; i++) tl.pushLiveMessage(msg(i));
         });
         const tLate = timeMs(() => {
             for (let i = 2001; i <= 2100; i++) tl.pushLiveMessage(msg(i));
         });
-        console.log(
-            `push batch @~1950: ${tEarly.toFixed(0)}ms, @~2050: ${tLate.toFixed(0)}ms (speed factor ${k.toFixed(2)})`
-        );
-        // At cap (2000) the head-trim path also runs; still each push is O(n).
-        // Same scaled bound as the 2000-push test above.
-        expect(tLate).toBeLessThan(5000 * k);
+        console.log(`push batch @~1950: ${tEarly.toFixed(0)}ms, @~2050: ${tLate.toFixed(0)}ms`);
+        // Same-size batches at nearly the same list size should cost the
+        // same order. 10x headroom covers the head-trim path kicking in at
+        // the cap; a super-linear blowup would far exceed it. The floor
+        // keeps the bound meaningful when early pushes are near-instant.
+        const bound = Math.max(tEarly * 10, tEarly + 1000, 2000);
+        expect(tLate, `late batch took ${tLate.toFixed(0)}ms vs bound ${bound.toFixed(0)}ms`).toBeLessThan(bound);
+        expect(tLate).toBeLessThan(MERGE_CEILING_MS);
     });
 });
