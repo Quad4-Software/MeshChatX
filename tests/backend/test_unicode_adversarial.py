@@ -45,7 +45,7 @@ class TestContactUnicodeRoundtrip:
         self._add(db, nfc, "a" * 32)
         self._add(db, nfd, "b" * 32)
         names = [r["name"] for r in db.contacts.get_contacts()]
-        # DB stores both byte-distinct names; no silent normalization merge.
+        # DB stores both byte-distinct names. No silent normalization merge.
         assert nfc in names and nfd in names
 
     def test_search_matches_literal_not_homoglyph(self, db):
@@ -58,7 +58,7 @@ class TestContactUnicodeRoundtrip:
         assert "\u0430dmin" not in names
 
     def test_surrogate_name_handled(self, db):
-        name = "bad\ud800name"  # lone surrogate — cannot encode to UTF-8
+        name = "bad\ud800name"  # lone surrogate, cannot encode to UTF-8
         try:
             self._add(db, name, "c" * 32)
         except (UnicodeEncodeError, UnicodeError):

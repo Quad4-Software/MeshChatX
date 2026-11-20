@@ -50,7 +50,7 @@ _BOB_SCRIPT = textwrap.dedent(
     inbox_path = os.path.join(share_dir, "inbox.json")
 
     # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
-    # them by default; 1.6.0 had them off and CI runners are slow).
+    # them by default. 1.6.0 had them off and CI runners are slow).
     RNS.Transport.STAMP_DESTINATIONS = False
     RNS.Transport.STAMP_PRS = False
     RNS.Reticulum(configdir=config_dir, loglevel=RNS.LOG_ERROR)
@@ -197,7 +197,7 @@ def loopback_pair(tmp_path_factory, loopback_available):
     # RNS 1.6.1 stamp jobs retry outstanding path requests internally with
     # kwargs (on_interface/tag/recursive/ext_payload). The app calls
     # request_path(destination_hash) with no kwargs, so the two are easy to
-    # tell apart. Count both; assertions use the app-initiated number.
+    # tell apart. Count both. Assertions use the app-initiated number.
     request_path_calls = {"app": 0, "internal": 0}
     original_request_path = RNS.Transport.request_path
 
@@ -254,7 +254,7 @@ def test_lxmf_delivery_without_announce_requests_path_once(loopback_pair):
             reticulum_pathfinding.nudge_path_request(bob_dest)
             time.sleep(0.5)
     assert RNS.Transport.has_path(bob_dest), "no path after single request"
-    # one request sufficed; the dedup window stopped nudges from spamming
+    # one request sufficed. The dedup window stopped nudges from spamming
     assert loopback_pair["request_path_calls"]["app"] <= 2
     assert measure == "new_path_requested"
 

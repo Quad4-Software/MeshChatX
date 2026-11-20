@@ -9,7 +9,7 @@ const css = fs.readFileSync(stylePath, "utf-8");
 
 // Interactive elements must show the pointer cursor and disabled controls the
 // not-allowed cursor. The global rules in style.css are what guarantee this
-// for shared components; these assertions fail if they are removed.
+// for shared components. These assertions fail if they are removed.
 describe("interactive cursor rules", () => {
     it("applies pointer cursor to buttons and interactive roles", () => {
         for (const selector of [

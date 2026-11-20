@@ -54,12 +54,12 @@ test.describe("PMTiles basemap range caching", () => {
                 },
             });
         });
-        // Glyph/sprite fetches are irrelevant to range accounting; satisfy
+        // Glyph/sprite fetches are irrelevant to range accounting. Satisfy
         // them with inert bytes so style application cannot stall the test.
         await page.route("https://protomaps.github.io/**", (route) =>
             route.fulfill({ status: 200, body: Buffer.alloc(16) })
         );
-        // Offline mode is the backend default; opt into online for this spec.
+        // Offline mode is the backend default. Opt into online for this spec.
         await page.addInitScript(() => localStorage.setItem("meshchatx.map.offlineMode", "0"));
 
         await prepareE2eSession(page.request);

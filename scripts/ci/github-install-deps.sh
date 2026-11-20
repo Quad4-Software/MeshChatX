@@ -272,7 +272,7 @@ WRAPPER
                 && run_priv apt-get install -y libopus0 libogg0 libcodec2-dev; then
                 MESHCHATX_LINUX_CODEC2="system"
             else
-                echo "::warning::apt codec libs unavailable; falling back to user-space syslibs"
+                echo "::warning::apt codec libs unavailable, falling back to user-space syslibs"
             fi
         elif command -v pacman >/dev/null 2>&1; then
             # Arch-based self-hosted runners: codec2/opus/ogg headers for the

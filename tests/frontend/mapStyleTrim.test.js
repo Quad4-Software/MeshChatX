@@ -43,7 +43,7 @@ describe("trimBasemapLayers", () => {
         const trimmedActive0 = visibleAtZoom(trimmed, 2);
         expect(trimmedActive0).toBeLessThanOrEqual(stockActive0 * 0.7);
         // Mid zoom is where the overrides hide minor roads, tunnels and
-        // landuse detail; at z14+ nearly everything is visible anyway.
+        // landuse detail. At z14+ nearly everything is visible anyway.
         for (const z of [5, 10]) {
             expect(visibleAtZoom(trimmed, z)).toBeLessThan(visibleAtZoom(stock, z));
         }

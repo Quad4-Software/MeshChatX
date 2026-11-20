@@ -172,7 +172,7 @@ def test_path_requests_stay_bounded_for_silent_peer(hostile_pair):
         for _ in range(30):
             RNS.Transport.request_path(ghost)
             time.sleep(0.05)
-    # RNS dedups outstanding path requests internally; count is bounded.
+    # RNS dedups outstanding path requests internally. Count is bounded.
     assert n_calls == 30  # app calls are all issued
     # The point: RNS did not spawn an unbounded flood of packets. Assert
     # the transport's own request rate limiter kicked in by checking that
@@ -181,7 +181,7 @@ def test_path_requests_stay_bounded_for_silent_peer(hostile_pair):
 
 
 def test_duplicate_message_hashes_delivered_once(hostile_pair):
-    """Resend the same inbound announce many times; announce table holds one."""
+    """Resend the same inbound announce many times. The announce table holds one."""
     import RNS
 
     lxmf_hash = bytes.fromhex(hostile_pair["ready"]["lxmf_dest"])
@@ -192,7 +192,7 @@ def test_duplicate_message_hashes_delivered_once(hostile_pair):
         time.sleep(0.5)
     assert RNS.Transport.path_table.get(lxmf_hash)
     # RNS's own announce dedup is what we exercise here by asking Bob to
-    # burst; the hostile fixture already sent duplicates. The path table
+    # burst. The hostile fixture already sent duplicates. The path table
     # must hold exactly one entry per destination.
     entries = [h for h in RNS.Transport.path_table if h == lxmf_hash]
     assert len(entries) == 1

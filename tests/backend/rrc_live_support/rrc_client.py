@@ -234,7 +234,7 @@ def main():
     os.makedirs(share_dir, exist_ok=True)
 
     # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
-    # them by default; 1.6.0 had them off and CI runners are slow).
+    # them by default. 1.6.0 had them off and CI runners are slow).
     RNS.Transport.STAMP_DESTINATIONS = False
     RNS.Transport.STAMP_PRS = False
     RNS.Reticulum(configdir=config_dir, loglevel=RNS.LOG_ERROR)

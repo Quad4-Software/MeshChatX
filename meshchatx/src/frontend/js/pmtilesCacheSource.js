@@ -270,7 +270,7 @@ export class CachedPmtilesSource {
 
     /**
      * Cheap change probe: one 127-byte range request. If-Range with the stored
-     * Last-Modified makes an unchanged archive return 206 with the bytes; a
+     * Last-Modified makes an unchanged archive return 206 with the bytes. A
      * changed one returns the full entity (200), which is aborted. ETag,
      * Last-Modified and finally a hash of the probe bytes cover servers that
      * ignore If-Range. Returns {changed, newFp}.
@@ -315,7 +315,7 @@ export class CachedPmtilesSource {
 
     /**
      * Revalidate when stale. Within the grace window the probe runs in the
-     * background so the first paint never waits; beyond it the caller must
+     * background so the first paint never waits. Beyond it the caller must
      * await before serving. Returns true if cached entries may be served.
      */
     async _freshen(meta, miss) {
@@ -367,7 +367,7 @@ export class CachedPmtilesSource {
         const hit = this.mem.get(key);
         if (hit && hit.fp === fp()) {
             await this._freshen(meta, false);
-            // _freshen may have invalidated; re-check before serving.
+            // _freshen may have invalidated. Re-check before serving.
             const still = this.mem.get(key);
             if (still && still.fp === fp()) {
                 return { data: still.data.slice(0) };

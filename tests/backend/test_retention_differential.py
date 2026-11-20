@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: 0BSD
 """Differential test: Python retention logic vs the JS localMessageRetention module.
 
-The frontend writes {value, unit} into config; the backend reads it with
+The frontend writes {value, unit} into config. The backend reads it with
 normalize_unit/retention_window_seconds. Both sides must agree on what the
 stored setting means. Known intentional divergences are pinned explicitly:
 the backend accepts more unit spellings ("m", "mo", " month ") than the JS
@@ -35,7 +35,7 @@ JS_EXPR = (
 
 
 def js_normalize_batch(cases):
-    """Run the real JS module once over a corpus; returns [{value, unit}]."""
+    """Run the real JS module once over a corpus. Returns [{value, unit}]."""
     proc = subprocess.run(
         ["node", "-e", JS_EXPR, json.dumps(cases)],
         capture_output=True,
@@ -50,7 +50,7 @@ def js_normalize_batch(cases):
 def py_normalize(value, unit):
     """Mirror of the JS return shape using the backend semantics."""
     u = normalize_unit(str(unit) if unit is not None else None)
-    # Python clamps inside retention_window_seconds; expose the clamped int.
+    # Python clamps inside retention_window_seconds. Expose the clamped int.
     try:
         v = int(value)
     except (TypeError, ValueError):

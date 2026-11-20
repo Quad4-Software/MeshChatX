@@ -193,7 +193,7 @@ def run_hub(
     drop_echo,
 ):
     # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
-    # them by default; 1.6.0 had them off and CI runners are slow).
+    # them by default. 1.6.0 had them off and CI runners are slow).
     RNS.Transport.STAMP_DESTINATIONS = False
     RNS.Transport.STAMP_PRS = False
     rns = RNS.Reticulum(configdir=config_dir, loglevel=RNS.LOG_ERROR)
@@ -265,7 +265,7 @@ def run_hub(
 def run_zombie(config_dir, share_dir, port, announce_interval):
     """Announce an rrc.hub destination that never completes a link."""
     # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
-    # them by default; 1.6.0 had them off and CI runners are slow).
+    # them by default. 1.6.0 had them off and CI runners are slow).
     RNS.Transport.STAMP_DESTINATIONS = False
     RNS.Transport.STAMP_PRS = False
     rns = RNS.Reticulum(configdir=config_dir, loglevel=RNS.LOG_ERROR)

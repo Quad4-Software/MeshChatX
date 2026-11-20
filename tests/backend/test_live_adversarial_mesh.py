@@ -133,7 +133,7 @@ def mesh_pair(tmp_path_factory):
 
 
 def _alice_router(mesh_pair):
-    """One LXMRouter per process; destinations cannot be registered twice."""
+    """One LXMRouter per process. Destinations cannot be registered twice."""
     import LXMF
 
     if "alice_router" in mesh_pair:
@@ -187,7 +187,7 @@ def _wait_inbox(mesh_pair, n, timeout=45):
 
 
 def test_concurrent_sends_delivered_exactly_once(mesh_pair):
-    """N same-peer sends land exactly once each — no dupes, none lost."""
+    """N same-peer sends land exactly once each, no dupes, none lost."""
     import RNS
 
     (mesh_pair["share"] / "announce").touch()
@@ -216,7 +216,7 @@ SOAK_SECONDS = int(os.environ.get("MESHCHAT_SOAK_SECONDS", "45"))
 
 @pytest.mark.skipif(
     os.environ.get("MESHCHAT_LIVE_SOAK") != "1",
-    reason="soak test; set MESHCHAT_LIVE_SOAK=1",
+    reason="soak test, set MESHCHAT_LIVE_SOAK=1",
 )
 def test_idle_and_burst_soak_bounded(mesh_pair):
     """Idle + burst soak: bounded RSS/fd/thread growth, no idle packet flood."""
@@ -240,7 +240,7 @@ def test_idle_and_burst_soak_bounded(mesh_pair):
 
     # Idle phase
     time.sleep(SOAK_SECONDS // 3)
-    # Burst phase — count only rows that arrive during this test.
+    # Burst phase: count only rows that arrive during this test.
     baseline = len(_inbox(mesh_pair))
     router, own = _alice_router(mesh_pair)
     for i in range(10):
@@ -279,7 +279,7 @@ def test_peer_vanish_mid_announce_fails_clean(mesh_pair):
         RNS.Transport.request_path(ghost)
         time.sleep(0.5)
     assert time.monotonic() - t0 < 20, "path discovery hung on dead peer"
-    assert not got_path or True  # path may be cached; the bound is the point
+    assert not got_path or True  # path may be cached. The bound is the point
 
     # Restart Bob so later tests in this module still have a live peer.
     # A fresh Bob gets a new identity, so ready.json must be regenerated.
@@ -304,7 +304,7 @@ def test_size_boundaries_deliver(mesh_pair):
 
     router, own = _alice_router(mesh_pair)
     limit = LXMF.LXMRouter.DELIVERY_LIMIT
-    # packed overhead is a few hundred bytes; probe around the limit by
+    # packed overhead is a few hundred bytes. Probe around the limit by
     # sizing content relative to it rather than guessing exact packing.
     cases = {
         "small": "x" * (limit - 400),
@@ -314,7 +314,7 @@ def test_size_boundaries_deliver(mesh_pair):
     for tag, content in cases.items():
         _send(mesh_pair, router, own, content, title=f"bnd-{tag}")
     baseline = len(_inbox(mesh_pair))
-    # The >limit case rides an LXMF resource transfer; on a throttled CPU
+    # The >limit case rides an LXMF resource transfer. On a throttled CPU
     # after a soak burst it can take a while. Wait generously, assert exactly.
     got = _wait_inbox(mesh_pair, baseline + len(cases), timeout=240)
     contents = [r["content"] for r in got[-len(cases) :]]

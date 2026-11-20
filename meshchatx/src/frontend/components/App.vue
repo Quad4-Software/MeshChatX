@@ -2108,7 +2108,7 @@ export default {
                         this.appInfo.changelog_seen_version !== this.appInfo.version
                     ) {
                         // never stack the changelog over a tutorial that is
-                        // already on screen; it wins the next check instead
+                        // already on screen. It wins the next check instead
                         if (this.$refs.tutorialModal?.visible) {
                             return;
                         }

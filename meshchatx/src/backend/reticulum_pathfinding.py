@@ -90,7 +90,7 @@ def prune_expired_path_table_entries(
                     ts = entry[IDX_PT_TIMESTAMP] if entry else 0.0
                     if not isinstance(ts, (int, float)):
                         # Corrupt entry timestamps must not crash the sort
-                        # below; treat them as oldest so they prune first.
+                        # below. Treat them as oldest so they prune first.
                         ts = 0.0
                     expired.append((ts, dest_hash))
     except Exception:
@@ -241,7 +241,7 @@ def _request_path_once_per_window(destination_hash: bytes) -> bool:
     """Issue Transport.request_path at most once per destination per window.
 
     Repeated sends and concurrent waiters to the same unreachable peer must
-    not fan out into one path request per caller; an in-flight request already
+    not fan out into one path request per caller. An in-flight request already
     covers them. The window check and the request are inside the lock so two
     threads cannot both observe an empty window and each send a request.
     """

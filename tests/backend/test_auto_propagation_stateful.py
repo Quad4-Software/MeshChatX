@@ -161,7 +161,7 @@ class TestMemoryParse:
         mgr = _mgr()
         mgr._record_success("ab" * 16, 2)
         cfg = mgr.config
-        # _save_memory writes via config.set; capture it.
+        # _save_memory writes via config.set. Capture it.
         captured = {}
         cfg.set = lambda k, v: captured.update({k: v})
         cfg.get = lambda *a, **k: captured.get("lxmf_preferred_propagation_node_memory")

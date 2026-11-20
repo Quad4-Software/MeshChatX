@@ -65,7 +65,7 @@ class TestCoordinateValidation:
         validate_geojson_bytes(geojson([180, 90]), **LIMITS)
 
     def test_deeply_nested_json_rejected_not_crash(self):
-        # json.loads raises RecursionError on extreme nesting; the validator
+        # json.loads raises RecursionError on extreme nesting. The validator
         # must map that to GeoValidationError, not propagate a 500.
         deep = json.dumps(
             {"type": "Point", "coordinates": json.loads("[" * 5000 + "]" * 5000)}

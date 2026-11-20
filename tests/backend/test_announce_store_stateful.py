@@ -134,7 +134,7 @@ class AnnounceStoreMachine(RuleBasedStateMachine):
                 f"{len(kept)} unprotected {aspect} rows after trim to {max_rows}"
             )
             # Kept rows are a suffix of the unprotected inserts by seq order
-            # only when timestamps order exactly; assert the count bound and
+            # only when timestamps order exactly. Assert the count bound and
             # that every missing unprotected row is no newer than every kept one.
             missing = [d for d in unprotected if d not in rows]
             if missing and kept:

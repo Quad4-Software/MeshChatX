@@ -16,7 +16,7 @@
  */
 
 // Layers that only carry visual detail at close zooms. Values are the
-// minimum zoom at which the layer stays active; the stock default is 0.
+// minimum zoom at which the layer stays active. The stock default is 0.
 const MINZOOM_OVERRIDES = {
     landuse_hospital: 12,
     landuse_industrial: 12,
@@ -76,7 +76,7 @@ export const REQUIRED_LAYER_IDS = [
 
 /**
  * Return a new layer list with dropped layers removed and minzoom
- * overrides applied. Input layers are cloned shallowly; paint/layout
+ * overrides applied. Input layers are cloned shallowly. Paint/layout
  * objects are shared with the source style on purpose.
  */
 export function trimBasemapLayers(layers) {
@@ -94,7 +94,7 @@ export function trimBasemapLayers(layers) {
 /**
  * Split a (already trimmed) layer list into geometry and symbol groups.
  * Symbol layers render text and icons and are the expensive part to draw
- * every frame; the app puts them on a layer it can hide mid-interaction.
+ * every frame. The app puts them on a layer it can hide mid-interaction.
  */
 export function partitionBasemapLayers(layers) {
     const geometry = [];

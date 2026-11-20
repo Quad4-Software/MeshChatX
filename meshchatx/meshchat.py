@@ -4960,7 +4960,7 @@ class ReticulumMeshChat:
     }
 
     # Effective-value sources for the tuning keys above. Plain names resolve
-    # on RNS.Transport; a "Stamps." prefix resolves on RNS.Stamps (RNS 1.6.1
+    # on RNS.Transport. A "Stamps." prefix resolves on RNS.Stamps (RNS 1.6.1
     # moved the worker-pool settings there).
     _RNS_TUNING_TRANSPORT_ATTRS: ClassVar[dict] = {
         ("filter", "required_only"): "required_destinations_only",

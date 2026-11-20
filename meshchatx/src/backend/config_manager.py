@@ -868,7 +868,7 @@ class ConfigManager:
         """Move the old stock OSM tile default to the planet PMTiles archive.
 
         Runs once. Configs holding the pre-PMTiles stock OSM URL or no value
-        are repointed; a URL the user actually customised stays untouched,
+        are repointed. A URL the user actually customised stays untouched,
         and an explicit OSM selection made after this migration persists.
         """
         marker = "map_tile_server_pmtiles_migrated"

@@ -280,7 +280,7 @@ jobs:
                   # amd64 layer already pulled above. --ignore-unfixed keeps the gate
                   # actionable (fails only when a fix exists upstream). openvex.json
                   # statements suppress not_affected/fixed findings. IMAGE_DIGEST is
-                  # the multi-arch index; scanning it through the daemon fails on
+                  # the multi-arch index. Scanning it through the daemon fails on
                   # containerd-store Docker 29 (export references unpulled blobs),
                   # so resolve the amd64 manifest from the registry directly.
                   trivy image --exit-code 1 --severity HIGH,CRITICAL \

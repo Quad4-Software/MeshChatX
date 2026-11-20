@@ -103,7 +103,7 @@ function createBasemapVectorLayer(source) {
         preload: 0,
         // Interim tiles from other zoom levels replay every style layer
         // for their zoom during animations and were the biggest single
-        // frame cost in profiling; skip them.
+        // frame cost in profiling. Skip them.
         useInterimTilesOnError: false,
     });
 }

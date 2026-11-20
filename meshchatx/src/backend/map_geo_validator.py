@@ -132,7 +132,7 @@ def _walk_coords(node, *, depth: int) -> None:
             return
         if not node:
             # An empty list is not a position and not a container of
-            # positions; accepting it lets malformed uploads pass validation.
+            # positions. Accepting it lets malformed uploads pass validation.
             raise GeoValidationError("invalid_coordinates")
         for item in node:
             _walk_coords(item, depth=depth + 1)

@@ -214,7 +214,7 @@ def test_request_client_ip_honors_xff_from_trusted_proxy():
         headers={"X-Forwarded-For": "203.0.113.9, 10.0.0.2"},
         remote="127.0.0.1",
     )
-    # The proxy appended 10.0.0.2; the leftmost 203.0.113.9 may have been
+    # The proxy appended 10.0.0.2. The leftmost 203.0.113.9 may have been
     # injected by the client and must not win.
     assert request_client_ip(req, trusted_proxy_cidrs="127.0.0.1/32") == "10.0.0.2"
 

@@ -67,7 +67,7 @@ test.describe("local PMTiles offline basemap", () => {
         await page.locator('button[title="Maps"]').first().click(); // close panel
 
         // Tiles must come from the local range endpoint as 206 partial
-        // content; wait for at least one tile fetch then check traffic.
+        // content. Wait for at least one tile fetch then check traffic.
         await expect.poll(() => localTileResponses.length, { timeout: 30000 }).toBeGreaterThan(0);
         const bad = localTileResponses.filter((r) => r.status !== 206 && r.status !== 304);
         expect(bad, "non-range local tile responses").toEqual([]);
@@ -77,7 +77,7 @@ test.describe("local PMTiles offline basemap", () => {
         ).toEqual([]);
 
         // Warm reload: repeat views revalidate with 304 or serve without
-        // a request; they must never hit the network outside localhost.
+        // a request. They must never hit the network outside localhost.
         const before = localTileResponses.length;
         await page.reload();
         await dismissMapOnboardingTooltip(page);

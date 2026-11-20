@@ -29,7 +29,7 @@ def _make(**kw):
 
 
 def _deliver(app, msg):
-    """Delivery must not raise; if it does, that is the bug under test."""
+    """Delivery must not raise. If it does, that is the bug under test."""
     app.on_lxmf_delivery(msg)
 
 

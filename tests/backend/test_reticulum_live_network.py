@@ -36,7 +36,7 @@ import RNS
 tmpdir = tempfile.mkdtemp(prefix="meshchat_rns_live_")
 try:
     # Live tests skip PoW stamps on announce/path requests (RNS 1.6.1 enables
-    # them by default; 1.6.0 had them off and CI runners are slow).
+    # them by default. 1.6.0 had them off and CI runners are slow).
     RNS.Transport.STAMP_DESTINATIONS = False
     RNS.Transport.STAMP_PRS = False
     RNS.Reticulum(configdir=tmpdir, loglevel=RNS.LOG_ERROR)

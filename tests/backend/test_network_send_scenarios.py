@@ -213,13 +213,13 @@ def test_propagation_fallback_without_node_fails_terminally():
     ctx.message_router.handle_outbound.assert_not_called()
 
 
-# 8) Announce scheduling respects the configured minimum; no announce loops.
+# 8) Announce scheduling respects the configured minimum. No announce loops.
 def test_announce_interval_floor_blocks_sub_minimum_announce():
     # a stored 1-second interval is raised to the shared minimum floor
     clamped = clamp_interval_floor(1)
     assert clamped >= 1
     now = 1_000_000.0
-    # last announce 2 s ago; with a sane floor the next announce is not due
+    # last announce 2 s ago. With a sane floor the next announce is not due
     assert interval_action_due(True, now - 2, clamp_interval_floor(300), now) is False
     # disabled auto-announce never fires
     assert interval_action_due(False, None, 1, now) is False

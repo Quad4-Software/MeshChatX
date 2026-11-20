@@ -24,7 +24,7 @@ class LxmfFileAttachment:
         raw = file_name if isinstance(file_name, str) else ""
         base = os.path.basename(raw.replace("\\", "/").strip())
         # Control characters (NUL especially) can truncate names in archive
-        # tooling and peer UIs; strip them before publishing to the mesh.
+        # tooling and peer UIs. Strip them before publishing to the mesh.
         base = "".join(ch for ch in base if ch.isprintable())
         if not base or base in (".", ".."):
             base = "attachment"

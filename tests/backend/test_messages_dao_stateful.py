@@ -94,7 +94,7 @@ class MessagesDaoMachine(RuleBasedStateMachine):
                 if m["peer"] == peer and h not in self.deleted
             }
             assert set(got) == want
-            # ordered by timestamp DESC (id DESC tiebreak; we cannot predict
+            # ordered by timestamp DESC (id DESC tiebreak, we cannot predict
             # rowid for re-upserts, so check ts is non-increasing).
             ts = [r["timestamp"] for r in rows]
             assert ts == sorted(ts, reverse=True)

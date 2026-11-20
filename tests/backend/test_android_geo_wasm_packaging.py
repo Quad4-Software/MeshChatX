@@ -50,7 +50,7 @@ def test_android_gradle_syncs_frontend_public_tree():
         r"syncMeshchatPython.*?from\(meshchatSourceDir\)", gradle, re.DOTALL
     )
     assert sync_block, (
-        "syncMeshchatPython no longer copies the meshchatx tree; "
+        "syncMeshchatPython no longer copies the meshchatx tree, "
         "public/vendor/geo-wasm would be missing from the APK"
     )
 

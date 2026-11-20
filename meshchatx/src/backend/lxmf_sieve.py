@@ -25,7 +25,7 @@ _REGEX_FLAGS = re.IGNORECASE | re.DOTALL
 # quantification can hang the whole delivery path forever. Validation walks
 # the parsed pattern and rejects repeats whose operand can match the same
 # input more than one way: nested quantifiers or alternations with
-# overlapping first characters. The check is conservative; a pattern that
+# overlapping first characters. The check is conservative. A pattern that
 # looks ambiguous is dropped rather than matched.
 
 try:
@@ -83,7 +83,7 @@ def _first_token_ops(nodes):
             if op in _GROUP_OPS:
                 body = list(av[-1]) + body[1:]
                 continue
-            # Anchors and assertions are zero-width; look through them.
+            # Anchors and assertions are zero-width. Look through them.
             if op is getattr(_re_constants, "AT", None) or op in (
                 getattr(_re_constants, "ASSERT", None),
                 getattr(_re_constants, "ASSERT_NOT", None),
@@ -155,7 +155,7 @@ def _pattern_is_backtracking_safe(pattern: str) -> bool:
                 getattr(_re_constants, "ASSERT", None),
                 getattr(_re_constants, "ASSERT_NOT", None),
             ):
-                # Lookahead bodies backtrack the same way; walk them too.
+                # Lookahead bodies backtrack the same way, so walk them too.
                 if not walk(list(av[1])):
                     return False
         return True

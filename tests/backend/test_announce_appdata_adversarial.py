@@ -77,7 +77,7 @@ class TestAppDataBoundary:
             )
         assert len(mgr._pending) == ANNOUNCE_JOURNAL_MAX_PENDING
         keys = list(mgr._pending)
-        # Oldest 50 evicted; dict order keeps newest at the tail.
+        # Oldest 50 evicted. Dict order keeps newest at the tail.
         assert f"{0:032x}" not in mgr._pending
         assert keys[-1] == f"{n - 1:032x}"
         assert keys[0] == f"{50:032x}"
