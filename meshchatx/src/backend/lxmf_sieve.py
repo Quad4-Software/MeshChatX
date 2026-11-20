@@ -7,7 +7,8 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from typing import Any
+from collections.abc import Iterable
+from typing import Any, cast
 
 MAX_RULES = 64
 MAX_TERMS_PER_RULE = 32
@@ -159,7 +160,7 @@ def _pattern_is_backtracking_safe(pattern: str) -> bool:
                     return False
         return True
 
-    return walk(list(parsed))
+    return walk(list(cast(Iterable[Any], parsed)))
 
 
 def _new_rule_id() -> str:

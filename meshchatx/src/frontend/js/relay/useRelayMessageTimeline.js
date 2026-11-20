@@ -66,6 +66,7 @@ export function useRelayMessageTimeline(options = {}) {
     // excluded from the display list. before_seq must advance past fully
     // filtered pages (all ignored or hidden presence) or scroll-up refetches
     // the same page forever.
+    /** @type {import('vue').Ref<number | null>} */
     const oldestFetchedSeq = ref(null);
     let headTrimQueued = false;
 

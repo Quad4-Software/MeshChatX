@@ -52,11 +52,10 @@ export function relayMessageAlreadyPresent(messages, incoming) {
 }
 
 /**
- * True when existing should sort after msg. Compares by seq first and
- * falls back to the timestamp for payloads without seq.
- * @param {object} existing
- * @param {object} msg
- * @returns {boolean}
+ * Numeric seq for comparisons, or null when the payload has none. Keys
+ * canonicalize seq through string interpolation, so numeric strings count.
+ * @param {unknown} seq
+ * @returns {number | null}
  */
 export function relaySeqValue(seq) {
     if (typeof seq === "number") {
@@ -69,6 +68,13 @@ export function relaySeqValue(seq) {
     return null;
 }
 
+/**
+ * True when existing should sort after msg. Compares by seq first and
+ * falls back to the timestamp for payloads without seq.
+ * @param {object} existing
+ * @param {object} msg
+ * @returns {boolean}
+ */
 function relayMessageSortsAfter(existing, msg) {
     const existingSeq = relaySeqValue(existing?.seq);
     const msgSeq = relaySeqValue(msg?.seq);
