@@ -31,7 +31,7 @@
             class="w-full py-2 text-[10px] font-semibold uppercase rounded-lg bg-sem-action-primary text-sem-action-primary-text"
             @click="$emit('upload')"
         >
-            {{ $t("map.upload_mbtiles") }}
+            {{ $t("map.upload_offline_map") }}
         </button>
         <div
             v-if="offlineEnabled && !hasOfflineMap"
@@ -79,7 +79,13 @@
         >
             <div class="min-w-0">
                 <div class="text-[11px] font-semibold truncate">{{ file.name }}</div>
-                <div class="text-[9px] text-sem-fg-muted">{{ ((file.size || 0) / 1024 / 1024).toFixed(1) }} MB</div>
+                <div class="text-[9px] text-sem-fg-muted">
+                    {{ ((file.size || 0) / 1024 / 1024).toFixed(1) }} MB
+                    <span v-if="file.type === 'pmtiles'" class="uppercase font-semibold">
+                        · {{ $t("map.pmtiles_file")
+                        }}<template v-if="file.header"> {{ file.header.tile_type_name }}</template>
+                    </span>
+                </div>
             </div>
             <div class="flex items-center gap-1">
                 <button

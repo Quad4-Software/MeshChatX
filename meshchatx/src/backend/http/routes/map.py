@@ -10,6 +10,7 @@ import json
 import math
 import os
 import secrets
+import uuid
 
 import RNS
 from aiohttp import web
@@ -38,6 +39,7 @@ from meshchatx.src.backend.map_manager import (
     MAX_EXPORT_ZOOM,
     TRANSPARENT_TILE,
     is_mbtiles_filename,
+    is_pmtiles_filename,
 )
 from meshchatx.src.backend.map_overlay_export import OverlayExportError
 from meshchatx.src.backend.map_overlay_sources import OverlaySourceParseError
@@ -100,6 +102,29 @@ def register_map_routes(routes, app):
     async def list_mbtiles(request):
         return web.json_response(app.map_manager.list_mbtiles())
 
+    # local PMTiles archives: list, ranged serve, delete
+
+    @routes.get(API_V1_PREFIX + "/map/pmtiles")
+    async def list_pmtiles(request):
+        return web.json_response(app.map_manager.list_pmtiles())
+
+    @routes.get(API_V1_PREFIX + "/map/pmtiles/{filename}")
+    async def serve_pmtiles(request):
+        filename = request.match_info.get("filename")
+        file_path = app.map_manager.get_pmtiles_path(filename)
+        if not file_path:
+            return http_not_found("File not found")
+        # FileResponse streams ranges with If-Range/If-Modified-Since/ETag
+        # and 416 handling without buffering the archive.
+        return file_response(file_path)
+
+    @routes.delete(API_V1_PREFIX + "/map/pmtiles/{filename}")
+    async def delete_pmtiles(request):
+        filename = request.match_info.get("filename")
+        if app.map_manager.delete_pmtiles(filename):
+            return web.json_response({"message": "File deleted"})
+        return http_not_found("File not found")
+
     # delete an MBTiles file
 
     # delete an MBTiles file
@@ -128,6 +153,20 @@ def register_map_routes(routes, app):
             app.config.map_offline_path.set(None)
             app.config.map_offline_enabled.set(False)
             return web.json_response({"message": "Offline map disabled"})
+
+        if is_pmtiles_filename(filename):
+            file_path = app.map_manager.get_pmtiles_path(filename)
+            if file_path:
+                app.map_manager.close()
+                app.config.map_offline_path.set(file_path)
+                app.config.map_offline_enabled.set(True)
+                return web.json_response(
+                    {
+                        "message": "Active map updated",
+                        "metadata": app.map_manager.get_metadata(),
+                    },
+                )
+            return http_not_found("File not found")
 
         mbtiles_dir = app.map_manager.get_mbtiles_dir()
         safe_name = os.path.basename(filename)
@@ -419,8 +458,11 @@ def register_map_routes(routes, app):
                 return http_bad_request("No file field")
 
             filename = os.path.basename(field.filename or "")
-            if not is_mbtiles_filename(filename):
-                return http_bad_request("Invalid file format, must be .mbtiles")
+            is_pmtiles = is_pmtiles_filename(filename)
+            if not is_mbtiles_filename(filename) and not is_pmtiles:
+                return http_bad_request(
+                    "Invalid file format, must be .mbtiles or .pmtiles"
+                )
 
             mbtiles_dir = app.map_manager.get_mbtiles_dir()
             if not os.path.exists(mbtiles_dir):
@@ -430,11 +472,34 @@ def register_map_routes(routes, app):
             if not is_path_within_dir(dest_path, mbtiles_dir):
                 return http_bad_request("Invalid filename")
 
-            await write_field_to_path(
-                field,
-                dest_path,
-                UPLOAD_LIMITS["map_offline_mbtiles"],
-            )
+            # Stage to a unique temp name in the same directory, validate
+            # the magic, then atomic-rename onto the destination. Readers
+            # and concurrent same-name uploads never see a partial file.
+            staging_path = f"{dest_path}.upload-{uuid.uuid4().hex}"
+            try:
+                await write_field_to_path(
+                    field,
+                    staging_path,
+                    UPLOAD_LIMITS["map_offline_mbtiles"],
+                )
+
+                def _read_magic():
+                    with open(staging_path, "rb") as staged:
+                        return staged.read(16)
+
+                magic = await asyncio.to_thread(_read_magic)
+                if is_pmtiles:
+                    valid_magic = magic[:8] == b"PMTiles\x03"
+                else:
+                    valid_magic = magic == b"SQLite format 3\x00"
+                if not valid_magic:
+                    return http_bad_request(
+                        "Invalid map file or unsupported format (vector mbtiles not supported)"
+                    )
+                await asyncio.to_thread(os.replace, staging_path, dest_path)
+            finally:
+                if os.path.exists(staging_path):
+                    os.remove(staging_path)
 
             # close old connection and clear cache before update
             app.map_manager.close()
@@ -452,7 +517,7 @@ def register_map_routes(routes, app):
                 app.config.map_offline_path.set(None)
                 app.config.map_offline_enabled.set(False)
                 return http_bad_request(
-                    "Invalid MBTiles file or unsupported format (vector maps not supported)"
+                    "Invalid map file or unsupported format (vector mbtiles not supported)"
                 )
 
             return web.json_response(

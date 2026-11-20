@@ -83,6 +83,7 @@ from tests.backend.http_api_response_schemas import (
     MAP_MBTILES_SCHEMA,
     MAP_OFFLINE_METADATA_SCHEMA,
     MAP_OFFLINE_SCHEMA,
+    MAP_PMTILES_SCHEMA,
     MEMORY_DIAGNOSTICS_DISABLED_SCHEMA,
     MEMORY_DIAGNOSTICS_SCHEMA,
     MESHCHATX_DOCS_CONTENT_SCHEMA,
@@ -470,6 +471,7 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         alt_schemas=(MAP_OFFLINE_METADATA_SCHEMA,),
     ),
     HttpJsonContract("GET", "/api/v1/map/mbtiles", MAP_MBTILES_SCHEMA),
+    HttpJsonContract("GET", "/api/v1/map/pmtiles", MAP_PMTILES_SCHEMA),
     HttpJsonContract(
         "GET",
         "/api/v1/map/data/status",
@@ -770,6 +772,7 @@ HTTP_JSON_GET_CONTRACT_EXCLUDED: tuple[str, ...] = (
     "/api/v1/lxmf-messages/attachment/{message_hash}/{attachment_type}",
     "/api/v1/gifs/{gif_id}/image",
     "/api/v1/stickers/{sticker_id}/image",
+    "/api/v1/map/pmtiles/{filename}",
     "/api/v1/map/tiles/{z}/{x}/{y}",
     "/api/v1/map/export/{export_id}",
     "/api/v1/map/export/{export_id}/download",

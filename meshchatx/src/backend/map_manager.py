@@ -37,6 +37,49 @@ def is_mbtiles_filename(filename):
     return os.path.basename(filename or "").lower().endswith(".mbtiles")
 
 
+def is_pmtiles_filename(filename):
+    return os.path.basename(filename or "").lower().endswith(".pmtiles")
+
+
+PMTILES_HEADER_LEN = 127
+PMTILES_TILE_TYPES = {1: "mvt", 2: "png", 3: "jpeg", 4: "webp", 5: "avif"}
+
+
+def read_pmtiles_header(path):
+    """Parse the fixed 127-byte PMTiles v3 header.
+
+    Returns a metadata dict, or None when the file is not a v3 archive.
+    Only the header bytes are read, never the whole archive.
+    """
+    try:
+        with open(path, "rb") as f:
+            head = f.read(PMTILES_HEADER_LEN)
+        if len(head) < PMTILES_HEADER_LEN or head[:7] != b"PMTiles" or head[7] != 3:
+            return None
+
+        def u64(off):
+            return int.from_bytes(head[off : off + 8], "little")
+
+        def i32(off):
+            return int.from_bytes(head[off : off + 4], "little", signed=True)
+
+        return {
+            "path": path,
+            "format": "pmtiles",
+            "tile_type": head[99],
+            "tile_type_name": PMTILES_TILE_TYPES.get(head[99], "unknown"),
+            "tile_compression": head[98],
+            "minzoom": str(head[100]),
+            "maxzoom": str(head[101]),
+            "bounds": f"{i32(102) / 1e7},{i32(106) / 1e7},{i32(110) / 1e7},{i32(114) / 1e7}",
+            "center_zoom": head[118],
+            "tile_data_offset": u64(56),
+            "tile_data_length": u64(64),
+        }
+    except Exception:
+        return None
+
+
 class MapManager:
     def __init__(self, config_manager, storage_dir):
         self.config = config_manager
@@ -204,6 +247,59 @@ class MapManager:
             return True
         return False
 
+    def list_pmtiles(self):
+        mbtiles_dir = self.get_mbtiles_dir()
+        files = []
+        if os.path.exists(mbtiles_dir):
+            for f in os.listdir(mbtiles_dir):
+                if is_pmtiles_filename(f):
+                    full_path = os.path.join(mbtiles_dir, f)
+                    if not is_path_within_dir(full_path, mbtiles_dir):
+                        continue
+                    try:
+                        stats = os.stat(full_path)
+                    except OSError:
+                        continue
+                    header = read_pmtiles_header(full_path)
+                    files.append(
+                        {
+                            "name": f,
+                            "type": "pmtiles",
+                            "size": stats.st_size,
+                            "mtime": stats.st_mtime,
+                            "is_active": full_path == self.get_offline_path(),
+                            "header": header,
+                        },
+                    )
+        return sorted(files, key=lambda x: x["mtime"], reverse=True)
+
+    def get_pmtiles_path(self, filename):
+        """Resolve a listed archive name to its path, or None when invalid."""
+        if not isinstance(filename, str) or "\x00" in filename:
+            return None
+        mbtiles_dir = self.get_mbtiles_dir()
+        safe_name = os.path.basename(filename)
+        file_path = os.path.join(mbtiles_dir, safe_name)
+        if not is_path_within_dir(file_path, mbtiles_dir):
+            return None
+        if not os.path.isfile(file_path) or not is_pmtiles_filename(file_path):
+            return None
+        return file_path
+
+    def delete_pmtiles(self, filename):
+        file_path = self.get_pmtiles_path(filename)
+        if not file_path:
+            return False
+        if file_path == self.get_offline_path():
+            self.config.map_offline_path.set(None)
+            self.config.map_offline_enabled.set(False)
+        try:
+            os.remove(file_path)
+        except OSError:
+            return False
+        self._metadata_cache = None
+        return True
+
     def get_metadata(self):
         path = self.get_offline_path()
         if not path or not os.path.exists(path):
@@ -211,6 +307,12 @@ class MapManager:
 
         if self._metadata_cache and self._metadata_cache.get("path") == path:
             return self._metadata_cache
+
+        if is_pmtiles_filename(path):
+            header = read_pmtiles_header(path)
+            if header:
+                self._metadata_cache = header
+            return header
 
         conn = self.get_connection(path)
         if not conn:

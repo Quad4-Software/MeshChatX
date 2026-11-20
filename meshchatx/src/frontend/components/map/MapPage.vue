@@ -91,7 +91,7 @@
                     />
                 </div>
 
-                <input ref="fileInput" type="file" accept=".mbtiles" class="hidden" @change="onFileSelected" />
+                <input ref="fileInput" type="file" accept=".mbtiles,.pmtiles" class="hidden" @change="onFileSelected" />
 
                 <button
                     v-if="!isPopoutMode"
@@ -511,7 +511,7 @@
                             class="secondary-chip w-full justify-center"
                             @click="triggerMbtilesUpload"
                         >
-                            {{ $t("map.upload_mbtiles") }}
+                            {{ $t("map.upload_offline_map") }}
                         </button>
                         <button
                             type="button"
@@ -1121,7 +1121,7 @@ import { getCurrentInstance, markRaw } from "vue";
 import "ol/ol.css";
 import "../../js/mapVectorWebFonts.js";
 import { apply as applyMapboxStyle } from "ol-mapbox-style";
-import { buildPlanetPmtilesBaseMapLayer } from "../../js/mapPmtilesBasemap.js";
+import { buildLocalPmtilesBaseMapLayer, buildPlanetPmtilesBaseMapLayer } from "../../js/mapPmtilesBasemap.js";
 import OlMap from "ol/Map";
 import View from "ol/View";
 import LayerGroup from "ol/layer/Group";
@@ -1135,7 +1135,7 @@ import Point from "ol/geom/Point";
 import { getMdiIconPath } from "../../js/mdiIconNames.js";
 import { Style, Fill, Stroke, Circle as CircleStyle } from "ol/style";
 import { shared as olIconCache } from "ol/style/IconImageCache";
-import { fromLonLat, toLonLat } from "ol/proj";
+import { fromLonLat, toLonLat, transformExtent } from "ol/proj";
 import { defaults as defaultControls } from "ol/control";
 import ScaleLine from "ol/control/ScaleLine";
 import DragBox from "ol/interaction/DragBox";
@@ -1988,10 +1988,16 @@ export default {
         },
         async loadMBTilesList() {
             try {
-                const response = await window.api.get(apiPath("/map/mbtiles"));
-                this.mbtilesList = response.data;
+                const [mbtilesRes, pmtilesRes] = await Promise.all([
+                    window.api.get(apiPath("/map/mbtiles")),
+                    window.api.get(apiPath("/map/pmtiles")).catch(() => ({ data: [] })),
+                ]);
+                this.mbtilesList = [
+                    ...(Array.isArray(pmtilesRes.data) ? pmtilesRes.data : []),
+                    ...(Array.isArray(mbtilesRes.data) ? mbtilesRes.data : []),
+                ];
             } catch (e) {
-                console.error("Failed to load MBTiles list", e);
+                console.error("Failed to load offline map list", e);
             }
         },
         async setActiveMBTiles(filename) {
@@ -2024,7 +2030,10 @@ export default {
         async deleteMBTiles(filename) {
             if (!(await DialogUtils.confirm(this.$t("map.delete_file_confirm", { name: filename })))) return;
             try {
-                await window.api.delete(apiPath(`/map/mbtiles/${filename}`));
+                const route = filename.toLowerCase().endsWith(".pmtiles")
+                    ? `/map/pmtiles/${encodeURIComponent(filename)}`
+                    : `/map/mbtiles/${encodeURIComponent(filename)}`;
+                await window.api.delete(apiPath(route));
                 await this.loadMBTilesList();
                 if (this.metadata && this.metadata.path && this.metadata.path.endsWith(filename)) {
                     await this.checkOfflineMap();
@@ -2694,6 +2703,10 @@ export default {
         getOnboardingAnchorEl() {
             return this.$refs.mapToolsButton || null;
         },
+        usesOfflinePmtiles() {
+            const path = this.metadata && this.metadata.path ? String(this.metadata.path) : "";
+            return Boolean(this.offlineEnabled && path.toLowerCase().endsWith(".pmtiles"));
+        },
         usesOfflineMbtilesRaster() {
             if (!this.offlineEnabled) return false;
             const customTileUrl = this.tileServerUrl || PLANET_PM_TILES_URL;
@@ -2738,6 +2751,17 @@ export default {
                     return group;
                 } catch (e) {
                     console.warn("Mapbox style failed to load, using raster fallback", e);
+                }
+            }
+            if (this.usesOfflinePmtiles()) {
+                try {
+                    const name = encodeURIComponent(String(this.metadata.path).split(/[\\/]/).pop());
+                    const built = await buildLocalPmtilesBaseMapLayer(`/api/v1/map/pmtiles/${name}`);
+                    this._offlinePmtilesHeader = built.header;
+                    return built.layer;
+                } catch (e) {
+                    console.warn("Local PMTiles basemap failed, using raster fallback", e);
+                    this._offlinePmtilesHeader = null;
                 }
             }
             if (this.cachingEnabled && this.usesOfflineMbtilesRaster()) {
@@ -3237,6 +3261,14 @@ export default {
                 // toggling online/offline does not flash an empty canvas.
                 const newBaseLayer = await this.buildBaseMapLayer();
                 if (!this.map) return;
+                if (this._offlinePmtilesHeader && !this._offlineBoundsFitted) {
+                    this._offlineBoundsFitted = true;
+                    const h = this._offlinePmtilesHeader;
+                    if (h.minLon < h.maxLon && h.minLat < h.maxLat) {
+                        const ext = transformExtent([h.minLon, h.minLat, h.maxLon, h.maxLat], "EPSG:4326", "EPSG:3857");
+                        this.map.getView().fit(ext, { padding: [24, 24, 24, 24], duration: 250 });
+                    }
+                }
                 const layers = this.map.getLayers();
                 const arr = typeof layers.getArray === "function" ? layers.getArray() : layers;
                 const oldBaseLayer = arr?.[0];
@@ -3433,11 +3465,12 @@ export default {
             event.target.value = "";
         },
         isMbtilesFile(file) {
-            return Boolean(file?.name && file.name.toLowerCase().endsWith(".mbtiles"));
+            const name = (file?.name || "").toLowerCase();
+            return Boolean(name.endsWith(".mbtiles") || name.endsWith(".pmtiles"));
         },
         async uploadMbtilesFile(file) {
             if (!this.isMbtilesFile(file)) {
-                ToastUtils.error(this.$t("map.select_mbtiles_error"));
+                ToastUtils.error(this.$t("map.invalid_map_file"));
                 return false;
             }
 

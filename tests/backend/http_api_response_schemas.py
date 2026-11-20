@@ -535,6 +535,23 @@ MAP_MBTILES_SCHEMA: dict = {
     "items": _OBJECT,
 }
 
+MAP_PMTILES_SCHEMA: dict = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "required": ["name", "type", "size", "mtime", "is_active"],
+        "properties": {
+            "name": _STRING,
+            "type": {"const": "pmtiles"},
+            "size": _INTEGER,
+            "mtime": {"type": ["integer", "number"]},
+            "is_active": _BOOLEAN,
+            "header": {"type": ["object", "null"]},
+        },
+        "additionalProperties": True,
+    },
+}
+
 MAP_DATA_STATUS_SCHEMA: dict = {
     "type": "object",
     "required": [
