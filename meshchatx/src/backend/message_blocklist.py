@@ -12,6 +12,7 @@ from typing import Any
 from meshchatx.src.backend.lxmf_sieve import (
     _any_term_matches_regex,
     _any_term_matches_substring,
+    _pattern_is_backtracking_safe,
     _rule_scope_matches,
 )
 
@@ -36,6 +37,8 @@ def _validate_regex_pattern(pattern: str) -> str | None:
     try:
         re.compile(p, _REGEX_FLAGS)
     except re.error:
+        return None
+    if not _pattern_is_backtracking_safe(p):
         return None
     return p
 

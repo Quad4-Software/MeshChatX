@@ -19,6 +19,148 @@ MATCH_MODES = frozenset({"substring", "regex"})
 
 _REGEX_FLAGS = re.IGNORECASE | re.DOTALL
 
+# stdlib re.search cannot be interrupted once backtracking starts (signals
+# do not fire inside the C loop), so patterns with ambiguous nested
+# quantification can hang the whole delivery path forever. Validation walks
+# the parsed pattern and rejects repeats whose operand can match the same
+# input more than one way: nested quantifiers or alternations with
+# overlapping first characters. The check is conservative; a pattern that
+# looks ambiguous is dropped rather than matched.
+
+try:
+    import re._constants as _re_constants
+    import re._parser as _re_parser
+except ImportError:  # pragma: no cover - CPython internals are stable
+    _re_constants = None
+    _re_parser = None
+
+_REPEAT_OPS = frozenset(
+    op
+    for op in (
+        getattr(_re_constants, "MAX_REPEAT", None),
+        getattr(_re_constants, "MIN_REPEAT", None),
+        getattr(_re_constants, "REPEAT", None),
+        getattr(_re_constants, "REPEAT_ONE", None),
+        getattr(_re_constants, "POSSESSIVE_REPEAT", None),
+    )
+    if op is not None
+)
+_GROUP_OPS = frozenset(
+    op
+    for op in (
+        getattr(_re_constants, "SUBPATTERN", None),
+        getattr(_re_constants, "ATOMIC_GROUP", None),
+    )
+    if op is not None
+)
+_MAXREPEAT = getattr(_re_constants, "MAXREPEAT", None)
+_LITERAL_OPS = frozenset(
+    op
+    for op in (
+        getattr(_re_constants, "LITERAL", None),
+        getattr(_re_constants, "NOT_LITERAL", None),
+    )
+    if op is not None
+)
+
+
+def _first_token_ops(nodes):
+    """First literal-ish atoms each alternative can start with.
+
+    Returns a set of opaque first-token keys, or None when some alternative
+    can begin with something opaque (character classes, categories, empty
+    branches). Treating unknown as overlapping keeps the check safe.
+    """
+    keys = set()
+    for branch in nodes:
+        body = list(branch)
+        while body:
+            op, av = body[0]
+            if op in _LITERAL_OPS:
+                keys.add(("lit", av))
+                break
+            if op in _GROUP_OPS:
+                body = list(av[-1]) + body[1:]
+                continue
+            # Anchors and assertions are zero-width; look through them.
+            if op is getattr(_re_constants, "AT", None) or op in (
+                getattr(_re_constants, "ASSERT", None),
+                getattr(_re_constants, "ASSERT_NOT", None),
+            ):
+                body = body[1:]
+                continue
+            return None
+        else:
+            # Empty branch can match nothing, so it overlaps everything.
+            return None
+    return keys
+
+
+def _repeat_operand_is_unambiguous(nodes) -> bool:
+    """True when a repeat operand cannot match the same prefix two ways."""
+    for op, av in nodes:
+        if op in _REPEAT_OPS:
+            return False
+        if op is getattr(_re_constants, "BRANCH", None):
+            branches = av[1]
+            if len(branches) > 1 and _first_token_ops(branches) is None:
+                return False
+            for branch in branches:
+                if not _repeat_operand_is_unambiguous(list(branch)):
+                    return False
+            continue
+        if op in _GROUP_OPS:
+            if not _repeat_operand_is_unambiguous(list(av[-1])):
+                return False
+            continue
+        if op in (
+            getattr(_re_constants, "ASSERT", None),
+            getattr(_re_constants, "ASSERT_NOT", None),
+        ):
+            if not _repeat_operand_is_unambiguous(list(av[1])):
+                return False
+    return True
+
+
+def _pattern_is_backtracking_safe(pattern: str) -> bool:
+    """Reject user regexes whose backtracking can grow exponentially."""
+    if _re_parser is None:
+        return True
+    try:
+        parsed = _re_parser.parse(pattern, _REGEX_FLAGS)
+    except Exception:
+        return False
+
+    def walk(nodes) -> bool:
+        for op, av in nodes:
+            if op in _REPEAT_OPS:
+                _, maximum, operand = av
+                repeats_many = maximum is _MAXREPEAT or maximum > 1
+                if repeats_many and not _repeat_operand_is_unambiguous(list(operand)):
+                    return False
+                if not walk(list(operand)):
+                    return False
+                continue
+            if op is getattr(_re_constants, "BRANCH", None):
+                for branch in av[1]:
+                    if not walk(list(branch)):
+                        return False
+                continue
+            if op in _GROUP_OPS:
+                if not walk(list(av[-1])):
+                    return False
+                continue
+            if op in (
+                getattr(_re_constants, "ASSERT", None),
+                getattr(_re_constants, "ASSERT_NOT", None),
+            ):
+                # Lookahead bodies backtrack the same way; walk them too.
+                if not walk(list(av[1])):
+                    return False
+        return True
+
+    return walk(list(parsed))
+
 
 def _new_rule_id() -> str:
     return uuid.uuid4().hex[:16]
@@ -33,6 +175,8 @@ def _validate_regex_terms(terms: list[str]) -> list[str] | None:
         try:
             re.compile(p, _REGEX_FLAGS)
         except re.error:
+            return None
+        if not _pattern_is_backtracking_safe(p):
             return None
         out.append(p)
     return out or None

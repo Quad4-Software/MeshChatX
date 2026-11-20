@@ -14,18 +14,24 @@ def _safe_href(url):
     trimmed = url.strip()
     # Browsers strip ASCII whitespace and control chars inside URL schemes
     # (java\tscript: becomes javascript:), so the checks below run on the
-    # normalized form rather than the raw string.
-    u = re.sub(r"[\x00-\x20\x7f]+", "", trimmed).lower()
+    # normalized form rather than the raw string. Browsers also treat
+    # backslashes like forward slashes in URLs, so \\/host and /\\host are
+    # the same protocol-relative bypass as //host unless normalized.
+    u_raw = re.sub(r"[\x00-\x20\x7f]+", "", trimmed).lower()
+    u = u_raw.replace("\\", "/")
     if any(u.startswith(p) for p in _UNSAFE_PROTOCOLS):
         return "#"
     if u.startswith("//"):
         return "#"
-    if trimmed.startswith("\\\\"):
+    # A colon before the first path separator is scheme-shaped. Check both
+    # the raw and backslash-normalized segment so weird forms like \\:x are
+    # rejected too. Schemes we explicitly allow are exempt.
+    if (":" in u_raw.split("/")[0] or ":" in u.split("/")[0]) and not u.startswith(
+        ("https://", "http://", "mailto:")
+    ):
         return "#"
     if any(u.startswith(p) for p in _SAFE_LINK_PREFIXES):
         return url
-    if ":" in u.split("/")[0]:
-        return "#"
     return url
 
 
