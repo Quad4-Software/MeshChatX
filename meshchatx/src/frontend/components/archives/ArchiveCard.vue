@@ -2,6 +2,7 @@
 
 <template>
     <article
+        v-if="archive"
         class="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-sem-border/70 bg-sem-surface/40 shadow-sm transition-colors hover:border-sem-accent/40 hover:bg-sem-surface/70"
         :class="{
             'ring-2 ring-sem-accent/40 border-sem-accent/40': active,
@@ -122,6 +123,9 @@ export default {
         },
     },
     mounted() {
+        if (!this.archive || !(this.$el instanceof Element)) {
+            return;
+        }
         this.detachInView = attachInView(
             this.$el,
             (entry) => {
