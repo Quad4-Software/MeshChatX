@@ -3,6 +3,7 @@
 """Filesystem and HTTP client helpers used at startup and in the web layer."""
 
 import contextlib
+import ipaddress
 import os
 import sys
 import tempfile
@@ -581,7 +582,28 @@ def request_client_ip(
         from meshchatx.src.backend.ip_allowlist import client_ip_allowed
 
         if remote and client_ip_allowed(remote, trusted_proxy_cidrs):
-            return xff.split(",")[0].strip()
+            # Standard appending-proxy semantics: each trusted hop appends the
+            # address it saw, so the client is the rightmost entry that is not
+            # itself a trusted proxy. The leftmost entry is attacker
+            # controllable whenever the first proxy passes client headers
+            # through, so trusting it blindly would let a client claim any
+            # IP, including allowlisted ones.
+            entries = [part.strip() for part in xff.split(",")]
+            # Bound the work a hostile header can force: entries beyond 32
+            # hops are nonsense anyway and each membership check reparses
+            # the CIDR list.
+            for candidate in reversed(entries[-32:]):
+                if not candidate:
+                    continue
+                if client_ip_allowed(candidate, trusted_proxy_cidrs):
+                    continue
+                try:
+                    ipaddress.ip_address(candidate)
+                except ValueError:
+                    # Not a parseable address: keep walking rather than using
+                    # attacker text as the client identity.
+                    continue
+                return candidate
     return remote
 
 

@@ -48,8 +48,10 @@ def _id_hex(mock_app) -> str:
 
 
 def test_request_client_ip_prefers_x_forwarded_for_only_from_trusted_proxy():
+    # Appending-proxy semantics: the proxy appended 10.0.0.2, which is the
+    # address it actually saw. The leftmost entry may be client-injected.
     r = _make_req("127.0.0.1", "ua", xff="203.0.113.5, 10.0.0.2")
-    assert _request_client_ip(r, trusted_proxy_cidrs="127.0.0.1/32") == "203.0.113.5"
+    assert _request_client_ip(r, trusted_proxy_cidrs="127.0.0.1/32") == "10.0.0.2"
 
 
 def test_request_client_ip_ignores_xff_by_default():

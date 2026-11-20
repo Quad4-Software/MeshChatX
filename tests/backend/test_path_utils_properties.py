@@ -601,7 +601,10 @@ class TestRequestClientIp:
                 "meshchatx.src.backend.ip_allowlist.client_ip_allowed", self._allowed
             )
             req = self._Request("10.0.0.1", {"X-Forwarded-For": "1.2.3.4, 5.6.7.8"})
-            assert request_client_ip(req, "10.0.0.0/8") == "1.2.3.4"
+            # Appending-proxy semantics: the rightmost untrusted entry is the
+            # address the proxy actually saw, not the attacker-controlled
+            # leftmost entry.
+            assert request_client_ip(req, "10.0.0.0/8") == "5.6.7.8"
 
     def test_client_ip_ignores_xff_when_cidrs_unset(self):
         req = self._Request("203.0.0.1", {"X-Forwarded-For": "1.2.3.4"})
