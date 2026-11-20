@@ -23,12 +23,14 @@ def _safe_href(url):
         return "#"
     if u.startswith("//"):
         return "#"
-    # A colon before the first path separator is scheme-shaped. Check both
-    # the raw and backslash-normalized segment so weird forms like \\:x are
-    # rejected too. Schemes we explicitly allow are exempt.
-    if (":" in u_raw.split("/")[0] or ":" in u.split("/")[0]) and not u.startswith(
-        ("https://", "http://", "mailto:")
-    ):
+    # A colon is scheme-shaped only before the first /, ? or # delimiter.
+    # Colons inside a fragment (#a:b) or query (?a:b) are not schemes, and
+    # browsers resolve them as same-document references. Check both the raw
+    # and backslash-normalized forms so weird forms like \\:x are rejected
+    # too. Schemes we explicitly allow are exempt.
+    if (
+        re.match(r"^[^/?#]*:", u_raw) or re.match(r"^[^/?#]*:", u)
+    ) and not u.startswith(("https://", "http://", "mailto:")):
         return "#"
     if any(u.startswith(p) for p in _SAFE_LINK_PREFIXES):
         return url

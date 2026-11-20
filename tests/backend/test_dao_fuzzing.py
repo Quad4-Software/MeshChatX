@@ -691,16 +691,25 @@ class TestSafeHrefFuzzing:
     )
     @settings(deadline=None, max_examples=60)
     def test_safe_href_blocks_unknown_schemes(self, scheme):
-        """Any unknown scheme like 'foo:bar' should be blocked."""
+        """Unchanged results must resolve to an allowed scheme or relative ref."""
+        import re
+        from urllib.parse import urlsplit
+
         url = f"{scheme}:something"
         result = _safe_href(url)
-        lower = url.strip().lower()
-        if any(
-            lower.startswith(p) for p in ("https://", "http://", "/", "#", "mailto:")
-        ):
-            assert result == url
-        else:
-            assert result == "#"
+        if result == "#":
+            return
+        assert result == url
+        # Browser-accurate oracle: control chars stripped, backslashes folded
+        # to slashes, then a real URL parse. Only relative refs and the
+        # allowlisted schemes may survive unchanged.
+        norm = re.sub(r"[\x00-\x20\x7f]+", "", result.strip().lower())
+        norm = norm.replace("\\", "/")
+        parts = urlsplit(norm)
+        assert not norm.startswith("//")
+        assert parts.scheme in ("", "http", "https", "mailto")
+        if parts.scheme == "":
+            assert parts.netloc == ""
 
 
 # ===================================================================
