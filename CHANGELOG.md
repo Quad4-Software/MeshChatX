@@ -18,6 +18,15 @@
 
 ### Fixed
 
+- Security: the client IP behind a trusted proxy is now the rightmost `X-Forwarded-For` entry that is not itself a trusted proxy. The leftmost entry was attacker controlled, so a client could claim any address, including allowlisted ones, and dodge login lockout.
+- Security: markdown links such as `\/evil.com` no longer slip past the protocol-relative URL check.
+- Security: imported blocklist and sieve regexes with nested quantifiers or overlapping alternation are rejected, because they could freeze LXMF delivery.
+- Map data: geo validation rejects empty coordinate lists, booleans and non-finite ordinates, and deeply nested input returns a clean error.
+- RNStatus and interface import: malformed or infinite values no longer cause server errors.
+- LXMF: file attachment names with NUL characters are cleaned before they are published.
+- Relay chat: messages whose sequence number arrives as a string no longer defeat dedup or sort order.
+- Maidenhead locators past the poles are no longer turned into map links.
+
 - NomadNet: on a fresh install the announce list stayed empty until you typed in search because a failed first load was never retried. It now retries with backoff.
 - Onboarding: the viewport now sets `viewport-fit=cover` and keyboard resizing so safe-area insets work on notched phones, short and landscape screens use the fullscreen dialog with compact spacing, and the changelog modal no longer opens over the tutorial.
 - Network: path requests are deduplicated per destination over a short window, a failed request no longer consumes that window, and propagation node selection no longer re-requests a path that already exists. Errors from `has_path` are no longer swallowed.
