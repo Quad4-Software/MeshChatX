@@ -380,6 +380,7 @@ import { waitForMeshReady, waitForNetworkReady } from "./js/networkStartupWait.j
 import { resolveAuthNavigation } from "./js/authSessionSync.js";
 import { reportFatalError, clearFatalError, default as fatalErrorState } from "./js/fatalErrorState.js";
 import { showBootSplashFatalError } from "./js/bootSplashError.js";
+import { applyRenderMode } from "./js/renderMode.js";
 
 function setBootSplashLine(text) {
     const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
@@ -545,6 +546,15 @@ if (networkReady) {
 
     async function bootstrap() {
         const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
+        // The Wails shell reports renderMode "software" for environments
+        // where WebKitGTK flickers on opacity transitions (Flatpak, GPU
+        // off). Tag <html> before mount so the route fade stays disabled.
+        if (window.desktop?.runtimeInfo) {
+            window.desktop
+                .runtimeInfo()
+                .then((info) => applyRenderMode(document.documentElement, info))
+                .catch(() => {});
+        }
         const app = createApp(App);
         app.config.errorHandler = (err, _instance, info) => {
             console.error("MeshChatX render error:", err, info);

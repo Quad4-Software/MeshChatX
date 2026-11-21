@@ -102,6 +102,40 @@ describe("desktop packaging contracts", () => {
         expect(fs.existsSync(path.join(dir, "patch-webkitgtk.py"))).toBe(true);
     });
 
+    it("linux GTK application id stays com.meshchatx.app across packaging", () => {
+        // WebKit names the a11y bus "<app id>.Sandboxed.WebProcess-<uuid>"
+        // and the flatpak portal refuses names outside the sandbox app id,
+        // so the shell's GApplication id must equal the manifest app-id.
+        const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, "packaging/flatpak/manifest.json"), "utf8"));
+        expect(manifest["app-id"]).toBe("com.meshchatx.app");
+
+        // The WebKit sandbox stays enabled; the a11y fix is the correct id,
+        // not WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS.
+        expect(manifest["finish-args"]).toContain("--env=WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=0");
+        expect(manifest["finish-args"].join(" ")).not.toContain("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1");
+
+        // StartupWMClass in every shipped desktop file matches the id so
+        // windows group with the launcher on Wayland and X11.
+        const flatpakDesktop = fs.readFileSync(
+            path.join(ROOT, "packaging/flatpak/com.meshchatx.app.desktop"),
+            "utf8"
+        );
+        const archDesktop = fs.readFileSync(
+            path.join(ROOT, "packaging/arch/reticulum-meshchatx.desktop"),
+            "utf8"
+        );
+        for (const desktop of [flatpakDesktop, archDesktop]) {
+            expect(desktop).toContain("StartupWMClass=com.meshchatx.app");
+        }
+
+        // main.go must pass the env-aware id to Wails, with FLATPAK_ID
+        // winning inside a sandbox and the packaged id everywhere else.
+        const mainGo = read("main.go");
+        expect(mainGo).toContain("ApplicationID: linuxApplicationID()");
+        expect(mainGo).toContain('os.Getenv("FLATPAK_ID")');
+        expect(mainGo).toContain('defaultUniqueID = "com.meshchatx.app"');
+    });
+
     it("no electron packaging remains in package.json", () => {
         const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
         const blob = JSON.stringify({
