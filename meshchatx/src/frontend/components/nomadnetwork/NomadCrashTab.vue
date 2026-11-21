@@ -75,6 +75,7 @@
 
 <script>
 import { nomadCrashTabRendererUrl, NOMAD_CRASH_TAB_CHANNEL } from "../../js/nomadCrashTabShell";
+import { getNomadDisplayMode, NOMAD_DISPLAY_MODE_EVENT } from "../../js/nomadDisplayMode";
 import { readTextFromClipboard } from "../../js/clipboardUtils";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
@@ -318,8 +319,15 @@ export default {
     mounted() {
         window.addEventListener("message", this.onWindowMessage);
         window.addEventListener("visibilitychange", this.onVisibilityChange);
+        window.addEventListener(NOMAD_DISPLAY_MODE_EVENT, this.onDisplayModeChanged);
         this.setupFrameRectTracking();
         this.updateFrameRect();
+        if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+            this._displayModeMedia = window.matchMedia("(max-width: 767px)");
+            if (typeof this._displayModeMedia.addEventListener === "function") {
+                this._displayModeMedia.addEventListener("change", this.onDisplayModeChanged);
+            }
+        }
         if (typeof document !== "undefined") {
             document.addEventListener("freeze", this.onPageFreeze);
             document.addEventListener("resume", this.onPageResume);
@@ -344,6 +352,11 @@ export default {
     beforeUnmount() {
         window.removeEventListener("message", this.onWindowMessage);
         window.removeEventListener("visibilitychange", this.onVisibilityChange);
+        window.removeEventListener(NOMAD_DISPLAY_MODE_EVENT, this.onDisplayModeChanged);
+        if (this._displayModeMedia && typeof this._displayModeMedia.removeEventListener === "function") {
+            this._displayModeMedia.removeEventListener("change", this.onDisplayModeChanged);
+        }
+        this._displayModeMedia = null;
         this.teardownFrameRectTracking();
         if (typeof document !== "undefined") {
             document.removeEventListener("freeze", this.onPageFreeze);
@@ -376,6 +389,19 @@ export default {
             } catch {
                 return null;
             }
+        },
+        onDisplayModeChanged() {
+            this.pushDisplayMode();
+        },
+        pushDisplayMode() {
+            // The toggle only exists below 768px. Larger screens keep the
+            // historical clipped layout, so tell the frame the mode is off.
+            const small =
+                typeof window !== "undefined" &&
+                typeof window.matchMedia === "function" &&
+                window.matchMedia("(max-width: 767px)").matches;
+            const mode = small ? getNomadDisplayMode() : "off";
+            this.postToFrame({ type: "display-mode", mode });
         },
         postToFrame(msg) {
             const frame = this.$refs.frame;
@@ -627,6 +653,7 @@ export default {
                 this.clearRenderDeadline();
                 this.status = this.skipRenderUntilPropChange ? "aborted" : "ready";
                 this.lastPongAt = Date.now();
+                this.pushDisplayMode();
                 this.$emit("ready");
                 this.schedulePushRender();
                 return;

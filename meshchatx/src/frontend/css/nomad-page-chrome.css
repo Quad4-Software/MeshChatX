@@ -329,3 +329,28 @@ pre.text-wrap > div > :last-child {
     outline: 1px solid currentColor;
     outline-offset: 1px;
 }
+
+/*
+ * Small-screen display modes. The parent sends fit, scroll or off through
+ * the frame channel. Both active modes remove the pre clipping that the
+ * base stylesheet applies below 640px so the natural line width is visible
+ * to measurement (fit) or scrollable (scroll).
+ */
+body.mcx-display-scroll #root {
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+}
+
+body.mcx-display-fit pre,
+body.mcx-display-scroll pre,
+body.mcx-display-fit .nodeContainer pre,
+body.mcx-display-scroll .nodeContainer pre {
+    max-width: none;
+    overflow-x: visible;
+}
+
+body.mcx-display-scroll .nodeContainer pre.text-wrap > div > :last-child {
+    white-space: pre;
+    overflow-wrap: normal;
+}

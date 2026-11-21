@@ -459,6 +459,23 @@
                         />
                     </div>
                     <IconButton
+                        class="nomad-icon-btn md:hidden shrink-0"
+                        :title="
+                            nomadDisplayMode === 'fit'
+                                ? $t('nomadnet.display_mode_scroll')
+                                : $t('nomadnet.display_mode_fit')
+                        "
+                        :aria-pressed="nomadDisplayMode === 'scroll'"
+                        @click="toggleNomadDisplayMode"
+                    >
+                        <MaterialDesignIcon
+                            :icon-name="
+                                nomadDisplayMode === 'fit' ? 'arrow-expand-horizontal' : 'arrow-collapse-horizontal'
+                            "
+                            class="size-5"
+                        />
+                    </IconButton>
+                    <IconButton
                         class="nomad-icon-btn hidden lg:inline-flex shrink-0"
                         :title="$t('nomadnet.nav_go')"
                         @click="onNodePageUrlClick(nodePagePathUrlInput)"
@@ -924,6 +941,7 @@ import DownloadUtils from "../../js/DownloadUtils";
 import AndroidDownloadBridge from "../../js/AndroidDownloadBridge";
 import ToastUtils from "../../js/ToastUtils";
 import { openAppContextMenuUnlessTextSelection } from "../../js/contextMenuUtils.js";
+import { getNomadDisplayMode, setNomadDisplayMode, NOMAD_DISPLAY_MODE_EVENT } from "../../js/nomadDisplayMode.js";
 import { getDestinationPath, runDestinationPathFinder } from "../../js/reticulumPathfinding.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import IconButton from "../IconButton.vue";
@@ -1019,6 +1037,7 @@ export default {
 
             isLoadingNodePage: false,
             isShowingNodePageSource: false,
+            nomadDisplayMode: getNomadDisplayMode(),
             nodePageRequestSequence: 0,
             nodePagePath: null,
             nodePagePathUrlInput: null,
@@ -1605,6 +1624,7 @@ export default {
             this._liveTransportReadyWatch = null;
         }
         GlobalEmitter.off(EMITTER_EVENTS.WEBSOCKET_RECONNECTED, this.onWebsocketReconnected);
+        window.removeEventListener(NOMAD_DISPLAY_MODE_EVENT, this.onNomadDisplayModeChanged);
         this.nodesListAbortController?.abort();
         this.nodeDetailAbortController?.abort();
         this.clearPartials();
@@ -1648,6 +1668,7 @@ export default {
         onWsEvent(WS_EVENTS.ERROR, this.onWsErrorEvent);
         GlobalEmitter.on(EMITTER_EVENTS.IDENTITY_SWITCHED, this.onIdentitySwitched);
         GlobalEmitter.on(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseLabel);
+        window.addEventListener(NOMAD_DISPLAY_MODE_EVENT, this.onNomadDisplayModeChanged);
         this.refreshMicronWasmReleaseLabel();
 
         this.$watch(
@@ -3639,6 +3660,12 @@ export default {
             this.pageRenderAborted = false;
             this.isCrashTabRendering = true;
             ToastUtils.dismiss("nomad-crash-tab-hung");
+        },
+        onNomadDisplayModeChanged(event) {
+            this.nomadDisplayMode = (event && event.detail) || getNomadDisplayMode();
+        },
+        toggleNomadDisplayMode() {
+            this.nomadDisplayMode = setNomadDisplayMode(this.nomadDisplayMode === "fit" ? "scroll" : "fit");
         },
         toggleNodePageSource() {
             this.isShowingNodePageSource = !this.isShowingNodePageSource;

@@ -15,8 +15,121 @@ import { shouldOpenCustomContextMenu } from "./contextMenuUtils.js";
 
 const root = document.getElementById("root");
 let renderSeq = 0;
+let displayMode = "fit";
+
+// Legibility floor. Very wide art still fits because the guarantee is no
+// horizontal overflow, so the floor stays permissive.
+const FIT_MIN_SCALE = 0.05;
+
+function resetDisplayModeStyles() {
+    root.style.zoom = "";
+    root.style.transform = "";
+    root.style.transformOrigin = "";
+    root.style.marginBottom = "";
+    root.style.width = "";
+}
+
+function applyDisplayMode() {
+    const body = document.body;
+    body.classList.remove("mcx-display-fit", "mcx-display-scroll");
+    body.dataset.displayMode = displayMode;
+    resetDisplayModeStyles();
+    delete root.dataset.fitScale;
+    if (displayMode === "off") {
+        body.style.overflowX = "hidden";
+        return;
+    }
+    if (displayMode === "scroll") {
+        // Natural width, horizontal scroll inside this frame only.
+        body.classList.add("mcx-display-scroll");
+        body.style.overflowX = "auto";
+        return;
+    }
+    // The fit class removes pre clipping so the widest line is measurable.
+    body.classList.add("mcx-display-fit");
+    body.style.overflowX = "hidden";
+    const avail = document.documentElement.clientWidth;
+    let natural = widestContentWidth();
+    if (natural <= 0 || avail <= 0 || natural <= avail) {
+        return;
+    }
+    let scale = Math.max(FIT_MIN_SCALE, avail / natural);
+    // transform does not trigger relayout, so rendered width is exactly
+    // layout width times scale. zoom would relayout shrink-to-fit content
+    // and overshoot. The transform leaves the layout box at natural size,
+    // so pull the empty space back with a negative bottom margin.
+    for (let i = 0; i < 4; i++) {
+        root.dataset.fitScale = String(scale);
+        root.style.transformOrigin = "0 0";
+        root.style.transform = `scale(${scale})`;
+        // scrollWidth is transform-invariant, so multiplying it predicts the
+        // scaled width even if a rect read misses the transform.
+        const rendered = Math.max(widestRenderedWidth(), root.scrollWidth * scale);
+        if (rendered <= avail + 1) {
+            break;
+        }
+        const correction = Math.max(FIT_MIN_SCALE, scale * (avail / rendered));
+        if (Math.abs(correction - scale) < 0.001) {
+            break;
+        }
+        scale = correction;
+    }
+    root.style.marginBottom = `${-((1 - scale) * root.scrollHeight)}px`;
+}
+
+// Pre-scale measurement: scrollWidth still reflects content that inner
+// clips hide, so take the max of both metrics across descendants.
+function widestContentWidth() {
+    let w = root.scrollWidth;
+    const els = root.querySelectorAll("*");
+    for (let i = 0; i < els.length; i++) {
+        const el = els[i];
+        const r = el.getBoundingClientRect().width;
+        const s = el.scrollWidth;
+        if (r > w) w = r;
+        if (s > w) w = s;
+    }
+    return w;
+}
+
+// Post-scale check: scrollWidth inflates under zoom because it reports
+// layout pixels, so only rendered rects are meaningful here.
+function widestRenderedWidth() {
+    let w = root.getBoundingClientRect().width;
+    const els = root.querySelectorAll("*");
+    for (let i = 0; i < els.length; i++) {
+        const r = els[i].getBoundingClientRect().width;
+        if (r > w) w = r;
+    }
+    return w;
+}
 let multilineCleanup = null;
 let rendererPromise = null;
+
+window.addEventListener("resize", () => {
+    if (displayMode === "fit") {
+        applyDisplayMode();
+    }
+});
+
+// Webfonts change monospace metrics after load, so a fit computed early
+// can drift wide. Re-measure whenever a font finishes loading.
+if (document.fonts) {
+    if (typeof document.fonts.addEventListener === "function") {
+        document.fonts.addEventListener("loadingdone", () => {
+            if (displayMode === "fit") {
+                applyDisplayMode();
+            }
+        });
+    }
+    if (typeof document.fonts.ready === "object") {
+        document.fonts.ready.then(() => {
+            if (displayMode === "fit") {
+                applyDisplayMode();
+            }
+        });
+    }
+}
 
 function post(msg) {
     // Opaque sandbox frames must use "*". Parent accepts only event.origin "null"
@@ -361,6 +474,7 @@ async function renderPage(msg, seq, api) {
         root.innerHTML = escapeSource(content);
         if (seq === renderSeq) {
             post({ type: "render-done", partials: [] });
+            requestAnimationFrame(applyDisplayMode);
         }
         return;
     }
@@ -409,6 +523,8 @@ async function renderPage(msg, seq, api) {
     }
     setupMultilineForMicron(api.MicronParser, pagePathWithoutData, opts);
     post({ type: "render-done", partials: listPartials(), images: listImages() });
+    // Content size is final here. Rescale before the next paint if needed.
+    requestAnimationFrame(applyDisplayMode);
 }
 
 window.addEventListener("message", (ev) => {
@@ -451,6 +567,12 @@ window.addEventListener("message", (ev) => {
     }
     if (d.type === "chrome") {
         applyChrome(d);
+        return;
+    }
+    if (d.type === "display-mode") {
+        const mode = ["fit", "scroll", "off"].includes(d.mode) ? d.mode : "fit";
+        displayMode = mode;
+        applyDisplayMode();
         return;
     }
     if (d.type === "paste-text") {
