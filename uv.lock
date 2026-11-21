@@ -3062,7 +3062,7 @@ wheels = [
 
 [[package]]
 name = "reticulum-meshchatx"
-version = "4.12.0"
+version = "4.12.1"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -3180,7 +3180,7 @@ dependencies = [
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9f/49/6e12a00bd534de00a4a41dd988b0a8115eef2bd49dc3f2e613371a252f1c/rns-1.6.1.tar.gz", hash = "sha256:7f07563a8b87dd750a5f2f310f837e42ffbeb5818469b22956fe2c60c70efb00", size = 611115, upload-time = "2026-11-18T17:55:45.551Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/09/15/6bb44deb69ae21b4a7dd060c47319acf70eac755f39169b15711a796c6b0/rns-1.6.1-py3-none-any.whl", hash = "sha256:ea6a77a5fb906291cb1882102714419562ec3e7de7d0302db11bd08c79930e9e", size = 694206, upload-time = "2026-11-18T17:55:39.33Z" },
+    { url = "https://files.pythonhosted.org/packages/b1/df/c8ad51a9b2b7af893290fa06b8de272507800642808120fb8d5c3e4c3fa2/rns-1.6.1-0-py3-none-any.whl", hash = "sha256:f276cb7d818df5cfd6ecc59a8a4f3344e47d46acdfdb48e75537400309547959", size = 695348, upload-time = "2026-11-19T17:30:04.277Z" },
 ]
 
 [[package]]
