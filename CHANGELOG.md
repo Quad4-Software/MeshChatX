@@ -1,3 +1,9 @@
+## [4.12.1] - unreleased
+
+### Fixed
+
+- No changes yet. Fixes queued for the next patch release go here.
+
 ## [4.12.0] - 2026-11-21
 
 ### Added
