@@ -56,7 +56,10 @@ if [[ ! -f "$manifest" ]]; then
     exit 1
 fi
 
-flatpak-builder --repo=repo --force-clean build-dir "$manifest"
-flatpak build-bundle repo "reticulum-meshchatx-${branch}.flatpak" com.meshchatx.app
+# The OSTree branch is part of the exported ref and of the ref-binding in
+# each commit. Leaving it unset makes flatpak-builder export master, which
+# the publish step rejects for testing, beta and stable channels.
+flatpak-builder --repo=repo --force-clean --default-branch="${branch}" build-dir "$manifest"
+flatpak build-bundle repo "reticulum-meshchatx-${branch}.flatpak" com.meshchatx.app "${branch}"
 mkdir -p dist
 mv -f "reticulum-meshchatx-${branch}.flatpak" dist/

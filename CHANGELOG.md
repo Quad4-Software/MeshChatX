@@ -2,7 +2,7 @@
 
 ### Fixed
 
-- No changes yet. Fixes queued for the next patch release go here.
+- Flatpak: the release bundle now exports the channel branch (stable, beta or testing) instead of master, so the OSTree publish step accepts it and `flatpak update` sees new releases. The publish job had been failing since the branch was never set at build time.
 
 ## [4.12.0] - 2026-11-21
 
