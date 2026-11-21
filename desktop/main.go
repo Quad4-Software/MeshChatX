@@ -63,6 +63,20 @@ func singleInstanceID() string {
 	return defaultUniqueID
 }
 
+// linuxApplicationID returns the GTK application id. Inside a Flatpak
+// sandbox it has to equal FLATPAK_ID: WebKit asks the portal to own
+// "<app id>.Sandboxed.WebProcess-<uuid>" on the a11y bus, the portal
+// refuses names not prefixed by the sandbox app id, and the web process
+// aborts on launch. MESHCHATX_UNIQUE_ID keeps dev and CI shells running
+// side-by-side distinct, and every other build uses the packaged id so
+// the window app_id matches StartupWMClass in the desktop files.
+func linuxApplicationID() string {
+	if v := strings.TrimSpace(os.Getenv("FLATPAK_ID")); v != "" {
+		return v
+	}
+	return singleInstanceID()
+}
+
 var (
 	appIconPNG []byte
 	appVersion string
@@ -249,6 +263,7 @@ func main() {
 		log.Fatalf("app server failed to start: %v", err)
 	}
 	appServer = appSrv
+	appSrv.SetShutdownStatusFile(filepath.Join(s.storageDir, "logs", "shutdown-status.json"))
 	s.appURL = appSrv.Origin()
 
 	notifSvc := notifications.New()
@@ -273,7 +288,7 @@ func main() {
 		// The shell lives in the tray when its window is hidden; never let
 		// the last-window-closed path kill the app (macOS already defaults
 		// ApplicationShouldTerminateAfterLastWindowClosed to false).
-		Linux:    application.LinuxOptions{DisableQuitOnLastWindowClosed: true},
+		Linux:    application.LinuxOptions{DisableQuitOnLastWindowClosed: true, ApplicationID: linuxApplicationID()},
 		Windows:  application.WindowsOptions{DisableQuitOnLastWindowClosed: true},
 		Services: []application.Service{application.NewService(notifSvc)},
 		OnShutdown: func() {
@@ -426,6 +441,7 @@ func (s *shellState) showStartupFailure(title, detail string) {
 
 func (s *shellState) shutdownBackend(sysLog *logger.Logger) {
 	s.setQuitting()
+	s.showShutdownPage()
 	if s.powerBlocker != nil {
 		s.powerBlocker.Stop()
 	}
@@ -581,11 +597,32 @@ func (s *shellState) askCloseDialog(trayEnabled bool) (action string, remember b
 	}
 }
 
+// shutdownPageURL is the same-origin shell page shown while the backend
+// tears down, so the window never sits frozen on the last app frame.
+func shutdownPageURL(origin, theme string) string {
+	return origin + "/__shell/shutdown.html?theme=" + url.QueryEscape(theme)
+}
+
+// showShutdownPage swaps the main window to the shutdown status page.
+// Best effort only: the window may already be gone on OS-quit paths, so a
+// webview error here must never abort teardown.
+func (s *shellState) showShutdownPage() {
+	defer func() { _ = recover() }()
+	win := s.mainWindow
+	if win == nil || appServer == nil {
+		return
+	}
+	_, effectiveTheme := s.uiTheme()
+	win.SetURL(shutdownPageURL(appServer.Origin(), effectiveTheme))
+	s.setPageKind("shutdown")
+}
+
 func (s *shellState) quitApp() {
 	if s.isQuitting() {
 		return
 	}
 	s.setQuitting()
+	s.showShutdownPage()
 	if s.app != nil {
 		s.app.Quit()
 	}
