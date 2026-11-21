@@ -450,16 +450,52 @@
     "license": "MIT"
   },
   {
+    "name": "@mapbox/point-geometry",
+    "version": "1.1.0",
+    "author": "Tom MacWright",
+    "license": "ISC"
+  },
+  {
+    "name": "@mapbox/tiny-sdf",
+    "version": "2.3.0",
+    "author": "Vladimir Agafonkin",
+    "license": "BSD-2-Clause"
+  },
+  {
     "name": "@mapbox/unitbezier",
     "version": "1.0.0",
     "author": "-",
     "license": "BSD-2-Clause"
   },
   {
+    "name": "@mapbox/vector-tile",
+    "version": "3.0.0",
+    "author": "-",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "@maplibre/geojson-vt",
+    "version": "6.3.1",
+    "author": "Vladimir Agafonkin",
+    "license": "ISC"
+  },
+  {
     "name": "@maplibre/maplibre-gl-style-spec",
     "version": "26.5.1",
     "author": "MapLibre",
     "license": "ISC"
+  },
+  {
+    "name": "@maplibre/mlt",
+    "version": "1.3.0",
+    "author": "-",
+    "license": "(MIT OR Apache-2.0)"
+  },
+  {
+    "name": "@maplibre/vt-pbf",
+    "version": "4.3.3",
+    "author": "Anand Thakker",
+    "license": "MIT"
   },
   {
     "name": "@mdi/js",
@@ -680,6 +716,12 @@
   {
     "name": "@types/estree",
     "version": "1.0.10",
+    "author": "-",
+    "license": "MIT"
+  },
+  {
+    "name": "@types/geojson",
+    "version": "7946.0.16",
     "author": "-",
     "license": "MIT"
   },
@@ -1029,6 +1071,12 @@
     "name": "bcp-47-match",
     "version": "2.0.3",
     "author": "Titus Wormer",
+    "license": "MIT"
+  },
+  {
+    "name": "bidi-js",
+    "version": "1.1.0",
+    "author": "Jason Johnston",
     "license": "MIT"
   },
   {
@@ -1578,6 +1626,12 @@
     "license": "MIT"
   },
   {
+    "name": "gl-matrix",
+    "version": "3.4.4",
+    "author": "-",
+    "license": "MIT"
+  },
+  {
     "name": "glob",
     "version": "14.0.4",
     "author": "Isaac Z. Schlueter",
@@ -1854,6 +1908,12 @@
     "license": "(MIT OR GPL-3.0-or-later)"
   },
   {
+    "name": "kdbush",
+    "version": "4.1.0",
+    "author": "Vladimir Agafonkin",
+    "license": "ISC"
+  },
+  {
     "name": "keycharm",
     "version": "0.4.0",
     "author": "Alex de Mulder",
@@ -1974,6 +2034,12 @@
     "license": "BSD-2-Clause"
   },
   {
+    "name": "maplibre-gl",
+    "version": "6.18.0",
+    "author": "-",
+    "license": "BSD-3-Clause"
+  },
+  {
     "name": "marked",
     "version": "18.1.3",
     "author": "Christopher Jeffrey",
@@ -2055,6 +2121,12 @@
     "name": "muggle-string",
     "version": "0.4.1",
     "author": "-",
+    "license": "MIT"
+  },
+  {
+    "name": "murmurhash-js",
+    "version": "1.0.0",
+    "author": "Gary Court",
     "license": "MIT"
   },
   {
@@ -2302,6 +2374,12 @@
     "version": "7.1.7",
     "author": "-",
     "license": "MIT"
+  },
+  {
+    "name": "potpack",
+    "version": "2.1.0",
+    "author": "Vladimir Agafonkin",
+    "license": "ISC"
   },
   {
     "name": "powershell-utils",

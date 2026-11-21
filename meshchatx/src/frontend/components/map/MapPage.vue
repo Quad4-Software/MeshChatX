@@ -19,7 +19,7 @@
                 :class="
                     useTabToolbar
                         ? 'flex flex-wrap items-center gap-x-1.5 gap-y-1 min-w-0 justify-end'
-                        : 'flex items-center gap-x-1.5 gap-y-2 px-3 py-2 sm:px-4 border-b border-sem-border bg-sem-surface z-10 relative min-w-0 flex-nowrap overflow-x-auto sm:flex-wrap sm:overflow-visible sm:justify-end'
+                        : 'flex flex-wrap items-center gap-x-1.5 gap-y-2 px-3 py-2 sm:px-4 border-b border-sem-border bg-sem-surface z-10 relative min-w-0 justify-end'
                 "
             >
                 <!-- offline/online toggle -->
@@ -826,6 +826,29 @@
 
                             <div class="space-y-1">
                                 <label class="text-[9px] font-bold text-sem-fg-muted uppercase flex items-center">
+                                    <MaterialDesignIcon icon-name="gpu" class="size-3 mr-1" />
+                                    {{ $t("map.basemap_renderer") }}
+                                </label>
+                                <div class="grid grid-cols-4 gap-1">
+                                    <button
+                                        v-for="mode in basemapRendererModes"
+                                        :key="mode"
+                                        :title="$t(`map.basemap_renderer_${mode}`)"
+                                        class="py-1.5 text-[8px] font-bold uppercase rounded-md transition-all border leading-tight"
+                                        :class="
+                                            basemapRenderer === mode
+                                                ? 'bg-sem-action-primary border-sem-info text-sem-action-primary-text shadow-xs ring-2 ring-sem-info/50'
+                                                : 'bg-sem-surface border-sem-border text-sem-fg-muted hover:bg-sem-surface-muted'
+                                        "
+                                        @click="setBasemapRenderer(mode)"
+                                    >
+                                        {{ $t(`map.basemap_renderer_${mode}`) }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-bold text-sem-fg-muted uppercase flex items-center">
                                     <MaterialDesignIcon icon-name="link-variant" class="size-3 mr-1" />
                                     Tile Server URL
                                 </label>
@@ -1122,6 +1145,14 @@ import "ol/ol.css";
 import "../../js/mapVectorWebFonts.js";
 import { apply as applyMapboxStyle } from "ol-mapbox-style";
 import { buildLocalPmtilesBaseMapLayer, buildPlanetPmtilesBaseMapLayer } from "../../js/mapPmtilesBasemap.js";
+import { buildMaplibreLocalPmtilesBaseMapLayer, buildMaplibrePlanetBaseMapLayer } from "../../js/mapMaplibreBasemap.js";
+import {
+    detectWebglSupport,
+    getBasemapRendererSetting,
+    setBasemapRendererSetting,
+    resolveBasemapRenderer,
+    MAP_BASEMAP_MODES,
+} from "../../js/mapRenderCapability.js";
 import OlMap from "ol/Map";
 import View from "ol/View";
 import LayerGroup from "ol/layer/Group";
@@ -1354,6 +1385,8 @@ export default {
 
             // tile server
             tileServerUrl: PLANET_PM_TILES_URL,
+            basemapRenderer: getBasemapRendererSetting(),
+            basemapRendererModes: MAP_BASEMAP_MODES,
 
             // search
             searchQuery: "",
@@ -1857,6 +1890,9 @@ export default {
             }
             this.map.setTarget(null);
             this.map = null;
+            if (window.__mcxMap) {
+                delete window.__mcxMap;
+            }
         }
     },
     methods: {
@@ -2170,6 +2206,22 @@ export default {
             if (this._unmounted || !this.$refs.mapContainer) {
                 return;
             }
+            if (baseLayer && typeof baseLayer.once === "function") {
+                // WebGL context creation or a context loss at runtime renders
+                // the MapLibre layer blank. Rebuild once on the CPU path.
+                baseLayer.once("maplibre-init-error", async () => {
+                    try {
+                        this._forcedBasemapRenderer = "cpu";
+                        if (this.map) {
+                            this.map.removeLayer(baseLayer);
+                            const fallback = await this.buildBaseMapLayer();
+                            this.map.getLayers().insertAt(0, fallback);
+                        }
+                    } catch (e) {
+                        console.warn("CPU basemap fallback after WebGL failure failed", e);
+                    }
+                });
+            }
             const mapPixelRatio = Math.min(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1, 2);
             this.map = new OlMap({
                 target: this.$refs.mapContainer,
@@ -2188,6 +2240,8 @@ export default {
                 pixelRatio: mapPixelRatio,
                 maxTilesLoading: 48,
             });
+            // Test/debug handle so e2e specs can drive the view directly.
+            window.__mcxMap = this.map;
 
             const mapView = this.map.getView();
             if (mapView && typeof mapView.on === "function" && typeof mapView.getRotation === "function") {
@@ -2730,7 +2784,22 @@ export default {
         },
         async buildBaseMapLayer() {
             const url = (this.tileServerUrl || PLANET_PM_TILES_URL).trim();
-            if (!this.offlineEnabled && url === PLANET_PM_TILES_URL) {
+            const renderMode =
+                this._forcedBasemapRenderer ||
+                resolveBasemapRenderer(getBasemapRendererSetting(), detectWebglSupport());
+            if (!this.offlineEnabled && url === PLANET_PM_TILES_URL && renderMode !== "raster") {
+                if (renderMode === "gpu") {
+                    try {
+                        return await Promise.race([
+                            buildMaplibrePlanetBaseMapLayer(),
+                            new Promise((_, reject) =>
+                                setTimeout(() => reject(new Error("PMTiles basemap timed out")), 10000)
+                            ),
+                        ]);
+                    } catch (e) {
+                        console.warn("MapLibre basemap failed, falling back to CPU vector", e);
+                    }
+                }
                 try {
                     // Bound the wait: header + sprite fetches must not stall
                     // map boot on dead networks; raster fallback loads instantly.
@@ -2756,6 +2825,15 @@ export default {
             if (this.usesOfflinePmtiles()) {
                 try {
                     const name = encodeURIComponent(String(this.metadata.path).split(/[\\/]/).pop());
+                    if (renderMode === "gpu") {
+                        try {
+                            const built = await buildMaplibreLocalPmtilesBaseMapLayer(`/api/v1/map/pmtiles/${name}`);
+                            this._offlinePmtilesHeader = built.header;
+                            return built.layer;
+                        } catch (e) {
+                            console.warn("MapLibre local basemap failed, falling back to CPU vector", e);
+                        }
+                    }
                     const built = await buildLocalPmtilesBaseMapLayer(`/api/v1/map/pmtiles/${name}`);
                     this._offlinePmtilesHeader = built.header;
                     return built.layer;
@@ -3548,6 +3626,11 @@ export default {
             } catch {
                 ToastUtils.error(this.$t("map.failed_save_tile_server"));
             }
+        },
+        async setBasemapRenderer(mode) {
+            if (this.basemapRenderer === mode) return;
+            this.basemapRenderer = setBasemapRendererSetting(mode);
+            await this.updateMapSource();
         },
         async setTileServer(type) {
             this.tileErrorCount = 0;

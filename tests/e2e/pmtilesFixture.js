@@ -39,9 +39,9 @@ function zxyToTileId(z, x, y) {
 // version 2. Enough for ol/format/MVT to parse without features.
 const TILE_BYTES = Buffer.from([0x1a, 0x0b, 0x0a, 0x01, 0x61, 0x12, 0x02, 0x32, 0x00, 0x78, 0x02]);
 
-function buildArchive(tiles) {
+function buildArchive(tiles, opts = {}) {
     const entries = tiles
-        .map((t) => ({ ...t, id: zxyToTileId(t.z, t.x, t.y), data: TILE_BYTES }))
+        .map((t) => ({ ...t, id: zxyToTileId(t.z, t.x, t.y), data: t.data || TILE_BYTES }))
         .sort((a, b) => a.id - b.id);
     const dir = [];
     writeVarint(dir, entries.length);
@@ -58,7 +58,9 @@ function buildArchive(tiles) {
         cursor += e.data.length;
     }
     const dirLen = dir.length;
-    const tileDataOffset = 127 + dirLen;
+    const metadata = opts.metadata ? Buffer.from(JSON.stringify(opts.metadata), "utf8") : Buffer.alloc(0);
+    const metadataOffset = metadata.length ? 127 + dirLen : 0;
+    const tileDataOffset = 127 + dirLen + metadata.length;
     const tileDataLength = entries.reduce((a, e) => a + e.data.length, 0);
     const total = tileDataOffset + tileDataLength;
     const buf = Buffer.alloc(total);
@@ -67,8 +69,8 @@ function buildArchive(tiles) {
     const u64 = (off, v) => buf.writeBigUInt64LE(BigInt(v), off);
     u64(8, 127); // rootDirectoryOffset
     u64(16, dirLen); // rootDirectoryLength
-    u64(24, 0); // jsonMetadataOffset
-    u64(32, 0); // jsonMetadataLength
+    u64(24, metadataOffset); // jsonMetadataOffset
+    u64(32, metadata.length); // jsonMetadataLength
     u64(40, 0); // leafDirectoryOffset
     u64(48, 0); // leafDirectoryLength
     u64(56, tileDataOffset);
@@ -90,6 +92,9 @@ function buildArchive(tiles) {
     buf.writeInt32LE(0, 119);
     buf.writeInt32LE(0, 123);
     Buffer.from(dir).copy(buf, 127);
+    if (metadata.length) {
+        metadata.copy(buf, metadataOffset);
+    }
     let off = tileDataOffset;
     for (const e of entries) {
         e.data.copy(buf, off);

@@ -379,7 +379,10 @@ export class CachedPmtilesSource {
             if (persisted) {
                 this.mem.set(key, persisted);
                 this.mem.get(key).fp = fp();
-                return { data: persisted };
+                // Callers may transfer the returned buffer into a worker
+                // (MapLibre tile decode). A detached cached copy would make
+                // later hits throw on slice, so hand out a copy.
+                return { data: persisted.slice(0) };
             }
         }
         let flight = this.inflight.get(key);
@@ -418,10 +421,9 @@ export class CachedPmtilesSource {
         try {
             const resp = await flight.promise;
             if (this.mem.get(key)) this.mem.get(key).fp = fp();
-            if (etag && resp.etag && resp.etag !== etag) {
-                return { data: resp.data, cacheControl: resp.cacheControl, expires: resp.expires, etag: resp.etag };
-            }
-            return { data: resp.data, cacheControl: resp.cacheControl, expires: resp.expires, etag: resp.etag };
+            // Return a copy: consumers can transfer the buffer into a worker,
+            // which would detach the copy held in the LRU.
+            return { data: resp.data.slice(0), cacheControl: resp.cacheControl, expires: resp.expires, etag: resp.etag };
         } finally {
             if (passedSignal) passedSignal.removeEventListener("abort", onAbort);
             flight.waiters.delete(waiter);

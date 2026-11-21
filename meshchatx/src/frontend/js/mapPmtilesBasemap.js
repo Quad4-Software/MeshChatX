@@ -37,7 +37,7 @@ let archivePromise = null;
 // deduped across basemap rebuilds for the lifetime of the page.
 const sharedPromiseCache = new SharedPromiseCache(500, true);
 
-function getArchive() {
+export function getArchive() {
     if (!archivePromise) {
         archivePromise = Promise.resolve().then(async () => {
             const archive = new PMTiles(getCachedPmtilesSource(PLANET_PM_TILES_URL), sharedPromiseCache);
@@ -108,7 +108,7 @@ function createBasemapVectorLayer(source) {
     });
 }
 
-function basemapStyleJson(layersSubset, { sprite = true } = {}) {
+export function basemapStyleJson(layersSubset, { sprite = true, sourceUrl = PLANET_PM_TILES_URL } = {}) {
     const json = {
         version: 8,
         name: "protomaps-planet",
@@ -116,7 +116,7 @@ function basemapStyleJson(layersSubset, { sprite = true } = {}) {
         sources: {
             protomaps: {
                 type: "vector",
-                url: `pmtiles://${PLANET_PM_TILES_URL}`,
+                url: `pmtiles://${sourceUrl}`,
                 attribution: PLANET_ATTRIBUTION,
             },
         },
@@ -126,20 +126,9 @@ function basemapStyleJson(layersSubset, { sprite = true } = {}) {
     return json;
 }
 
-// Profiling escape hatch: localStorage "mcx.no-style-trim"="1" restores
-// the stock untrimmed style so before/after numbers come from the same
-// build. Not set anywhere in the app.
-function styleTrimDisabled() {
-    try {
-        return localStorage.getItem("mcx.no-style-trim") === "1";
-    } catch (e) {
-        return false;
-    }
-}
-
 async function buildStyledVectorGroup(archive, styleUrl, tileUrlBase, { minZoom, maxZoom, extent, offline }) {
     const stock = basemapLayers("protomaps", namedFlavor("light"), { lang: "en" });
-    const trimmed = styleTrimDisabled() ? stock : trimBasemapLayers(stock);
+    const trimmed = trimBasemapLayers(stock);
     const source = createPmtilesVectorSource(archive, tileUrlBase, { minZoom, maxZoom });
     const layer = createBasemapVectorLayer(source);
     layer.set("mapbox-source", "protomaps");
