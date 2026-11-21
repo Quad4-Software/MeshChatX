@@ -819,6 +819,7 @@
         "vacuum": "Wyczyść bazę",
         "auto_recover": "Autoodzyskiwanie",
         "shutdown": "Zakończ",
+        "shutting_down": "Zamykanie MeshChatX",
         "acknowledge_reset": "Potwierdź i zresetuj",
         "continue": "Kontynuuj",
         "confirm": "Potwierdź",

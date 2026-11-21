@@ -819,6 +819,7 @@
         "vacuum": "Vakuumieren",
         "auto_recover": "Automatisch wiederherstellen",
         "shutdown": "Ausschalten",
+        "shutting_down": "MeshChatX wird beendet",
         "acknowledge_reset": "Bestätigen & Zurücksetzen",
         "continue": "Fortfahren",
         "confirm": "Bestätigen",

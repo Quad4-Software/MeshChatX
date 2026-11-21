@@ -819,6 +819,7 @@
         "vacuum": "Compactar",
         "auto_recover": "Recuperação Automática",
         "shutdown": "Desligar",
+        "shutting_down": "Desligando o MeshChatX",
         "acknowledge_reset": "Reconhecer e Redefinir",
         "continue": "Continuar",
         "confirm": "Confirmar",

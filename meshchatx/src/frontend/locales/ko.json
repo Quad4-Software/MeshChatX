@@ -819,6 +819,7 @@
         "vacuum": "VACUUM",
         "auto_recover": "자동 복구",
         "shutdown": "종료",
+        "shutting_down": "MeshChatX 종료 중",
         "acknowledge_reset": "확인 및 초기화",
         "continue": "계속",
         "confirm": "확인",

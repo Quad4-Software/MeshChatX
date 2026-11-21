@@ -820,6 +820,7 @@
         "vacuum": "Vacuum",
         "auto_recover": "Auto Recover",
         "shutdown": "Shutdown",
+        "shutting_down": "Shutting down MeshChatX",
         "acknowledge_reset": "Acknowledge & Reset",
         "continue": "Continue",
         "confirm": "Confirm",

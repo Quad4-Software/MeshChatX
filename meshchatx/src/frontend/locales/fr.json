@@ -819,6 +819,7 @@
         "vacuum": "Aspirateur",
         "auto_recover": "Récupération automatique",
         "shutdown": "Arrêt",
+        "shutting_down": "Arrêt de MeshChatX",
         "acknowledge_reset": "Reconnaissez et réinitialisez",
         "continue": "Continuer",
         "confirm": "Confirmer",

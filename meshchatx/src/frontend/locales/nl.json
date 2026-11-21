@@ -819,6 +819,7 @@
         "vacuum": "Stofzuiger",
         "auto_recover": "Automatisch herstellen",
         "shutdown": "Afsluiten",
+        "shutting_down": "MeshChatX wordt afgesloten",
         "acknowledge_reset": "Bevestigen & herstellen",
         "continue": "Doorgaan",
         "confirm": "Bevestigen",

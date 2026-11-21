@@ -819,6 +819,7 @@
         "vacuum": "最適化",
         "auto_recover": "自動復旧",
         "shutdown": "シャットダウン",
+        "shutting_down": "MeshChatXをシャットダウンしています",
         "acknowledge_reset": "確認してリセット",
         "continue": "続行",
         "confirm": "確認",

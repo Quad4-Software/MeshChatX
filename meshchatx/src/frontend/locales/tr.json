@@ -819,6 +819,7 @@
         "vacuum": "Vakumla",
         "auto_recover": "Otomatik Kurtarma",
         "shutdown": "Kapat",
+        "shutting_down": "MeshChatX kapatılıyor",
         "acknowledge_reset": "Onayla ve Sıfırla",
         "continue": "Devam Et",
         "confirm": "Onayla",

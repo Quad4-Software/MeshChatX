@@ -819,6 +819,7 @@
         "vacuum": "Ime",
         "auto_recover": "Palaudu automaattisesti",
         "shutdown": "Sammuta",
+        "shutting_down": "MeshChatX sammutetaan",
         "acknowledge_reset": "Hyväksy ja nollaa",
         "continue": "Jatka",
         "confirm": "Hyväksy",

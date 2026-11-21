@@ -819,6 +819,7 @@
         "vacuum": "清理",
         "auto_recover": "自动恢复",
         "shutdown": "关闭",
+        "shutting_down": "正在关闭 MeshChatX",
         "acknowledge_reset": "确认重置 (R)",
         "continue": "继续",
         "confirm": "确认",

@@ -819,6 +819,7 @@
         "vacuum": "Очистити",
         "auto_recover": "Автовідновлення",
         "shutdown": "Завершити роботу",
+        "shutting_down": "Завершення роботи MeshChatX",
         "acknowledge_reset": "Підтвердити та скинути",
         "continue": "Продовжити",
         "confirm": "Підтвердити",

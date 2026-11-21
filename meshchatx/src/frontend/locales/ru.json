@@ -819,6 +819,7 @@
         "vacuum": "Сжать базу",
         "auto_recover": "Автовосстановление",
         "shutdown": "Выключить",
+        "shutting_down": "Завершение работы MeshChatX",
         "acknowledge_reset": "Подтвердить и сбросить",
         "continue": "Продолжить",
         "confirm": "Подтвердить",

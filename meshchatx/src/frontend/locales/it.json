@@ -819,6 +819,7 @@
         "vacuum": "Pulisci",
         "auto_recover": "Recupero Automatico",
         "shutdown": "Spegni",
+        "shutting_down": "Spegnimento di MeshChatX",
         "acknowledge_reset": "Conferma e Reimposta",
         "continue": "Continua",
         "confirm": "Conferma",
