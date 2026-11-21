@@ -3,7 +3,7 @@
 // features across the layer names the Protomaps style filters on, which is
 // representative decode work for a mid-zoom urban tile. Geometry is synthetic:
 // random walks and rects, not real geography.
-const { buildArchive, zxyToTileId } = require("../../tests/e2e/pmtilesFixture");
+const { buildArchive } = require("../../tests/e2e/pmtilesFixture");
 
 function vint(v) {
     const o = [];

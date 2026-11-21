@@ -23,7 +23,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { PMTiles, Protocol } from "pmtiles";
 import { layers as basemapLayers, namedFlavor } from "@protomaps/basemaps";
 
-import { PLANET_PM_TILES_URL, getArchive, basemapStyleJson } from "./mapPmtilesBasemap.js";
+import { getArchive, basemapStyleJson } from "./mapPmtilesBasemap.js";
 import { getCachedPmtilesSource } from "./pmtilesCacheSource.js";
 import { trimBasemapLayers } from "./mapStyleTrim.js";
 
@@ -134,7 +134,7 @@ class MaplibreBasemapLayer extends Layer {
         if (this.mlMap) {
             try {
                 this.mlMap.remove();
-            } catch (e) {
+            } catch {
                 // Tearing down a half-initialized map can throw. Ignore it.
             }
             this.mlMap = null;

@@ -360,6 +360,7 @@ export class CachedPmtilesSource {
      * pmtiles Source contract. Returns the byte range plus optional validator
      * hints, deduping in-flight requests and serving from cache when fresh.
      */
+    // eslint-disable-next-line no-unused-vars -- pmtiles Source contract
     async getBytes(offset, length, passedSignal, etag) {
         const key = storageKey(this.url, offset, length);
         const meta = await this._meta();
@@ -423,7 +424,12 @@ export class CachedPmtilesSource {
             if (this.mem.get(key)) this.mem.get(key).fp = fp();
             // Return a copy: consumers can transfer the buffer into a worker,
             // which would detach the copy held in the LRU.
-            return { data: resp.data.slice(0), cacheControl: resp.cacheControl, expires: resp.expires, etag: resp.etag };
+            return {
+                data: resp.data.slice(0),
+                cacheControl: resp.cacheControl,
+                expires: resp.expires,
+                etag: resp.etag,
+            };
         } finally {
             if (passedSignal) passedSignal.removeEventListener("abort", onAbort);
             flight.waiters.delete(waiter);

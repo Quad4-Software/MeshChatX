@@ -21,7 +21,7 @@ export function normalizeNomadDisplayMode(value) {
 export function getNomadDisplayMode() {
     try {
         return normalizeNomadDisplayMode(window.localStorage.getItem(NOMAD_DISPLAY_MODE_KEY)) || "fit";
-    } catch (e) {
+    } catch {
         return "fit";
     }
 }
@@ -31,7 +31,7 @@ export function setNomadDisplayMode(mode) {
     if (!normalized) return getNomadDisplayMode();
     try {
         window.localStorage.setItem(NOMAD_DISPLAY_MODE_KEY, normalized);
-    } catch (e) {
+    } catch {
         // Private browsing can deny storage. The mode still applies in memory.
     }
     window.dispatchEvent(new CustomEvent(NOMAD_DISPLAY_MODE_EVENT, { detail: normalized }));

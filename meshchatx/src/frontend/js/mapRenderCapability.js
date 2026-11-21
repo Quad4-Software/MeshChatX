@@ -42,7 +42,7 @@ export function detectWebglSupport() {
             if (lose) lose.loseContext();
         }
         return { available: true, software, renderer: renderer || null };
-    } catch (e) {
+    } catch {
         return { available: false, software: false, renderer: null };
     }
 }
@@ -51,7 +51,7 @@ export function getBasemapRendererSetting() {
     try {
         const raw = window.localStorage.getItem(MAP_BASEMAP_RENDERER_KEY);
         return MAP_BASEMAP_MODES.includes(raw) ? raw : "auto";
-    } catch (e) {
+    } catch {
         return "auto";
     }
 }
@@ -60,7 +60,7 @@ export function setBasemapRendererSetting(mode) {
     if (!MAP_BASEMAP_MODES.includes(mode)) return getBasemapRendererSetting();
     try {
         window.localStorage.setItem(MAP_BASEMAP_RENDERER_KEY, mode);
-    } catch (e) {
+    } catch {
         // Storage can be denied. The in-memory choice still applies.
     }
     return mode;
