@@ -69,9 +69,7 @@ test.describe("MapLibre basemap view sync", () => {
                         const view = window.__mcxMap.getView();
                         view.setZoom(z);
                         view.setRotation(r);
-                        await new Promise((resolve) =>
-                            requestAnimationFrame(() => requestAnimationFrame(resolve))
-                        );
+                        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                     },
                     [zoom, rotation]
                 );

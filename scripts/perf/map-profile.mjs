@@ -282,12 +282,16 @@ async function main() {
         lines.push("# Map perf round 2");
         lines.push("");
         lines.push(`Chromium headless, CDP CPU throttle ${THROTTLE}x, settle ${SETTLE_MS}ms.`);
-        lines.push(`Dense synthetic PMTiles fixture (~${(archive.length / 1e6).toFixed(1)}MB, ~300 features/tile, layers matching the Protomaps style). Archive and OSM raster served via Playwright route interception, so no real network.`);
+        lines.push(
+            `Dense synthetic PMTiles fixture (~${(archive.length / 1e6).toFixed(1)}MB, ~300 features/tile, layers matching the Protomaps style). Archive and OSM raster served via Playwright route interception, so no real network.`
+        );
         lines.push("");
         for (const r of all) {
             lines.push(`## ${r.mode} (maplibre canvas: ${r.rendererInfo.maplibre}, gl: ${r.rendererInfo.glRenderer})`);
             lines.push("");
-            lines.push("| gesture | longtask total ms | longtask count | max longtask ms | max frame ms | p95 frame ms | mean frame ms | frames | range reqs |");
+            lines.push(
+                "| gesture | longtask total ms | longtask count | max longtask ms | max frame ms | p95 frame ms | mean frame ms | frames | range reqs |"
+            );
             lines.push("|---|---|---|---|---|---|---|---|---|");
             for (const g of r.results) {
                 lines.push(
@@ -302,7 +306,13 @@ async function main() {
         }
         writeFileSync(OUT, lines.join("\n"));
         console.log("wrote " + OUT);
-        console.log(JSON.stringify(all.map((r) => ({ mode: r.mode, gl: r.rendererInfo.glRenderer, results: r.results })), null, 1));
+        console.log(
+            JSON.stringify(
+                all.map((r) => ({ mode: r.mode, gl: r.rendererInfo.glRenderer, results: r.results })),
+                null,
+                1
+            )
+        );
     } finally {
         if (stack) {
             stack.kill("SIGTERM");

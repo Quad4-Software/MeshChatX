@@ -112,9 +112,20 @@ class LayerWriter {
         }
         let body = fieldVarint(1, this.nextId++);
         if (tags.length) {
-            body = body.concat(fieldBytes(2, tags.flatMap((t) => vint(t))));
+            body = body.concat(
+                fieldBytes(
+                    2,
+                    tags.flatMap((t) => vint(t))
+                )
+            );
         }
-        body = body.concat(fieldVarint(3, type), fieldBytes(4, geom.flatMap((g) => vint(g))));
+        body = body.concat(
+            fieldVarint(3, type),
+            fieldBytes(
+                4,
+                geom.flatMap((g) => vint(g))
+            )
+        );
         this.feats.push(body);
     }
 
@@ -140,7 +151,17 @@ function mulberry32(seed) {
     };
 }
 
-const ROAD_KINDS = ["motorway", "trunk", "primary_road", "secondary_road", "tertiary_road", "residential", "service", "track", "path"];
+const ROAD_KINDS = [
+    "motorway",
+    "trunk",
+    "primary_road",
+    "secondary_road",
+    "tertiary_road",
+    "residential",
+    "service",
+    "track",
+    "path",
+];
 const LANDUSE_KINDS = ["park", "forest", "residential", "commercial", "industrial", "farmland", "grass", "cemetery"];
 const PLACE_KINDS = ["locality", "neighbourhood", "suburb", "town", "village"];
 const POI_KINDS = ["cafe", "restaurant", "shop", "school", "hospital", "bus_stop", "parking"];
@@ -197,7 +218,10 @@ function buildTile(z, x, y) {
 
     const buildings = new LayerWriter("buildings");
     for (let i = 0; i < 130; i++) {
-        buildings.add(3, polyGeom(rect(ri(4000), ri(4000), 15 + ri(80), 15 + ri(80))), { kind: "building", kind_detail: "yes" });
+        buildings.add(3, polyGeom(rect(ri(4000), ri(4000), 15 + ri(80), 15 + ri(80))), {
+            kind: "building",
+            kind_detail: "yes",
+        });
     }
 
     const places = new LayerWriter("places");

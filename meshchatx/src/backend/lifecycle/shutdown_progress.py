@@ -21,6 +21,8 @@ import time
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from meshchatx.src.env_utils import env_str
+
 logger_name = "meshchatx.shutdown"
 
 DEFAULT_DEADLINE_S = 10.0
@@ -93,7 +95,7 @@ def init_progress(
 ) -> ShutdownProgress:
     """Create the process-wide reporter. The env var overrides the path."""
     global _progress
-    path = os.environ.get(_STATUS_ENV) or (
+    path = env_str(_STATUS_ENV) or (
         default_status_path(storage_dir) if storage_dir else None
     )
     _progress = ShutdownProgress(path, deadline_s=deadline_s)
