@@ -131,6 +131,8 @@ async def handle_lxm_ingest_uri(app, client, data):
     uri = data.get("uri")
     if not uri:
         return
+    # Echoed on every result so clients can correlate concurrent ingests.
+    request_id = data.get("request_id")
 
     local_delivery_signal = "local_delivery_occurred"
     duplicate_signal = "duplicate_lxm"
@@ -156,6 +158,7 @@ async def handle_lxm_ingest_uri(app, client, data):
                                 "type": "lxm.ingest_uri.result",
                                 "status": "error",
                                 "message": "Invalid map link: lat and lon must be numbers.",
+                                "request_id": request_id,
                             },
                         ),
                     ),
@@ -187,6 +190,7 @@ async def handle_lxm_ingest_uri(app, client, data):
                             "message": "Opening map view.",
                             "ingest_type": "map_view",
                             "map_query": mq,
+                            "request_id": request_id,
                         },
                     ),
                 ),
@@ -209,6 +213,7 @@ async def handle_lxm_ingest_uri(app, client, data):
                     "status": "success",
                     "message": "Opening documentation.",
                     "ingest_type": "docs_view",
+                    "request_id": request_id,
                 }
                 if rel:
                     payload["docs_query"] = {"reticulum": rel}
@@ -235,6 +240,7 @@ async def handle_lxm_ingest_uri(app, client, data):
                             ),
                             "ingest_type": "unknown_meshchatx",
                             "host": _host,
+                            "request_id": request_id,
                         },
                     ),
                 ),
@@ -291,6 +297,7 @@ async def handle_lxm_ingest_uri(app, client, data):
                             "message": f"Contact imported from LXMA URI ({destination_hash_hex})",
                             "ingest_type": "lxma_contact",
                             "destination_hash": destination_hash_hex,
+                            "request_id": request_id,
                         },
                     ),
                 ),
@@ -334,6 +341,7 @@ async def handle_lxm_ingest_uri(app, client, data):
                         "type": "lxm.ingest_uri.result",
                         "status": status,
                         "message": response,
+                        "request_id": request_id,
                     },
                 ),
             ),
@@ -347,6 +355,7 @@ async def handle_lxm_ingest_uri(app, client, data):
                         "type": "lxm.ingest_uri.result",
                         "status": "error",
                         "message": f"Error ingesting message from URI: {detail}",
+                        "request_id": request_id,
                     },
                 ),
             ),

@@ -3424,6 +3424,7 @@ export default {
             clearConversationPrefetchCache();
             this.lastDraftIdentityKey = nextKey;
             this.pendingPaperIngestMessageHash = null;
+            this.pendingPaperIngests = {};
             this.reloadIngestedPaperMessageHashes();
             if (this.selectedPeer) {
                 this.loadDraft(dest, nextKey);
