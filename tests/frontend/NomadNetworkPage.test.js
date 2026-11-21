@@ -923,6 +923,27 @@ describe("NomadNetworkPage.vue", () => {
             expect(result.path).toBe("/file/x.txt");
             expect(result.query).toBe("");
         });
+
+        it("lowercases uppercase destination hashes so they correlate with backend events", () => {
+            const wrapper = mountNomadNetworkPage();
+            const dest = "A1B2C3D4".repeat(4);
+            const result = wrapper.vm.parseNomadnetworkUrl(`${dest}:/page/index.mu`);
+            expect(result.destination_hash).toBe(dest.toLowerCase());
+        });
+
+        it("lowercases a bare uppercase node hash", () => {
+            const wrapper = mountNomadNetworkPage();
+            const dest = "F".repeat(32);
+            const result = wrapper.vm.parseNomadnetworkUrl(dest);
+            expect(result.destination_hash).toBe("f".repeat(32));
+        });
+
+        it("returns null for null, undefined, and empty input", () => {
+            const wrapper = mountNomadNetworkPage();
+            expect(wrapper.vm.parseNomadnetworkUrl(null)).toBeNull();
+            expect(wrapper.vm.parseNomadnetworkUrl(undefined)).toBeNull();
+            expect(wrapper.vm.parseNomadnetworkUrl("")).toBeNull();
+        });
     });
 
     describe("downloadNomadNetFile", () => {

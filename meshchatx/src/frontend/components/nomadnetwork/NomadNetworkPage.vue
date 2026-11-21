@@ -781,6 +781,7 @@
                             @navigate="onCrashTabNavigate"
                             @partials="onCrashTabPartials"
                             @images="onCrashTabImages"
+                            @images-added="onCrashTabImagesAdded"
                             @image-action="onCrashTabImageAction"
                             @view-source="showPageSource"
                             @hung="onCrashTabHung"
@@ -2832,6 +2833,10 @@ export default {
             loadFromCache = true,
             navOptions = {}
         ) {
+            // The backend echoes destination_hash lowercase in every download
+            // event; normalize once here so route params and tab state cannot
+            // desync the callback keys.
+            destinationHash = (destinationHash || "").toLowerCase();
             if (this.shouldOpenInNewTab(destinationHash, navOptions)) {
                 this.emitOpenNode(
                     destinationHash,
@@ -3209,8 +3214,32 @@ export default {
             this.cancelStaleImageDownloads();
             this.scheduleImageLoads();
         },
+        onCrashTabImagesAdded(images) {
+            // Images injected by set-partial arrive with absolute indexes
+            // past the render-done list; merge by index so earlier entries
+            // (and any removed ones) keep their positions.
+            if (!Array.isArray(images)) {
+                return;
+            }
+            for (const image of images) {
+                if (image && Number.isInteger(image.index)) {
+                    this.crashTabImages[image.index] = image;
+                }
+            }
+            this.scheduleImageLoads();
+        },
         onCrashTabImageAction(payload) {
-            if (!payload || payload.action !== "load") {
+            if (!payload) {
+                return;
+            }
+            if (payload.action === "view") {
+                const dataUrl = String(payload.dataUrl || "");
+                if (/^data:image\/(webp|png|jpeg|jpg|gif|bmp|svg\+xml);base64,/i.test(dataUrl)) {
+                    window.open(dataUrl, "_blank", "noopener,noreferrer");
+                }
+                return;
+            }
+            if (payload.action !== "load") {
                 return;
             }
             const image = this.crashTabImages[payload.index];
@@ -3392,6 +3421,9 @@ export default {
         scheduleImageLoads() {
             for (let i = 0; i < this.crashTabImages.length; i++) {
                 const image = this.crashTabImages[i];
+                if (!image) {
+                    continue;
+                }
                 const { destinationHash } = this.resolveNomadImageDestination(image.url, image.path);
                 const policy = this.getNomadImagePolicy(destinationHash);
                 if (policy === "auto" || policy === "always") {
@@ -3711,8 +3743,10 @@ export default {
                 return false;
             }
             const parsed = this.parseNomadnetworkUrl(this.nodePagePath);
-            const pathPart = parsed?.pagePath || this.nodePagePath;
-            const segments = String(pathPart).split("/").filter(Boolean);
+            // parsed.path may carry backtick field data (`key=val`); the
+            // download filename must come from the path portion only.
+            const pathPart = String(parsed?.path || this.nodePagePath || "").split("`")[0];
+            const segments = pathPart.split("/").filter(Boolean);
             const filename = segments.length > 0 ? segments[segments.length - 1] : "nomad-page.txt";
             try {
                 const blob = new Blob([this.nodePageContent], { type: "text/plain;charset=utf-8" });
@@ -3858,6 +3892,9 @@ export default {
             this.onNodePageUrlClick(previousNodePagePath, null, null, true);
         },
         parseNomadnetworkUrl: function (url) {
+            if (typeof url !== "string" || url === "") {
+                return null;
+            }
             // parse relative urls
             if (url.startsWith(":")) {
                 // remove leading ":"
@@ -3886,7 +3923,9 @@ export default {
                     const joined = relativeUrl.join(":");
                     const queryIndex = joined.indexOf("?");
                     return {
-                        destination_hash: destinationHash,
+                        // The backend echoes hashes lowercase; uppercase input
+                        // would miss every download callback key.
+                        destination_hash: destinationHash.toLowerCase(),
                         path: queryIndex >= 0 ? joined.substring(0, queryIndex) : joined,
                         query: queryIndex >= 0 ? joined.substring(queryIndex + 1) : null,
                     };
@@ -3906,7 +3945,7 @@ export default {
             // parse node id only
             if (/^[a-fA-F0-9]{32}$/.test(url)) {
                 return {
-                    destination_hash: url,
+                    destination_hash: url.toLowerCase(),
                     path: this.defaultNodePagePath,
                     query: null,
                 };

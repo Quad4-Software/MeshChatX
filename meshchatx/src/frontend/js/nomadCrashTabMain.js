@@ -27,6 +27,11 @@ function resetDisplayModeStyles() {
     root.style.transformOrigin = "";
     root.style.marginBottom = "";
     root.style.width = "";
+    root.style.maxWidth = "";
+    for (const el of root.querySelectorAll("[data-fit-zoom]")) {
+        el.style.zoom = "";
+        delete el.dataset.fitZoom;
+    }
 }
 
 function applyDisplayMode() {
@@ -49,8 +54,15 @@ function applyDisplayMode() {
     body.classList.add("mcx-display-fit");
     body.style.overflowX = "hidden";
     const avail = document.documentElement.clientWidth;
-    let natural = widestContentWidth();
-    if (natural <= 0 || avail <= 0 || natural <= avail) {
+    if (avail <= 0) {
+        return;
+    }
+    // Wide ASCII/box art wraps instead of overflowing, so page-level scaling
+    // never caught it and banners fell apart on narrow screens. Zoom each run
+    // of art lines on its own so the block stays whole; text keeps its size.
+    zoomArtRunsToFit(avail);
+    const natural = widestContentWidth();
+    if (natural <= 0 || natural <= avail) {
         return;
     }
     let scale = Math.max(FIT_MIN_SCALE, avail / natural);
@@ -62,6 +74,11 @@ function applyDisplayMode() {
         root.dataset.fitScale = String(scale);
         root.style.transformOrigin = "0 0";
         root.style.transform = `scale(${scale})`;
+        // .nodeContainer caps root at the screen width. Undo that for the
+        // scaled page so prose wraps across the width the scale frees up
+        // instead of shrinking into a strip on the left.
+        root.style.maxWidth = "none";
+        root.style.width = `${100 / scale}%`;
         // scrollWidth is transform-invariant, so multiplying it predicts the
         // scaled width even if a rect read misses the transform.
         const rendered = Math.max(widestRenderedWidth(), root.scrollWidth * scale);
@@ -77,17 +94,100 @@ function applyDisplayMode() {
     root.style.marginBottom = `${-((1 - scale) * root.scrollHeight)}px`;
 }
 
+// A line is art when it carries 3+ box/block drawing characters, or when
+// letters and digits are rare enough that it is figlet-style ASCII art.
+const ART_BOX_RE = /[\u2500-\u259f]{3}/;
+const ART_ALNUM_RE = /[\p{L}\p{N}]/gu;
+
+function looksLikeArtLine(text) {
+    if (ART_BOX_RE.test(text)) {
+        return true;
+    }
+    const compact = text.replace(/\s/g, "");
+    if (!compact.length) {
+        return false;
+    }
+    const alnum = compact.match(ART_ALNUM_RE)?.length || 0;
+    return alnum < compact.length * 0.25;
+}
+
+// Zoom consecutive runs of wide art lines so each banner fits on one row.
+// Leaf divs only: a line that contains divs is a container, not a line.
+function zoomArtRunsToFit(avail) {
+    const lines = [];
+    for (const el of root.querySelectorAll("div")) {
+        if (el.querySelector("div") || el.getAttribute("role") === "separator") {
+            continue;
+        }
+        if (looksLikeArtLine(el.textContent || "")) {
+            lines.push(el);
+        }
+    }
+    const runs = [];
+    let prev = null;
+    for (const el of lines) {
+        if (prev && el.previousElementSibling === prev) {
+            runs[runs.length - 1].push(el);
+        } else {
+            runs.push([el]);
+        }
+        prev = el;
+    }
+    for (const run of runs) {
+        let widest = 0;
+        for (const el of run) {
+            const prevWidth = el.style.width;
+            el.style.width = "max-content";
+            const w = el.getBoundingClientRect().width;
+            el.style.width = prevWidth;
+            if (w > widest) {
+                widest = w;
+            }
+        }
+        if (widest <= avail + 1) {
+            continue;
+        }
+        const zoom = Math.max(0.2, (avail - 2) / widest);
+        for (const el of run) {
+            el.dataset.fitZoom = String(zoom);
+            el.style.zoom = String(zoom);
+        }
+    }
+}
+
 // Pre-scale measurement: scrollWidth still reflects content that inner
 // clips hide, so take the max of both metrics across descendants.
 function widestContentWidth() {
+    const clippedX = /^(?:hidden|clip)$/;
     let w = root.scrollWidth;
     const els = root.querySelectorAll("*");
     for (let i = 0; i < els.length; i++) {
         const el = els[i];
+        // Screen-reader copies and already-zoomed art lines must not drive
+        // the page scale.
+        if (el.closest(".Mu-sr, [data-fit-zoom]")) {
+            continue;
+        }
         const r = el.getBoundingClientRect().width;
         const s = el.scrollWidth;
+        if (r <= w && s <= w) {
+            continue;
+        }
+        const cs = getComputedStyle(el);
+        // Wrapped inline boxes cannot show horizontal overflow of their own.
+        if (cs.display === "inline") {
+            continue;
+        }
+        const clipped = clippedX.test(cs.overflowX);
+        // Clipped absolutely-positioned content (Mu-sr style) never paints.
+        if (clipped && cs.position === "absolute") {
+            continue;
+        }
         if (r > w) w = r;
-        if (s > w) w = s;
+        // scrollWidth counts overflow that overflow:hidden/clip hides
+        // (`-` dividers run 250 chars but only paint to the edge), so only
+        // trust it where the overflow can actually show.
+        if (!clipped && s > w) w = s;
     }
     return w;
 }
@@ -311,6 +411,31 @@ function escapeSource(content) {
         .replace(/'/g, "&#039;");
 }
 
+function scrollToFragmentId(rawId, block = "nearest") {
+    // Field/request variables ride along after a backtick on micron links.
+    let id = String(rawId).split("`")[0];
+    try {
+        id = decodeURIComponent(id);
+    } catch {
+        return;
+    }
+    if (!id) {
+        return;
+    }
+    let el = null;
+    try {
+        el = root.querySelector(`#${CSS.escape(id)}`);
+    } catch {
+        // Hostile ids can still fail selector parsing; getElementById covers them.
+    }
+    if (!el) {
+        el = document.getElementById(id);
+    }
+    if (el) {
+        el.scrollIntoView({ behavior: "smooth", block });
+    }
+}
+
 function onClick(event) {
     const t = event.target;
     if (!t || !t.closest) {
@@ -350,6 +475,14 @@ function onClick(event) {
     if (node) {
         event.preventDefault();
         event.stopPropagation();
+        // Micron marks every link openNode, including same-page anchors like
+        // `[Arts`#arts]. A "#" destination is never a node URL, so scroll to
+        // the target inside this frame instead of navigating.
+        const dest = (node.getAttribute("data-destination") || "").trim();
+        if (dest.charAt(0) === "#") {
+            scrollToFragmentId(dest.slice(1), "start");
+            return;
+        }
         const fieldSpec = node.getAttribute("data-fields");
         let fields = null;
         if (fieldSpec === "" || fieldSpec === "*") {
@@ -397,11 +530,17 @@ function onClick(event) {
         if (container) {
             const info = readImage(container);
             const index = container.getAttribute("data-mu-image-index");
+            const action = imageAction.getAttribute("data-mu-image-action") || "load";
             post({
                 type: "image-action",
-                action: imageAction.getAttribute("data-mu-image-action") || "load",
+                action,
                 index: index != null ? Number(index) : null,
                 ...info,
+                // "view" opens the already-loaded bitmap; only then is the
+                // data URL worth shipping to the parent.
+                ...(action === "view"
+                    ? { dataUrl: container.querySelector(".mu-image-output")?.getAttribute("src") || "" }
+                    : {}),
             });
         }
         return;
@@ -412,21 +551,7 @@ function onClick(event) {
         if (fh.charAt(0) === "#" && fh.length > 1 && !frag.getAttribute("data-nomadnet-url")) {
             event.preventDefault();
             event.stopPropagation();
-            let id = fh.slice(1);
-            try {
-                id = decodeURIComponent(id);
-            } catch {
-                return;
-            }
-            let el;
-            try {
-                el = root.querySelector(`#${CSS.escape(id)}`);
-            } catch {
-                el = document.getElementById(id);
-            }
-            if (el) {
-                el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-            }
+            scrollToFragmentId(fh.slice(1));
             return;
         }
         if (fh && fh !== "#" && fh.charAt(0) !== "#") {
@@ -592,6 +717,31 @@ window.addEventListener("message", (ev) => {
         }
         if (target) {
             target.innerHTML = d.html || "";
+            // Partials can introduce new .mu-image placeholders after
+            // render-done already listed the page's images. Keep existing
+            // indexes stable, assign fresh ones past the current max, and
+            // tell the parent so load/view actions correlate. Images removed
+            // by the overwrite leave stale parent entries that are simply
+            // unreachable.
+            const allImages = [...root.querySelectorAll(".mu-image")];
+            let nextIndex = 0;
+            for (const el of allImages) {
+                const existing = Number(el.getAttribute("data-mu-image-index"));
+                if (Number.isInteger(existing)) {
+                    nextIndex = Math.max(nextIndex, existing + 1);
+                }
+            }
+            const added = [];
+            for (const el of allImages) {
+                if (el.getAttribute("data-mu-image-index") == null) {
+                    el.setAttribute("data-mu-image-index", String(nextIndex));
+                    added.push({ index: nextIndex, ...readImage(el) });
+                    nextIndex += 1;
+                }
+            }
+            if (added.length > 0) {
+                post({ type: "images-added", images: added });
+            }
         }
         return;
     }
@@ -702,11 +852,15 @@ function onImageKeyDown(event) {
     if (container) {
         const info = readImage(container);
         const index = container.getAttribute("data-mu-image-index");
+        const action = imageAction.getAttribute("data-mu-image-action") || "load";
         post({
             type: "image-action",
-            action: imageAction.getAttribute("data-mu-image-action") || "load",
+            action,
             index: index != null ? Number(index) : null,
             ...info,
+            ...(action === "view"
+                ? { dataUrl: container.querySelector(".mu-image-output")?.getAttribute("src") || "" }
+                : {}),
         });
     }
 }
@@ -796,8 +950,20 @@ function applyPastedText(text) {
     } catch {
         // Field may have been removed between the long-press and the tap.
     }
-    const start = typeof el.selectionStart === "number" ? el.selectionStart : el.value.length;
-    const end = typeof el.selectionEnd === "number" ? el.selectionEnd : start;
+    let start = el.value.length;
+    let end = start;
+    try {
+        // Input types without selection support (number, date, ...) throw
+        // InvalidStateError when selectionStart is read.
+        if (typeof el.selectionStart === "number") {
+            start = el.selectionStart;
+        }
+        if (typeof el.selectionEnd === "number") {
+            end = el.selectionEnd;
+        }
+    } catch {
+        // keep defaults
+    }
     if (typeof el.setRangeText === "function") {
         el.setRangeText(value, start, end, "end");
     } else {

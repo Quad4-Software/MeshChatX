@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: 0BSD
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // The crash-tab script warms the real parser chunk at boot. Stub the dynamic
 // imports so the warmup resolves before the jsdom environment tears down.
@@ -49,6 +49,26 @@ function sendSetImage(payload) {
             source: window,
         })
     );
+}
+
+function sendFrameMessage(payload) {
+    window.dispatchEvent(
+        new MessageEvent("message", {
+            data: { channel: CHANNEL, ...payload },
+            source: window,
+        })
+    );
+}
+
+let postSpy;
+
+beforeEach(() => {
+    postSpy = vi.spyOn(window, "postMessage").mockImplementation(() => {});
+    postSpy.mockClear();
+});
+
+function postedMessages(type) {
+    return postSpy.mock.calls.map(([msg]) => msg).filter((msg) => msg && msg.type === type);
 }
 
 beforeAll(async () => {
@@ -107,5 +127,69 @@ describe("nomad crash-tab set-image", () => {
         expect(el.style.minHeight).toBe("10lh");
         const action = el.querySelector(".mu-image-action");
         expect(action.textContent).toContain("Error");
+    });
+});
+
+describe("nomad crash-tab set-partial images", () => {
+    it("indexes images injected after render-done and reports them to the parent", () => {
+        mountImage({}, "");
+        const target = document.createElement("div");
+        target.setAttribute("data-partial-id", "p1");
+        document.getElementById("root").appendChild(target);
+
+        sendFrameMessage({
+            type: "set-partial",
+            id: "p1",
+            html: '<div class="mu-image" data-mu-image-url="/img/a.png"><img class="mu-image-output" hidden></div>',
+        });
+
+        const added = target.querySelector(".mu-image");
+        expect(added.getAttribute("data-mu-image-index")).toBe("1");
+        const posts = postedMessages("images-added");
+        expect(posts).toHaveLength(1);
+        expect(posts[0].images[0]).toMatchObject({ index: 1, url: "/img/a.png" });
+    });
+
+    it("does not renumber images that already have indexes", () => {
+        mountImage({}, "");
+        const target = document.createElement("div");
+        target.setAttribute("data-partial-id", "p1");
+        document.getElementById("root").appendChild(target);
+
+        sendFrameMessage({
+            type: "set-partial",
+            id: "p1",
+            html: '<div class="mu-image" data-mu-image-index="7" data-mu-image-url="/img/b.png"></div>',
+        });
+
+        const kept = target.querySelector(".mu-image");
+        expect(kept.getAttribute("data-mu-image-index")).toBe("7");
+        expect(postedMessages("images-added")).toHaveLength(0);
+    });
+});
+
+describe("nomad crash-tab image view action", () => {
+    it("ships the loaded data URL when the action becomes view", () => {
+        const el = mountImage({}, "");
+        sendSetImage({ state: "loaded", dataUrl: WEBP });
+
+        const action = el.querySelector(".mu-image-action");
+        expect(action.getAttribute("data-mu-image-action")).toBe("view");
+        action.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+        const posts = postedMessages("image-action");
+        expect(posts).toHaveLength(1);
+        expect(posts[0]).toMatchObject({ action: "view", dataUrl: WEBP, index: 0 });
+    });
+
+    it("does not ship a data URL for load actions", () => {
+        const el = mountImage({}, "");
+        const action = el.querySelector(".mu-image-action");
+        action.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+        const posts = postedMessages("image-action");
+        expect(posts).toHaveLength(1);
+        expect(posts[0].action).toBe("load");
+        expect(posts[0].dataUrl).toBeUndefined();
     });
 });

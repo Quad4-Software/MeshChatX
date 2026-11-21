@@ -162,6 +162,7 @@ export default {
         "contextmenu",
         "partials",
         "images",
+        "images-added",
         "image-action",
         "view-source",
         "ready",
@@ -740,6 +741,10 @@ export default {
                 this.forwardPageContextMenu(data);
                 return;
             }
+            if (data.type === "images-added") {
+                this.$emit("images-added", Array.isArray(data.images) ? data.images : []);
+                return;
+            }
             if (data.type === "image-action") {
                 this.$emit("image-action", {
                     action: data.action,
@@ -752,6 +757,7 @@ export default {
                     key: data.key,
                     align: data.align,
                     profile: data.profile,
+                    dataUrl: data.dataUrl,
                 });
             }
         },
