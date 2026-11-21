@@ -285,13 +285,7 @@ func (b *Bridge) dispatch(window application.Window, id int, method string, args
 	case "app-version":
 		result = b.deps.AppVersion()
 	case "runtime-info":
-		result = map[string]any{
-			"shell":        "wails",
-			"wailsVersion": b.deps.WailsVersion(),
-			"webview":      b.deps.WebViewKind(),
-			"os":           runtime.GOOS,
-			"arch":         runtime.GOARCH,
-		}
+		result = runtimeInfoMap(b.deps)
 	case "is-hardware-acceleration-enabled":
 		result = b.deps.IsHardwareAccel()
 	case "get-integrity-status":
@@ -920,6 +914,28 @@ func (b *Bridge) setPowerSaveBlocker(enabled bool) bool {
 	}
 	b.deps.PowerSaveBlocker.Stop()
 	return false
+}
+
+// runtimeInfoMap reports shell identity and the render environment to the
+// frontend. renderMode is "software" inside a Flatpak sandbox or when GPU
+// compositing is disabled: WebKitGTK then repaints whole layers on opacity
+// transitions, which makes route changes visibly flicker, so the frontend
+// skips the route fade in that mode.
+func runtimeInfoMap(deps Deps) map[string]any {
+	flatpak := strings.TrimSpace(os.Getenv("FLATPAK_ID")) != ""
+	renderMode := "hardware"
+	if flatpak || !deps.IsHardwareAccel() {
+		renderMode = "software"
+	}
+	return map[string]any{
+		"shell":        "wails",
+		"wailsVersion": deps.WailsVersion(),
+		"webview":      deps.WebViewKind(),
+		"os":           runtime.GOOS,
+		"arch":         runtime.GOARCH,
+		"flatpak":      flatpak,
+		"renderMode":   renderMode,
+	}
 }
 
 var _ = syscall.SIGTERM

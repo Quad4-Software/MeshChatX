@@ -682,6 +682,9 @@ class ReticulumMeshChat:
             reticulum_config_dir,
         )
         self.storage_dir = storage_dir or os.path.join("storage")
+        from meshchatx.src.backend.lifecycle.shutdown_progress import init_progress
+
+        init_progress(self.storage_dir)
         skip_storage_lock = env_bool("MESHCHAT_SKIP_STORAGE_LOCK")
         self._storage_lock = None
         if not skip_storage_lock:
@@ -2067,17 +2070,43 @@ class ReticulumMeshChat:
         print(f"Network degraded: {error}", flush=True)
 
     def _schedule_reticulum_signal_handlers(self) -> None:
-        """Install RNS signal handlers on the main asyncio loop when possible."""
+        """Install MeshChat SIGINT/SIGTERM handlers on the main thread.
+
+        AsyncUtils.main_loop first points at a daemon background loop on a
+        worker thread, where signal.signal raises ValueError. The aiohttp
+        loop replaces it at server start, so a plain retry thread keeps
+        attempting the install until it lands on the main thread.
+        """
         if threading.current_thread() is threading.main_thread():
             _install_reticulum_signal_handlers()
             return
-        loop = AsyncUtils.main_loop
-        if loop is None or not loop.is_running():
-            return
-        try:
-            loop.call_soon_threadsafe(_install_reticulum_signal_handlers)
-        except Exception:
-            pass
+
+        def _retry_install() -> None:
+            for _ in range(60):
+                loop = AsyncUtils.main_loop
+                if loop is not None and loop.is_running():
+                    done = threading.Event()
+                    result = {"installed": False}
+
+                    def _attempt():
+                        try:
+                            result["installed"] = _install_reticulum_signal_handlers()
+                        finally:
+                            done.set()
+
+                    try:
+                        loop.call_soon_threadsafe(_attempt)
+                        if done.wait(2.0) and result["installed"]:
+                            return
+                    except Exception:
+                        pass
+                time.sleep(0.5)
+
+        threading.Thread(
+            target=_retry_install,
+            name="mcx-signal-handlers",
+            daemon=True,
+        ).start()
 
     def _ensure_sideband_telemetry_loop(self) -> None:
         config = self.sideband_plugin_loader.get_config()
@@ -5975,109 +6004,190 @@ class ReticulumMeshChat:
 
     # web server has shutdown, likely ctrl+c, but if we don't do the following, the script never exits
     async def shutdown(self, app):
-        # Flush pending coalesced websocket updates before any teardown so the
-        # last state changes are not silently dropped for connected clients.
-        with contextlib.suppress(Exception):
-            coalesce = getattr(self, "_ws_coalesce", None)
-            if coalesce is not None:
-                await coalesce.flush_now()
+        from meshchatx.src.backend.lifecycle import shutdown_progress
 
-        # Always flush SQLite first. Signal handlers may have already done this.
-        with contextlib.suppress(Exception):
-            from meshchatx.src.backend.lifecycle.signal_shutdown import (
-                durable_flush_all_databases,
+        progress = shutdown_progress.get_progress()
+        disarm = shutdown_progress.arm_watchdog(progress.deadline_s)
+        try:
+            # Flush pending coalesced websocket updates before any teardown so
+            # the last state changes are not dropped for connected clients.
+            progress.report("websocket-flush")
+            with contextlib.suppress(Exception):
+                coalesce = getattr(self, "_ws_coalesce", None)
+                if coalesce is not None:
+                    await asyncio.wait_for(coalesce.flush_now(), timeout=2.0)
+
+            # Always flush SQLite first. Signal handlers may have already
+            # done this. It stays an early step so a later stall can never
+            # cost data.
+            def _flush_databases():
+                from meshchatx.src.backend.lifecycle.signal_shutdown import (
+                    durable_flush_all_databases,
+                )
+
+                durable_flush_all_databases(self)
+
+            await shutdown_progress.run_step(
+                progress,
+                "databases",
+                _flush_databases,
+                timeout=6.0,
+                detail="checkpoint and close",
             )
 
-            durable_flush_all_databases(self)
+            # Ratchet writes held during an IO-pressure window must land
+            # before exit or the next start misses ratchet state.
+            def _flush_ratchet():
+                from meshchatx.src.backend import rns_ratchet_persist
 
-        # Ratchet writes held during an IO-pressure window must land before
-        # exit or the next start misses ratchet state.
-        with contextlib.suppress(Exception):
-            from meshchatx.src.backend import rns_ratchet_persist
+                rns_ratchet_persist.set_io_pressure(False)
+                rns_ratchet_persist.flush_pending()
 
-            rns_ratchet_persist.set_io_pressure(False)
-            rns_ratchet_persist.flush_pending()
+            await shutdown_progress.run_step(
+                progress,
+                "ratchet",
+                _flush_ratchet,
+                timeout=2.0,
+            )
 
-        for identity_hash in list(self.contexts.keys()):
-            ctx = self.contexts.get(identity_hash)
-            if ctx is None:
-                continue
-            bh = getattr(ctx, "bot_handler", None)
-            if bh is not None:
-                with contextlib.suppress(Exception):
-                    bh.stop_all()
+            # Background services are independent, so they stop in parallel.
+            async def _stop_background():
+                stops = []
+                for ctx in list(self.contexts.values()):
+                    bh = getattr(ctx, "bot_handler", None) if ctx else None
+                    if bh is not None:
+                        stops.append(bh.stop_all)
+                if hasattr(self, "page_node_manager"):
+                    stops.append(self.page_node_manager.teardown)
+                if getattr(self, "_health_monitor", None) is not None:
+                    stops.append(self._health_monitor.stop)
+                if self._mem_diag is not None:
+                    stops.append(self._mem_diag.stop)
+                if stops:
+                    await asyncio.gather(
+                        *(asyncio.to_thread(stop) for stop in stops),
+                        return_exceptions=True,
+                    )
 
-        if hasattr(self, "page_node_manager"):
-            self.page_node_manager.teardown()
+            await shutdown_progress.run_step_async(
+                progress,
+                "background-services",
+                _stop_background,
+                timeout=4.0,
+            )
 
-        # Cancel fire-and-forget propagation node request tasks before
-        # context teardown: an in-flight request would otherwise touch
-        # ctx.message_router after the context is gone. Tasks may live on
-        # per-identity background loops, so cross-loop cancellation goes
-        # through call_soon_threadsafe and the wait is bounded.
-        prop_tasks = [
-            task for task in self._propagation_node_request_tasks if not task.done()
-        ]
-        if prop_tasks:
-            current_loop = asyncio.get_running_loop()
-            for task in prop_tasks:
+            # Cancel fire-and-forget propagation node request tasks before
+            # context teardown: an in-flight request would otherwise touch
+            # ctx.message_router after the context is gone. Tasks may live on
+            # per-identity background loops, so cross-loop cancellation goes
+            # through call_soon_threadsafe and the wait is bounded.
+            async def _cancel_prop_tasks():
+                prop_tasks = [
+                    task
+                    for task in self._propagation_node_request_tasks
+                    if not task.done()
+                ]
+                if not prop_tasks:
+                    return
+                current_loop = asyncio.get_running_loop()
+                for task in prop_tasks:
+                    try:
+                        task_loop = task.get_loop()
+                        if task_loop is current_loop:
+                            task.cancel()
+                        elif task_loop.is_running():
+                            task_loop.call_soon_threadsafe(task.cancel)
+                    except Exception:
+                        pass
+                deadline = time.monotonic() + 3.0
+                while time.monotonic() < deadline:
+                    if all(task.done() for task in prop_tasks):
+                        break
+                    await asyncio.sleep(0.05)
+                self._propagation_node_request_tasks.difference_update(prop_tasks)
+
+            await shutdown_progress.run_step_async(
+                progress,
+                "propagation-tasks",
+                _cancel_prop_tasks,
+                timeout=3.5,
+            )
+
+            # Identity contexts tear down in parallel. Each owns its own
+            # LXMF router and worker threads, so they do not depend on each
+            # other. Teardown runs in threads because the steps block.
+            async def _teardown_contexts():
+                ctxs = [c for c in list(self.contexts.values()) if c is not None]
+                if ctxs:
+                    await asyncio.gather(
+                        *(asyncio.to_thread(c.teardown) for c in ctxs),
+                        return_exceptions=True,
+                    )
+
+            await shutdown_progress.run_step_async(
+                progress,
+                "contexts",
+                _teardown_contexts,
+                timeout=6.0,
+                detail=f"{len(self.contexts)} identities",
+            )
+            self.contexts.clear()
+            self.current_context = None
+
+            # Force close websocket clients. Closes run together so one dead
+            # client cannot serialize seconds of wait behind every other one.
+            async def _close_ws_clients():
+                clients = list(self.websocket_clients)
+                if clients:
+                    await asyncio.gather(
+                        *(
+                            client.close(code=WSCloseCode.GOING_AWAY)
+                            for client in clients
+                        ),
+                        return_exceptions=True,
+                    )
+
+            await shutdown_progress.run_step_async(
+                progress,
+                "websocket-clients",
+                _close_ws_clients,
+                timeout=3.0,
+            )
+
+            # Stop Reticulum. Interface detach and the exit handler join
+            # network threads, which is where a dead link stalls, so the
+            # whole block gets one bounded budget.
+            def _stop_reticulum():
                 try:
-                    task_loop = task.get_loop()
-                    if task_loop is current_loop:
-                        task.cancel()
-                    elif task_loop.is_running():
-                        task_loop.call_soon_threadsafe(task.cancel)
+                    RNS.Transport.detach_interfaces()
                 except Exception:
                     pass
-            deadline = time.monotonic() + 5.0
-            while time.monotonic() < deadline:
-                if all(task.done() for task in prop_tasks):
-                    break
-                await asyncio.sleep(0.05)
-            self._propagation_node_request_tasks.difference_update(prop_tasks)
+                if hasattr(self, "reticulum") and self.reticulum:
+                    try:
+                        self.reticulum.exit_handler()
+                    except Exception:
+                        pass
+                try:
+                    RNS.exit()
+                except Exception:
+                    pass
 
-        for identity_hash in list(self.contexts.keys()):
-            ctx = self.contexts.get(identity_hash)
-            if ctx is None:
-                continue
-            try:
-                ctx.teardown()
-            except Exception:
-                pass
-        self.contexts.clear()
-        self.current_context = None
-
-        if hasattr(self, "_health_monitor") and self._health_monitor is not None:
-            with contextlib.suppress(Exception):
-                self._health_monitor.stop()
-
-        if self._mem_diag is not None:
-            with contextlib.suppress(Exception):
-                self._mem_diag.stop()
-
-        # force close websocket clients (copy: close() may touch the client list)
-        for websocket_client in list(self.websocket_clients):
-            try:
-                await websocket_client.close(code=WSCloseCode.GOING_AWAY)
-            except Exception:
-                pass
-
-        # stop reticulum
-        try:
-            RNS.Transport.detach_interfaces()
-        except Exception:
-            pass
-
-        if hasattr(self, "reticulum") and self.reticulum:
-            try:
-                self.reticulum.exit_handler()
-            except Exception:
-                pass
-
-        try:
-            RNS.exit()
-        except Exception:
-            pass
+            await shutdown_progress.run_step(
+                progress,
+                "network",
+                _stop_reticulum,
+                timeout=6.0,
+                detail="detaching interfaces",
+            )
+            progress.report("done", "backend teardown complete")
+        except asyncio.CancelledError:
+            progress.report("cancelled", "teardown task was cancelled")
+            raise
+        except BaseException as exc:
+            progress.report("teardown-error", repr(exc))
+            raise
+        finally:
+            disarm()
 
     def exit_app(self, code=0):
         sys.exit(code)

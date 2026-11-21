@@ -204,6 +204,28 @@ describe("AboutPage.vue", () => {
         expect(shutdownSpy).toHaveBeenCalled();
     });
 
+    it("shows the blocking shutdown overlay after confirm", async () => {
+        vi.spyOn(DialogUtils, "confirm").mockResolvedValue(true);
+        axiosMock.post.mockResolvedValue({ data: { message: "Shutting down..." } });
+        vi.spyOn(DesktopUtils, "isDesktop").mockReturnValue(true);
+        vi.spyOn(DesktopUtils, "shutdown").mockImplementation(() => {});
+
+        const wrapper = mountAboutPage();
+        wrapper.vm.appInfo = { version: "1.0.0" };
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.find('[role="alertdialog"]').exists()).toBe(false);
+        await wrapper.vm.shutdown();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.shutdownInProgress).toBe(true);
+        expect(wrapper.find('[role="alertdialog"]').exists()).toBe(true);
+
+        // The failsafe releases the overlay if the shutdown never lands.
+        vi.advanceTimersByTime(21000);
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.shutdownInProgress).toBe(false);
+    });
+
     it("restartRns posts reticulum reload endpoint", async () => {
         const wrapper = mountAboutPage();
         wrapper.vm.appInfo = { version: "1.0.0" };

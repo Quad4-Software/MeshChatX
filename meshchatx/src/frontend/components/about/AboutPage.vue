@@ -1332,6 +1332,19 @@
                 </div>
             </div>
         </div>
+
+        <div
+            v-if="shutdownInProgress"
+            class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            role="alertdialog"
+            aria-modal="true"
+            :aria-label="$t('common.shutting_down')"
+        >
+            <div class="flex flex-col items-center gap-3 rounded-2xl bg-sem-surface px-8 py-6 shadow-xl">
+                <div class="size-8 animate-spin rounded-full border-2 border-sem-border border-t-sem-accent"></div>
+                <div class="text-sm font-medium text-sem-fg">{{ $t("common.shutting_down") }}</div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -1415,6 +1428,7 @@ export default {
             restoreFileName: "",
             restoreFile: null,
             reloadingRns: false,
+            shutdownInProgress: false,
             runtimeInfo: null,
             showContactSupport: false,
             developerLxmfPrimary: "f489752fbef161c64d65e385a4e9fc74",
@@ -1981,6 +1995,12 @@ export default {
         },
         async shutdown() {
             if (await DialogUtils.confirm(this.$t("about.shutdown_confirm"))) {
+                this.shutdownInProgress = true;
+                // If the shutdown request failed silently the app keeps
+                // running, so release the overlay on a timeout as a failsafe.
+                setTimeout(() => {
+                    this.shutdownInProgress = false;
+                }, 20000);
                 try {
                     // try to notify backend first
                     await window.api.post(apiPath("/app/shutdown"));

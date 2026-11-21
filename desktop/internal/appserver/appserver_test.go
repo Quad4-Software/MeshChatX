@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -314,4 +315,54 @@ func mustURL(t *testing.T, raw string) *url.URL {
 		t.Fatal(err)
 	}
 	return u
+}
+
+func TestShutdownStatusEndpoint(t *testing.T) {
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("status path should not hit upstream")
+	}))
+	defer up.Close()
+	u, _ := url.Parse(up.URL)
+	s := startTestServer(t, u)
+
+	base := "http://" + s.Addr()
+	// No file configured yet: waiting placeholder.
+	resp, err := http.Get(base + "/__shell/shutdown-status")
+	if err != nil {
+		t.Fatalf("GET status: %v", err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != 200 || !strings.Contains(string(body), `"waiting"`) {
+		t.Fatalf("GET status = %d %q", resp.StatusCode, body)
+	}
+
+	// With a file set, its JSON is served verbatim.
+	dir := t.TempDir()
+	path := dir + "/shutdown-status.json"
+	if err := os.WriteFile(path, []byte(`{"step":"databases","detail":"x"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s.SetShutdownStatusFile(path)
+	resp, err = http.Get(base + "/__shell/shutdown-status")
+	if err != nil {
+		t.Fatalf("GET status: %v", err)
+	}
+	body, _ = io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if !strings.Contains(string(body), `"databases"`) {
+		t.Fatalf("GET status = %q", body)
+	}
+
+	// A missing file falls back to waiting rather than an error.
+	s.SetShutdownStatusFile(dir + "/gone.json")
+	resp, err = http.Get(base + "/__shell/shutdown-status")
+	if err != nil {
+		t.Fatalf("GET status: %v", err)
+	}
+	body, _ = io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if !strings.Contains(string(body), `"waiting"`) {
+		t.Fatalf("GET status = %q", body)
+	}
 }

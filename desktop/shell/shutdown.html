@@ -1,0 +1,136 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';"
+        />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="color-scheme" content="light dark" />
+        <title>MeshChatX</title>
+        <style>
+            html {
+                background-color: #f8fafc;
+                color: #0f172a;
+                color-scheme: light;
+                font-family: system-ui, sans-serif;
+            }
+            html.dark {
+                background-color: #09090b;
+                color: #e4e4e7;
+                color-scheme: dark;
+            }
+            body {
+                margin: 0;
+                min-height: 100dvh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .card {
+                text-align: center;
+                max-width: 24rem;
+                padding: 2rem;
+            }
+            @keyframes mcx-spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+            .spinner {
+                width: 2.5rem;
+                height: 2.5rem;
+                margin: 0 auto 1.25rem;
+                border-radius: 9999px;
+                border: 3px solid rgba(128, 128, 128, 0.35);
+                border-top-color: currentColor;
+                animation: mcx-spin 0.9s linear infinite;
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .spinner {
+                    animation: none;
+                }
+            }
+            h1 {
+                font-size: 1.125rem;
+                font-weight: 600;
+                margin: 0 0 0.5rem;
+            }
+            #step-line {
+                font-size: 0.875rem;
+                opacity: 0.75;
+                min-height: 1.25rem;
+                margin: 0;
+            }
+            #deadline-note {
+                font-size: 0.75rem;
+                opacity: 0.55;
+                margin-top: 1rem;
+            }
+        </style>
+        <script>
+            (function () {
+                try {
+                    var theme = new URLSearchParams(window.location.search).get("theme");
+                    if (!theme) {
+                        theme = localStorage.getItem("meshchatx_ui_theme") || "system";
+                    }
+                    if (theme === "system") {
+                        theme = window.matchMedia("(prefers-color-scheme: dark)").matches
+                            ? "dark"
+                            : "light";
+                    }
+                    if (theme === "dark") document.documentElement.classList.add("dark");
+                } catch (e) {}
+            })();
+        </script>
+    </head>
+    <body>
+        <main class="card">
+            <div class="spinner" role="progressbar" aria-label="Shutting down"></div>
+            <h1>Shutting down MeshChatX</h1>
+            <p id="step-line">Saving and closing&hellip;</p>
+            <p id="deadline-note"></p>
+        </main>
+        <script>
+            (function () {
+                var stepLine = document.getElementById("step-line");
+                var deadlineNote = document.getElementById("deadline-note");
+                var labels = {
+                    "signal": "Shutdown requested",
+                    "websocket-flush": "Flushing pending updates",
+                    "databases": "Saving databases",
+                    "ratchet": "Saving session keys",
+                    "background-services": "Stopping background services",
+                    "propagation-tasks": "Stopping pending requests",
+                    "contexts": "Closing identity contexts",
+                    "websocket-clients": "Closing connections",
+                    "network": "Stopping the network",
+                    "done": "Almost done",
+                    "cancelled": "Finishing up",
+                    "teardown-error": "Finishing up",
+                };
+                function poll() {
+                    fetch("/__shell/shutdown-status", { cache: "no-store" })
+                        .then(function (r) {
+                            return r.json();
+                        })
+                        .then(function (data) {
+                            if (!data || !data.step) return;
+                            var label = labels[data.step] || data.step;
+                            stepLine.textContent = data.detail ? label + " (" + data.detail + ")" : label;
+                            if (data.deadline_s) {
+                                deadlineNote.textContent =
+                                    "This takes a few seconds. The app force quits after " +
+                                    Math.round(data.deadline_s) +
+                                    " seconds if a step stalls.";
+                            }
+                        })
+                        .catch(function () {});
+                }
+                poll();
+                setInterval(poll, 200);
+            })();
+        </script>
+    </body>
+</html>

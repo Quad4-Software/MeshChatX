@@ -108,6 +108,19 @@ def _raise_graceful_exit() -> None:
 
 def meshchat_signal_handler(signum: int, frame: FrameType | None) -> None:
     """Flush SQLite, detach RNS, then stop aiohttp cleanly."""
+    progress = None
+    with contextlib.suppress(Exception):
+        from meshchatx.src.backend.lifecycle.shutdown_progress import get_progress
+
+        progress = get_progress()
+        progress.report("signal", f"received signal {signum}")
+    # The watchdog arms here rather than inside the shutdown coroutine. A
+    # dead event loop can strand on_shutdown forever, but the watchdog is a
+    # plain thread, so it still force-exits at the deadline.
+    with contextlib.suppress(Exception):
+        from meshchatx.src.backend.lifecycle.shutdown_progress import arm_watchdog
+
+        arm_watchdog(progress.deadline_s if progress else 12.0)
     try:
         print(
             f"Received signal {signum}: flushing databases before shutdown...",

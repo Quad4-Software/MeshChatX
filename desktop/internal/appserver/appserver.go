@@ -11,6 +11,7 @@ package appserver
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -20,6 +21,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -38,9 +40,12 @@ type Server struct {
 	httpSrv  *http.Server
 	upstream *url.URL
 	shellFS  fs.FS
-	addr     string // "127.0.0.1:PORT"
-	port     string
-	origin   string // "http://127.0.0.1:PORT"
+	// shutdownStatusFile is the JSON file the backend updates while it
+	// tears down. The shutdown page polls it for live step text.
+	shutdownStatusFile string
+	addr               string // "127.0.0.1:PORT"
+	port               string
+	origin             string // "http://127.0.0.1:PORT"
 }
 
 // Addr returns the bound listen address ("127.0.0.1:PORT").
@@ -60,6 +65,14 @@ func (s *Server) Origin() string {
 // Upstream returns the backend URL this server proxies to.
 func (s *Server) Upstream() *url.URL {
 	return s.upstream
+}
+
+// SetShutdownStatusFile points the server at the backend's shutdown
+// status JSON so /__shell/shutdown-status can serve it.
+func (s *Server) SetShutdownStatusFile(path string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.shutdownStatusFile = path
 }
 
 // Stop shuts the server down and drops its trusted-port registration so a
@@ -160,6 +173,10 @@ func (s *Server) handler() http.Handler {
 			http.Error(w, "misdirected request", http.StatusMisdirectedRequest)
 			return
 		}
+		if p := r.URL.Path; p == "/__shell/shutdown-status" {
+			s.serveShutdownStatus(w, r)
+			return
+		}
 		if p := r.URL.Path; p == "/__shell" || strings.HasPrefix(p, "/__shell/") {
 			s.serveShell(w, r)
 			return
@@ -210,6 +227,30 @@ func (s *Server) serveShell(w http.ResponseWriter, r *http.Request) {
 	}
 	defer f.Close()
 	_, _ = io.Copy(w, f)
+}
+
+// serveShutdownStatus returns the backend's last written shutdown step, or
+// a waiting placeholder before the file exists and after it is gone.
+func (s *Server) serveShutdownStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	s.mu.Lock()
+	statusPath := s.shutdownStatusFile
+	s.mu.Unlock()
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-cache")
+	data := []byte(`{"step":"waiting","detail":""}`)
+	if statusPath != "" {
+		if raw, err := os.ReadFile(statusPath); err == nil && json.Valid(raw) {
+			data = raw
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+	if r.Method == http.MethodGet {
+		_, _ = w.Write(data)
+	}
 }
 
 // rewriteBridgeOrigin rewrites an Origin/Referer header whose URL authority is

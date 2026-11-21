@@ -240,3 +240,40 @@ func TestWindowResultBoundToOwner(t *testing.T) {
 	// Entry consumed: a second result finds nothing.
 	b.windowResult(owner, "prompt-dialog", map[string]any{"value": "again"})
 }
+
+func TestRuntimeInfoMapRenderMode(t *testing.T) {
+	deps := func(accel bool) Deps {
+		return Deps{
+			AppVersion:      func() string { return "1.0.0" },
+			WailsVersion:    func() string { return "3.1.0" },
+			WebViewKind:     func() string { return "webkitgtk-6.0" },
+			IsHardwareAccel: func() bool { return accel },
+		}
+	}
+
+	tests := []struct {
+		name      string
+		flatpakID string
+		accel     bool
+		wantMode  string
+	}{
+		{name: "flatpak forces software", flatpakID: "com.meshchatx.app", accel: true, wantMode: "software"},
+		{name: "flatpak plus no gpu", flatpakID: "com.meshchatx.app", accel: false, wantMode: "software"},
+		{name: "gpu disabled off flatpak", accel: false, wantMode: "software"},
+		{name: "hardware accel outside flatpak", accel: true, wantMode: "hardware"},
+		{name: "blank flatpak id ignored", flatpakID: "  ", accel: true, wantMode: "hardware"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("FLATPAK_ID", tc.flatpakID)
+			info := runtimeInfoMap(deps(tc.accel))
+			if info["renderMode"] != tc.wantMode {
+				t.Fatalf("renderMode = %v, want %v", info["renderMode"], tc.wantMode)
+			}
+			wantFlatpak := strings.TrimSpace(tc.flatpakID) != ""
+			if info["flatpak"] != wantFlatpak {
+				t.Fatalf("flatpak = %v, want %v", info["flatpak"], wantFlatpak)
+			}
+		})
+	}
+}
