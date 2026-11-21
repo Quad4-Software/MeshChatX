@@ -3,6 +3,14 @@
 ### Fixed
 
 - Flatpak: the release bundle now exports the channel branch (stable, beta or testing) instead of master, so the OSTree publish step accepts it and `flatpak update` sees new releases. The publish job had been failing since the branch was never set at build time.
+- NomadNet browser: in-page contents links like `[Arts#arts]` scroll to the section again. Since 4.8.6 the page frame's click handler checked openNode before its "#" branch, so micron anchor links went to the shell as navigation and failed with "unsupported url".
+- NomadNet browser: fit mode no longer shrinks ordinary pages to a narrow strip. The width probe counted the hidden screen-reader copy of each line and the clipped 250-character `-` dividers, so a page with a long paragraph or divider could scale to about 15%. The probe now skips .Mu-sr, inline boxes and overflow-hidden content. Runs of ASCII or box-drawing art zoom to fit the screen on their own, and a scaled page widens under the transform so text wraps across the freed width.
+- Security: remote Nomad page stylesheets can no longer restyle or hide the app. Selectors that match the host document (body, html, :root, and html/body inside :is() and friends) are rewritten onto the page wrapper classes in every render path, including markdown fragments that previously skipped selector scoping entirely.
+- Security: CSS evasion tricks no longer slip past the page scrubbers. Line continuations (backslash plus newline), @import without whitespace, url() with a space after the quote, and escape-obfuscated schemes are all normalised before matching, in both style blocks and inline style attributes.
+- NomadNet browser: an uppercase destination hash typed into the address bar no longer hangs the page forever. The parser now lowercases hashes so download events correlate with their callbacks, and reloading or parsing an empty URL returns cleanly instead of throwing.
+- NomadNet browser: "download page" no longer leaks backtick field data into the filename, and images inside lazily loaded partials get indexes so their Load buttons work. The Loaded button now opens the image in a new tab instead of doing nothing.
+- Messages: paper ingest results are matched to their request by id, so a concurrent map, docs, or second paper ingest can no longer mark the wrong message as ingested.
+- NomadNet: the page size cap now measures UTF-8 bytes everywhere instead of mixing character and byte counts, so multibyte pages can no longer slip past the downloader's limit and fail only after being archived.
 
 ## [4.12.0] - 2026-11-21
 
