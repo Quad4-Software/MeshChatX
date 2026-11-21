@@ -2088,7 +2088,7 @@ class ReticulumMeshChat:
                     done = threading.Event()
                     result = {"installed": False}
 
-                    def _attempt():
+                    def _attempt(done=done, result=result):
                         try:
                             result["installed"] = _install_reticulum_signal_handlers()
                         finally:
