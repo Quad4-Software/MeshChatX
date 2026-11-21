@@ -61,6 +61,22 @@ test.describe("map toolbar layout", () => {
             expect(tr.x).toBeGreaterThanOrEqual(0);
             expect(tr.right).toBeLessThanOrEqual(vp.width);
 
+            // No horizontal scrolling anywhere: the toolbar wraps instead
+            // of overflowing and the page itself must not scroll sideways.
+            const overflow = await toolbar.evaluate((el) => {
+                const inner = el.firstElementChild;
+                return {
+                    innerScroll: inner ? inner.scrollWidth : 0,
+                    innerClient: inner ? inner.clientWidth : 0,
+                    pageScroll: document.documentElement.scrollWidth,
+                    viewport: window.innerWidth,
+                };
+            });
+            expect(overflow.innerScroll, "toolbar inner bar scrolls sideways").toBeLessThanOrEqual(
+                overflow.innerClient + 1
+            );
+            expect(overflow.pageScroll, "page scrolls sideways").toBeLessThanOrEqual(overflow.viewport + 1);
+
             // No overlap with OL zoom controls or the rotate control.
             for (const sel of [".ol-zoom", ".ol-rotate", ".ol-scale-line"]) {
                 const el = page.locator(sel).first();

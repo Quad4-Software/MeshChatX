@@ -5,7 +5,7 @@
         class="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 transform-gpu w-max max-w-[calc(100%-7rem)]"
     >
         <div
-            class="bg-sem-surface rounded-2xl shadow-2xl overflow-x-auto max-w-full flex flex-row items-center p-0.5 sm:p-1 gap-0 sm:gap-0.5 border-0"
+            class="bg-sem-surface rounded-2xl shadow-2xl max-w-full flex flex-row flex-wrap items-center justify-center p-0.5 sm:p-1 gap-0 sm:gap-0.5 border-0"
         >
             <span class="hidden md:inline px-1 text-[9px] font-semibold uppercase tracking-wide text-sem-fg-muted">{{
                 $t("map.toolbar_draw")
