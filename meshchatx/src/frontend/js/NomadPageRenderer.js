@@ -79,6 +79,10 @@ export function stripOverlayFromCss(css) {
         return "";
     }
     let s = String(css).replace(/\/\*[\s\S]*?\*\//g, "");
+    // CSS line continuations (backslash+newline) are deleted by the
+    // tokenizer before keywords are matched, so "posi\<newline>tion" is
+    // "position". Strip them here or every check below can be evaded.
+    s = s.replace(/\\(?:\r\n|\r|\n)/g, "");
     // Unescape CSS hex escapes so position:fixe\64 is treated as fixed.
     s = s.replace(/\\([0-9a-fA-F]{1,6})\s?/g, (_, hex) => {
         try {

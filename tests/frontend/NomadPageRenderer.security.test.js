@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import MicronParser from "../../meshchatx/src/frontend/js/MicronParser";
+import { scrubNetworkCss } from "../../meshchatx/src/frontend/js/nomadCssSecurity";
 import {
     isolateNomadLinksInHtml,
     renderNomadHtmlPage,
@@ -62,6 +64,16 @@ describe("NomadPageRenderer stripExternalFromCss", () => {
         expect(stripExternalFromCss(`.x{position:sticky !important}`).toLowerCase()).not.toMatch(
             /position\s*:\s*sticky/
         );
+    });
+
+    it("neutralises CSS line continuations that hide overlay props", () => {
+        // backslash+newline is deleted by the CSS tokenizer, so posi\<newline>
+        // tion is position to the browser but not to a naive keyword match.
+        const cont = "x{posi\\\ntion:fixed;inset:0;z-in\\\ndex:9999}";
+        const out = stripOverlayFromCss(cont).toLowerCase();
+        expect(out).not.toContain("fixed");
+        expect(out).not.toContain("z-index");
+        expect(out).not.toContain("inset");
     });
 
     it("fuzzing: stripExternalFromCss never throws", () => {
@@ -256,4 +268,85 @@ describe("NomadPageRenderer fragment and markdown sanitization", () => {
             assertNoDangerousHtmlPatterns(mdHtml);
         }
     }, 30_000);
+});
+
+describe("scrubNetworkCss evasion coverage", () => {
+    it("removes @import without whitespace after the at-keyword", () => {
+        const out = scrubNetworkCss('@import"https://evil/x.css"; a{color:red}');
+        expect(out).not.toContain("@import");
+        expect(out).not.toContain("evil.com");
+        expect(out).not.toContain("evil/x.css");
+        expect(out).toContain("color:red");
+    });
+
+    it("blocks url() with whitespace after the opening quote", () => {
+        const out = scrubNetworkCss('a{background:url(" https://evil/y.png")}');
+        expect(out).toContain("url(blocked:");
+        expect(out).not.toMatch(/url\s*\(\s*["']?\s*https?:/i);
+    });
+
+    it("blocks escape-obfuscated url() schemes", () => {
+        // u\72l is url() and \68 ttps is https: after CSS unescaping.
+        const out = scrubNetworkCss(String.raw`a{background:u\72 l(\68 ttps://evil/x.png)}`);
+        expect(out).not.toMatch(/https?:\/\//i);
+    });
+
+    it("removes line continuations before matching", () => {
+        const out = scrubNetworkCss("a{b:u\\\nrl(https://evil/x)}");
+        expect(out).not.toMatch(/https?:\/\//i);
+    });
+});
+
+describe("remote CSS selector scoping", () => {
+    const scopeRe = /:where\(\.mu-page,\.nomad-markdown,\.nomad-html-root\)/;
+
+    it("scopes body, html, and :root selectors in style blocks", () => {
+        const out = scrubNetworkCss("body{color:red} html{margin:0} :root{display:block}");
+        expect(out).toMatch(scopeRe);
+        expect(out).not.toMatch(/(?:^|[{,;]\s*)(?:body|html)\s*[{,:]/);
+        expect(out).not.toContain(":root{");
+    });
+
+    it("scopes html/body inside positive functional pseudo-classes", () => {
+        const out = scrubNetworkCss("x:is(body, html){color:red}");
+        // no bare body/html selector token may remain (class names like
+        // nomad-html-root are excluded via the [\w-] lookbehind)
+        expect(out).not.toMatch(/(?<![\w-])(?:body|html)\b/);
+        expect((out.match(/:where\(/g) || []).length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("scopes combinator forms that could match the real document", () => {
+        for (const sel of ["head+body", "*+body", "head~body", "html>body"]) {
+            const out = scrubNetworkCss(`${sel}{display:none}`);
+            expect(out, sel).not.toMatch(/\bbody\s*\{/);
+        }
+    });
+
+    it("scopes body selectors in the fragment sanitize path used for markdown", () => {
+        // top-level <style> is dropped by DOMPurify in fragment mode; nested
+        // style elements are kept and scrubbed through the same pipeline.
+        const out = sanitizeNomadHtmlFragment("<div><style>body{color:red}</style><p>x</p></div>");
+        expect(out).toContain(":where(");
+        expect(out).not.toMatch(/body\s*\{/);
+    });
+
+    it("scopes body selectors in whole-document pages", () => {
+        const out = renderNomadHtmlPage("<body><style>body{color:red}</style><p>x</p></body>");
+        expect(out).toContain(":where(");
+        expect(out).not.toMatch(/body\s*\{/);
+    });
+
+    it("does not rewrite body/html inside urls or strings", () => {
+        const out = scrubNetworkCss('.a{background:url(body.png)} .b::after{content:"body html"}');
+        expect(out).toContain("url(body.png)");
+        expect(out).toContain('content:"body html"');
+    });
+});
+
+describe("MicronParser inline style continuation scrub", () => {
+    it("neutralises position smuggled via backslash-newline", () => {
+        const out = MicronParser.stripOverlayStyles('<span style="posi\\\ntion:fixed; color:red">x</span>');
+        expect(out.toLowerCase()).not.toContain("fixed");
+        expect(out).toContain("color:red");
+    });
 });

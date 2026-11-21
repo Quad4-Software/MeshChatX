@@ -230,6 +230,10 @@ export default class MicronParser extends BaseMicronParser {
         const scrubStyleValue = (styleValue) => {
             // Strip CSS comments so position/**/:fixed cannot hide the colon.
             let cleaned = String(styleValue).replace(/\/\*[\s\S]*?\*\//g, "");
+            // Line continuations (backslash+newline) are deleted by the CSS
+            // tokenizer, so posi\<newline>tion is position. Strip them here
+            // or the prop/value checks below can be evaded.
+            cleaned = cleaned.replace(/\\(?:\r\n|\r|\n)/g, "");
             // Unescape simple CSS hex escapes (fixe\64 => fixed) used to hide overlays.
             cleaned = cleaned.replace(/\\([0-9a-fA-F]{1,6})\s?/g, (_, hex) => {
                 try {
