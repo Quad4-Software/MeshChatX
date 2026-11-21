@@ -367,7 +367,7 @@
             <p v-if="config.lxmf_preferred_propagation_node_auto_select" class="text-[11px] text-sem-warning">
                 {{ $t("tools.propagation_nodes.auto_select_on_notice") }}
             </p>
-            <div class="flex gap-1.5">
+            <div class="flex gap-1.5 items-center">
                 <input
                     v-model="manualHashDraft"
                     type="text"

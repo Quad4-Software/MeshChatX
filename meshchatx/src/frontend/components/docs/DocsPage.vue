@@ -658,7 +658,7 @@
                         </p>
                     </div>
                     <label
-                        class="px-6 py-2 bg-sem-action-primary text-sem-action-primary-text rounded-full text-xs font-bold hover:bg-sem-info transition-colors shadow-lg shadow-sem-action-primary/20 cursor-pointer flex items-center gap-2"
+                        class="px-6 py-1.5 bg-sem-action-primary text-sem-action-primary-text rounded-lg text-xs font-bold hover:bg-sem-info transition-colors shadow-lg shadow-sem-action-primary/20 cursor-pointer flex items-center gap-2"
                     >
                         <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
                         <span>{{ $t("docs.btn_upload") }}</span>

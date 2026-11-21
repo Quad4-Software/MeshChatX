@@ -95,6 +95,14 @@
     opacity: 0;
 }
 
+/* WebKitGTK repaints whole layers during opacity transitions under
+   software rendering (Flatpak, GPU off), which makes route changes
+   flicker. The shell flags those environments through runtime-info. */
+html[data-render-mode="software"] .route-view-fade-enter-active,
+html[data-render-mode="software"] .route-view-fade-leave-active {
+    transition: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .route-view-fade-enter-active,
     .route-view-fade-leave-active {
@@ -444,7 +452,7 @@ select option {
 }
 
 .primary-chip {
-    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-full! bg-sem-action-primary! px-4! py-2! text-xs! font-bold! text-sem-action-primary-text! shadow-xs! transition-all!;
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-lg! bg-sem-action-primary! px-4! py-1.5! text-xs! font-bold! text-sem-action-primary-text! shadow-xs! transition-all!;
 }
 .primary-chip svg,
 .secondary-chip svg,
@@ -480,7 +488,7 @@ select option {
 }
 
 .secondary-chip {
-    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-full! px-4! py-2! text-xs! font-bold! shadow-xs! transition-all! duration-200!;
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-lg! px-4! py-1.5! text-xs! font-bold! shadow-xs! transition-all! duration-200!;
     background-color: var(--mc-secondary-chip-bg) !important;
     color: var(--mc-secondary-chip-text) !important;
     border: 1px solid var(--mc-secondary-chip-border) !important;
@@ -500,7 +508,7 @@ select option {
 }
 
 .danger-chip {
-    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-full! px-4! py-2! text-xs! font-bold! transition-all! duration-200!;
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-lg! px-4! py-1.5! text-xs! font-bold! transition-all! duration-200!;
     background-color: var(--mc-danger-chip-bg) !important;
     color: var(--mc-danger-chip-text) !important;
     border: 1px solid var(--mc-danger-chip-border) !important;
@@ -518,8 +526,20 @@ select option {
     @apply shadow-lg! dark:shadow-red-500/10!;
 }
 
+/* Compact action buttons stay large enough to tap on touch devices. */
+@media (hover: none) and (pointer: coarse) {
+    .primary-chip,
+    .secondary-chip,
+    .danger-chip,
+    .primary-action,
+    .secondary-action,
+    .danger-action {
+        min-height: 44px;
+    }
+}
+
 .primary-action {
-    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-xl! px-6! py-3! text-sm! font-bold! text-sem-action-primary-text! shadow-md! transition-all! duration-200!;
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-xl! px-6! py-2! text-sm! font-bold! text-sem-action-primary-text! shadow-md! transition-all! duration-200!;
     background-color: var(--mc-action-primary) !important;
 }
 .primary-action:hover {
@@ -531,7 +551,7 @@ select option {
 }
 
 .secondary-action {
-    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-xl! px-6! py-3! text-sm! font-bold! shadow-md! transition-all! duration-200!;
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-xl! px-6! py-2! text-sm! font-bold! shadow-md! transition-all! duration-200!;
     background-color: var(--mc-secondary-chip-bg) !important;
     color: var(--mc-secondary-chip-text) !important;
     border: 1px solid var(--mc-secondary-chip-border) !important;
@@ -547,7 +567,7 @@ select option {
 }
 
 .danger-action {
-    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-xl! px-6! py-3! text-sm! font-bold! text-sem-action-danger-text! shadow-md! transition-all! duration-200!;
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-xl! px-6! py-2! text-sm! font-bold! text-sem-action-danger-text! shadow-md! transition-all! duration-200!;
     background-color: var(--mc-action-danger) !important;
 }
 .danger-action:hover {
