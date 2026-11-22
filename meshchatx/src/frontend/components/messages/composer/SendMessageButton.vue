@@ -4,6 +4,7 @@
     <div class="relative inline-flex items-stretch rounded-xl shadow-xs">
         <template v-if="compact">
             <button
+                ref="compactSendButton"
                 :disabled="!canSendMessage && !canOpenSendMenu"
                 type="button"
                 class="inline-flex items-center justify-center rounded-full p-2.5 min-h-[42px] min-w-[42px] text-sem-action-primary-text transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 touch-manipulation select-none"
@@ -17,6 +18,7 @@
                 @pointerup="onCompactPointerUp"
                 @pointercancel="onCompactPointerCancel"
                 @click="onCompactClick"
+                @contextmenu.prevent
             >
                 <svg
                     v-if="!isSendingMessage"
@@ -104,7 +106,7 @@
         >
             <div
                 v-if="isShowingMenu"
-                v-click-outside="hideMenu"
+                v-click-outside="{ handler: hideMenu, middleware: compactMenuOutsideMiddleware }"
                 class="absolute bottom-full right-0 mb-1 z-10 focus:outline-hidden"
             >
                 <div
@@ -200,6 +202,7 @@ export default {
             isShowingMenu: false,
             compactLongPressTimer: null,
             compactTapArmed: false,
+            compactMenuOpenedByHold: false,
         };
     },
     computed: {
@@ -224,12 +227,14 @@ export default {
             if (!this.compact || (!this.canSendMessage && !this.canOpenSendMenu)) {
                 return;
             }
+            this.compactMenuOpenedByHold = false;
             this.compactTapArmed = true;
             this.clearCompactLongPressTimer();
             this.compactLongPressTimer = window.setTimeout(() => {
                 this.compactLongPressTimer = null;
                 this.compactTapArmed = false;
                 this.showMenu();
+                this.compactMenuOpenedByHold = true;
             }, 500);
         },
         onCompactPointerUp() {
@@ -257,6 +262,14 @@ export default {
         },
         showMenu() {
             this.isShowingMenu = true;
+        },
+        compactMenuOutsideMiddleware(event) {
+            if (!this.compactMenuOpenedByHold) {
+                return true;
+            }
+            const button = this.$refs.compactSendButton;
+            const target = event.target;
+            return !(button && target instanceof Node && button.contains(target));
         },
         hideMenu() {
             this.isShowingMenu = false;
