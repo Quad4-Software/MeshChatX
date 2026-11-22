@@ -177,7 +177,10 @@ async def _send_nomad_page_content(
     # (multibyte text, or U+FFFD expansion from errors="replace" decoding).
     # Char count is a lower bound on UTF-8 length, so it stays as a cheap
     # early-out before paying for the encode.
-    if len(page_content) > WS_NOMAD_PAGE_MAX_CHARS or len(page_content.encode("utf-8")) > WS_NOMAD_PAGE_MAX_CHARS:
+    if (
+        len(page_content) > WS_NOMAD_PAGE_MAX_CHARS
+        or len(page_content.encode("utf-8")) > WS_NOMAD_PAGE_MAX_CHARS
+    ):
         await client.send_str(
             json.dumps(
                 {
@@ -824,7 +827,10 @@ async def handle_nomadnet_page_download(app, client, data):
     # is already a byte count, so only str needs the encode.
     if local_page is not None and (
         len(local_page) > WS_NOMAD_PAGE_MAX_CHARS
-        or (isinstance(local_page, str) and len(local_page.encode("utf-8")) > WS_NOMAD_PAGE_MAX_CHARS)
+        or (
+            isinstance(local_page, str)
+            and len(local_page.encode("utf-8")) > WS_NOMAD_PAGE_MAX_CHARS
+        )
     ):
         await send_failure(
             "page_too_large",
