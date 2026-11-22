@@ -22,6 +22,7 @@ FETCH_MARKERS = (
 KNOWN_CLEARNET_FETCH_FILES = frozenset(
     {
         "data/interfaces/HTTPInterface.py",
+        "http/routes/plugins.py",
         "map_manager.py",
         "oidc.py",
         "repository_server_manager.py",

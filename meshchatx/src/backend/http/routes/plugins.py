@@ -350,7 +350,7 @@ def register_plugins_routes(routes, app):
         )
 
         url = data.get("url")
-        if not is_allowed_plugin_fetch_url(url):
+        if not isinstance(url, str) or not is_allowed_plugin_fetch_url(url):
             return http_bad_request("url is not allowed")
         method = str(data.get("method") or "GET").upper()
         allowed_methods = {"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}

@@ -1122,11 +1122,19 @@
         },
         {
             "method": "POST",
+            "path": "/api/v1/plugins/{plugin_id}/fetch"
+        },
+        {
+            "method": "POST",
             "path": "/api/v1/plugins/{plugin_id}/invoke"
         },
         {
             "method": "POST",
             "path": "/api/v1/plugins/{plugin_id}/report-failure"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/plugins/{plugin_id}/storage"
         },
         {
             "method": "POST",
