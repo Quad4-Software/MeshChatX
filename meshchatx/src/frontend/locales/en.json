@@ -1863,7 +1863,15 @@
         "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
         "hop_limiter_label": "Hop limiter",
         "hop_limiter_placeholder": "128",
-        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default.",
+        "comports_loading": "Loading serial ports…",
+        "comports_load_failed": "Could not load serial ports.",
+        "serial_ports_empty": "No serial ports detected. Connect a device, then tap Refresh Ports.",
+        "serial_ports_empty_android": "No USB serial devices found. Connect the device with a USB OTG cable, then tap Refresh Ports and grant USB access when asked.",
+        "serial_port_permission_suffix": "USB permission needed",
+        "usb_permission_granted": "USB access granted.",
+        "usb_permission_requested": "USB access requested. Grant it in the dialog, then tap Refresh Ports.",
+        "usb_permission_failed": "Could not request USB access."
     },
     "map": {
         "title": "Map",

@@ -37,7 +37,10 @@ from meshchatx.src.backend.interface_port_check import (
     describe_port_conflict,
     is_port_in_use,
 )
-from meshchatx.src.backend.serial_comports import list_serial_comports
+from meshchatx.src.backend.serial_comports import (
+    list_serial_comports,
+    request_android_usb_permission,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -265,6 +268,34 @@ def register_interfaces_routes(routes, app):
                 "comports": list_serial_comports(),
             },
         )
+
+    @routes.post(API_V1_PREFIX + "/comports/usb-permission")
+    async def comports_usb_permission(request):
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            return http_bad_request("Invalid JSON")
+        if not isinstance(data, dict):
+            return http_bad_request("Invalid JSON object")
+        device = data.get("device")
+        if not isinstance(device, str) or not device.strip():
+            return http_error(422, "device is required")
+        result = request_android_usb_permission(device.strip())
+        if result.get("ok"):
+            return web.json_response(result)
+        error = result.get("error")
+        if error == "not_android":
+            return http_error(
+                400,
+                "USB permission requests are only available on Android",
+            )
+        if error == "usb_unavailable":
+            return http_error(503, "USB host support is not available")
+        if error == "device_not_found":
+            return http_not_found("USB device not found", device=device.strip())
+        return http_unexpected("Failed to request USB permission")
 
     @routes.get(API_V1_PREFIX + "/system/network-interfaces")
     async def system_network_interfaces(request):

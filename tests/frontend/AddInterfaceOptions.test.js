@@ -18,6 +18,7 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {
         success: vi.fn(),
         error: vi.fn(),
+        warning: vi.fn(),
     },
 }));
 
@@ -616,5 +617,141 @@ describe("AddInterfacePage.vue interface options", () => {
         wrapper.vm.newInterfaceType = "AwareInterface";
         await wrapper.vm.$nextTick();
         expect(wrapper.text()).toContain("interfaces.aware_permission_banner");
+    });
+
+    it("surfaces a comports load error instead of only logging it", async () => {
+        mockAxios.get.mockImplementation(async (url) => {
+            if (String(url).includes("/api/v1/comports")) {
+                throw new Error("boom");
+            }
+            if (String(url).includes("/api/v1/reticulum/interfaces")) {
+                return { data: { interfaces: {} } };
+            }
+            return { data: {} };
+        });
+        const wrapper = mountPage();
+        await wrapper.vm.loadComports();
+
+        expect(wrapper.vm.comportsError).toBe("interfaces.comports_load_failed");
+        expect(wrapper.vm.comportsLoaded).toBe(false);
+        expect(wrapper.vm.comportsLoading).toBe(false);
+    });
+
+    it("shows the desktop empty-state hint when no serial ports exist", async () => {
+        mockAxios.get.mockImplementation(async (url) => {
+            if (String(url).includes("/api/v1/comports")) {
+                return { data: { comports: [] } };
+            }
+            if (String(url).includes("/api/v1/reticulum/interfaces")) {
+                return { data: { interfaces: {} } };
+            }
+            return { data: {} };
+        });
+        const wrapper = mountPage();
+        wrapper.vm.newInterfaceType = "SerialInterface";
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.loadComports();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.comportsLoaded).toBe(true);
+        expect(wrapper.vm.serialPortsEmptyMessage).toBe("interfaces.serial_ports_empty");
+        expect(wrapper.text()).toContain("interfaces.serial_ports_empty");
+    });
+
+    it("shows the Android USB OTG hint when the Android bridge is present", async () => {
+        window.MeshChatXAndroid = {};
+        try {
+            mockAxios.get.mockImplementation(async (url) => {
+                if (String(url).includes("/api/v1/comports")) {
+                    return { data: { comports: [] } };
+                }
+                if (String(url).includes("/api/v1/reticulum/interfaces")) {
+                    return { data: { interfaces: {} } };
+                }
+                return { data: {} };
+            });
+            const wrapper = mountPage();
+            wrapper.vm.newInterfaceType = "SerialInterface";
+            await wrapper.vm.$nextTick();
+            await wrapper.vm.loadComports();
+            await wrapper.vm.$nextTick();
+
+            expect(wrapper.vm.serialPortsEmptyMessage).toBe("interfaces.serial_ports_empty_android");
+        } finally {
+            delete window.MeshChatXAndroid;
+        }
+    });
+
+    it("requests USB permission when a port without permission is selected", async () => {
+        mockAxios.get.mockImplementation(async (url) => {
+            if (String(url).includes("/api/v1/comports")) {
+                return {
+                    data: {
+                        comports: [
+                            {
+                                device: "/dev/bus/usb/001/002",
+                                product: "RNode LoRa Radio",
+                                serial_number: null,
+                                vendor_id: 6421,
+                                product_id: 21002,
+                                has_permission: false,
+                            },
+                        ],
+                    },
+                };
+            }
+            if (String(url).includes("/api/v1/reticulum/interfaces")) {
+                return { data: { interfaces: {} } };
+            }
+            return { data: {} };
+        });
+        mockAxios.post.mockResolvedValue({ data: { ok: true, granted: false, requested: true } });
+        const wrapper = mountPage();
+        await wrapper.vm.loadComports();
+
+        wrapper.vm.newInterfacePort = "/dev/bus/usb/001/002";
+        wrapper.vm.onSerialPortChange();
+        await wrapper.vm.$nextTick();
+
+        expect(mockAxios.post).toHaveBeenCalledWith("/api/v1/comports/usb-permission", {
+            device: "/dev/bus/usb/001/002",
+        });
+        expect(wrapper.vm.serialPortOptionLabel(wrapper.vm.comports[0])).toContain(
+            "interfaces.serial_port_permission_suffix"
+        );
+    });
+
+    it("does not request USB permission for ports that already have it", async () => {
+        mockAxios.get.mockImplementation(async (url) => {
+            if (String(url).includes("/api/v1/comports")) {
+                return {
+                    data: {
+                        comports: [
+                            {
+                                device: "/dev/bus/usb/001/002",
+                                product: "RNode LoRa Radio",
+                                serial_number: null,
+                                has_permission: true,
+                            },
+                        ],
+                    },
+                };
+            }
+            if (String(url).includes("/api/v1/reticulum/interfaces")) {
+                return { data: { interfaces: {} } };
+            }
+            return { data: {} };
+        });
+        const wrapper = mountPage();
+        await wrapper.vm.loadComports();
+
+        wrapper.vm.newInterfacePort = "/dev/bus/usb/001/002";
+        wrapper.vm.onSerialPortChange();
+        await wrapper.vm.$nextTick();
+
+        const permissionCalls = mockAxios.post.mock.calls.filter((c) =>
+            String(c[0]).includes("/comports/usb-permission")
+        );
+        expect(permissionCalls).toHaveLength(0);
     });
 });

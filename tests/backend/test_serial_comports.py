@@ -59,12 +59,56 @@ def test_comports_success_keeps_pyserial_metadata(monkeypatch):
             self.serial_number = "ABC123"
 
     monkeypatch.setattr(sc.list_ports, "comports", lambda: [FakePort()])
+    monkeypatch.setattr(sc.glob, "glob", lambda _pattern: [])
     assert sc.list_serial_comports() == [
         {
             "device": "/dev/ttyACM0",
             "product": "RNode",
             "serial_number": "ABC123",
         },
+    ]
+
+
+def test_comports_empty_pyserial_result_still_globs_usb_nodes(monkeypatch):
+    """A successful-but-empty pyserial result must still glob USB nodes."""
+    monkeypatch.setattr(sc.list_ports, "comports", lambda: [])
+
+    def fake_glob(pattern):
+        return {
+            "/dev/ttyUSB*": ["/dev/ttyUSB0"],
+            "/dev/ttyACM*": ["/dev/ttyACM0"],
+        }.get(pattern, [])
+
+    monkeypatch.setattr(sc.glob, "glob", fake_glob)
+    devices = [port["device"] for port in sc.list_serial_comports()]
+    assert devices == ["/dev/ttyUSB0", "/dev/ttyACM0"]
+
+
+def test_comports_merges_glob_only_devices_without_duplicates(monkeypatch):
+    """Glob-visible nodes pyserial misses (e.g. ttyWCH*) are appended."""
+
+    class FakePort:
+        device = "/dev/ttyACM0"
+        product = "RNode"
+        serial_number = "ABC123"
+
+    monkeypatch.setattr(sc.list_ports, "comports", lambda: [FakePort()])
+
+    def fake_glob(pattern):
+        return {
+            "/dev/ttyACM*": ["/dev/ttyACM0"],
+            "/dev/ttyWCH*": ["/dev/ttyWCH0"],
+        }.get(pattern, [])
+
+    monkeypatch.setattr(sc.glob, "glob", fake_glob)
+    ports = sc.list_serial_comports()
+    assert ports == [
+        {
+            "device": "/dev/ttyACM0",
+            "product": "RNode",
+            "serial_number": "ABC123",
+        },
+        {"device": "/dev/ttyWCH0", "product": None, "serial_number": None},
     ]
 
 

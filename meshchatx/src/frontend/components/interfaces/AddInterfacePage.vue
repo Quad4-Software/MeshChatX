@@ -921,6 +921,7 @@
                                                     <select
                                                         v-model="newInterfacePort"
                                                         class="input-field appearance-none pr-10"
+                                                        @change="onSerialPortChange"
                                                     >
                                                         <option :value="null" disabled>Select a port...</option>
                                                         <option
@@ -928,7 +929,7 @@
                                                             :key="port.device"
                                                             :value="port.device"
                                                         >
-                                                            {{ port.device }} ({{ port.product ?? "?" }})
+                                                            {{ serialPortOptionLabel(port) }}
                                                         </option>
                                                     </select>
                                                     <div
@@ -937,13 +938,30 @@
                                                         <MaterialDesignIcon icon-name="chevron-down" class="size-5" />
                                                     </div>
                                                 </div>
+                                                <p v-if="comportsLoading" class="mt-1 text-[11px] text-sem-fg-muted">
+                                                    {{ $t("interfaces.comports_loading") }}
+                                                </p>
+                                                <p v-else-if="comportsError" class="mt-1 text-[11px] text-sem-danger">
+                                                    {{ comportsError }}
+                                                </p>
+                                                <p
+                                                    v-else-if="comportsLoaded && comports.length === 0"
+                                                    class="mt-1 text-[11px] leading-relaxed text-sem-fg-muted"
+                                                >
+                                                    {{ serialPortsEmptyMessage }}
+                                                </p>
                                                 <div class="mt-2 flex justify-end">
                                                     <button
                                                         type="button"
-                                                        class="text-[10px] uppercase font-bold text-sem-accent hover:text-sem-info tracking-wider"
+                                                        class="text-[10px] uppercase font-bold text-sem-accent hover:text-sem-info tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        :disabled="comportsLoading"
                                                         @click="loadComports"
                                                     >
-                                                        Refresh Ports
+                                                        {{
+                                                            comportsLoading
+                                                                ? $t("interfaces.comports_loading")
+                                                                : "Refresh Ports"
+                                                        }}
                                                     </button>
                                                 </div>
                                             </div>
@@ -2459,6 +2477,9 @@ export default {
             communityTypeFilter: "all",
 
             comports: [],
+            comportsLoading: false,
+            comportsLoaded: false,
+            comportsError: null,
 
             hostKernelInterfaces: [],
             hostKernelInterfacesLoading: false,
@@ -2654,6 +2675,11 @@ export default {
         },
         reticulumMinFixedMtu() {
             return 500;
+        },
+        serialPortsEmptyMessage() {
+            return this.androidBridge.isAvailable()
+                ? this.$t("interfaces.serial_ports_empty_android")
+                : this.$t("interfaces.serial_ports_empty");
         },
         transportEnabled() {
             if (this.config && this.config.is_transport_enabled === true) {
@@ -2973,11 +2999,47 @@ export default {
             }
         },
         async loadComports() {
+            this.comportsLoading = true;
+            this.comportsError = null;
             try {
                 const response = await window.api.get(apiPath("/comports"));
-                this.comports = response.data.comports;
+                this.comports = Array.isArray(response.data?.comports) ? response.data.comports : [];
+                this.comportsLoaded = true;
             } catch (e) {
                 console.log(e);
+                this.comportsError = this.$t("interfaces.comports_load_failed");
+            } finally {
+                this.comportsLoading = false;
+            }
+        },
+        serialPortOptionLabel(port) {
+            const base = `${port.device} (${port.product ?? "?"})`;
+            return port.has_permission === false
+                ? `${base} (${this.$t("interfaces.serial_port_permission_suffix")})`
+                : base;
+        },
+        onSerialPortChange() {
+            const port = this.comports.find((entry) => entry.device === this.newInterfacePort);
+            if (port && port.has_permission === false) {
+                this.requestUsbSerialPermission(port.device);
+            }
+        },
+        async requestUsbSerialPermission(deviceName) {
+            try {
+                const response = await window.api.post(apiPath("/comports/usb-permission"), {
+                    device: deviceName,
+                });
+                if (response.data?.granted) {
+                    ToastUtils.success(this.$t("interfaces.usb_permission_granted"));
+                    await this.loadComports();
+                } else if (response.data?.requested) {
+                    ToastUtils.warning(this.$t("interfaces.usb_permission_requested"));
+                } else {
+                    ToastUtils.warning(this.$t("interfaces.usb_permission_failed"));
+                }
+            } catch (e) {
+                console.log(e);
+                ToastUtils.error(this.$t("interfaces.usb_permission_failed"));
             }
         },
         autoInterfaceChipActive(fieldKey, token) {
