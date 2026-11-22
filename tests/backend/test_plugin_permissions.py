@@ -212,3 +212,214 @@ def test_storage_denied_without_grant(tmp_path):
     manager.enable(installed["id"])
     with pytest.raises(PermissionError):
         manager.storage_set(installed["id"], "k", "v")
+
+
+def test_new_hook_and_manager_permissions_validate():
+    manifest = {
+        "permissions": {
+            "hooks": [
+                "lxmf.message.created",
+                "lxmf.message.deleted",
+                "lxmf.message.state",
+                "lxmf.delivery",
+                "lxmf.telemetry",
+                "file.transfer.progress",
+                "file.download.started",
+                "file.download.cancelled",
+                "shell.session",
+                "shell.output",
+                "rrc.message",
+            ],
+            "managers": [
+                "status.read",
+                "contacts.read",
+                "nodes.read",
+                "conversations.list",
+                "messages.read",
+                "message.send",
+                "telemetry.read",
+            ],
+        },
+    }
+    validate_declared_permissions(manifest)
+    ids = declared_permission_ids(manifest)
+    assert "hooks:lxmf.message.created" in ids
+    assert "hooks:shell.output" in ids
+    assert "managers:message.send" in ids
+    assert "managers:telemetry.read" in ids
+
+
+def test_clipboard_permission_modes():
+    assert declared_permission_ids({"permissions": {"clipboard": "read"}}) == [
+        "clipboard:read",
+    ]
+    assert declared_permission_ids({"permissions": {"clipboard": "write"}}) == [
+        "clipboard:write",
+    ]
+    assert declared_permission_ids({"permissions": {"clipboard": "read-write"}}) == [
+        "clipboard:read",
+        "clipboard:write",
+    ]
+    validate_declared_permissions({"permissions": {"clipboard": "read-write"}})
+    with pytest.raises(ValueError, match="unknown clipboard"):
+        validate_declared_permissions({"permissions": {"clipboard": "admin"}})
+
+
+def test_plugin_fetch_url_validation():
+    from meshchatx.src.backend.plugin_permissions import (
+        is_allowed_plugin_fetch_url,
+    )
+
+    assert is_allowed_plugin_fetch_url("https://example.com/api")
+    assert is_allowed_plugin_fetch_url("http://example.com:8080/path?q=1")
+    assert not is_allowed_plugin_fetch_url("ftp://example.com/file")
+    assert not is_allowed_plugin_fetch_url("file:///etc/passwd")
+    assert not is_allowed_plugin_fetch_url("http://localhost/admin")
+    assert not is_allowed_plugin_fetch_url("http://127.0.0.1:8000/x")
+    assert not is_allowed_plugin_fetch_url("http://[::1]/x")
+    assert not is_allowed_plugin_fetch_url("http://192.168.1.1/")
+    assert not is_allowed_plugin_fetch_url("http://10.0.0.5/")
+    assert not is_allowed_plugin_fetch_url("http://user:pass@example.com/")
+    assert not is_allowed_plugin_fetch_url("")
+    assert not is_allowed_plugin_fetch_url("x" * 3000)
+    assert not is_allowed_plugin_fetch_url(None)
+
+
+def _storage_plugin(tmp_path, granted):
+    from meshchatx.src.backend.plugin_manager import PluginManager
+
+    source = tmp_path / "src"
+    source.mkdir(exist_ok=True)
+    (source / "plugin.json").write_text(
+        json.dumps(
+            {
+                "id": "com.example.storage-demo",
+                "version": "1.0.0",
+                "apiVersion": 1,
+                "permissions": {"storage": "isolated"},
+            },
+        ),
+        encoding="utf-8",
+    )
+    manager = PluginManager(str(tmp_path / "storage"))
+    installed = manager.install_from_directory(str(source), granted_permissions=granted)
+    manager.enable(installed["id"])
+    return manager, installed["id"]
+
+
+def test_storage_delete_list_clear_roundtrip(tmp_path):
+    manager, plugin_id = _storage_plugin(
+        tmp_path,
+        ["storage:isolated"],
+    )
+    manager.storage_set(plugin_id, "a", "1")
+    manager.storage_set(plugin_id, "b", "2")
+    assert sorted(manager.storage_list(plugin_id)) == ["a", "b"]
+    assert manager.storage_delete(plugin_id, "a") is True
+    assert manager.storage_delete(plugin_id, "a") is False
+    assert manager.storage_get(plugin_id, "a") is None
+    assert manager.storage_clear(plugin_id) == 1
+    assert manager.storage_list(plugin_id) == []
+
+
+def test_storage_ops_denied_without_grant(tmp_path):
+    manager, plugin_id = _storage_plugin(tmp_path, [])
+    with pytest.raises(PermissionError):
+        manager.storage_list(plugin_id)
+    with pytest.raises(PermissionError):
+        manager.storage_delete(plugin_id, "k")
+    with pytest.raises(PermissionError):
+        manager.storage_clear(plugin_id)
+
+
+def test_plugin_fetch_url_validation_edge_cases():
+    from meshchatx.src.backend.plugin_permissions import (
+        is_allowed_plugin_fetch_url,
+    )
+
+    # Trailing-dot and bracketed loopback forms.
+    assert not is_allowed_plugin_fetch_url("http://localhost./")
+    assert not is_allowed_plugin_fetch_url("http://127.0.0.1./")
+    # CGNAT, benchmarking, and reserved ranges are not globally routable.
+    assert not is_allowed_plugin_fetch_url("http://100.64.0.1/")
+    assert not is_allowed_plugin_fetch_url("http://198.18.0.1/")
+    assert not is_allowed_plugin_fetch_url("http://240.0.0.1/")
+    assert not is_allowed_plugin_fetch_url("http://[::ffff:127.0.0.1]/")
+    assert not is_allowed_plugin_fetch_url("http://[::ffff:10.0.0.1]/")
+    assert not is_allowed_plugin_fetch_url("http://[fe80::1]/")
+    assert not is_allowed_plugin_fetch_url("http://[fc00::1]/")
+    # NAT64 well-known prefix is "global" per is_global even when the
+    # embedded IPv4 destination is loopback or private.
+    assert not is_allowed_plugin_fetch_url("http://[64:ff9b::7f00:1]/")
+    assert not is_allowed_plugin_fetch_url("http://[64:ff9b::a00:1]/")
+    assert is_allowed_plugin_fetch_url("http://[64:ff9b::808:808]/")
+    # Documentation ranges are not global either; conservative is fine.
+    assert not is_allowed_plugin_fetch_url("http://192.0.2.1/")
+    # Public literals still pass.
+    assert is_allowed_plugin_fetch_url("https://1.1.1.1/dns-query")
+    assert is_allowed_plugin_fetch_url("https://[2606:4700:4700::1111]/")
+    # Non-dotted IP forms pass the literal stage; the DNS-resolution check
+    # in the fetch route is what rejects them.
+    assert is_allowed_plugin_fetch_url("http://2130706433/")
+
+
+@pytest.mark.asyncio
+async def test_plugin_fetch_host_resolves_public(monkeypatch):
+    import socket
+
+    from meshchatx.src.backend.plugin_permissions import (
+        plugin_fetch_host_resolves_public,
+    )
+
+    def fake_getaddrinfo(host, port, *args, **kwargs):
+        mapping = {
+            "public.example.com": [
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port))
+            ],
+            "private.example.com": [
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.1", port))
+            ],
+            "mixed.example.com": [
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port)),
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.1", port)),
+            ],
+            "decimal-ip.example.com": [
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", port))
+            ],
+            "nat64-private.example.com": [
+                (
+                    socket.AF_INET6,
+                    socket.SOCK_STREAM,
+                    6,
+                    "",
+                    ("64:ff9b::7f00:1", port, 0, 0),
+                )
+            ],
+            "nat64-public.example.com": [
+                (
+                    socket.AF_INET6,
+                    socket.SOCK_STREAM,
+                    6,
+                    "",
+                    ("64:ff9b::808:808", port, 0, 0),
+                )
+            ],
+        }
+        if host not in mapping:
+            raise socket.gaierror("name or service not known")
+        return mapping[host]
+
+    monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
+
+    assert await plugin_fetch_host_resolves_public("https://public.example.com/")
+    assert not await plugin_fetch_host_resolves_public("https://private.example.com/")
+    # One bad answer poisons the whole hostname.
+    assert not await plugin_fetch_host_resolves_public("https://mixed.example.com/")
+    assert not await plugin_fetch_host_resolves_public(
+        "https://decimal-ip.example.com/"
+    )
+    assert not await plugin_fetch_host_resolves_public(
+        "https://nat64-private.example.com/"
+    )
+    assert await plugin_fetch_host_resolves_public("https://nat64-public.example.com/")
+    assert not await plugin_fetch_host_resolves_public("https://nonexistent.invalid/")

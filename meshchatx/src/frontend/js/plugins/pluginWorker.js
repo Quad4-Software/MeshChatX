@@ -39,6 +39,12 @@ function handleWorkerMessage(event, post) {
             }
         }
 
+        function requireStoragePermission() {
+            if (!state.permissions.includes("storage:isolated")) {
+                throw new Error("storage:isolated permission not granted");
+            }
+        }
+
         function postRequest(kind, payload) {
             return new Promise((resolve, reject) => {
                 const requestId = `${Date.now()}-${Math.random()}`;
@@ -83,6 +89,67 @@ function handleWorkerMessage(event, post) {
                     throw new Error("clipboard:write permission not granted");
                 }
                 return postRequest("clipboard", { text: String(text ?? "") });
+            },
+            async clipboardRead() {
+                if (!state.permissions.includes("clipboard:read")) {
+                    throw new Error("clipboard:read permission not granted");
+                }
+                const result = await postRequest("clipboard-read", {});
+                return result?.text ?? "";
+            },
+            storage: {
+                async get(key) {
+                    requireStoragePermission();
+                    const result = await postRequest("storage", {
+                        action: "get",
+                        key: String(key ?? ""),
+                    });
+                    return result?.value ?? null;
+                },
+                async set(key, value) {
+                    requireStoragePermission();
+                    await postRequest("storage", {
+                        action: "set",
+                        key: String(key ?? ""),
+                        value: typeof value === "string" ? value : JSON.stringify(value ?? null),
+                    });
+                },
+                async delete(key) {
+                    requireStoragePermission();
+                    const result = await postRequest("storage", {
+                        action: "delete",
+                        key: String(key ?? ""),
+                    });
+                    return Boolean(result?.deleted);
+                },
+                async keys() {
+                    requireStoragePermission();
+                    const result = await postRequest("storage", { action: "list" });
+                    return Array.isArray(result?.keys) ? result.keys : [];
+                },
+                async clear() {
+                    requireStoragePermission();
+                    const result = await postRequest("storage", { action: "clear" });
+                    return Number(result?.removed || 0);
+                },
+            },
+            net: {
+                async fetch(url, options = {}) {
+                    if (!state.permissions.includes("network:fetch")) {
+                        throw new Error("network:fetch permission not granted");
+                    }
+                    return postRequest("netfetch", {
+                        url: String(url ?? ""),
+                        method: options.method,
+                        headers: options.headers,
+                        body: options.body,
+                    });
+                },
+            },
+            app: {
+                async navigate(route, params = {}) {
+                    return postRequest("navigate", { route: String(route ?? ""), params });
+                },
             },
             getTheme() {
                 return state.theme;

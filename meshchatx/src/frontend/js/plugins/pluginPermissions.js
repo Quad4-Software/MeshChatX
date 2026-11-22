@@ -43,7 +43,11 @@ export function declaredPermissionIds(manifest) {
     if (network && network !== "none") {
         ids.push("network:fetch");
     }
-    if (permissions.clipboard === "write") {
+    const clipboard = permissions.clipboard;
+    if (clipboard === "read" || clipboard === "read-write") {
+        ids.push("clipboard:read");
+    }
+    if (clipboard === "write" || clipboard === "read-write") {
         ids.push("clipboard:write");
     }
     const ui = permissions.ui;

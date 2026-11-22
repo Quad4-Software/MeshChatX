@@ -16,6 +16,7 @@ import {
     setPluginMapNotifier,
     updatePluginMapEvents,
 } from "./pluginMapBridge.js";
+import { pluginHookPayloadAllowed, wsEventsForPluginHook } from "./pluginAppEvents.js";
 import { apiPath, WS_EVENTS } from "../constants";
 import ToastUtils from "../ToastUtils.js";
 import { getThemeSnapshot } from "../../theme/themeEngine.js";
@@ -26,6 +27,58 @@ import { useConfigStore } from "../stores/configStore.js";
 const FAILURE_REPORT_INTERVAL_MS = 5000;
 /** @type {Map<string, number>} */
 const lastFailureReportAt = new Map();
+
+/**
+ * Route names a plugin may navigate to via api.app.navigate. Params are
+ * passed through to vue-router, so only stable named routes are allowed.
+ */
+const PLUGIN_NAVIGABLE_ROUTES = new Set([
+    "about",
+    "archives",
+    "auth",
+    "blocked",
+    "bot-setup",
+    "bots",
+    "call",
+    "changelog",
+    "contacts",
+    "debug-logs",
+    "documentation",
+    "forwarder",
+    "identities",
+    "interfaces",
+    "licenses",
+    "map",
+    "message-blocklist",
+    "messages",
+    "mesh-server",
+    "micron-editor",
+    "nearby",
+    "network-visualiser",
+    "nomadnetwork",
+    "paper-message",
+    "ping",
+    "profile.icon",
+    "propagation-nodes",
+    "relay-chat",
+    "repository-server",
+    "reticulum-config-editor",
+    "rnpath",
+    "rnpath-trace",
+    "rnprobe",
+    "rncp",
+    "rnode-flasher",
+    "rns-filesync",
+    "rnsh",
+    "rnstatus",
+    "rnx",
+    "settings",
+    "sieve-filters",
+    "tools",
+    "traffic",
+    "translator",
+    "tutorial",
+]);
 
 /**
  * @param {string} pluginId
@@ -174,6 +227,30 @@ export class PluginHost {
             cleanup.push(() => offWsEvent(WS_EVENTS.PLUGIN_EVENT, eventHandler));
         }
 
+        // Frontend-delivered hooks: subscribe to the mapped WebSocket events
+        // for every granted hooks:* permission. Only hooks present in
+        // PLUGIN_HOOK_WS_EVENTS fan out here; backend-delivered hooks such as
+        // announce.received keep using the plugin.event channel above.
+        const grantedHooks = grantedPermissions
+            .filter((id) => id.startsWith("hooks:"))
+            .map((id) => id.slice("hooks:".length));
+        for (const hook of grantedHooks) {
+            for (const wsEvent of wsEventsForPluginHook(hook)) {
+                const wsHandler = (payload) => {
+                    if (!pluginHookPayloadAllowed(payload)) {
+                        return;
+                    }
+                    worker.postMessage({
+                        type: "event",
+                        event: hook,
+                        payload,
+                    });
+                };
+                onWsEvent(wsEvent, wsHandler);
+                cleanup.push(() => offWsEvent(wsEvent, wsHandler));
+            }
+        }
+
         const requestHandler = async (message) => {
             if (!message || message.type !== "request") {
                 return;
@@ -213,6 +290,56 @@ export class PluginHost {
                     result = await handlePluginMapRequest(pluginId, message.payload || {}, {
                         router: this.router,
                     });
+                } else if (message.kind === "storage") {
+                    if (!grantedPermissions.includes("storage:isolated")) {
+                        throw new Error("storage:isolated permission not granted");
+                    }
+                    const response = await apiClient.post(apiPath(`/plugins/${encodeURIComponent(pluginId)}/storage`), {
+                        action: message.payload?.action,
+                        key: message.payload?.key,
+                        value: message.payload?.value,
+                    });
+                    result = response.data?.result;
+                } else if (message.kind === "netfetch") {
+                    if (!grantedPermissions.includes("network:fetch")) {
+                        throw new Error("network:fetch permission not granted");
+                    }
+                    const response = await apiClient.post(apiPath(`/plugins/${encodeURIComponent(pluginId)}/fetch`), {
+                        url: message.payload?.url,
+                        method: message.payload?.method,
+                        headers: message.payload?.headers,
+                        body: message.payload?.body,
+                    });
+                    result = response.data?.result;
+                } else if (message.kind === "navigate") {
+                    const route = String(message.payload?.route || "");
+                    if (!PLUGIN_NAVIGABLE_ROUTES.has(route)) {
+                        throw new Error(`route not allowed: ${route || "?"}`);
+                    }
+                    if (!this.router) {
+                        throw new Error("router is not available");
+                    }
+                    const params = message.payload?.params;
+                    if (
+                        params !== undefined &&
+                        (typeof params !== "object" || params === null || Array.isArray(params))
+                    ) {
+                        throw new Error("params must be an object");
+                    }
+                    if (params && JSON.stringify(params).length > 8192) {
+                        throw new Error("params too large");
+                    }
+                    await this.router.push({ name: route, params: params || {} });
+                    result = { ok: true };
+                } else if (message.kind === "clipboard-read") {
+                    if (!grantedPermissions.includes("clipboard:read")) {
+                        throw new Error("clipboard:read permission not granted");
+                    }
+                    if (typeof navigator !== "undefined" && navigator.clipboard?.readText) {
+                        result = { text: await navigator.clipboard.readText() };
+                    } else {
+                        throw new Error("Clipboard read unavailable");
+                    }
                 }
                 worker.postMessage({ requestId: message.requestId, result });
             } catch (error) {

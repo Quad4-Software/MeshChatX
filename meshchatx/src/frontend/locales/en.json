@@ -1111,6 +1111,31 @@
                     "link": {
                         "event": "Receive RNS link packet and close events"
                     }
+                },
+                "lxmf": {
+                    "message": {
+                        "created": "Receive new message events",
+                        "deleted": "Receive message deletion events",
+                        "state": "Receive message state update events"
+                    },
+                    "delivery": "Receive message delivery events",
+                    "telemetry": "Receive telemetry events"
+                },
+                "file": {
+                    "transfer": {
+                        "progress": "Receive file transfer progress events"
+                    },
+                    "download": {
+                        "started": "Receive file download events",
+                        "cancelled": "Receive file download cancellation events"
+                    }
+                },
+                "shell": {
+                    "session": "Receive shell session events",
+                    "output": "Receive shell output events"
+                },
+                "rrc": {
+                    "message": "Receive RRC chat message events"
                 }
             },
             "managers": {
@@ -1126,6 +1151,27 @@
                     "request": "Send request/response over RNS links",
                     "send": "Send packets over RNS links",
                     "close": "Close RNS links"
+                },
+                "status": {
+                    "read": "Read application status summary"
+                },
+                "contacts": {
+                    "read": "Read the contacts list"
+                },
+                "nodes": {
+                    "read": "Read known node announces"
+                },
+                "conversations": {
+                    "list": "List message conversations"
+                },
+                "messages": {
+                    "read": "Read message history"
+                },
+                "message": {
+                    "send": "Send LXMF messages"
+                },
+                "telemetry": {
+                    "read": "Read peer telemetry data"
                 }
             },
             "storage": {
@@ -1135,7 +1181,8 @@
                 "fetch": "Make outbound internet HTTP requests"
             },
             "clipboard": {
-                "write": "Write to the system clipboard"
+                "write": "Write to the system clipboard",
+                "read": "Read from the system clipboard"
             },
             "map": {
                 "read": "Read map view state and map click/move events",

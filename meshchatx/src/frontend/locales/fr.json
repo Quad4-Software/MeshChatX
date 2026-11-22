@@ -1111,6 +1111,31 @@
                     "link": {
                         "event": "Recevoir les événements de paquet et de fermeture de lien RNS"
                     }
+                },
+                "lxmf": {
+                    "message": {
+                        "created": "Recevoir les événements de nouveaux messages",
+                        "deleted": "Recevoir les événements de suppression de messages",
+                        "state": "Recevoir les événements de mise à jour d'état des messages"
+                    },
+                    "delivery": "Recevoir les événements de livraison des messages",
+                    "telemetry": "Recevoir les événements de télémétrie"
+                },
+                "file": {
+                    "transfer": {
+                        "progress": "Recevoir les événements de progression des transferts de fichiers"
+                    },
+                    "download": {
+                        "started": "Recevoir les événements de téléchargement de fichiers",
+                        "cancelled": "Recevoir les événements d'annulation de téléchargement"
+                    }
+                },
+                "shell": {
+                    "session": "Recevoir les événements de sessions shell",
+                    "output": "Recevoir les événements de sortie shell"
+                },
+                "rrc": {
+                    "message": "Recevoir les événements de messages de chat RRC"
                 }
             },
             "managers": {
@@ -1126,6 +1151,27 @@
                     "request": "Envoyer des requêtes/réponses via les liens RNS",
                     "send": "Envoyer des paquets via les liens RNS",
                     "close": "Fermer les liens RNS"
+                },
+                "status": {
+                    "read": "Lire le résumé de l'état de l'application"
+                },
+                "contacts": {
+                    "read": "Lire la liste des contacts"
+                },
+                "nodes": {
+                    "read": "Lire les annonces des nœuds connus"
+                },
+                "conversations": {
+                    "list": "Lister les conversations de messages"
+                },
+                "messages": {
+                    "read": "Lire l'historique des messages"
+                },
+                "message": {
+                    "send": "Envoyer des messages LXMF"
+                },
+                "telemetry": {
+                    "read": "Lire les données de télémétrie des pairs"
                 }
             },
             "storage": {
@@ -1135,7 +1181,8 @@
                 "fetch": "Effectuer des requêtes HTTP sortantes sur Internet"
             },
             "clipboard": {
-                "write": "Écrire dans le presse-papiers du système"
+                "write": "Écrire dans le presse-papiers du système",
+                "read": "Lire depuis le presse-papiers du système"
             },
             "map": {
                 "read": "Lire l'état de la vue carte et les événements de clic et de déplacement",

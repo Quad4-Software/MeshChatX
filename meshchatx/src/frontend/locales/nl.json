@@ -1111,6 +1111,31 @@
                     "link": {
                         "event": "RNS-linkpakket- en sluitgebeurtenissen ontvangen"
                     }
+                },
+                "lxmf": {
+                    "message": {
+                        "created": "Nieuwe berichtgebeurtenissen ontvangen",
+                        "deleted": "Berichtverwijderingsgebeurtenissen ontvangen",
+                        "state": "Berichtstatus-updategebeurtenissen ontvangen"
+                    },
+                    "delivery": "Berichtbezorgingsgebeurtenissen ontvangen",
+                    "telemetry": "Telemetriegebeurtenissen ontvangen"
+                },
+                "file": {
+                    "transfer": {
+                        "progress": "Voortgang van bestandsoverdrachten ontvangen"
+                    },
+                    "download": {
+                        "started": "Bestandsdownloadgebeurtenissen ontvangen",
+                        "cancelled": "Annuleringsgebeurtenissen van bestandsdownloads ontvangen"
+                    }
+                },
+                "shell": {
+                    "session": "Shell-sessiegebeurtenissen ontvangen",
+                    "output": "Shell-uitvoer-gebeurtenissen ontvangen"
+                },
+                "rrc": {
+                    "message": "RRC-chatberichtgebeurtenissen ontvangen"
                 }
             },
             "managers": {
@@ -1126,6 +1151,27 @@
                     "request": "Verzoek/antwoord verzenden via RNS-links",
                     "send": "Pakketten verzenden via RNS-links",
                     "close": "RNS-links sluiten"
+                },
+                "status": {
+                    "read": "Applicatiestatusoverzicht lezen"
+                },
+                "contacts": {
+                    "read": "Contactenlijst lezen"
+                },
+                "nodes": {
+                    "read": "Bekende node-aankondigingen lezen"
+                },
+                "conversations": {
+                    "list": "Berichtgesprekken weergeven"
+                },
+                "messages": {
+                    "read": "Berichtgeschiedenis lezen"
+                },
+                "message": {
+                    "send": "LXMF-berichten verzenden"
+                },
+                "telemetry": {
+                    "read": "Telemetriegegevens van peers lezen"
                 }
             },
             "storage": {
@@ -1135,7 +1181,8 @@
                 "fetch": "Uitgaande internet-HTTP-verzoeken doen"
             },
             "clipboard": {
-                "write": "Schrijven naar het klembord van het systeem"
+                "write": "Schrijven naar het klembord van het systeem",
+                "read": "Lezen vanaf het systeembordinventaris"
             },
             "map": {
                 "read": "Kaartweergavestatus en kaartklik-/verplaatsingsgebeurtenissen lezen",

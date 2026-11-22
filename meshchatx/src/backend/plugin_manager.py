@@ -895,6 +895,9 @@ class PluginManager:
             ),
             storage_get=lambda key: self.storage_get(record.id, key),
             storage_set=lambda key, value: self.storage_set(record.id, key, value),
+            storage_delete=lambda key: self.storage_delete(record.id, key),
+            storage_list=lambda: self.storage_list(record.id),
+            storage_clear=lambda: self.storage_clear(record.id),
             network_fetch_allowed=lambda: self.network_fetch_allowed(record.id),
         )
 
@@ -999,6 +1002,8 @@ class PluginManager:
         record = self._require_plugin(plugin_id)
         if not self._storage_allowed(record):
             raise PermissionError("storage permission not granted")
+        if not isinstance(key, str) or not key or len(key) > 256:
+            raise ValueError("storage key must be 1-256 chars")
         with sqlite3.connect(self.state_db_path) as conn:
             row = conn.execute(
                 "SELECT storage_value FROM plugin_storage WHERE plugin_id = ? AND storage_key = ?",
@@ -1027,6 +1032,44 @@ class PluginManager:
                 (plugin_id, key, value),
             )
             conn.commit()
+
+    def storage_delete(self, plugin_id: str, key: str) -> bool:
+        record = self._require_plugin(plugin_id)
+        if not self._storage_allowed(record):
+            raise PermissionError("storage permission not granted")
+        if not isinstance(key, str) or not key or len(key) > 256:
+            raise ValueError("storage key must be 1-256 chars")
+        with sqlite3.connect(self.state_db_path) as conn:
+            cursor = conn.execute(
+                "DELETE FROM plugin_storage WHERE plugin_id = ? AND storage_key = ?",
+                (plugin_id, key),
+            )
+            conn.commit()
+        return cursor.rowcount > 0
+
+    def storage_list(self, plugin_id: str, limit: int = 500) -> list[str]:
+        record = self._require_plugin(plugin_id)
+        if not self._storage_allowed(record):
+            raise PermissionError("storage permission not granted")
+        limit = max(1, min(int(limit or 500), 1000))
+        with sqlite3.connect(self.state_db_path) as conn:
+            rows = conn.execute(
+                "SELECT storage_key FROM plugin_storage WHERE plugin_id = ? ORDER BY storage_key LIMIT ?",
+                (plugin_id, limit),
+            ).fetchall()
+        return [row[0] for row in rows]
+
+    def storage_clear(self, plugin_id: str) -> int:
+        record = self._require_plugin(plugin_id)
+        if not self._storage_allowed(record):
+            raise PermissionError("storage permission not granted")
+        with sqlite3.connect(self.state_db_path) as conn:
+            cursor = conn.execute(
+                "DELETE FROM plugin_storage WHERE plugin_id = ?",
+                (plugin_id,),
+            )
+            conn.commit()
+        return cursor.rowcount
 
     def network_fetch_allowed(self, plugin_id: str) -> bool:
         record = self._require_plugin(plugin_id)
@@ -1059,6 +1102,20 @@ class PluginManager:
             return self._rns_link_send(args)
         if capability == "rnsLink.close":
             return self._rns_link_close(args)
+        if capability == "status.read":
+            return self._status_read(args)
+        if capability == "contacts.read":
+            return self._contacts_read(args)
+        if capability == "nodes.read":
+            return self._nodes_read(args)
+        if capability == "conversations.list":
+            return self._conversations_list(args)
+        if capability == "messages.read":
+            return self._messages_read(args)
+        if capability == "message.send":
+            return self._message_send(args)
+        if capability == "telemetry.read":
+            return self._telemetry_read(args)
         raise ValueError(f"unknown capability: {capability}")
 
     def _debug_log_read(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -1118,6 +1175,343 @@ class PluginManager:
                 copy["message"] = redact_diagnostic_text(message)
             redacted.append(copy)
         return {"logs": redacted, "total": total, "limit": limit}
+
+    def _status_read(self, args: dict[str, Any]) -> dict[str, Any]:
+        """Return a narrow, secret-free snapshot of application status."""
+        from meshchatx.src.backend.privacy_mode import privacy_mode_enabled
+
+        app = self.app
+        counts: dict[str, int] = {}
+        database = getattr(app, "database", None) if app is not None else None
+        provider = getattr(database, "provider", None) if database is not None else None
+        if provider is not None:
+            for table in (
+                "contacts",
+                "announces",
+                "lxmf_messages",
+                "lxmf_telemetry",
+            ):
+                try:
+                    row = provider.fetchone(f"SELECT COUNT(*) AS n FROM {table}")
+                    counts[table] = int((row or {}).get("n") or 0)
+                except Exception:
+                    counts[table] = -1
+        version = ""
+        for attr in ("version", "app_version", "VERSION"):
+            candidate = getattr(app, attr, None) if app is not None else None
+            if candidate:
+                version = str(candidate)
+                break
+        return ok_result(
+            version=version,
+            privacy_mode=privacy_mode_enabled(getattr(app, "config", None)),
+            plugins_enabled=bool(getattr(app, "plugins_enabled", True)),
+            counts=counts,
+        )
+
+    _CONTACT_READ_FIELDS = (
+        "id",
+        "name",
+        "remote_identity_hash",
+        "lxmf_address",
+        "lxst_address",
+        "created_at",
+        "updated_at",
+    )
+
+    def _contacts_read(self, args: dict[str, Any]) -> dict[str, Any]:
+        database = getattr(self.app, "database", None) if self.app else None
+        contacts_dao = getattr(database, "contacts", None) if database else None
+        if contacts_dao is None:
+            raise RuntimeError("contacts store is not available")
+        limit = max(1, min(int(args.get("limit") or 100), 500))
+        try:
+            offset = max(0, int(args.get("offset") or 0))
+        except (TypeError, ValueError):
+            offset = 0
+        search = args.get("search")
+        if search is not None and not isinstance(search, str):
+            raise ValueError("search must be a string")
+        rows = contacts_dao.get_contacts(
+            search=search or None,
+            limit=limit,
+            offset=offset,
+        )
+        total = contacts_dao.get_contacts_count(search=search or None)
+        contacts = [
+            {key: row[key] for key in self._CONTACT_READ_FIELDS if key in row}
+            for row in rows or []
+            if isinstance(row, dict)
+        ]
+        return ok_result(
+            contacts=contacts, total=int(total or 0), limit=limit, offset=offset
+        )
+
+    _ANNOUNCE_READ_FIELDS = (
+        "destination_hash",
+        "identity_hash",
+        "aspect",
+        "app_data",
+        "timestamp",
+        "updated_at",
+        "propagation_node_count",
+    )
+
+    def _nodes_read(self, args: dict[str, Any]) -> dict[str, Any]:
+        database = getattr(self.app, "database", None) if self.app else None
+        announces_dao = getattr(database, "announces", None) if database else None
+        if announces_dao is None:
+            raise RuntimeError("announces store is not available")
+        limit = max(1, min(int(args.get("limit") or 200), 500))
+        try:
+            offset = max(0, int(args.get("offset") or 0))
+        except (TypeError, ValueError):
+            offset = 0
+        aspect = args.get("aspect")
+        if aspect is not None and not isinstance(aspect, str):
+            raise ValueError("aspect must be a string")
+        rows = announces_dao.get_announces(
+            aspect=aspect or None,
+            limit=limit,
+            offset=offset,
+        )
+        nodes = [
+            {key: row[key] for key in self._ANNOUNCE_READ_FIELDS if key in row}
+            for row in rows or []
+            if isinstance(row, dict)
+        ]
+        return ok_result(nodes=nodes, limit=limit, offset=offset)
+
+    def _conversations_list(self, args: dict[str, Any]) -> dict[str, Any]:
+        handler = getattr(self.app, "message_handler", None) if self.app else None
+        if handler is None:
+            raise RuntimeError("message handler is not available")
+        limit = max(1, min(int(args.get("limit") or 100), 500))
+        try:
+            offset = max(0, int(args.get("offset") or 0))
+        except (TypeError, ValueError):
+            offset = 0
+        search = args.get("search")
+        if search is not None and not isinstance(search, str):
+            raise ValueError("search must be a string")
+        local_hash = self._local_lxmf_hash()
+        rows = handler.get_conversations(
+            local_hash,
+            search=search or None,
+            limit=limit,
+            offset=offset,
+        )
+        conversations = [self._sanitize_conversation_row(row) for row in rows or []]
+        return ok_result(
+            conversations=conversations,
+            limit=limit,
+            offset=offset,
+        )
+
+    _CONVERSATION_READ_FIELDS = (
+        "id",
+        "hash",
+        "peer_hash",
+        "state",
+        "progress",
+        "is_incoming",
+        "title",
+        "timestamp",
+        "is_spam",
+        "reply_to_hash",
+        "has_image",
+        "has_audio",
+        "has_files",
+        "has_reaction",
+        "has_telemetry",
+        "has_attachments",
+        "contact_name",
+        "custom_display_name",
+        "peer_app_data",
+        "is_contact",
+        "failed_count",
+        "folder_id",
+        "folder_name",
+        "created_at",
+        "updated_at",
+    )
+
+    @staticmethod
+    def _sanitize_conversation_row(row: Any) -> dict[str, Any]:
+        if not isinstance(row, dict):
+            return {}
+        return {
+            key: row[key]
+            for key in PluginManager._CONVERSATION_READ_FIELDS
+            if key in row
+        }
+
+    def _messages_read(self, args: dict[str, Any]) -> dict[str, Any]:
+        from meshchatx.src.backend.lxmf_utils import (
+            convert_db_lxmf_message_to_dict,
+        )
+
+        handler = getattr(self.app, "message_handler", None) if self.app else None
+        if handler is None:
+            raise RuntimeError("message handler is not available")
+        peer_hash = args.get("peer_hash") or args.get("destination_hash")
+        if not isinstance(peer_hash, str) or not peer_hash:
+            raise ValueError("peer_hash is required")
+        limit = max(1, min(int(args.get("limit") or 50), 200))
+        try:
+            offset = max(0, int(args.get("offset") or 0))
+        except (TypeError, ValueError):
+            offset = 0
+        local_hash = self._local_lxmf_hash()
+        rows = handler.get_conversation_messages(
+            local_hash,
+            peer_hash,
+            limit=limit,
+            offset=offset,
+        )
+        messages = [
+            convert_db_lxmf_message_to_dict(row, include_attachments=False)
+            for row in rows or []
+            if isinstance(row, dict)
+        ]
+        return ok_result(
+            messages=messages,
+            peer_hash=peer_hash,
+            limit=limit,
+            offset=offset,
+        )
+
+    _MESSAGE_SEND_MAX_CONTENT = 128 * 1024
+    _HEX_HASH_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+
+    def _local_lxmf_hash(self) -> str:
+        destination = getattr(self.app, "local_lxmf_destination", None)
+        digest = getattr(destination, "hash", None)
+        if digest is None:
+            return ""
+        return digest.hex() if isinstance(digest, (bytes, bytearray)) else str(digest)
+
+    def _message_send(self, args: dict[str, Any]) -> dict[str, Any]:
+        from meshchatx.src.backend.demo_mode import demo_mode_active
+
+        if self.app is None:
+            raise RuntimeError("app is not available")
+        if demo_mode_active(self.app):
+            raise PermissionError("message sending is disabled in demo mode")
+        send_message = getattr(self.app, "send_message", None)
+        if send_message is None:
+            raise RuntimeError("send_message is not available")
+        destination_hash = args.get("destination_hash")
+        if not isinstance(destination_hash, str) or not self._HEX_HASH_RE.match(
+            destination_hash
+        ):
+            raise ValueError("destination_hash must be a 32-byte hex string")
+        content = args.get("content")
+        if isinstance(content, bytes):
+            content = content.decode("utf-8", errors="replace")
+        if not isinstance(content, str):
+            raise ValueError("content must be a string")
+        if (
+            len(content.encode("utf-8", errors="replace"))
+            > self._MESSAGE_SEND_MAX_CONTENT
+        ):
+            raise ValueError("content exceeds 128 KiB limit")
+        title = args.get("title") or ""
+        if not isinstance(title, str):
+            raise ValueError("title must be a string")
+        if len(title) > 500:
+            raise ValueError("title exceeds 500 characters")
+        reply_to_hash = args.get("reply_to_hash")
+        if reply_to_hash is not None and (
+            not isinstance(reply_to_hash, str)
+            or not self._HEX_HASH_RE.match(reply_to_hash)
+        ):
+            raise ValueError("reply_to_hash must be a 32-byte hex string")
+        self._await_rns_link_coro(
+            send_message(
+                destination_hash=destination_hash,
+                content=content,
+                title=title,
+                reply_to_hash=reply_to_hash,
+            ),
+        )
+        return ok_result(destination_hash=destination_hash)
+
+    _TELEMETRY_READ_FIELDS = (
+        "destination_hash",
+        "timestamp",
+        "telemetry",
+        "physical_link",
+        "updated_at",
+    )
+
+    @staticmethod
+    def _shape_telemetry_row(row: Any) -> dict[str, Any]:
+        """Shape a raw lxmf_telemetry row like the telemetry HTTP routes.
+
+        The stored ``data`` column is a packed BLOB; returning it raw would
+        both leak the encoding and break JSON serialization, so it is
+        unpacked through Telemeter and only whitelisted fields survive.
+        """
+        from meshchatx.src.backend.telemetry_utils import Telemeter
+
+        if not isinstance(row, dict):
+            return {}
+        telemetry = None
+        try:
+            telemetry = Telemeter.from_packed(row.get("data"))
+        except Exception:
+            telemetry = None
+        physical_link = row.get("physical_link")
+        if isinstance(physical_link, str):
+            try:
+                physical_link = json.loads(physical_link)
+            except (TypeError, ValueError):
+                physical_link = None
+        shaped = {
+            "destination_hash": row.get("destination_hash"),
+            "timestamp": row.get("timestamp"),
+            "telemetry": telemetry,
+            "physical_link": physical_link,
+            "updated_at": row.get("updated_at"),
+        }
+        return {key: shaped[key] for key in PluginManager._TELEMETRY_READ_FIELDS}
+
+    def _telemetry_read(self, args: dict[str, Any]) -> dict[str, Any]:
+        database = getattr(self.app, "database", None) if self.app else None
+        telemetry_dao = getattr(database, "telemetry", None) if database else None
+        if telemetry_dao is None:
+            raise RuntimeError("telemetry store is not available")
+        destination_hash = args.get("destination_hash") or args.get("peer_hash")
+        if destination_hash is not None and (
+            not isinstance(destination_hash, str) or not destination_hash
+        ):
+            raise ValueError("destination_hash must be a string")
+        if destination_hash:
+            limit = max(1, min(int(args.get("limit") or 50), 200))
+            try:
+                offset = max(0, int(args.get("offset") or 0))
+            except (TypeError, ValueError):
+                offset = 0
+            rows = telemetry_dao.get_telemetry_history(
+                destination_hash,
+                limit=limit,
+                offset=offset,
+            )
+            return ok_result(
+                telemetry=[self._shape_telemetry_row(row) for row in rows or []],
+                destination_hash=destination_hash,
+                limit=limit,
+                offset=offset,
+            )
+        limit = max(1, min(int(args.get("limit") or 200), 500))
+        rows = telemetry_dao.get_all_latest_telemetry()
+        telemetry = [self._shape_telemetry_row(row) for row in rows or []]
+        return ok_result(
+            telemetry=telemetry[:limit],
+            total=len(telemetry),
+            limit=limit,
+        )
 
     def _require_rns_link_manager(self):
         if not self.app:

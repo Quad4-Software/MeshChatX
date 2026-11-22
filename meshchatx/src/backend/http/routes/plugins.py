@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from urllib.parse import urljoin, urlparse
 
 from aiohttp import web
 
@@ -256,6 +257,253 @@ def register_plugins_routes(routes, app):
             return http_not_found("Plugin not found")
         except PermissionError as e:
             return http_forbidden(str(e))
+        except Exception as e:
+            return http_error_from_exception(e, key="message")
+
+    @routes.post(API_V1_PREFIX + "/plugins/{plugin_id}/storage")
+    async def plugins_storage(request):
+        if not app.plugins_enabled:
+            return http_forbidden("Plugins are disabled")
+        plugin_id = request.match_info["plugin_id"]
+        try:
+            data = await read_json_limited(request)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            data = {}
+        if not isinstance(data, dict):
+            return http_bad_request("body must be an object")
+        plugin = next(
+            (
+                item
+                for item in app.plugin_manager.list_plugins()
+                if item.get("id") == plugin_id
+            ),
+            None,
+        )
+        if plugin is None:
+            return http_not_found("Plugin not found")
+        if not plugin.get("enabled"):
+            return http_forbidden("Plugin is disabled")
+        action = data.get("action")
+        key = data.get("key")
+        value = data.get("value")
+        try:
+            if action == "get":
+                result = app.plugin_manager.storage_get(plugin_id, key)
+                return web.json_response({"result": {"value": result}})
+            if action == "set":
+                app.plugin_manager.storage_set(plugin_id, key, value)
+                return web.json_response({"result": {"ok": True}})
+            if action == "delete":
+                deleted = app.plugin_manager.storage_delete(plugin_id, key)
+                return web.json_response({"result": {"deleted": deleted}})
+            if action == "list":
+                keys = app.plugin_manager.storage_list(plugin_id)
+                return web.json_response({"result": {"keys": keys}})
+            if action == "clear":
+                removed = app.plugin_manager.storage_clear(plugin_id)
+                return web.json_response({"result": {"removed": removed}})
+            return http_bad_request("unknown storage action")
+        except KeyError:
+            return http_not_found("Plugin not found")
+        except PermissionError as e:
+            return http_forbidden(str(e))
+        except ValueError as e:
+            return http_bad_request(str(e))
+        except Exception as e:
+            return http_error_from_exception(e, key="message")
+
+    @routes.post(API_V1_PREFIX + "/plugins/{plugin_id}/fetch")
+    async def plugins_fetch(request):
+        if not app.plugins_enabled:
+            return http_forbidden("Plugins are disabled")
+        plugin_id = request.match_info["plugin_id"]
+        try:
+            data = await read_json_limited(request, 512 * 1024)
+        except PayloadTooLargeError:
+            return http_payload_too_large()
+        except Exception:
+            data = {}
+        if not isinstance(data, dict):
+            return http_bad_request("body must be an object")
+        try:
+            if not app.plugin_manager.network_fetch_allowed(plugin_id):
+                return http_forbidden("network:fetch permission not granted")
+        except KeyError:
+            return http_not_found("Plugin not found")
+        from meshchatx.src.backend.privacy_mode import (
+            OutboundHttpBlockedError,
+            ensure_outbound_http_allowed,
+        )
+
+        try:
+            ensure_outbound_http_allowed(
+                getattr(app, "config", None),
+                feature="plugin fetch",
+            )
+        except OutboundHttpBlockedError as e:
+            return http_forbidden(str(e))
+        from meshchatx.src.backend.plugin_permissions import (
+            is_allowed_plugin_fetch_url,
+            plugin_fetch_host_resolves_public,
+        )
+
+        url = data.get("url")
+        if not is_allowed_plugin_fetch_url(url):
+            return http_bad_request("url is not allowed")
+        method = str(data.get("method") or "GET").upper()
+        allowed_methods = {"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
+        if method not in allowed_methods:
+            return http_bad_request("method is not allowed")
+        headers = data.get("headers") or {}
+        if not isinstance(headers, dict) or len(headers) > 32:
+            return http_bad_request("headers must be an object with at most 32 entries")
+        clean_headers = {}
+        stripped_headers = {
+            "host",
+            "content-length",
+            "transfer-encoding",
+            "connection",
+            "keep-alive",
+            "proxy-authenticate",
+            "proxy-authorization",
+            "te",
+            "trailer",
+            "upgrade",
+        }
+        for name, header_value in headers.items():
+            if not isinstance(name, str) or not isinstance(header_value, str):
+                return http_bad_request("headers must map strings to strings")
+            if len(name) > 128 or len(header_value) > 4096:
+                return http_bad_request("header entry too large")
+            if any(ch in name + header_value for ch in "\r\n"):
+                return http_bad_request("header entries must not contain newlines")
+            if name.strip().lower() in stripped_headers:
+                continue
+            clean_headers[name] = header_value
+        body = data.get("body")
+        if body is not None and not isinstance(body, str):
+            return http_bad_request("body must be a string")
+        if (
+            body is not None
+            and len(body.encode("utf-8", errors="replace")) > 256 * 1024
+        ):
+            return http_bad_request("body exceeds 256 KiB limit")
+
+        import aiohttp
+
+        timeout = aiohttp.ClientTimeout(total=20)
+        max_response_bytes = 1024 * 1024
+        max_redirects = 3
+        # Per-request timeout is 20s; cap the whole redirect chain plus DNS
+        # lookups at 30s so a plugin cannot hold a handler open indefinitely.
+        deadline = asyncio.get_running_loop().time() + 30.0
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                current_url = url
+                current_method = method
+                current_body = body
+                current_headers = dict(clean_headers)
+                for _hop in range(max_redirects + 1):
+                    remaining = deadline - asyncio.get_running_loop().time()
+                    if remaining <= 0:
+                        return http_bad_request("fetch timed out")
+                    try:
+                        async with asyncio.timeout(remaining):
+                            if not is_allowed_plugin_fetch_url(current_url):
+                                return http_bad_request(
+                                    "redirect target is not allowed"
+                                )
+                            if not await plugin_fetch_host_resolves_public(current_url):
+                                return http_forbidden(
+                                    "url does not resolve to a public address"
+                                )
+                            async with session.request(
+                                current_method,
+                                current_url,
+                                headers=current_headers or None,
+                                data=current_body if current_body is not None else None,
+                                allow_redirects=False,
+                            ) as response:
+                                if response.status in (
+                                    301,
+                                    302,
+                                    303,
+                                    307,
+                                    308,
+                                ) and response.headers.get("location"):
+                                    if _hop == max_redirects:
+                                        return http_bad_request("too many redirects")
+                                    location = response.headers["location"]
+                                    next_url = urljoin(current_url, location)
+                                    # Do not leak plugin-supplied credentials to a
+                                    # different origin on redirect.
+                                    try:
+                                        current_parsed = urlparse(current_url)
+                                        next_parsed = urlparse(next_url)
+                                        same_origin = (
+                                            next_parsed.scheme == current_parsed.scheme
+                                            and next_parsed.hostname
+                                            == current_parsed.hostname
+                                            and (next_parsed.port or None)
+                                            == (current_parsed.port or None)
+                                        )
+                                    except ValueError:
+                                        same_origin = False
+                                    if not same_origin:
+                                        current_headers = {
+                                            key: value
+                                            for key, value in current_headers.items()
+                                            if key.lower()
+                                            not in (
+                                                "authorization",
+                                                "cookie",
+                                                "proxy-authorization",
+                                            )
+                                        }
+                                    if response.status == 303 or (
+                                        response.status in (301, 302)
+                                        and current_method not in ("GET", "HEAD")
+                                    ):
+                                        current_method = "GET"
+                                        current_body = None
+                                    current_url = next_url
+                                    continue
+                                raw = await response.content.read(
+                                    max_response_bytes + 1
+                                )
+                                truncated = len(raw) > max_response_bytes
+                                raw = raw[:max_response_bytes]
+                                text = raw.decode("utf-8", errors="replace")
+                                response_headers = {
+                                    key: value
+                                    for key, value in response.headers.items()
+                                    if key.lower()
+                                    not in (
+                                        "set-cookie",
+                                        "set-cookie2",
+                                        # aiohttp already decoded the body;
+                                        # these would describe the wire form.
+                                        "content-encoding",
+                                        "content-length",
+                                    )
+                                }
+                                return web.json_response(
+                                    {
+                                        "result": {
+                                            "status": response.status,
+                                            "status_text": response.reason or "",
+                                            "headers": response_headers,
+                                            "body": text,
+                                            "truncated": truncated,
+                                            "url": current_url,
+                                        }
+                                    }
+                                )
+                    except TimeoutError:
+                        return http_bad_request("fetch timed out")
+                return http_bad_request("too many redirects")
         except Exception as e:
             return http_error_from_exception(e, key="message")
 

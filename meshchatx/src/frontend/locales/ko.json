@@ -1111,6 +1111,31 @@
                     "link": {
                         "event": "RNS 링크 패킷 및 종료 이벤트 수신"
                     }
+                },
+                "lxmf": {
+                    "message": {
+                        "created": "새 메시지 이벤트 수신",
+                        "deleted": "메시지 삭제 이벤트 수신",
+                        "state": "메시지 상태 업데이트 이벤트 수신"
+                    },
+                    "delivery": "메시지 전달 이벤트 수신",
+                    "telemetry": "텔레메트리 이벤트 수신"
+                },
+                "file": {
+                    "transfer": {
+                        "progress": "파일 전송 진행 이벤트 수신"
+                    },
+                    "download": {
+                        "started": "파일 다운로드 이벤트 수신",
+                        "cancelled": "파일 다운로드 취소 이벤트 수신"
+                    }
+                },
+                "shell": {
+                    "session": "셸 세션 이벤트 수신",
+                    "output": "셸 출력 이벤트 수신"
+                },
+                "rrc": {
+                    "message": "RRC 채팅 메시지 이벤트 수신"
                 }
             },
             "managers": {
@@ -1126,6 +1151,27 @@
                     "request": "RNS 링크로 요청/응답 전송",
                     "send": "RNS 링크로 패킷 전송",
                     "close": "RNS 링크 닫기"
+                },
+                "status": {
+                    "read": "애플리케이션 상태 요약 읽기"
+                },
+                "contacts": {
+                    "read": "연락처 목록 읽기"
+                },
+                "nodes": {
+                    "read": "알려진 노드 공지 읽기"
+                },
+                "conversations": {
+                    "list": "메시지 대화 나열"
+                },
+                "messages": {
+                    "read": "메시지 기록 읽기"
+                },
+                "message": {
+                    "send": "LXMF 메시지 보내기"
+                },
+                "telemetry": {
+                    "read": "피어 텔레메트리 데이터 읽기"
                 }
             },
             "storage": {
@@ -1135,7 +1181,8 @@
                 "fetch": "아웃바운드 인터넷 HTTP 요청 수행"
             },
             "clipboard": {
-                "write": "시스템 클립보드에 쓰기"
+                "write": "시스템 클립보드에 쓰기",
+                "read": "시스템 클립보드에서 읽기"
             },
             "map": {
                 "read": "지도 보기 상태와 클릭/이동 이벤트 읽기",

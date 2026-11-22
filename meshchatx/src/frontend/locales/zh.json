@@ -1111,6 +1111,31 @@
                     "link": {
                         "event": "接收 RNS 链路数据包和关闭事件"
                     }
+                },
+                "lxmf": {
+                    "message": {
+                        "created": "接收新消息事件",
+                        "deleted": "接收消息删除事件",
+                        "state": "接收消息状态更新事件"
+                    },
+                    "delivery": "接收消息投递事件",
+                    "telemetry": "接收遥测事件"
+                },
+                "file": {
+                    "transfer": {
+                        "progress": "接收文件传输进度事件"
+                    },
+                    "download": {
+                        "started": "接收文件下载事件",
+                        "cancelled": "接收文件下载取消事件"
+                    }
+                },
+                "shell": {
+                    "session": "接收 shell 会话事件",
+                    "output": "接收 shell 输出事件"
+                },
+                "rrc": {
+                    "message": "接收 RRC 聊天消息事件"
                 }
             },
             "managers": {
@@ -1126,6 +1151,27 @@
                     "request": "通过RNS链路发送请求/响应",
                     "send": "通过RNS链路发送数据包",
                     "close": "关闭 RNS 链路"
+                },
+                "status": {
+                    "read": "读取应用状态摘要"
+                },
+                "contacts": {
+                    "read": "读取联系人列表"
+                },
+                "nodes": {
+                    "read": "读取已知节点公告"
+                },
+                "conversations": {
+                    "list": "列出消息会话"
+                },
+                "messages": {
+                    "read": "读取消息历史"
+                },
+                "message": {
+                    "send": "发送 LXMF 消息"
+                },
+                "telemetry": {
+                    "read": "读取对端遥测数据"
                 }
             },
             "storage": {
@@ -1135,7 +1181,8 @@
                 "fetch": "发起出站互联网HTTP请求"
             },
             "clipboard": {
-                "write": "写入系统剪贴板"
+                "write": "写入系统剪贴板",
+                "read": "从系统剪贴板读取"
             },
             "map": {
                 "read": "读取地图视图状态和点击/移动事件",

@@ -24,12 +24,18 @@ class PluginPythonHost:
         storage_get: Callable[[str], str | None],
         storage_set: Callable[[str, str], None],
         network_fetch_allowed: Callable[[], bool],
+        storage_delete: Callable[[str], bool] | None = None,
+        storage_list: Callable[[], list[str]] | None = None,
+        storage_clear: Callable[[], int] | None = None,
     ):
         self.plugin_id = plugin_id
         self._log = log
         self._call_manager = call_manager
         self._storage_get = storage_get
         self._storage_set = storage_set
+        self._storage_delete = storage_delete
+        self._storage_list = storage_list
+        self._storage_clear = storage_clear
         self._network_fetch_allowed = network_fetch_allowed
         self._logs: list[str] = []
 
@@ -45,6 +51,21 @@ class PluginPythonHost:
 
     def storage_set(self, key: str, value: str) -> None:
         self._storage_set(key, value)
+
+    def storage_delete(self, key: str) -> bool:
+        if self._storage_delete is None:
+            raise RuntimeError("storage delete is not available")
+        return self._storage_delete(key)
+
+    def storage_list(self) -> list[str]:
+        if self._storage_list is None:
+            raise RuntimeError("storage list is not available")
+        return self._storage_list()
+
+    def storage_clear(self) -> int:
+        if self._storage_clear is None:
+            raise RuntimeError("storage clear is not available")
+        return self._storage_clear()
 
     def network_fetch_allowed(self) -> bool:
         return self._network_fetch_allowed()

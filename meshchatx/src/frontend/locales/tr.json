@@ -1111,6 +1111,31 @@
                     "link": {
                         "event": "RNS bağlantı paketi ve kapanış olaylarını al"
                     }
+                },
+                "lxmf": {
+                    "message": {
+                        "created": "Yeni mesaj olaylarını al",
+                        "deleted": "Mesaj silme olaylarını al",
+                        "state": "Mesaj durumu güncelleme olaylarını al"
+                    },
+                    "delivery": "Mesaj teslim olaylarını al",
+                    "telemetry": "Telemetri olaylarını al"
+                },
+                "file": {
+                    "transfer": {
+                        "progress": "Dosya aktarım ilerleme olaylarını al"
+                    },
+                    "download": {
+                        "started": "Dosya indirme olaylarını al",
+                        "cancelled": "Dosya indirme iptal olaylarını al"
+                    }
+                },
+                "shell": {
+                    "session": "Kabuk oturumu olaylarını al",
+                    "output": "Kabuk çıktı olaylarını al"
+                },
+                "rrc": {
+                    "message": "RRC sohbet mesajı olaylarını al"
                 }
             },
             "managers": {
@@ -1126,6 +1151,27 @@
                     "request": "RNS bağlantıları üzerinden istek/yanıt gönder",
                     "send": "RNS bağlantıları üzerinden paket gönder",
                     "close": "RNS bağlantılarını kapat"
+                },
+                "status": {
+                    "read": "Uygulama durumu özetini oku"
+                },
+                "contacts": {
+                    "read": "Kişi listesini oku"
+                },
+                "nodes": {
+                    "read": "Bilinen düğüm duyurularını oku"
+                },
+                "conversations": {
+                    "list": "Mesaj görüşmelerini listele"
+                },
+                "messages": {
+                    "read": "Mesaj geçmişini oku"
+                },
+                "message": {
+                    "send": "LXMF mesajları gönder"
+                },
+                "telemetry": {
+                    "read": "Eş telemetri verilerini oku"
                 }
             },
             "storage": {
@@ -1135,7 +1181,8 @@
                 "fetch": "Giden internet HTTP istekleri yap"
             },
             "clipboard": {
-                "write": "Sistem panosuna yazma"
+                "write": "Sistem panosuna yazma",
+                "read": "Sistem panosundan oku"
             },
             "map": {
                 "read": "Harita görünümü durumunu ve tıklama/taşıma olaylarını okuma",

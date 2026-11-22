@@ -1111,6 +1111,31 @@
                     "link": {
                         "event": "Vastaanota RNS-linkkipaketti- ja sulkemistapahtumia"
                     }
+                },
+                "lxmf": {
+                    "message": {
+                        "created": "Vastaanota uusia viestitapahtumia",
+                        "deleted": "Vastaanota viestin poistotapahtumia",
+                        "state": "Vastaanota viestin tilan päivitystapahtumia"
+                    },
+                    "delivery": "Vastaanota viestin toimitustapahtumia",
+                    "telemetry": "Vastaanota telemetriatapahtumia"
+                },
+                "file": {
+                    "transfer": {
+                        "progress": "Vastaanota tiedostonsiirron edistymistapahtumia"
+                    },
+                    "download": {
+                        "started": "Vastaanota tiedostolataustapahtumia",
+                        "cancelled": "Vastaanota tiedostolatauksen peruutustapahtumia"
+                    }
+                },
+                "shell": {
+                    "session": "Vastaanota kuoritapahtumia",
+                    "output": "Vastaanota kuorin tulostustapahtumia"
+                },
+                "rrc": {
+                    "message": "Vastaanota RRC-chat-viestitapahtumia"
                 }
             },
             "managers": {
@@ -1126,6 +1151,27 @@
                     "request": "Lähetä pyyntö/vastaus RNS-linkkien yli",
                     "send": "Lähetä paketteja RNS-linkkien yli",
                     "close": "Sulje RNS-linkkejä"
+                },
+                "status": {
+                    "read": "Lue sovelluksen tilayhteenveto"
+                },
+                "contacts": {
+                    "read": "Lue kontaktiluettelo"
+                },
+                "nodes": {
+                    "read": "Lue tunnettujen solmujen ilmoitukset"
+                },
+                "conversations": {
+                    "list": "Listaa viestikeskustelut"
+                },
+                "messages": {
+                    "read": "Lue viestihistoria"
+                },
+                "message": {
+                    "send": "Lähetä LXMF-viestejä"
+                },
+                "telemetry": {
+                    "read": "Lue vertaistelemetriatietoja"
                 }
             },
             "storage": {
@@ -1135,7 +1181,8 @@
                 "fetch": "Tee ulospäin suuntautuvia internet-HTTP-pyyntöjä"
             },
             "clipboard": {
-                "write": "Kirjoita järjestelmän leikepöydälle"
+                "write": "Kirjoita järjestelmän leikepöydälle",
+                "read": "Lue järjestelmän leikepöydältä"
             },
             "map": {
                 "read": "Lue karttanäkymän tila ja kartan napsautus- ja siirtotapahtumat",

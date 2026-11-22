@@ -1111,6 +1111,31 @@
                     "link": {
                         "event": "Odbieranie zdarzeń pakietów i zamknięć linków RNS"
                     }
+                },
+                "lxmf": {
+                    "message": {
+                        "created": "Odbieraj zdarzenia nowych wiadomości",
+                        "deleted": "Odbieraj zdarzenia usuwania wiadomości",
+                        "state": "Odbieraj zdarzenia aktualizacji stanu wiadomości"
+                    },
+                    "delivery": "Odbieraj zdarzenia dostarczania wiadomości",
+                    "telemetry": "Odbieraj zdarzenia telemetrii"
+                },
+                "file": {
+                    "transfer": {
+                        "progress": "Odbieraj zdarzenia postępu transferu plików"
+                    },
+                    "download": {
+                        "started": "Odbieraj zdarzenia pobierania plików",
+                        "cancelled": "Odbieraj zdarzenia anulowania pobierania plików"
+                    }
+                },
+                "shell": {
+                    "session": "Odbieraj zdarzenia sesji powłoki",
+                    "output": "Odbieraj zdarzenia wyjścia powłoki"
+                },
+                "rrc": {
+                    "message": "Odbieraj zdarzenia wiadomości czatu RRC"
                 }
             },
             "managers": {
@@ -1126,6 +1151,27 @@
                     "request": "Wysyłanie żądań/odpowiedzi przez linki RNS",
                     "send": "Wysyłanie pakietów przez linki RNS",
                     "close": "Zamykanie linków RNS"
+                },
+                "status": {
+                    "read": "Odczytaj podsumowanie stanu aplikacji"
+                },
+                "contacts": {
+                    "read": "Odczytaj listę kontaktów"
+                },
+                "nodes": {
+                    "read": "Odczytaj ogłoszenia znanych węzłów"
+                },
+                "conversations": {
+                    "list": "Wyświetl listę konwersacji"
+                },
+                "messages": {
+                    "read": "Odczytaj historię wiadomości"
+                },
+                "message": {
+                    "send": "Wysyłaj wiadomości LXMF"
+                },
+                "telemetry": {
+                    "read": "Odczytaj dane telemetrii peerów"
                 }
             },
             "storage": {
@@ -1135,7 +1181,8 @@
                 "fetch": "Wykonywanie wychodzących żądań HTTP do internetu"
             },
             "clipboard": {
-                "write": "Zapisywanie do schowka systemowego"
+                "write": "Zapisywanie do schowka systemowego",
+                "read": "Odczytaj ze schowka systemowego"
             },
             "map": {
                 "read": "Odczytywanie stanu widoku mapy oraz zdarzeń kliknięcia i przesunięcia",

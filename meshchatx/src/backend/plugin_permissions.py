@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import re
@@ -14,6 +15,17 @@ KNOWN_HOOKS = frozenset(
     {
         "announce.received",
         "rns.link.event",
+        "lxmf.message.created",
+        "lxmf.message.deleted",
+        "lxmf.message.state",
+        "lxmf.delivery",
+        "lxmf.telemetry",
+        "file.transfer.progress",
+        "file.download.started",
+        "file.download.cancelled",
+        "shell.session",
+        "shell.output",
+        "rrc.message",
     },
 )
 
@@ -21,6 +33,13 @@ KNOWN_MANAGERS = frozenset(
     {
         "destinationPath.read",
         "debugLog.read",
+        "status.read",
+        "contacts.read",
+        "nodes.read",
+        "conversations.list",
+        "messages.read",
+        "message.send",
+        "telemetry.read",
         "rnsLink.open",
         "rnsLink.identify",
         "rnsLink.request",
@@ -31,10 +50,11 @@ KNOWN_MANAGERS = frozenset(
 
 KNOWN_STORAGE = frozenset({"isolated", "none"})
 KNOWN_NETWORK = frozenset({"none", "fetch"})
-KNOWN_CLIPBOARD = frozenset({"none", "write"})
+KNOWN_CLIPBOARD = frozenset({"none", "read", "write", "read-write"})
 KNOWN_UI = frozenset({"none", "sandboxed-html"})
 KNOWN_MAP = frozenset({"none", "read", "write", "read-write"})
 MAP_PERMISSION_MODES = ("read", "write")
+CLIPBOARD_PERMISSION_MODES = ("read", "write")
 PYTHON_BACKEND_PERMISSION = "backend:python"
 
 _URL_IN_TEXT_RE = re.compile(r"""https?://[^\s"'<>\\)]+""")
@@ -49,6 +69,7 @@ _LOOPBACK_OR_UNSPECIFIED_HOSTS = frozenset(
         "0.0.0.0",  # noqa: S104
     },
 )
+_NAT64_WELL_KNOWN_PREFIX = ipaddress.ip_network("64:ff9b::/96")
 
 
 def permission_id_for_hook(hook: str) -> str:
@@ -102,10 +123,23 @@ def normalize_network_mode(value: Any) -> str:
 
 
 def normalize_clipboard_mode(value: Any) -> str:
-    if value is None or value == "" or value == "none":
+    modes = normalize_clipboard_modes(value)
+    if not modes:
         return "none"
-    if isinstance(value, str) and value == "write":
-        return "write"
+    if len(modes) == 1:
+        return modes[0]
+    return "read-write"
+
+
+def normalize_clipboard_modes(value: Any) -> list[str]:
+    if value is None or value == "" or value == "none":
+        return []
+    if value == "read":
+        return ["read"]
+    if value == "write":
+        return ["write"]
+    if value == "read-write":
+        return ["read", "write"]
     # Unknown modes must not silently grant clipboard access.
     raise ValueError(f"unknown clipboard permission: {value!r}")
 
@@ -141,9 +175,10 @@ def declared_permission_ids(manifest: dict[str, Any]) -> list[str]:
     network = normalize_network_mode(permissions.get("network"))
     if network != "none":
         ids.append(permission_id_for_network(network))
-    clipboard = normalize_clipboard_mode(permissions.get("clipboard"))
-    if clipboard != "none":
-        ids.append(permission_id_for_clipboard(clipboard))
+    ids.extend(
+        permission_id_for_clipboard(mode)
+        for mode in normalize_clipboard_modes(permissions.get("clipboard"))
+    )
     ids.extend(
         permission_id_for_ui(ui_mode)
         for ui_mode in normalize_ui_modes(permissions.get("ui"))
@@ -287,6 +322,94 @@ def _is_external_http_url(value: str) -> bool:
         return True
     if _hostname_is_loopback_or_unspecified(hostname):
         return False
+    return True
+
+
+def _ip_is_public(ip) -> bool:
+    """Return True only for globally-routable addresses.
+
+    ip.is_global already rejects loopback, private, link-local, multicast,
+    reserved, and documentation ranges. It still reports the NAT64
+    well-known prefix 64:ff9b::/96 as global even when the embedded IPv4
+    destination is not, so the low 32 bits are checked separately. IPv4
+    mapped, 6to4, and Teredo forms are covered by is_global on current
+    Python versions; the mapped check is kept as a guard.
+    """
+    if not ip.is_global:
+        return False
+    if isinstance(ip, ipaddress.IPv6Address):
+        mapped = ip.ipv4_mapped
+        if mapped is not None:
+            return mapped.is_global
+        if ip in _NAT64_WELL_KNOWN_PREFIX:
+            embedded = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+            return embedded.is_global
+    return True
+
+
+def is_allowed_plugin_fetch_url(value: str) -> bool:
+    """Validate a plugin fetch URL.
+
+    Requires http(s), no userinfo, and no loopback, private, link-local,
+    multicast, or otherwise non-globally-routable IP literals.
+    """
+    if not isinstance(value, str) or not value or len(value) > 2048:
+        return False
+    if not _is_http_url(value):
+        return False
+    try:
+        parsed = urlparse(value)
+    except (ValueError, UnicodeError):
+        return False
+    if (parsed.scheme or "").lower() not in ("http", "https"):
+        return False
+    if parsed.username is not None or parsed.password is not None:
+        return False
+    hostname = parsed.hostname
+    if not hostname:
+        return False
+    host = hostname.strip().lower().strip("[]").rstrip(".")
+    if not host or host in _LOOPBACK_OR_UNSPECIFIED_HOSTS:
+        return False
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return True
+    return _ip_is_public(ip)
+
+
+async def plugin_fetch_host_resolves_public(url: str) -> bool:
+    """Check that a fetch URL's hostname resolves only to public addresses.
+
+    Blocks DNS names pointing at loopback, LAN, link-local, or otherwise
+    non-public space, including non-dotted IP forms (decimal, hex, octal)
+    that urlparse does not normalize. This is a check-time validation:
+    DNS answers are not pinned for the subsequent connection, so a
+    rebinding attacker controlling the domain's DNS could still race the
+    lookup. Treat it as defense in depth alongside the literal URL checks.
+    """
+    import asyncio
+    import socket
+
+    try:
+        parsed = urlparse(url)
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        infos = await asyncio.get_running_loop().getaddrinfo(
+            parsed.hostname,
+            port,
+            type=socket.SOCK_STREAM,
+        )
+    except (OSError, ValueError):
+        return False
+    addresses = {info[4][0].split("%")[0] for info in infos if info and info[4]}
+    if not addresses:
+        return False
+    for address in addresses:
+        try:
+            if not _ip_is_public(ipaddress.ip_address(address)):
+                return False
+        except ValueError:
+            return False
     return True
 
 

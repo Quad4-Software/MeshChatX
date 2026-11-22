@@ -1111,6 +1111,31 @@
                     "link": {
                         "event": "RNS-Link-Paket- und Schließereignisse empfangen"
                     }
+                },
+                "lxmf": {
+                    "message": {
+                        "created": "Neue Nachrichten-Ereignisse empfangen",
+                        "deleted": "Nachrichten-Lösch-Ereignisse empfangen",
+                        "state": "Nachrichten-Statusaktualisierungen empfangen"
+                    },
+                    "delivery": "Nachrichten-Zustellungsereignisse empfangen",
+                    "telemetry": "Telemetrie-Ereignisse empfangen"
+                },
+                "file": {
+                    "transfer": {
+                        "progress": "Fortschrittsereignisse von Dateiübertragungen empfangen"
+                    },
+                    "download": {
+                        "started": "Dateidownload-Ereignisse empfangen",
+                        "cancelled": "Abbruchereignisse von Dateidownloads empfangen"
+                    }
+                },
+                "shell": {
+                    "session": "Shell-Sitzungsereignisse empfangen",
+                    "output": "Shell-Ausgabeereignisse empfangen"
+                },
+                "rrc": {
+                    "message": "RRC-Chatnachrichten-Ereignisse empfangen"
                 }
             },
             "managers": {
@@ -1126,6 +1151,27 @@
                     "request": "Anfrage/Antwort über RNS-Links senden",
                     "send": "Pakete über RNS-Links senden",
                     "close": "RNS-Links schließen"
+                },
+                "status": {
+                    "read": "Anwendungsstatus-Zusammenfassung lesen"
+                },
+                "contacts": {
+                    "read": "Kontaktliste lesen"
+                },
+                "nodes": {
+                    "read": "Bekannte Knoten-Announces lesen"
+                },
+                "conversations": {
+                    "list": "Nachrichtenunterhaltungen auflisten"
+                },
+                "messages": {
+                    "read": "Nachrichtenverlauf lesen"
+                },
+                "message": {
+                    "send": "LXMF-Nachrichten senden"
+                },
+                "telemetry": {
+                    "read": "Peer-Telemetriedaten lesen"
                 }
             },
             "storage": {
@@ -1135,7 +1181,8 @@
                 "fetch": "Ausgehende Internet-HTTP-Anfragen stellen"
             },
             "clipboard": {
-                "write": "In die System-Zwischenablage schreiben"
+                "write": "In die System-Zwischenablage schreiben",
+                "read": "Aus der System-Zwischenablage lesen"
             },
             "map": {
                 "read": "Kartenansicht und Kartenklick-/Verschiebungsereignisse lesen",
