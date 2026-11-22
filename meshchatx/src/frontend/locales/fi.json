@@ -1863,7 +1863,15 @@
         "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
         "hop_limiter_label": "Hop limiter",
         "hop_limiter_placeholder": "128",
-        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default.",
+        "comports_loading": "Ladataan sarjaportteja…",
+        "comports_load_failed": "Sarjaportteja ei voitu ladata.",
+        "serial_ports_empty": "Sarjaportteja ei havaittu. Yhdistä laite ja napauta \"Refresh Ports\".",
+        "serial_ports_empty_android": "USB-sarjalaitteita ei löytynyt. Yhdistä laite USB OTG -kaapelilla, napauta \"Refresh Ports\" ja myönnä USB-käyttöoikeus pyydettäessä.",
+        "serial_port_permission_suffix": "USB-käyttöoikeus tarvitaan",
+        "usb_permission_granted": "USB-käyttöoikeus myönnetty.",
+        "usb_permission_requested": "USB-käyttöoikeutta pyydetty. Myönnä se valintaikkunassa ja napauta \"Refresh Ports\".",
+        "usb_permission_failed": "USB-käyttöoikeutta ei voitu pyytää."
     },
     "map": {
         "title": "Kartta",

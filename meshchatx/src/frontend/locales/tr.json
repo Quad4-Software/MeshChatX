@@ -1863,7 +1863,15 @@
         "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
         "hop_limiter_label": "Hop limiter",
         "hop_limiter_placeholder": "128",
-        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default.",
+        "comports_loading": "Seri portlar yükleniyor…",
+        "comports_load_failed": "Seri portlar yüklenemedi.",
+        "serial_ports_empty": "Seri port algılanmadı. Bir cihaz bağlayın ve \"Refresh Ports\" seçeneğine dokunun.",
+        "serial_ports_empty_android": "USB seri aygıt bulunamadı. Aygıtı bir USB OTG kablosuyla bağlayın, \"Refresh Ports\" seçeneğine dokunun ve istendiğinde USB erişimini verin.",
+        "serial_port_permission_suffix": "USB izni gerekli",
+        "usb_permission_granted": "USB erişimi verildi.",
+        "usb_permission_requested": "USB erişimi istendi. İletişim kutusunda verin, ardından \"Refresh Ports\" seçeneğine dokunun.",
+        "usb_permission_failed": "USB erişimi istenemedi."
     },
     "map": {
         "title": "Harita",

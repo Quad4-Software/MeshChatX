@@ -1863,7 +1863,15 @@
         "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
         "hop_limiter_label": "Hop limiter",
         "hop_limiter_placeholder": "128",
-        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default.",
+        "comports_loading": "Завантаження послідовних портів…",
+        "comports_load_failed": "Не вдалося завантажити послідовні порти.",
+        "serial_ports_empty": "Послідовні порти не виявлено. Підключіть пристрій і торкніться «Refresh Ports».",
+        "serial_ports_empty_android": "USB-пристрої з послідовним інтерфейсом не знайдено. Підключіть пристрій кабелем USB OTG, торкніться «Refresh Ports» і надайте доступ USB, коли буде запитано.",
+        "serial_port_permission_suffix": "Потрібен дозвіл USB",
+        "usb_permission_granted": "Доступ USB надано.",
+        "usb_permission_requested": "Доступ USB запитано. Надайте його у діалоговому вікні, потім торкніться «Refresh Ports».",
+        "usb_permission_failed": "Не вдалося запросити доступ USB."
     },
     "map": {
         "title": "Карта",

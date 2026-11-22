@@ -1863,7 +1863,15 @@
         "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
         "hop_limiter_label": "Hop limiter",
         "hop_limiter_placeholder": "128",
-        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default.",
+        "comports_loading": "Chargement des ports série…",
+        "comports_load_failed": "Impossible de charger les ports série.",
+        "serial_ports_empty": "Aucun port série détecté. Connectez un appareil, puis appuyez sur « Refresh Ports ».",
+        "serial_ports_empty_android": "Aucun périphérique série USB trouvé. Connectez l'appareil avec un câble USB OTG, appuyez sur « Refresh Ports » et accordez l'accès USB lorsque demandé.",
+        "serial_port_permission_suffix": "Autorisation USB requise",
+        "usb_permission_granted": "Accès USB accordé.",
+        "usb_permission_requested": "Accès USB demandé. Accordez-le dans la boîte de dialogue, puis appuyez sur « Refresh Ports ».",
+        "usb_permission_failed": "Impossible de demander l'accès USB."
     },
     "map": {
         "title": "Carte",

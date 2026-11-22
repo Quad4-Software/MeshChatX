@@ -1863,7 +1863,15 @@
         "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
         "hop_limiter_label": "Hop limiter",
         "hop_limiter_placeholder": "128",
-        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default.",
+        "comports_loading": "Serielle Ports werden geladen…",
+        "comports_load_failed": "Serielle Ports konnten nicht geladen werden.",
+        "serial_ports_empty": "Keine seriellen Ports erkannt. Gerät anschließen und dann „Refresh Ports“ tippen.",
+        "serial_ports_empty_android": "Keine USB-Seriellgeräte gefunden. Gerät mit einem USB-OTG-Kabel anschließen, dann „Refresh Ports“ tippen und USB-Zugriff erteilen, wenn danach gefragt wird.",
+        "serial_port_permission_suffix": "USB-Berechtigung erforderlich",
+        "usb_permission_granted": "USB-Zugriff erteilt.",
+        "usb_permission_requested": "USB-Zugriff angefordert. Im Dialog erteilen und dann „Refresh Ports“ tippen.",
+        "usb_permission_failed": "USB-Zugriff konnte nicht angefordert werden."
     },
     "map": {
         "title": "Karte",

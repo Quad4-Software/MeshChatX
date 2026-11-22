@@ -1863,7 +1863,15 @@
         "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
         "hop_limiter_label": "Hop limiter",
         "hop_limiter_placeholder": "128",
-        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default.",
+        "comports_loading": "Seriële poorten laden…",
+        "comports_load_failed": "Kan seriële poorten niet laden.",
+        "serial_ports_empty": "Geen seriële poorten gedetecteerd. Sluit een apparaat aan en tik op \"Refresh Ports\".",
+        "serial_ports_empty_android": "Geen USB-seriële apparaten gevonden. Sluit het apparaat aan met een USB OTG-kabel, tik op \"Refresh Ports\" en verleen USB-toegang wanneer daarom wordt gevraagd.",
+        "serial_port_permission_suffix": "USB-toestemming nodig",
+        "usb_permission_granted": "USB-toegang verleend.",
+        "usb_permission_requested": "USB-toegang aangevraagd. Verleen dit in het dialoogvenster en tik op \"Refresh Ports\".",
+        "usb_permission_failed": "USB-toegang kon niet worden aangevraagd."
     },
     "map": {
         "title": "Kaart",

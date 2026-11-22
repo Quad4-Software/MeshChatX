@@ -1863,7 +1863,15 @@
         "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
         "hop_limiter_label": "Hop limiter",
         "hop_limiter_placeholder": "128",
-        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default.",
+        "comports_loading": "시리얼 포트를 불러오는 중…",
+        "comports_load_failed": "시리얼 포트를 불러오지 못했습니다.",
+        "serial_ports_empty": "시리얼 포트가 감지되지 않았습니다. 기기를 연결한 다음 \"Refresh Ports\"를 탭하세요.",
+        "serial_ports_empty_android": "USB 시리얼 기기를 찾을 수 없습니다. USB OTG 케이블로 기기를 연결하고 \"Refresh Ports\"를 탭한 다음 요청 시 USB 접근을 허용하세요.",
+        "serial_port_permission_suffix": "USB 권한 필요",
+        "usb_permission_granted": "USB 접근이 허용되었습니다.",
+        "usb_permission_requested": "USB 접근이 요청되었습니다. 대화 상자에서 허용한 다음 \"Refresh Ports\"를 탭하세요.",
+        "usb_permission_failed": "USB 접근을 요청할 수 없습니다."
     },
     "map": {
         "title": "지도",

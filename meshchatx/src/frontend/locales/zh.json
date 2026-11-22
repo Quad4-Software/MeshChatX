@@ -1863,7 +1863,15 @@
         "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
         "hop_limiter_label": "Hop limiter",
         "hop_limiter_placeholder": "128",
-        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default.",
+        "comports_loading": "正在加载串口…",
+        "comports_load_failed": "无法加载串口。",
+        "serial_ports_empty": "未检测到串口。请连接设备，然后点击 \"Refresh Ports\"。",
+        "serial_ports_empty_android": "未找到 USB 串口设备。请使用 USB OTG 线缆连接设备，点击 \"Refresh Ports\"，并在提示时授予 USB 访问权限。",
+        "serial_port_permission_suffix": "需要 USB 权限",
+        "usb_permission_granted": "已授予 USB 访问权限。",
+        "usb_permission_requested": "已请求 USB 访问权限。请在对话框中授予，然后点击 \"Refresh Ports\"。",
+        "usb_permission_failed": "无法请求 USB 访问权限。"
     },
     "map": {
         "title": "地图",

@@ -1863,7 +1863,15 @@
         "client_limit_hint": "Maximum simultaneous client connections. RNS default is 500.",
         "hop_limiter_label": "Hop limiter",
         "hop_limiter_placeholder": "128",
-        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default."
+        "hop_limiter_hint": "Maximum hops packets may take on this interface (0-128). Empty uses the global default.",
+        "comports_loading": "シリアルポートを読み込み中…",
+        "comports_load_failed": "シリアルポートを読み込めませんでした。",
+        "serial_ports_empty": "シリアルポートが検出されませんでした。デバイスを接続して「Refresh Ports」をタップしてください。",
+        "serial_ports_empty_android": "USBシリアルデバイスが見つかりませんでした。USB OTGケーブルでデバイスを接続し、「Refresh Ports」をタップして、求められたらUSBアクセスを許可してください。",
+        "serial_port_permission_suffix": "USB権限が必要です",
+        "usb_permission_granted": "USBアクセスが許可されました。",
+        "usb_permission_requested": "USBアクセスをリクエストしました。ダイアログで許可してから「Refresh Ports」をタップしてください。",
+        "usb_permission_failed": "USBアクセスをリクエストできませんでした。"
     },
     "map": {
         "title": "地図",
