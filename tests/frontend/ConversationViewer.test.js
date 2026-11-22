@@ -2996,8 +2996,8 @@ describe("ConversationViewer.vue", () => {
             const wrapper = mountConversationViewer();
             await flushPromises();
             const hash = "aa".repeat(16);
-            wrapper.vm.pendingPaperIngestMessageHash = hash;
-            wrapper.vm.onLxmIngestUriResultEvent({ status: "success" });
+            wrapper.vm.pendingPaperIngests = { "req-1": hash };
+            wrapper.vm.onLxmIngestUriResultEvent({ status: "success", request_id: "req-1" });
             expect(wrapper.vm.pendingPaperIngestMessageHash).toBeNull();
             expect(wrapper.vm.isPaperMessageIngested({ lxmf_message: { hash } })).toBe(true);
         });
@@ -3016,11 +3016,11 @@ describe("ConversationViewer.vue", () => {
             const wrapper = mountConversationViewer();
             await flushPromises();
             const hash = "bb".repeat(16);
-            wrapper.vm.pendingPaperIngestMessageHash = hash;
-            wrapper.vm.onLxmIngestUriResultEvent({ status: "warning" });
+            wrapper.vm.pendingPaperIngests = { "req-2": hash };
+            wrapper.vm.onLxmIngestUriResultEvent({ status: "warning", request_id: "req-2" });
             expect(wrapper.vm.isPaperMessageIngested({ lxmf_message: { hash } })).toBe(false);
-            wrapper.vm.pendingPaperIngestMessageHash = hash;
-            wrapper.vm.onLxmIngestUriResultEvent({ status: "error" });
+            wrapper.vm.pendingPaperIngests = { "req-3": hash };
+            wrapper.vm.onLxmIngestUriResultEvent({ status: "error", request_id: "req-3" });
             expect(wrapper.vm.isPaperMessageIngested({ lxmf_message: { hash } })).toBe(false);
         });
     });
