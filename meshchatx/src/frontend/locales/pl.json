@@ -1137,6 +1137,10 @@
             "clipboard": {
                 "write": "Zapisywanie do schowka systemowego"
             },
+            "map": {
+                "read": "Odczytywanie stanu widoku mapy oraz zdarzeń kliknięcia i przesunięcia",
+                "write": "Rysowanie warstw mapy i przemieszczanie kamery mapy"
+            },
             "backend": {
                 "python": "Uruchom kod Pythona w procesie aplikacji z pełnym dostępem do plików, procesów i sieci tego użytkownika"
             }

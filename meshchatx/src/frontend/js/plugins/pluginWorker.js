@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+const PLUGIN_MAP_EVENTS = new Set(["click", "moveend", "featureclick"]);
+
 /**
  * @param {MessageEvent} event
  * @param {(message: unknown) => void} post
@@ -27,7 +29,15 @@ function handleWorkerMessage(event, post) {
             eventHandlers: new Map(),
             refreshHandler: null,
             themeHandler: null,
+            mapHandlers: new Map(),
+            mapSubSeq: 0,
         };
+
+        function requireMapPermission(mode) {
+            if (!state.permissions.includes(`map:${mode}`)) {
+                throw new Error(`map:${mode} permission not granted`);
+            }
+        }
 
         function postRequest(kind, payload) {
             return new Promise((resolve, reject) => {
@@ -107,6 +117,66 @@ function handleWorkerMessage(event, post) {
             onRefresh(handler) {
                 state.refreshHandler = handler;
             },
+            map: {
+                isAvailable() {
+                    return postRequest("map", { action: "isAvailable" });
+                },
+                async getState() {
+                    requireMapPermission("read");
+                    return postRequest("map", { action: "getState" });
+                },
+                async setView(view = {}) {
+                    requireMapPermission("write");
+                    return postRequest("map", { action: "setView", view });
+                },
+                async addLayer(options = {}) {
+                    requireMapPermission("write");
+                    return postRequest("map", {
+                        action: "addLayer",
+                        id: options.id,
+                        layerId: options.layerId,
+                        name: options.name,
+                        data: options.data,
+                    });
+                },
+                async setLayerData(layerId, data) {
+                    requireMapPermission("write");
+                    return postRequest("map", { action: "setLayerData", layerId, data });
+                },
+                async removeLayer(layerId) {
+                    requireMapPermission("write");
+                    return postRequest("map", { action: "removeLayer", layerId });
+                },
+                async clearLayers() {
+                    requireMapPermission("write");
+                    return postRequest("map", { action: "clearLayers" });
+                },
+                on(event, handler) {
+                    requireMapPermission("read");
+                    const name = String(event || "");
+                    if (!PLUGIN_MAP_EVENTS.has(name)) {
+                        throw new Error(`unknown_map_event:${name || "?"}`);
+                    }
+                    if (typeof handler !== "function") {
+                        throw new Error("map.on requires a handler function");
+                    }
+                    const subscriptionId = `map-sub-${++state.mapSubSeq}`;
+                    state.mapHandlers.set(subscriptionId, { event: name, handler });
+                    post({ type: "map-subscribe", subscribe: true, events: [name] });
+                    return subscriptionId;
+                },
+                off(subscriptionId) {
+                    const entry = state.mapHandlers.get(subscriptionId);
+                    if (!entry) {
+                        return;
+                    }
+                    state.mapHandlers.delete(subscriptionId);
+                    const stillUsed = [...state.mapHandlers.values()].some((h) => h.event === entry.event);
+                    if (!stillUsed) {
+                        post({ type: "map-subscribe", subscribe: false, events: [entry.event] });
+                    }
+                },
+            },
             toast(message, type = "info", duration = 5000) {
                 post({ type: "toast", message, toastType: type, duration });
             },
@@ -166,6 +236,14 @@ function handleWorkerMessage(event, post) {
                 const handler = state.eventHandlers.get(next.event);
                 if (typeof handler === "function") {
                     void handler(next.payload);
+                }
+                return;
+            }
+            if (next.type === "map-event") {
+                for (const entry of state.mapHandlers.values()) {
+                    if (entry.event === next.event && typeof entry.handler === "function") {
+                        void entry.handler(next.payload);
+                    }
                 }
             }
         };

@@ -1137,6 +1137,10 @@
             "clipboard": {
                 "write": "Schrijven naar het klembord van het systeem"
             },
+            "map": {
+                "read": "Kaartweergavestatus en kaartklik-/verplaatsingsgebeurtenissen lezen",
+                "write": "Kaartlagen tekenen en de kaartcamera verplaatsen"
+            },
             "backend": {
                 "python": "Voer Python-code uit in het toepassingsproces met volledige toegang tot de bestanden, processen en het netwerk van deze gebruiker"
             }

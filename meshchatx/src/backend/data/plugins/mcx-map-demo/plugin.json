@@ -1,0 +1,38 @@
+{
+    "id": "com.meshchatx.mcx-map-demo",
+    "version": "1.0.0",
+    "apiVersion": 1,
+    "name": "Map Demo",
+    "description": "Example plugin that draws GeoJSON layers, moves the camera, and reacts to map clicks.",
+    "frontend": {
+        "entry": "frontend/main.js",
+        "type": "js"
+    },
+    "i18n": {
+        "directory": "locales",
+        "defaultLocale": "en"
+    },
+    "contributes": {
+        "navItems": [
+            {
+                "id": "mcx-map-demo",
+                "route": { "name": "plugin-com-meshchatx-mcx-map-demo" },
+                "icon": "map-marker-radius",
+                "labelKey": "nav"
+            }
+        ],
+        "toolsPageEntries": [
+            {
+                "name": "mcx-map-demo",
+                "route": { "name": "plugin-com-meshchatx-mcx-map-demo" },
+                "icon": "map-marker-radius",
+                "iconBg": "tool-card__icon bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-200",
+                "titleKey": "title",
+                "descriptionKey": "description"
+            }
+        ]
+    },
+    "permissions": {
+        "map": "read-write"
+    }
+}

@@ -1137,6 +1137,10 @@
             "clipboard": {
                 "write": "In die System-Zwischenablage schreiben"
             },
+            "map": {
+                "read": "Kartenansicht und Kartenklick-/Verschiebungsereignisse lesen",
+                "write": "Kartenebenen zeichnen und die Kartenkamera bewegen"
+            },
             "backend": {
                 "python": "Python-Code im Anwendungsprozess mit vollem Zugriff auf Dateien, Prozesse und Netzwerk dieses Benutzers ausführen"
             }

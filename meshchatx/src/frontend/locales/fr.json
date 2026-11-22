@@ -1137,6 +1137,10 @@
             "clipboard": {
                 "write": "Écrire dans le presse-papiers du système"
             },
+            "map": {
+                "read": "Lire l'état de la vue carte et les événements de clic et de déplacement",
+                "write": "Dessiner des calques sur la carte et déplacer la caméra"
+            },
             "backend": {
                 "python": "Exécuter du code Python dans le processus de l’application avec un accès complet aux fichiers, processus et réseau de cet utilisateur"
             }

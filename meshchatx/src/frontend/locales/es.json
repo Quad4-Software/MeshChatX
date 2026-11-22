@@ -1137,6 +1137,10 @@
             "clipboard": {
                 "write": "Escribir en el portapapeles del sistema"
             },
+            "map": {
+                "read": "Leer el estado de la vista del mapa y los eventos de clic y desplazamiento",
+                "write": "Dibujar capas del mapa y mover la cámara del mapa"
+            },
             "backend": {
                 "python": "Ejecutar código Python en el proceso de la aplicación con acceso completo a los archivos, procesos y red de este usuario"
             }

@@ -1193,6 +1193,7 @@ import {
     gridClusterCandidates,
 } from "./internal/clusterUtils.js";
 import { shouldPollKeepAliveEmbedded } from "../../js/keepAlivePoll.js";
+import { registerMapProvider, unregisterMapProvider } from "../../js/plugins/pluginMapBridge.js";
 import { getDiscoveredIconName as getDiscoveredIconNameHelper } from "./internal/discoveredIcons.js";
 import {
     dedupeDiscoveredMapNodes as dedupeDiscoveredMapNodesHelper,
@@ -1875,6 +1876,10 @@ export default {
             cancelAnimationFrame(this.settingsPanelDrag.rafId);
             this.settingsPanelDrag.rafId = null;
         }
+        if (this._pluginMapProviderId) {
+            unregisterMapProvider(this._pluginMapProviderId);
+            this._pluginMapProviderId = null;
+        }
         const settingsEl = this.$refs.settingsPanel;
         if (settingsEl) {
             settingsEl.style.transform = "";
@@ -2549,6 +2554,28 @@ export default {
                 );
             }
             this.isMapLoaded = true;
+
+            this._pluginMapProviderId =
+                this.embedded && this.tabStorageId
+                    ? `embedded:${this.tabStorageId}`
+                    : `standalone:${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6)}`;
+            registerMapProvider({
+                id: this._pluginMapProviderId,
+                map: this.map,
+                isActive: () => !this.embedded || Boolean(this.isActiveTab),
+                toLonLat,
+                fromLonLat,
+                createPluginLayer: () => {
+                    const source = new VectorSource();
+                    const layer = new VectorLayer({
+                        source,
+                        zIndex: 46,
+                        opacity: 0.95,
+                    });
+                    return { layer, source };
+                },
+                parsePluginGeoJson: (text) => readGeoJsonToFeatures(text, "EPSG:3857"),
+            });
 
             // Close context menu when clicking elsewhere
             document.addEventListener("click", this.handleGlobalClick);

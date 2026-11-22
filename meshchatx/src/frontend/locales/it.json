@@ -1137,6 +1137,10 @@
             "clipboard": {
                 "write": "Scrivere negli appunti di sistema"
             },
+            "map": {
+                "read": "Leggere lo stato della vista mappa e gli eventi di clic e spostamento",
+                "write": "Disegnare layer sulla mappa e spostare la telecamera della mappa"
+            },
             "backend": {
                 "python": "Esegui codice Python nel processo dell'applicazione con accesso completo ai file, ai processi e alla rete di questo utente"
             }

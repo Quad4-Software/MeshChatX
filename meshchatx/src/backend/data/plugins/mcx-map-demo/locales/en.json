@@ -1,0 +1,20 @@
+{
+    "nav": "Map Demo",
+    "title": "Map Demo",
+    "description": "Reference plugin for the map capability: GeoJSON layers, camera moves, and map click events.",
+    "state_title": "Map state",
+    "state_unavailable": "No active map. Open the Map page or use an action that navigates there.",
+    "state_value": "Center {lon}, {lat} at zoom {zoom}",
+    "demo_title": "Demo layer",
+    "show_sample": "Show sample layer",
+    "fly_sample": "Fly to sample",
+    "clear_layers": "Clear layers",
+    "pick_title": "Pick a location",
+    "pick_hint": "Toggle pick mode, then click anywhere on the map to drop a marker.",
+    "pick_start": "Pick on map",
+    "pick_stop": "Stop picking",
+    "picked_toast": "Marker placed at {lat}, {lon}",
+    "feature_click_toast": "Clicked feature: {name}",
+    "layers_cleared": "Plugin layers cleared",
+    "map_error": "Map error: {message}"
+}

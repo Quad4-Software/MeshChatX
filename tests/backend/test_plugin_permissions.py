@@ -43,6 +43,25 @@ def test_unknown_permission_rejected():
         )
 
 
+def test_map_permission_ids():
+    validate_declared_permissions({"permissions": {"map": "read"}})
+    assert declared_permission_ids({"permissions": {"map": "read"}}) == ["map:read"]
+    assert declared_permission_ids({"permissions": {"map": "write"}}) == ["map:write"]
+    assert declared_permission_ids({"permissions": {"map": "read-write"}}) == [
+        "map:read",
+        "map:write",
+    ]
+    assert declared_permission_ids({"permissions": {"map": "none"}}) == []
+    assert declared_permission_ids({}) == []
+
+
+def test_unknown_map_permission_rejected():
+    with pytest.raises(ValueError, match="unknown map permission"):
+        validate_declared_permissions({"permissions": {"map": "admin"}})
+    with pytest.raises(ValueError):
+        declared_permission_ids({"permissions": {"map": "admin"}})
+
+
 def test_normalize_granted_subset():
     declared = ["hooks:announce.received", "network:fetch", "storage:isolated"]
     granted = normalize_granted_permissions(

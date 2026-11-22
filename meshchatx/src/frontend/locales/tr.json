@@ -1137,6 +1137,10 @@
             "clipboard": {
                 "write": "Sistem panosuna yazma"
             },
+            "map": {
+                "read": "Harita görünümü durumunu ve tıklama/taşıma olaylarını okuma",
+                "write": "Harita katmanları çizme ve harita kamerasını taşıma"
+            },
             "backend": {
                 "python": "Bu kullanıcının dosyalarına, süreçlerine ve ağına tam erişimle uygulama sürecinde Python kodu çalıştır"
             }

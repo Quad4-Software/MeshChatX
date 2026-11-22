@@ -1137,6 +1137,10 @@
             "clipboard": {
                 "write": "Kirjoita järjestelmän leikepöydälle"
             },
+            "map": {
+                "read": "Lue karttanäkymän tila ja kartan napsautus- ja siirtotapahtumat",
+                "write": "Piirrä karttatasoja ja siirrä karttakameraa"
+            },
             "backend": {
                 "python": "Suorita Python-koodia sovellusprosessissa käyttäjän kaikkien tiedostojen, prosessien ja verkon käyttöoikeuksilla"
             }

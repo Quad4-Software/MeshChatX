@@ -9,6 +9,13 @@ import { grantedPluginPermissions, hasGrantedPluginPermission } from "./pluginPe
 import { registerNavItem, unregisterNavItem } from "../registries/navRegistry.js";
 import { registerTool, unregisterTool } from "../registries/toolsRegistry";
 import { onWsEvent, offWsEvent } from "../registries/wsEventRegistry.js";
+import {
+    handlePluginMapRequest,
+    removePluginMapState,
+    requiredMapPermission,
+    setPluginMapNotifier,
+    updatePluginMapEvents,
+} from "./pluginMapBridge.js";
 import { apiPath, WS_EVENTS } from "../constants";
 import ToastUtils from "../ToastUtils.js";
 import { getThemeSnapshot } from "../../theme/themeEngine.js";
@@ -198,6 +205,14 @@ export class PluginHost {
                     }
                 } else if (message.kind === "theme") {
                     result = getThemeSnapshot(useConfigStore().config);
+                } else if (message.kind === "map") {
+                    const required = requiredMapPermission(message.payload?.action);
+                    if (required && !grantedPermissions.includes(required)) {
+                        throw new Error(`${required} permission not granted`);
+                    }
+                    result = await handlePluginMapRequest(pluginId, message.payload || {}, {
+                        router: this.router,
+                    });
                 }
                 worker.postMessage({ requestId: message.requestId, result });
             } catch (error) {
@@ -222,6 +237,14 @@ export class PluginHost {
             canWriteClipboard,
             allowedWidgets: declaredWidgets,
             routeName,
+            grantedPermissions,
+        });
+        setPluginMapNotifier(pluginId, (mapMessage) => {
+            try {
+                worker.postMessage(mapMessage);
+            } catch {
+                // Worker may be terminating.
+            }
         });
     }
 
@@ -402,6 +425,11 @@ export class PluginHost {
         if (message.type === "toast") {
             ToastUtils.show(message.message || "", message.toastType || "info", message.duration ?? 5000);
         }
+        if (message.type === "map-subscribe") {
+            if (this.instances.get(pluginId)?.grantedPermissions?.includes("map:read")) {
+                updatePluginMapEvents(pluginId, message.events, Boolean(message.subscribe));
+            }
+        }
         if (message.type === "download") {
             try {
                 const blob = new Blob([message.data || ""], {
@@ -432,6 +460,7 @@ export class PluginHost {
         }
         this.instances.delete(pluginId);
         lastFailureReportAt.delete(pluginId);
+        removePluginMapState(pluginId);
     }
 
     postAction(pluginId, actionId) {

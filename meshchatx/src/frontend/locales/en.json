@@ -1137,6 +1137,10 @@
             "clipboard": {
                 "write": "Write to the system clipboard"
             },
+            "map": {
+                "read": "Read map view state and map click/move events",
+                "write": "Draw map layers and move the map camera"
+            },
             "backend": {
                 "python": "Run Python code in the application process with full access to this user's files, processes, and network"
             }

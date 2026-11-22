@@ -17,18 +17,19 @@ MESHCHAT_DISABLE_PLUGINS=true
 - React to mesh events (announces, RNS link traffic)
 - Call narrowly declared backend managers (path table, debug log, bug reports, RNS links)
 - Keep a private key-value store (storage: isolated)
+- Draw GeoJSON layers on the map, move the camera, and react to map clicks (map permission)
 - Optionally request clearnet HTTP (network: fetch), still subject to **Privacy mode**
 
 WASM backends run in a metered runtime. Python backends run inside MeshChatX and can access files, processes, and network available to the app user. Grant `backend:python` only to code you trust. Sideband Python plugins are separate flat-file plugins with their own danger switch.
 
 ## Runtimes
 
-| Runtime        | Where it runs             | Trust level                                     |
-| -------------- | ------------------------- | ----------------------------------------------- |
-| Frontend JS    | Browser Web Worker        | Medium. Sandboxed worker, capability grants     |
-| Backend WASM   | wasmtime on the server    | Medium. Fuel-metered, capability-gated host     |
+| Runtime        | Where it runs             | Trust level                                       |
+| -------------- | ------------------------- | ------------------------------------------------- |
+| Frontend JS    | Browser Web Worker        | Medium. Sandboxed worker, capability grants       |
+| Backend WASM   | wasmtime on the server    | Medium. Fuel-metered, capability-gated host       |
 | Backend Python | In-process with MeshChatX | Full app-user privileges, explicit grant required |
-| Sideband *.py  | In-process, flat files    | Highest. Opt-in danger switch, full host access |
+| Sideband *.py  | In-process, flat files    | Highest. Opt-in danger switch, full host access   |
 
 A packaged plugin can ship frontend only, backend only, or both.
 
@@ -170,10 +171,14 @@ Call managers from a plugin with POST /api/v1/plugins/{id}/invoke and method: "c
 | ----------------- | --------------------------------------------------------------------- |
 | storage: isolated | Private key-value store in the MeshChatX database                     |
 | storage: none     | No plugin storage                                                     |
-| network: fetch    | Enables the Python host's outbound HTTP permission check |
+| network: fetch    | Enables the Python host's outbound HTTP permission check              |
 | network: none     | No clearnet fetch                                                     |
 | clipboard: write  | Lets the plugin write text to the system clipboard                    |
+| map: read         | Read map view state and subscribe to map click and move events        |
+| map: write        | Add and update plugin map layers and move the map camera              |
 | backend: python   | Runs Python code in-process with the app user's full local privileges |
+
+Map access is declared as `"map": "none" | "read" | "write" | "read-write"` in `permissions`. `read-write` grants both `map:read` and `map:write`.
 
 Install preview also scans plugin files for external http:// / https:// URLs and shows them before you grant network access.
 `network: fetch` is not a sandbox for Python code. Once `backend:python` is granted, Python code can use the process's network access directly.
@@ -197,6 +202,49 @@ Settings enable plugin
 ```
 
 The Worker talks to the host with typed messages (init, event, request). The host never gives the Worker a raw privileged API.
+
+## Map API
+
+Frontend plugins with the map permission get `api.map`. The bundled `com.meshchatx.mcx-map-demo` plugin is a working reference.
+
+```js
+const { layerId } = await api.map.addLayer({ id: "zones", name: "Zones" });
+await api.map.setLayerData(layerId, {
+    type: "FeatureCollection",
+    features: [
+        {
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [16.37, 48.2] },
+            properties: { name: "Checkpoint", "marker-color": "#dc2626" },
+        },
+    ],
+});
+await api.map.setView({ center: [16.37, 48.2], zoom: 14, navigate: true });
+```
+
+Layers take a GeoJSON FeatureCollection (a single Feature is accepted too). Feature properties style the render: `marker-color` and `marker-size` for points, `stroke`, `stroke-width`, `fill`, and `fill-opacity` for lines and polygons, same convention as imported overlays. Limits: 2 MB of GeoJSON and 20,000 features per update, 64 layers per plugin.
+
+| Method                              | Permission | Returns                                                      |
+| ----------------------------------- | ---------- | ------------------------------------------------------------ |
+| `api.map.isAvailable()`             | none       | `{ available, active }`                                      |
+| `api.map.getState()`                | map:read   | `{ available, active, center, zoom, bearing, bounds, size }` |
+| `api.map.setView(view)`             | map:write  | updated state                                                |
+| `api.map.addLayer(opts)`            | map:write  | `{ layerId }`                                                |
+| `api.map.setLayerData(id, geojson)` | map:write  | `{ layerId, featureCount }`                                  |
+| `api.map.removeLayer(id)`           | map:write  | `{ layerId, removed }`                                       |
+| `api.map.clearLayers()`             | map:write  | `{ cleared }`                                                |
+
+`setView` accepts `center` as `[lon, lat]`, `zoom` 0-22, `bearing` in degrees, `durationMs`, and `navigate`. It resolves after the camera animation finishes and returns the resulting state. Pass `navigate: true` to open the Map page first when no map is active; without it the call fails with `map_not_open`. Layer writes never navigate, they apply silently to every open map and are replayed when a map is created later. All plugin layers are removed when the plugin unloads.
+
+Map events use `api.map.on(event, handler)`, which returns a subscription id for `api.map.off(id)`:
+
+| Event          | Payload                                        |
+| -------------- | ---------------------------------------------- |
+| `click`        | `{ lat, lon, pixel }`                          |
+| `moveend`      | same shape as `getState()`                     |
+| `featureclick` | `{ lat, lon, layerId, featureId, properties }` |
+
+`featureclick` fires when a click lands on one of the plugin's own layer features, with the feature's GeoJSON properties.
 
 ## How a backend plugin runs
 

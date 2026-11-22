@@ -60,6 +60,17 @@ describe("pluginManifest", () => {
         expect(ids).toContain("network:fetch");
     });
 
+    it("builds declared permission ids for map modes", () => {
+        expect(declaredPermissionIds({ permissions: { map: "read" } })).toEqual(["map:read"]);
+        expect(declaredPermissionIds({ permissions: { map: "write" } })).toEqual(["map:write"]);
+        expect(declaredPermissionIds({ permissions: { map: "read-write" } })).toEqual([
+            "map:read",
+            "map:write",
+        ]);
+        expect(declaredPermissionIds({ permissions: { map: "none" } })).toEqual([]);
+        expect(declaredPermissionIds({ permissions: {} })).toEqual([]);
+    });
+
     it("requires both declaration and user grant for plugin permissions", () => {
         const plugin = {
             manifest: { permissions: { ui: "sandboxed-html" } },

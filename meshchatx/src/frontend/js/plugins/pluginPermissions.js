@@ -50,6 +50,13 @@ export function declaredPermissionIds(manifest) {
     if (ui === "sandboxed-html" || (Array.isArray(ui) && ui.includes("sandboxed-html"))) {
         ids.push("ui:sandboxed-html");
     }
+    const map = permissions.map;
+    if (map === "read" || map === "read-write") {
+        ids.push("map:read");
+    }
+    if (map === "write" || map === "read-write") {
+        ids.push("map:write");
+    }
     if (manifest?.backend?.type === "python") {
         ids.push("backend:python");
     }

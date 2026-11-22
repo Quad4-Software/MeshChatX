@@ -1137,6 +1137,10 @@
             "clipboard": {
                 "write": "Escrever na área de transferência do sistema"
             },
+            "map": {
+                "read": "Ler o estado da visualização do mapa e eventos de clique/movimento",
+                "write": "Desenhar camadas do mapa e mover a câmera do mapa"
+            },
             "backend": {
                 "python": "Executar código Python no processo do aplicativo com acesso total aos arquivos, processos e à rede deste usuário"
             }

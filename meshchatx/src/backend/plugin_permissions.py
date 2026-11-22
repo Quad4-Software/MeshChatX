@@ -33,6 +33,8 @@ KNOWN_STORAGE = frozenset({"isolated", "none"})
 KNOWN_NETWORK = frozenset({"none", "fetch"})
 KNOWN_CLIPBOARD = frozenset({"none", "write"})
 KNOWN_UI = frozenset({"none", "sandboxed-html"})
+KNOWN_MAP = frozenset({"none", "read", "write", "read-write"})
+MAP_PERMISSION_MODES = ("read", "write")
 PYTHON_BACKEND_PERMISSION = "backend:python"
 
 _URL_IN_TEXT_RE = re.compile(r"""https?://[^\s"'<>\\)]+""")
@@ -71,6 +73,23 @@ def permission_id_for_clipboard(clipboard: str) -> str:
 
 def permission_id_for_ui(ui: str) -> str:
     return f"ui:{ui}"
+
+
+def permission_id_for_map(mode: str) -> str:
+    return f"map:{mode}"
+
+
+def normalize_map_modes(value: Any) -> list[str]:
+    if value is None or value == "" or value == "none":
+        return []
+    if value == "read":
+        return ["read"]
+    if value == "write":
+        return ["write"]
+    if value == "read-write":
+        return ["read", "write"]
+    # Unknown modes must not silently grant map access.
+    raise ValueError(f"unknown map permission: {value!r}")
 
 
 def normalize_network_mode(value: Any) -> str:
@@ -129,6 +148,10 @@ def declared_permission_ids(manifest: dict[str, Any]) -> list[str]:
         permission_id_for_ui(ui_mode)
         for ui_mode in normalize_ui_modes(permissions.get("ui"))
     )
+    ids.extend(
+        permission_id_for_map(mode)
+        for mode in normalize_map_modes(permissions.get("map"))
+    )
     backend = manifest.get("backend")
     if isinstance(backend, dict) and backend.get("type") == "python":
         ids.append(PYTHON_BACKEND_PERMISSION)
@@ -175,6 +198,10 @@ def validate_declared_permissions(manifest: dict[str, Any]) -> None:
         for mode in modes:
             if mode not in KNOWN_UI:
                 raise ValueError(f"unknown ui permission: {mode!r}")
+    map_perm = permissions.get("map", "none")
+    if map_perm is not None and map_perm != "none":
+        if not isinstance(map_perm, str) or map_perm not in KNOWN_MAP:
+            raise ValueError(f"unknown map permission: {map_perm!r}")
     network_block = manifest.get("network")
     if network_block is not None:
         if not isinstance(network_block, dict):
