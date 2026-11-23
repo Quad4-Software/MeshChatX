@@ -921,10 +921,9 @@ function onFieldContextMenu(event) {
     }
     const el = fieldFromContextTarget(event.target);
     if (!el) {
-        // Non-field targets: a touch long-press over selectable page text
-        // must keep the native selection/copy menu, so only hijack the
-        // contextmenu when our own menu rules allow it.
-        if (!shouldOpenCustomContextMenu(event)) {
+        // Non-field targets: a touch long-press must keep the native
+        // selection/copy menu; caret hit-testing is unreliable in this frame.
+        if (!shouldOpenCustomContextMenu(event, { touchPrefersNative: true })) {
             return;
         }
     }

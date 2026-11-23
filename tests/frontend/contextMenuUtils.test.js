@@ -146,4 +146,54 @@ describe("contextMenuUtils", () => {
             if (orig) document.caretRangeFromPoint = orig; else delete document.caretRangeFromPoint;
         }
     });
+
+    it("shouldOpenCustomContextMenu touchPrefersNative defers touch even when the caret misses", () => {
+        const orig = document.caretRangeFromPoint;
+        vi.useFakeTimers();
+        try {
+            document.caretRangeFromPoint = () => null;
+            const touchEvent = { pointerType: "touch", clientX: 1, clientY: 1 };
+            expect(shouldOpenCustomContextMenu(touchEvent)).toBe(true);
+            expect(shouldOpenCustomContextMenu(touchEvent, { touchPrefersNative: true })).toBe(false);
+            vi.setSystemTime(Date.now() + 2000);
+            const mouseEvent = { pointerType: "mouse", clientX: 1, clientY: 1 };
+            expect(shouldOpenCustomContextMenu(mouseEvent, { touchPrefersNative: true })).toBe(true);
+        } finally {
+            vi.useRealTimers();
+            if (orig) document.caretRangeFromPoint = orig; else delete document.caretRangeFromPoint;
+        }
+    });
+
+    it("openAppContextMenuUnlessTextSelection honors touchPrefersNative", () => {
+        const openFn = vi.fn();
+        const touchEvent = {
+            pointerType: "touch",
+            target: document.body,
+            clientX: 1,
+            clientY: 1,
+            preventDefault: vi.fn(),
+            stopPropagation: vi.fn(),
+        };
+        window.getSelection()?.removeAllRanges?.();
+        expect(openAppContextMenuUnlessTextSelection(touchEvent, openFn, { touchPrefersNative: true })).toBe(false);
+        expect(touchEvent.preventDefault).not.toHaveBeenCalled();
+        expect(openFn).not.toHaveBeenCalled();
+
+        vi.useFakeTimers();
+        try {
+            vi.setSystemTime(Date.now() + 2000);
+            const mouseEvent = {
+                pointerType: "mouse",
+                target: document.body,
+                clientX: 1,
+                clientY: 1,
+                preventDefault: vi.fn(),
+            };
+            expect(openAppContextMenuUnlessTextSelection(mouseEvent, openFn, { touchPrefersNative: true })).toBe(true);
+            expect(mouseEvent.preventDefault).toHaveBeenCalled();
+            expect(openFn).toHaveBeenCalledWith(mouseEvent);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });

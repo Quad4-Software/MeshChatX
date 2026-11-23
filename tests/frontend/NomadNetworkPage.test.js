@@ -1144,6 +1144,29 @@ describe("NomadNetworkPage.vue", () => {
             expect(openContextMenu).toHaveBeenCalledWith(event);
         });
 
+        it("onPageContextMenu ignores touch long-press so the native menu wins", () => {
+            const openContextMenu = vi.fn();
+            const wrapper = mountNomadNetworkPage({ destinationHash: "", embedded: true });
+            wrapper.vm.nomadBrowserTabActions = { openContextMenu };
+            wrapper.vm.onPageContextMenu({ pointerType: "touch", clientX: 4, clientY: 8 });
+            expect(openContextMenu).not.toHaveBeenCalled();
+        });
+
+        it("onPageContextMenu keeps the standalone menu closed on touch long-press", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.onPageContextMenu({ pointerType: "touch", clientX: 4, clientY: 8 });
+            expect(wrapper.vm.standaloneContextMenu.show).toBe(false);
+        });
+
+        it("onPageContextMenu opens for mouse right-click", () => {
+            const openContextMenu = vi.fn();
+            const wrapper = mountNomadNetworkPage({ destinationHash: "", embedded: true });
+            wrapper.vm.nomadBrowserTabActions = { openContextMenu };
+            const event = { pointerType: "mouse", clientX: 4, clientY: 8 };
+            wrapper.vm.onPageContextMenu(event);
+            expect(openContextMenu).toHaveBeenCalledWith(event);
+        });
+
         it("runStandaloneContextAction closes menu after failures", async () => {
             const wrapper = mountNomadNetworkPage();
             wrapper.vm.standaloneContextMenu.show = true;

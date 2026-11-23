@@ -856,6 +856,16 @@ describe("NomadCrashTab.vue", () => {
         expect(src).toContain('el.setRangeText(value, start, end, "end")');
     });
 
+    it("crash-tab entry defers touch long-press to the native selection menu", async () => {
+        const fs = await import("node:fs");
+        const path = await import("node:path");
+        const src = fs.readFileSync(
+            path.resolve(__dirname, "../../meshchatx/src/frontend/js/nomadCrashTabMain.js"),
+            "utf8"
+        );
+        expect(src).toContain("shouldOpenCustomContextMenu(event, { touchPrefersNative: true })");
+    });
+
     it("auto-reloads the frame when boot never posts ready", async () => {
         vi.useFakeTimers();
         try {

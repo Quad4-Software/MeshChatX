@@ -113,11 +113,11 @@ export function preferNativeTextSelectionMenu(event) {
  *
  * @param {Event} event
  * @param {(event: Event) => void} openFn
- * @param {{ stopPropagation?: boolean }} [options]
+ * @param {{ stopPropagation?: boolean, touchPrefersNative?: boolean }} [options]
  * @returns {boolean}
  */
 export function openAppContextMenuUnlessTextSelection(event, openFn, options = {}) {
-    if (!shouldOpenCustomContextMenu(event)) {
+    if (!shouldOpenCustomContextMenu(event, options)) {
         return false;
     }
     if (event && typeof event.preventDefault === "function") {
@@ -137,17 +137,20 @@ export function openAppContextMenuUnlessTextSelection(event, openFn, options = {
  *  - a touch long-press over selectable text wins so text selection and the
  *    OS copy/paste toolbar keep working (the 3-dot button stays the touch
  *    path to app menus);
+ *  - touchPrefersNative makes every touch contextmenu defer to the platform
+ *    menu, for document content where caret hit-testing proved unreliable;
  *  - everything else (mouse right-click, long-press on non-text chrome)
  *    opens the app menu.
  *
  * @param {Event | null | undefined} event
+ * @param {{ touchPrefersNative?: boolean }} [options]
  * @returns {boolean}
  */
-export function shouldOpenCustomContextMenu(event) {
+export function shouldOpenCustomContextMenu(event, options = {}) {
     if (preferNativeTextSelectionMenu(event)) {
         return false;
     }
-    if (isTouchContextMenu(event) && pointHitsSelectableText(event)) {
+    if (isTouchContextMenu(event) && (options?.touchPrefersNative === true || pointHitsSelectableText(event))) {
         return false;
     }
     return true;

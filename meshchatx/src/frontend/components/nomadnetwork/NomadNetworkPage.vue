@@ -3760,13 +3760,17 @@ export default {
             }
         },
         onPageContextMenu(event) {
-            openAppContextMenuUnlessTextSelection(event, (ev) => {
-                if (this.embedded && this.nomadBrowserTabActions) {
-                    this.nomadBrowserTabActions.openContextMenu(ev);
-                    return;
-                }
-                this.openStandaloneContextMenu(ev);
-            });
+            openAppContextMenuUnlessTextSelection(
+                event,
+                (ev) => {
+                    if (this.embedded && this.nomadBrowserTabActions) {
+                        this.nomadBrowserTabActions.openContextMenu(ev);
+                        return;
+                    }
+                    this.openStandaloneContextMenu(ev);
+                },
+                { touchPrefersNative: true }
+            );
         },
         onCrashTabContextMenu(coords) {
             const ev = { clientX: coords.clientX, clientY: coords.clientY };

@@ -1,7 +1,14 @@
 ## [4.12.1] - unreleased
 
+### Added
+
+- Plugins: frontend plugins get a map API (permission gated) for working with the map page, plus a mcx-map-demo example plugin. The plugin API also gains storage, fetch, hooks, and manager access with matching permissions. See docs/en/plugins.md.
+
 ### Fixed
 
+- NomadNet browser (Android): long-pressing page text now shows the native selection toolbar with Copy instead of the app menu with "reload page" and "show source". The caret hit-test used to decide whether text was under the finger was unreliable inside the page frame, so the app menu often won. Touch long-presses in page content now always defer to the platform, and mouse right-click and the 3-dot menu are unchanged.
+- Android: the serial port picker lists USB serial devices through UsbManager, has a USB permission request, and shows empty and error states. Desktop merges the /dev scan with pyserial and covers ttyWCH*. The picker strings are translated in all locales and a saved-port and refresh race is fixed.
+- Messages: the send options menu stays open after releasing a long press on the send button.
 - Flatpak: the release bundle now exports the channel branch (stable, beta or testing) instead of master, so the OSTree publish step accepts it and `flatpak update` sees new releases. The publish job had been failing since the branch was never set at build time.
 - NomadNet browser: in-page contents links like `[Arts#arts]` scroll to the section again. Since 4.8.6 the page frame's click handler checked openNode before its "#" branch, so micron anchor links went to the shell as navigation and failed with "unsupported url".
 - NomadNet browser: fit mode no longer shrinks ordinary pages to a narrow strip. The width probe counted the hidden screen-reader copy of each line and the clipped 250-character `-` dividers, so a page with a long paragraph or divider could scale to about 15%. The probe now skips .Mu-sr, inline boxes and overflow-hidden content. Runs of ASCII or box-drawing art zoom to fit the screen on their own, and a scaled page widens under the transform so text wraps across the freed width.
