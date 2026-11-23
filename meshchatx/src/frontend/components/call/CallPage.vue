@@ -1736,6 +1736,7 @@ import {
     queryMicrophonePermissionState,
 } from "../../js/webAudioMicPermission";
 import { useCallAudioDevices } from "../../js/call/useCallAudioDevices.js";
+import { ensureAudioContextRunning } from "../../js/audioContextUtils.js";
 import RingtoneEditor from "./audio/RingtoneEditor.vue";
 import CallPhonebookTab from "./tabs/CallPhonebookTab.vue";
 import CallContactsTab from "./tabs/CallContactsTab.vue";
@@ -2423,17 +2424,7 @@ export default {
                 } catch {
                     // ignore
                 }
-                if (
-                    this.audioCtx &&
-                    this.audioCtx.state === "suspended" &&
-                    typeof this.audioCtx.resume === "function"
-                ) {
-                    try {
-                        await this.audioCtx.resume();
-                    } catch {
-                        // ignore
-                    }
-                }
+                await ensureAudioContextRunning(this.audioCtx);
                 return;
             }
             if (this.audioWs) {
@@ -2501,13 +2492,7 @@ export default {
                     }
                 }
 
-                if (this.audioCtx.state === "suspended" && typeof this.audioCtx.resume === "function") {
-                    try {
-                        await this.audioCtx.resume();
-                    } catch {
-                        // ignore
-                    }
-                }
+                await ensureAudioContextRunning(this.audioCtx);
                 if (this._isWebAudioStartStale(startGen)) {
                     this.stopWebAudio();
                     return;

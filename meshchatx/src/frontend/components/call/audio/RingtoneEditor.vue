@@ -144,6 +144,7 @@ import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import { apiPath } from "../../../js/constants";
 import * as telephoneApi from "../../../js/api/telephone.js";
 import ToastUtils from "../../../js/ToastUtils";
+import { decodeAudioArrayBuffer, ensureAudioContextRunning } from "../../../js/audioContextUtils.js";
 
 export default {
     name: "RingtoneEditor",
@@ -209,15 +210,7 @@ export default {
                 });
                 const arrayBuffer = response.data;
 
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                if (this._unmounted) {
-                    // Unmounted while awaiting the fetch: close immediately
-                    // instead of leaking the context.
-                    ctx.close();
-                    return;
-                }
-                this.audioContext = ctx;
-                this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                this.audioBuffer = await decodeAudioArrayBuffer(arrayBuffer);
                 if (this._unmounted) return;
 
                 this.totalDuration = this.audioBuffer.duration;
@@ -346,28 +339,53 @@ export default {
                 this.startPlayback();
             }
         },
-        startPlayback() {
+        async startPlayback() {
             if (!this.audioBuffer) return;
 
-            this.stopPlayback();
+            try {
+                this.stopPlayback();
 
-            this.sourceNode = this.audioContext.createBufferSource();
-            this.sourceNode.buffer = this.audioBuffer;
-            this.sourceNode.connect(this.audioContext.destination);
+                const ctx = this.ensurePlaybackContext();
+                const running = await ensureAudioContextRunning(ctx);
+                if (!running) {
+                    return;
+                }
 
-            this.playbackStartOffset = this.startTime;
-            this.playbackStartTime = this.audioContext.currentTime;
+                this.sourceNode = running.createBufferSource();
+                this.sourceNode.buffer = this.audioBuffer;
+                this.sourceNode.connect(running.destination);
 
-            this.sourceNode.start(0, this.startTime, this.endTime - this.startTime);
-            this.isPlaying = true;
+                this.playbackStartOffset = this.startTime;
+                this.playbackStartTime = running.currentTime;
 
-            this.sourceNode.onended = () => {
-                this.isPlaying = false;
-                this.progressPercent = 0;
-                cancelAnimationFrame(this.animationFrame);
-            };
+                this.sourceNode.start(0, this.startTime, this.endTime - this.startTime);
+                this.isPlaying = true;
 
-            this.updateProgress();
+                this.sourceNode.onended = () => {
+                    this.isPlaying = false;
+                    this.progressPercent = 0;
+                    cancelAnimationFrame(this.animationFrame);
+                };
+
+                this.updateProgress();
+            } catch (error) {
+                console.error("RingtoneEditor: playback failed:", error);
+            }
+        },
+        ensurePlaybackContext() {
+            if (this.audioContext) {
+                return this.audioContext;
+            }
+            const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+            if (typeof AudioContextCtor !== "function") {
+                return null;
+            }
+            try {
+                this.audioContext = new AudioContextCtor();
+            } catch {
+                return null;
+            }
+            return this.audioContext;
         },
         stopPlayback() {
             if (this.sourceNode) {
@@ -379,7 +397,7 @@ export default {
             cancelAnimationFrame(this.animationFrame);
         },
         updateProgress() {
-            if (!this.isPlaying) return;
+            if (!this.isPlaying || !this.audioContext) return;
 
             const elapsed = this.audioContext.currentTime - this.playbackStartTime;
             const currentTime = this.playbackStartOffset + elapsed;

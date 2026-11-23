@@ -51,6 +51,7 @@
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import { decodeAudioArrayBuffer, ensureAudioContextRunning } from "../../js/audioContextUtils.js";
 
 export default {
     name: "AudioWaveformPlayer",
@@ -74,6 +75,12 @@ export default {
             audioBuffer: null,
             audioContext: null,
             sourceNode: null,
+            audioElement: null,
+            blobUrl: null,
+            playbackMode: null,
+            useElementPlayback: false,
+            audioBytes: null,
+            audioMimeType: "",
             totalDuration: 0,
             currentTime: 0,
             isPlaying: false,
@@ -113,6 +120,7 @@ export default {
             this.audioContext.close();
             this.audioContext = null;
         }
+        this.teardownElementPlayback();
     },
     methods: {
         async loadAudio() {
@@ -121,6 +129,10 @@ export default {
             try {
                 this.loading = true;
                 this.stopPlayback();
+                this.teardownElementPlayback();
+                this.useElementPlayback = false;
+                this.audioBytes = null;
+                this.audioMimeType = "";
 
                 const response = await fetch(this.src);
                 if (!response.ok) {
@@ -132,16 +144,19 @@ export default {
                     return;
                 }
 
-                if (!this.audioContext) {
-                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.audioBytes = arrayBuffer;
+                this.audioMimeType = String(response.headers?.get?.("content-type") || "");
+                this.audioBuffer = null;
+                try {
+                    this.audioBuffer = await decodeAudioArrayBuffer(arrayBuffer.slice(0));
+                } catch (decodeError) {
+                    console.warn("AudioWaveformPlayer: Web Audio decode failed, using element playback:", decodeError);
+                    this.useElementPlayback = true;
                 }
-
-                const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
                 if (this._unmounted || generation !== this._loadGeneration) {
                     return;
                 }
-                this.audioBuffer = audioBuffer;
-                this.totalDuration = this.audioBuffer.duration;
+                this.totalDuration = this.audioBuffer ? this.audioBuffer.duration : 0;
                 this.currentTime = 0;
                 this.progressPercent = 0;
 
@@ -155,6 +170,25 @@ export default {
                     this.loading = false;
                 }
             }
+        },
+        teardownElementPlayback() {
+            if (this.audioElement) {
+                try {
+                    this.audioElement.pause();
+                } catch {
+                    // ignore
+                }
+                this.audioElement = null;
+            }
+            if (this.blobUrl) {
+                try {
+                    URL.revokeObjectURL(this.blobUrl);
+                } catch {
+                    // ignore
+                }
+                this.blobUrl = null;
+            }
+            this.playbackMode = null;
         },
         drawWaveform() {
             const canvas = this.$refs.waveform;
@@ -232,22 +266,51 @@ export default {
                 this.startPlayback();
             }
         },
-        startPlayback() {
-            if (!this.audioBuffer) return;
+        async startPlayback() {
+            if (!this.audioBuffer && !this.audioBytes) return;
 
-            this.stopPlayback();
+            try {
+                this.stopPlayback();
 
-            if (this.audioContext.state === "suspended") {
-                this.audioContext.resume();
+                const startOffset = this.currentTime >= this.totalDuration ? 0 : this.currentTime;
+
+                if (!this.useElementPlayback) {
+                    const ctx = this.ensurePlaybackContext();
+                    const running = await ensureAudioContextRunning(ctx);
+                    if (running) {
+                        this.startBufferPlayback(running, startOffset);
+                        return;
+                    }
+                    this.useElementPlayback = true;
+                }
+                await this.startElementPlayback(startOffset);
+            } catch (error) {
+                console.error("AudioWaveformPlayer: playback failed:", error);
             }
-
-            this.sourceNode = this.audioContext.createBufferSource();
+        },
+        ensurePlaybackContext() {
+            if (this.audioContext) {
+                return this.audioContext;
+            }
+            const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+            if (typeof AudioContextCtor !== "function") {
+                return null;
+            }
+            try {
+                this.audioContext = new AudioContextCtor();
+            } catch {
+                return null;
+            }
+            return this.audioContext;
+        },
+        startBufferPlayback(ctx, startOffset) {
+            this.sourceNode = ctx.createBufferSource();
             this.sourceNode.buffer = this.audioBuffer;
-            this.sourceNode.connect(this.audioContext.destination);
+            this.sourceNode.connect(ctx.destination);
 
-            const startOffset = this.currentTime >= this.totalDuration ? 0 : this.currentTime;
+            this.playbackMode = "webaudio";
             this.playbackStartOffset = startOffset;
-            this.playbackStartTime = this.audioContext.currentTime;
+            this.playbackStartTime = ctx.currentTime;
 
             this.sourceNode.start(0, startOffset);
             this.isPlaying = true;
@@ -265,6 +328,62 @@ export default {
 
             this.updateProgress();
         },
+        ensureAudioElement() {
+            if (this.audioElement) {
+                return this.audioElement;
+            }
+            if (!this.audioBytes || typeof Audio === "undefined") {
+                return null;
+            }
+            if (!this.blobUrl && typeof URL.createObjectURL === "function") {
+                const type = this.audioMimeType.startsWith("audio/") ? this.audioMimeType : "";
+                this.blobUrl = URL.createObjectURL(new Blob([this.audioBytes], { type }));
+            }
+            if (!this.blobUrl) {
+                return null;
+            }
+            const el = new Audio(this.blobUrl);
+            el.preload = "auto";
+            el.onended = () => {
+                if (this.isPlaying && this.playbackMode === "element") {
+                    this.isPlaying = false;
+                    this.currentTime = this.totalDuration;
+                    this.progressPercent = 100;
+                    cancelAnimationFrame(this.animationFrame);
+                    this.drawWaveform();
+                }
+            };
+            this.audioElement = el;
+            return el;
+        },
+        async startElementPlayback(startOffset) {
+            const el = this.ensureAudioElement();
+            if (!el) {
+                return;
+            }
+            const applyOffset = () => {
+                try {
+                    el.currentTime = startOffset;
+                } catch {
+                    // ignore
+                }
+            };
+            if (el.readyState >= 1) {
+                applyOffset();
+            } else {
+                el.addEventListener("loadedmetadata", applyOffset, { once: true });
+            }
+            try {
+                await el.play();
+            } catch (error) {
+                console.warn("AudioWaveformPlayer: element playback failed:", error);
+                return;
+            }
+            this.playbackMode = "element";
+            this.isPlaying = true;
+            this.$emit("play");
+            this.updateProgress();
+        },
         stopPlayback() {
             if (this.sourceNode) {
                 try {
@@ -274,19 +393,48 @@ export default {
                 }
                 this.sourceNode = null;
             }
+            if (this.audioElement) {
+                try {
+                    this.audioElement.pause();
+                } catch {
+                    // ignore
+                }
+            }
             this.isPlaying = false;
+            this.playbackMode = null;
             cancelAnimationFrame(this.animationFrame);
         },
         updateProgress() {
             if (!this.isPlaying) return;
 
+            if (this.playbackMode === "element" && this.audioElement) {
+                const el = this.audioElement;
+                const duration = Number.isFinite(el.duration) && el.duration > 0 ? el.duration : this.totalDuration;
+                if (duration > 0) {
+                    this.totalDuration = duration;
+                    this.currentTime = Math.min(el.currentTime || 0, duration);
+                    this.progressPercent = (this.currentTime / duration) * 100;
+                } else {
+                    this.currentTime = el.currentTime || 0;
+                    this.progressPercent = 0;
+                }
+                this.drawWaveform();
+                if (duration > 0 && this.currentTime >= duration) {
+                    this.isPlaying = false;
+                    return;
+                }
+                this.animationFrame = requestAnimationFrame(this.updateProgress);
+                return;
+            }
+
+            if (!this.audioContext) return;
             const elapsed = this.audioContext.currentTime - this.playbackStartTime;
             this.currentTime = Math.min(this.playbackStartOffset + elapsed, this.totalDuration);
-            this.progressPercent = (this.currentTime / this.totalDuration) * 100;
+            this.progressPercent = this.totalDuration > 0 ? (this.currentTime / this.totalDuration) * 100 : 0;
 
             this.drawWaveform();
 
-            if (this.currentTime >= this.totalDuration) {
+            if (this.totalDuration > 0 && this.currentTime >= this.totalDuration) {
                 this.isPlaying = false;
                 return;
             }
@@ -297,13 +445,21 @@ export default {
             const canvas = this.$refs.waveform;
             const rect = canvas.getBoundingClientRect();
             const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-            const time = (x / rect.width) * this.totalDuration;
+            const time = this.totalDuration > 0 ? (x / rect.width) * this.totalDuration : 0;
 
             this.currentTime = time;
-            this.progressPercent = (this.currentTime / this.totalDuration) * 100;
+            this.progressPercent = this.totalDuration > 0 ? (this.currentTime / this.totalDuration) * 100 : 0;
 
             if (this.isPlaying) {
-                this.startPlayback(); // Restart from new position
+                if (this.playbackMode === "element" && this.audioElement) {
+                    try {
+                        this.audioElement.currentTime = time;
+                    } catch {
+                        // ignore
+                    }
+                } else {
+                    this.startPlayback();
+                }
             } else {
                 this.drawWaveform();
             }

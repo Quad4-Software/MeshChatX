@@ -1,3 +1,5 @@
+import { ensureAudioContextRunning } from "./audioContextUtils.js";
+
 export default class ToneGenerator {
     constructor() {
         this.audioCtx = null;
@@ -38,11 +40,15 @@ export default class ToneGenerator {
         }
     }
 
-    playRingback() {
+    async playRingback() {
         if (this.currentTone === "ringback") return;
         this._initAudioContext();
         this.stop();
         this.currentTone = "ringback";
+        if (!(await ensureAudioContextRunning(this.audioCtx))) {
+            this.currentTone = null;
+            return;
+        }
 
         const play = () => {
             const osc1 = this.audioCtx.createOscillator();
@@ -122,11 +128,15 @@ export default class ToneGenerator {
         play();
     }
 
-    playBusyTone() {
+    async playBusyTone() {
         if (this.currentTone === "busy") return;
         this._initAudioContext();
         this.stop();
         this.currentTone = "busy";
+        if (!(await ensureAudioContextRunning(this.audioCtx))) {
+            this.currentTone = null;
+            return;
+        }
 
         const play = () => {
             const osc = this.audioCtx.createOscillator();
