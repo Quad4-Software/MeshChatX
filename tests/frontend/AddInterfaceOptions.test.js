@@ -754,4 +754,112 @@ describe("AddInterfacePage.vue interface options", () => {
         );
         expect(permissionCalls).toHaveLength(0);
     });
+
+    it("keeps a saved port visible when it is not in the detected list", async () => {
+        mockAxios.get.mockImplementation(async (url) => {
+            if (String(url).includes("/api/v1/comports")) {
+                return {
+                    data: {
+                        comports: [
+                            {
+                                device: "/dev/ttyUSB0",
+                                product: "CP2102",
+                                serial_number: null,
+                            },
+                        ],
+                    },
+                };
+            }
+            if (String(url).includes("/api/v1/reticulum/interfaces")) {
+                return { data: { interfaces: {} } };
+            }
+            return { data: {} };
+        });
+        const wrapper = mountPage();
+        wrapper.vm.newInterfaceType = "SerialInterface";
+        wrapper.vm.newInterfacePort = "/dev/ttyACM9";
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.loadComports();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.serialPortMissingValue).toBe("/dev/ttyACM9");
+        const option = wrapper.findAll("option").find((o) => o.attributes("value") === "/dev/ttyACM9");
+        expect(option).toBeTruthy();
+        expect(option.text()).toContain("interfaces.serial_port_not_detected");
+    });
+
+    it("drops the missing-port option once the saved port is detected", async () => {
+        mockAxios.get.mockImplementation(async (url) => {
+            if (String(url).includes("/api/v1/comports")) {
+                return {
+                    data: {
+                        comports: [
+                            {
+                                device: "/dev/ttyACM9",
+                                product: "RNode",
+                                serial_number: null,
+                            },
+                        ],
+                    },
+                };
+            }
+            if (String(url).includes("/api/v1/reticulum/interfaces")) {
+                return { data: { interfaces: {} } };
+            }
+            return { data: {} };
+        });
+        const wrapper = mountPage();
+        wrapper.vm.newInterfacePort = "/dev/ttyACM9";
+        await wrapper.vm.loadComports();
+
+        expect(wrapper.vm.serialPortMissingValue).toBeNull();
+    });
+
+    it("ignores stale comports responses when a newer load is in flight", async () => {
+        const resolvers = [];
+        mockAxios.get.mockImplementation((url) => {
+            if (String(url).includes("/api/v1/comports")) {
+                return new Promise((resolve) => resolvers.push(resolve));
+            }
+            if (String(url).includes("/api/v1/reticulum/interfaces")) {
+                return Promise.resolve({ data: { interfaces: {} } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountPage();
+        // mounted() already fired one loadComports -> resolvers[0].
+        const first = wrapper.vm.loadComports();
+        const second = wrapper.vm.loadComports();
+        expect(resolvers).toHaveLength(3);
+
+        resolvers[2]({
+            data: {
+                comports: [{ device: "/dev/ttyUSB1", product: "New", serial_number: null }],
+            },
+        });
+        await second;
+        expect(wrapper.vm.comports.map((p) => p.device)).toEqual(["/dev/ttyUSB1"]);
+        expect(wrapper.vm.comportsLoading).toBe(false);
+
+        resolvers[1]({
+            data: {
+                comports: [{ device: "/dev/ttySTALE", product: "Old", serial_number: null }],
+            },
+        });
+        resolvers[0]({ data: { comports: [] } });
+        await first;
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.comports.map((p) => p.device)).toEqual(["/dev/ttyUSB1"]);
+        expect(wrapper.vm.comportsLoading).toBe(false);
+    });
+
+    it("labels ports with a translated fallback when product is missing", () => {
+        const wrapper = mountPage();
+        const label = wrapper.vm.serialPortOptionLabel({
+            device: "/dev/bus/usb/001/002",
+            product: null,
+        });
+        expect(label).toBe("/dev/bus/usb/001/002 (interfaces.serial_port_product_unknown)");
+    });
 });

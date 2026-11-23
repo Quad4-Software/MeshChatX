@@ -1871,7 +1871,22 @@
         "serial_port_permission_suffix": "USB permission needed",
         "usb_permission_granted": "USB access granted.",
         "usb_permission_requested": "USB access requested. Grant it in the dialog, then tap Refresh Ports.",
-        "usb_permission_failed": "Could not request USB access."
+        "usb_permission_failed": "Could not request USB access.",
+        "serial_port_label": "Serial Port",
+        "serial_port_placeholder": "Select a port...",
+        "serial_ports_refresh": "Refresh Ports",
+        "serial_port_product_unknown": "unknown product",
+        "serial_port_not_detected": "not detected",
+        "serial_baud_rate_label": "Baud Rate",
+        "serial_data_bits_label": "Data Bits",
+        "serial_parity_label": "Parity",
+        "serial_stop_bits_label": "Stop Bits",
+        "serial_databits_default_option": "Default (8)",
+        "serial_parity_default_option": "Default (none)",
+        "serial_stopbits_default_option": "Default (1)",
+        "serial_parity_none_option": "None",
+        "serial_parity_even_option": "Even",
+        "serial_parity_odd_option": "Odd"
     },
     "map": {
         "title": "Map",

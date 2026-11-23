@@ -916,14 +916,24 @@
                                                 </p>
                                             </div>
                                             <div v-else>
-                                                <FormLabel class="glass-label">Serial Port</FormLabel>
+                                                <FormLabel class="glass-label">{{
+                                                    $t("interfaces.serial_port_label")
+                                                }}</FormLabel>
                                                 <div class="relative">
                                                     <select
                                                         v-model="newInterfacePort"
                                                         class="input-field appearance-none pr-10"
                                                         @change="onSerialPortChange"
                                                     >
-                                                        <option :value="null" disabled>Select a port...</option>
+                                                        <option :value="null" disabled>
+                                                            {{ $t("interfaces.serial_port_placeholder") }}
+                                                        </option>
+                                                        <option
+                                                            v-if="serialPortMissingValue"
+                                                            :value="serialPortMissingValue"
+                                                        >
+                                                            {{ serialPortMissingOptionLabel }}
+                                                        </option>
                                                         <option
                                                             v-for="port in comports"
                                                             :key="port.device"
@@ -957,11 +967,7 @@
                                                         :disabled="comportsLoading"
                                                         @click="loadComports"
                                                     >
-                                                        {{
-                                                            comportsLoading
-                                                                ? $t("interfaces.comports_loading")
-                                                                : "Refresh Ports"
-                                                        }}
+                                                        {{ $t("interfaces.serial_ports_refresh") }}
                                                     </button>
                                                 </div>
                                             </div>
@@ -1133,7 +1139,9 @@
                                         >
                                             <div class="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <FormLabel class="glass-label">Baud Rate</FormLabel>
+                                                    <FormLabel class="glass-label">{{
+                                                        $t("interfaces.serial_baud_rate_label")
+                                                    }}</FormLabel>
                                                     <input
                                                         v-model="newInterfaceSpeed"
                                                         type="number"
@@ -1143,9 +1151,13 @@
                                                     />
                                                 </div>
                                                 <div>
-                                                    <FormLabel class="glass-label">Data Bits</FormLabel>
+                                                    <FormLabel class="glass-label">{{
+                                                        $t("interfaces.serial_data_bits_label")
+                                                    }}</FormLabel>
                                                     <select v-model="newInterfaceDatabits" class="input-field">
-                                                        <option :value="null">Default (8)</option>
+                                                        <option :value="null">
+                                                            {{ $t("interfaces.serial_databits_default_option") }}
+                                                        </option>
                                                         <option :value="5">5</option>
                                                         <option :value="6">6</option>
                                                         <option :value="7">7</option>
@@ -1155,18 +1167,32 @@
                                             </div>
                                             <div class="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <FormLabel class="glass-label">Parity</FormLabel>
+                                                    <FormLabel class="glass-label">{{
+                                                        $t("interfaces.serial_parity_label")
+                                                    }}</FormLabel>
                                                     <select v-model="newInterfaceParity" class="input-field">
-                                                        <option :value="null">Default (none)</option>
-                                                        <option value="N">None</option>
-                                                        <option value="E">Even</option>
-                                                        <option value="O">Odd</option>
+                                                        <option :value="null">
+                                                            {{ $t("interfaces.serial_parity_default_option") }}
+                                                        </option>
+                                                        <option value="N">
+                                                            {{ $t("interfaces.serial_parity_none_option") }}
+                                                        </option>
+                                                        <option value="E">
+                                                            {{ $t("interfaces.serial_parity_even_option") }}
+                                                        </option>
+                                                        <option value="O">
+                                                            {{ $t("interfaces.serial_parity_odd_option") }}
+                                                        </option>
                                                     </select>
                                                 </div>
                                                 <div>
-                                                    <FormLabel class="glass-label">Stop Bits</FormLabel>
+                                                    <FormLabel class="glass-label">{{
+                                                        $t("interfaces.serial_stop_bits_label")
+                                                    }}</FormLabel>
                                                     <select v-model="newInterfaceStopbits" class="input-field">
-                                                        <option :value="null">Default (1)</option>
+                                                        <option :value="null">
+                                                            {{ $t("interfaces.serial_stopbits_default_option") }}
+                                                        </option>
                                                         <option :value="1">1</option>
                                                         <option :value="2">2</option>
                                                     </select>
@@ -2480,6 +2506,7 @@ export default {
             comportsLoading: false,
             comportsLoaded: false,
             comportsError: null,
+            comportsRequestSeq: 0,
 
             hostKernelInterfaces: [],
             hostKernelInterfacesLoading: false,
@@ -2680,6 +2707,16 @@ export default {
             return this.androidBridge.isAvailable()
                 ? this.$t("interfaces.serial_ports_empty_android")
                 : this.$t("interfaces.serial_ports_empty");
+        },
+        serialPortMissingValue() {
+            if (!this.newInterfacePort) {
+                return null;
+            }
+            return this.comports.some((port) => port.device === this.newInterfacePort) ? null : this.newInterfacePort;
+        },
+        serialPortMissingOptionLabel() {
+            const suffix = this.comportsLoaded ? ` (${this.$t("interfaces.serial_port_not_detected")})` : "";
+            return `${this.serialPortMissingValue ?? ""}${suffix}`;
         },
         transportEnabled() {
             if (this.config && this.config.is_transport_enabled === true) {
@@ -2999,21 +3036,31 @@ export default {
             }
         },
         async loadComports() {
+            const requestSeq = ++this.comportsRequestSeq;
             this.comportsLoading = true;
             this.comportsError = null;
             try {
                 const response = await window.api.get(apiPath("/comports"));
+                if (requestSeq !== this.comportsRequestSeq) {
+                    return;
+                }
                 this.comports = Array.isArray(response.data?.comports) ? response.data.comports : [];
                 this.comportsLoaded = true;
             } catch (e) {
+                if (requestSeq !== this.comportsRequestSeq) {
+                    return;
+                }
                 console.log(e);
                 this.comportsError = this.$t("interfaces.comports_load_failed");
             } finally {
-                this.comportsLoading = false;
+                if (requestSeq === this.comportsRequestSeq) {
+                    this.comportsLoading = false;
+                }
             }
         },
         serialPortOptionLabel(port) {
-            const base = `${port.device} (${port.product ?? "?"})`;
+            const product = port.product || this.$t("interfaces.serial_port_product_unknown");
+            const base = `${port.device} (${product})`;
             return port.has_permission === false
                 ? `${base} (${this.$t("interfaces.serial_port_permission_suffix")})`
                 : base;
