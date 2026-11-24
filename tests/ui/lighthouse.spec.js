@@ -41,6 +41,11 @@ test.describe("Lighthouse page scores (simulated data)", () => {
                 await target.addInitScript(() => {
                     history.pushState = () => undefined;
                     history.replaceState = () => undefined;
+                    try {
+                        sessionStorage.setItem("meshchatx.version_reload", "1");
+                    } catch {
+                        // ignore
+                    }
                 });
                 // Keep the service worker out of the audited page entirely:
                 // re-navigations in the retry loop would re-register it, and

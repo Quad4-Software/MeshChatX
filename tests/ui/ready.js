@@ -44,7 +44,20 @@ async function waitForPageReady(page, entry) {
  */
 async function gotoUiPage(page, entry, baseURL) {
     const url = `${baseURL.replace(/\/$/, "")}/#${entry.path}`;
-    await page.goto(url, { waitUntil: "domcontentloaded" });
+    for (let attempt = 1; ; attempt++) {
+        try {
+            await page.goto(url, { waitUntil: "domcontentloaded" });
+            break;
+        } catch (err) {
+            if (
+                attempt >= 3 ||
+                !/interrupted by another navigation|Execution context was destroyed/.test(String(err?.message || err))
+            ) {
+                throw err;
+            }
+            await page.waitForLoadState("domcontentloaded").catch(() => {});
+        }
+    }
     await expect(page).toHaveURL(new RegExp(`#${entry.path.replace(/\//g, "\\/")}`));
     await waitForBootReady(page);
     await waitForPageReady(page, entry);
