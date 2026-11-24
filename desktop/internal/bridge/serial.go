@@ -14,6 +14,8 @@ import (
 // access is token-gated: JS can only present tokens minted by GrantPort
 // after the user picked the port in the native picker.
 
+const maxSerialWriteBytes = 1 << 20
+
 func (b *Bridge) serialManager() (*serial.Manager, error) {
 	if b.deps.Serial == nil {
 		return nil, fmt.Errorf("serial bridge unavailable")
@@ -159,9 +161,15 @@ func (b *Bridge) serialWrite(opts map[string]any) (any, error) {
 		return nil, err
 	}
 	encoded, _ := opts["data"].(string)
+	if len(encoded) > ((maxSerialWriteBytes+2)/3)*4 {
+		return nil, fmt.Errorf("serial write exceeds 1 MiB limit")
+	}
 	data, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
 		return nil, fmt.Errorf("invalid base64 serial data")
+	}
+	if len(data) > maxSerialWriteBytes {
+		return nil, fmt.Errorf("serial write exceeds 1 MiB limit")
 	}
 	n, err := m.Write(token, data)
 	if err != nil {

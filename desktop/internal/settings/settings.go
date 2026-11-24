@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync/atomic"
+
+	"github.com/Quad4-Software/MeshChatX/desktop/internal/fsutil"
 )
 
 // ---- close behavior (electron/closeBehavior.js) ---------------------------
@@ -300,5 +302,5 @@ func writeJSON(path string, v any) {
 	if err != nil {
 		return
 	}
-	_ = os.WriteFile(path, append(data, '\n'), 0o644)
+	_ = fsutil.WriteFileAtomic(path, append(data, '\n'), 0o644)
 }

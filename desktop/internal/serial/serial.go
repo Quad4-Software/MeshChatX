@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	goserial "go.bug.st/serial"
 )
@@ -56,6 +57,8 @@ const (
 	inboundBufSize = 4 * 1024   // bytes per port read
 	maxReadBytes   = 256 * 1024 // cap per serial-read reply
 	defaultBaud    = 9600
+	maxGrants      = 16
+	grantTTL       = 10 * time.Minute
 )
 
 var (
@@ -74,6 +77,11 @@ type Deps struct {
 type Grant struct {
 	Token string   `json:"token"`
 	Port  PortInfo `json:"port"`
+}
+
+type grantEntry struct {
+	grant *Grant
+	used  time.Time
 }
 
 type session struct {
@@ -95,9 +103,11 @@ type session struct {
 type Manager struct {
 	deps Deps
 
-	mu       sync.Mutex
-	grants   map[string]*Grant
-	sessions map[string]*session
+	mu         sync.Mutex
+	grants     map[string]*grantEntry
+	grantOrder []string
+	sessions   map[string]*session
+	now        func() time.Time
 }
 
 func NewManager(deps Deps) *Manager {
@@ -111,8 +121,9 @@ func NewManager(deps Deps) *Manager {
 	}
 	return &Manager{
 		deps:     deps,
-		grants:   map[string]*Grant{},
+		grants:   map[string]*grantEntry{},
 		sessions: map[string]*session{},
+		now:      time.Now,
 	}
 }
 
@@ -148,9 +159,57 @@ func (m *Manager) GrantPort(path string, filters []Filter) (*Grant, error) {
 	}
 	g := &Grant{Token: token, Port: *info}
 	m.mu.Lock()
-	m.grants[token] = g
+	var closing []*session
+	m.purgeGrantsLocked(&closing)
+	for len(m.grants) >= maxGrants {
+		oldest := ""
+		for _, t := range m.grantOrder {
+			if _, ok := m.grants[t]; ok {
+				oldest = t
+				break
+			}
+		}
+		if oldest == "" {
+			break
+		}
+		delete(m.grants, oldest)
+		if s, ok := m.sessions[oldest]; ok {
+			delete(m.sessions, oldest)
+			closing = append(closing, s)
+		}
+	}
+	m.grants[token] = &grantEntry{grant: g, used: m.now()}
+	m.grantOrder = append(m.grantOrder, token)
 	m.mu.Unlock()
+	for _, s := range closing {
+		s.close()
+	}
 	return g, nil
+}
+
+func (m *Manager) purgeGrantsLocked(closing *[]*session) {
+	cutoff := m.now().Add(-grantTTL)
+	for token, e := range m.grants {
+		if e.used.Before(cutoff) {
+			delete(m.grants, token)
+			if s, ok := m.sessions[token]; ok {
+				delete(m.sessions, token)
+				*closing = append(*closing, s)
+			}
+		}
+	}
+}
+
+func (m *Manager) grantLocked(token string) *grantEntry {
+	e, ok := m.grants[token]
+	if !ok {
+		return nil
+	}
+	if e.used.Before(m.now().Add(-grantTTL)) {
+		delete(m.grants, token)
+		return nil
+	}
+	return e
 }
 
 func matchesAnyFilter(info PortInfo, filters []Filter) bool {
@@ -189,11 +248,12 @@ func (m *Manager) RevokeGrant(token string) {
 // Open opens a granted port. emit receives "serial-data" notifications.
 func (m *Manager) Open(token string, opts OpenOptions, emit func(name string, payload any)) error {
 	m.mu.Lock()
-	g, ok := m.grants[token]
-	if !ok {
+	e := m.grantLocked(token)
+	if e == nil {
 		m.mu.Unlock()
 		return ErrUnknownToken
 	}
+	g := e.grant
 	if _, open := m.sessions[token]; open {
 		m.mu.Unlock()
 		return ErrAlreadyOpen
@@ -232,10 +292,13 @@ func (m *Manager) Open(token string, opts OpenOptions, emit func(name string, pa
 	// Revalidate under the lock: the grant may have been revoked (or another
 	// Open may have registered a session) while OpenPort was in flight.
 	m.mu.Lock()
-	if _, granted := m.grants[token]; !granted {
+	if m.grantLocked(token) == nil {
 		m.mu.Unlock()
 		_ = port.Close()
 		return ErrUnknownToken
+	}
+	if m.grants[token] != nil {
+		m.grants[token].used = m.now()
 	}
 	if _, open := m.sessions[token]; open {
 		m.mu.Unlock()
@@ -435,8 +498,8 @@ func (m *Manager) GetInfo(token string) (PortInfo, error) {
 	if s, ok := m.sessions[token]; ok {
 		return s.info, nil
 	}
-	if g, ok := m.grants[token]; ok {
-		return g.Port, nil
+	if e := m.grantLocked(token); e != nil {
+		return e.grant.Port, nil
 	}
 	return PortInfo{}, ErrUnknownToken
 }
@@ -446,8 +509,8 @@ func (m *Manager) GrantedPorts() []Grant {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	out := make([]Grant, 0, len(m.grants))
-	for _, g := range m.grants {
-		out = append(out, *g)
+	for _, e := range m.grants {
+		out = append(out, *e.grant)
 	}
 	return out
 }

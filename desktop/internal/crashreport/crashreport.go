@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Quad4-Software/MeshChatX/desktop/internal/fsutil"
 )
 
 const ReportFilename = "last-backend-crash.json"
@@ -95,7 +97,7 @@ func PersistCrashReport(storageDir string, crash *Crash) map[string]any {
 		return nil
 	}
 	logsDir := GetLogsDir(storageDir)
-	if err := os.MkdirAll(logsDir, 0o755); err != nil {
+	if err := os.MkdirAll(logsDir, 0o700); err != nil {
 		return nil
 	}
 	reportPath := GetCrashReportPath(storageDir)
@@ -115,7 +117,7 @@ func PersistCrashReport(storageDir string, crash *Crash) map[string]any {
 	if err != nil {
 		return nil
 	}
-	if err := os.WriteFile(reportPath, append(data, '\n'), 0o644); err != nil {
+	if err := fsutil.WriteFileAtomic(reportPath, append(data, '\n'), 0o600); err != nil {
 		return nil
 	}
 	return payload

@@ -115,6 +115,11 @@ func ApplyPendingUpdate(storageDir string) map[string]any {
 			return fail(fmt.Sprintf("backup_failed: %s", err.Error()), nil)
 		}
 	}
+	// Re-verify the staged bytes right before the swap; the earlier hash
+	// check leaves a window where the file could be replaced.
+	if again, err := sha256File(stagedPath); err != nil || again != strings.ToLower(sha) {
+		return fail("sha256_mismatch", nil)
+	}
 	_ = os.Chmod(stagedPath, 0o755)
 	if err := os.Rename(stagedPath, targetPath); err != nil {
 		if cerr := copyFileSync(stagedPath, targetPath); cerr != nil {

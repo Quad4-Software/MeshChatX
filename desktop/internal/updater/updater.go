@@ -176,49 +176,50 @@ func jsonSize(v any) (int64, bool) {
 // verifyStaged re-checks the staged artifact against the marker before any
 // swap runs (fail closed): basename/sha shape, pending-dir confinement,
 // declared size when present, and the whole-file sha256.
-func verifyStaged(storageDir string, marker map[string]any) (stagedPath, file, kind string, errRes map[string]any) {
+func verifyStaged(storageDir string, marker map[string]any) (stagedPath, file, kind, sha string, errRes map[string]any) {
 	file, _ = marker["file"].(string)
-	sha, _ := marker["sha256"].(string)
+	sha, _ = marker["sha256"].(string)
 	kind, _ = marker["kind"].(string)
 	if file == "" || filepath.Base(file) != file || !sha256HexRe.MatchString(sha) {
-		return "", "", kind, failResult("bad_pending_marker", kind, nil)
+		return "", "", kind, "", failResult("bad_pending_marker", kind, nil)
 	}
 	// Never swap in a payload built for another OS. "python" artifacts are
-	// platform-agnostic; anything else must match the host.
+	// platform-agnostic; anything else must map to the host GOOS — unknown
+	// platform strings fail closed.
 	if plat, _ := marker["platform"].(string); plat != "" && plat != "python" {
-		goos := map[string]string{
+		goos, known := map[string]string{
 			"linux": "linux", "windows": "windows", "macos": "darwin", "android": "android",
 		}[plat]
-		if goos != "" && goos != runtime.GOOS {
-			return "", "", kind, failResult("platform_mismatch", kind, nil)
+		if !known || goos != runtime.GOOS {
+			return "", "", kind, "", failResult("platform_mismatch", kind, nil)
 		}
 	}
 	var ok bool
 	stagedPath, ok = stagedArtifactPath(storageDir, file)
 	if !ok {
-		return "", "", kind, failResult("path_escape", kind, nil)
+		return "", "", kind, "", failResult("path_escape", kind, nil)
 	}
 	info, err := os.Stat(stagedPath)
 	if err != nil || info.IsDir() {
-		return "", "", kind, failResult("staged_missing", kind, nil)
+		return "", "", kind, "", failResult("staged_missing", kind, nil)
 	}
 	// Cross-check the artifacts[] entry the backend wrote: a mismatched
 	// entry hash means the marker is corrupt/tampered.
 	if entry := artifactEntry(marker, file); entry != nil {
 		if esha, _ := entry["sha256"].(string); esha != "" && !strings.EqualFold(esha, sha) {
-			return "", "", kind, failResult("bad_pending_marker", kind, nil)
+			return "", "", kind, "", failResult("bad_pending_marker", kind, nil)
 		}
 		if want, ok := jsonSize(entry["size"]); ok && want != info.Size() {
-			return "", "", kind, failResult("size_mismatch", kind, nil)
+			return "", "", kind, "", failResult("size_mismatch", kind, nil)
 		}
 	} else if want, ok := jsonSize(marker["size"]); ok && want != info.Size() {
-		return "", "", kind, failResult("size_mismatch", kind, nil)
+		return "", "", kind, "", failResult("size_mismatch", kind, nil)
 	}
 	actual, err := sha256File(stagedPath)
 	if err != nil || actual != strings.ToLower(sha) {
-		return "", "", kind, failResult("sha256_mismatch", kind, nil)
+		return "", "", kind, "", failResult("sha256_mismatch", kind, nil)
 	}
-	return stagedPath, file, kind, nil
+	return stagedPath, file, kind, sha, nil
 }
 
 // ApplyPending applies the staged update described by pending.json.
@@ -241,7 +242,7 @@ func ApplyPending(storageDir string) map[string]any {
 	if marker == nil {
 		return failResult("no_pending_update", "", nil)
 	}
-	stagedPath, file, kind, errRes := verifyStaged(storageDir, marker)
+	stagedPath, file, kind, sha, errRes := verifyStaged(storageDir, marker)
 	if errRes != nil {
 		return errRes
 	}
@@ -257,7 +258,7 @@ func ApplyPending(storageDir string) map[string]any {
 		}
 		return res
 	case "exe", "msi", "tarball":
-		return applyPortable(storageDir, stagedPath, file, kind)
+		return applyPortable(storageDir, stagedPath, file, kind, sha)
 	case "dmg", "deb", "rpm", "apk":
 		return manualResult(kind, "package_managed_install", stagedPath, manualInstructions(kind, file))
 	case "wheel", "pyz":
@@ -271,7 +272,7 @@ func ApplyPending(storageDir string) map[string]any {
 		// "zip" kind to "other", so an archive payload on a self-updatable
 		// install dir still gets the portable swap.
 		if detectArchive(stagedPath) != "" {
-			return applyPortable(storageDir, stagedPath, file, kind)
+			return applyPortable(storageDir, stagedPath, file, kind, sha)
 		}
 		return manualResult(kind, "manual_install", stagedPath, manualInstructions(kind, file))
 	}

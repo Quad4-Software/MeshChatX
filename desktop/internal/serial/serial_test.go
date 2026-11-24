@@ -404,3 +404,61 @@ func TestModeFromOptions(t *testing.T) {
 		t.Fatalf("default mode: %+v", def)
 	}
 }
+
+func TestGrantCapEvictsOldest(t *testing.T) {
+	m := newTestManager(newFakePort())
+	var first string
+	for i := 0; i < maxGrants+2; i++ {
+		g, err := m.GrantPort("/dev/ttyUSB0", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if i == 0 {
+			first = g.Token
+		}
+	}
+	m.mu.Lock()
+	n := len(m.grants)
+	m.mu.Unlock()
+	if n != maxGrants {
+		t.Fatalf("grants=%d", n)
+	}
+	if _, err := m.GetInfo(first); !errors.Is(err, ErrUnknownToken) {
+		t.Fatalf("oldest grant should be evicted, got %v", err)
+	}
+}
+
+func TestGrantExpiry(t *testing.T) {
+	m := newTestManager(newFakePort())
+	base := time.Now()
+	m.now = func() time.Time { return base }
+	g, err := m.GrantPort("/dev/ttyUSB0", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base = base.Add(grantTTL + time.Minute)
+	if _, err := m.GetInfo(g.Token); !errors.Is(err, ErrUnknownToken) {
+		t.Fatalf("expired grant should be unknown, got %v", err)
+	}
+}
+
+func TestGrantUseRefreshesExpiry(t *testing.T) {
+	m := newTestManager(newFakePort())
+	base := time.Now()
+	m.now = func() time.Time { return base }
+	g, err := m.GrantPort("/dev/ttyUSB0", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := newFakePort()
+	m.deps.OpenPort = func(path string, mode *goserial.Mode) (goserial.Port, error) { return port, nil }
+	base = base.Add(grantTTL - time.Minute)
+	if err := m.Open(g.Token, OpenOptions{}, func(string, any) {}); err != nil {
+		t.Fatal(err)
+	}
+	m.Close(g.Token)
+	base = base.Add(2 * time.Minute)
+	if _, err := m.GetInfo(g.Token); err != nil {
+		t.Fatalf("grant used at TTL-1m should still live: %v", err)
+	}
+}

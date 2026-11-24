@@ -3,6 +3,7 @@ package crashreport
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -210,5 +211,28 @@ func TestCrashRecoveryInfo(t *testing.T) {
 	guide, _ := info["cleanupGuide"].(string)
 	if !strings.Contains(guide, dir) {
 		t.Fatal("cleanup guide missing storage dir")
+	}
+}
+
+func TestPersistCrashReportPerms(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("posix perms")
+	}
+	dir := t.TempDir()
+	code := 1
+	PersistCrashReport(dir, &Crash{Code: &code, Stdout: "o", Stderr: "e", At: 1})
+	info, err := os.Stat(GetCrashReportPath(dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("report perm = %o", info.Mode().Perm())
+	}
+	dinfo, err := os.Stat(GetLogsDir(dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dinfo.Mode().Perm() != 0o700 {
+		t.Fatalf("logs dir perm = %o", dinfo.Mode().Perm())
 	}
 }

@@ -430,19 +430,67 @@ func (m *Manager) SpawnBackend(exePath string, integrityRef *integrity.Result) (
 
 func int64Ptr(v int64) *int64 { return &v }
 
-func (m *Manager) wireChild(cmd *exec.Cmd, stdout, stderr interface{ Read([]byte) (int, error) }, isMaintenance bool) {
-	// Stdout/stderr pumping.
-	pump := func(streamName string, r interface{ Read([]byte) (int, error) }) {
-		scanner := bufio.NewScanner(r)
-		scanner.Buffer(make([]byte, 64*1024), 1024*1024)
-		for scanner.Scan() {
-			text := scanner.Text() + "\n"
-			if m.deps.SpoolStdoutToLog {
-				m.deps.Log(text)
+const pumpLineCap = 64 * 1024
+
+func pumpReadLine(br *bufio.Reader) (string, error) {
+	var b strings.Builder
+	truncated := false
+	for {
+		frag, err := br.ReadSlice('\n')
+		content := frag
+		done := false
+		if n := len(content); n > 0 && content[n-1] == '\n' {
+			content = content[:n-1]
+			done = true
+		}
+		if len(content) > 0 {
+			room := pumpLineCap - b.Len()
+			if room > 0 {
+				if len(content) <= room {
+					b.Write(content)
+				} else {
+					b.Write(content[:room])
+					truncated = true
+				}
+			} else {
+				truncated = true
 			}
-			m.mu.Lock()
-			m.logBuffers[streamName] = pushLogLine(m.logBuffers[streamName], text)
-			m.mu.Unlock()
+		}
+		if done {
+			s := b.String()
+			if truncated {
+				s += "...[truncated]"
+			}
+			return s, nil
+		}
+		if err == bufio.ErrBufferFull {
+			continue
+		}
+		s := b.String()
+		if truncated {
+			s += "...[truncated]"
+		}
+		return s, err
+	}
+}
+
+func (m *Manager) wireChild(cmd *exec.Cmd, stdout, stderr interface{ Read([]byte) (int, error) }, isMaintenance bool) {
+	pump := func(streamName string, r interface{ Read([]byte) (int, error) }) {
+		br := bufio.NewReaderSize(r, pumpLineCap+1)
+		for {
+			line, err := pumpReadLine(br)
+			if err == nil || line != "" {
+				text := line + "\n"
+				if m.deps.SpoolStdoutToLog {
+					m.deps.Log(text)
+				}
+				m.mu.Lock()
+				m.logBuffers[streamName] = pushLogLine(m.logBuffers[streamName], text)
+				m.mu.Unlock()
+			}
+			if err != nil {
+				return
+			}
 		}
 	}
 	go pump("stdout", stdout)
@@ -600,11 +648,7 @@ func signalProcess(cmd *exec.Cmd, done chan struct{}, sig syscall.Signal) {
 	if !procAlive(cmd, done) {
 		return
 	}
-	if runtime.GOOS == "windows" {
-		_ = exec.Command("taskkill", "/F", "/T", "/PID", strconv.Itoa(cmd.Process.Pid)).Run()
-		return
-	}
-	_ = cmd.Process.Signal(sig)
+	deliverSignal(cmd, sig)
 }
 
 // KillChild signals both managed children.
@@ -691,9 +735,9 @@ func (m *Manager) RunMaintenanceTask(extraArgs []string) map[string]any {
 	// or the stdout/stderr buffers while cmd.Wait is still running — reading
 	// them concurrently races with Wait's copy goroutines.
 	type waitResult struct {
-		code    int
-		stdout  string
-		stderr  string
+		code   int
+		stdout string
+		stderr string
 	}
 	resCh := make(chan waitResult, 1)
 	m.mu.Lock()

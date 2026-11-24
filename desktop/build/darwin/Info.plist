@@ -26,6 +26,8 @@
         <string>(c) 2025, Quad4</string>
         <key>NSMicrophoneUsageDescription</key>
         <string>Microphone access is only needed for audio calls and voice messages</string>
+        <key>NSCameraUsageDescription</key>
+        <string>Camera access is only needed to scan QR codes</string>
         <key>NSSpeechRecognitionUsageDescription</key>
         <string>Speech recognition is used for voice message transcription</string>
         <key>NSBluetoothAlwaysUsageDescription</key>

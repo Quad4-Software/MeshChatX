@@ -320,6 +320,7 @@ func main() {
 		MinHeight:        600,
 		URL:              appSrv.Origin() + "/__shell/loading.html?theme=" + effectiveTheme,
 		BackgroundColour: themeColour(effectiveTheme),
+		DevToolsEnabled:  false,
 		Permissions: map[application.PermissionType]application.Permission{
 			application.PermissionMicrophone: application.PermissionAllow,
 			application.PermissionCamera:     application.PermissionAllow,
@@ -329,6 +330,8 @@ func main() {
 	s.mainWindow = win
 	s.setPageKind("loading")
 	s.applyMainWindowZoom()
+	s.restoreWindowState(win)
+	s.armWindowStateSaver(win)
 	win.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
 		e.Cancel()
 		go s.handleWindowClose()
@@ -563,6 +566,7 @@ func (s *shellState) askCloseDialog(trayEnabled bool) (action string, remember b
 		DisableResize:    true,
 		URL:              "/close-dialog.html?theme=" + effective + "&tray=" + map[bool]string{true: "1", false: "0"}[trayEnabled],
 		BackgroundColour: themeColour(effective),
+		DevToolsEnabled:  false,
 		Hidden:           false,
 		AlwaysOnTop:      true,
 	})
@@ -779,6 +783,81 @@ func (s *shellState) applyMainWindowZoom() {
 	s.mainWindow.SetZoom(settings.LoadWindowZoom(s.storageDir))
 }
 
+// restoreWindowState reapplies the persisted main-window geometry, but only
+// when it still fits the current display layout and minimum size.
+func (s *shellState) restoreWindowState(win *application.WebviewWindow) {
+	st, ok := settings.LoadWindowState(s.storageDir)
+	if !ok {
+		return
+	}
+	var screens []settings.ScreenRect
+	if s.app != nil && s.app.Screen != nil {
+		for _, sc := range s.app.Screen.GetAll() {
+			screens = append(screens, settings.ScreenRect{
+				X: sc.Bounds.X, Y: sc.Bounds.Y,
+				Width: sc.Bounds.Width, Height: sc.Bounds.Height,
+			})
+		}
+	}
+	if !settings.ValidateWindowState(st, screens, 900, 600) {
+		return
+	}
+	win.SetSize(st.Width, st.Height)
+	win.SetPosition(st.X, st.Y)
+	if st.Maximized {
+		win.Maximise()
+	}
+}
+
+// armWindowStateSaver persists the main-window geometry on a debounce so
+// resizes/moves are not written on every event.
+func (s *shellState) armWindowStateSaver(win *application.WebviewWindow) {
+	var mu sync.Mutex
+	var timer *time.Timer
+	persist := func() {
+		if win.IsMinimised() {
+			return
+		}
+		width, height := win.Size()
+		x, y := win.Position()
+		settings.SaveWindowState(s.storageDir, settings.WindowState{
+			Width: width, Height: height, X: x, Y: y,
+			Maximized: win.IsMaximised(),
+		})
+	}
+	schedule := func() {
+		mu.Lock()
+		defer mu.Unlock()
+		if timer != nil {
+			timer.Stop()
+		}
+		timer = time.AfterFunc(500*time.Millisecond, func() {
+			mu.Lock()
+			timer = nil
+			mu.Unlock()
+			persist()
+		})
+	}
+	for _, ev := range []events.WindowEventType{
+		events.Common.WindowDidResize,
+		events.Common.WindowDidMove,
+		events.Common.WindowMaximise,
+		events.Common.WindowUnMaximise,
+		events.Common.WindowRestore,
+	} {
+		win.RegisterHook(ev, func(*application.WindowEvent) { schedule() })
+	}
+	win.RegisterHook(events.Common.WindowClosing, func(*application.WindowEvent) {
+		mu.Lock()
+		if timer != nil {
+			timer.Stop()
+			timer = nil
+		}
+		mu.Unlock()
+		persist()
+	})
+}
+
 func (s *shellState) showMainWindow() {
 	win := s.mainWindow
 	if win == nil {
@@ -899,6 +978,7 @@ func (s *shellState) promptDialog(message, def string) (string, bool) {
 		DisableResize:    true,
 		URL:              "/prompt.html?theme=" + effective + "&message=" + urlQueryEscape(message) + "&default=" + urlQueryEscape(def),
 		BackgroundColour: themeColour(effective),
+		DevToolsEnabled:  false,
 		AlwaysOnTop:      true,
 	})
 	ch := s.bridge.RegisterPendingWindow(name, w)
@@ -941,6 +1021,7 @@ func (s *shellState) pickSerialPort(filtersJSON string) (string, bool) {
 		DisableResize:    true,
 		URL:              "/serial-picker.html?theme=" + effective + "&filters=" + urlQueryEscape(filtersJSON),
 		BackgroundColour: themeColour(effective),
+		DevToolsEnabled:  false,
 		AlwaysOnTop:      true,
 	})
 	ch := s.bridge.RegisterPendingWindow(name, w)
@@ -1080,13 +1161,14 @@ func (s *shellState) openChildWindow(spec bridge.ChildWindowSpec) (application.W
 	}
 	name := fmt.Sprintf("child-%d", time.Now().UnixNano())
 	w := s.app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name:      name,
-		Title:     appName,
-		Width:     width,
-		Height:    height,
-		MinWidth:  320,
-		MinHeight: 240,
-		URL:       spec.URL,
+		Name:            name,
+		Title:           appName,
+		Width:           width,
+		Height:          height,
+		MinWidth:        320,
+		MinHeight:       240,
+		URL:             spec.URL,
+		DevToolsEnabled: false,
 		Permissions: map[application.PermissionType]application.Permission{
 			application.PermissionMicrophone: application.PermissionAllow,
 			application.PermissionCamera:     application.PermissionAllow,
@@ -1174,13 +1256,19 @@ func (s *shellState) showCrashPage(crash map[string]any) {
 		code = str("signal")
 	}
 	enc := func(v string) string { return base64.StdEncoding.EncodeToString([]byte(v)) }
+	tail := func(v string, n int) string {
+		if len(v) > n {
+			return v[len(v)-n:]
+		}
+		return v
+	}
 
 	q := "?theme=" + effective +
 		"&code=" + urlQueryEscape(code) +
 		"&logPath=" + urlQueryEscape(logPath) +
 		"&crashReportPath=" + urlQueryEscape(crashPath) +
-		"&stdout=" + urlQueryEscape(enc(str("stdout"))) +
-		"&stderr=" + urlQueryEscape(enc(str("stderr")))
+		"&stdout=" + urlQueryEscape(enc(tail(str("stdout"), 2048))) +
+		"&stderr=" + urlQueryEscape(enc(tail(str("stderr"), 2048)))
 	crashURL := "/__shell/crash.html" + q
 	if appServer != nil {
 		crashURL = appServer.Origin() + crashURL

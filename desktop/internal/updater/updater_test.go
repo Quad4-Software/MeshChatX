@@ -15,6 +15,13 @@ import (
 	"testing"
 )
 
+func stubPortableExe(t *testing.T, dir string) {
+	t.Helper()
+	old := osExecutable
+	osExecutable = func() (string, error) { return filepath.Join(dir, "MeshChatX"), nil }
+	t.Cleanup(func() { osExecutable = old })
+}
+
 // The apply path is gated behind the rollout flag; tests opt in via env.
 func TestMain(m *testing.M) {
 	os.Setenv("MESHCHATX_UPDATE_ROLLOUT", "1")
@@ -324,6 +331,7 @@ func TestApplyPendingTarballDirSwap(t *testing.T) {
 	dir := t.TempDir()
 	installDir := makeInstallDir(t)
 	t.Setenv("PORTABLE_EXECUTABLE_DIR", installDir)
+	stubPortableExe(t, installDir)
 
 	payload := makeTarGz(t, map[string]string{
 		"meshchatx-desktop-portable/meshchatx-desktop":   "new-shell",
@@ -365,6 +373,7 @@ func TestApplyPendingZipDirSwap(t *testing.T) {
 	dir := t.TempDir()
 	installDir := makeInstallDir(t)
 	t.Setenv("PORTABLE_EXECUTABLE_DIR", installDir)
+	stubPortableExe(t, installDir)
 
 	payload := makeZip(t, map[string]string{
 		"portable/meshchatx-desktop.exe":   "new-shell",
@@ -394,6 +403,7 @@ func TestApplyPendingExeDirSwap(t *testing.T) {
 	dir := t.TempDir()
 	installDir := makeInstallDir(t)
 	t.Setenv("PORTABLE_EXECUTABLE_DIR", installDir)
+	stubPortableExe(t, installDir)
 
 	// An "exe"-kind artifact whose payload is an archive gets the dir swap.
 	payload := makeZip(t, map[string]string{
@@ -421,6 +431,7 @@ func TestApplyPendingPortableNotSelfUpdatable(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("PORTABLE_EXECUTABLE_DIR", installDir)
+	stubPortableExe(t, installDir)
 
 	payload := makeTarGz(t, map[string]string{"pkg/file": "new"})
 	staged, marker := stageFile(t, dir, "MeshChatX-linux.tar.gz", payload)
@@ -444,6 +455,7 @@ func TestApplyPendingPortableNonArchivePayload(t *testing.T) {
 	dir := t.TempDir()
 	installDir := makeInstallDir(t)
 	t.Setenv("PORTABLE_EXECUTABLE_DIR", installDir)
+	stubPortableExe(t, installDir)
 
 	// MZ-magic installer bytes: not extractable in-process.
 	staged, marker := stageFile(t, dir, "MeshChatX-installer.exe", []byte{'M', 'Z', 0x90, 0x00})
@@ -463,6 +475,7 @@ func TestApplyPendingZipSlipRejected(t *testing.T) {
 	dir := t.TempDir()
 	installDir := makeInstallDir(t)
 	t.Setenv("PORTABLE_EXECUTABLE_DIR", installDir)
+	stubPortableExe(t, installDir)
 
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
@@ -505,6 +518,7 @@ func TestApplyPendingOtherNonArchiveIsManual(t *testing.T) {
 	dir := t.TempDir()
 	installDir := makeInstallDir(t)
 	t.Setenv("PORTABLE_EXECUTABLE_DIR", installDir)
+	stubPortableExe(t, installDir)
 
 	_, marker := stageFile(t, dir, "MeshChatX.bin", []byte("raw-bytes"))
 	marker["kind"] = "other"
@@ -513,5 +527,62 @@ func TestApplyPendingOtherNonArchiveIsManual(t *testing.T) {
 	res := ApplyPending(dir)
 	if res["applied"] != false || res["mode"] != "manual" {
 		t.Fatalf("res: %v", res)
+	}
+}
+
+func TestPlatformUnknownFailsClosed(t *testing.T) {
+	storageDir := t.TempDir()
+	content := []byte("payload")
+	_, fields := stageFile(t, storageDir, "update.bin", content)
+	marker := map[string]any{
+		"version": 1, "file": "update.bin",
+		"sha256": fields["sha256"], "kind": "other",
+		"platform": "plan9",
+	}
+	writeMarker(t, storageDir, marker)
+	res := ApplyPending(storageDir)
+	if res["error"] != "platform_mismatch" {
+		t.Fatalf("got %v", res)
+	}
+}
+
+func TestApplyPortableRehashMismatch(t *testing.T) {
+	storageDir := t.TempDir()
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	w, _ := zw.Create("a.txt")
+	_, _ = w.Write([]byte("x"))
+	_ = zw.Close()
+	p, _ := stageFile(t, storageDir, "update.zip", buf.Bytes())
+	installDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(installDir, updatableMarkerName), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	old := installDirResolver
+	installDirResolver = func() (string, error) { return installDir, nil }
+	defer func() { installDirResolver = old }()
+	// Wrong sha: the pre-swap re-hash must abort even though the file exists.
+	res := applyPortable(storageDir, p, "update.zip", "other", strings.Repeat("0", 64))
+	if res["error"] != "sha256_mismatch" {
+		t.Fatalf("got %v", res)
+	}
+}
+
+func TestSelfUpdatableRequiresExeInsidePortableDir(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, updatableMarkerName), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PORTABLE_EXECUTABLE_DIR", dir)
+	old := installDirResolver
+	installDirResolver = func() (string, error) { return dir, nil }
+	defer func() { installDirResolver = old }()
+	_, updatable, err := selfUpdatableInstallDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The test binary does not live inside dir, so the env redirect must be refused.
+	if updatable {
+		t.Fatal("expected not updatable when exe is outside PORTABLE_EXECUTABLE_DIR")
 	}
 }

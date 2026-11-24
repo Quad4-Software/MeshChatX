@@ -8,7 +8,17 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 )
+
+// deliverSignal kills the child and its whole tree; taskkill /T already
+// covers descendants, matching the unix process-group kill.
+func deliverSignal(cmd *exec.Cmd, sig syscall.Signal) {
+	if cmd == nil || cmd.Process == nil {
+		return
+	}
+	_ = exec.Command("taskkill", "/F", "/T", "/PID", strconv.Itoa(cmd.Process.Pid)).Run()
+}
 
 func listWindowsBackendPids(excludePids map[int]bool, exePath string) []int {
 	if exePath == "" {

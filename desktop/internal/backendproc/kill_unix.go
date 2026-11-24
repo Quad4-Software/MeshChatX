@@ -3,9 +3,27 @@
 package backendproc
 
 import (
+	"errors"
+	"os/exec"
 	"syscall"
 	"time"
 )
+
+// deliverSignal signals the child's whole process group: children spawn with
+// Setsid so the backend pid is also its process-group id. Falls back to the
+// single pid when the group is already gone or not signalable.
+func deliverSignal(cmd *exec.Cmd, sig syscall.Signal) {
+	if cmd == nil || cmd.Process == nil {
+		return
+	}
+	pid := cmd.Process.Pid
+	if err := syscall.Kill(-pid, sig); err == nil {
+		return
+	} else if !errors.Is(err, syscall.ESRCH) && !errors.Is(err, syscall.EPERM) {
+		return
+	}
+	_ = cmd.Process.Signal(sig)
+}
 
 // KillUnixPids SIGTERMs pids, waits up to 1.5s, then SIGKILLs survivors.
 func KillUnixPids(pids []int) int {

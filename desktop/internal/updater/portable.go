@@ -34,6 +34,10 @@ var installDirResolver = func() (string, error) {
 	return filepath.Dir(exe), nil
 }
 
+// osExecutable resolves the running executable path; a var so tests can stub
+// it when exercising the PORTABLE_EXECUTABLE_DIR containment check.
+var osExecutable = os.Executable
+
 // selfUpdatableInstallDir returns the resolved install dir and whether it is
 // a safe, self-updatable target: must exist, must not be a filesystem root
 // or the user's home directory (a stray marker must never let us rename
@@ -59,6 +63,15 @@ func selfUpdatableInstallDir() (dir string, updatable bool, err error) {
 	}
 	if st, serr := os.Stat(dir); serr != nil || !st.IsDir() {
 		return dir, false, nil
+	}
+	// When PORTABLE_EXECUTABLE_DIR redirected the install dir, only honor it
+	// if the running executable actually lives inside it; otherwise a stray
+	// env var plus a planted marker could aim the swap at an arbitrary dir.
+	if strings.TrimSpace(os.Getenv("PORTABLE_EXECUTABLE_DIR")) != "" {
+		exe, eerr := osExecutable()
+		if eerr != nil || !strings.HasPrefix(filepath.Clean(exe), dir+string(filepath.Separator)) {
+			return dir, false, nil
+		}
 	}
 	if st, serr := os.Stat(filepath.Join(dir, updatableMarkerName)); serr != nil || st.IsDir() {
 		return dir, false, nil
@@ -108,7 +121,7 @@ func detectArchive(path string) string {
 
 // applyPortable handles the exe/msi/tarball/other-archive kinds: a staged
 // payload applied to a self-contained install dir the shell controls.
-func applyPortable(storageDir, stagedPath, file, kind string) map[string]any {
+func applyPortable(storageDir, stagedPath, file, kind, sha string) map[string]any {
 	installDir, updatable, err := selfUpdatableInstallDir()
 	if err != nil || !updatable {
 		reason := "not_self_updatable"
@@ -126,6 +139,11 @@ func applyPortable(storageDir, stagedPath, file, kind string) map[string]any {
 		// NSIS/MSI installers and xz payloads can't be extracted in
 		// process; the user runs the staged file.
 		return manualResult(kind, "payload_not_extractable", stagedPath, manualInstructions(kind, file))
+	}
+	// Re-verify the staged bytes immediately before the swap: the marker
+	// hash was checked earlier and the file could have been replaced since.
+	if actual, herr := sha256File(stagedPath); herr != nil || actual != strings.ToLower(sha) {
+		return failResult("sha256_mismatch", kind, nil)
 	}
 	if err := extractAndSwap(installDir, stagedPath, arch); err != nil {
 		return failResult(err.Error(), kind, nil)
