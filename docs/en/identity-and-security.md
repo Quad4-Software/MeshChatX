@@ -95,6 +95,18 @@ Privacy mode does not disable Reticulum mesh traffic. It limits clearnet fetches
 
 External links are a different surface. When you open an http(s) link in the UI, the desktop and Android shells hand it to the system browser. Privacy mode does not block that hand-off. The flag governs what the app fetches, not which links you choose to open.
 
+## Third-party requests
+
+MeshChatX traffic stays on your devices except for the following, all of which you can change or disable:
+
+- **Map basemap:** the default is the Quad4 planet PMTiles archive at https://s3.quad4.io/pmtiles/planet.pmtiles. Point it at any PMTiles or MBTiles source, including self-hosted or fully offline archives. See **Offline maps**.
+- **Place search:** Nominatim at https://nominatim.openstreetmap.org is the default geocoder. Change the URL in map settings or run your own instance.
+- **Raster tiles:** https://tile.openstreetmap.org is available as an alternative basemap through the same setting.
+- **Update checks:** off by default. When enabled they contact github.com release feeds.
+- **Configured services:** OIDC discovery and token requests go to your identity provider, translation calls go to the translation backend you pick, and plugin fetches go to the plugin index you configure.
+
+Map tiles and geocoding are fetched by the UI itself, so privacy mode does not cover them. For a fully offline map, load an MBTiles or PMTiles archive and point the tile and Nominatim URLs at local or self-hosted servers. Privacy mode still blocks the backend-initiated fetches on this page.
+
 ## Linux sandboxing
 
 On Linux, MeshChatX can enable two complementary in-process sandboxes when supported:
@@ -139,6 +151,18 @@ When the backend can start briefly, or you run from source:
 ```bash
 meshchatx --storage-dir /path/to/storage --restore-db /path/to/backup.zip
 ```
+
+## Data at rest
+
+MeshChatX does not encrypt the database, identity keys, attachments, or backups. Anyone who can read the storage directory can read everything in it, and each backup zip contains the identity private key. Use full-disk or volume encryption (LUKS, FileVault, BitLocker, Android device encryption) and keep backups in encrypted storage if the device might be lost or seized.
+
+On Linux and macOS the profile is created private: directories 0700 and files 0600. An existing profile from an older version is tightened once at startup, and MESHCHATX_NO_UMASK=1 opts out for setups that deliberately share the profile. Windows relies on the user profile ACLs instead.
+
+Before a database restore, the displaced live files are moved to `database-backups/pre-restore-<timestamp>/` inside the identity storage directory. The newest two are kept and older ones are pruned. If that move is not possible, for example when the backups directory sits on another filesystem, the old files are deleted as before.
+
+## Browser storage
+
+Unsent message drafts are kept in the browser or webview localStorage in plain text. They are not encrypted and they survive logout until cleared. Avoid drafting sensitive content on shared devices.
 
 ## Database corruption and data reset
 

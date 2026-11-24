@@ -1716,6 +1716,10 @@ export default {
                 const response = await window.api.post(apiPath("/database/restore"), { path });
                 if (response.data.status === "success") {
                     ToastUtils.success(this.$t("about.database_restored"));
+                    const kept = response.data.result?.pre_restore_copy;
+                    if (kept) {
+                        ToastUtils.info(this.$t("about.database_prerestore_kept", { path: kept }));
+                    }
                     this.scheduleRestoreRelaunch();
                 }
             } catch {
@@ -1885,6 +1889,10 @@ export default {
                 this.databaseHealth = response.data.database?.health || this.databaseHealth;
                 this.databaseRecoveryActions = response.data.database?.actions || this.databaseRecoveryActions;
                 ToastUtils.success(this.$t("about.database_restored"));
+                const kept = response.data.result?.pre_restore_copy;
+                if (kept) {
+                    ToastUtils.info(this.$t("about.database_prerestore_kept", { path: kept }));
+                }
                 this.scheduleRestoreRelaunch();
                 await this.getDatabaseHealth();
             } catch (e) {

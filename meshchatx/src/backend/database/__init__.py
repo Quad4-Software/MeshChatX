@@ -890,7 +890,17 @@ class Database:
         if not is_under_root(abs_dest, abs_target):
             msg = f"Unsafe zip entry path: {member}"
             raise DatabaseRestoreError(msg)
+        info = zf.getinfo(member)
         zf.extract(member, target_dir)
+        # ZipFile.extract applies stored unix mode bits verbatim, including
+        # setuid/setgid/sticky and group/other access. Keep only owner rwx.
+        stored_mode = (info.external_attr >> 16) & 0o7777
+        sanitized_mode = stored_mode & 0o700
+        if sanitized_mode:
+            try:
+                os.chmod(abs_dest, sanitized_mode)
+            except OSError:
+                pass
 
     @staticmethod
     def _check_zip_fits_disk(zf: zipfile.ZipFile, target_dir: str) -> None:
@@ -1241,6 +1251,7 @@ class Database:
                 prefix=".meshchatx-aside-",
                 dir=target_dir,
             )
+            pre_restore_copy: str | None = None
             try:
                 for live_path in paths.values():
                     if os.path.exists(live_path):
@@ -1315,6 +1326,10 @@ class Database:
                             stats["total_bytes"],
                             stats.get("main_bytes"),
                         )
+                pre_restore_copy = self._preserve_pre_restore_copy(
+                    aside_dir,
+                    target_dir,
+                )
             finally:
                 shutil.rmtree(aside_dir, ignore_errors=True)
         finally:
@@ -1324,7 +1339,49 @@ class Database:
             "restored_from": backup_path,
             "integrity_check": integrity_rows,
             "health": self.get_database_health_snapshot(),
+            "pre_restore_copy": pre_restore_copy,
         }
+
+    @staticmethod
+    def _preserve_pre_restore_copy(aside_dir: str, target_dir: str) -> str | None:
+        backups_dir = os.path.join(target_dir, "database-backups")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+        dest = os.path.join(backups_dir, f"pre-restore-{timestamp}")
+        try:
+            os.makedirs(backups_dir, mode=0o700, exist_ok=True)
+            suffix = 0
+            while os.path.exists(dest):
+                suffix += 1
+                dest = os.path.join(
+                    backups_dir,
+                    f"pre-restore-{timestamp}-{suffix}",
+                )
+            os.rename(aside_dir, dest)
+        except OSError as exc:
+            _log.warning(
+                "Could not keep pre-restore copy at %s: %s",
+                dest,
+                exc,
+            )
+            return None
+        try:
+            kept = sorted(
+                (
+                    name
+                    for name in os.listdir(backups_dir)
+                    if name.startswith("pre-restore-")
+                ),
+                reverse=True,
+            )[:2]
+            for name in os.listdir(backups_dir):
+                if name.startswith("pre-restore-") and name not in kept:
+                    shutil.rmtree(
+                        os.path.join(backups_dir, name),
+                        ignore_errors=True,
+                    )
+        except OSError:
+            pass
+        return dest
 
     @staticmethod
     def _copy_identity_storage_from_staging(

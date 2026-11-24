@@ -45,3 +45,31 @@ export function shouldShowLanBindNoAuthBanner({
     }
     return isLoopbackBind === false;
 }
+
+export const INSECURE_REMOTE_ACCESS_DISMISSED_KEY = "meshchatx_insecure_remote_access_banner_dismissed";
+
+export function isInsecureRemoteAccessBannerDismissed() {
+    try {
+        return sessionStorage.getItem(INSECURE_REMOTE_ACCESS_DISMISSED_KEY) === "1";
+    } catch {
+        return false;
+    }
+}
+
+export function dismissInsecureRemoteAccessBanner() {
+    try {
+        sessionStorage.setItem(INSECURE_REMOTE_ACCESS_DISMISSED_KEY, "1");
+    } catch {
+        /* ignore storage failures */
+    }
+}
+
+export function shouldShowInsecureRemoteAccessBanner({ appInfo = null, routeName = "", dismissed = false } = {}) {
+    if (dismissed || isInsecureRemoteAccessBannerDismissed()) {
+        return false;
+    }
+    if (routeName === "auth") {
+        return false;
+    }
+    return Boolean(appInfo?.insecure_remote_access);
+}

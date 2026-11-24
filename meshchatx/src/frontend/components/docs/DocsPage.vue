@@ -1106,15 +1106,14 @@ export default {
             this.clearSearch();
         },
         highlightMatch(text) {
-            if (!this.searchQuery) return text;
-
             // Escape HTML entities in text to prevent XSS
-            const escapedText = text
+            const escapedText = (text || "")
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
+            if (!this.searchQuery) return escapedText;
 
             const query = this.searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
             // eslint-disable-next-line security/detect-non-literal-regexp -- query is escaped above

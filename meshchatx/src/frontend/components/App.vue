@@ -26,6 +26,9 @@
             :show-lan-bind-no-auth="showLanBindNoAuthBanner"
             :lan-bind-no-auth-label="$t('app.lan_bind_no_auth_banner')"
             :dismiss-lan-bind-no-auth-label="$t('app.lan_bind_no_auth_dismiss')"
+            :show-insecure-remote-access="showInsecureRemoteAccessBanner"
+            :insecure-remote-access-label="$t('app.insecure_remote_access_banner')"
+            :dismiss-insecure-remote-access-label="$t('app.lan_bind_no_auth_dismiss')"
             :show-network-degraded="showNetworkDegradedBanner"
             :network-degraded-label="networkDegradedBannerLabel"
             :network-recovering="networkRecovering"
@@ -41,6 +44,7 @@
             @recover-network="onRecoverNetwork"
             @open-settings="onOpenSettingsForRecovery"
             @dismiss-lan-bind-no-auth="onDismissLanBindNoAuthBanner"
+            @dismiss-insecure-remote-access="onDismissInsecureRemoteAccessBanner"
             @open-backups="onOpenBackupsForRecovery"
             @auto-recover-database="onAutoRecoverDatabase"
             @open-interfaces="onOpenInterfacesForRecovery"
@@ -559,6 +563,9 @@ import {
     shouldShowLanBindNoAuthBanner,
     dismissLanBindNoAuthBanner,
     isLanBindNoAuthBannerDismissed,
+    shouldShowInsecureRemoteAccessBanner,
+    dismissInsecureRemoteAccessBanner,
+    isInsecureRemoteAccessBannerDismissed,
 } from "../js/lanBindWarning.js";
 import { isMeshChatXAndroid } from "../js/webAudioMicPermission.js";
 import { postRequestPath } from "../js/reticulumPathfinding.js";
@@ -675,6 +682,7 @@ export default {
             hasCheckedForModals: false,
             skipChangelogAfterTutorial: false,
             lanBindNoAuthBannerDismissed: isLanBindNoAuthBannerDismissed(),
+            insecureRemoteAccessBannerDismissed: isInsecureRemoteAccessBannerDismissed(),
 
             showLxmfQr: false,
             lxmfQrDataUrl: null,
@@ -916,6 +924,13 @@ export default {
                 isAndroid: isMeshChatXAndroid(),
                 authEnabled: useAuthStore().authEnabled,
                 isLoopbackBind: useAuthStore().isLoopbackBind,
+                routeName: this.$route?.name,
+            });
+        },
+        showInsecureRemoteAccessBanner() {
+            return shouldShowInsecureRemoteAccessBanner({
+                dismissed: this.insecureRemoteAccessBannerDismissed,
+                appInfo: this.appInfo,
                 routeName: this.$route?.name,
             });
         },
@@ -1477,6 +1492,10 @@ export default {
         onDismissLanBindNoAuthBanner() {
             dismissLanBindNoAuthBanner();
             this.lanBindNoAuthBannerDismissed = true;
+        },
+        onDismissInsecureRemoteAccessBanner() {
+            dismissInsecureRemoteAccessBanner();
+            this.insecureRemoteAccessBannerDismissed = true;
         },
         onOpenBackupsForRecovery() {
             this.$router.push({ name: "about", hash: "#about-database-backups" });
@@ -2865,12 +2884,7 @@ export default {
                     /* not a valid URL, continue */
                 }
                 if (/^(meshchatx|meshchat):\/\/map\b/i.test(normalizedUrl)) {
-                    LiveTransport.send(
-                        JSON.stringify({
-                            type: "lxm.ingest_uri",
-                            uri: normalizedUrl,
-                        })
-                    );
+                    this.confirmProtocolLinkIngest(normalizedUrl, true);
                     return;
                 }
                 if (/^(meshchatx|meshchat):\/\/relay\b/i.test(normalizedUrl)) {
@@ -2890,13 +2904,8 @@ export default {
                         return;
                     }
                 }
-                if (/^lxm(a|f)?:\/\//i.test(normalizedUrl)) {
-                    LiveTransport.send(
-                        JSON.stringify({
-                            type: "lxm.ingest_uri",
-                            uri: normalizedUrl,
-                        })
-                    );
+                if (/^lxm(a|f)?:\/\//i.test(normalizedUrl) && !/^lxmf:\/\/[0-9a-f]{32}\/?$/i.test(normalizedUrl)) {
+                    this.confirmProtocolLinkIngest(normalizedUrl, false);
                 }
 
                 // lxma://<hash>:<pubkey> or lxmf://<hash> or rns://<hash>
@@ -2914,6 +2923,28 @@ export default {
             } catch (e) {
                 console.error("Failed to handle protocol link:", e);
             }
+        },
+        confirmProtocolLinkIngest(uri, isMap) {
+            const scheme = isMap
+                ? ""
+                : (String(uri).match(/^lxm[af]?:\/\//i) || [""])[0].replace(/:\/\/$/i, "") || "lxm";
+            const message = isMap
+                ? this.$t("app.confirm_ingest_map_link")
+                : this.$t("app.confirm_ingest_message_link", {
+                      scheme,
+                      size: Math.max(1, Math.round(String(uri).length / 1024)),
+                  });
+            DialogUtils.confirm(message).then((confirmed) => {
+                if (!confirmed) {
+                    return;
+                }
+                LiveTransport.send(
+                    JSON.stringify({
+                        type: "lxm.ingest_uri",
+                        uri,
+                    })
+                );
+            });
         },
         async openRelayShareLink(uri) {
             const parsed = parseRelayUri(uri);

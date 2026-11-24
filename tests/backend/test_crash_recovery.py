@@ -820,6 +820,38 @@ class TestCrashRecovery(unittest.TestCase):
         self.assertEqual(weights["DB_CORRUPTION"], 0.2)
         self.assertEqual(weights["ASYNC_RACE"], 0.025)
 
+    def test_redacting_writer_scrubs_report_file(self):
+        buf = io.StringIO()
+        writer = CrashRecovery._RedactingWriter(buf)
+        writer.write(
+            "token=Bearer abcdef1234567890 path=/home/alice/secret "
+            "email=admin@example.com password=hunter2\n",
+        )
+        writer.flush()
+        out = buf.getvalue()
+        self.assertNotIn("abcdef1234567890", out)
+        self.assertNotIn("/home/alice", out)
+        self.assertNotIn("admin@example.com", out)
+        self.assertNotIn("hunter2", out)
+        self.assertIn("[redacted]", out)
+
+    def test_persist_crash_redacts_error_message(self):
+        db = MagicMock()
+        self.recovery.set_database(db)
+        self.recovery._persist_crash(
+            "ValueError",
+            "Bearer abcdef1234567890 for admin@example.com at /home/alice/x",
+            [],
+            {},
+            0.0,
+            0.0,
+        )
+        kwargs = db.crash_history.insert_crash.call_args.kwargs
+        stored = kwargs["error_message"]
+        self.assertNotIn("abcdef1234567890", stored)
+        self.assertNotIn("admin@example.com", stored)
+        self.assertNotIn("/home/alice", stored)
+
 
 if __name__ == "__main__":
     unittest.main()

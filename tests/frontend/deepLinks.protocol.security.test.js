@@ -25,9 +25,28 @@ vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
     },
 }));
 
+vi.mock("../../meshchatx/src/frontend/js/DialogUtils", () => ({
+    default: {
+        confirm: vi.fn(),
+    },
+}));
+
+import DialogUtils from "../../meshchatx/src/frontend/js/DialogUtils";
+
+const flushAsync = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+function linkContext(push = vi.fn()) {
+    return {
+        $router: { push },
+        $t: (key, params) => (params ? `${key} ${JSON.stringify(params)}` : key),
+        confirmProtocolLinkIngest: App.methods.confirmProtocolLinkIngest,
+    };
+}
+
 describe("App.vue deep link protocol handling (security-oriented)", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        DialogUtils.confirm.mockResolvedValue(true);
     });
 
     it("routes meshchatx://docs with reticulum query to documentation page", () => {
@@ -56,9 +75,13 @@ describe("App.vue deep link protocol handling (security-oriented)", () => {
         expect(push).toHaveBeenCalledWith({ name: "documentation" });
     });
 
-    it("sends map deep links to lxm.ingest_uri unchanged over WebSocket", () => {
+    it("sends map deep links to lxm.ingest_uri only after user confirms", async () => {
         const uri = "meshchatx://map?lat=1&lon=2&z=4&label=" + encodeURIComponent("<img src=x onerror=alert(1)>");
-        App.methods.handleProtocolLink.call({ $router: { push: vi.fn() } }, uri);
+        App.methods.handleProtocolLink.call(linkContext(), uri);
+        expect(DialogUtils.confirm).toHaveBeenCalledTimes(1);
+        expect(DialogUtils.confirm.mock.calls[0][0]).toContain("app.confirm_ingest_map_link");
+        expect(WebSocketConnection.send).not.toHaveBeenCalled();
+        await flushAsync();
         expect(WebSocketConnection.send).toHaveBeenCalledTimes(1);
         const payload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
         expect(payload.type).toBe("lxm.ingest_uri");
@@ -67,15 +90,35 @@ describe("App.vue deep link protocol handling (security-oriented)", () => {
 
     it("does not router-push for meshchat map links (server resolves map_query)", () => {
         const push = vi.fn();
-        App.methods.handleProtocolLink.call({ $router: { push } }, "meshchatx://map?lat=0&lon=0&z=1");
+        App.methods.handleProtocolLink.call(linkContext(push), "meshchatx://map?lat=0&lon=0&z=1");
         expect(push).not.toHaveBeenCalled();
     });
 
-    it("routes lxmf paper URIs through WebSocket ingest", () => {
-        App.methods.handleProtocolLink.call({ $router: { push: vi.fn() } }, "lxmf://%3Cinjection%3E");
+    it("routes lxmf paper URIs through WebSocket ingest after confirm", async () => {
+        App.methods.handleProtocolLink.call(linkContext(), "lxmf://%3Cinjection%3E");
+        expect(DialogUtils.confirm).toHaveBeenCalledTimes(1);
+        await flushAsync();
         expect(WebSocketConnection.send).toHaveBeenCalled();
         const payload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
         expect(payload.type).toBe("lxm.ingest_uri");
+    });
+
+    it("drops deep-link ingest when the user cancels the confirm dialog", async () => {
+        DialogUtils.confirm.mockResolvedValue(false);
+        App.methods.handleProtocolLink.call(linkContext(), "lxm://dGVzdA");
+        App.methods.handleProtocolLink.call(linkContext(), "meshchatx://map?lat=1&lon=2");
+        await flushAsync();
+        expect(DialogUtils.confirm).toHaveBeenCalledTimes(2);
+        expect(WebSocketConnection.send).not.toHaveBeenCalled();
+    });
+
+    it("does not ask for confirmation on navigation-only deep links", () => {
+        const h = "a".repeat(32);
+        App.methods.handleProtocolLink.call(linkContext(), `rns://${h}`);
+        App.methods.handleProtocolLink.call(linkContext(), "meshchatx://app/messages");
+        App.methods.handleProtocolLink.call(linkContext(), "meshchatx://docs");
+        expect(DialogUtils.confirm).not.toHaveBeenCalled();
+        expect(WebSocketConnection.send).not.toHaveBeenCalled();
     });
 
     it("routes rns:// only when hash segment is exactly 32 chars", () => {
@@ -122,5 +165,13 @@ describe("App.vue deep link protocol handling (security-oriented)", () => {
             },
         });
         expect(ToastUtils.info).toHaveBeenCalled();
+    });
+
+    it("opens a bare lxmf address link without a confirm dialog", async () => {
+        const ctx = linkContext();
+        App.methods.handleProtocolLink.call(ctx, "lxmf://" + "a".repeat(32));
+        await Promise.resolve();
+        expect(DialogUtils.confirm).not.toHaveBeenCalled();
+        expect(ctx.$router.push).toHaveBeenCalled();
     });
 });

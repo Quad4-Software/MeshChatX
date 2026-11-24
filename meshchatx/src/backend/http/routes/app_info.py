@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import configparser
+import ipaddress
 import os
 import platform
 import sys
@@ -16,6 +17,7 @@ import psutil
 import RNS
 from aiohttp import web
 
+from meshchatx.src.backend.app_security_settings import get_trusted_proxy_cidrs
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
@@ -34,8 +36,27 @@ from meshchatx.src.backend.legacy_migrator import (
 )
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 from meshchatx.src.backend.memory_pressure import cache_stats
-from meshchatx.src.path_utils import get_file_path
+from meshchatx.src.path_utils import get_file_path, request_client_ip
 from meshchatx.src.version import __version__ as app_version
+
+
+def insecure_remote_access(app, request) -> bool:
+    """True when auth is off and this request's client is not loopback."""
+    if getattr(app, "auth_enabled", True):
+        return False
+    try:
+        client_ip = request_client_ip(
+            request,
+            get_trusted_proxy_cidrs(app.storage_dir),
+        )
+    except Exception:
+        return False
+    if not client_ip:
+        return False
+    try:
+        return not ipaddress.ip_address(client_ip.strip()).is_loopback
+    except ValueError:
+        return True
 
 
 def register_app_info_routes(routes, app):
@@ -391,6 +412,7 @@ def register_app_info_routes(routes, app):
                     **app._landlock_status_dict(),
                     "is_connected_to_shared_instance": is_connected_to_shared_instance,
                     "shared_instance_address": shared_instance_address,
+                    "insecure_remote_access": insecure_remote_access(app, request),
                     "is_transport_enabled": (
                         app.reticulum.transport_enabled()
                         if hasattr(app, "reticulum") and app.reticulum

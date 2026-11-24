@@ -295,12 +295,12 @@ func WindowZoomStep(current float64, action string) float64 {
 }
 
 func writeJSON(path string, v any) {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return
 	}
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return
 	}
-	_ = fsutil.WriteFileAtomic(path, append(data, '\n'), 0o644)
+	_ = fsutil.WriteFileAtomic(path, append(data, '\n'), 0o600)
 }

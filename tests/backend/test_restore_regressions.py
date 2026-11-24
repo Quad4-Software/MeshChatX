@@ -438,5 +438,79 @@ class TestAsideRollbackBound:
         assert not os.path.exists(asides[1])
 
 
+class TestPreRestoreCopy:
+    """A successful restore keeps the displaced live files under database-backups."""
+
+    def _setup(self, temp_dir):
+        identity_dir = os.path.join(temp_dir, "identities", "abc")
+        db = _make_identity_db(identity_dir, marker="original")
+        backup = db.backup_database(identity_dir)
+        db.execute_sql(
+            "UPDATE config SET value = ? WHERE key = ?",
+            ("changed", "marker"),
+        )
+        db.close_all()
+        DatabaseProvider._instance = None
+        return identity_dir, backup["path"]
+
+    def test_successful_restore_keeps_pre_restore_copy(self, temp_dir):
+        identity_dir, backup_path = self._setup(temp_dir)
+        db_path = os.path.join(identity_dir, "database.db")
+
+        restored = Database(db_path)
+        result = restored.restore_database(backup_path)
+        restored.close_all()
+        DatabaseProvider._instance = None
+
+        kept = result["pre_restore_copy"]
+        assert kept, "expected a pre-restore copy path"
+        assert os.path.basename(kept).startswith("pre-restore-")
+        assert os.path.isdir(kept)
+        assert os.path.exists(os.path.join(kept, "database.db"))
+
+    def test_pre_restore_copies_pruned_to_newest_two(self, temp_dir):
+        identity_dir, backup_path = self._setup(temp_dir)
+        db_path = os.path.join(identity_dir, "database.db")
+
+        for _ in range(3):
+            restored = Database(db_path)
+            restored.restore_database(backup_path)
+            restored.close_all()
+            DatabaseProvider._instance = None
+
+        backups_dir = os.path.join(identity_dir, "database-backups")
+        kept = [
+            name for name in os.listdir(backups_dir) if name.startswith("pre-restore-")
+        ]
+        assert len(kept) == 2
+
+    def test_failed_restore_leaves_no_pre_restore_copy(self, temp_dir):
+        identity_dir = os.path.join(temp_dir, "identities", "abc")
+        db = _make_identity_db(identity_dir, marker="original")
+        db.close_all()
+        DatabaseProvider._instance = None
+
+        bad_zip = os.path.join(temp_dir, "bad.zip")
+        with zipfile.ZipFile(bad_zip, "w") as zf:
+            zf.writestr("database.db", b"not-a-sqlite-db")
+
+        db_path = os.path.join(identity_dir, "database.db")
+        with pytest.raises(DatabaseRestoreError):
+            Database(db_path).restore_database(bad_zip)
+        DatabaseProvider._instance = None
+
+        backups_dir = os.path.join(identity_dir, "database-backups")
+        leftovers = (
+            [
+                name
+                for name in os.listdir(backups_dir)
+                if name.startswith("pre-restore-")
+            ]
+            if os.path.isdir(backups_dir)
+            else []
+        )
+        assert leftovers == []
+
+
 if __name__ == "__main__":
     unittest.main()

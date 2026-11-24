@@ -221,6 +221,15 @@ class PersistentLogHandler(logging.Handler):
                     self.database.debug_logs.cleanup_old_logs()
                 except Exception as e:
                     print(f"Error cleaning up logs: {e}")
+                access_attempts = getattr(self.database, "access_attempts", None)
+                if access_attempts is not None:
+                    try:
+                        access_attempts.cleanup_old(
+                            max_rows=50_000,
+                            max_age_seconds=30 * 24 * 3600,
+                        )
+                    except Exception as e:
+                        print(f"Error cleaning up access attempts: {e}")
 
             self.last_flush_time = time.time()
         except Exception as e:

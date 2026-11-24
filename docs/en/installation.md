@@ -71,6 +71,8 @@ docker run -d --name reticulum-meshchatx \
 
 Default Compose maps 127.0.0.1:8000 on the host to port 8000 in the container. Data persists in the meshchatx-config volume at /config.
 
+The image itself binds 0.0.0.0 inside the container, so any published port or added network route exposes the UI to whatever can reach it. The shipped Compose files publish 127.0.0.1 only. If you expose MeshChatX beyond loopback, enable authentication (--auth or MESHCHAT_AUTH=1, or configure OIDC) and serve it over TLS, either with the built-in HTTPS or a reverse proxy that terminates TLS. Startup logs a warning when the bind address is not loopback and auth is disabled.
+
 Compose caps Docker's own json-file logs at **10 MB x 5 files** per container (logging.options). App file logs under /config already rotate separately (meshchatx.log, about 20 MB). For a bare docker run without Compose, add the same limits or the host can fill under /var/lib/docker/containers/:
 
 ```bash
@@ -146,7 +148,7 @@ The same value is persisted per instance as `trusted_proxy_cidrs` in <storage>/a
 
 ### TLS layouts
 
-- **TLS termination at the proxy (recommended):** run MeshChatX with --no-https and have the proxy send X-Forwarded-Proto. With MESHCHAT_TRUSTED_PROXIES set, https browser origins pass the WebSocket check even though the backend hop is plain HTTP.
+- **TLS termination at the proxy (recommended):** run MeshChatX with --no-https and have the proxy send X-Forwarded-Proto. With MESHCHAT_TRUSTED_PROXIES set, https browser origins pass the WebSocket check even though the backend hop is plain HTTP. Note the session cookie Secure flag follows the backend's own HTTPS setting, not X-Forwarded-Proto: with --no-https the cookie is not marked Secure, which is fine while the proxy only serves HTTPS but means the app should stay behind that proxy or on a private network.
 - **TLS passthrough:** the proxy routes raw TLS by SNI and MeshChatX terminates with its own certificate. Works with no extra app configuration.
 - **HTTPS backend:** the proxy speaks TLS to the app port. The proxy must trust the app certificate (self-signed by default, so configure skip-verify) or you must supply a certificate it accepts via --ssl-cert/--ssl-key.
 

@@ -86,6 +86,23 @@
             </div>
         </div>
         <div
+            v-if="showInsecureRemoteAccess"
+            class="relative z-100 bg-sem-action-warning text-sem-action-warning-text px-4 py-3 text-center text-sm font-medium shadow-md border-b border-sem-warning/80"
+            role="status"
+            aria-live="polite"
+        >
+            <p>{{ insecureRemoteAccessLabel }}</p>
+            <div class="mt-2 flex flex-wrap items-center justify-center gap-2">
+                <button
+                    type="button"
+                    class="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20"
+                    @click="$emit('dismiss-insecure-remote-access')"
+                >
+                    {{ dismissInsecureRemoteAccessLabel }}
+                </button>
+            </div>
+        </div>
+        <div
             v-if="showNetworkDegraded"
             class="relative z-100 bg-sem-action-warning text-sem-action-warning-text px-4 py-3 text-center text-sm font-medium shadow-md border-b border-sem-warning/80"
             role="status"
@@ -213,6 +230,18 @@ export default {
             type: String,
             default: "",
         },
+        showInsecureRemoteAccess: {
+            type: Boolean,
+            default: false,
+        },
+        insecureRemoteAccessLabel: {
+            type: String,
+            default: "",
+        },
+        dismissInsecureRemoteAccessLabel: {
+            type: String,
+            default: "",
+        },
         showNetworkDegraded: {
             type: Boolean,
             default: false,
@@ -260,6 +289,7 @@ export default {
         "recover-network",
         "open-settings",
         "dismiss-lan-bind-no-auth",
+        "dismiss-insecure-remote-access",
         "open-backups",
         "auto-recover-database",
         "open-interfaces",

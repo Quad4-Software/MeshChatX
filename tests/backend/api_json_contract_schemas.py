@@ -109,6 +109,7 @@ APP_INFO_BODY_SCHEMA: dict = {
         "reticulum_config_path": {"type": ["string", "null"]},
         "is_connected_to_shared_instance": {"type": "boolean"},
         "shared_instance_address": {"type": ["string", "null"]},
+        "insecure_remote_access": {"type": "boolean"},
         "is_transport_enabled": {"type": "boolean"},
         "memory_usage": {
             "type": "object",

@@ -39,3 +39,35 @@ describe("AppShellBanners LAN bind warning", () => {
         wrapper.unmount();
     });
 });
+
+describe("AppShellBanners insecure remote access warning", () => {
+    it("shows the banner and emits dismiss-insecure-remote-access", async () => {
+        const wrapper = mount(AppShellBanners, {
+            props: {
+                showInsecureRemoteAccess: true,
+                insecureRemoteAccessLabel: "No login enabled, remote client",
+                dismissInsecureRemoteAccessLabel: "Dismiss",
+            },
+        });
+        expect(wrapper.text()).toContain("No login enabled, remote client");
+        const dismissButton = wrapper
+            .findAll("button")
+            .find((b) => b.text() === "Dismiss");
+        expect(dismissButton).toBeTruthy();
+        await dismissButton.trigger("click");
+        expect(wrapper.emitted("dismiss-insecure-remote-access")).toHaveLength(1);
+        wrapper.unmount();
+    });
+
+    it("hides the banner when the prop is off", () => {
+        const wrapper = mount(AppShellBanners, {
+            props: {
+                showInsecureRemoteAccess: false,
+                insecureRemoteAccessLabel: "No login enabled, remote client",
+                dismissInsecureRemoteAccessLabel: "Dismiss",
+            },
+        });
+        expect(wrapper.text()).not.toContain("No login enabled, remote client");
+        wrapper.unmount();
+    });
+});

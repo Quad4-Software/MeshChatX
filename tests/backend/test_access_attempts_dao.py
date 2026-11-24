@@ -168,3 +168,43 @@ def test_access_attempts_table_exists(db):
         "SELECT name FROM sqlite_master WHERE type='table' AND name='trusted_login_clients'",
     )
     assert row2 is not None
+
+
+def test_cleanup_old_prunes_by_age(dao):
+    ih = _id_hash()
+    dao.insert(ih, "10.0.0.1", "UA", LOGIN_PATH, "POST", "failure", None)
+    stale = time.time() - 40 * 24 * 3600
+    dao.provider.execute(
+        "UPDATE access_attempts SET created_at = ?",
+        (stale,),
+    )
+    dao.cleanup_old(max_rows=50_000, max_age_seconds=30 * 24 * 3600)
+    row = dao.provider.fetchone("SELECT COUNT(*) AS c FROM access_attempts")
+    assert int(row["c"]) == 0
+
+
+def test_cleanup_old_prunes_by_count_oldest_first(dao):
+    ih = _id_hash()
+    for i in range(10):
+        dao.insert(ih, f"10.0.0.{i}", "UA", LOGIN_PATH, "POST", "failure", None)
+        time.sleep(0.001)
+    dao.cleanup_old(max_rows=4)
+    row = dao.provider.fetchone("SELECT COUNT(*) AS c FROM access_attempts")
+    assert int(row["c"]) == 4
+    remaining = dao.provider.fetchall(
+        "SELECT client_ip FROM access_attempts ORDER BY created_at ASC",
+    )
+    assert [r["client_ip"] for r in remaining] == [
+        "10.0.0.6",
+        "10.0.0.7",
+        "10.0.0.8",
+        "10.0.0.9",
+    ]
+
+
+def test_cleanup_old_keeps_recent_rows(dao):
+    ih = _id_hash()
+    dao.insert(ih, "10.0.0.1", "UA", LOGIN_PATH, "POST", "failure", None)
+    dao.cleanup_old(max_rows=50_000, max_age_seconds=30 * 24 * 3600)
+    row = dao.provider.fetchone("SELECT COUNT(*) AS c FROM access_attempts")
+    assert int(row["c"]) == 1

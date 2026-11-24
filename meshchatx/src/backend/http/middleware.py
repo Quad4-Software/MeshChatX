@@ -289,17 +289,14 @@ def create_auth_middleware(app):
 
         # Serve the web UI shell and static files while an identity context is still
         # starting, so the browser can load assets and show in-app loading state.
-        if not path.startswith("/api/"):
+        # Docs routes serve user-uploaded content, so they are excluded here and
+        # gated by the auth check below when authentication is enabled.
+        if not path.startswith("/api/") and not path.startswith(
+            ("/reticulum-docs/", "/meshchatx-docs/"),
+        ):
             if (
                 path == "/"
-                or path.startswith(
-                    (
-                        "/assets/",
-                        "/favicons/",
-                        "/reticulum-docs/",
-                        "/meshchatx-docs/",
-                    ),
-                )
+                or path.startswith(("/assets/", "/favicons/"))
                 or path in ("/manifest.json", "/service-worker.js")
                 or path.endswith(
                     (
@@ -354,19 +351,18 @@ def create_auth_middleware(app):
         # Exact public API paths only. startswith would treat
         # /api/v1/status.json as public because it prefixes /api/v1/status.
         is_public = path in public_paths
-        if path.startswith(("/reticulum-docs/", "/meshchatx-docs/")):
-            is_public = True
 
         # Static UI files are public. API paths are not, even when they end
         # in .js/.json/.wasm (plugin assets live at /api/v1/plugins/.../asset/).
+        # Docs routes serve user-uploaded content, so they require auth like
+        # any other non-static path when authentication is enabled.
         if (
             path == "/"
-            or path.startswith(
-                ("/assets/", "/favicons/", "/reticulum-docs/", "/meshchatx-docs/"),
-            )
+            or path.startswith(("/assets/", "/favicons/"))
             or (
                 not path.startswith("/api/")
                 and not path.startswith("/translation-packs/")
+                and not path.startswith(("/reticulum-docs/", "/meshchatx-docs/"))
                 and path.endswith(
                     (
                         ".js",

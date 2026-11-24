@@ -432,7 +432,7 @@ def atomic_write_bytes(
     path: str | os.PathLike[str],
     data: bytes,
     *,
-    mode: int = 0o644,
+    mode: int = 0o600,
     fsync_dir: bool = True,
 ) -> None:
     """Write data to path via a sibling tmp file, then os.replace.
@@ -440,8 +440,8 @@ def atomic_write_bytes(
     The tmp sibling is created with tempfile.mkstemp (O_CREAT | O_EXCL)
     in the same directory so concurrent writers never share a tmp path
     and a planted symlink cannot redirect the write. fchmod pins mode
-    because mkstemp always creates 0o600. Pass mode 0o600 for private
-    state anyway so it stays correct if the implementation changes.
+    because mkstemp always creates 0o600. Callers needing shared-read
+    files must pass an explicit mode.
     fsync_dir fsyncs the parent directory after the rename. Disable it
     on hot paths that accept losing the rename on power loss.
     """
@@ -479,7 +479,7 @@ def atomic_write_text(
     text: str,
     *,
     encoding: str = "utf-8",
-    mode: int = 0o644,
+    mode: int = 0o600,
     fsync_dir: bool = True,
 ) -> None:
     """Write text to path via atomic_write_bytes."""

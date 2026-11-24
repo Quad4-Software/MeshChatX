@@ -311,6 +311,68 @@ async def test_auth_middleware_does_not_treat_api_static_suffixes_as_public():
 
 
 @pytest.mark.asyncio
+async def test_auth_middleware_gates_docs_routes_when_enabled():
+    """Docs routes serve user-uploaded content and must require auth."""
+    app = MagicMock()
+    app.auth_enabled = True
+    app.current_context = MagicMock(running=True)
+    app.identity.hash.hex.return_value = "aa" * 16
+    app._startup_stage = "ok"
+
+    handler = AsyncMock(return_value=web.Response(status=200, text="ok"))
+    mw = create_auth_middleware(app)
+    empty_session = AsyncMock(return_value={})
+
+    async def call(path):
+        request = MagicMock()
+        request.path = path
+        with patch(
+            "meshchatx.src.backend.http.middleware.get_session",
+            empty_session,
+        ):
+            return await mw(request, handler)
+
+    for path in (
+        "/reticulum-docs/guide.html",
+        "/reticulum-docs/logo.png",
+        "/meshchatx-docs/manual.md",
+        "/meshchatx-docs/style.css",
+    ):
+        handler.reset_mock()
+        resp = await call(path)
+        assert resp.status == 401, f"{path} expected 401, got {resp.status}"
+        handler.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_auth_middleware_docs_routes_public_when_auth_disabled():
+    app = MagicMock()
+    app.auth_enabled = False
+    app.current_context = MagicMock(running=True)
+    app.identity.hash.hex.return_value = "aa" * 16
+    app._startup_stage = "ok"
+
+    handler = AsyncMock(return_value=web.Response(status=200, text="ok"))
+    mw = create_auth_middleware(app)
+    empty_session = AsyncMock(return_value={})
+
+    async def call(path):
+        request = MagicMock()
+        request.path = path
+        with patch(
+            "meshchatx.src.backend.http.middleware.get_session",
+            empty_session,
+        ):
+            return await mw(request, handler)
+
+    for path in ("/reticulum-docs/guide.html", "/meshchatx-docs/manual.md"):
+        handler.reset_mock()
+        resp = await call(path)
+        assert resp.status == 200, f"{path} expected 200, got {resp.status}"
+        handler.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 @pytest.mark.usefixtures("require_loopback_tcp")
 async def test_auth_login_rejects_non_string_password(mock_app):
     mock_app.config.auth_enabled.set(True)
@@ -420,3 +482,40 @@ async def test_auth_middleware_returns_503_when_identity_is_none():
 
     assert resp.status == 503
     handler.assert_not_awaited()
+
+
+def test_insecure_remote_access_flag(tmp_path, monkeypatch):
+    from meshchatx.src.backend.http.routes.app_info import insecure_remote_access
+
+    monkeypatch.delenv("MESHCHAT_TRUSTED_PROXIES", raising=False)
+    app = MagicMock()
+    app.auth_enabled = False
+    app.storage_dir = str(tmp_path)
+
+    def req(remote, xff=None):
+        r = MagicMock()
+        r.remote = remote
+        r.headers = {"X-Forwarded-For": xff} if xff else {}
+        return r
+
+    assert insecure_remote_access(app, req("127.0.0.1")) is False
+    assert insecure_remote_access(app, req("127.0.0.2")) is False
+    assert insecure_remote_access(app, req("::1")) is False
+    assert insecure_remote_access(app, req("192.168.1.20")) is True
+    assert insecure_remote_access(app, req("10.0.0.5")) is True
+
+    app.auth_enabled = True
+    assert insecure_remote_access(app, req("192.168.1.20")) is False
+    app.auth_enabled = False
+
+    # X-Forwarded-For is ignored unless the immediate peer is a trusted proxy.
+    assert insecure_remote_access(app, req("127.0.0.1", "8.8.8.8")) is False
+
+    monkeypatch.setenv("MESHCHAT_TRUSTED_PROXIES", "127.0.0.1")
+    assert insecure_remote_access(app, req("127.0.0.1", "8.8.8.8")) is True
+    # A multi-hop chain resolves to the rightmost untrusted entry.
+    assert (
+        insecure_remote_access(app, req("127.0.0.1", "203.0.113.9, 127.0.0.1")) is True
+    )
+    # A chain of only trusted hops collapses back to the loopback peer.
+    assert insecure_remote_access(app, req("127.0.0.1", "127.0.0.1")) is False

@@ -73,7 +73,7 @@ func (d *DownloadManager) Dir() string {
 		base = filepath.Join(home, "Downloads")
 	}
 	dir := filepath.Join(base, "MeshChatX")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return ""
 	}
 	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {

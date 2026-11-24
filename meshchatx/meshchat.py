@@ -682,6 +682,11 @@ class ReticulumMeshChat:
             reticulum_config_dir,
         )
         self.storage_dir = storage_dir or os.path.join("storage")
+        from meshchatx.src.backend.profile_permissions import (
+            tighten_existing_profile,
+        )
+
+        tighten_existing_profile(self.storage_dir, self.reticulum_config_dir)
         from meshchatx.src.backend.lifecycle.shutdown_progress import init_progress
 
         init_progress(self.storage_dir)
@@ -6421,6 +6426,14 @@ class ReticulumMeshChat:
         self.listen_host = host
         self.listen_port = port
         self.use_https = use_https
+        if not is_loopback_bind_host(host) and not self.auth_enabled:
+            logger.warning(
+                "Web UI is listening on %s:%s with authentication disabled. "
+                "Anyone who can reach this address can read and send messages. "
+                "Enable auth with --auth / MESHCHAT_AUTH=1, or bind to 127.0.0.1.",
+                host,
+                port,
+            )
         if enable_https:
             custom_ssl = bool(self.ssl_cert_path and self.ssl_key_path)
             if custom_ssl:
@@ -13121,6 +13134,10 @@ def _maybe_run_embedded_module():
 
 # class to manage config stored in database
 def main():
+    from meshchatx.src.backend.profile_permissions import apply_process_umask
+
+    apply_process_umask()
+
     if _maybe_run_embedded_module():
         return
 

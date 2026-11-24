@@ -26,6 +26,7 @@ import traceback
 import psutil
 import RNS
 
+from meshchatx.src.backend.log_redaction import redact_diagnostic_text
 from meshchatx.src.env_utils import env_bool
 
 _DEFAULT_PRIORS = {
@@ -293,7 +294,7 @@ class CrashRecovery:
             self.database.crash_history.insert_crash(
                 timestamp=time.time(),
                 error_type=error_type,
-                error_message=error_msg,
+                error_message=redact_diagnostic_text(error_msg),
                 diagnosed_cause=top_cause,
                 symptoms=stored_symptoms,
                 probability=top_prob,
@@ -594,6 +595,26 @@ class CrashRecovery:
                 except Exception:
                     pass
 
+    class _RedactingWriter:
+        """File proxy that scrubs sensitive fragments from each write."""
+
+        __slots__ = ("_target",)
+
+        def __init__(self, target):
+            self._target = target
+
+        def write(self, text):
+            try:
+                self._target.write(redact_diagnostic_text(text))
+            except Exception:
+                pass
+
+        def flush(self):
+            try:
+                self._target.flush()
+            except Exception:
+                pass
+
     def _diagnose_and_report(
         self,
         exc_type,
@@ -641,7 +662,7 @@ class CrashRecovery:
         report_file = self._open_report_file(signature)
         targets = [sys.stderr]
         if report_file is not None:
-            targets.append(report_file)
+            targets.append(self._RedactingWriter(report_file))
         out = self._TeeWriter(targets)
 
         try:

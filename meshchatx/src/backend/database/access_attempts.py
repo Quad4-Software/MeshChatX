@@ -220,7 +220,17 @@ class AccessAttemptsDAO:
         row = self.provider.fetchone(sql, tuple(params))
         return int(row["c"]) if row else 0
 
-    def cleanup_old(self, max_rows: int = 50_000) -> None:
+    def cleanup_old(
+        self,
+        max_rows: int = 50_000,
+        max_age_seconds: float | None = None,
+    ) -> None:
+        if max_age_seconds is not None:
+            cutoff = time.time() - max_age_seconds
+            self.provider.execute(
+                "DELETE FROM access_attempts WHERE created_at < ?",
+                (cutoff,),
+            )
         row = self.provider.fetchone("SELECT COUNT(*) AS c FROM access_attempts")
         count = int(row["c"]) if row else 0
         if count <= max_rows:
