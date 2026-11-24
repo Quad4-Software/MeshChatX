@@ -366,3 +366,102 @@ func TestShutdownStatusEndpoint(t *testing.T) {
 		t.Fatalf("GET status = %q", body)
 	}
 }
+
+func TestShellSecurityHeaders(t *testing.T) {
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer up.Close()
+	u, _ := url.Parse(up.URL)
+	s := startTestServer(t, u)
+	resp, err := http.Get("http://" + s.Addr() + "/__shell/loading.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	for h, want := range map[string]string{
+		"X-Content-Type-Options": "nosniff",
+		"Referrer-Policy":        "no-referrer",
+		"X-Frame-Options":        "DENY",
+	} {
+		if got := resp.Header.Get(h); got != want {
+			t.Fatalf("%s = %q, want %q", h, got, want)
+		}
+	}
+	csp := resp.Header.Get("Content-Security-Policy")
+	for _, want := range []string{"default-src 'self'", "frame-ancestors 'none'", "object-src 'none'", "base-uri 'none'"} {
+		if !strings.Contains(csp, want) {
+			t.Fatalf("shell CSP missing %q: %s", want, csp)
+		}
+	}
+	if strings.Contains(csp, "unsafe-inline') ;") || !strings.Contains(csp, "script-src 'self' 'unsafe-inline'") {
+		t.Fatalf("unexpected script-src: %s", csp)
+	}
+}
+
+func TestProxyAddsHeadersOnlyWhenAbsent(t *testing.T) {
+	up := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte("<html>app</html>"))
+	}))
+	defer up.Close()
+	u, _ := url.Parse(up.URL)
+	s := startTestServer(t, u)
+	resp, err := http.Get("http://" + s.Addr() + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if got := resp.Header.Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Fatalf("nosniff = %q", got)
+	}
+	if got := resp.Header.Get("Referrer-Policy"); got != "no-referrer" {
+		t.Fatalf("referrer = %q", got)
+	}
+	csp := resp.Header.Get("Content-Security-Policy")
+	if !strings.Contains(csp, "default-src 'self'") || !strings.Contains(csp, "wasm-unsafe-eval") {
+		t.Fatalf("fallback CSP missing: %q", csp)
+	}
+}
+
+func TestProxyPreservesBackendHeaders(t *testing.T) {
+	up := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'")
+		w.Header().Set("X-Content-Type-Options", "sniff")
+		w.Write([]byte("<html>x</html>"))
+	}))
+	defer up.Close()
+	u, _ := url.Parse(up.URL)
+	s := startTestServer(t, u)
+	resp, err := http.Get("http://" + s.Addr() + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if got := resp.Header.Get("Content-Security-Policy"); got != "default-src 'none'" {
+		t.Fatalf("backend CSP overwritten: %q", got)
+	}
+	if got := resp.Header.Get("X-Content-Type-Options"); got != "sniff" {
+		t.Fatalf("backend nosniff overwritten: %q", got)
+	}
+}
+
+func TestProxyNoCSPForNonHTML(t *testing.T) {
+	up := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte("{}"))
+	}))
+	defer up.Close()
+	u, _ := url.Parse(up.URL)
+	s := startTestServer(t, u)
+	resp, err := http.Get("http://" + s.Addr() + "/api")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if got := resp.Header.Get("Content-Security-Policy"); got != "" {
+		t.Fatalf("CSP on non-HTML: %q", got)
+	}
+	if got := resp.Header.Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Fatalf("nosniff missing on non-HTML: %q", got)
+	}
+}

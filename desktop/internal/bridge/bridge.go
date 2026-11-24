@@ -91,6 +91,10 @@ type Deps struct {
 	// native picker window and resolves with the chosen port's JSON or "".
 	Serial         *serial.Manager
 	PickSerialPort func(filtersJSON string) (resultJSON string, ok bool)
+
+	// OnHeartbeat is invoked at most once per second per window when the
+	// page reports renderer-heartbeat (webview hang detection).
+	OnHeartbeat func(window application.Window)
 }
 
 // ChildWindowSpec describes a requested popout window.
@@ -110,6 +114,9 @@ type Bridge struct {
 	downloads      *DownloadManager
 	probeClient    *http.Client
 	tokens         sync.Map // window ID string -> current page-load token
+	reports        sync.Map // window ID -> PageReport (last page-url seen)
+	beatMu         sync.Mutex
+	lastBeats      map[uint]time.Time
 }
 
 // pendingWindow is a window-result rendezvous bound to the Wails window that
@@ -141,9 +148,59 @@ func (b *Bridge) RotateToken(window application.Window) {
 // InvalidateWindow drops the window's token (window closed).
 func (b *Bridge) InvalidateWindow(window application.Window) {
 	if window != nil {
-		b.tokens.Delete(window.ID())
-		b.downloads.AbortForWindow(window.ID())
+		id := window.ID()
+		b.tokens.Delete(id)
+		b.reports.Delete(id)
+		b.downloads.AbortForWindow(id)
+		b.beatMu.Lock()
+		delete(b.lastBeats, id)
+		b.beatMu.Unlock()
 	}
+}
+
+// PageReport is the last URL a window's bridge reported for its current page.
+type PageReport struct {
+	URL string
+	At  time.Time
+}
+
+const maxPageURLLen = 8192
+
+// LastPageURL returns the most recent page-url report for a window.
+func (b *Bridge) LastPageURL(window application.Window) (PageReport, bool) {
+	if window == nil {
+		return PageReport{}, false
+	}
+	v, ok := b.reports.Load(window.ID())
+	if !ok {
+		return PageReport{}, false
+	}
+	return v.(PageReport), true
+}
+
+func (b *Bridge) notePageURL(window application.Window, rawurl string) {
+	if window == nil || rawurl == "" || len(rawurl) > maxPageURLLen {
+		return
+	}
+	b.reports.Store(window.ID(), PageReport{URL: rawurl, At: time.Now()})
+}
+
+// noteHeartbeat rate-limits renderer-heartbeat to one forwarded beat per
+// second per window; faster reports are dropped silently.
+func (b *Bridge) noteHeartbeat(window application.Window) {
+	if window == nil || b.deps.OnHeartbeat == nil {
+		return
+	}
+	id := window.ID()
+	now := time.Now()
+	b.beatMu.Lock()
+	if last, ok := b.lastBeats[id]; ok && now.Sub(last) < time.Second {
+		b.beatMu.Unlock()
+		return
+	}
+	b.lastBeats[id] = now
+	b.beatMu.Unlock()
+	b.deps.OnHeartbeat(window)
 }
 
 func mustJSONString(s string) string {
@@ -168,6 +225,7 @@ func New(deps Deps) *Bridge {
 	return &Bridge{
 		deps:           deps,
 		pendingWindows: map[string]*pendingWindow{},
+		lastBeats:      map[uint]time.Time{},
 		downloads: NewDownloadManager(func() string {
 			if deps.DownloadsDir != nil {
 				return deps.DownloadsDir()
@@ -515,6 +573,12 @@ func (b *Bridge) dispatch(window application.Window, id int, method string, args
 		result = b.downloads.Abort(argString(args, 0))
 	case "get-downloads-dir":
 		result = b.downloads.Dir()
+	case "page-url":
+		b.notePageURL(window, argString(args, 0))
+		result = nil
+	case "renderer-heartbeat":
+		b.noteHeartbeat(window)
+		result = nil
 	case "log":
 		if b.deps.Log != nil {
 			b.deps.Log(fmt.Sprint(args...))

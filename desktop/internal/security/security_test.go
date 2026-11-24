@@ -179,3 +179,53 @@ func TestAppServerPageClassification(t *testing.T) {
 		t.Fatal("app-server crash page not classified")
 	}
 }
+
+func TestShouldAllowInWindowNavigationExtended(t *testing.T) {
+	cases := []struct {
+		raw  string
+		want bool
+	}{
+		{"about:blank", true},
+		{"http://127.0.0.1:9337/app", true},
+		{"http://localhost:9338/x", true},
+		{"https://example.com/", false},
+		{"data:text/html,<h1>x</h1>", false},
+		{"javascript:alert(1)", false},
+		{"file:///etc/passwd", false},
+		{"blob:https://127.0.0.1:9337/abc", true},
+		{"blob:https://evil.com/abc", false},
+		{"", false},
+	}
+	for _, c := range cases {
+		if got := ShouldAllowInWindowNavigation(c.raw); got != c.want {
+			t.Errorf("ShouldAllowInWindowNavigation(%q) = %v, want %v", c.raw, got, c.want)
+		}
+	}
+}
+
+func TestWindowNavDecision(t *testing.T) {
+	if a, ext := WindowNavDecision("http://127.0.0.1:9337/app", false); a != NavAllow || ext != "" {
+		t.Fatalf("trusted = %v %q", a, ext)
+	}
+	if a, _ := WindowNavDecision("about:blank", true); a != NavAllow {
+		t.Fatalf("about:blank = %v", a)
+	}
+	if a, ext := WindowNavDecision("https://example.com/x", false); a != NavRestore || ext != "https://example.com/x" {
+		t.Fatalf("main external = %v %q", a, ext)
+	}
+	if a, ext := WindowNavDecision("https://example.com/x", true); a != NavClose || ext != "https://example.com/x" {
+		t.Fatalf("child external = %v %q", a, ext)
+	}
+	if a, ext := WindowNavDecision("data:text/html,x", false); a != NavRestore || ext != "" {
+		t.Fatalf("data: = %v %q", a, ext)
+	}
+	if a, ext := WindowNavDecision("file:///etc/passwd", true); a != NavClose || ext != "" {
+		t.Fatalf("file: child = %v %q", a, ext)
+	}
+	if a, ext := WindowNavDecision("mailto:a@b.c", false); a != NavRestore || ext != "mailto:a@b.c" {
+		t.Fatalf("mailto = %v %q", a, ext)
+	}
+	if a, ext := WindowNavDecision("https://user:pw@example.com/", false); a != NavRestore || ext != "" {
+		t.Fatalf("userinfo = %v %q", a, ext)
+	}
+}

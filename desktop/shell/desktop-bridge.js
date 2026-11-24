@@ -152,6 +152,15 @@
         return isLocalBackendUrl(href);
     }
 
+    // isShellInternalUrl reports whether href stays inside the shell: the
+    // local backend/app-server origin, trusted shell pages, or trusted blobs.
+    function isShellInternalUrl(resolved) {
+        if (isLocalBackendUrl(resolved)) {
+            return true;
+        }
+        return isTrustedShellOrigin(window.location.href) && isTrustedShellOrigin(resolved);
+    }
+
     var nextId = 1;
     var pending = Object.create(null);
     var listeners = Object.create(null);
@@ -232,6 +241,9 @@
             for (var i = 0; i < q.length; i++) {
                 q[i]();
             }
+            // Report this page's URL so Go can enforce in-window navigation.
+            invokeTrusted("page-url", [String(window.location.href)]).catch(function () {});
+            startHeartbeat();
         },
     };
 
@@ -635,6 +647,112 @@
         },
         true
     );
+
+    // Forms bypass the click guard: cancel submits whose resolved action
+    // leaves the shell and route safe http(s)/mailto to the OS browser.
+    document.addEventListener(
+        "submit",
+        function (event) {
+            var form = event.target;
+            if (!form || !form.action) {
+                return;
+            }
+            var resolved;
+            try {
+                resolved = new URL(form.action, window.location.href).href;
+            } catch {
+                return;
+            }
+            if (isShellInternalUrl(resolved)) {
+                return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            invokeTrusted("open-external", [resolved]).catch(function () {});
+        },
+        true
+    );
+
+    // <meta http-equiv="refresh"> navigates without any JS hook; strip any
+    // that point outside the shell, on parse and on later DOM mutations.
+    function metaRefreshTarget(meta) {
+        var content = meta.getAttribute("content");
+        if (!content) {
+            return "";
+        }
+        var parts = String(content).split(";");
+        for (var i = parts.length - 1; i >= 0; i--) {
+            var piece = parts[i].trim();
+            var m = /^url\s*=\s*(.*)$/i.exec(piece);
+            if (m) {
+                return m[1].trim().replace(/^["']|["']$/g, "");
+            }
+        }
+        return "";
+    }
+
+    function stripForeignMetaRefresh(root) {
+        if (!root || !root.querySelectorAll) {
+            return;
+        }
+        var metas = root.querySelectorAll('meta[http-equiv="refresh" i]');
+        for (var i = 0; i < metas.length; i++) {
+            var meta = metas[i];
+            var target = metaRefreshTarget(meta);
+            if (!target) {
+                continue;
+            }
+            var resolved;
+            try {
+                resolved = new URL(target, window.location.href).href;
+            } catch {
+                meta.remove();
+                continue;
+            }
+            if (!isShellInternalUrl(resolved)) {
+                meta.remove();
+            }
+        }
+    }
+
+    stripForeignMetaRefresh(document);
+    try {
+        if (typeof MutationObserver === "function" && document.documentElement) {
+            var metaObserver = new MutationObserver(function (mutations) {
+                for (var i = 0; i < mutations.length; i++) {
+                    var added = mutations[i].addedNodes;
+                    for (var j = 0; j < added.length; j++) {
+                        var node = added[j];
+                        if (node.nodeType !== 1) {
+                            continue;
+                        }
+                        if (node.tagName === "META") {
+                            stripForeignMetaRefresh(node.parentNode || document);
+                        } else {
+                            stripForeignMetaRefresh(node);
+                        }
+                    }
+                }
+            });
+            metaObserver.observe(document.documentElement, { childList: true, subtree: true });
+        }
+    } catch {
+        /* observer unavailable: initial scan above still applies */
+    }
+
+    var heartbeatTimer = null;
+    function startHeartbeat() {
+        if (heartbeatTimer !== null || window.top !== window) {
+            return;
+        }
+        try {
+            heartbeatTimer = setInterval(function () {
+                invokeTrusted("renderer-heartbeat", []).catch(function () {});
+            }, 5000);
+        } catch {
+            heartbeatTimer = null;
+        }
+    }
 
     // ---- Downloads -----------------------------------------------------------
     // WebKitGTK drops <a download>/blob saves; stream them through the bridge

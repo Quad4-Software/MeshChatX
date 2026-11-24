@@ -7,6 +7,10 @@
 
 ### Fixed
 
+- Desktop shell: navigation guard, security headers and hang recovery that the Electron build had. A window that ends up on a page outside the app (a redirect, form post or meta refresh that slipped past the link guards) is sent back to the last good page, and safe http, https and mailto links open in the system browser. Shell pages get a strict CSP, nosniff and no-referrer, and app pages get the old fallback CSP when the backend sends none. A renderer that stops sending heartbeats for 60 seconds while the window is visible is reloaded once, then the crash page is shown. Devtools are explicitly off.
+- Desktop shell: the backend log pump no longer stops on a log line over 1 MiB, which could block the backend on a full pipe. On Linux and macOS the whole backend process group is killed on shutdown so helper processes no longer linger. Settings and crash reports are written atomically, crash reports are private to the user, and the crash page URL carries 2 KiB of output instead of 24 KiB.
+- Desktop shell: serial writes are capped at 1 MiB and unused port grants expire after 10 minutes with at most 16 held. The updater rejects unknown platform values, re-hashes the staged file right before applying it, and only trusts PORTABLE_EXECUTABLE_DIR when the running executable lives inside it.
+- Desktop: the main window remembers its size, position and maximised state when the saved rectangle still fits a connected screen. The macOS Info.plist now has a camera usage string for the QR scanner.
 - Linux desktop: in VMs and other setups with no GPU render node the shell now also turns off WebKit GPU compositing, which fixes delayed scrolling and slow typing there. Set WEBKIT_DISABLE_COMPOSITING_MODE or MESHCHATX_NO_MEM_TUNING to override.
 - CI: the Windows release build retries the NSIS install and the Android wheel build retries Maven and release downloads, so a Chocolatey 504 or a Maven Central 429 no longer fails a tagged build.
 - Messages: a debounced conversation refresh that fires after the page is torn down no longer throws when the api object is gone.

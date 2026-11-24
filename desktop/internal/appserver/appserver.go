@@ -145,6 +145,15 @@ func Start(shellFS fs.FS, upstream *url.URL) (*Server, error) {
 	return s, nil
 }
 
+// shellCSP guards the embedded shell pages. They are static trusted assets
+// whose markup carries inline <script> blocks, so script-src must allow
+// 'unsafe-inline' here; all dynamic content is rendered via textContent.
+const shellCSP = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' ws://127.0.0.1:* http://127.0.0.1:*; worker-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'"
+
+// fallbackCSP mirrors the Electron webRequest.onHeadersReceived policy,
+// applied to proxied HTML responses that carry no CSP of their own.
+const fallbackCSP = "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://*.cartocdn.com https://tiles.openfreemap.org https://*.openfreemap.org; font-src 'self' data: https://tiles.openfreemap.org https://*.openfreemap.org; connect-src 'self' http://127.0.0.1:9337 https://127.0.0.1:9337 http://localhost:9337 https://localhost:9337 ws://127.0.0.1:* wss://127.0.0.1:* ws://localhost:* wss://localhost:* blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://github.com https://*.cartocdn.com https://tiles.openfreemap.org https://*.openfreemap.org; media-src 'self' blob:; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'self'"
+
 // hostAllowed enforces DNS-rebinding protection: only literal loopback
 // Host headers for THIS server's port are served.
 func (s *Server) hostAllowed(r *http.Request) bool {
@@ -216,6 +225,10 @@ func (s *Server) serveShell(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", ct)
 	}
 	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Content-Security-Policy", shellCSP)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	w.Header().Set("X-Frame-Options", "DENY")
 	if r.Method == http.MethodHead {
 		w.WriteHeader(http.StatusOK)
 		return
@@ -310,6 +323,17 @@ func (s *Server) newProxy() *httputil.ReverseProxy {
 		}
 	}
 	proxy.ModifyResponse = func(resp *http.Response) error {
+		if resp.Header.Get("X-Content-Type-Options") == "" {
+			resp.Header.Set("X-Content-Type-Options", "nosniff")
+		}
+		if resp.Header.Get("Referrer-Policy") == "" {
+			resp.Header.Set("Referrer-Policy", "no-referrer")
+		}
+		if resp.Header.Get("Content-Security-Policy") == "" &&
+			resp.Header.Get("content-security-policy") == "" &&
+			strings.Contains(resp.Header.Get("Content-Type"), "text/html") {
+			resp.Header.Set("Content-Security-Policy", fallbackCSP)
+		}
 		cookies := resp.Header.Values("Set-Cookie")
 		if len(cookies) == 0 {
 			return nil

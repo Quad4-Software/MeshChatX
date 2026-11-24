@@ -38,6 +38,7 @@ import (
 	"github.com/Quad4-Software/MeshChatX/desktop/internal/notify"
 	"github.com/Quad4-Software/MeshChatX/desktop/internal/paths"
 	"github.com/Quad4-Software/MeshChatX/desktop/internal/protocollink"
+	"github.com/Quad4-Software/MeshChatX/desktop/internal/renderwatch"
 	"github.com/Quad4-Software/MeshChatX/desktop/internal/security"
 	"github.com/Quad4-Software/MeshChatX/desktop/internal/serial"
 	"github.com/Quad4-Software/MeshChatX/desktop/internal/settings"
@@ -130,6 +131,9 @@ type shellState struct {
 	navMu         sync.Mutex  // serializes main-window SetURL+pageKind swaps
 	sysLog        *logger.Logger
 	serialMgr     *serial.Manager
+	navGuard      *navGuard
+	watchdog      *renderwatch.Watchdog
+	hiddenAt      time.Time
 }
 
 func (s *shellState) setPageKind(kind string) {
@@ -310,6 +314,7 @@ func main() {
 		winW = min(winW, scr.WorkArea.Width*9/10)
 		winH = min(winH, scr.WorkArea.Height*9/10)
 	}
+	mainLoadURL := appSrv.Origin() + "/__shell/loading.html?theme=" + effectiveTheme
 	win := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:             "main",
 		Title:            appName,
@@ -318,7 +323,7 @@ func main() {
 		InitialPosition:  application.WindowCentered,
 		MinWidth:         900,
 		MinHeight:        600,
-		URL:              appSrv.Origin() + "/__shell/loading.html?theme=" + effectiveTheme,
+		URL:              mainLoadURL,
 		BackgroundColour: themeColour(effectiveTheme),
 		DevToolsEnabled:  false,
 		Permissions: map[application.PermissionType]application.Permission{
@@ -356,6 +361,7 @@ func main() {
 	// Wire the bridge.
 	s.serialMgr = serial.NewManager(serial.Deps{})
 	s.bridge = bridge.New(s.bridgeDeps())
+	s.armNavGuard(mainLoadURL)
 	s.plink = protocollink.New(s.getPageKind, func(u string) {
 		if s.bridge != nil {
 			s.bridge.EmitMain("open-protocol-link", map[string]any{"url": u})
@@ -700,6 +706,7 @@ const idleReleaseDelay = 10 * time.Minute
 func (s *shellState) onMainWindowHidden() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.hiddenAt = time.Now()
 	if s.idleTimer != nil || s.idleReleased || appServer == nil || s.pageKind != "app" {
 		return
 	}
@@ -748,6 +755,9 @@ func (s *shellState) armBridgeToken(w application.Window) {
 			}
 			if w == s.mainWindow && s.getPageKind() == "app" {
 				go s.flushProtocolLinkWhenReady()
+			}
+			if s.navGuard != nil {
+				s.navGuard.onPageFinished(w.ID())
 			}
 		})
 	}
@@ -1326,6 +1336,7 @@ func (s *shellState) bridgeDeps() bridge.Deps {
 		Relaunch:           s.relaunch,
 		ApplyUpdateAndExit: s.applyUpdateAndExit,
 		OpenExternal:       s.openExternal,
+		OnHeartbeat:        s.noteRendererBeat,
 		OpenChildWindow:    s.openChildWindow,
 		CloseChildWindow:   s.closeChildWindow,
 		NotifyShow: func(title, body string, silent bool, hash string) {

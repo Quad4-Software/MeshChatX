@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -90,7 +91,7 @@ func post(t *testing.T, b *Bridge, w *fakeWindow, origin *application.OriginInfo
 		armToken(t, b, w)
 	}
 	payload, _ := json.Marshal(args)
-	msg, _ := json.Marshal(map[string]any{"v": 1, "id": 7, "method": method, "args": payload, "t": w.token})
+	msg, _ := json.Marshal(map[string]any{"v": 1, "id": 7, "method": method, "args": json.RawMessage(payload), "t": w.token})
 	b.Handle(w, string(msg), origin)
 }
 
@@ -348,5 +349,63 @@ func TestWindowZoomMethods(t *testing.T) {
 	calls := w.calls()
 	if len(calls) <= n || !strings.Contains(calls[len(calls)-1], `,true,"1"`) {
 		t.Fatalf("expected persisted zoom=1 reply, calls: %v", calls)
+	}
+}
+
+func TestPageURLReportStored(t *testing.T) {
+	b := newTestBridge(t)
+	w := &fakeWindow{}
+	post(t, b, w, &application.OriginInfo{Origin: "wails://localhost"}, "page-url", "http://127.0.0.1:9337/app")
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if rep, ok := b.LastPageURL(w); ok {
+			if rep.URL != "http://127.0.0.1:9337/app" {
+				t.Fatalf("report URL = %q", rep.URL)
+			}
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("no page-url report stored")
+}
+
+func TestPageURLReportRejectsOversized(t *testing.T) {
+	b := newTestBridge(t)
+	w := &fakeWindow{}
+	big := "http://127.0.0.1:9337/" + strings.Repeat("a", 9000)
+	post(t, b, w, &application.OriginInfo{Origin: "wails://localhost"}, "page-url", big)
+	time.Sleep(100 * time.Millisecond)
+	if _, ok := b.LastPageURL(w); ok {
+		t.Fatal("oversized page-url stored")
+	}
+}
+
+func TestHeartbeatRateLimited(t *testing.T) {
+	var beats int32
+	b := New(Deps{
+		AppVersion:  func() string { return "t" },
+		OnHeartbeat: func(application.Window) { atomic.AddInt32(&beats, 1) },
+		StorageDir:  func() string { return t.TempDir() },
+	})
+	w := &fakeWindow{}
+	org := &application.OriginInfo{Origin: "wails://localhost"}
+	post(t, b, w, org, "renderer-heartbeat")
+	post(t, b, w, org, "renderer-heartbeat")
+	post(t, b, w, org, "renderer-heartbeat")
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) && atomic.LoadInt32(&beats) < 1 {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if got := atomic.LoadInt32(&beats); got != 1 {
+		t.Fatalf("beats = %d, want 1 (rate limited)", got)
+	}
+	time.Sleep(1100 * time.Millisecond)
+	post(t, b, w, org, "renderer-heartbeat")
+	deadline = time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) && atomic.LoadInt32(&beats) < 2 {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if got := atomic.LoadInt32(&beats); got != 2 {
+		t.Fatalf("beats = %d, want 2", got)
 	}
 }

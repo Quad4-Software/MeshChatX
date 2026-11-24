@@ -291,10 +291,43 @@ func ShouldAllowInWindowNavigation(raw string) bool {
 	if raw == "" {
 		return false
 	}
+	if raw == "about:blank" {
+		return true
+	}
 	if strings.HasPrefix(raw, "blob:") {
 		return IsTrustedBlobURL(raw)
 	}
+	if IsTrustedShellPageURL(raw) {
+		return true
+	}
 	return IsLocalBackendURL(raw)
+}
+
+// NavAction is the enforcement verdict for a URL observed after a window
+// finished loading.
+type NavAction int
+
+const (
+	// NavAllow leaves the window on the reported URL.
+	NavAllow NavAction = iota
+	// NavRestore sends the main window back to its last good URL.
+	NavRestore
+	// NavClose closes a child window that navigated somewhere untrusted.
+	NavClose
+)
+
+// WindowNavDecision classifies raw (a URL reported by the page after load).
+// The second return is a normalized external URL to open in the OS browser,
+// or "" when the URL must not leave the shell.
+func WindowNavDecision(raw string, childWindow bool) (NavAction, string) {
+	if ShouldAllowInWindowNavigation(raw) {
+		return NavAllow, ""
+	}
+	ext := NormalizeExternalURLForOpen(raw)
+	if childWindow {
+		return NavClose, ext
+	}
+	return NavRestore, ext
 }
 
 // NormalizeExternalURLForOpen returns a normalized http(s) or mailto URL for
