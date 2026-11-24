@@ -379,6 +379,12 @@
         setUiTheme: function (preference) {
             return invokeTrusted("set-ui-theme", [preference]);
         },
+        getZoom: function () {
+            return invokeTrusted("get-window-zoom");
+        },
+        zoom: function (action) {
+            return invokeTrusted("window-zoom", [String(action || "")]);
+        },
         getPlatform: function () {
             return detectPlatform();
         },

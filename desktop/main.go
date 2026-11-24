@@ -328,6 +328,7 @@ func main() {
 	s.armBridgeToken(win)
 	s.mainWindow = win
 	s.setPageKind("loading")
+	s.applyMainWindowZoom()
 	win.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
 		e.Cancel()
 		go s.handleWindowClose()
@@ -738,6 +739,9 @@ func (s *shellState) armBridgeToken(w application.Window) {
 			if s.bridge != nil {
 				s.bridge.RotateToken(w)
 			}
+			if w == s.mainWindow {
+				s.applyMainWindowZoom()
+			}
 			if w == s.mainWindow && s.getPageKind() == "app" {
 				go s.flushProtocolLinkWhenReady()
 			}
@@ -764,6 +768,15 @@ func (s *shellState) armBridgeToken(w application.Window) {
 			s.bridge.InvalidateWindow(w)
 		}
 	})
+}
+
+// applyMainWindowZoom reapplies the persisted zoom level; webviews can drop
+// it across navigations (loading.html -> app URL -> idle/crash pages).
+func (s *shellState) applyMainWindowZoom() {
+	if s.mainWindow == nil {
+		return
+	}
+	s.mainWindow.SetZoom(settings.LoadWindowZoom(s.storageDir))
 }
 
 func (s *shellState) showMainWindow() {
@@ -1079,6 +1092,7 @@ func (s *shellState) openChildWindow(spec bridge.ChildWindowSpec) (application.W
 			application.PermissionCamera:     application.PermissionAllow,
 		},
 	})
+	w.SetZoom(settings.LoadWindowZoom(s.storageDir))
 	s.armBridgeToken(w)
 	s.mu.Lock()
 	s.childWindows[name] = w
@@ -1251,7 +1265,12 @@ func (s *shellState) bridgeDeps() bridge.Deps {
 		PrivacyPlatform:      func() string { return runtime.GOOS },
 		SetUiTheme:           s.setUiTheme,
 		GetUiTheme:           s.getUiTheme,
-		IsHeadless:           func() bool { return s.headless },
+		SetWindowZoom: func(level float64) {
+			for _, w := range s.allWindows() {
+				w.SetZoom(level)
+			}
+		},
+		IsHeadless: func() bool { return s.headless },
 		SetWindowURL: func(win application.Window, rawurl string) {
 			if win == s.mainWindow {
 				s.navMu.Lock()

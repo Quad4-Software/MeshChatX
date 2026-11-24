@@ -2,10 +2,13 @@
 
 ### Added
 
+- Desktop: window zoom is back. Ctrl or Cmd with plus, minus and 0, and Ctrl+wheel, zoom the whole UI from 50% to 300% in 10% steps, including while focus is inside a Nomad page. The level is saved and applied to all app windows, and Settings under Appearance has zoom out, reset and zoom in buttons. The Wails shell had dropped the browser shortcuts the Electron build used to provide.
 - Plugins: frontend plugins get a map API (permission gated) for working with the map page, plus a mcx-map-demo example plugin. The plugin API also gains storage, fetch, hooks, and manager access with matching permissions. See docs/en/plugins.md.
 
 ### Fixed
 
+- CI: the Windows release build retries the NSIS install and the Android wheel build retries Maven and release downloads, so a Chocolatey 504 or a Maven Central 429 no longer fails a tagged build.
+- Messages: a debounced conversation refresh that fires after the page is torn down no longer throws when the api object is gone.
 - NomadNet browser (Android): long-pressing page text now shows the native selection toolbar with Copy instead of the app menu with "reload page" and "show source". The caret hit-test used to decide whether text was under the finger was unreliable inside the page frame, so the app menu often won. Touch long-presses in page content now always defer to the platform, and mouse right-click and the 3-dot menu are unchanged.
 - macOS: voice messages could play silently. The player created its AudioContext on mount without a user gesture and started the source before the resume finished, so WKWebView left it suspended. The context is now created on first play, resume is awaited, and playback falls back to an audio element when Web Audio never starts. Ringtone preview and call tones use the same resume handling. The ad-hoc codesign step also applies the entitlements file now, which it skipped before. This is untested on a real Mac.
 - Android: the serial port picker lists USB serial devices through UsbManager, has a USB permission request, and shows empty and error states. Desktop merges the /dev scan with pyserial and covers ttyWCH*. The picker strings are translated in all locales and a saved-port and refresh race is fixed.

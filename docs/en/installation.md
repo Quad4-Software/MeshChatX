@@ -295,6 +295,10 @@ Swap in `meshchatx-beta.flatpakref` or `meshchatx-testing.flatpakref` for those 
 
 The desktop shells register `lxmf://` and `rns://` URL handlers. Opening such a link launches the app (or focuses the running instance) and forwards the URL to the app page once it is ready. Links arriving during startup are queued, not dropped. On macOS, launching a second copy via a URL scheme is an OS-level limitation. The URL reaches the already-running instance only when the system delivers `open-url` to it. Cold `open -a` with a URL argument works.
 
+## Desktop window zoom
+
+In the desktop shell, press Ctrl with +, - or 0 (numpad keys work too) or hold Ctrl and scroll to zoom the whole interface between 50% and 300%. The level is remembered between sessions and can also be set under Settings > Appearance.
+
 ## Linux desktop emoji fonts
 
 The emoji picker uses system fonts through the platform webview. Empty squares mean a color emoji package is missing. Install one and restart the app.

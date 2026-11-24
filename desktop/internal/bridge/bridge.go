@@ -78,6 +78,7 @@ type Deps struct {
 	PrivacyPlatform        func() string
 	SetUiTheme             func(pref string) (saved, effective string)
 	GetUiTheme             func() (pref, effective string)
+	SetWindowZoom          func(level float64)
 	IsHeadless             func() bool
 	SetWindowURL           func(win application.Window, rawurl string)
 	AppURL                 func() string
@@ -406,6 +407,15 @@ func (b *Bridge) dispatch(window application.Window, id int, method string, args
 				b.deps.OnUiThemeChanged(e)
 			}
 		}
+	case "get-window-zoom":
+		result = settings.LoadWindowZoom(b.deps.StorageDir())
+	case "window-zoom":
+		dir := b.deps.StorageDir()
+		level := settings.SaveWindowZoom(dir, settings.WindowZoomStep(settings.LoadWindowZoom(dir), argString(args, 0)))
+		if b.deps.SetWindowZoom != nil {
+			b.deps.SetWindowZoom(level)
+		}
+		result = map[string]any{"zoom": level}
 	case "get-screen-security-settings":
 		result = system.ScreenSecurityPayload(b.deps.PrivacyPlatform(), b.screenSecurityEnabled())
 	case "set-screen-security-enabled":

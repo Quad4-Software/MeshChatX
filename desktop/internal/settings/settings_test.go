@@ -2,6 +2,7 @@ package settings
 
 import (
 	"encoding/json"
+	"math"
 	"os"
 	"path/filepath"
 	"sync"
@@ -156,5 +157,82 @@ func TestCloseRequestGuardConcurrent(t *testing.T) {
 func TestUiThemePath(t *testing.T) {
 	if filepath.Base(UiThemePath("/x")) != "desktop-ui-theme.json" {
 		t.Fatalf("path: %s", UiThemePath("/x"))
+	}
+}
+
+func TestWindowZoomStep(t *testing.T) {
+	cases := []struct {
+		current float64
+		action  string
+		want    float64
+	}{
+		{1.0, "in", 1.1},
+		{1.0, "out", 0.9},
+		{1.5, "reset", 1.0},
+		{0.5, "out", 0.5},
+		{2.9, "in", 3.0},
+		{3.0, "in", 3.0},
+		{0.4, "in", 0.5},
+		{1.0, "bogus", 1.0},
+		{1.0, "", 1.0},
+	}
+	for _, tc := range cases {
+		if got := WindowZoomStep(tc.current, tc.action); got != tc.want {
+			t.Errorf("step(%v,%q) = %v, want %v", tc.current, tc.action, got, tc.want)
+		}
+	}
+}
+
+func TestWindowZoomPersistence(t *testing.T) {
+	dir := t.TempDir()
+	if got := LoadWindowZoom(dir); got != 1.0 {
+		t.Fatalf("default zoom = %v, want 1.0", got)
+	}
+	if got := SaveWindowZoom(dir, 1.25); got != 1.3 {
+		t.Fatalf("save 1.25 = %v, want 1.3 (rounded to 0.1)", got)
+	}
+	if got := LoadWindowZoom(dir); got != 1.3 {
+		t.Fatalf("load = %v, want 1.3", got)
+	}
+	if got := SaveWindowZoom(dir, 9.0); got != 3.0 {
+		t.Fatalf("clamp high = %v, want 3.0", got)
+	}
+	if got := SaveWindowZoom(dir, -4.0); got != 0.5 {
+		t.Fatalf("clamp low = %v, want 0.5", got)
+	}
+	if got := LoadWindowZoom(dir); got != 0.5 {
+		t.Fatalf("load after clamps = %v, want 0.5", got)
+	}
+	if err := os.WriteFile(WindowZoomPath(dir), []byte("{not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := LoadWindowZoom(dir); got != 1.0 {
+		t.Fatalf("corrupt file = %v, want 1.0", got)
+	}
+	if err := os.WriteFile(WindowZoomPath(dir), []byte(`{"zoom":"huge"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := LoadWindowZoom(dir); got != 1.0 {
+		t.Fatalf("wrong type = %v, want 1.0", got)
+	}
+}
+
+func TestNormalizeWindowZoom(t *testing.T) {
+	cases := []struct {
+		in   any
+		want float64
+	}{
+		{1.4, 1.4},
+		{7.0, 3.0},
+		{0.1, 0.5},
+		{"1.5", 1.0},
+		{nil, 1.0},
+		{math.NaN(), 1.0},
+		{math.Inf(1), 1.0},
+	}
+	for _, tc := range cases {
+		if got := NormalizeWindowZoom(tc.in); got != tc.want {
+			t.Errorf("normalize(%v) = %v, want %v", tc.in, got, tc.want)
+		}
 	}
 }

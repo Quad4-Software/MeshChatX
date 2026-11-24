@@ -27,6 +27,46 @@
                 </p>
             </div>
 
+            <div v-if="zoomAvailable" class="space-y-2">
+                <div class="text-sm font-medium text-sem-fg">
+                    {{ $t("app.desktop_zoom") }}
+                </div>
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        class="inline-flex size-9 items-center justify-center rounded-xl border border-sem-border text-sem-fg hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
+                        :disabled="desktopZoomBusy"
+                        :aria-label="$t('app.desktop_zoom_out')"
+                        @click="onDesktopZoom('out')"
+                    >
+                        <MaterialDesignIcon icon-name="magnify-minus-outline" class="size-4" />
+                    </button>
+                    <span class="min-w-14 text-center text-sm font-medium text-sem-fg tabular-nums">
+                        {{ desktopZoomPercent }}
+                    </span>
+                    <button
+                        type="button"
+                        class="inline-flex size-9 items-center justify-center rounded-xl border border-sem-border text-sem-fg hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
+                        :disabled="desktopZoomBusy"
+                        :aria-label="$t('app.desktop_zoom_in')"
+                        @click="onDesktopZoom('in')"
+                    >
+                        <MaterialDesignIcon icon-name="magnify-plus-outline" class="size-4" />
+                    </button>
+                    <button
+                        type="button"
+                        class="ml-1 px-3 py-1.5 rounded-xl border border-sem-border text-xs font-medium text-sem-fg hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
+                        :disabled="desktopZoomBusy"
+                        @click="onDesktopZoom('reset')"
+                    >
+                        {{ $t("app.desktop_zoom_reset") }}
+                    </button>
+                </div>
+                <p class="text-xs text-sem-fg-muted">
+                    {{ $t("app.desktop_zoom_description") }}
+                </p>
+            </div>
+
             <div class="space-y-2">
                 <div class="flex items-center justify-between gap-2">
                     <div class="text-sm font-medium text-sem-fg">
@@ -600,6 +640,7 @@ import {
 } from "../../../theme/themeEngine.js";
 import { MESHCHAT_THEME_VARIABLES_DARK, MESHCHAT_THEME_VARIABLES_LIGHT } from "../../../theme/designTokens.js";
 import { listNavItems } from "../../../js/registries/navRegistry";
+import { getDesktopZoom, isDesktopZoomAvailable, requestDesktopZoom } from "../../../js/desktopZoom.js";
 import {
     resolveTopNavItemIds,
     resetTopNavItemIds,
@@ -668,6 +709,12 @@ export default {
         "message-timestamp-grouping-change",
         "bubble-color-change",
     ],
+    data() {
+        return {
+            desktopZoomLevel: null,
+            desktopZoomBusy: false,
+        };
+    },
     computed: {
         themePresetCatalog() {
             return THEME_PRESET_CATALOG;
@@ -751,6 +798,15 @@ export default {
         topNavPinnedCount() {
             return this.topNavEditorRows.filter((row) => row.pinned).length;
         },
+        zoomAvailable() {
+            return isDesktopZoomAvailable();
+        },
+        desktopZoomPercent() {
+            if (typeof this.desktopZoomLevel !== "number") {
+                return "--";
+            }
+            return `${Math.round(this.desktopZoomLevel * 100)}%`;
+        },
         resolvedBubbleColors() {
             const mode = resolveEffectiveTheme(this.config?.theme, systemPrefersDark());
             const base = mode === "dark" ? MESHCHAT_THEME_VARIABLES_DARK : MESHCHAT_THEME_VARIABLES_LIGHT;
@@ -761,6 +817,11 @@ export default {
                 waiting: resolved["--mc-bubble-waiting"],
             };
         },
+    },
+    mounted() {
+        if (this.zoomAvailable) {
+            this.refreshDesktopZoom();
+        }
     },
     methods: {
         emitField(key, value, eventName, eventArg) {
@@ -801,6 +862,26 @@ export default {
         onAppSidebarLayoutSelect(value) {
             const next = value === "classic" ? "classic" : "grouped";
             this.emitField("app_sidebar_layout", next, "app-sidebar-layout-change");
+        },
+        async refreshDesktopZoom() {
+            const level = await getDesktopZoom();
+            if (typeof level === "number") {
+                this.desktopZoomLevel = level;
+            }
+        },
+        async onDesktopZoom(action) {
+            if (this.desktopZoomBusy) {
+                return;
+            }
+            this.desktopZoomBusy = true;
+            try {
+                const level = await requestDesktopZoom(window, action);
+                if (typeof level === "number") {
+                    this.desktopZoomLevel = level;
+                }
+            } finally {
+                this.desktopZoomBusy = false;
+            }
         },
         onMessageFontSizeInput(event) {
             this.emitField("message_font_size", Number(event.target.value), "message-font-size-change");

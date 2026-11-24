@@ -12,6 +12,7 @@
 import "../css/nomad-page-chrome.css";
 import { NOMAD_CRASH_TAB_CHANNEL } from "./nomadCrashTabShell.js";
 import { shouldOpenCustomContextMenu } from "./contextMenuUtils.js";
+import { DESKTOP_ZOOM_MESSAGE_TYPE, desktopZoomKeyAction, desktopZoomWheelAction } from "./desktopZoom.js";
 
 const root = document.getElementById("root");
 let renderSeq = 0;
@@ -976,6 +977,18 @@ root.addEventListener("click", onClick, true);
 root.addEventListener("auxclick", onClick, true);
 root.addEventListener("keydown", onImageKeyDown, true);
 root.addEventListener("contextmenu", onFieldContextMenu, true);
+window.addEventListener("keydown", (event) => {
+    const action = desktopZoomKeyAction(event);
+    if (action) {
+        post({ type: DESKTOP_ZOOM_MESSAGE_TYPE, action });
+    }
+});
+window.addEventListener("wheel", (event) => {
+    const action = desktopZoomWheelAction(event);
+    if (action) {
+        post({ type: DESKTOP_ZOOM_MESSAGE_TYPE, action });
+    }
+});
 paintShell("#000000", "#dddddd");
 // Warm the parser chunk while the shell downloads the page.
 void loadRenderer();

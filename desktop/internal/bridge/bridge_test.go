@@ -277,3 +277,76 @@ func TestRuntimeInfoMapRenderMode(t *testing.T) {
 		})
 	}
 }
+
+func TestWindowZoomMethods(t *testing.T) {
+	dir := t.TempDir()
+	var mu sync.Mutex
+	var applied []float64
+	lastApplied := func() float64 {
+		mu.Lock()
+		defer mu.Unlock()
+		if len(applied) == 0 {
+			return -1
+		}
+		return applied[len(applied)-1]
+	}
+	countApplied := func() int {
+		mu.Lock()
+		defer mu.Unlock()
+		return len(applied)
+	}
+	b := New(Deps{
+		AppVersion: func() string { return "9.9.9-test" },
+		StorageDir: func() string { return dir },
+		SetWindowZoom: func(level float64) {
+			mu.Lock()
+			applied = append(applied, level)
+			mu.Unlock()
+		},
+	})
+	w := &fakeWindow{}
+	origin := &application.OriginInfo{Origin: "wails://localhost"}
+	postArgs := func(method string, args ...any) {
+		t.Helper()
+		if w.token == "" {
+			armToken(t, b, w)
+		}
+		msg, _ := json.Marshal(map[string]any{"v": 1, "id": 7, "method": method, "args": args, "t": w.token})
+		b.Handle(w, string(msg), origin)
+	}
+
+	postArgs("get-window-zoom")
+	waitJS(t, w, `,true,"1"`)
+
+	waitLast := func(want float64, calls int) {
+		t.Helper()
+		deadline := time.Now().Add(3 * time.Second)
+		for time.Now().Before(deadline) {
+			if countApplied() == calls && lastApplied() == want {
+				return
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		t.Fatalf("applied count/last = %d/%v, want %d/%v", countApplied(), lastApplied(), calls, want)
+	}
+
+	postArgs("window-zoom", "in")
+	waitLast(1.1, 1)
+	postArgs("window-zoom", "in")
+	waitLast(1.2, 2)
+	postArgs("window-zoom", "reset")
+	waitLast(1.0, 3)
+	postArgs("window-zoom", "bogus")
+	waitLast(1.0, 4)
+
+	n := len(w.calls())
+	postArgs("get-window-zoom")
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) && len(w.calls()) <= n {
+		time.Sleep(10 * time.Millisecond)
+	}
+	calls := w.calls()
+	if len(calls) <= n || !strings.Contains(calls[len(calls)-1], `,true,"1"`) {
+		t.Fatalf("expected persisted zoom=1 reply, calls: %v", calls)
+	}
+}

@@ -32,6 +32,7 @@ import { useAuthStore } from "./js/stores/authStore";
 import { useNetworkStore } from "./js/stores/networkStore";
 import { recoveryLocationForNetworkError } from "./js/networkRecovery.js";
 import DesktopUtils from "./js/DesktopUtils.js";
+import { installDesktopZoom } from "./js/desktopZoom.js";
 import {
     decideControllerChangeReload,
     isIgnorableServiceWorkerRegistrationError,
@@ -464,6 +465,7 @@ function registerMeshchatServiceWorker() {
 }
 
 registerMeshchatServiceWorker();
+installDesktopZoom();
 
 const networkReady = await waitForNetworkReady({
     onLine: setBootSplashLine,

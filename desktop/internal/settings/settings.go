@@ -4,6 +4,7 @@ package settings
 
 import (
 	"encoding/json"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -225,6 +226,70 @@ func SaveDesktopPrivacySettings(storageDir string, partial map[string]any) Deskt
 // also supported. Linux has no equivalent hook.
 func IsScreenSecurityPlatformSupported(platform string) bool {
 	return platform == "windows" || platform == "darwin"
+}
+
+// ---- window zoom -------------------------------------------------------------
+
+const (
+	windowZoomMin     = 0.5
+	windowZoomMax     = 3.0
+	windowZoomDefault = 1.0
+	windowZoomStep    = 0.1
+)
+
+func WindowZoomPath(storageDir string) string {
+	return filepath.Join(storageDir, "desktop-window-zoom.json")
+}
+
+func clampWindowZoom(level float64) float64 {
+	if level < windowZoomMin {
+		return windowZoomMin
+	}
+	if level > windowZoomMax {
+		return windowZoomMax
+	}
+	return level
+}
+
+func NormalizeWindowZoom(raw any) float64 {
+	f, ok := raw.(float64)
+	if !ok || math.IsNaN(f) || math.IsInf(f, 0) {
+		return windowZoomDefault
+	}
+	return clampWindowZoom(f)
+}
+
+func LoadWindowZoom(storageDir string) float64 {
+	data, err := os.ReadFile(WindowZoomPath(storageDir))
+	if err != nil {
+		return windowZoomDefault
+	}
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return windowZoomDefault
+	}
+	return NormalizeWindowZoom(raw["zoom"])
+}
+
+func SaveWindowZoom(storageDir string, level float64) float64 {
+	next := math.Round(clampWindowZoom(level)*10) / 10
+	writeJSON(WindowZoomPath(storageDir), map[string]any{"zoom": next})
+	return next
+}
+
+func WindowZoomStep(current float64, action string) float64 {
+	var next float64
+	switch action {
+	case "in":
+		next = current + windowZoomStep
+	case "out":
+		next = current - windowZoomStep
+	case "reset":
+		next = windowZoomDefault
+	default:
+		next = current
+	}
+	return math.Round(clampWindowZoom(next)*10) / 10
 }
 
 func writeJSON(path string, v any) {
