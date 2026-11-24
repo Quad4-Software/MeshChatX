@@ -209,7 +209,7 @@ resolve_downloaded_wheel() {
 discover_latest_target() {
     local python_minor="$1"
     local metadata versions latest
-    metadata="$(curl -fsSL "https://repo.maven.apache.org/maven2/com/chaquo/python/target/maven-metadata.xml")"
+    metadata="$(curl -fsSL --retry 6 --retry-delay 10 --retry-all-errors "https://repo.maven.apache.org/maven2/com/chaquo/python/target/maven-metadata.xml")"
     versions="$(printf '%s\n' "$metadata" \
         | sed -n 's|.*<version>\(.*\)</version>.*|\1|p' \
         | awk -v p="${python_minor}." 'index($0, p)==1')"
@@ -413,7 +413,7 @@ cache_chaquopy_openblas_for_abi() {
         return 0
     fi
     echo "Caching Chaquopy OpenBLAS wheel for ${abi}"
-    curl -fsSL -o "${PYPIDIR}/dist/chaquopy-openblas/${name}" "${url}"
+    curl -fsSL --retry 6 --retry-delay 10 --retry-all-errors -o "${PYPIDIR}/dist/chaquopy-openblas/${name}" "${url}"
 }
 
 cache_chaquopy_libffi_for_abi() {
@@ -431,7 +431,7 @@ cache_chaquopy_libffi_for_abi() {
         return 0
     fi
     echo "Caching Chaquopy libffi wheel for ${abi}"
-    curl -fsSL -o "${PYPIDIR}/dist/chaquopy-libffi/${name}" "${url}"
+    curl -fsSL --retry 6 --retry-delay 10 --retry-all-errors -o "${PYPIDIR}/dist/chaquopy-libffi/${name}" "${url}"
 }
 
 vendor_aioquic_pure_python_deps() {
