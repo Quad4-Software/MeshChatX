@@ -7,6 +7,7 @@
 
 ### Fixed
 
+- Linux desktop: in VMs and other setups with no GPU render node the shell now also turns off WebKit GPU compositing, which fixes delayed scrolling and slow typing there. Set WEBKIT_DISABLE_COMPOSITING_MODE or MESHCHATX_NO_MEM_TUNING to override.
 - CI: the Windows release build retries the NSIS install and the Android wheel build retries Maven and release downloads, so a Chocolatey 504 or a Maven Central 429 no longer fails a tagged build.
 - Messages: a debounced conversation refresh that fires after the page is torn down no longer throws when the api object is gone.
 - NomadNet browser (Android): long-pressing page text now shows the native selection toolbar with Copy instead of the app menu with "reload page" and "show source". The caret hit-test used to decide whether text was under the finger was unreliable inside the page frame, so the app menu often won. Touch long-presses in page content now always defer to the platform, and mouse right-click and the 3-dot menu are unchanged.

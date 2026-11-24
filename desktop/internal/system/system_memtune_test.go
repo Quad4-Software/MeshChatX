@@ -39,6 +39,8 @@ func TestApplyMemoryTuningEnv(t *testing.T) {
 	}
 	t.Setenv("MESHCHATX_NO_MEM_TUNING", "")
 	t.Setenv("GSK_RENDERER", "")
+	t.Setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "")
+	t.Setenv("WEBKIT_DISABLE_DMABUF_RENDERER", "")
 	old := hasRenderNode
 	defer func() { hasRenderNode = old }()
 
@@ -47,29 +49,56 @@ func TestApplyMemoryTuningEnv(t *testing.T) {
 	if os.Getenv("GSK_RENDERER") != "cairo" {
 		t.Fatalf("software GL: GSK_RENDERER=%q", os.Getenv("GSK_RENDERER"))
 	}
+	if os.Getenv("WEBKIT_DISABLE_COMPOSITING_MODE") != "1" ||
+		os.Getenv("WEBKIT_DISABLE_DMABUF_RENDERER") != "1" {
+		t.Fatalf("software GL: webkit disables not set: %q %q",
+			os.Getenv("WEBKIT_DISABLE_COMPOSITING_MODE"),
+			os.Getenv("WEBKIT_DISABLE_DMABUF_RENDERER"))
+	}
 
 	// GPU present -> no override.
 	t.Setenv("GSK_RENDERER", "")
+	t.Setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "")
+	t.Setenv("WEBKIT_DISABLE_DMABUF_RENDERER", "")
 	hasRenderNode = func() bool { return true }
 	ApplyMemoryTuningEnv(nil)
-	if os.Getenv("GSK_RENDERER") != "" {
-		t.Fatalf("GPU system: GSK_RENDERER=%q", os.Getenv("GSK_RENDERER"))
+	if os.Getenv("GSK_RENDERER") != "" ||
+		os.Getenv("WEBKIT_DISABLE_COMPOSITING_MODE") != "" ||
+		os.Getenv("WEBKIT_DISABLE_DMABUF_RENDERER") != "" {
+		t.Fatalf("GPU system: env touched: %q %q %q",
+			os.Getenv("GSK_RENDERER"),
+			os.Getenv("WEBKIT_DISABLE_COMPOSITING_MODE"),
+			os.Getenv("WEBKIT_DISABLE_DMABUF_RENDERER"))
 	}
 
-	// User-set GSK_RENDERER wins.
+	// User-set values win, including "0"; unset vars still defaulted.
 	t.Setenv("GSK_RENDERER", "gl")
+	t.Setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "0")
+	t.Setenv("WEBKIT_DISABLE_DMABUF_RENDERER", "")
 	hasRenderNode = func() bool { return false }
 	ApplyMemoryTuningEnv(nil)
-	if os.Getenv("GSK_RENDERER") != "gl" {
-		t.Fatalf("user GSK_RENDERER overwritten: %q", os.Getenv("GSK_RENDERER"))
+	if os.Getenv("GSK_RENDERER") != "gl" ||
+		os.Getenv("WEBKIT_DISABLE_COMPOSITING_MODE") != "0" ||
+		os.Getenv("WEBKIT_DISABLE_DMABUF_RENDERER") != "1" {
+		t.Fatalf("user values not preserved per var: %q %q %q",
+			os.Getenv("GSK_RENDERER"),
+			os.Getenv("WEBKIT_DISABLE_COMPOSITING_MODE"),
+			os.Getenv("WEBKIT_DISABLE_DMABUF_RENDERER"))
 	}
 
 	// Opt-out.
 	t.Setenv("MESHCHATX_NO_MEM_TUNING", "1")
 	t.Setenv("GSK_RENDERER", "")
+	t.Setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "")
+	t.Setenv("WEBKIT_DISABLE_DMABUF_RENDERER", "")
 	hasRenderNode = func() bool { return false }
 	ApplyMemoryTuningEnv(nil)
-	if os.Getenv("GSK_RENDERER") != "" {
-		t.Fatalf("opt-out: GSK_RENDERER=%q", os.Getenv("GSK_RENDERER"))
+	if os.Getenv("GSK_RENDERER") != "" ||
+		os.Getenv("WEBKIT_DISABLE_COMPOSITING_MODE") != "" ||
+		os.Getenv("WEBKIT_DISABLE_DMABUF_RENDERER") != "" {
+		t.Fatalf("opt-out: env touched: %q %q %q",
+			os.Getenv("GSK_RENDERER"),
+			os.Getenv("WEBKIT_DISABLE_COMPOSITING_MODE"),
+			os.Getenv("WEBKIT_DISABLE_DMABUF_RENDERER"))
 	}
 }

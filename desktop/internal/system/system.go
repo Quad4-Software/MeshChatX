@@ -191,14 +191,24 @@ var hasRenderNode = func() bool {
 
 // ApplyMemoryTuningEnv applies Linux-only memory reducers before WebKit/GTK
 // init. With no render node (software GL, e.g. llvmpipe) the GTK4 GL
-// renderer is very heavy, so fall back to the much lighter cairo renderer —
-// but only when the user has not chosen GSK_RENDERER themselves.
+// renderer is very heavy, so fall back to the much lighter cairo renderer
+// and disable WebKit GPU compositing — but only for vars the user has not
+// already set themselves.
 func ApplyMemoryTuningEnv(argv []string) {
 	if runtime.GOOS != "linux" || memTuningDisabled() {
 		return
 	}
-	if os.Getenv("GSK_RENDERER") == "" && !hasRenderNode() {
+	if hasRenderNode() {
+		return
+	}
+	if os.Getenv("GSK_RENDERER") == "" {
 		os.Setenv("GSK_RENDERER", "cairo")
+	}
+	if os.Getenv("WEBKIT_DISABLE_COMPOSITING_MODE") == "" {
+		os.Setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
+	}
+	if os.Getenv("WEBKIT_DISABLE_DMABUF_RENDERER") == "" {
+		os.Setenv("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
 	}
 }
 
