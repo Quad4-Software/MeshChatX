@@ -36,6 +36,7 @@ describe("App.vue QR and protocol URI handling", () => {
             $router: {
                 push,
             },
+            confirmProtocolLinkIngest: vi.fn(),
         };
         const destinationHash = "c".repeat(32);
         const publicKey = "d".repeat(128);

@@ -7,6 +7,8 @@ from __future__ import annotations
 import os
 import stat
 
+from meshchatx.src.env_utils import env_bool
+
 _TIGHTEN_MARKER = ".perms-tightened-v1"
 _UMASK_ENV_OPT_OUT = "MESHCHATX_NO_UMASK"
 
@@ -15,7 +17,7 @@ def apply_process_umask() -> None:
     """Set umask 0o077 for files this process creates, unless opted out."""
     if os.name == "nt":
         return
-    if os.environ.get(_UMASK_ENV_OPT_OUT) in ("1", "true", "yes", "on"):
+    if env_bool(_UMASK_ENV_OPT_OUT):
         return
     os.umask(0o077)
 

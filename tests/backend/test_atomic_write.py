@@ -212,7 +212,7 @@ class TestModePinning:
         root = _fresh_dir(tmp_path)
         target = root / "fresh.bin"
         atomic_write_bytes(target, b"x")
-        assert (os.stat(target).st_mode & 0o777) == 0o644
+        assert (os.stat(target).st_mode & 0o777) == 0o600
 
     @pytest.mark.skipif(os.name == "nt", reason="POSIX mode bits differ")
     def test_mode_pinned_when_overwriting(self, tmp_path):
