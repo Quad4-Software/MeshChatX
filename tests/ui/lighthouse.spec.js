@@ -56,10 +56,31 @@ test.describe("Lighthouse page scores (simulated data)", () => {
                 // unable to read the document body (Network.getResponseBody:
                 // no resource with given identifier) and nulls whole category
                 // scores. Unregister so audits measure the raw network page.
-                await target.evaluate(async () => {
-                    const regs = await navigator.serviceWorker.getRegistrations();
-                    await Promise.all(regs.map((r) => r.unregister()));
-                });
+                // The app can still reload itself once after boot (version or
+                // identity change); that destroys the JS context mid-evaluate,
+                // so re-wait for the fresh document and retry that case only.
+                for (let attempt = 0; attempt < 4; attempt++) {
+                    try {
+                        await target.evaluate(async () => {
+                            if (!navigator.serviceWorker) {
+                                return;
+                            }
+                            const regs = await navigator.serviceWorker.getRegistrations();
+                            await Promise.all(regs.map((r) => r.unregister()));
+                        });
+                        break;
+                    } catch (err) {
+                        const msg = String((err && err.message) || err);
+                        if (attempt === 3 || !/Execution context was destroyed/.test(msg)) {
+                            throw err;
+                        }
+                        await target.waitForLoadState("domcontentloaded").catch(() => {});
+                        await gotoUiPage(target, entry, baseURL);
+                        if (entry.id === "map") {
+                            await dismissMapOnboardingTooltip(target);
+                        }
+                    }
+                }
                 // Let post-mount work settle (router redirects, ws handshakes)
                 // before the audit takes over the target. A mid-audit navigation
                 // kills the perf gatherer with "Inspected target navigated or

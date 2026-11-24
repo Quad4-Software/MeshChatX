@@ -4,7 +4,21 @@
 
 from __future__ import annotations
 
+import json
+
 from jsonschema import Draft202012Validator
+
+_VALIDATORS: dict[str, Draft202012Validator] = {}
+
+
+def _validator_for_schema(schema: dict) -> Draft202012Validator:
+    key = json.dumps(schema, sort_keys=True)
+    validator = _VALIDATORS.get(key)
+    if validator is None:
+        validator = Draft202012Validator(schema)
+        _VALIDATORS[key] = validator
+    return validator
+
 
 _USER_GUIDANCE_ITEM = {
     "type": "object",
@@ -498,7 +512,7 @@ TELEPHONE_CONTACT_CHECK_SCHEMA: dict = {
 
 
 def assert_matches_schema(instance: object, schema: dict) -> None:
-    Draft202012Validator(schema).validate(instance)
+    _validator_for_schema(schema).validate(instance)
 
 
 LOCALLINK_STATUS_SCHEMA: dict = {
