@@ -1029,7 +1029,7 @@ export default {
                     this.dismissUnreadForVisiblePanes();
                 }
             } catch (e) {
-                if (window.api.isCancel?.(e)) return;
+                if (window.api?.isCancel?.(e)) return;
                 console.log(e);
             } finally {
                 if (this.conversationsAbortController === myController) {
