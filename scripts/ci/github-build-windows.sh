@@ -42,7 +42,13 @@ if ! command -v makensis >/dev/null 2>&1; then
     done
 fi
 if ! command -v makensis >/dev/null 2>&1; then
-    choco install nsis -y --no-progress
+    for attempt in 1 2 3 4; do
+        choco install nsis -y --no-progress && break
+        if [[ "$attempt" == 4 ]]; then
+            exit 1
+        fi
+        sleep $((attempt * 20))
+    done
     export PATH="/c/Program Files (x86)/NSIS:$PATH"
     if [[ -n "${GITHUB_PATH:-}" ]]; then
         echo 'C:\Program Files (x86)\NSIS' >> "$GITHUB_PATH"
