@@ -107,6 +107,20 @@ const GEOMETRY_TRANSITION_RE =
 /** How long the rect poll keeps running after the last geometry transition. */
 const RECT_POLL_TAIL_MS = 700;
 
+/**
+ * In-frame touch gestures forwarded by the renderer. Touches inside the
+ * sandboxed frame never reach the shell document, so the frame detects edge
+ * swipe-back and pull-to-refresh itself and posts progress here.
+ */
+const NAV_GESTURE_MESSAGE_TYPES = {
+    "nav-swipe-back-progress": { kind: "swipe-back", phase: "progress" },
+    "nav-swipe-back-end": { kind: "swipe-back", phase: "end" },
+    "nav-swipe-back-cancel": { kind: "swipe-back", phase: "cancel" },
+    "nav-pull-progress": { kind: "pull", phase: "progress" },
+    "nav-pull-end": { kind: "pull", phase: "end" },
+    "nav-pull-cancel": { kind: "pull", phase: "cancel" },
+};
+
 export default {
     name: "NomadCrashTab",
     components: {
@@ -171,6 +185,7 @@ export default {
         "render-done",
         "aborted",
         "shell-background",
+        "nav-gesture",
     ],
     data() {
         return {
@@ -741,6 +756,10 @@ export default {
                 this.forwardPageContextMenu(data);
                 return;
             }
+            if (NAV_GESTURE_MESSAGE_TYPES[data.type]) {
+                this.forwardNavGesture(NAV_GESTURE_MESSAGE_TYPES[data.type], data);
+                return;
+            }
             if (data.type === "images-added") {
                 this.$emit("images-added", Array.isArray(data.images) ? data.images : []);
                 return;
@@ -776,6 +795,20 @@ export default {
         forwardPageContextMenu(data) {
             const { x, y } = this.frameOffsetCoords(data);
             this.$emit("contextmenu", { clientX: x, clientY: y });
+        },
+        forwardNavGesture(gesture, data) {
+            // Stale input must not drive the live page: a gesture from an
+            // inactive tab or a hung/crashed renderer is dropped here. The
+            // frame only posts distances it measured against its own document,
+            // so no further validation is needed on this side of the channel.
+            if (!this.active || this.status === "hung" || this.status === "crashed") {
+                return;
+            }
+            this.$emit("nav-gesture", {
+                kind: gesture.kind,
+                phase: gesture.phase,
+                distance: Number(data.distance) || 0,
+            });
         },
         openFieldContextMenu(data) {
             const { x, y } = this.frameOffsetCoords(data);

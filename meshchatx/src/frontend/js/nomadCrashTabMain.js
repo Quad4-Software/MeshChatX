@@ -13,6 +13,7 @@ import "../css/nomad-page-chrome.css";
 import { NOMAD_CRASH_TAB_CHANNEL } from "./nomadCrashTabShell.js";
 import { shouldOpenCustomContextMenu } from "./contextMenuUtils.js";
 import { DESKTOP_ZOOM_MESSAGE_TYPE, desktopZoomKeyAction, desktopZoomWheelAction } from "./desktopZoom.js";
+import { canArmNavSwipeBack, computeNavSwipeBackDistance, computeNavPullDistance } from "./nomadNavGestures.js";
 
 const root = document.getElementById("root");
 let renderSeq = 0;
@@ -972,6 +973,192 @@ function applyPastedText(text) {
     el.dispatchEvent(new Event("input", { bubbles: true }));
     el.dispatchEvent(new Event("change", { bubbles: true }));
 }
+
+/**
+ * Edge swipe-back and pull-to-refresh forwarding. Touches inside this frame
+ * never reach the shell document, so the gestures the shell armed on its
+ * container padding would be dead on the page surface. Detect them here with
+ * the shared arithmetic and forward progress through postMessage. Listeners
+ * stay passive and never preventDefault: native scrolling and horizontal
+ * panning in scroll mode are unaffected.
+ *
+ * The tracker follows one touch by identifier. swipe-back and pull derive
+ * from the same start point; the dominance rules make them mutually
+ * exclusive on every move, so at most one distance is ever non-zero.
+ */
+const navGesture = {
+    id: null,
+    startX: 0,
+    startY: 0,
+    startScrollTop: 0,
+    swipeArmed: false,
+    pullArmed: false,
+    pendingDx: 0,
+    pendingDy: 0,
+    rafId: null,
+    postedSwipe: 0,
+    postedPull: 0,
+};
+
+function navGestureScroller() {
+    // html is overflow:hidden height:100% in this document (see
+    // nomad-crash-tab.html), so document.scrollingElement never scrolls.
+    // body is the sole scroll container for both axes.
+    return document.body || document.scrollingElement;
+}
+
+function navTouchFromList(list, id) {
+    if (!list) {
+        return null;
+    }
+    for (let i = 0; i < list.length; i++) {
+        if (list[i].identifier === id) {
+            return list[i];
+        }
+    }
+    return null;
+}
+
+function resetNavGesture() {
+    navGesture.id = null;
+    navGesture.swipeArmed = false;
+    navGesture.pullArmed = false;
+    navGesture.rafId = null;
+    navGesture.postedSwipe = 0;
+    navGesture.postedPull = 0;
+}
+
+function flushNavGestureProgress() {
+    navGesture.rafId = null;
+    if (navGesture.id == null) {
+        return;
+    }
+    const scroller = navGestureScroller();
+    const scrollTop = scroller ? scroller.scrollTop : 0;
+    if (navGesture.swipeArmed) {
+        const distance = computeNavSwipeBackDistance(navGesture.pendingDx, navGesture.pendingDy);
+        if (distance !== navGesture.postedSwipe) {
+            navGesture.postedSwipe = distance;
+            post({ type: "nav-swipe-back-progress", distance });
+        }
+    }
+    if (navGesture.pullArmed) {
+        const distance = computeNavPullDistance(
+            navGesture.pendingDx,
+            navGesture.pendingDy,
+            navGesture.startScrollTop,
+            scrollTop
+        );
+        if (distance !== navGesture.postedPull) {
+            navGesture.postedPull = distance;
+            post({ type: "nav-pull-progress", distance });
+        }
+    }
+}
+
+function scheduleNavGestureProgress() {
+    if (navGesture.rafId != null) {
+        return;
+    }
+    navGesture.rafId = requestAnimationFrame(flushNavGestureProgress);
+}
+
+function onNavTouchStart(event) {
+    // First touch only. Extra fingers landing mid-gesture are ignored so a
+    // palm or pinch cannot hijack the tracked start point.
+    if (navGesture.id != null) {
+        return;
+    }
+    const touch = event.changedTouches && event.changedTouches[0];
+    if (!touch) {
+        return;
+    }
+    const scroller = navGestureScroller();
+    const scrollTop = scroller ? scroller.scrollTop : 0;
+    const scrollLeft = scroller ? scroller.scrollLeft : 0;
+    navGesture.id = touch.identifier;
+    navGesture.startX = touch.clientX;
+    navGesture.startY = touch.clientY;
+    navGesture.startScrollTop = scrollTop;
+    navGesture.pendingDx = 0;
+    navGesture.pendingDy = 0;
+    navGesture.postedSwipe = 0;
+    navGesture.postedPull = 0;
+    navGesture.swipeArmed = canArmNavSwipeBack(touch.clientX, scrollLeft);
+    navGesture.pullArmed = scrollTop <= 0;
+}
+
+function onNavTouchMove(event) {
+    if (navGesture.id == null) {
+        return;
+    }
+    const touch = navTouchFromList(event.touches, navGesture.id);
+    if (!touch) {
+        return;
+    }
+    navGesture.pendingDx = touch.clientX - navGesture.startX;
+    navGesture.pendingDy = touch.clientY - navGesture.startY;
+    scheduleNavGestureProgress();
+}
+
+function cancelNavGestureFrame() {
+    if (navGesture.rafId != null) {
+        cancelAnimationFrame(navGesture.rafId);
+        navGesture.rafId = null;
+    }
+}
+
+function onNavTouchEnd(event) {
+    if (navGesture.id == null) {
+        return;
+    }
+    const touch = navTouchFromList(event.changedTouches, navGesture.id);
+    if (!touch) {
+        return;
+    }
+    cancelNavGestureFrame();
+    const scroller = navGestureScroller();
+    const scrollTop = scroller ? scroller.scrollTop : 0;
+    const dx = touch.clientX - navGesture.startX;
+    const dy = touch.clientY - navGesture.startY;
+    const swipeDistance = computeNavSwipeBackDistance(dx, dy);
+    const pullDistance = computeNavPullDistance(dx, dy, navGesture.startScrollTop, scrollTop);
+    // A tap or a pan that never armed either gesture posts nothing at all;
+    // the shell state is already zero and needs no reset echo.
+    const postSwipe = navGesture.swipeArmed && (navGesture.postedSwipe !== 0 || swipeDistance !== 0);
+    const postPull = navGesture.pullArmed && (navGesture.postedPull !== 0 || pullDistance !== 0);
+    resetNavGesture();
+    if (postSwipe) {
+        post({ type: "nav-swipe-back-end", distance: swipeDistance });
+    }
+    if (postPull) {
+        post({ type: "nav-pull-end", distance: pullDistance });
+    }
+}
+
+function onNavTouchCancel(event) {
+    if (navGesture.id == null) {
+        return;
+    }
+    if (event.changedTouches && !navTouchFromList(event.changedTouches, navGesture.id)) {
+        return;
+    }
+    cancelNavGestureFrame();
+    const postSwipe = navGesture.swipeArmed && navGesture.postedSwipe !== 0;
+    const postPull = navGesture.pullArmed && navGesture.postedPull !== 0;
+    resetNavGesture();
+    if (postSwipe) {
+        post({ type: "nav-swipe-back-cancel" });
+    }
+    if (postPull) {
+        post({ type: "nav-pull-cancel" });
+    }
+}
+
+document.addEventListener("touchstart", onNavTouchStart, { passive: true });
+document.addEventListener("touchmove", onNavTouchMove, { passive: true });
+document.addEventListener("touchend", onNavTouchEnd, { passive: true });
+document.addEventListener("touchcancel", onNavTouchCancel, { passive: true });
 
 root.addEventListener("click", onClick, true);
 root.addEventListener("auxclick", onClick, true);

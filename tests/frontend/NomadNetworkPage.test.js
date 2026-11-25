@@ -2128,6 +2128,143 @@ describe("NomadNetworkPage.vue", () => {
         });
     });
 
+    describe("frame-forwarded nav gestures", () => {
+        it("frame swipe-back progress drives the indicator and end navigates back with history", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nodePagePathHistory = ["prev"];
+            const navSpy = vi.spyOn(wrapper.vm, "loadPreviousNodePage").mockImplementation(() => {});
+
+            wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "progress", distance: 100 });
+            expect(wrapper.vm.navSwipeBackDistance).toBe(100);
+            expect(wrapper.vm.navSwipeEdgeActive).toBe(true);
+
+            wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "end", distance: 100 });
+            expect(navSpy).toHaveBeenCalledTimes(1);
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+            expect(wrapper.vm.navSwipeEdgeActive).toBe(false);
+            wrapper.unmount();
+        });
+
+        it("frame swipe-back below the trigger does not navigate", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nodePagePathHistory = ["prev"];
+            const navSpy = vi.spyOn(wrapper.vm, "loadPreviousNodePage").mockImplementation(() => {});
+
+            wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "progress", distance: 50 });
+            wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "end", distance: 50 });
+            expect(navSpy).not.toHaveBeenCalled();
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+            wrapper.unmount();
+        });
+
+        it("frame swipe-back shows no feedback and does not navigate without history", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nodePagePathHistory = [];
+            const navSpy = vi.spyOn(wrapper.vm, "loadPreviousNodePage").mockImplementation(() => {});
+
+            wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "progress", distance: 100 });
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+
+            wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "end", distance: 100 });
+            expect(navSpy).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        it("frame pull progress drives the indicator and end reloads the page", () => {
+            const wrapper = mountNomadNetworkPage();
+            const reloadSpy = vi.spyOn(wrapper.vm, "reloadNodePage").mockImplementation(() => {});
+
+            wrapper.vm.onCrashTabNavGesture({ kind: "pull", phase: "progress", distance: 120 });
+            expect(wrapper.vm.navPullDistance).toBe(120);
+
+            wrapper.vm.onCrashTabNavGesture({ kind: "pull", phase: "end", distance: 120 });
+            expect(reloadSpy).toHaveBeenCalledTimes(1);
+            expect(wrapper.vm.navPullDistance).toBe(0);
+            wrapper.unmount();
+        });
+
+        it("frame pull below the trigger does not reload", () => {
+            const wrapper = mountNomadNetworkPage();
+            const reloadSpy = vi.spyOn(wrapper.vm, "reloadNodePage").mockImplementation(() => {});
+
+            wrapper.vm.onCrashTabNavGesture({ kind: "pull", phase: "progress", distance: 40 });
+            wrapper.vm.onCrashTabNavGesture({ kind: "pull", phase: "end", distance: 40 });
+            expect(reloadSpy).not.toHaveBeenCalled();
+            expect(wrapper.vm.navPullDistance).toBe(0);
+            wrapper.unmount();
+        });
+
+        it("frame cancel resets an armed gesture without firing either action", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nodePagePathHistory = ["prev"];
+            const navSpy = vi.spyOn(wrapper.vm, "loadPreviousNodePage").mockImplementation(() => {});
+            const reloadSpy = vi.spyOn(wrapper.vm, "reloadNodePage").mockImplementation(() => {});
+
+            wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "progress", distance: 100 });
+            expect(wrapper.vm.navSwipeBackDistance).toBe(100);
+
+            wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "cancel" });
+            expect(navSpy).not.toHaveBeenCalled();
+            expect(reloadSpy).not.toHaveBeenCalled();
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+            expect(wrapper.vm.navPullDistance).toBe(0);
+            expect(wrapper.vm.navSwipeEdgeActive).toBe(false);
+            wrapper.unmount();
+        });
+
+        it("a reversal progress of zero cancels the visual feedback", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nodePagePathHistory = ["prev"];
+            const navSpy = vi.spyOn(wrapper.vm, "loadPreviousNodePage").mockImplementation(() => {});
+
+            wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "progress", distance: 100 });
+            expect(wrapper.vm.navSwipeBackDistance).toBe(100);
+            wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "progress", distance: 0 });
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+
+            wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "end", distance: 0 });
+            expect(navSpy).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        it("ignores frame gestures while the tab is inactive", () => {
+            const wrapper = mountNomadNetworkPage({ destinationHash: "", isActive: false });
+            wrapper.vm.nodePagePathHistory = ["prev"];
+            const navSpy = vi.spyOn(wrapper.vm, "loadPreviousNodePage").mockImplementation(() => {});
+
+            wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "progress", distance: 100 });
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+            wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "end", distance: 100 });
+            expect(navSpy).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        it("ignores malformed frame gesture events", () => {
+            const wrapper = mountNomadNetworkPage();
+            expect(() => {
+                wrapper.vm.onCrashTabNavGesture(null);
+                wrapper.vm.onCrashTabNavGesture("swipe-back");
+                wrapper.vm.onCrashTabNavGesture({ kind: "pinch", phase: "progress", distance: 100 });
+                wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "explode", distance: 100 });
+            }).not.toThrow();
+            expect(wrapper.vm.navSwipeBackDistance).toBe(0);
+            expect(wrapper.vm.navPullDistance).toBe(0);
+            wrapper.unmount();
+        });
+
+        it("swipe-back progress wins over pull state exactly like the container path", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nodePagePathHistory = ["prev"];
+
+            wrapper.vm.onCrashTabNavGesture({ kind: "pull", phase: "progress", distance: 90 });
+            expect(wrapper.vm.navPullDistance).toBe(90);
+            wrapper.vm.onCrashTabNavGesture({ kind: "swipe-back", phase: "progress", distance: 100 });
+            expect(wrapper.vm.navSwipeBackDistance).toBe(100);
+            expect(wrapper.vm.navPullDistance).toBe(0);
+            wrapper.unmount();
+        });
+    });
+
     describe("download bookkeeping", () => {
         it("fetchArchives does not leave the spinner running on an unparseable path", async () => {
             const wrapper = mountNomadNetworkPage();

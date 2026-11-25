@@ -800,6 +800,60 @@ describe("NomadCrashTab.vue", () => {
         expect(wrapper.vm.fieldContextMenu.show).toBe(false);
     });
 
+    it("re-emits frame nav gesture messages as nav-gesture events", () => {
+        const wrapper = mountReadyCrashTab();
+        const fakeWindow = attachFrame(wrapper);
+
+        wrapper.vm.onWindowMessage({
+            source: fakeWindow,
+            origin: "null",
+            data: { channel: NOMAD_CRASH_TAB_CHANNEL, type: "nav-swipe-back-progress", distance: 100 },
+        });
+        wrapper.vm.onWindowMessage({
+            source: fakeWindow,
+            origin: "null",
+            data: { channel: NOMAD_CRASH_TAB_CHANNEL, type: "nav-pull-end", distance: 120 },
+        });
+        wrapper.vm.onWindowMessage({
+            source: fakeWindow,
+            origin: "null",
+            data: { channel: NOMAD_CRASH_TAB_CHANNEL, type: "nav-swipe-back-cancel" },
+        });
+
+        const emitted = wrapper.emitted("nav-gesture");
+        expect(emitted).toBeTruthy();
+        expect(emitted[0][0]).toEqual({ kind: "swipe-back", phase: "progress", distance: 100 });
+        expect(emitted[1][0]).toEqual({ kind: "pull", phase: "end", distance: 120 });
+        expect(emitted[2][0]).toEqual({ kind: "swipe-back", phase: "cancel", distance: 0 });
+    });
+
+    it("drops nav gesture events while the tab is inactive", async () => {
+        const wrapper = mountReadyCrashTab({ active: false });
+        const fakeWindow = attachFrame(wrapper);
+
+        wrapper.vm.onWindowMessage({
+            source: fakeWindow,
+            origin: "null",
+            data: { channel: NOMAD_CRASH_TAB_CHANNEL, type: "nav-swipe-back-progress", distance: 100 },
+        });
+        expect(wrapper.emitted("nav-gesture")).toBeUndefined();
+    });
+
+    it("drops nav gesture events when the frame is hung or crashed", async () => {
+        const wrapper = mountReadyCrashTab();
+        const fakeWindow = attachFrame(wrapper);
+
+        for (const status of ["hung", "crashed"]) {
+            wrapper.vm.status = status;
+            wrapper.vm.onWindowMessage({
+                source: fakeWindow,
+                origin: "null",
+                data: { channel: NOMAD_CRASH_TAB_CHANNEL, type: "nav-pull-progress", distance: 90 },
+            });
+        }
+        expect(wrapper.emitted("nav-gesture")).toBeUndefined();
+    });
+
     it("posts paste-text into the frame after a successful clipboard read", async () => {
         const wrapper = mountReadyCrashTab();
         attachFrame(wrapper);

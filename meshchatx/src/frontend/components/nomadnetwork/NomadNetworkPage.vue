@@ -789,6 +789,7 @@
                             @render-done="onCrashTabRenderDone"
                             @aborted="onCrashTabAborted"
                             @shell-background="onCrashTabShellBackground"
+                            @nav-gesture="onCrashTabNavGesture"
                         />
                     </div>
                     <Teleport to="body">
@@ -961,16 +962,20 @@ import ClickPopover from "../ClickPopover.vue";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore";
 import { isUnknownNodeDisplayName, resolveFavouriteUpsertDisplayName } from "../../js/nomadUnknownNodeName.js";
 import { useNomadNodesList } from "../../js/nomadnet/useNomadNodesList.js";
+import {
+    NAV_SWIPE_EDGE_PX,
+    NAV_SWIPE_BACK_TRIGGER_PX,
+    NAV_PULL_TRIGGER_PX,
+    NAV_SWIPE_BACK_MAX_PX,
+    NAV_PULL_MAX_PX,
+    isNavSwipeBackMotion,
+    computeNavSwipeBackDistance,
+    computeNavPullDistance,
+} from "../../js/nomadNavGestures.js";
 
 // Bounds the per-tab page content cache. Least recently viewed pages evict first.
 const NODE_PAGE_CACHE_MAX = 50;
 const NODE_PAGE_HISTORY_MAX = 100;
-
-// Touch gesture thresholds for the page container: pull-down refresh and
-// left-edge swipe back. Distances in CSS px.
-const NAV_SWIPE_EDGE_PX = 40;
-const NAV_SWIPE_BACK_TRIGGER_PX = 64;
-const NAV_PULL_TRIGGER_PX = 72;
 
 // Bound on buffered download chunks per transfer. The backend caps pages
 // at 4 MiB of text (up to 16 MiB as UTF-8) and files at 10 MiB.
@@ -4357,8 +4362,8 @@ export default {
             }
             const dx = touch.clientX - this.navTouchStartX;
             const dy = touch.clientY - this.navTouchStartY;
-            if (this.navSwipeEdgeActive && dx > 0 && dx > Math.abs(dy) && this.nodePagePathHistory.length > 0) {
-                this.navSwipeBackDistance = Math.min(dx, 140);
+            if (this.navSwipeEdgeActive && isNavSwipeBackMotion(dx, dy) && this.nodePagePathHistory.length > 0) {
+                this.navSwipeBackDistance = computeNavSwipeBackDistance(dx, dy);
                 this.navPullDistance = 0;
                 return;
             }
@@ -4366,25 +4371,88 @@ export default {
             // already armed, otherwise touchend fires on a stale distance.
             this.navSwipeBackDistance = 0;
             const el = e.currentTarget;
-            const pulling = this.navTouchStartScrollTop <= 0 && el.scrollTop <= 0 && dy > 0 && dy > Math.abs(dx);
-            this.navPullDistance = pulling ? Math.min(dy, 160) : 0;
+            this.navPullDistance = computeNavPullDistance(dx, dy, this.navTouchStartScrollTop, el.scrollTop);
         },
         onNodeContainerTouchEnd() {
-            if (this.navSwipeBackDistance >= NAV_SWIPE_BACK_TRIGGER_PX) {
-                this.loadPreviousNodePage();
-            } else if (this.navPullDistance >= NAV_PULL_TRIGGER_PX) {
-                this.reloadNodePage();
-            }
-            this.navSwipeEdgeActive = false;
-            this.navSwipeBackDistance = 0;
-            this.navPullDistance = 0;
+            this.finishNavGesture(this.navSwipeBackDistance, this.navPullDistance);
         },
         onNodeContainerTouchCancel() {
             // An interrupted gesture (alert, gesture conflict) is not a
             // completed swipe or pull, so it must not trigger either action.
+            this.resetNavGestureState();
+        },
+        /**
+         * Shared completion for container touches and frame-forwarded
+         * gestures. The frame cannot know the shell history length, so the
+         * swipe-back guard lives here on every path.
+         *
+         * @param {number} swipeDistance final reversal-aware swipe-back distance
+         * @param {number} pullDistance final reversal-aware pull distance
+         */
+        finishNavGesture(swipeDistance, pullDistance) {
+            const goBack = swipeDistance >= NAV_SWIPE_BACK_TRIGGER_PX && this.nodePagePathHistory.length > 0;
+            const refresh = !goBack && pullDistance >= NAV_PULL_TRIGGER_PX;
+            this.resetNavGestureState();
+            if (goBack) {
+                this.loadPreviousNodePage();
+            } else if (refresh) {
+                this.reloadNodePage();
+            }
+        },
+        resetNavGestureState() {
             this.navSwipeEdgeActive = false;
             this.navSwipeBackDistance = 0;
             this.navPullDistance = 0;
+        },
+        /**
+         * Gesture events forwarded by the sandboxed renderer frame. Touches
+         * inside the iframe never reach this document, so the frame measures
+         * them against its own scroller and posts progress through the crash
+         * tab channel. Distances arrive reversal-aware and capped, exactly as
+         * the container handlers compute them.
+         *
+         * @param {object} gesture { kind: "swipe-back"|"pull", phase: "progress"|"end"|"cancel", distance }
+         */
+        onCrashTabNavGesture(gesture) {
+            if (!gesture || typeof gesture !== "object") {
+                return;
+            }
+            if (!this.isActive) {
+                return;
+            }
+            const kind = gesture.kind;
+            if (kind !== "swipe-back" && kind !== "pull") {
+                return;
+            }
+            const distance = Number(gesture.distance) || 0;
+            if (gesture.phase === "progress") {
+                this.applyFrameNavGestureProgress(kind, distance);
+                return;
+            }
+            if (gesture.phase === "end") {
+                this.finishNavGesture(kind === "swipe-back" ? distance : 0, kind === "pull" ? distance : 0);
+                return;
+            }
+            if (gesture.phase === "cancel") {
+                this.resetNavGestureState();
+            }
+        },
+        applyFrameNavGestureProgress(kind, distance) {
+            if (kind === "swipe-back") {
+                // Mirror the container path: without history the edge swipe
+                // shows no feedback at all.
+                this.navSwipeEdgeActive = true;
+                this.navSwipeBackDistance =
+                    this.nodePagePathHistory.length > 0 ? Math.min(distance, NAV_SWIPE_BACK_MAX_PX) : 0;
+                if (this.navSwipeBackDistance > 0) {
+                    this.navPullDistance = 0;
+                }
+                return;
+            }
+            this.navPullDistance = Math.min(distance, NAV_PULL_MAX_PX);
+            if (this.navPullDistance > 0) {
+                this.navSwipeBackDistance = 0;
+            }
         },
         fetchArchives() {
             if (this.isPrivate) {
