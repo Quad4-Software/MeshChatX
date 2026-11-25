@@ -788,7 +788,7 @@
         "rns_enforce_stamps_description": "Отклонять анонсы, запросы пути и канала без действительных меток. Включайте только в сетях с метками.",
         "rns_stamp_costs_description": "Значения стоимости/ценности метки и таймаутов. Пустые поля сохраняют значения Reticulum.",
         "rns_identity_stamp_value": "Значение метки идентичности",
-        "rns_identity_stamp_value_description": "Значение proof-of-work для новых идентичностей. 0 отключает (по умолчанию); большие значения замедляют генерацию ключей, но усложняют Sybil."
+        "rns_identity_stamp_value_description": "Значение proof-of-work для новых идентичностей. 0 отключает (по умолчанию). Большие значения замедляют генерацию ключей, но усложняют Sybil."
     },
     "helptips": {
         "title_send_failed": "Что можно попробовать",
@@ -1791,6 +1791,7 @@
         "import_success": "Интерфейсы успешно импортированы. Для вступления изменений в силу необходимо перезапустить MeshChat.",
         "failed_import_all": "Не удалось импортировать интерфейсы",
         "add_interface_sidebar_a11y": "Ярлыки и пресеты сообщества",
+        "advanced": "Расширенный",
         "community_quick_start": "Быстрый старт (сообщество)",
         "community_quick_start_hint": "Пресеты с meshchatx.com/interfaces, включены в выпуск.",
         "community_quick_start_hide": "Скрыть подсказки",

@@ -208,7 +208,7 @@
                         step="1"
                         :value="hopSliderUiPos"
                         :aria-valuetext="hopSliderAriaText"
-                        class="w-full h-2 rounded-lg appearance-none cursor-pointer bg-sem-surface-muted accent-blue-600 dark:accent-blue-500"
+                        class="w-full h-2 rounded-lg appearance-none cursor-pointer bg-sem-surface-muted accent-sem-accent"
                         @input="onHopSliderInput"
                     />
                 </div>

@@ -230,13 +230,10 @@
                         {{ row.name }}
                         <span class="text-xs text-sem-fg-muted"> ({{ row.type || "?" }}) </span>
                     </div>
-                    <input
-                        :value="batterySaver.interfaceBitrateLimits[row.name]"
-                        type="number"
-                        min="0"
-                        class="input-field"
+                    <BitrateInput
+                        :model-value="batterySaver.interfaceBitrateLimits[row.name]"
                         :placeholder="$t('settings.battery.interface_bitrate_placeholder')"
-                        @change="onBitrateInput(row.name, $event.target.value)"
+                        @update:model-value="onBitrateInput(row.name, $event)"
                     />
                 </div>
                 <div class="flex flex-wrap gap-2">
@@ -264,10 +261,12 @@
 
 <script>
 import Toggle from "../../forms/Toggle.vue";
+import BitrateInput from "../../forms/BitrateInput.vue";
 
 export default {
     name: "BatterySettingsSection",
     components: {
+        BitrateInput,
         Toggle,
     },
     props: {
@@ -290,12 +289,12 @@ export default {
     },
     emits: ["enabled-change", "patch", "bitrate-limit-change", "apply-bitrates", "restore-bitrates"],
     methods: {
-        onBitrateInput(name, raw) {
+        onBitrateInput(name, rawBps) {
             const limits = { ...(this.batterySaver.interfaceBitrateLimits || {}) };
-            if (raw === "" || raw == null || Number.isNaN(Number(raw))) {
+            if (rawBps === "" || rawBps == null || Number.isNaN(Number(rawBps))) {
                 delete limits[name];
             } else {
-                limits[name] = Math.max(0, Math.round(Number(raw)));
+                limits[name] = Math.max(0, Math.round(Number(rawBps)));
             }
             this.$emit("patch", { interfaceBitrateLimits: limits });
         },

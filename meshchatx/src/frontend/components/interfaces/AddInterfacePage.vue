@@ -238,24 +238,6 @@
                                                     class="input-field"
                                                 />
                                             </div>
-                                            <div class="flex items-center gap-2">
-                                                <Toggle
-                                                    id="tcp-kiss-framing"
-                                                    v-model="newInterfaceKISSFramingEnabled"
-                                                />
-                                                <FormLabel for="tcp-kiss-framing" class="cursor-pointer mb-0! text-sm"
-                                                    >Use KISS framing (legacy compatibility)</FormLabel
-                                                >
-                                            </div>
-                                            <div class="flex items-center gap-2">
-                                                <Toggle
-                                                    id="tcp-i2p-tunneled"
-                                                    v-model="newInterfaceI2PTunnelingEnabled"
-                                                />
-                                                <FormLabel for="tcp-i2p-tunneled" class="cursor-pointer mb-0! text-sm"
-                                                    >I2P Tunneled (target is an I2P b32)</FormLabel
-                                                >
-                                            </div>
                                             <div class="flex items-start gap-2">
                                                 <Toggle id="tcp-bootstrap-only" v-model="newInterfaceBootstrapOnly" />
                                                 <div class="min-w-0">
@@ -271,45 +253,79 @@
                                                     />
                                                 </div>
                                             </div>
-                                            <div class="grid grid-cols-3 gap-3">
-                                                <div>
-                                                    <FormLabel class="glass-label">Connect Timeout (s)</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceConnectTimeout"
-                                                        type="number"
-                                                        min="0"
-                                                        placeholder="default"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <FormLabel class="glass-label">Max Reconnect Tries</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceMaxReconnectTries"
-                                                        type="number"
-                                                        min="0"
-                                                        placeholder="default"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <FormLabel class="glass-label">Fixed MTU</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceFixedMTU"
-                                                        type="number"
-                                                        :min="reticulumMinFixedMtu"
-                                                        placeholder="auto"
-                                                        class="input-field"
-                                                    />
-                                                    <p class="mt-1 text-xs text-sem-fg-muted">
-                                                        {{
-                                                            $t("interfaces.fixed_mtu_hint", {
-                                                                min: reticulumMinFixedMtu,
-                                                            })
-                                                        }}
-                                                    </p>
-                                                </div>
-                                            </div>
+                                            <ExpandingSection class="glass-card p-0! overflow-hidden">
+                                                <template #title
+                                                    ><span class="text-sm font-bold">{{
+                                                        $t("interfaces.advanced")
+                                                    }}</span></template
+                                                >
+                                                <template #content>
+                                                    <div class="p-4 space-y-4">
+                                                        <div class="flex items-center gap-2">
+                                                            <Toggle
+                                                                id="tcp-kiss-framing"
+                                                                v-model="newInterfaceKISSFramingEnabled"
+                                                            />
+                                                            <FormLabel
+                                                                for="tcp-kiss-framing"
+                                                                class="cursor-pointer mb-0! text-sm"
+                                                                >Use KISS framing (legacy compatibility)</FormLabel
+                                                            >
+                                                        </div>
+                                                        <div class="flex items-center gap-2">
+                                                            <Toggle
+                                                                id="tcp-i2p-tunneled"
+                                                                v-model="newInterfaceI2PTunnelingEnabled"
+                                                            />
+                                                            <FormLabel
+                                                                for="tcp-i2p-tunneled"
+                                                                class="cursor-pointer mb-0! text-sm"
+                                                                >I2P Tunneled (target is an I2P b32)</FormLabel
+                                                            >
+                                                        </div>
+                                                        <div class="grid grid-cols-3 gap-3">
+                                                            <div>
+                                                                <FormLabel class="glass-label"
+                                                                    >Connect Timeout</FormLabel
+                                                                >
+                                                                <DurationInput
+                                                                    v-model="newInterfaceConnectTimeout"
+                                                                    placeholder="default"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <FormLabel class="glass-label"
+                                                                    >Max Reconnect Tries</FormLabel
+                                                                >
+                                                                <input
+                                                                    v-model="newInterfaceMaxReconnectTries"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    placeholder="default"
+                                                                    class="input-field"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <FormLabel class="glass-label">Fixed MTU</FormLabel>
+                                                                <input
+                                                                    v-model="newInterfaceFixedMTU"
+                                                                    type="number"
+                                                                    :min="reticulumMinFixedMtu"
+                                                                    placeholder="auto"
+                                                                    class="input-field"
+                                                                />
+                                                                <p class="mt-1 text-xs text-sem-fg-muted">
+                                                                    {{
+                                                                        $t("interfaces.fixed_mtu_hint", {
+                                                                            min: reticulumMinFixedMtu,
+                                                                        })
+                                                                    }}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </ExpandingSection>
                                         </div>
 
                                         <div v-if="newInterfaceType === 'BackboneInterface'" class="space-y-4">
@@ -455,83 +471,114 @@
                                                         {{ $t("interfaces.kernel_iface_picker_help") }}
                                                     </p>
                                                 </div>
-                                                <div class="flex items-center gap-2">
-                                                    <Toggle
-                                                        id="backbone-listen-ipv6"
-                                                        v-model="newInterfacePreferIPV6"
-                                                    />
-                                                    <FormLabel
-                                                        for="backbone-listen-ipv6"
-                                                        class="cursor-pointer mb-0! text-sm"
-                                                        >Prefer IPv6</FormLabel
+                                                <ExpandingSection class="glass-card p-0! overflow-hidden">
+                                                    <template #title
+                                                        ><span class="text-sm font-bold">{{
+                                                            $t("interfaces.advanced")
+                                                        }}</span></template
                                                     >
-                                                </div>
-                                                <div
-                                                    class="rounded-xl border border-sem-border bg-sem-surface-muted/50 dark:bg-sem-surface/30 p-3 space-y-3"
-                                                >
-                                                    <div class="flex items-start justify-between gap-4">
-                                                        <div class="min-w-0">
-                                                            <FormLabel class="glass-label mb-0!">{{
-                                                                $t("interfaces.block_fast_flapping_label")
-                                                            }}</FormLabel>
-                                                            <p class="text-xs text-sem-fg-muted mt-1">
-                                                                {{ $t("interfaces.block_fast_flapping_hint") }}
-                                                            </p>
+                                                    <template #content>
+                                                        <div class="p-4 space-y-4">
+                                                            <div class="flex items-center gap-2">
+                                                                <Toggle
+                                                                    id="backbone-listen-ipv6"
+                                                                    v-model="newInterfacePreferIPV6"
+                                                                />
+                                                                <FormLabel
+                                                                    for="backbone-listen-ipv6"
+                                                                    class="cursor-pointer mb-0! text-sm"
+                                                                    >Prefer IPv6</FormLabel
+                                                                >
+                                                            </div>
+                                                            <div
+                                                                class="rounded-xl border border-sem-border bg-sem-surface-muted/50 dark:bg-sem-surface/30 p-3 space-y-3"
+                                                            >
+                                                                <div class="flex items-start justify-between gap-4">
+                                                                    <div class="min-w-0">
+                                                                        <FormLabel class="glass-label mb-0!">{{
+                                                                            $t("interfaces.block_fast_flapping_label")
+                                                                        }}</FormLabel>
+                                                                        <p class="text-xs text-sem-fg-muted mt-1">
+                                                                            {{
+                                                                                $t(
+                                                                                    "interfaces.block_fast_flapping_hint"
+                                                                                )
+                                                                            }}
+                                                                        </p>
+                                                                    </div>
+                                                                    <Toggle v-model="newInterfaceBlockFastFlapping" />
+                                                                </div>
+                                                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                                    <div>
+                                                                        <FormLabel class="glass-label">{{
+                                                                            $t(
+                                                                                "interfaces.fast_flapping_block_time_label"
+                                                                            )
+                                                                        }}</FormLabel>
+                                                                        <input
+                                                                            v-model.number="
+                                                                                newInterfaceFastFlappingBlockTime
+                                                                            "
+                                                                            type="number"
+                                                                            min="1"
+                                                                            class="input-field"
+                                                                            placeholder="720"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <FormLabel class="glass-label">{{
+                                                                            $t(
+                                                                                "interfaces.fast_flapping_threshold_label"
+                                                                            )
+                                                                        }}</FormLabel>
+                                                                        <input
+                                                                            v-model.number="
+                                                                                newInterfaceFastFlappingThreshold
+                                                                            "
+                                                                            type="number"
+                                                                            min="0.1"
+                                                                            step="0.1"
+                                                                            class="input-field"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <FormLabel class="glass-label">{{
+                                                                            $t("interfaces.fast_flapping_grace_label")
+                                                                        }}</FormLabel>
+                                                                        <input
+                                                                            v-model.number="
+                                                                                newInterfaceFastFlappingGrace
+                                                                            "
+                                                                            type="number"
+                                                                            min="0"
+                                                                            class="input-field"
+                                                                            placeholder="5"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <FormLabel class="glass-label">{{
+                                                                            $t("interfaces.client_limit_label")
+                                                                        }}</FormLabel>
+                                                                        <input
+                                                                            v-model.number="newInterfaceClientLimit"
+                                                                            type="number"
+                                                                            min="1"
+                                                                            class="input-field"
+                                                                            :placeholder="
+                                                                                $t(
+                                                                                    'interfaces.client_limit_placeholder'
+                                                                                )
+                                                                            "
+                                                                        />
+                                                                        <p class="text-xs text-sem-fg-muted mt-1">
+                                                                            {{ $t("interfaces.client_limit_hint") }}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <Toggle v-model="newInterfaceBlockFastFlapping" />
-                                                    </div>
-                                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                                        <div>
-                                                            <FormLabel class="glass-label">{{
-                                                                $t("interfaces.fast_flapping_block_time_label")
-                                                            }}</FormLabel>
-                                                            <input
-                                                                v-model.number="newInterfaceFastFlappingBlockTime"
-                                                                type="number"
-                                                                min="1"
-                                                                class="input-field"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <FormLabel class="glass-label">{{
-                                                                $t("interfaces.fast_flapping_threshold_label")
-                                                            }}</FormLabel>
-                                                            <input
-                                                                v-model.number="newInterfaceFastFlappingThreshold"
-                                                                type="number"
-                                                                min="0.1"
-                                                                step="0.1"
-                                                                class="input-field"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <FormLabel class="glass-label">{{
-                                                                $t("interfaces.fast_flapping_grace_label")
-                                                            }}</FormLabel>
-                                                            <input
-                                                                v-model.number="newInterfaceFastFlappingGrace"
-                                                                type="number"
-                                                                min="0"
-                                                                class="input-field"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <FormLabel class="glass-label">{{
-                                                                $t("interfaces.client_limit_label")
-                                                            }}</FormLabel>
-                                                            <input
-                                                                v-model.number="newInterfaceClientLimit"
-                                                                type="number"
-                                                                min="1"
-                                                                class="input-field"
-                                                                :placeholder="$t('interfaces.client_limit_placeholder')"
-                                                            />
-                                                            <p class="text-xs text-sem-fg-muted mt-1">
-                                                                {{ $t("interfaces.client_limit_hint") }}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                    </template>
+                                                </ExpandingSection>
                                             </div>
                                         </div>
 
@@ -617,28 +664,44 @@
                                                     {{ $t("interfaces.kernel_iface_picker_help") }}
                                                 </p>
                                             </div>
-                                            <div
+                                            <ExpandingSection
                                                 v-if="newInterfaceType === 'TCPServerInterface'"
-                                                class="flex flex-wrap items-center gap-4"
+                                                class="glass-card p-0! overflow-hidden"
                                             >
-                                                <div class="flex items-center gap-2">
-                                                    <Toggle id="tcp-server-ipv6" v-model="newInterfacePreferIPV6" />
-                                                    <FormLabel
-                                                        for="tcp-server-ipv6"
-                                                        class="cursor-pointer mb-0! text-sm"
-                                                        >Prefer IPv6</FormLabel
-                                                    >
-                                                </div>
-                                                <div class="flex items-center gap-2">
-                                                    <Toggle
-                                                        id="tcp-server-i2p"
-                                                        v-model="newInterfaceI2PTunnelingEnabled"
-                                                    />
-                                                    <FormLabel for="tcp-server-i2p" class="cursor-pointer mb-0! text-sm"
-                                                        >I2P Tunneled</FormLabel
-                                                    >
-                                                </div>
-                                            </div>
+                                                <template #title
+                                                    ><span class="text-sm font-bold">{{
+                                                        $t("interfaces.advanced")
+                                                    }}</span></template
+                                                >
+                                                <template #content>
+                                                    <div class="p-4 space-y-4">
+                                                        <div class="flex flex-wrap items-center gap-4">
+                                                            <div class="flex items-center gap-2">
+                                                                <Toggle
+                                                                    id="tcp-server-ipv6"
+                                                                    v-model="newInterfacePreferIPV6"
+                                                                />
+                                                                <FormLabel
+                                                                    for="tcp-server-ipv6"
+                                                                    class="cursor-pointer mb-0! text-sm"
+                                                                    >Prefer IPv6</FormLabel
+                                                                >
+                                                            </div>
+                                                            <div class="flex items-center gap-2">
+                                                                <Toggle
+                                                                    id="tcp-server-i2p"
+                                                                    v-model="newInterfaceI2PTunnelingEnabled"
+                                                                />
+                                                                <FormLabel
+                                                                    for="tcp-server-i2p"
+                                                                    class="cursor-pointer mb-0! text-sm"
+                                                                    >I2P Tunneled</FormLabel
+                                                                >
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </ExpandingSection>
                                         </div>
 
                                         <!-- UDP Extras -->
@@ -1073,59 +1136,78 @@
                                                     </select>
                                                 </div>
                                             </div>
-                                            <div class="flex items-center gap-2">
-                                                <Toggle id="rnode-flow-control" v-model="newInterfaceFlowControl" />
-                                                <FormLabel for="rnode-flow-control" class="cursor-pointer mb-0! text-sm"
-                                                    >Hardware flow control</FormLabel
+                                            <ExpandingSection class="glass-card p-0! overflow-hidden">
+                                                <template #title
+                                                    ><span class="text-sm font-bold">{{
+                                                        $t("interfaces.advanced")
+                                                    }}</span></template
                                                 >
-                                            </div>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <FormLabel class="glass-label">Station ID Callsign</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceIDCallsign"
-                                                        type="text"
-                                                        placeholder="e.g. NOCALL"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <FormLabel class="glass-label">ID Interval (s)</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceIDInterval"
-                                                        type="number"
-                                                        min="0"
-                                                        placeholder="600"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <FormLabel class="glass-label">Airtime Limit Long (%)</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceAirtimeLimitLong"
-                                                        type="number"
-                                                        min="0"
-                                                        max="100"
-                                                        step="0.1"
-                                                        placeholder="optional"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <FormLabel class="glass-label">Airtime Limit Short (%)</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceAirtimeLimitShort"
-                                                        type="number"
-                                                        min="0"
-                                                        max="100"
-                                                        step="0.1"
-                                                        placeholder="optional"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                            </div>
+                                                <template #content>
+                                                    <div class="p-4 space-y-4">
+                                                        <div class="flex items-center gap-2">
+                                                            <Toggle
+                                                                id="rnode-flow-control"
+                                                                v-model="newInterfaceFlowControl"
+                                                            />
+                                                            <FormLabel
+                                                                for="rnode-flow-control"
+                                                                class="cursor-pointer mb-0! text-sm"
+                                                                >Hardware flow control</FormLabel
+                                                            >
+                                                        </div>
+                                                        <div class="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <FormLabel class="glass-label"
+                                                                    >Station ID Callsign</FormLabel
+                                                                >
+                                                                <input
+                                                                    v-model="newInterfaceIDCallsign"
+                                                                    type="text"
+                                                                    placeholder="e.g. NOCALL"
+                                                                    class="input-field"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <FormLabel class="glass-label">ID Interval</FormLabel>
+                                                                <DurationInput
+                                                                    v-model="newInterfaceIDInterval"
+                                                                    placeholder="10 minutes"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div class="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <FormLabel class="glass-label"
+                                                                    >Airtime Limit Long (%)</FormLabel
+                                                                >
+                                                                <input
+                                                                    v-model="newInterfaceAirtimeLimitLong"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="100"
+                                                                    step="0.1"
+                                                                    placeholder="optional"
+                                                                    class="input-field"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <FormLabel class="glass-label"
+                                                                    >Airtime Limit Short (%)</FormLabel
+                                                                >
+                                                                <input
+                                                                    v-model="newInterfaceAirtimeLimitShort"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="100"
+                                                                    step="0.1"
+                                                                    placeholder="optional"
+                                                                    class="input-field"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </ExpandingSection>
                                         </div>
 
                                         <!-- Serial port settings (Serial/KISS/AX25KISS) -->
@@ -1205,76 +1287,97 @@
                                             v-if="['KISSInterface', 'AX25KISSInterface'].includes(newInterfaceType)"
                                             class="space-y-4 pt-4 border-t border-sem-border"
                                         >
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <FormLabel class="glass-label">Preamble (ms)</FormLabel>
-                                                    <input
-                                                        v-model="newInterfacePreamble"
-                                                        type="number"
-                                                        min="0"
-                                                        placeholder="350"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <FormLabel class="glass-label">TX Tail (ms)</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceTXTail"
-                                                        type="number"
-                                                        min="0"
-                                                        placeholder="20"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <FormLabel class="glass-label">Persistence (0-255)</FormLabel>
-                                                    <input
-                                                        v-model="newInterfacePersistence"
-                                                        type="number"
-                                                        min="0"
-                                                        max="255"
-                                                        placeholder="64"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <FormLabel class="glass-label">Slot Time (ms)</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceSlotTime"
-                                                        type="number"
-                                                        min="0"
-                                                        placeholder="20"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div class="flex items-center gap-2">
-                                                <Toggle id="kiss-flow-control" v-model="newInterfaceFlowControl" />
-                                                <FormLabel for="kiss-flow-control" class="cursor-pointer mb-0! text-sm"
-                                                    >Hardware flow control</FormLabel
+                                            <ExpandingSection class="glass-card p-0! overflow-hidden">
+                                                <template #title
+                                                    ><span class="text-sm font-bold">{{
+                                                        $t("interfaces.advanced")
+                                                    }}</span></template
                                                 >
-                                            </div>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <FormLabel class="glass-label">Beacon Callsign</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceIDCallsign"
-                                                        type="text"
-                                                        placeholder="optional"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <FormLabel class="glass-label">Beacon Interval (s)</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceIDInterval"
-                                                        type="number"
-                                                        min="0"
-                                                        placeholder="optional"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                            </div>
+                                                <template #content>
+                                                    <div class="p-4 space-y-4">
+                                                        <div class="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <FormLabel class="glass-label">Preamble (ms)</FormLabel>
+                                                                <input
+                                                                    v-model="newInterfacePreamble"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    placeholder="350"
+                                                                    class="input-field"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <FormLabel class="glass-label">TX Tail (ms)</FormLabel>
+                                                                <input
+                                                                    v-model="newInterfaceTXTail"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    placeholder="20"
+                                                                    class="input-field"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <FormLabel class="glass-label"
+                                                                    >Persistence (0-255)</FormLabel
+                                                                >
+                                                                <input
+                                                                    v-model="newInterfacePersistence"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="255"
+                                                                    placeholder="64"
+                                                                    class="input-field"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <FormLabel class="glass-label"
+                                                                    >Slot Time (ms)</FormLabel
+                                                                >
+                                                                <input
+                                                                    v-model="newInterfaceSlotTime"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    placeholder="20"
+                                                                    class="input-field"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex items-center gap-2">
+                                                            <Toggle
+                                                                id="kiss-flow-control"
+                                                                v-model="newInterfaceFlowControl"
+                                                            />
+                                                            <FormLabel
+                                                                for="kiss-flow-control"
+                                                                class="cursor-pointer mb-0! text-sm"
+                                                                >Hardware flow control</FormLabel
+                                                            >
+                                                        </div>
+                                                        <div class="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <FormLabel class="glass-label"
+                                                                    >Beacon Callsign</FormLabel
+                                                                >
+                                                                <input
+                                                                    v-model="newInterfaceIDCallsign"
+                                                                    type="text"
+                                                                    placeholder="optional"
+                                                                    class="input-field"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <FormLabel class="glass-label"
+                                                                    >Beacon Interval</FormLabel
+                                                                >
+                                                                <DurationInput
+                                                                    v-model="newInterfaceIDInterval"
+                                                                    placeholder="optional"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </ExpandingSection>
                                         </div>
 
                                         <!-- AX.25 KISS extras -->
@@ -1326,170 +1429,195 @@
                                                     Only peers sharing the same group_id will discover each other.
                                                 </p>
                                             </div>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <FormLabel class="glass-label">Discovery Scope</FormLabel>
-                                                    <select v-model="newInterfaceDiscoveryScope" class="input-field">
-                                                        <option :value="null">Default (link)</option>
-                                                        <option value="link">Link (local segment)</option>
-                                                        <option value="admin">Administrative</option>
-                                                        <option value="site">Site</option>
-                                                        <option value="organisation">Organisation</option>
-                                                        <option value="global">Global</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <FormLabel class="glass-label">Multicast Address Type</FormLabel>
-                                                    <select
-                                                        v-model="newInterfaceMulticastAddressType"
-                                                        class="input-field"
-                                                    >
-                                                        <option :value="null">Default (temporary)</option>
-                                                        <option value="temporary">Temporary</option>
-                                                        <option value="permanent">Permanent</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <FormLabel class="glass-label">Discovery Port</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceDiscoveryPort"
-                                                        type="number"
-                                                        min="1"
-                                                        max="65535"
-                                                        placeholder="29716"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <FormLabel class="glass-label">Data Port</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceDataPort"
-                                                        type="number"
-                                                        min="1"
-                                                        max="65535"
-                                                        placeholder="42671"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <FormLabel class="glass-label"
-                                                    >Allowed Devices (comma separated)</FormLabel
+                                            <ExpandingSection class="glass-card p-0! overflow-hidden">
+                                                <template #title
+                                                    ><span class="text-sm font-bold">{{
+                                                        $t("interfaces.advanced")
+                                                    }}</span></template
                                                 >
-                                                <input
-                                                    v-model="newInterfaceDevices"
-                                                    type="text"
-                                                    placeholder="e.g. eth0, wlan0"
-                                                    class="input-field"
-                                                />
-                                                <div
-                                                    v-if="
-                                                        hostKernelInterfacesLoading ||
-                                                        hostKernelInterfaces.length ||
-                                                        hostKernelInterfacesUnavailable
-                                                    "
-                                                    class="mt-1.5 space-y-1"
-                                                >
-                                                    <p class="text-[10px] text-sem-fg-muted">
-                                                        {{ $t("interfaces.auto_iface_ifname_chips_hint") }}
-                                                    </p>
-                                                    <div
-                                                        v-if="hostKernelInterfacesLoading"
-                                                        class="text-[10px] text-sem-fg-muted"
-                                                    >
-                                                        {{ $t("interfaces.kernel_iface_loading") }}
+                                                <template #content>
+                                                    <div class="p-4 space-y-4">
+                                                        <div class="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <FormLabel class="glass-label"
+                                                                    >Discovery Scope</FormLabel
+                                                                >
+                                                                <select
+                                                                    v-model="newInterfaceDiscoveryScope"
+                                                                    class="input-field"
+                                                                >
+                                                                    <option :value="null">Default (link)</option>
+                                                                    <option value="link">Link (local segment)</option>
+                                                                    <option value="admin">Administrative</option>
+                                                                    <option value="site">Site</option>
+                                                                    <option value="organisation">Organisation</option>
+                                                                    <option value="global">Global</option>
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <FormLabel class="glass-label"
+                                                                    >Multicast Address Type</FormLabel
+                                                                >
+                                                                <select
+                                                                    v-model="newInterfaceMulticastAddressType"
+                                                                    class="input-field"
+                                                                >
+                                                                    <option :value="null">Default (temporary)</option>
+                                                                    <option value="temporary">Temporary</option>
+                                                                    <option value="permanent">Permanent</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <div class="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <FormLabel class="glass-label"
+                                                                    >Discovery Port</FormLabel
+                                                                >
+                                                                <input
+                                                                    v-model="newInterfaceDiscoveryPort"
+                                                                    type="number"
+                                                                    min="1"
+                                                                    max="65535"
+                                                                    placeholder="29716"
+                                                                    class="input-field"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <FormLabel class="glass-label">Data Port</FormLabel>
+                                                                <input
+                                                                    v-model="newInterfaceDataPort"
+                                                                    type="number"
+                                                                    min="1"
+                                                                    max="65535"
+                                                                    placeholder="42671"
+                                                                    class="input-field"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <FormLabel class="glass-label"
+                                                                >Allowed Devices (comma separated)</FormLabel
+                                                            >
+                                                            <input
+                                                                v-model="newInterfaceDevices"
+                                                                type="text"
+                                                                placeholder="e.g. eth0, wlan0"
+                                                                class="input-field"
+                                                            />
+                                                            <div
+                                                                v-if="
+                                                                    hostKernelInterfacesLoading ||
+                                                                    hostKernelInterfaces.length ||
+                                                                    hostKernelInterfacesUnavailable
+                                                                "
+                                                                class="mt-1.5 space-y-1"
+                                                            >
+                                                                <p class="text-[10px] text-sem-fg-muted">
+                                                                    {{ $t("interfaces.auto_iface_ifname_chips_hint") }}
+                                                                </p>
+                                                                <div
+                                                                    v-if="hostKernelInterfacesLoading"
+                                                                    class="text-[10px] text-sem-fg-muted"
+                                                                >
+                                                                    {{ $t("interfaces.kernel_iface_loading") }}
+                                                                </div>
+                                                                <div
+                                                                    v-else
+                                                                    class="flex flex-wrap gap-1 max-h-20 overflow-y-auto"
+                                                                >
+                                                                    <button
+                                                                        v-for="iface in hostKernelInterfaces"
+                                                                        :key="'auto-allow-' + iface.name"
+                                                                        type="button"
+                                                                        class="max-w-full truncate px-1.5 py-0.5 text-[10px] rounded border font-mono transition-colors"
+                                                                        :class="
+                                                                            autoInterfaceChipActive(
+                                                                                'newInterfaceDevices',
+                                                                                iface.name
+                                                                            )
+                                                                                ? 'border-sem-info bg-sem-info/10 text-sem-info dark:border-sem-accent dark:bg-sem-info/15'
+                                                                                : 'border-sem-border bg-sem-surface text-sem-fg hover:border-sem-info  dark:bg-sem-surface text-sem-fg dark:hover:border-sem-accent'
+                                                                        "
+                                                                        @click="
+                                                                            toggleAutoInterfaceCommaToken(
+                                                                                'newInterfaceDevices',
+                                                                                iface.name
+                                                                            )
+                                                                        "
+                                                                    >
+                                                                        {{ iface.name }}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <FormLabel class="glass-label"
+                                                                >Ignored Devices (comma separated)</FormLabel
+                                                            >
+                                                            <input
+                                                                v-model="newInterfaceIgnoredDevices"
+                                                                type="text"
+                                                                placeholder="e.g. tun0, docker0"
+                                                                class="input-field"
+                                                            />
+                                                            <div
+                                                                v-if="
+                                                                    hostKernelInterfacesLoading ||
+                                                                    hostKernelInterfaces.length ||
+                                                                    hostKernelInterfacesUnavailable
+                                                                "
+                                                                class="mt-1.5 space-y-1"
+                                                            >
+                                                                <p class="text-[10px] text-sem-fg-muted">
+                                                                    {{ $t("interfaces.auto_iface_ifname_chips_hint") }}
+                                                                </p>
+                                                                <div
+                                                                    v-if="hostKernelInterfacesLoading"
+                                                                    class="text-[10px] text-sem-fg-muted"
+                                                                >
+                                                                    {{ $t("interfaces.kernel_iface_loading") }}
+                                                                </div>
+                                                                <div
+                                                                    v-else
+                                                                    class="flex flex-wrap gap-1 max-h-20 overflow-y-auto"
+                                                                >
+                                                                    <button
+                                                                        v-for="iface in hostKernelInterfaces"
+                                                                        :key="'auto-ignore-' + iface.name"
+                                                                        type="button"
+                                                                        class="max-w-full truncate px-1.5 py-0.5 text-[10px] rounded border font-mono transition-colors"
+                                                                        :class="
+                                                                            autoInterfaceChipActive(
+                                                                                'newInterfaceIgnoredDevices',
+                                                                                iface.name
+                                                                            )
+                                                                                ? 'border-sem-warning bg-sem-warning/15 text-sem-warning dark:border-sem-warning dark:bg-sem-warning/15 dark:text-sem-warning'
+                                                                                : 'border-sem-border bg-sem-surface text-sem-fg hover:border-sem-warning  dark:bg-sem-surface text-sem-fg dark:hover:border-sem-warning'
+                                                                        "
+                                                                        @click="
+                                                                            toggleAutoInterfaceCommaToken(
+                                                                                'newInterfaceIgnoredDevices',
+                                                                                iface.name
+                                                                            )
+                                                                        "
+                                                                    >
+                                                                        {{ iface.name }}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <FormLabel class="glass-label"
+                                                                >Configured Bitrate</FormLabel
+                                                            >
+                                                            <BitrateInput
+                                                                v-model="newInterfaceConfiguredBitrate"
+                                                                placeholder="optional override"
+                                                            />
+                                                        </div>
                                                     </div>
-                                                    <div v-else class="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                                                        <button
-                                                            v-for="iface in hostKernelInterfaces"
-                                                            :key="'auto-allow-' + iface.name"
-                                                            type="button"
-                                                            class="max-w-full truncate px-1.5 py-0.5 text-[10px] rounded border font-mono transition-colors"
-                                                            :class="
-                                                                autoInterfaceChipActive(
-                                                                    'newInterfaceDevices',
-                                                                    iface.name
-                                                                )
-                                                                    ? 'border-sem-info bg-sem-info/10 text-blue-900 dark:border-sem-accent dark:bg-sem-info/15 text-sem-info'
-                                                                    : 'border-sem-border bg-sem-surface text-sem-fg hover:border-sem-info  dark:bg-sem-surface text-sem-fg dark:hover:border-sem-accent'
-                                                            "
-                                                            @click="
-                                                                toggleAutoInterfaceCommaToken(
-                                                                    'newInterfaceDevices',
-                                                                    iface.name
-                                                                )
-                                                            "
-                                                        >
-                                                            {{ iface.name }}
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <FormLabel class="glass-label"
-                                                    >Ignored Devices (comma separated)</FormLabel
-                                                >
-                                                <input
-                                                    v-model="newInterfaceIgnoredDevices"
-                                                    type="text"
-                                                    placeholder="e.g. tun0, docker0"
-                                                    class="input-field"
-                                                />
-                                                <div
-                                                    v-if="
-                                                        hostKernelInterfacesLoading ||
-                                                        hostKernelInterfaces.length ||
-                                                        hostKernelInterfacesUnavailable
-                                                    "
-                                                    class="mt-1.5 space-y-1"
-                                                >
-                                                    <p class="text-[10px] text-sem-fg-muted">
-                                                        {{ $t("interfaces.auto_iface_ifname_chips_hint") }}
-                                                    </p>
-                                                    <div
-                                                        v-if="hostKernelInterfacesLoading"
-                                                        class="text-[10px] text-sem-fg-muted"
-                                                    >
-                                                        {{ $t("interfaces.kernel_iface_loading") }}
-                                                    </div>
-                                                    <div v-else class="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                                                        <button
-                                                            v-for="iface in hostKernelInterfaces"
-                                                            :key="'auto-ignore-' + iface.name"
-                                                            type="button"
-                                                            class="max-w-full truncate px-1.5 py-0.5 text-[10px] rounded border font-mono transition-colors"
-                                                            :class="
-                                                                autoInterfaceChipActive(
-                                                                    'newInterfaceIgnoredDevices',
-                                                                    iface.name
-                                                                )
-                                                                    ? 'border-sem-warning bg-sem-warning/15 text-sem-warning dark:border-sem-warning dark:bg-sem-warning/15 dark:text-sem-warning'
-                                                                    : 'border-sem-border bg-sem-surface text-sem-fg hover:border-sem-warning  dark:bg-sem-surface text-sem-fg dark:hover:border-sem-warning'
-                                                            "
-                                                            @click="
-                                                                toggleAutoInterfaceCommaToken(
-                                                                    'newInterfaceIgnoredDevices',
-                                                                    iface.name
-                                                                )
-                                                            "
-                                                        >
-                                                            {{ iface.name }}
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <FormLabel class="glass-label">Configured Bitrate (bps)</FormLabel>
-                                                <input
-                                                    v-model="newInterfaceConfiguredBitrate"
-                                                    type="number"
-                                                    min="0"
-                                                    placeholder="optional override"
-                                                    class="input-field"
-                                                />
-                                            </div>
+                                                </template>
+                                            </ExpandingSection>
                                         </div>
 
                                         <!-- Pipe Interface -->
@@ -1508,15 +1636,24 @@
                                                     class="input-field"
                                                 />
                                             </div>
-                                            <div>
-                                                <FormLabel class="glass-label">Respawn Delay (s)</FormLabel>
-                                                <input
-                                                    v-model="newInterfaceRespawnDelay"
-                                                    type="number"
-                                                    placeholder="5"
-                                                    class="input-field"
-                                                />
-                                            </div>
+                                            <ExpandingSection class="glass-card p-0! overflow-hidden">
+                                                <template #title
+                                                    ><span class="text-sm font-bold">{{
+                                                        $t("interfaces.advanced")
+                                                    }}</span></template
+                                                >
+                                                <template #content>
+                                                    <div class="p-4 space-y-4">
+                                                        <div>
+                                                            <FormLabel class="glass-label">Respawn Delay</FormLabel>
+                                                            <DurationInput
+                                                                v-model="newInterfaceRespawnDelay"
+                                                                placeholder="5 seconds"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </ExpandingSection>
                                         </div>
 
                                         <!-- HTTP tunnel (bundled RNS-over-HTTP) -->
@@ -1564,19 +1701,6 @@
                                                         spellcheck="false"
                                                     />
                                                 </div>
-                                                <div>
-                                                    <FormLabel class="glass-label">{{
-                                                        $t("interfaces.http_tunnel_poll_interval")
-                                                    }}</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceHttpPollInterval"
-                                                        type="number"
-                                                        min="0.01"
-                                                        step="0.01"
-                                                        placeholder="0.1"
-                                                        class="input-field"
-                                                    />
-                                                </div>
                                             </div>
                                             <div v-else class="space-y-4">
                                                 <div class="grid grid-cols-2 gap-4">
@@ -1605,98 +1729,132 @@
                                                         />
                                                     </div>
                                                 </div>
-                                                <div class="flex items-center justify-between gap-4">
-                                                    <div class="min-w-0">
-                                                        <FormLabel class="glass-label mb-0!">{{
-                                                            $t("interfaces.http_tunnel_check_user_agent")
-                                                        }}</FormLabel>
-                                                        <p class="text-xs text-sem-fg-muted mt-1">
-                                                            {{ $t("interfaces.http_tunnel_check_user_agent_hint") }}
-                                                        </p>
-                                                    </div>
-                                                    <Toggle v-model="newInterfaceHttpCheckUserAgent" />
-                                                </div>
                                             </div>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <FormLabel class="glass-label">{{
-                                                        $t("interfaces.http_tunnel_http_version")
-                                                    }}</FormLabel>
-                                                    <select v-model="newInterfaceHttpVersion" class="input-field">
-                                                        <option :value="1">HTTP/1.1</option>
-                                                        <option :value="2">HTTP/2</option>
-                                                        <option :value="3">HTTP/3</option>
-                                                    </select>
-                                                    <p class="mt-1 text-xs text-sem-fg-muted">
-                                                        {{ $t("interfaces.http_tunnel_http_version_hint") }}
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <FormLabel class="glass-label">{{
-                                                        $t("interfaces.http_tunnel_mtu")
-                                                    }}</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceHttpMtu"
-                                                        type="number"
-                                                        min="128"
-                                                        placeholder="4096"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <FormLabel class="glass-label">{{
-                                                    $t("interfaces.http_tunnel_user_agent")
-                                                }}</FormLabel>
-                                                <input
-                                                    v-model="newInterfaceHttpUserAgent"
-                                                    type="text"
-                                                    placeholder="RNS-HTTP-Tunnel/1.0"
-                                                    class="input-field"
-                                                    autocomplete="off"
-                                                    spellcheck="false"
-                                                />
-                                            </div>
-                                            <div
-                                                v-if="newInterfaceHttpVersion >= 2"
-                                                class="space-y-4 rounded-2xl border border-sem-border p-3"
-                                            >
-                                                <p class="text-xs text-sem-fg-muted">
-                                                    {{ $t("interfaces.http_tunnel_tls_hint") }}
-                                                </p>
-                                                <div
-                                                    v-if="newInterfaceHttpTunnelMode === 'server'"
-                                                    class="grid grid-cols-1 gap-3"
+                                            <ExpandingSection class="glass-card p-0! overflow-hidden">
+                                                <template #title
+                                                    ><span class="text-sm font-bold">{{
+                                                        $t("interfaces.advanced")
+                                                    }}</span></template
                                                 >
-                                                    <div>
-                                                        <FormLabel class="glass-label">tls_certfile</FormLabel>
-                                                        <input
-                                                            v-model="newInterfaceHttpTlsCertfile"
-                                                            type="text"
-                                                            class="input-field font-mono text-xs"
-                                                            autocomplete="off"
-                                                        />
+                                                <template #content>
+                                                    <div class="p-4 space-y-4">
+                                                        <div v-if="newInterfaceHttpTunnelMode === 'client'">
+                                                            <FormLabel class="glass-label">{{
+                                                                $t("interfaces.http_tunnel_poll_interval")
+                                                            }}</FormLabel>
+                                                            <DurationInput
+                                                                v-model="newInterfaceHttpPollInterval"
+                                                                placeholder="0.1 seconds"
+                                                            />
+                                                        </div>
+                                                        <div v-else class="flex items-center justify-between gap-4">
+                                                            <div class="min-w-0">
+                                                                <FormLabel class="glass-label mb-0!">{{
+                                                                    $t("interfaces.http_tunnel_check_user_agent")
+                                                                }}</FormLabel>
+                                                                <p class="text-xs text-sem-fg-muted mt-1">
+                                                                    {{
+                                                                        $t(
+                                                                            "interfaces.http_tunnel_check_user_agent_hint"
+                                                                        )
+                                                                    }}
+                                                                </p>
+                                                            </div>
+                                                            <Toggle v-model="newInterfaceHttpCheckUserAgent" />
+                                                        </div>
+                                                        <div class="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <FormLabel class="glass-label">{{
+                                                                    $t("interfaces.http_tunnel_http_version")
+                                                                }}</FormLabel>
+                                                                <select
+                                                                    v-model="newInterfaceHttpVersion"
+                                                                    class="input-field"
+                                                                >
+                                                                    <option :value="1">HTTP/1.1</option>
+                                                                    <option :value="2">HTTP/2</option>
+                                                                    <option :value="3">HTTP/3</option>
+                                                                </select>
+                                                                <p class="mt-1 text-xs text-sem-fg-muted">
+                                                                    {{ $t("interfaces.http_tunnel_http_version_hint") }}
+                                                                </p>
+                                                            </div>
+                                                            <div>
+                                                                <FormLabel class="glass-label">{{
+                                                                    $t("interfaces.http_tunnel_mtu")
+                                                                }}</FormLabel>
+                                                                <input
+                                                                    v-model="newInterfaceHttpMtu"
+                                                                    type="number"
+                                                                    min="128"
+                                                                    placeholder="4096"
+                                                                    class="input-field"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <FormLabel class="glass-label">{{
+                                                                $t("interfaces.http_tunnel_user_agent")
+                                                            }}</FormLabel>
+                                                            <input
+                                                                v-model="newInterfaceHttpUserAgent"
+                                                                type="text"
+                                                                placeholder="RNS-HTTP-Tunnel/1.0"
+                                                                class="input-field"
+                                                                autocomplete="off"
+                                                                spellcheck="false"
+                                                            />
+                                                        </div>
+                                                        <div
+                                                            v-if="newInterfaceHttpVersion >= 2"
+                                                            class="space-y-4 rounded-2xl border border-sem-border p-3"
+                                                        >
+                                                            <p class="text-xs text-sem-fg-muted">
+                                                                {{ $t("interfaces.http_tunnel_tls_hint") }}
+                                                            </p>
+                                                            <div
+                                                                v-if="newInterfaceHttpTunnelMode === 'server'"
+                                                                class="grid grid-cols-1 gap-3"
+                                                            >
+                                                                <div>
+                                                                    <FormLabel class="glass-label"
+                                                                        >tls_certfile</FormLabel
+                                                                    >
+                                                                    <input
+                                                                        v-model="newInterfaceHttpTlsCertfile"
+                                                                        type="text"
+                                                                        placeholder="/path/to/cert.pem"
+                                                                        class="input-field font-mono text-xs"
+                                                                        autocomplete="off"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <FormLabel class="glass-label"
+                                                                        >tls_keyfile</FormLabel
+                                                                    >
+                                                                    <input
+                                                                        v-model="newInterfaceHttpTlsKeyfile"
+                                                                        type="text"
+                                                                        placeholder="/path/to/key.pem"
+                                                                        class="input-field font-mono text-xs"
+                                                                        autocomplete="off"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div
+                                                                v-if="newInterfaceHttpTunnelMode === 'client'"
+                                                                class="flex items-center justify-between gap-4"
+                                                            >
+                                                                <FormLabel class="glass-label mb-0!">{{
+                                                                    $t("interfaces.http_tunnel_tls_verify")
+                                                                }}</FormLabel>
+                                                                <Toggle v-model="newInterfaceHttpTlsVerify" />
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <FormLabel class="glass-label">tls_keyfile</FormLabel>
-                                                        <input
-                                                            v-model="newInterfaceHttpTlsKeyfile"
-                                                            type="text"
-                                                            class="input-field font-mono text-xs"
-                                                            autocomplete="off"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div
-                                                    v-if="newInterfaceHttpTunnelMode === 'client'"
-                                                    class="flex items-center justify-between gap-4"
-                                                >
-                                                    <FormLabel class="glass-label mb-0!">{{
-                                                        $t("interfaces.http_tunnel_tls_verify")
-                                                    }}</FormLabel>
-                                                    <Toggle v-model="newInterfaceHttpTlsVerify" />
-                                                </div>
-                                            </div>
+                                                </template>
+                                            </ExpandingSection>
+
                                             <BundledDocsHint
                                                 hint-i18n-key="interfaces.http_tunnel_docs_hint"
                                                 link-i18n-key="interfaces.http_tunnel_docs_link"
@@ -2084,11 +2242,9 @@
                                                 </div>
                                                 <div>
                                                     <FormLabel class="glass-label">Forced Bitrate</FormLabel>
-                                                    <input
+                                                    <BitrateInput
                                                         v-model="sharedInterfaceSettings.bitrate"
-                                                        type="number"
-                                                        placeholder="bps"
-                                                        class="input-field"
+                                                        placeholder="leave empty for auto"
                                                     />
                                                 </div>
                                             </div>
@@ -2455,6 +2611,8 @@ import {
 import ExpandingSection from "./ExpandingSection.vue";
 import AddInterfaceDiscoveryPanel from "./internal/AddInterfaceDiscoveryPanel.vue";
 import FormLabel from "../forms/FormLabel.vue";
+import BitrateInput from "../forms/BitrateInput.vue";
+import DurationInput from "../forms/DurationInput.vue";
 import Toggle from "../forms/Toggle.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import DropDownMenu from "../DropDownMenu.vue";
@@ -2470,6 +2628,8 @@ export default {
     components: {
         MaterialDesignIcon,
         FormLabel,
+        BitrateInput,
+        DurationInput,
         ExpandingSection,
         AddInterfaceDiscoveryPanel,
         Toggle,

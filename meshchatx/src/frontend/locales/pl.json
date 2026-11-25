@@ -788,7 +788,7 @@
         "rns_enforce_stamps_description": "Odrzucaj announce'y, żądania ścieżki i linku bez prawidłowych stempli. Włączaj tylko w sieciach ze stemplami.",
         "rns_stamp_costs_description": "Wartości kosztu/wartości stempla i limitów czasu. Puste pola zachowują domyślne Reticulum.",
         "rns_identity_stamp_value": "Wartość stempla tożsamości",
-        "rns_identity_stamp_value_description": "Wartość proof-of-work dla nowo tworzonych tożsamości. 0 wyłącza (domyślnie); wyższe wartości spowalniają generowanie kluczy, utrudniając Sybil."
+        "rns_identity_stamp_value_description": "Wartość proof-of-work dla nowo tworzonych tożsamości. 0 wyłącza (domyślnie). Wyższe wartości spowalniają generowanie kluczy, utrudniając Sybil."
     },
     "helptips": {
         "title_send_failed": "Co możesz spróbować",
@@ -1791,6 +1791,7 @@
         "import_success": "Interfejsy zaimportowano pomyślnie. Aby zmiany weszły w życie, uruchom ponownie MeshChat.",
         "failed_import_all": "Nie udało się zaimportować interfejsów",
         "add_interface_sidebar_a11y": "Skróty i presety społeczności",
+        "advanced": "Zaawansowany",
         "community_quick_start": "Szybki start społeczności",
         "community_quick_start_hint": "Presety z meshchatx.com/interfaces, dołączone do wydania.",
         "community_quick_start_hide": "Ukryj sugerowane interfejsy",

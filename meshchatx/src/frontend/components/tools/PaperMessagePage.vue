@@ -585,6 +585,6 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .input-field {
-    @apply bg-sem-surface-muted/80 dark:bg-sem-surface/80 border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-sem-info focus:border-sem-info dark:focus:ring-blue-50 dark:focus:border-sem-accent block w-full p-2.5 text-sem-fg transition;
+    @apply bg-sem-surface-muted/80 dark:bg-sem-surface/80 border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full p-2.5 text-sem-fg transition;
 }
 </style>

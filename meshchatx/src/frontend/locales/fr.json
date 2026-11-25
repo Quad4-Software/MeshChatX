@@ -788,7 +788,7 @@
         "rns_enforce_stamps_description": "Rejeter les annonces, requêtes de chemin et de lien sans tampons valides. À n'activer que sur les réseaux tamponnés.",
         "rns_stamp_costs_description": "Valeurs de coût/valeur de tampon et de délai. Les champs vides conservent les valeurs Reticulum.",
         "rns_identity_stamp_value": "Valeur de tampon d'identité",
-        "rns_identity_stamp_value_description": "Valeur proof-of-work pour les identités nouvellement créées. 0 désactive (défaut) ; des valeurs plus élevées ralentissent la génération de clés mais compliquent la Sybil."
+        "rns_identity_stamp_value_description": "Valeur proof-of-work pour les identités nouvellement créées. 0 désactive (défaut) . Des valeurs plus élevées ralentissent la génération de clés mais compliquent la Sybil."
     },
     "helptips": {
         "title_send_failed": "Choses à essayer",
@@ -1791,6 +1791,7 @@
         "import_success": "Interfaces importées avec succès. MeshChat doit être redémarré pour que ces changements prennent effet.",
         "failed_import_all": "Impossible d'importer les interfaces",
         "add_interface_sidebar_a11y": "Raccourcis et préréglages communautaires",
+        "advanced": "Avancé",
         "community_quick_start": "Début rapide de la communauté",
         "community_quick_start_hint": "Presets de meshchatx.com/interfaces, fournis avec la version.",
         "community_quick_start_hide": "Masquer les interfaces suggérées",

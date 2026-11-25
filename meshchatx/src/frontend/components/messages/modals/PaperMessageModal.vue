@@ -30,7 +30,7 @@
             <div class="p-4 sm:p-6 flex flex-col items-center">
                 <div v-if="isLoading" class="flex flex-col items-center py-8">
                     <div
-                        class="size-12 border-4 border-sem-accent/20 border-t-blue-500 rounded-full animate-spin"
+                        class="size-12 border-4 border-sem-accent/20 border-t-sem-accent rounded-full animate-spin"
                     ></div>
                     <p class="mt-4 text-xs text-sem-fg-muted font-medium">Generating Paper Message...</p>
                 </div>

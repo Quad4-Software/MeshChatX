@@ -788,7 +788,7 @@
         "rns_enforce_stamps_description": "Rifiuta announce, richieste di percorso e di link senza timbri validi. Abilita solo su reti con timbri.",
         "rns_stamp_costs_description": "Valori di costo/valore del timbro e timeout. I campi vuoti mantengono i valori predefiniti di Reticulum.",
         "rns_identity_stamp_value": "Valore del timbro di identità",
-        "rns_identity_stamp_value_description": "Valore proof-of-work per le identità appena create. 0 disattiva (predefinito); valori più alti rallentano la generazione delle chiavi ma rendono più difficile il Sybil."
+        "rns_identity_stamp_value_description": "Valore proof-of-work per le identità appena create. 0 disattiva (predefinito). Valori più alti rallentano la generazione delle chiavi ma rendono più difficile il Sybil."
     },
     "helptips": {
         "title_send_failed": "Cose da provare",
@@ -1791,6 +1791,7 @@
         "import_success": "Interfacce importate con successo. MeshChat deve essere riavviato per applicare le modifiche.",
         "failed_import_all": "Impossibile importare le interfacce",
         "add_interface_sidebar_a11y": "Collegamenti e preset community",
+        "advanced": "Avanzata",
         "community_quick_start": "Avvio rapido community",
         "community_quick_start_hint": "Preset da meshchatx.com/interfaces, inclusi nella release.",
         "community_quick_start_hide": "Nascondi suggerimenti",

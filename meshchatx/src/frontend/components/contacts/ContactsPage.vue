@@ -262,7 +262,7 @@
                         </div>
                         <div v-if="isLoadingMore" class="py-3 flex justify-center">
                             <div
-                                class="size-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"
+                                class="size-6 border-2 border-sem-accent/30 border-t-sem-accent rounded-full animate-spin"
                             />
                         </div>
                     </div>

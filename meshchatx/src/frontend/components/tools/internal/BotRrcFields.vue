@@ -50,7 +50,7 @@
             <label class="text-sm font-medium text-sem-fg">{{ $t("bots.rrc_mention_only") }}</label>
             <input
                 type="checkbox"
-                class="size-4 accent-blue-600"
+                class="size-4 accent-sem-accent"
                 :checked="draft.mention_only"
                 @change="patch({ mention_only: $event.target.checked })"
             />

@@ -788,7 +788,7 @@
         "rns_enforce_stamps_description": "Rechazar announces, solicitudes de ruta y de enlace sin sellos válidos. Activar solo en redes con sellos.",
         "rns_stamp_costs_description": "Valores de coste/valor de sello y tiempos de espera. Los campos vacíos mantienen los valores de Reticulum.",
         "rns_identity_stamp_value": "Valor de sello de identidad",
-        "rns_identity_stamp_value_description": "Valor proof-of-work para identidades recién creadas. 0 lo desactiva (predeterminado); valores mayores hacen la generación de claves más lenta pero más resistente a Sybil."
+        "rns_identity_stamp_value_description": "Valor proof-of-work para identidades recién creadas. 0 lo desactiva (predeterminado). Valores mayores hacen la generación de claves más lenta pero más resistente a Sybil."
     },
     "helptips": {
         "title_send_failed": "Cosas que probar",
@@ -1791,6 +1791,7 @@
         "import_success": "Interfaces importadas con éxito. MeshChat debe ser reiniciado para que estos cambios surtan efecto.",
         "failed_import_all": "No importar interfaces",
         "add_interface_sidebar_a11y": "Atajos y presets comunitarios",
+        "advanced": "Avanzado",
         "community_quick_start": "Inicio Rápido Comunitario",
         "community_quick_start_hint": "Presets de meshchatx.com/interfaces, incluidos en la version.",
         "community_quick_start_hide": "Ocultar interfaces sugeridas",

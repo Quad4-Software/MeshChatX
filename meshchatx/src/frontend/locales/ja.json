@@ -1791,6 +1791,7 @@
         "import_success": "インターフェースをインポートしました。変更を反映するには MeshChat の再起動が必要です。",
         "failed_import_all": "インターフェースのインポートに失敗しました",
         "add_interface_sidebar_a11y": "ショートカットとコミュニティプリセット",
+        "advanced": "詳細",
         "community_quick_start": "コミュニティ クイックスタート",
         "community_quick_start_hint": "meshchatx.com/interfaces のプリセット。リリース時に同梱されます。",
         "community_quick_start_hide": "提案されたインターフェースを隠す",

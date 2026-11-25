@@ -788,7 +788,7 @@
         "rns_enforce_stamps_description": "Announces, pad- en linkverzoeken zonder geldige stempels weigeren. Alleen inschakelen op gestempelde netwerken.",
         "rns_stamp_costs_description": "Stempel kost-/waarden en time-outwaarden. Lege velden behouden de Reticulum-standaarden.",
         "rns_identity_stamp_value": "Identiteitsstempelwaarde",
-        "rns_identity_stamp_value_description": "Proof-of-work-waarde voor nieuw aangemaakte identiteiten. 0 schakelt uit (standaard); hogere waarden vertragen sleutelgeneratie maar bemoeilijken Sybil."
+        "rns_identity_stamp_value_description": "Proof-of-work-waarde voor nieuw aangemaakte identiteiten. 0 schakelt uit (standaard). Hogere waarden vertragen sleutelgeneratie maar bemoeilijken Sybil."
     },
     "helptips": {
         "title_send_failed": "Mogelijke oplossingen",
@@ -1791,6 +1791,7 @@
         "import_success": "Interfaces met succes geïmporteerd. MeshChat moet opnieuw worden gestart om deze wijzigingen in werking te laten treden.",
         "failed_import_all": "Kon interfaces niet importeren",
         "add_interface_sidebar_a11y": "Sneltoetsen en community-voorinstellingen",
+        "advanced": "Geavanceerd",
         "community_quick_start": "Community QuickStart",
         "community_quick_start_hint": "Voorinstellingen van meshchatx.com/interfaces, meegeleverd in de release.",
         "community_quick_start_hide": "Voorgestelde interfaces verbergen",

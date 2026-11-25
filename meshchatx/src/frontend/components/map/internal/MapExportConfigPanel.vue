@@ -52,14 +52,14 @@
             <div class="flex gap-2">
                 <button
                     :disabled="exporting"
-                    class="flex-1 py-2 bg-sem-surface-muted hover:bg-gray-300 bg-sem-surface dark:hover:bg-zinc-600 disabled:bg-gray-100 dark:disabled:bg-sem-surface text-sem-fg rounded-lg font-bold transition-colors"
+                    class="flex-1 py-2 bg-sem-surface-muted hover:bg-gray-300 bg-sem-surface dark:hover:bg-zinc-600 disabled:bg-gray-100 dark:disabled:bg-sem-surface text-sem-fg rounded-lg font-bold transition-colors focus-ring-sem"
                     @click="$emit('cancel')"
                 >
                     {{ $t("common.cancel") }}
                 </button>
                 <button
                     :disabled="exporting || tileLimitExceeded"
-                    class="flex-1 py-2 bg-sem-info hover:bg-sem-action-primary disabled:bg-blue-300 text-sem-action-primary-text rounded-lg font-bold transition-colors shadow-md"
+                    class="flex-1 py-2 bg-sem-info hover:bg-sem-action-primary disabled:opacity-50 text-sem-action-primary-text rounded-lg font-bold transition-colors shadow-md focus-ring-sem"
                     @click="$emit('start')"
                 >
                     {{ $t("map.start_export") }}

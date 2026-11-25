@@ -788,7 +788,7 @@
         "rns_enforce_stamps_description": "Hylkää announceet, polypyynnöt ja linkkipyynnöt ilman kelvollisia leimatuksia. Ota käyttöön vain leimatetuissa-verkoissa.",
         "rns_stamp_costs_description": "Leimasimen kustannus-/arvo- ja aikakatkaisuarvot. Tyhjät kentät säilyttävät Reticulumin oletukset.",
         "rns_identity_stamp_value": "Identiteetin leimasimen arvo",
-        "rns_identity_stamp_value_description": "Proof-of-work -arvo uusille identiteeteille. 0 poistaa käytöstä (oletus); suuremmat arvot hidastavat avaimen luontia mutta suojaavat Sybililtä."
+        "rns_identity_stamp_value_description": "Proof-of-work -arvo uusille identiteeteille. 0 poistaa käytöstä (oletus). Suuremmat arvot hidastavat avaimen luontia mutta suojaavat Sybililtä."
     },
     "helptips": {
         "title_send_failed": "Kokeile seuraavaa",
@@ -1791,6 +1791,7 @@
         "import_success": "Sovittimet tuotiin. MeshChat on käynnistettävä uudelleen.",
         "failed_import_all": "Sovittimien tuonti epäonnistui",
         "add_interface_sidebar_a11y": "Oikotiet ja yhteisön ehdotukset",
+        "advanced": "Edistynyt",
         "community_quick_start": "Yhteisön pika-aloitus",
         "community_quick_start_hint": "Esiasetukset sivustolta meshchatx.com/interfaces, mukana julkaisussa.",
         "community_quick_start_hide": "Piilota ehdotetut sovittimet",

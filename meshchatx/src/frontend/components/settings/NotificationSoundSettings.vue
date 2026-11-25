@@ -42,7 +42,7 @@
                         type="range"
                         min="0"
                         max="100"
-                        class="w-full h-1.5 bg-sem-surface-muted rounded-lg appearance-none cursor-pointer accent-blue-600"
+                        class="w-full h-1.5 bg-sem-surface-muted rounded-lg appearance-none cursor-pointer accent-sem-accent"
                         @input="onVolumeChange"
                     />
                 </div>

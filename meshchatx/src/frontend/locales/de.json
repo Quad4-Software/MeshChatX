@@ -788,7 +788,7 @@
         "rns_enforce_stamps_description": "Announces, Pfad- und Link-Anfragen ohne gültige Stempel ablehnen. Nur in gestempelten Netzwerken aktivieren.",
         "rns_stamp_costs_description": "Kosten-/Werte- und Timeout-Werte für Stempel. Leere Felder behalten Reticulum-Standardwerte.",
         "rns_identity_stamp_value": "Identitäts-Stempelwert",
-        "rns_identity_stamp_value_description": "Proof-of-Work-Wert für neu erstellte Identitäten. 0 deaktiviert (Standard); höhere Werte verlangsamen die Schlüsselgenerierung, erschweren Sybils."
+        "rns_identity_stamp_value_description": "Proof-of-Work-Wert für neu erstellte Identitäten. 0 deaktiviert (Standard). Höhere Werte verlangsamen die Schlüsselgenerierung, erschweren Sybils."
     },
     "helptips": {
         "title_send_failed": "Lösungsvorschläge",
@@ -1791,6 +1791,7 @@
         "import_success": "Schnittstellen erfolgreich importiert. MeshChat muss neu gestartet werden, damit diese Änderungen wirksam werden.",
         "failed_import_all": "Importieren von Schnittstellen fehlgeschlagen",
         "add_interface_sidebar_a11y": "Verknüpfungen und Community-Voreinstellungen",
+        "advanced": "Erweitert",
         "community_quick_start": "Community-Schnellstart",
         "community_quick_start_hint": "Voreinstellungen von meshchatx.com/interfaces, im Release enthalten.",
         "community_quick_start_hide": "Vorschläge ausblenden",

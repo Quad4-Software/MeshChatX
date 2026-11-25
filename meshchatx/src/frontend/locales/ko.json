@@ -1791,6 +1791,7 @@
         "import_success": "인터페이스를 가져왔습니다. 변경 사항을 적용하려면 MeshChat을 다시 시작해야 합니다.",
         "failed_import_all": "인터페이스 가져오기 실패",
         "add_interface_sidebar_a11y": "바로 가기와 커뮤니티 프리셋",
+        "advanced": "고급",
         "community_quick_start": "커뮤니티 퀵 스타트",
         "community_quick_start_hint": "meshchatx.com/interfaces의 프리셋이 릴리스에 번들됩니다.",
         "community_quick_start_hide": "추천 인터페이스 숨기기",

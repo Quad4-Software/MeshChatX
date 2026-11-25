@@ -285,7 +285,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-sem-info dark:border-sem-info bg-sem-info/15 dark:bg-sem-info/15 text-blue-800 text-sem-info hover:bg-sem-info/15 dark:hover:bg-sem-info/15 disabled:opacity-60"
+                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-sem-info dark:border-sem-info bg-sem-info/15 dark:bg-sem-info/15 text-sem-info hover:bg-sem-info/15 dark:hover:bg-sem-info/15 disabled:opacity-60"
                                             :disabled="messageAgePurgeBusy"
                                             @click="exportOldMessagesArchive"
                                         >

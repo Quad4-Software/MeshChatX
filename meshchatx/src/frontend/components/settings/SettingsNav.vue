@@ -36,8 +36,8 @@
             :disabled="isSearchEmpty(tab.id)"
             @click="onTabClick(tab.id)"
         >
-            <MaterialDesignIcon v-if="tab.icon" :icon-name="tab.icon" class="settings-nav__icon" />
             <span class="settings-nav__label-row">
+                <MaterialDesignIcon v-if="tab.icon" :icon-name="tab.icon" class="settings-nav__icon" />
                 <span class="settings-nav__label">{{ $t(tab.labelKey) }}</span>
                 <span v-if="searchActive" class="settings-nav__count">{{ matchCount(tab.id) }}</span>
             </span>
@@ -137,7 +137,7 @@ export default {
 }
 
 .settings-nav__icon {
-    @apply size-5 lg:hidden;
+    @apply size-5 shrink-0;
 }
 
 .settings-nav__label-row {
@@ -145,7 +145,7 @@ export default {
 }
 
 .settings-nav__label {
-    @apply text-sm font-semibold leading-tight min-w-0 truncate max-lg:hidden;
+    @apply text-sm font-semibold leading-tight min-w-0 truncate;
 }
 
 .settings-nav__count {

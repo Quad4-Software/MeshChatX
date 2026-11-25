@@ -14,6 +14,10 @@ const COMPONENTS_DIR = join(__dirname, "../../meshchatx/src/frontend/components"
 // positioners, icon renderers) - they are exempt from the "must use sem-
 // tokens" check but still may not hardcode palette colours.
 const STYLE_FREE = new Set([
+    // unit-aware input wrappers: all colouring comes from the sem-token-based
+    // input-field class, they add no palette utilities of their own
+    "BitrateInput.vue",
+    "DurationInput.vue",
     "DropDownMenu.vue",
     "DropDownMenuItem.vue",
     "MaterialDesignIcon.vue",

@@ -788,7 +788,7 @@
         "rns_enforce_stamps_description": "Reject announces, path requests and link requests without valid stamps. Enable only on stamped networks.",
         "rns_stamp_costs_description": "Stamp cost/value and timeout values. Empty fields keep Reticulum defaults.",
         "rns_identity_stamp_value": "Identity stamp value",
-        "rns_identity_stamp_value_description": "Proof-of-work value for newly created identities. 0 disables (default); higher values make key generation slower but harder to Sybil."
+        "rns_identity_stamp_value_description": "Proof-of-work value for newly created identities. 0 disables (default). Higher values make key generation slower but harder to Sybil."
     },
     "helptips": {
         "title_send_failed": "Things to try",
@@ -1769,7 +1769,7 @@
         "http_tunnel_mode_note": "For HTTP tunnels, mode means client or server (not Reticulum full/gateway/roaming).",
         "http_tunnel_server_url": "Server URL",
         "http_tunnel_server_url_required": "Server URL is required for HTTP tunnel client mode.",
-        "http_tunnel_poll_interval": "Poll interval (seconds)",
+        "http_tunnel_poll_interval": "Poll interval",
         "http_tunnel_listen_host": "Listen host",
         "http_tunnel_listen_port": "Listen port",
         "http_tunnel_listen_port_required": "Listen port is required for HTTP tunnel server mode.",
@@ -1791,6 +1791,7 @@
         "import_success": "Interfaces imported successfully. MeshChat must be restarted for these changes to take effect.",
         "failed_import_all": "Failed to import interfaces",
         "add_interface_sidebar_a11y": "Shortcuts and community presets",
+        "advanced": "Advanced",
         "community_quick_start": "Community Quick-Start",
         "community_quick_start_hint": "Presets from meshchatx.com/interfaces, bundled at release.",
         "community_filter_title": "Filter community presets",

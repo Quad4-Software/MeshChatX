@@ -181,7 +181,7 @@ export default {
             if (this.dragActive) {
                 return "border-sem-accent bg-sem-info/15 dark:border-sem-info dark:bg-sem-info/15";
             }
-            return "border-sem-border bg-sem-surface-muted/40 hover:border-blue-400/70 dark:border-sem-border cursor-pointer";
+            return "border-sem-border bg-sem-surface-muted/40 hover:border-sem-accent/70 dark:border-sem-border cursor-pointer";
         },
     },
     watch: {

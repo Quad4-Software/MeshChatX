@@ -788,7 +788,7 @@
         "rns_enforce_stamps_description": "Rejeitar announces, solicitações de caminho e de link sem carimbos válidos. Ative apenas em redes com carimbos.",
         "rns_stamp_costs_description": "Valores de custo/valor de carimbo e timeouts. Campos vazios mantêm os padrões do Reticulum.",
         "rns_identity_stamp_value": "Valor de carimbo de identidade",
-        "rns_identity_stamp_value_description": "Valor proof-of-work para identidades recém-criadas. 0 desativa (padrão); valores maiores tornam a geração de chaves mais lenta, mas mais resistente a Sybil."
+        "rns_identity_stamp_value_description": "Valor proof-of-work para identidades recém-criadas. 0 desativa (padrão). Valores maiores tornam a geração de chaves mais lenta, mas mais resistente a Sybil."
     },
     "helptips": {
         "title_send_failed": "Coisas a tentar",
@@ -1791,6 +1791,7 @@
         "import_success": "Interfaces importadas com sucesso. O MeshChat deve ser reiniciado para que estas alterações tenham efeito.",
         "failed_import_all": "Falha ao importar as interfaces",
         "add_interface_sidebar_a11y": "Atalhos e predefinições da comunidade",
+        "advanced": "Avançado",
         "community_quick_start": "Início Rápido da Comunidade",
         "community_quick_start_hint": "Predefinições de meshchatx.com/interfaces, incluídas na versão.",
         "community_quick_start_hide": "Ocultar interfaces sugeridas",

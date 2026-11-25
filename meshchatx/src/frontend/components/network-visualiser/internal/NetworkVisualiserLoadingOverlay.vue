@@ -9,7 +9,9 @@
             class="bg-sem-surface dark:bg-sem-surface border border-sem-border rounded-2xl px-6 py-4 flex flex-col items-center gap-3"
         >
             <div class="relative">
-                <div class="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                <div
+                    class="w-12 h-12 border-4 border-sem-accent/20 border-t-sem-accent rounded-full animate-spin"
+                ></div>
                 <div class="absolute inset-0 flex items-center justify-center">
                     <div
                         class="w-6 h-6 border-4 border-sem-success border-b-emerald-500 rounded-full animate-spin-reverse"

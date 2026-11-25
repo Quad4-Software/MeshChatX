@@ -212,7 +212,7 @@
                                     <button
                                         v-if="interfacesWithLocation.length > 0"
                                         type="button"
-                                        class="secondary-chip text-xs bg-sem-warning/15 hover:bg-sem-warning/15 text-sem-accent border-blue-500/30"
+                                        class="secondary-chip text-xs bg-sem-warning/15 hover:bg-sem-warning/15 text-sem-accent border-sem-accent/30"
                                         @click="mapAllDiscovered"
                                     >
                                         <MaterialDesignIcon icon-name="map-marker-multiple" class="w-4 h-4" />

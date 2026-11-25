@@ -1791,6 +1791,7 @@
         "import_success": "接口导入成功。必须重新启动 MeshChat 才能使这些更改生效。",
         "failed_import_all": "导入接口失败",
         "add_interface_sidebar_a11y": "快捷键和社区预设",
+        "advanced": "高级",
         "community_quick_start": "社区快速启动",
         "community_quick_start_hint": "来自 meshchatx.com/interfaces 的预设，随版本打包。",
         "community_quick_start_hide": "隐藏建议接口",

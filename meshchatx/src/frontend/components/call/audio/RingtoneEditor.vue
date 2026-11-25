@@ -19,7 +19,7 @@
         >
             <div v-if="loading" class="flex flex-col items-center justify-center space-y-3">
                 <div
-                    class="size-8 border-4 border-sem-action-info/20 border-t-blue-500 rounded-full animate-spin"
+                    class="size-8 border-4 border-sem-action-info/20 border-t-sem-action-info rounded-full animate-spin"
                 ></div>
                 <p class="text-sm text-sem-fg-muted font-medium">Loading audio...</p>
             </div>

@@ -788,7 +788,7 @@
         "rns_enforce_stamps_description": "Відхиляти анонси, запити шляху та каналу без дійсних міток. Вмикайте лише в мережах з мітками.",
         "rns_stamp_costs_description": "Значення вартості/цінності мітки та тайм-аутів. Порожні поля зберігають значення Reticulum.",
         "rns_identity_stamp_value": "Значення мітки ідентичності",
-        "rns_identity_stamp_value_description": "Значення proof-of-work для нових ідентичностей. 0 вимикає (за замовчуванням); більші значення сповільнюють генерацію ключів, але ускладнюють Sybil."
+        "rns_identity_stamp_value_description": "Значення proof-of-work для нових ідентичностей. 0 вимикає (за замовчуванням). Більші значення сповільнюють генерацію ключів, але ускладнюють Sybil."
     },
     "helptips": {
         "title_send_failed": "Що спробувати",
@@ -1791,6 +1791,7 @@
         "import_success": "Інтерфейси успішно імпортовано. MeshChat потрібно перезапустити, щоб ці зміни набули чинності.",
         "failed_import_all": "Не вдалося імпортувати інтерфейси",
         "add_interface_sidebar_a11y": "Скорочення та спільнотні пресети",
+        "advanced": "Розширений",
         "community_quick_start": "Спільнотний швидкий старт",
         "community_quick_start_hint": "Пресети з meshchatx.com/interfaces, включені у випуск.",
         "community_quick_start_hide": "Приховати запропоновані інтерфейси",

@@ -788,7 +788,7 @@
         "rns_enforce_stamps_description": "Geçerli damgası olmayan duyuru, yol ve bağlantı isteklerini reddet. Yalnızca damgalı ağlarda etkinleştir.",
         "rns_stamp_costs_description": "Damga maliyet/değer ve zaman aşımı değerleri. Boş alanlar Reticulum varsayılanlarını korur.",
         "rns_identity_stamp_value": "Kimlik damga değeri",
-        "rns_identity_stamp_value_description": "Yeni oluşturulan kimlikler için proof-of-work değeri. 0 devre dışı bırakır (varsayılan); yüksek değerler anahtar üretimini yavaşlatır ama Sybil'e karşı korur."
+        "rns_identity_stamp_value_description": "Yeni oluşturulan kimlikler için proof-of-work değeri. 0 devre dışı bırakır (varsayılan). Yüksek değerler anahtar üretimini yavaşlatır ama Sybil'e karşı korur."
     },
     "helptips": {
         "title_send_failed": "Denenecek şeyler",
@@ -1791,6 +1791,7 @@
         "import_success": "Arayüzler başarıyla içe aktarıldı. Bu değişikliklerin etkili olması için MeshChat yeniden başlatılmalıdır.",
         "failed_import_all": "Arayüzler içe aktarılamadı",
         "add_interface_sidebar_a11y": "Kısayollar ve topluluk ön ayarları",
+        "advanced": "Gelişmiş",
         "community_quick_start": "Topluluk Hızlı Başlangıç",
         "community_quick_start_hint": "meshchatx.com/interfaces adresinden ön ayarlar, sürümde paketlenmiştir.",
         "community_quick_start_hide": "Önerilen arayüzleri gizle",
