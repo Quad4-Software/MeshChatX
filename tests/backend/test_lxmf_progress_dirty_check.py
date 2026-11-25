@@ -116,9 +116,12 @@ async def test_unchanged_progress_and_state_persist_only_first_write(db):
         nonlocal sleeps
         sleeps += 1
         # Sub-percent movement inside the same whole-percent bucket:
-        # broadcast-only, never a persist trigger.
+        # broadcast-only, never a persist trigger. Mutations key off the
+        # broadcast count (one per loop tick) rather than the sleep count:
+        # a full-suite worker can carry stray asyncio.sleep callers from
+        # unrelated async machinery, which must not shift the sequence.
         mock_msg.progress += 0.001
-        if sleeps >= 5:
+        if app.websocket_broadcast.await_count >= 5:
             app.current_context.running = False
 
     with _dict_patch(msg_hash), patch("asyncio.sleep", side_effect=creeping_sleep):
@@ -128,11 +131,13 @@ async def test_unchanged_progress_and_state_persist_only_first_write(db):
             context=app.current_context,
         )
 
-    assert sleeps >= 5
+    assert app.websocket_broadcast.await_count >= 5
     assert len(writes) == 1
     # Broadcasts and the path-at-send probe still run every tick.
-    assert app.websocket_broadcast.await_count == sleeps
-    assert app._maybe_store_path_at_send_for_lxmf.call_count == sleeps
+    assert (
+        app._maybe_store_path_at_send_for_lxmf.call_count
+        == app.websocket_broadcast.await_count
+    )
 
 
 @pytest.mark.asyncio
@@ -149,10 +154,12 @@ async def test_whole_percent_progress_jump_persists(db):
     async def jumping_sleep(_duration):
         nonlocal sleeps
         sleeps += 1
-        if sleeps == 1:
-            mock_msg.progress = 0.115  # 10.0% -> 11.5%: crosses int() boundary
-        if sleeps >= 2:
+        # Keyed off the write count, not the sleep count: see
+        # test_unchanged_progress_and_state_persist_only_first_write.
+        if len(writes) >= 2:
             app.current_context.running = False
+        elif len(writes) == 1:
+            mock_msg.progress = 0.115  # 10.0% -> 11.5%: crosses int() boundary
 
     with _dict_patch(msg_hash), patch("asyncio.sleep", side_effect=jumping_sleep):
         await ReticulumMeshChat.handle_lxmf_message_progress(
@@ -180,11 +187,11 @@ async def test_state_transition_persists_with_tiny_progress_change(db):
     async def state_flip_sleep(_duration):
         nonlocal sleeps
         sleeps += 1
-        if sleeps == 1:
+        if len(writes) >= 2:
+            app.current_context.running = False
+        elif len(writes) == 1:
             mock_msg.state = LXMF.LXMessage.SENDING
             mock_msg.progress = 0.101  # same whole-percent bucket as 0.1
-        if sleeps >= 2:
-            app.current_context.running = False
 
     with _dict_patch(msg_hash), patch("asyncio.sleep", side_effect=state_flip_sleep):
         await ReticulumMeshChat.handle_lxmf_message_progress(
@@ -218,7 +225,7 @@ async def test_terminal_state_persists_even_when_key_unchanged(db):
     async def terminal_flip_sleep(_duration):
         nonlocal sleeps
         sleeps += 1
-        if sleeps == 1:
+        if len(writes) == 1:
             # Same state string, same method, same progress: only the
             # terminal flag changes. Nothing else in the persist key moves.
             mock_msg.try_propagation_on_fail = False
@@ -313,10 +320,10 @@ async def test_delivery_attempts_change_persists(db):
     async def attempt_bump_sleep(_duration):
         nonlocal sleeps
         sleeps += 1
-        if sleeps == 1:
-            mock_msg.delivery_attempts = 2
-        if sleeps >= 2:
+        if len(writes) >= 2:
             app.current_context.running = False
+        elif len(writes) == 1:
+            mock_msg.delivery_attempts = 2
 
     with (
         _dict_patch(msg_hash),
