@@ -367,7 +367,7 @@ class AutoPropagationManager:
         # LXMF needs a recalled identity to open the propagation link.
         with contextlib.suppress(Exception):
             if RNS.Identity.recall(dest) is None:
-                RNS.Transport.request_path(dest)
+                reticulum_pathfinding.request_path_rate_limited(dest)
 
         # Prove access with a tiny transfer budget. Full mailbox sync belongs
         # to the operator-triggered or interval sync paths, not auto-select.
@@ -605,7 +605,9 @@ class AutoPropagationManager:
                         prev_have_path = False
                     if not prev_have_path:
                         with contextlib.suppress(Exception):
-                            RNS.Transport.request_path(previous_bytes)
+                            reticulum_pathfinding.request_path_rate_limited(
+                                previous_bytes
+                            )
             return
 
         probed_any = False
@@ -660,7 +662,9 @@ class AutoPropagationManager:
                         prev_have_path = False
                     if not prev_have_path:
                         with contextlib.suppress(Exception):
-                            RNS.Transport.request_path(previous_bytes)
+                            reticulum_pathfinding.request_path_rate_limited(
+                                previous_bytes
+                            )
                 self.app.set_active_propagation_node(previous_hex, context=self.context)
                 return
 

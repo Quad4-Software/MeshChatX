@@ -34,6 +34,7 @@ SERVER_DIR_NAME = "rrc_server"
 MESSAGE_LOG_CAP = 5000
 EVENT_LOG_CAP = 200
 RATE_EVENT_MIN_INTERVAL_S = 30.0
+FORCED_ANNOUNCE_MIN_INTERVAL_S = constants.FORCED_ANNOUNCE_MIN_INTERVAL_SECONDS
 DEFAULT_MAX_SESSIONS = 512
 # Links that never complete HELLO are reaped after this window.
 PRE_WELCOME_TIMEOUT_S = 90.0
@@ -218,6 +219,7 @@ class RRCHubServer:
         self.running = False
         self._started_at = None
         self._announce_timer = None
+        self._last_announce_sent_at = None
 
         self._lock = threading.RLock()
         self._sessions = {}
@@ -276,12 +278,28 @@ class RRCHubServer:
         self._log("hub started at " + self.dest_hash.hex())
 
     def announce_now(self):
+        """Announce the hub, with a short floor even for manual triggers.
+
+        The first announce after startup is always allowed. Repeat forced or
+        manual calls inside one minute collapse instead of turning a UI button
+        or control hook into an announce storm. Periodic timers already use
+        the much larger configured interval.
+        """
         if self.destination is None:
-            return
+            return False
+        with self._lock:
+            now = time.monotonic()
+            if (
+                self._last_announce_sent_at is not None
+                and now - self._last_announce_sent_at < FORCED_ANNOUNCE_MIN_INTERVAL_S
+            ):
+                return False
+            self._last_announce_sent_at = now
         with contextlib.suppress(Exception):
             self.destination.announce(
                 app_data=proto.encode({"proto": "rrc", "v": 1, "hub": self.name}),
             )
+        return True
 
     def _cancel_announce_timer(self):
         timer = self._announce_timer

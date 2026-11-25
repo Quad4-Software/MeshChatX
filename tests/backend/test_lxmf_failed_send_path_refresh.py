@@ -16,6 +16,10 @@ import pytest
 import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
+from meshchatx.src.backend import reticulum_pathfinding
+from meshchatx.src.backend.reticulum_pathfinding import (
+    reset_path_request_rate_limit_for_tests,
+)
 
 DEST = b"\x11" * 16
 LOCAL = b"\x99" * 16
@@ -91,6 +95,10 @@ def test_refresh_is_rate_limited_per_destination(mock_app):
         assert mock_app.reticulum.drop_path.call_count == 1
 
         mock_app._path_refresh_after_failed_send_at[DEST] = time.time() - 61.0
+        # This test exercises the app-level sixty-second refresh cooldown. The
+        # shared five-second path-request window is covered separately; reset it
+        # here rather than sleeping so the wider app cooldown remains the gate.
+        reset_path_request_rate_limit_for_tests()
         ReticulumMeshChat.on_lxmf_sending_failed(mock_app, msg)
         assert request_path.call_count == 2
         assert mock_app.reticulum.drop_path.call_count == 2
@@ -154,7 +162,11 @@ def test_unrelated_fields_still_refresh(mock_app):
     request_path.assert_called_once_with(DEST)
 
 
-def test_global_cap_skips_eleventh_destination(mock_app):
+def test_global_cap_skips_eleventh_destination(mock_app, monkeypatch):
+    # Keep the shared mesh-wide bucket out of the way here; this test is for
+    # the failed-send burst cap. The token bucket itself is covered separately.
+    monkeypatch.setattr(reticulum_pathfinding, "_PATH_REQUEST_GLOBAL_BURST", 100.0)
+    reset_path_request_rate_limit_for_tests()
     dests = [bytes([i]) * 16 for i in range(1, 12)]
     with patch.object(RNS.Transport, "request_path") as request_path:
         for dest in dests:

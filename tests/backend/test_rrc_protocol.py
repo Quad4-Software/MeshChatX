@@ -688,6 +688,31 @@ def test_manual_connect_resets_attempts(tmp_path, monkeypatch):
     assert hub.status == RRCHub.STATUS_CONNECTING
 
 
+def test_manual_connect_repeated_clicks_do_not_reset_backoff(tmp_path, monkeypatch):
+    """A rapid second manual connect is ignored instead of re-arming backoff."""
+    import meshchatx.src.backend.rrc.manager as rrc_manager
+
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    monkeypatch.setattr(hub, "_connect_worker", lambda *args: None)
+
+    hub.connect()
+    assert hub.status == RRCHub.STATUS_CONNECTING
+
+    # Simulate a fast failure, then a user clicking Connect again immediately.
+    hub.status = RRCHub.STATUS_FAILED
+    hub._reconnect_attempts = 7
+    hub.connect()
+    assert hub._reconnect_attempts == 7
+    assert hub.status == RRCHub.STATUS_FAILED
+
+    # After the short manual window the intentional override still works.
+    hub._last_manual_connect_at -= rrc_manager.MANUAL_CONNECT_MIN_INTERVAL_S + 1
+    hub.connect()
+    assert hub._reconnect_attempts == 0
+    assert hub.status == RRCHub.STATUS_CONNECTING
+
+
 def test_timer_reconnect_preserves_attempts(tmp_path, monkeypatch):
     """Timer driven reconnects keep the counter so backoff can grow."""
     manager = make_manager(tmp_path)

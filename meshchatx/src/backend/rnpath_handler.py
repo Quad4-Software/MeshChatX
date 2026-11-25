@@ -2,6 +2,8 @@
 
 import RNS
 
+from meshchatx.src.backend import reticulum_pathfinding
+
 
 class RNPathHandler:
     def __init__(self, reticulum_instance: RNS.Reticulum | None):
@@ -184,7 +186,6 @@ class RNPathHandler:
     def request_path(self, destination_hash: str):
         try:
             dest_bytes = bytes.fromhex(destination_hash)
-            RNS.Transport.request_path(dest_bytes)
-            return True
+            return reticulum_pathfinding.request_path_rate_limited(dest_bytes)
         except Exception:
             return False

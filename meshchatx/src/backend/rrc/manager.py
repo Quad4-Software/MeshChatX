@@ -20,7 +20,7 @@ from typing import ClassVar
 
 import RNS
 
-from meshchatx.src.backend import traffic_stats
+from meshchatx.src.backend import reticulum_pathfinding, traffic_stats
 from meshchatx.src.backend.path_utils import (
     path_response_window,
     slowest_online_bitrate,
@@ -70,6 +70,11 @@ CONNECT_LINK_WATCHDOG_S = 60.0
 # Delay between auto-connect starts so a large configured hub set does
 # not burst link requests at startup.
 AUTO_CONNECT_STAGGER_S = 0.25
+
+# Manual connect is an intentional override, but repeated clicks must not keep
+# restarting the backoff ladder. Allow the first click immediately, then rate
+# limit further manual starts for a short per-hub window.
+MANUAL_CONNECT_MIN_INTERVAL_S = 30.0
 
 
 def _format_reconnect_delay(seconds):
@@ -263,6 +268,7 @@ class RRCHub:
         self._reconnect_timer = None
         self._last_announce_reset = float("-inf")
         self._last_path_request = float("-inf")
+        self._last_manual_connect_at = float("-inf")
         self._path_request_tokens = PATH_REQUEST_BURST
         self._path_token_last = time.monotonic()
         self._last_budget_warn = float("-inf")
@@ -465,13 +471,20 @@ class RRCHub:
         """Start a connect attempt.
 
         A user or policy driven connect clears the retry counter so a hub
-        that decayed to a slow backoff retries immediately. Timer driven
-        reconnects call this with reset_attempts=False so the backoff can
-        keep growing across consecutive failures.
+        that decayed to a slow backoff retries immediately. Repeat manual
+        starts inside MANUAL_CONNECT_MIN_INTERVAL_S are ignored so clicking
+        connect repeatedly cannot keep resetting the backoff ladder. Timer
+        driven reconnects call this with reset_attempts=False so the backoff
+        can keep growing across consecutive failures.
         """
         with self._lock:
             if self.status in (RRCHub.STATUS_CONNECTING, RRCHub.STATUS_CONNECTED):
                 return
+            if reset_attempts:
+                now = time.monotonic()
+                if now - self._last_manual_connect_at < MANUAL_CONNECT_MIN_INTERVAL_S:
+                    return
+                self._last_manual_connect_at = now
             self._manual_disconnect = False
             if reset_attempts:
                 self._reconnect_attempts = 0
@@ -609,7 +622,7 @@ class RRCHub:
                         # bounds the sustained rate across attempts so dead
                         # hubs cannot spray mesh wide requests.
                         self._last_path_request = now_m
-                        RNS.Transport.request_path(self.hub_hash)
+                        reticulum_pathfinding.request_path_rate_limited(self.hub_hash)
                     time.sleep(0.2)
             finally:
                 if gate is not None:
@@ -922,6 +935,10 @@ class RRCHub:
         self._stop_hello.set()
         with self._lock:
             self._manual_disconnect = True
+            # A deliberate disconnect ends the previous connect attempt. The
+            # anti-spam window is for repeated connect clicks on the same
+            # attempt, not for blocking an explicit disconnect/reconnect cycle.
+            self._last_manual_connect_at = float("-inf")
             # Invalidate any in-flight connect worker so a link created
             # after this point cannot resurrect the cancelled session.
             self._connect_epoch += 1

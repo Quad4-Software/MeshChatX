@@ -15,6 +15,7 @@ from typing import Any
 
 import RNS
 
+from meshchatx.src.backend import reticulum_pathfinding
 from meshchatx.src.backend.management_identities import resolve_identity_path
 from meshchatx.src.backend.path_utils import (
     link_establishment_window,
@@ -55,7 +56,7 @@ def management_destination_hash(transport_identity_hash: bytes) -> bytes:
 def _wait_for_path(destination_hash: bytes, timeout: float) -> None:
     if RNS.Transport.has_path(destination_hash):
         return
-    RNS.Transport.request_path(destination_hash)
+    reticulum_pathfinding.request_path_rate_limited(destination_hash)
     started = time.time()
     while not RNS.Transport.has_path(destination_hash):
         if time.time() - started > timeout:

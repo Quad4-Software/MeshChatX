@@ -87,8 +87,10 @@ from meshchatx.src.backend.auto_resend_guard import (
 )
 from meshchatx.src.backend.colour_utils import ColourUtils
 from meshchatx.src.backend.constants import (
+    ANNOUNCE_SEND_MIN_INTERVAL_SECONDS,
     API_V1_PREFIX,
     DEFAULT_DISPLAY_NAME,
+    MANUAL_ANNOUNCE_MIN_INTERVAL_SECONDS,
     MIN_ANNOUNCE_INTERVAL_SECONDS,
 )
 from meshchatx.src.backend.database.access_attempts import (
@@ -813,6 +815,11 @@ class ReticulumMeshChat:
         self._auto_resend_warned_at: dict[str, float] = {}
         # Rate limits path refresh after a failed direct send per destination.
         self._path_refresh_after_failed_send_at: dict[bytes, float] = {}
+        # Trailing-edge debounce for stamp-cost/config-change announces.
+        self._config_change_announce_lock = threading.RLock()
+        self._config_change_announce_last: dict[tuple[str, str], float] = {}
+        self._config_change_announce_pending = {}
+        self._config_change_announce_timers = {}
 
         from meshchatx.src.backend.lifecycle.signal_shutdown import (
             register_shutdown_app,
@@ -4632,7 +4639,10 @@ class ReticulumMeshChat:
                     have_path = False
                 if not have_path:
                     with contextlib.suppress(Exception):
-                        RNS.Transport.request_path(destination_hash_bytes)
+                        reticulum_pathfinding.prepare_fresh_path_request(
+                            getattr(self, "reticulum", None),
+                            destination_hash_bytes,
+                        )
             except Exception:
                 # failed to set propagation node, clear it to ensure we don't use an old one by mistake
                 self.remove_active_propagation_node(context=ctx)
@@ -6743,6 +6753,26 @@ class ReticulumMeshChat:
                 print(f"local_message_retention_loop failed: {e}")
             await asyncio.sleep(60)
 
+    async def _send_telemetry_tracking_request(self, dest_hash, context):
+        """Send one tracked-peer request independently of the polling loop."""
+        try:
+            await self.send_message(
+                destination_hash=dest_hash,
+                content="",
+                commands=[{SidebandCommands.TELEMETRY_REQUEST: 0}],
+                delivery_method="opportunistic",
+                no_display=False,
+                context=context,
+            )
+        except Exception as exc:
+            # The attempt has already been counted. A missing path or identity
+            # is exactly the unanswered case the backoff ladder exists for.
+            logger.debug(
+                "Telemetry request to %s failed before/during send: %s",
+                dest_hash,
+                exc,
+            )
+
     async def telemetry_tracking_loop(self, session_id, context=None):
         ctx = context or self.current_context
         if not ctx:
@@ -6777,37 +6807,77 @@ class ReticulumMeshChat:
 
                     if last_req is None or now - last_req >= interval:
                         print(f"Sending telemetry request to tracked peer: {dest_hash}")
-                        # Send telemetry request
-                        await self.send_message(
-                            destination_hash=dest_hash,
-                            content="",
-                            commands=[{SidebandCommands.TELEMETRY_REQUEST: 0}],
-                            delivery_method="opportunistic",
-                            no_display=False,
-                            context=ctx,
-                        )
+                        # Count the attempt before the network send. send_message
+                        # can raise after a long path-discovery timeout for an
+                        # offline peer; that is still an unanswered request and
+                        # must advance the backoff/pause ladder. Sending then
+                        # runs as its own task so one slow unreachable peer does
+                        # not serialize the whole tracking loop behind it.
                         await asyncio.to_thread(
                             ctx.database.telemetry.mark_request_sent,
                             dest_hash,
                             now,
                         )
+                        task = asyncio.create_task(
+                            self._send_telemetry_tracking_request(dest_hash, ctx),
+                        )
+                        tasks = getattr(self, "_telemetry_request_tasks", None)
+                        if not isinstance(tasks, set):
+                            tasks = self._telemetry_request_tasks = set()
+                        tasks.add(task)
+                        task.add_done_callback(tasks.discard)
 
             except Exception as e:
                 print(f"Telemetry tracking loop error: {e}")
 
-            # Check every 10 seconds
-            await asyncio.sleep(10)
+            # Check every 10 seconds. If the context was stopped while peer
+            # work was being scheduled, exit promptly instead of parking in
+            # one final sleep for a dead identity session.
+            if self.running and ctx.running and ctx.session_id == session_id:
+                await asyncio.sleep(10)
 
     # handle announcing
-    async def announce(self, context=None):
+    async def announce(self, context=None, force=False):
         if self.demo_mode:
-            return
+            return False
         ctx = context or self.current_context
         if not ctx:
-            return
+            return False
 
-        # update last announced at timestamp
-        ctx.config.last_announced_at.set(int(time.time()))
+        # The periodic loop has a fifteen-minute scheduler floor, but API and
+        # internal callers can invoke this method directly. Keep a send-edge
+        # floor here as well. Manual user triggers may use a shorter floor via
+        # force=True; automatic callers get the longer anti-burst floor.
+        now = time.time()
+        floor = (
+            MANUAL_ANNOUNCE_MIN_INTERVAL_SECONDS
+            if force
+            else ANNOUNCE_SEND_MIN_INTERVAL_SECONDS
+        )
+        try:
+            last_announced_at = ctx.config.last_announced_at.get()
+            last_announced_at = (
+                float(last_announced_at) if last_announced_at is not None else None
+            )
+        except (TypeError, ValueError):
+            last_announced_at = None
+        if (
+            last_announced_at is not None
+            and last_announced_at <= now
+            and now - last_announced_at < floor
+        ):
+            logger.debug(
+                "Skipping announce for %s: last announce %.1fs ago (floor %ss)",
+                getattr(ctx, "identity_hash", "<unknown>"),
+                now - last_announced_at,
+                floor,
+            )
+            return False
+
+        # Reserve the slot before emitting so concurrent callers cannot both
+        # pass the floor check. The websocket notification below is async, but
+        # the Reticulum announces themselves are synchronous.
+        ctx.config.last_announced_at.set(int(now))
 
         # send announce for lxmf (ensuring name is updated before announcing)
         ctx.local_lxmf_destination.display_name = ctx.config.display_name.get()
@@ -6824,6 +6894,7 @@ class ReticulumMeshChat:
 
         # tell websocket clients we just announced
         await self.send_announced_to_websocket_clients(context=ctx)
+        return True
 
     # handle syncing propagation nodes
     async def sync_propagation_nodes(self, context=None, force=False):
@@ -7144,7 +7215,10 @@ class ReticulumMeshChat:
             self.config.lxmf_propagation_transfer_limit_in_bytes.set(value)
             self.message_router.propagation_per_transfer_limit = value / 1000
             if self.config.lxmf_local_propagation_node_enabled.get():
-                self.message_router.announce_propagation_node()
+                self._queue_config_change_announce(
+                    self.current_context,
+                    "propagation",
+                )
 
         if "lxmf_propagation_sync_limit_in_bytes" in data:
             value = self._coerce_int(data["lxmf_propagation_sync_limit_in_bytes"])
@@ -7232,12 +7306,11 @@ class ReticulumMeshChat:
                     self.message_router.enforce_stamps()
                 elif hasattr(self.message_router, "ignore_stamps"):
                     self.message_router.ignore_stamps()
-                # re-announce to update the stamp cost in announces
-                self.local_lxmf_destination.display_name = (
-                    self.config.display_name.get()
-                )
-                self.message_router.announce(
-                    destination_hash=self.local_lxmf_destination.hash,
+                # Re-announce to update the stamp cost, debounced so rapid
+                # config saves collapse into one trailing wire announce.
+                self._queue_config_change_announce(
+                    self.current_context,
+                    "lxmf_delivery",
                 )
 
         # update propagation node stamp cost (for messages propagated through your node)
@@ -7253,9 +7326,13 @@ class ReticulumMeshChat:
             self.config.lxmf_propagation_node_stamp_cost.set(value)
             # update the propagation stamp cost on the router
             self.message_router.propagation_stamp_cost = value
-            # re-announce propagation node if enabled
+            # Re-announce propagation node if enabled, debounced like other
+            # config-driven announces.
             if self.config.lxmf_local_propagation_node_enabled.get():
-                self.message_router.announce_propagation_node()
+                self._queue_config_change_announce(
+                    self.current_context,
+                    "propagation",
+                )
 
         if "lxmf_propagation_sequential_validation" in data:
             value = self._parse_bool(
@@ -7707,11 +7784,9 @@ class ReticulumMeshChat:
                         254,
                     )
                     self.message_router.enforce_stamps()
-                    self.local_lxmf_destination.display_name = (
-                        self.config.display_name.get()
-                    )
-                    self.message_router.announce(
-                        destination_hash=self.local_lxmf_destination.hash,
+                    self._queue_config_change_announce(
+                        self.current_context,
+                        "lxmf_delivery",
                     )
             elif not new_value and old_value:
                 # Disabling block strangers: restore previous stamp cost.
@@ -7733,11 +7808,9 @@ class ReticulumMeshChat:
                         self.message_router.enforce_stamps()
                     elif hasattr(self.message_router, "ignore_stamps"):
                         self.message_router.ignore_stamps()
-                    self.local_lxmf_destination.display_name = (
-                        self.config.display_name.get()
-                    )
-                    self.message_router.announce(
-                        destination_hash=self.local_lxmf_destination.hash,
+                    self._queue_config_change_announce(
+                        self.current_context,
+                        "lxmf_delivery",
                     )
             self.sync_telephone_call_policy()
 
@@ -10080,6 +10153,109 @@ class ReticulumMeshChat:
         except Exception:
             return False
 
+    def _config_change_announce_state(self):
+        lock = getattr(self, "_config_change_announce_lock", None)
+        if lock is None:
+            # Tests often instantiate with __new__ rather than the full app
+            # constructor; keep the helper safe on those partial objects.
+            lock = threading.RLock()
+            self._config_change_announce_lock = lock
+            self._config_change_announce_last = {}
+            self._config_change_announce_pending = {}
+            self._config_change_announce_timers = {}
+        return (
+            lock,
+            self._config_change_announce_last,
+            self._config_change_announce_pending,
+            self._config_change_announce_timers,
+        )
+
+    def _emit_lxmf_delivery_config_announce(self, ctx) -> None:
+        if not ctx or not getattr(ctx, "running", True):
+            return
+        if not getattr(ctx, "message_router", None):
+            return
+        destination = getattr(ctx, "local_lxmf_destination", None)
+        if destination is None:
+            return
+        destination.display_name = ctx.config.display_name.get()
+        ctx.message_router.announce(destination_hash=destination.hash)
+
+    def _emit_propagation_config_announce(self, ctx) -> None:
+        if not ctx or not getattr(ctx, "running", True):
+            return
+        if not getattr(ctx, "message_router", None):
+            return
+        if ctx.config.lxmf_local_propagation_node_enabled.get():
+            ctx.message_router.announce_propagation_node()
+
+    def _flush_config_change_announce(self, key) -> None:
+        lock, last, pending, timers = self._config_change_announce_state()
+        with lock:
+            emit = pending.pop(key, None)
+            timers.pop(key, None)
+            if emit is None:
+                return
+            last[key] = time.monotonic()
+        with contextlib.suppress(Exception):
+            emit()
+
+    def _queue_config_change_announce(self, ctx, kind: str) -> None:
+        """Emit or trailing-edge debounce a config-change announce.
+
+        Stamp-cost saves are legitimate one-offs, but a settings form can save
+        several controls in quick succession. The first announce goes out
+        immediately; repeats inside the floor collapse into one trailing
+        announce that reads the then-current router/config state instead of
+        dropping the final value. A recent full app announce also counts as
+        the leading edge because it already put the same destination on air.
+        """
+        if not ctx:
+            return
+        if kind == "propagation":
+            emit = lambda: self._emit_propagation_config_announce(ctx)  # noqa: E731
+        else:
+            emit = lambda: self._emit_lxmf_delivery_config_announce(ctx)  # noqa: E731
+
+        identity_key = str(getattr(ctx, "identity_hash", None) or "current")
+        key = (identity_key, kind)
+        now = time.monotonic()
+        floor = float(ANNOUNCE_SEND_MIN_INTERVAL_SECONDS)
+        lock, last, pending, timers = self._config_change_announce_state()
+
+        with lock:
+            last_at = last.get(key, float("-inf"))
+            try:
+                full_last = ctx.config.last_announced_at.get()
+                if full_last is not None:
+                    full_age = time.time() - float(full_last)
+                    if 0 <= full_age < floor:
+                        last_at = max(last_at, now - full_age)
+            except (TypeError, ValueError):
+                pass
+
+            elapsed = now - last_at
+            if elapsed >= floor:
+                last[key] = now
+                send_now = True
+            else:
+                pending[key] = emit
+                send_now = False
+                if key not in timers:
+                    delay = max(0.1, floor - elapsed)
+                    timer = threading.Timer(
+                        delay,
+                        self._flush_config_change_announce,
+                        args=(key,),
+                    )
+                    timer.daemon = True
+                    timers[key] = timer
+                    timer.start()
+
+        if send_now:
+            with contextlib.suppress(Exception):
+                emit()
+
     def _apply_lxmf_flood_stamp_cost(self, cost: int, context=None) -> None:
         """Apply the given inbound stamp cost for flood protection and re-announce."""
         ctx = context or self.current_context
@@ -10097,13 +10273,7 @@ class ReticulumMeshChat:
             ctx.message_router.enforce_stamps()
         elif hasattr(ctx.message_router, "ignore_stamps"):
             ctx.message_router.ignore_stamps()
-        try:
-            ctx.local_lxmf_destination.display_name = ctx.config.display_name.get()
-            ctx.message_router.announce(
-                destination_hash=ctx.local_lxmf_destination.hash,
-            )
-        except Exception as e:
-            print(f"_apply_lxmf_flood_stamp_cost: re-announce failed: {e}")
+        self._queue_config_change_announce(ctx, "lxmf_delivery")
 
     def _lxmf_flood_state_owner(self, ctx):
         """Object holding flood-protection state for ctx.
@@ -11267,7 +11437,7 @@ class ReticulumMeshChat:
             with contextlib.suppress(Exception):
                 self.reticulum.drop_path(destination_hash)
         with contextlib.suppress(Exception):
-            RNS.Transport.request_path(destination_hash)
+            reticulum_pathfinding.request_path_rate_limited(destination_hash)
 
     # sends a previously failed message via a propagation node
     def send_failed_message_via_propagation_node(

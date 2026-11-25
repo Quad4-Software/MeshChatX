@@ -434,9 +434,13 @@ def register_path_probe_routes(routes, app):
         delivery_budget_seconds = max(1, timeout_seconds - path_budget_seconds)
         path_deadline = time.monotonic() + path_budget_seconds
 
-        # request path if we don't have it
+        # Request path discovery through the shared per-destination and
+        # mesh-wide policy if we don't have it.
         if not RNS.Transport.has_path(destination_hash):
-            RNS.Transport.request_path(destination_hash)
+            reticulum_pathfinding.prepare_fresh_path_request(
+                getattr(app, "reticulum", None),
+                destination_hash,
+            )
 
         # wait until we have a path, or give up after the path budget
         while (

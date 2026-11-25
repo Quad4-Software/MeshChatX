@@ -17,6 +17,9 @@ if TYPE_CHECKING:
     from .config import BotConfig
 
 BOT_DISPLAY_NAME_FILE = "bot_display_name.txt"
+# Even explicit forced announces are mesh-wide packets. Keep a short floor;
+# the throttle file mtime is the last actual announce attempt across restarts.
+FORCED_ANNOUNCE_MIN_INTERVAL_SECONDS = 60
 
 
 class AnnounceMixin:
@@ -103,7 +106,24 @@ class AnnounceMixin:
             return
 
         announce_path = os.path.join(self.config_path, "announce")
-        if not force:
+        if force:
+            now_monotonic = time.monotonic()
+            last_forced = getattr(self, "_last_forced_announce_monotonic", None)
+            if (
+                last_forced is not None
+                and now_monotonic - last_forced < FORCED_ANNOUNCE_MIN_INTERVAL_SECONDS
+            ):
+                RNS.log("Recent forced announcement", RNS.LOG_DEBUG)
+                return
+            if os.path.isfile(announce_path):
+                try:
+                    forced_age = time.time() - os.path.getmtime(announce_path)
+                except OSError:
+                    forced_age = FORCED_ANNOUNCE_MIN_INTERVAL_SECONDS
+                if forced_age < FORCED_ANNOUNCE_MIN_INTERVAL_SECONDS:
+                    RNS.log("Recent forced announcement", RNS.LOG_DEBUG)
+                    return
+        else:
             if os.path.isfile(announce_path):
                 with open(announce_path) as f:
                     try:
@@ -119,6 +139,8 @@ class AnnounceMixin:
 
         self._sync_delivery_display_name()
         self.local.announce()
+        if force:
+            self._last_forced_announce_monotonic = time.monotonic()
 
         try:
             with open(announce_path, "w+") as af:

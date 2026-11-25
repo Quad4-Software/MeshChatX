@@ -228,35 +228,117 @@ def lxmf_delivery_hash_bytes(identity, fallback_hash: bytes) -> bytes:
 
 
 _PATH_REQUEST_MIN_INTERVAL_SECONDS = 5.0
+# Bound the per-destination rate-limit memory. Entries are evicted by their
+# recorded request time, oldest first; clearing the whole table at the cap
+# used to re-arm hundreds of destinations in one burst.
+_PATH_REQUEST_RATE_LIMIT_MAX_ENTRIES = 512
+# Path requests are flooded on every interface. In addition to the
+# per-destination floor above, keep a process-wide token bucket so crawlers,
+# propagation probes, and manual tools together cannot exceed a small mesh
+# wide budget. Six requests per ten seconds is enough for interactive use and
+# ordinary outbound sends, while dead-peer storms refill slowly instead of
+# spraying continuously.
+_PATH_REQUEST_GLOBAL_BURST = 6.0
+_PATH_REQUEST_GLOBAL_WINDOW_SECONDS = 10.0
 _last_path_request_at: dict[bytes, float] = {}
 _path_request_lock = threading.Lock()
+_path_request_global_tokens = _PATH_REQUEST_GLOBAL_BURST
+_path_request_global_tokens_at: float | None = None
 
 
 def reset_path_request_rate_limit_for_tests() -> None:
+    global _path_request_global_tokens, _path_request_global_tokens_at
     with _path_request_lock:
         _last_path_request_at.clear()
+        _path_request_global_tokens = _PATH_REQUEST_GLOBAL_BURST
+        _path_request_global_tokens_at = None
+
+
+def _refill_global_path_request_tokens_locked(now: float) -> None:
+    global _path_request_global_tokens, _path_request_global_tokens_at
+
+    burst = max(0.0, float(_PATH_REQUEST_GLOBAL_BURST))
+    window = max(0.001, float(_PATH_REQUEST_GLOBAL_WINDOW_SECONDS))
+    if _path_request_global_tokens_at is None:
+        _path_request_global_tokens = burst
+        _path_request_global_tokens_at = now
+        return
+
+    elapsed = max(0.0, now - _path_request_global_tokens_at)
+    _path_request_global_tokens = min(
+        burst,
+        _path_request_global_tokens + elapsed * (burst / window),
+    )
+    _path_request_global_tokens_at = now
+
+
+def _take_global_path_request_token_locked(now: float) -> bool:
+    global _path_request_global_tokens
+
+    _refill_global_path_request_tokens_locked(now)
+    if _path_request_global_tokens < 1.0:
+        return False
+    _path_request_global_tokens -= 1.0
+    return True
+
+
+def _refund_global_path_request_token_locked() -> None:
+    global _path_request_global_tokens
+
+    burst = max(0.0, float(_PATH_REQUEST_GLOBAL_BURST))
+    _path_request_global_tokens = min(burst, _path_request_global_tokens + 1.0)
+
+
+def _evict_oldest_path_request_entry_locked() -> None:
+    if not _last_path_request_at:
+        return
+    oldest = min(_last_path_request_at.items(), key=lambda item: item[1])[0]
+    _last_path_request_at.pop(oldest, None)
 
 
 def _request_path_once_per_window(destination_hash: bytes) -> bool:
-    """Issue Transport.request_path at most once per destination per window.
+    """Issue Transport.request_path within per-peer and mesh-wide budgets.
 
     Repeated sends and concurrent waiters to the same unreachable peer must
     not fan out into one path request per caller. An in-flight request already
-    covers them. The window check and the request are inside the lock so two
-    threads cannot both observe an empty window and each send a request.
+    covers them. The window check, global token spend, and the request are
+    inside the lock so threads cannot race one another into duplicate wire
+    requests. Returns False when an existing in-flight request or the global
+    budget covers/suppresses this call.
     """
     now = time.monotonic()
     with _path_request_lock:
         last = _last_path_request_at.get(destination_hash)
         if last is not None and now - last < _PATH_REQUEST_MIN_INTERVAL_SECONDS:
             return False
-        if len(_last_path_request_at) > 512:
-            _last_path_request_at.clear()
-        # Record after the call: a raised request must not consume the window,
-        # or callers retrying a failed request would be suppressed.
-        RNS.Transport.request_path(destination_hash)
+        if not _take_global_path_request_token_locked(now):
+            return False
+        if (
+            destination_hash not in _last_path_request_at
+            and len(_last_path_request_at) >= _PATH_REQUEST_RATE_LIMIT_MAX_ENTRIES
+        ):
+            _evict_oldest_path_request_entry_locked()
+        try:
+            # Record after the call: a raised request consumes neither the
+            # per-destination window nor the global token, or callers retrying
+            # a failed request would be suppressed without a packet emitted.
+            RNS.Transport.request_path(destination_hash)
+        except Exception:
+            _refund_global_path_request_token_locked()
+            raise
         _last_path_request_at[destination_hash] = now
         return True
+
+
+def request_path_rate_limited(destination_hash: bytes) -> bool:
+    """Request a path through the shared mesh-wide policy.
+
+    Returns True only when a new wire request was emitted. False means an
+    equivalent request is already inside the per-destination window or the
+    global budget is temporarily empty; callers should continue their normal
+    wait/timeout path rather than bypassing the policy.
+    """
+    return _request_path_once_per_window(destination_hash)
 
 
 def prepare_fresh_path_request(
@@ -283,8 +365,8 @@ def prepare_fresh_path_request(
     return "path_refresh_requested" if had_path else "new_path_requested"
 
 
-def nudge_path_request(destination_hash: bytes) -> None:
-    _request_path_once_per_window(destination_hash)
+def nudge_path_request(destination_hash: bytes) -> bool:
+    return _request_path_once_per_window(destination_hash)
 
 
 def lxmf_path_wait_cap_seconds(

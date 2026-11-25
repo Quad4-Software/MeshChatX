@@ -3,6 +3,7 @@
 import os
 import shutil
 import tempfile
+import time
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -141,6 +142,7 @@ class TestPageNodeAnnounce:
         node.setup()
         _, _, mock_dest = mock_rns
         mock_dest.announce.reset_mock()
+        node.last_announced_at -= 61
         node.announce()
         mock_dest.announce.assert_called_once()
 
@@ -208,6 +210,36 @@ class TestPageNodeAnnounce:
         )
         node.setup()
         assert calls == [node]
+
+    def test_repeat_announce_inside_send_floor_is_skipped(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        _, _, mock_dest = mock_rns
+        assert mock_dest.announce.call_count == 1
+
+        assert node.announce() is False
+        assert mock_dest.announce.call_count == 1
+
+        node.last_announced_at -= 61
+        assert node.announce() is True
+        assert mock_dest.announce.call_count == 2
+        node.teardown()
+
+    def test_initial_announce_can_be_deferred_for_startup_stagger(
+        self,
+        node_dir,
+        mock_rns,
+    ):
+        node = _make_node(node_dir, mock_rns)
+        node.setup(initial_announce_delay=0.03)
+        _, _, mock_dest = mock_rns
+        mock_dest.announce.assert_not_called()
+
+        deadline = time.time() + 0.5
+        while time.time() < deadline and not mock_dest.announce.called:
+            time.sleep(0.005)
+        assert mock_dest.announce.call_count == 1
+        node.teardown()
 
     def test_announce_callback_exceptions_are_suppressed(self, node_dir, mock_rns):
         from meshchatx.src.backend.page_node import PageNode
@@ -337,6 +369,7 @@ class TestPageNodeAnnounceInterval:
         node.setup()
         _, _, mock_dest = mock_rns
         mock_dest.announce.reset_mock()
+        node.last_announced_at -= 61
         node._announce_timer_fire()
         mock_dest.announce.assert_called_once()
         assert node._announce_timer is not None
@@ -816,6 +849,7 @@ class TestPageNodeEdgeCases:
         with open(os.path.join(node.pages_dir, "dropped.mu"), "wb") as f:
             f.write(b"dropped")
         assert "/page/dropped.mu" not in node._registered_page_paths
+        node.last_announced_at -= 61
         node.announce()
         assert "/page/dropped.mu" in node._registered_page_paths
 
@@ -1244,3 +1278,31 @@ class TestPageNodeMedia:
             )
             assert node._get_converted_media_path(image_path) is None
             assert convert_spy.call_count == 2
+
+
+def test_page_node_manager_start_all_staggers_initial_announces(tmp_path, monkeypatch):
+    from meshchatx.src.backend.page_node_manager import PageNodeManager
+
+    manager = PageNodeManager(str(tmp_path))
+    nodes = []
+    for index in range(3):
+        node = MagicMock()
+        node.announce_enabled = True
+        node.running = False
+        node.node_id = f"node-{index}"
+        manager.nodes[node.node_id] = node
+        nodes.append(node)
+
+    delays = []
+
+    def fake_start(node_id, initial_announce_delay=0.0):
+        delays.append((node_id, initial_announce_delay))
+
+    monkeypatch.setattr(manager, "start_node", fake_start)
+    manager.start_all()
+
+    assert delays == [
+        ("node-0", 0.0),
+        ("node-1", 0.5),
+        ("node-2", 1.0),
+    ]

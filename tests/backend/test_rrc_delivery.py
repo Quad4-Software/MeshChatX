@@ -383,7 +383,11 @@ def test_connect_worker_path_requests_bounded_by_burst(tmp_path, monkeypatch):
     hub._connect_worker()
 
     assert hub.status == RRCHub.STATUS_FAILED
-    assert len(requests) == int(rrc_manager.PATH_REQUEST_BURST)
+    # The shared mesh-wide path policy has a five-second per-destination
+    # floor, which is stricter than this legacy hub-local burst inside the
+    # shortened one-second test window. The important invariant here is that
+    # the retry loop does not emit once per 100ms cadence.
+    assert requests == [hub.hub_hash]
 
 
 def test_restart_does_not_replay_sent_history(tmp_path):

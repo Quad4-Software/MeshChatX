@@ -128,6 +128,10 @@ def _bind_tracking_app(db, sent):
         app.running = False
 
     app.send_message = AsyncMock(side_effect=_send)
+    app._send_telemetry_tracking_request = types.MethodType(
+        ReticulumMeshChat._send_telemetry_tracking_request,
+        app,
+    )
     app.telemetry_tracking_loop = types.MethodType(
         ReticulumMeshChat.telemetry_tracking_loop,
         app,
@@ -145,6 +149,12 @@ def _bind_tracking_app(db, sent):
 
     ctx.config.telemetry_enabled.get.side_effect = _enabled
     return app, ctx
+
+
+async def _drain_telemetry_tasks(app):
+    tasks = list(getattr(app, "_telemetry_request_tasks", set()) or set())
+    if tasks:
+        await asyncio.gather(*tasks)
 
 
 @pytest.mark.asyncio
@@ -172,6 +182,7 @@ async def test_tracking_loop_sends_and_counts(db, monkeypatch):
     monkeypatch.setattr(asyncio, "sleep", AsyncMock())
 
     await app.telemetry_tracking_loop(7, context=ctx)
+    await _drain_telemetry_tasks(app)
     assert len(sent) == 1
     assert sent[0]["destination_hash"] == peer
     row = db.provider.fetchone(
@@ -198,6 +209,56 @@ async def test_tracking_loop_respects_backed_off_interval(db, monkeypatch):
 
     await app.telemetry_tracking_loop(7, context=ctx)
     assert sent == []
+
+
+@pytest.mark.asyncio
+async def test_tracking_loop_counts_failed_send_as_unanswered(db):
+    peer = "9" * 32
+    db.telemetry.toggle_tracking(peer, True)
+
+    sent = []
+    app, ctx = _bind_tracking_app(db, sent)
+    app.send_message = AsyncMock(side_effect=TimeoutError("path timeout"))
+
+    await app.telemetry_tracking_loop(7, context=ctx)
+    await _drain_telemetry_tasks(app)
+
+    row = db.provider.fetchone(
+        "SELECT unanswered_count, last_request_at FROM telemetry_tracking WHERE destination_hash = ?",
+        (peer,),
+    )
+    assert row["unanswered_count"] == 1
+    assert row["last_request_at"] is not None
+
+
+@pytest.mark.asyncio
+async def test_tracking_loop_does_not_serialize_behind_slow_peer(db):
+    peer = "8" * 32
+    db.telemetry.toggle_tracking(peer, True)
+
+    sent = []
+    app, ctx = _bind_tracking_app(db, sent)
+    send_started = asyncio.Event()
+    release_send = asyncio.Event()
+
+    async def slow_send(**kwargs):
+        send_started.set()
+        await release_send.wait()
+
+    app.send_message = AsyncMock(side_effect=slow_send)
+
+    # The loop must finish its pass even though this peer's path wait is still
+    # in flight; serially awaiting it used to starve every other tracked peer.
+    await asyncio.wait_for(app.telemetry_tracking_loop(7, context=ctx), timeout=0.5)
+    row = db.provider.fetchone(
+        "SELECT unanswered_count FROM telemetry_tracking WHERE destination_hash = ?",
+        (peer,),
+    )
+    assert row["unanswered_count"] == 1
+
+    release_send.set()
+    await _drain_telemetry_tasks(app)
+    assert send_started.is_set()
 
 
 def _insert_failed(db, *, msg_hash, peer, content, fields="{}", title=""):

@@ -15,6 +15,8 @@ from typing import Any
 
 import RNS
 
+from meshchatx.src.backend import reticulum_pathfinding
+
 UNKNOWN_HOPS = 64
 
 # Front page is depth 0. Max depth 2 means index plus two levels down.
@@ -383,7 +385,7 @@ class CrawlerManager:
             try:
                 dest = bytes.fromhex(destination_hash)
                 if not RNS.Transport.has_path(dest):
-                    RNS.Transport.request_path(dest)
+                    reticulum_pathfinding.request_path_rate_limited(dest)
             except Exception:
                 pass
             return False, "no_path", hops

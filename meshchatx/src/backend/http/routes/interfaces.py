@@ -15,6 +15,7 @@ from aiohttp import web
 from meshchatx.android_push_bridge import _is_chaquopy_android
 from meshchatx.src.backend import i2p_support, traffic_stats
 from meshchatx.src.backend.constants import API_V1_PREFIX
+from meshchatx.src.backend.data.interfaces.HTTPInterface import HTTPTunnelInterface
 from meshchatx.src.backend.host_interfaces import list_host_network_interfaces
 from meshchatx.src.backend.http.errors import (
     http_bad_request,
@@ -1410,6 +1411,15 @@ def register_interfaces_routes(routes, app):
                     )
                 interface_details["server_url"] = str(server_url).strip()
                 InterfaceEditor.update_value(interface_details, data, "poll_interval")
+                if "poll_interval" in interface_details:
+                    try:
+                        poll_interval = float(interface_details["poll_interval"])
+                    except (TypeError, ValueError):
+                        return http_error(422, "poll_interval must be a number")
+                    interface_details["poll_interval"] = max(
+                        HTTPTunnelInterface.MIN_POLL_INTERVAL,
+                        poll_interval,
+                    )
                 for key in (
                     "listen_host",
                     "listen_port",

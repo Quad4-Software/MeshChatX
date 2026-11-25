@@ -109,7 +109,7 @@ class PageNodeManager:
         del self.nodes[node_id]
         return True
 
-    def start_node(self, node_id):
+    def start_node(self, node_id, initial_announce_delay=0.0):
         """Set up and start serving for a specific node."""
         node = self.nodes.get(node_id)
         if node is None:
@@ -117,7 +117,7 @@ class PageNodeManager:
         if node.running:
             return node.get_destination_hash()
 
-        return node.setup()
+        return node.setup(initial_announce_delay=initial_announce_delay)
 
     def stop_node(self, node_id):
         """Stop serving for a specific node."""
@@ -127,10 +127,19 @@ class PageNodeManager:
         node.teardown()
 
     def start_all(self):
-        """Start all loaded nodes."""
+        """Start all loaded nodes, staggering their initial announce burst."""
+        announcing_index = 0
+        # Half a second is enough to avoid a simultaneous wire burst without
+        # making large local node sets meaningfully slower to become reachable.
+        stagger_seconds = 0.5
         for node_id in list(self.nodes.keys()):
             try:
-                self.start_node(node_id)
+                node = self.nodes[node_id]
+                delay = 0.0
+                if node.announce_enabled:
+                    delay = announcing_index * stagger_seconds
+                    announcing_index += 1
+                self.start_node(node_id, initial_announce_delay=delay)
             except Exception as e:
                 print(f"Failed to start page node {node_id}: {e}")
 

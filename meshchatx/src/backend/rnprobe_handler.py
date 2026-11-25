@@ -7,6 +7,8 @@ import time
 
 import RNS
 
+from meshchatx.src.backend import reticulum_pathfinding
+
 from .path_utils import path_response_window
 
 logger = logging.getLogger(__name__)
@@ -70,7 +72,10 @@ class RNProbeHandler:
             raise ValueError(msg) from e
 
         if not RNS.Transport.has_path(destination_hash):
-            RNS.Transport.request_path(destination_hash)
+            reticulum_pathfinding.prepare_fresh_path_request(
+                self.reticulum,
+                destination_hash,
+            )
 
         timeout_after = time.time() + (
             timeout

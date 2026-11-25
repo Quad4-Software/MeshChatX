@@ -135,10 +135,13 @@ def global_mocks():
 @pytest.fixture(autouse=True)
 def reset_path_request_rate_limit():
     from meshchatx.src.backend import reticulum_pathfinding
+    from meshchatx.src.backend.http.routes import lxmf as lxmf_routes
 
     reticulum_pathfinding.reset_path_request_rate_limit_for_tests()
+    lxmf_routes.reset_manual_propagation_sync_cooldown_for_tests()
     yield
     reticulum_pathfinding.reset_path_request_rate_limit_for_tests()
+    lxmf_routes.reset_manual_propagation_sync_cooldown_for_tests()
 
 
 @pytest.fixture(autouse=True)

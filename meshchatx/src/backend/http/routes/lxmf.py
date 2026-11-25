@@ -10,11 +10,14 @@ import contextlib
 import json
 import logging
 import os
+import threading
+import time
 from datetime import UTC, datetime
 
 import RNS
 from aiohttp import web
 
+from meshchatx.src.backend import reticulum_pathfinding
 from meshchatx.src.backend.async_utils import AsyncUtils
 from meshchatx.src.backend.constants import API_V1_PREFIX
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
@@ -28,6 +31,7 @@ from meshchatx.src.backend.http.errors import (
     http_error_from_exception,
     http_not_found,
     http_payload_too_large,
+    http_rate_limited,
     http_unavailable,
     parse_int_param,
 )
@@ -73,6 +77,43 @@ logger = logging.getLogger(__name__)
 LXMF_ATTACHMENT_CACHE_HEADERS = {
     "Cache-Control": "private, max-age=31536000, immutable",
 }
+
+# A manual propagation sync can force path discovery and a fresh link to the
+# same node. Keep repeat clicks bounded even when the operator or a client
+# retries aggressively; automatic sync policy has its own interval.
+MANUAL_PROPAGATION_SYNC_COOLDOWN_SECONDS = 300.0
+_MANUAL_PROPAGATION_SYNC_MAX_ENTRIES = 512
+_manual_propagation_sync_lock = threading.Lock()
+_manual_propagation_sync_last_at: dict[bytes, float] = {}
+
+
+def reset_manual_propagation_sync_cooldown_for_tests() -> None:
+    with _manual_propagation_sync_lock:
+        _manual_propagation_sync_last_at.clear()
+
+
+def _claim_manual_propagation_sync_slot(destination_hash: bytes) -> float:
+    """Claim a manual sync attempt or return seconds remaining in cooldown."""
+    now = time.monotonic()
+    with _manual_propagation_sync_lock:
+        last = _manual_propagation_sync_last_at.get(destination_hash)
+        if last is not None:
+            remaining = MANUAL_PROPAGATION_SYNC_COOLDOWN_SECONDS - (now - last)
+            if remaining > 0:
+                return remaining
+
+        if (
+            destination_hash not in _manual_propagation_sync_last_at
+            and len(_manual_propagation_sync_last_at)
+            >= _MANUAL_PROPAGATION_SYNC_MAX_ENTRIES
+        ):
+            oldest = min(
+                _manual_propagation_sync_last_at.items(),
+                key=lambda item: item[1],
+            )[0]
+            _manual_propagation_sync_last_at.pop(oldest, None)
+        _manual_propagation_sync_last_at[destination_hash] = now
+        return 0.0
 
 
 def _lxmf_fields_to_send_parts(fields):
@@ -245,11 +286,25 @@ def register_lxmf_routes(routes, app):
                 code="propagation_node_not_configured",
             )
 
-        # proactively request path, but do not block/fail here.
-        # LXMF internally manages PR_PATH_REQUESTED and retries.
+        outbound_node = bytes(outbound_node)
+        cooldown_remaining = _claim_manual_propagation_sync_slot(outbound_node)
+        if cooldown_remaining > 0:
+            return http_rate_limited(
+                "Manual propagation sync was already started recently.",
+                code="propagation_sync_cooldown",
+                retry_after=round(cooldown_remaining, 1),
+            )
+
+        # Proactively prepare path discovery through the shared per-destination
+        # and mesh-wide budget, but do not block/fail here. LXMF internally
+        # manages PR_PATH_REQUESTED and retries.
         if not RNS.Transport.has_path(outbound_node):
             with contextlib.suppress(Exception):
-                RNS.Transport.request_path(outbound_node)
+                await asyncio.to_thread(
+                    reticulum_pathfinding.prepare_fresh_path_request,
+                    getattr(app, "reticulum", None),
+                    outbound_node,
+                )
 
         # request messages from propagation node
         await app.sync_propagation_nodes(force=True)

@@ -255,3 +255,34 @@ def test_on_lxmf_sending_failed_forwards_context_to_state_update(mock_app):
         mock_app.on_lxmf_sending_failed(msg, context=mock_app.current_context)
 
     state_update_mock.assert_called_once_with(msg, context=mock_app.current_context)
+
+
+@pytest.mark.asyncio
+async def test_manual_propagation_sync_uses_path_policy_and_cooldown(mock_app):
+    sync_handler = next(
+        r.handler
+        for r in mock_app.get_routes()
+        if r.path == "/api/v1/lxmf/propagation-node/sync" and r.method == "POST"
+    )
+    node = b"cooldown-node-16"
+    mock_app.current_context.message_router.get_outbound_propagation_node.return_value = node
+
+    with (
+        patch(
+            "meshchatx.src.backend.http.routes.lxmf.RNS.Transport.has_path",
+            return_value=False,
+        ),
+        patch(
+            "meshchatx.src.backend.http.routes.lxmf.reticulum_pathfinding.prepare_fresh_path_request",
+        ) as prepare,
+    ):
+        first = await sync_handler(None)
+        second = await sync_handler(None)
+
+    assert first.status == 200
+    assert second.status == 429
+    payload = json.loads(second.body)
+    assert payload["code"] == "propagation_sync_cooldown"
+    assert payload["retry_after"] > 0
+    prepare.assert_called_once()
+    assert prepare.call_args.args[1] == node

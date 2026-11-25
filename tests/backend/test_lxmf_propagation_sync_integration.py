@@ -12,6 +12,9 @@ import pytest
 import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
+from meshchatx.src.backend.http.routes.lxmf import (
+    reset_manual_propagation_sync_cooldown_for_tests,
+)
 
 PR_IDLE = LXMF.LXMRouter.PR_IDLE
 PR_PATH_REQUESTED = LXMF.LXMRouter.PR_PATH_REQUESTED
@@ -158,6 +161,10 @@ async def test_remote_propagation_sync_transitions_path_requested_to_complete(
         ]
         assert first_status["state"] == "path_requested"
 
+        # The fake router needs a second forced sync to observe the path it
+        # created artificially. Reset only the manual endpoint cooldown here;
+        # production callers do not get this bypass.
+        reset_manual_propagation_sync_cooldown_for_tests()
         second_sync = await sync_handler(None)
         assert second_sync.status == 200
         await asyncio.sleep(0.05)

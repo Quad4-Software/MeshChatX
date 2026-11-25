@@ -43,6 +43,8 @@ class TestPathRequestRateLimitConcurrency:
         assert calls == [dest], f"expected 1 request_path, got {len(calls)}"
 
     def test_n_threads_distinct_destinations_each_gets_one(self, monkeypatch):
+        monkeypatch.setattr(pf, "_PATH_REQUEST_GLOBAL_BURST", 32.0)
+        pf.reset_path_request_rate_limit_for_tests()
         calls = []
         lock = threading.Lock()
 
@@ -78,11 +80,50 @@ class TestPathRequestRateLimitConcurrency:
             pf._request_path_once_per_window(dest)
         assert dest not in pf._last_path_request_at
 
-    def test_window_cap_evicts_all(self, monkeypatch):
+    def test_window_cap_evicts_oldest_entry_not_whole_table(self, monkeypatch):
+        monkeypatch.setattr(pf, "_PATH_REQUEST_GLOBAL_BURST", 1000.0)
+        pf.reset_path_request_rate_limit_for_tests()
         monkeypatch.setattr(
             "meshchatx.src.backend.reticulum_pathfinding.RNS.Transport.request_path",
             lambda d: None,
         )
-        for i in range(600):
-            pf._request_path_once_per_window(bytes([i % 256, i // 256]) + b"\x00" * 14)
-        assert len(pf._last_path_request_at) <= 513
+
+        def dest(i):
+            return bytes([i % 256, i // 256]) + b"\x00" * 14
+
+        first = dest(0)
+        newest = dest(pf._PATH_REQUEST_RATE_LIMIT_MAX_ENTRIES)
+        for i in range(pf._PATH_REQUEST_RATE_LIMIT_MAX_ENTRIES):
+            assert pf._request_path_once_per_window(dest(i)) is True
+        assert first in pf._last_path_request_at
+
+        assert pf._request_path_once_per_window(newest) is True
+        assert len(pf._last_path_request_at) == pf._PATH_REQUEST_RATE_LIMIT_MAX_ENTRIES
+        assert first not in pf._last_path_request_at
+        assert dest(1) in pf._last_path_request_at
+        assert newest in pf._last_path_request_at
+
+    def test_global_token_bucket_limits_distinct_destinations(self, monkeypatch):
+        monkeypatch.setattr(
+            "meshchatx.src.backend.reticulum_pathfinding.RNS.Transport.request_path",
+            lambda d: None,
+        )
+        results = [
+            pf._request_path_once_per_window(bytes([i]) * 16)
+            for i in range(int(pf._PATH_REQUEST_GLOBAL_BURST) + 2)
+        ]
+        assert results.count(True) == int(pf._PATH_REQUEST_GLOBAL_BURST)
+        assert results.count(False) == 2
+
+    def test_global_token_bucket_refills(self, monkeypatch):
+        monkeypatch.setattr(
+            "meshchatx.src.backend.reticulum_pathfinding.RNS.Transport.request_path",
+            lambda d: None,
+        )
+        for i in range(int(pf._PATH_REQUEST_GLOBAL_BURST)):
+            assert pf._request_path_once_per_window(bytes([i]) * 16) is True
+        assert pf._request_path_once_per_window(b"\xff" * 16) is False
+
+        # Simulate one full refill window without sleeping.
+        pf._path_request_global_tokens_at -= pf._PATH_REQUEST_GLOBAL_WINDOW_SECONDS
+        assert pf._request_path_once_per_window(b"\xff" * 16) is True

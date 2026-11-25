@@ -3,6 +3,7 @@ import os
 import socket
 import ssl
 import threading
+import time
 from collections import deque
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from queue import Empty, Full, Queue
@@ -280,7 +281,18 @@ class HTTPTunnelInterface(Interface):
 
     DEFAULT_MTU = 4096
     TUNNEL_USER_AGENT = "RNS-HTTP-Tunnel/1.0"
-    DEFAULT_POLL_INTERVAL = 0.1
+    # This tunnel is a fallback transport for store-and-forward mesh traffic,
+    # not an interactive low-latency link. Five seconds keeps an idle client
+    # near 17k empty polls/day instead of hundreds of thousands, while the
+    # server-side long poll below still returns inbound packets promptly.
+    DEFAULT_POLL_INTERVAL = 5.0
+    # Hard floor applied at construction, including hand-edited Reticulum
+    # configs. Anything faster is wire churn: each empty poll is a complete
+    # HTTP POST and every interface operator pays for the tunnel endpoint.
+    MIN_POLL_INTERVAL = 1.0
+    # Empty POSTs may be held briefly so inbound traffic need not wait for the
+    # next client poll. Keep this below the client exchange timeout (5s).
+    LONG_POLL_TIMEOUT = 4.0
     DEFAULT_POOL_CONNECTIONS = 1
     DEFAULT_POOL_MAXSIZE = 1
     DEFAULT_KEEPALIVE_TIMEOUT = 60
@@ -297,10 +309,13 @@ class HTTPTunnelInterface(Interface):
         listen_host = ifconf["listen_host"] if "listen_host" in ifconf else "127.0.0.1"
         listen_port = int(ifconf["listen_port"]) if "listen_port" in ifconf else 8080
         server_url = ifconf["server_url"] if "server_url" in ifconf else None
-        poll_interval = (
-            float(ifconf["poll_interval"])
-            if "poll_interval" in ifconf
-            else self.DEFAULT_POLL_INTERVAL
+        poll_interval = max(
+            self.MIN_POLL_INTERVAL,
+            (
+                float(ifconf["poll_interval"])
+                if "poll_interval" in ifconf
+                else self.DEFAULT_POLL_INTERVAL
+            ),
         )
         check_user_agent = (
             ifconf.as_bool("check_user_agent") if "check_user_agent" in ifconf else True
@@ -409,6 +424,10 @@ class HTTPTunnelInterface(Interface):
         # A client that stops polling would otherwise let outbound traffic
         # accumulate without bound. drop the oldest packet on overflow.
         self._send_queue = Queue(maxsize=256)
+        # Producer/consumer rendezvous for server-side long polling. The
+        # condition only coordinates waiting; Queue remains the owner of the
+        # packet data and its own internal locking.
+        self._send_condition = threading.Condition()
         self._stop_event = threading.Event()
         self._frame_remainder = b""
         self._frame_lock = threading.Lock()
@@ -450,15 +469,31 @@ class HTTPTunnelInterface(Interface):
             )
             self.html_content = None
 
-    def _drain_send_frames(self):
+    def _drain_send_frames(self, wait_timeout=0.0):
         parts = []
-        while not self._send_queue.empty():
-            try:
-                packet = self._send_queue.get_nowait()
-            except Empty:
-                break
-            if packet:
-                parts.append(HDLC.frame(packet))
+        deadline = None
+        if wait_timeout and wait_timeout > 0:
+            deadline = time.monotonic() + wait_timeout
+
+        with self._send_condition:
+            while True:
+                while not self._send_queue.empty():
+                    try:
+                        packet = self._send_queue.get_nowait()
+                    except Empty:
+                        break
+                    if packet:
+                        parts.append(HDLC.frame(packet))
+
+                if parts or deadline is None or self._stop_event.is_set():
+                    break
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                # wait() atomically releases the condition, so a producer that
+                # enqueues after our empty check cannot miss notifying us.
+                self._send_condition.wait(remaining)
+
         return b"".join(parts)
 
     def _ingest_wire_bytes(self, wire_data):
@@ -508,7 +543,13 @@ class HTTPTunnelInterface(Interface):
                 RNS.log(f"Received {len(body)} bytes from client", RNS.LOG_EXTREME)
                 self._ingest_wire_bytes(body)
 
-            server_data = self._drain_send_frames()
+            # A client POST with no payload is a poll. Hold empty polls for a
+            # few seconds so server-to-client packets can ride the response
+            # immediately instead of waiting for the next polling cadence.
+            # Non-empty exchanges return promptly because the client already
+            # has outbound traffic in flight.
+            long_poll = self.LONG_POLL_TIMEOUT if not body else 0.0
+            server_data = self._drain_send_frames(wait_timeout=long_poll)
             if server_data:
                 RNS.log(
                     f"Sending {len(server_data)} framed bytes to client",
@@ -550,7 +591,10 @@ class HTTPTunnelInterface(Interface):
                 if not message.get("more_body", False):
                     break
 
-            status, content_type, response_body = interface._handle_tunnel_exchange(
+            # The shared handler may long-poll briefly. Run it in a worker so
+            # HTTP/2/3 event loops keep serving other streams meanwhile.
+            status, content_type, response_body = await asyncio.to_thread(
+                interface._handle_tunnel_exchange,
                 scope.get("method", "GET"),
                 scope.get("path", "/"),
                 headers,
@@ -854,12 +898,16 @@ class HTTPTunnelInterface(Interface):
                     pass
                 with self._stats_lock:
                     self._send_queue_drops += 1
+            with self._send_condition:
+                self._send_condition.notify()
             self.txb += len(data)
 
     def detach(self):
         RNS.log(f"Detaching {self}", RNS.LOG_DEBUG)
         self._stop_event.set()
         self.online = False
+        with self._send_condition:
+            self._send_condition.notify_all()
 
         if self.mode == "client":
             if self.session is not None:

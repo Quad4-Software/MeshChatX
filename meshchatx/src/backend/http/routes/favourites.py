@@ -44,7 +44,7 @@ def register_favourites_routes(routes, app):
     # announce
     @routes.post(API_V1_PREFIX + "/announce")
     async def announce_trigger(request):
-        await app.announce()
+        await app.announce(force=True)
 
         return web.json_response(
             {

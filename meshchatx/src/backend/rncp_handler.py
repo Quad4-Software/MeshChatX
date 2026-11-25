@@ -9,7 +9,7 @@ from collections.abc import Callable
 
 import RNS
 
-from meshchatx.src.backend import traffic_stats
+from meshchatx.src.backend import reticulum_pathfinding, traffic_stats
 from meshchatx.src.path_utils import (
     PathJailError,
     first_component_under,
@@ -561,7 +561,10 @@ class RNCPHandler:
         file_path = self._resolve_send_path(file_path)
 
         if not RNS.Transport.has_path(destination_hash):
-            RNS.Transport.request_path(destination_hash)
+            reticulum_pathfinding.prepare_fresh_path_request(
+                self.reticulum,
+                destination_hash,
+            )
 
         path_wait = self._path_wait_seconds(destination_hash, timeout)
         timeout_after = time.time() + path_wait
@@ -703,7 +706,10 @@ class RNCPHandler:
         on_transfer_started: Callable[[str], None] | None = None,
     ):
         if not RNS.Transport.has_path(destination_hash):
-            RNS.Transport.request_path(destination_hash)
+            reticulum_pathfinding.prepare_fresh_path_request(
+                self.reticulum,
+                destination_hash,
+            )
 
         path_wait = self._path_wait_seconds(destination_hash, timeout)
         timeout_after = time.time() + path_wait

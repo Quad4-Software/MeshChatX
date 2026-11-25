@@ -114,6 +114,12 @@ MAX_UNIQUE_REMOTE_HASHES = 4096
 # files dropped in externally (Finder, editors) become reachable without
 # a restart, matching upstream NomadNet's page_refresh_interval behavior.
 CONTENT_SCAN_INTERVAL_SECONDS = 15
+# Manual page-node announces are useful, but rapid repeats flood every
+# interface just like any other announce storm. The first announce is always
+# allowed; repeats inside one minute are skipped.
+PAGE_NODE_SEND_MIN_ANNOUNCE_INTERVAL_SECONDS = (
+    constants.FORCED_ANNOUNCE_MIN_INTERVAL_SECONDS
+)
 
 PAGE_GENERATION_FAILED_MICRON = (
     ">Page Generation Failed\n\nThe page could not be generated.\n"
@@ -422,9 +428,11 @@ class PageNode:
         self.last_announced_at = None
         self.on_announce = on_announce
         self._announce_timer = None
+        self._startup_announce_timer = None
+        self._announce_send_lock = threading.Lock()
         self._scan_timer = None
 
-    def setup(self):
+    def setup(self, initial_announce_delay=0.0):
         """Create directories, load or create identity, set up RNS destination."""
         os.makedirs(self.pages_dir, exist_ok=True)
         os.makedirs(self.files_dir, exist_ok=True)
@@ -456,23 +464,62 @@ class PageNode:
         self._serve_started_at = time.time()
 
         if self.announce_enabled:
-            self.announce()
+            if initial_announce_delay and initial_announce_delay > 0:
+                self._schedule_startup_announce(initial_announce_delay)
+            else:
+                self.announce()
         self._sync_announce_timer()
         self._sync_scan_timer()
 
         return self.destination.hash.hex()
 
+    def _schedule_startup_announce(self, delay):
+        """Delay an initial startup announce so node sets do not burst together."""
+        self._cancel_startup_announce_timer()
+        timer = threading.Timer(float(delay), self._startup_announce_fire)
+        timer.daemon = True
+        self._startup_announce_timer = timer
+        timer.start()
+
+    def _cancel_startup_announce_timer(self):
+        timer = self._startup_announce_timer
+        self._startup_announce_timer = None
+        if timer is not None:
+            with contextlib.suppress(Exception):
+                timer.cancel()
+
+    def _startup_announce_fire(self):
+        self._startup_announce_timer = None
+        if self.running and self.announce_enabled:
+            with contextlib.suppress(Exception):
+                self.announce()
+
     def announce(self):
-        """Broadcast this node's presence on the mesh."""
-        if self.destination and self.running:
+        """Broadcast this node's presence on the mesh.
+
+        Returns True when a wire announce was emitted. Repeat calls inside the
+        short send-edge floor are skipped; the first announce is always
+        allowed, and periodic announces use the much larger configured floor.
+        """
+        if not self.destination or not self.running:
+            return False
+        with self._announce_send_lock:
+            now = time.time()
+            if (
+                self.last_announced_at is not None
+                and now - self.last_announced_at
+                < PAGE_NODE_SEND_MIN_ANNOUNCE_INTERVAL_SECONDS
+            ):
+                return False
             self._rescan_content()
             app_data = self.name.encode("utf-8")
             self.destination.announce(app_data=app_data)
             self._ensure_local_path()
-            self.last_announced_at = time.time()
-            if self.on_announce is not None:
-                with contextlib.suppress(Exception):
-                    self.on_announce(self)
+            self.last_announced_at = now
+        if self.on_announce is not None:
+            with contextlib.suppress(Exception):
+                self.on_announce(self)
+        return True
 
     def _cancel_announce_timer(self):
         """Cancel the pending periodic announce timer, if any."""
@@ -563,6 +610,7 @@ class PageNode:
     def teardown(self):
         """Deregister handlers and clean up."""
         self.running = False
+        self._cancel_startup_announce_timer()
         self._cancel_announce_timer()
         self._cancel_scan_timer()
         self._serve_started_at = None

@@ -982,7 +982,7 @@ async def test_backbone_listener_fast_flapping_options(temp_dir):
 
 
 @pytest.mark.asyncio
-async def test_http_interface_client_persists_tunnel_options(temp_dir):
+async def test_http_interface_client_persists_tunnel_options_with_poll_floor(temp_dir):
     config = ConfigDict({"reticulum": {}, "interfaces": {}})
 
     async with make_app(temp_dir, config) as handler:
@@ -1004,7 +1004,8 @@ async def test_http_interface_client_persists_tunnel_options(temp_dir):
         assert saved["type"] == "HTTPInterface"
         assert saved["mode"] == "client"
         assert saved["server_url"] == "https://example.com:8080/"
-        assert saved["poll_interval"] == 0.2
+        # Sub-second polling is clamped at the API edge before persistence.
+        assert saved["poll_interval"] == 1.0
         assert saved["mtu"] == 2048
         assert saved["http_version"] == 1
         assert saved["user_agent"] == "RNS-HTTP-Tunnel/1.0"

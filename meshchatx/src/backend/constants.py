@@ -79,6 +79,13 @@ MIN_ANNOUNCE_INTERVAL_SECONDS = 900
 DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 21600
 MAX_ANNOUNCE_INTERVAL_SECONDS = 86400
 
+# Send-edge floors for non-periodic announce triggers. Periodic timers use the
+# much larger interval floor above; these shorter floors only stop immediate
+# repeat bursts from manual buttons, config saves, and service control hooks.
+ANNOUNCE_SEND_MIN_INTERVAL_SECONDS = 120
+MANUAL_ANNOUNCE_MIN_INTERVAL_SECONDS = 30
+FORCED_ANNOUNCE_MIN_INTERVAL_SECONDS = 60
+
 # Older releases persisted 900 as the default interval. Loaders treat a
 # stored 900 without a config_version marker as the old default and bump it.
 LEGACY_DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900
