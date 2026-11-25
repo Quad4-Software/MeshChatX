@@ -478,6 +478,7 @@ func (s *shellState) shutdownBackend(sysLog *logger.Logger) {
 		appServer.Stop()
 	}
 	sysLog.Write("MeshChatX desktop shell exiting")
+	sysLog.Close()
 }
 
 func (s *shellState) relaunch(extraArgs ...string) {
@@ -502,7 +503,7 @@ func (s *shellState) relaunch(extraArgs ...string) {
 	if runtime.GOOS != "windows" {
 		_ = cmd.Process.Release()
 	}
-	s.shutdownBackend(logger.New(func() string { return filepath.Join(s.storageDir, "logs") }))
+	s.shutdownBackend(s.sysLog)
 	if s.app != nil {
 		s.app.Quit()
 	}

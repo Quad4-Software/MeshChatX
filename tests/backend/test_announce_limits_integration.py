@@ -13,6 +13,20 @@ from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.database.provider import DatabaseProvider
 
 
+@pytest.fixture(autouse=True)
+def _per_upsert_trim_cadence(monkeypatch):
+    """Run trims per upsert instead of on the 60s cadence.
+
+    These tests verify trim semantics (caps, protection, per-aspect
+    independence), not the trim cadence. The cadence itself is covered
+    in test_announce_write_reduction.py.
+    """
+    monkeypatch.setattr(
+        "meshchatx.src.backend.announce_manager.ANNOUNCE_TRIM_INTERVAL_SECONDS",
+        0.0,
+    )
+
+
 class _FakeIdentity:
     __slots__ = ("_h",)
 

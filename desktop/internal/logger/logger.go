@@ -22,6 +22,16 @@ type Logger struct {
 	getDir   func() string
 	disabled bool
 	pending  []string
+
+	file     *os.File
+	filePath string
+	fileSize int64
+}
+
+// openFileStat is indirected so tests can prove stat only happens when the
+// log file is opened, not on every line write.
+var openFileStat = func(f *os.File) (os.FileInfo, error) {
+	return f.Stat()
 }
 
 func New(getLogsDir func() string) *Logger {
@@ -44,19 +54,6 @@ func formatLine(message string) string {
 	return fmt.Sprintf("%s %s%s\n", time.Now().UTC().Format(time.RFC3339Nano), LogPrefix, text)
 }
 
-func rotateIfNeeded(logPath string) {
-	info, err := os.Stat(logPath)
-	if err != nil {
-		return
-	}
-	if info.Size() <= LogMaxBytes {
-		return
-	}
-	prev := logPath + ".1"
-	_ = os.Remove(prev)
-	_ = os.Rename(logPath, prev)
-}
-
 // Write appends a durable log line and mirrors to stdout when appropriate.
 func (l *Logger) Write(message any) {
 	l.mu.Lock()
@@ -77,25 +74,43 @@ func (l *Logger) writeToFile(message any) {
 		l.pending = append(l.pending, line)
 		return
 	}
-	l.flushPendingLocked(logPath)
-	if err := l.appendChunk(logPath, line); err != nil {
-		l.disabled = true
+	if err := l.flushPendingLocked(logPath); err != nil {
+		l.disableLocked()
+		return
+	}
+	if err := l.appendChunkLocked(logPath, line); err != nil {
+		l.disableLocked()
 	}
 }
 
-func (l *Logger) flushPendingLocked(logPath string) {
+func (l *Logger) flushPendingLocked(logPath string) error {
 	if len(l.pending) == 0 {
-		return
+		return nil
 	}
 	chunk := strings.Join(l.pending, "")
 	l.pending = l.pending[:0]
-	if err := l.appendChunk(logPath, chunk); err != nil {
-		l.disabled = true
-	}
+	return l.appendChunkLocked(logPath, chunk)
 }
 
-func (l *Logger) appendChunk(logPath, chunk string) error {
-	rotateIfNeeded(logPath)
+func (l *Logger) appendChunkLocked(logPath, chunk string) error {
+	if err := l.ensureFileLocked(logPath); err != nil {
+		return err
+	}
+	if l.fileSize > 0 && l.fileSize+int64(len(chunk)) > LogMaxBytes {
+		if err := l.rotateLocked(logPath); err != nil {
+			return err
+		}
+	}
+	n, err := l.file.WriteString(chunk)
+	l.fileSize += int64(n)
+	return err
+}
+
+func (l *Logger) ensureFileLocked(logPath string) error {
+	if l.file != nil && l.filePath == logPath {
+		return nil
+	}
+	l.closeFileLocked()
 	if err := os.MkdirAll(filepath.Dir(logPath), 0o700); err != nil {
 		return err
 	}
@@ -103,9 +118,50 @@ func (l *Logger) appendChunk(logPath, chunk string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	_, err = f.WriteString(chunk)
-	return err
+	info, err := openFileStat(f)
+	if err != nil {
+		_ = f.Close()
+		return err
+	}
+	l.file = f
+	l.filePath = logPath
+	l.fileSize = info.Size()
+	return nil
+}
+
+func (l *Logger) rotateLocked(logPath string) error {
+	// Windows cannot rename an open file, and closing first also makes the
+	// size counter reset explicit even on Unix-like systems.
+	l.closeFileLocked()
+	prev := logPath + ".1"
+	_ = os.Remove(prev)
+	// Rotation is best-effort, as before: if the rename fails, reopening the
+	// original path keeps logging alive instead of disabling it.
+	_ = os.Rename(logPath, prev)
+	return l.ensureFileLocked(logPath)
+}
+
+func (l *Logger) disableLocked() {
+	l.disabled = true
+	l.closeFileLocked()
+}
+
+func (l *Logger) closeFileLocked() {
+	if l.file != nil {
+		_ = l.file.Close()
+	}
+	l.file = nil
+	l.filePath = ""
+	l.fileSize = 0
+}
+
+// Close releases the lazily opened log file. Writes after Close reopen it,
+// so this is safe to use on shutdown without making the logger unusable in
+// tests or unusual restart paths.
+func (l *Logger) Close() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.closeFileLocked()
 }
 
 func shouldMirrorStdout() bool {

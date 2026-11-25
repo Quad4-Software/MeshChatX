@@ -1,11 +1,25 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import CallPage from "@/components/call/CallPage.vue";
+import { useNetworkStore } from "@/js/stores/networkStore";
+
+function setDocumentVisibility(state) {
+    Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => state,
+    });
+    Object.defineProperty(document, "hidden", {
+        configurable: true,
+        get: () => state === "hidden",
+    });
+}
 
 describe("CallPage.vue", () => {
     let axiosMock;
+    let telephoneStatusActiveCall;
 
     beforeEach(() => {
+        telephoneStatusActiveCall = null;
         axiosMock = {
             get: vi.fn().mockImplementation((url) => {
                 const defaultData = {
@@ -26,7 +40,9 @@ describe("CallPage.vue", () => {
                     return Promise.resolve({ data: { config: { telephone_enabled: true } } });
                 if (url.includes("/api/v1/telephone/history")) return Promise.resolve({ data: { call_history: [] } });
                 if (url.includes("/api/v1/announces")) return Promise.resolve({ data: { announces: [] } });
-                if (url.includes("/api/v1/telephone/status")) return Promise.resolve({ data: { active_call: null } });
+                if (url.includes("/api/v1/telephone/status")) {
+                    return Promise.resolve({ data: { active_call: telephoneStatusActiveCall } });
+                }
                 if (url.includes("/api/v1/telephone/voicemail/status")) {
                     return Promise.resolve({
                         data: {
@@ -101,6 +117,7 @@ describe("CallPage.vue", () => {
         }
         mountedWrappers = [];
         delete window.api;
+        setDocumentVisibility("visible");
     });
 
     const mountCallPage = (routeQuery = {}) => {
@@ -110,6 +127,7 @@ describe("CallPage.vue", () => {
                     $t: (key) => key,
                     $route: {
                         query: routeQuery,
+                        meta: {},
                     },
                 },
                 stubs: {
@@ -126,10 +144,87 @@ describe("CallPage.vue", () => {
         return wrapper;
     };
 
+    const countGetRequests = (fragment) =>
+        axiosMock.get.mock.calls.filter(([url]) => String(url).includes(fragment)).length;
+
     it("respects tab query parameter on mount", async () => {
         const wrapper = mountCallPage({ tab: "voicemail" });
         await wrapper.vm.$nextTick();
         expect(wrapper.vm.activeTab).toBe("voicemail");
+    });
+
+    it("uses 5s fallback status polling while idle and rearms to 1s for a ringing or active call", async () => {
+        vi.useFakeTimers();
+        const wrapper = mountCallPage();
+        await vi.advanceTimersByTimeAsync(0);
+
+        const idleBaseline = countGetRequests("/api/v1/telephone/status");
+        await vi.advanceTimersByTimeAsync(4999);
+        expect(countGetRequests("/api/v1/telephone/status")).toBe(idleBaseline);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(countGetRequests("/api/v1/telephone/status")).toBe(idleBaseline + 1);
+
+        const ringingCall = { status: 4, remote_identity_hash: "ab".repeat(16) };
+        telephoneStatusActiveCall = ringingCall;
+        wrapper.vm.activeCall = ringingCall;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.callNeedsFastPolling).toBe(true);
+        const activeBaseline = countGetRequests("/api/v1/telephone/status");
+        await vi.advanceTimersByTimeAsync(999);
+        expect(countGetRequests("/api/v1/telephone/status")).toBe(activeBaseline);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(countGetRequests("/api/v1/telephone/status")).toBe(activeBaseline + 1);
+
+        telephoneStatusActiveCall = null;
+        wrapper.vm.activeCall = null;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.callNeedsFastPolling).toBe(false);
+        const rearmedIdleBaseline = countGetRequests("/api/v1/telephone/status");
+        await vi.advanceTimersByTimeAsync(4999);
+        expect(countGetRequests("/api/v1/telephone/status")).toBe(rearmedIdleBaseline);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(countGetRequests("/api/v1/telephone/status")).toBe(rearmedIdleBaseline + 1);
+    });
+
+    it("keeps 15s status polling when live transport is ready", async () => {
+        vi.useFakeTimers();
+        useNetworkStore().liveTransportReady = true;
+        const wrapper = mountCallPage();
+        await vi.advanceTimersByTimeAsync(0);
+
+        const baseline = countGetRequests("/api/v1/telephone/status");
+        await vi.advanceTimersByTimeAsync(14999);
+        expect(countGetRequests("/api/v1/telephone/status")).toBe(baseline);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(countGetRequests("/api/v1/telephone/status")).toBe(baseline + 1);
+
+        wrapper.vm.activeCall = { status: 6, remote_identity_hash: "ab".repeat(16) };
+        await wrapper.vm.$nextTick();
+        const activeBaseline = countGetRequests("/api/v1/telephone/status");
+        await vi.advanceTimersByTimeAsync(14999);
+        expect(countGetRequests("/api/v1/telephone/status")).toBe(activeBaseline);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(countGetRequests("/api/v1/telephone/status")).toBe(activeBaseline + 1);
+    });
+
+    it("skips status and history poll ticks while the document is hidden", async () => {
+        vi.useFakeTimers();
+        setDocumentVisibility("hidden");
+        mountCallPage();
+        await vi.advanceTimersByTimeAsync(0);
+
+        const statusBaseline = countGetRequests("/api/v1/telephone/status");
+        const historyBaseline = countGetRequests("/api/v1/telephone/history");
+        await vi.advanceTimersByTimeAsync(10000);
+        expect(countGetRequests("/api/v1/telephone/status")).toBe(statusBaseline);
+        expect(countGetRequests("/api/v1/telephone/history")).toBe(historyBaseline);
+
+        setDocumentVisibility("visible");
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(countGetRequests("/api/v1/telephone/status")).toBe(statusBaseline + 1);
+        expect(countGetRequests("/api/v1/telephone/history")).toBe(historyBaseline);
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(countGetRequests("/api/v1/telephone/history")).toBe(historyBaseline + 1);
     });
 
     it("performs optimistic mute updates", async () => {

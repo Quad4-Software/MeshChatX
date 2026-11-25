@@ -84,6 +84,20 @@ def _store_enabled_config(**max_stored):
     return config
 
 
+@pytest.fixture(autouse=True)
+def _per_upsert_trim_cadence(monkeypatch):
+    """Run trims per upsert instead of on the 60s cadence.
+
+    These tests verify trim semantics under spam pressure, not the trim
+    cadence. The cadence itself is covered in
+    test_announce_write_reduction.py.
+    """
+    monkeypatch.setattr(
+        "meshchatx.src.backend.announce_manager.ANNOUNCE_TRIM_INTERVAL_SECONDS",
+        0.0,
+    )
+
+
 @pytest.fixture
 def sqlite_db():
     db, path = _new_db()

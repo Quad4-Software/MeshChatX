@@ -23,6 +23,27 @@ function makeResp(data, status = 206, headers = {}) {
     };
 }
 
+function installFakeCacheApi() {
+    const store = new Map();
+    const cache = {
+        match: vi.fn(async (url) => {
+            const data = store.get(String(url));
+            if (!data) return undefined;
+            return new Response(data.slice(0), { status: 200 });
+        }),
+        put: vi.fn(async (url, response) => {
+            store.set(String(url), await response.arrayBuffer());
+        }),
+        delete: vi.fn(async (url) => store.delete(String(url))),
+    };
+    vi.stubGlobal("caches", { open: vi.fn(async () => cache) });
+    return {
+        cache,
+        store,
+        indexWriteCount: () => cache.put.mock.calls.filter(([url]) => String(url).endsWith("/__index__")).length,
+    };
+}
+
 let fetchImpl;
 beforeEach(() => {
     resetCachedPmtilesSourcesForTests();
@@ -150,6 +171,71 @@ describe("CachedPmtilesSource", () => {
         }
         expect(src.mem.map.size).toBeLessThanOrEqual(400);
         expect(src.mem.bytes).toBeLessThanOrEqual(48 * 1024 * 1024);
+    });
+
+    it("coalesces hit index writes while updating in-memory timestamps immediately", async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(1000000);
+        const fakeCaches = installFakeCacheApi();
+        const src = new CachedPmtilesSource(ARCHIVE);
+        const keyA = `${ARCHIVE}|0|8`;
+        const keyB = `${ARCHIVE}|100|8`;
+        await src._persistSet(keyA, "fp", bytes(8));
+        await src._persistSet(keyB, "fp", bytes(8));
+        expect(fakeCaches.indexWriteCount()).toBe(0);
+
+        const index = await src._readIndex();
+        await vi.advanceTimersByTimeAsync(1000);
+        await src._persistGet(keyA, "fp");
+        expect(index[keyA].t).toBe(1001000);
+        await vi.advanceTimersByTimeAsync(1000);
+        await src._persistGet(keyA, "fp");
+        expect(index[keyA].t).toBe(1002000);
+
+        await vi.advanceTimersByTimeAsync(2999);
+        expect(fakeCaches.indexWriteCount()).toBe(0);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(fakeCaches.indexWriteCount()).toBe(1);
+
+        const indexUrl = fakeCaches.cache.put.mock.calls.find(([url]) => String(url).endsWith("/__index__"))[0];
+        const stored = JSON.parse(new TextDecoder().decode(fakeCaches.store.get(indexUrl)));
+        expect(stored[keyA].t).toBe(1002000);
+    });
+
+    it("eventually persists the index after an insert", async () => {
+        vi.useFakeTimers();
+        const fakeCaches = installFakeCacheApi();
+        const src = new CachedPmtilesSource(ARCHIVE);
+        await src._persistSet(`${ARCHIVE}|0|8`, "fp", bytes(8));
+        expect(fakeCaches.indexWriteCount()).toBe(0);
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(fakeCaches.indexWriteCount()).toBe(1);
+    });
+
+    it("uses unflushed hit timestamps for persistent eviction order", async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(1000000);
+        const fakeCaches = installFakeCacheApi();
+        const src = new CachedPmtilesSource(ARCHIVE);
+        const keyA = `${ARCHIVE}|0|8`;
+        const keyB = `${ARCHIVE}|100|8`;
+        const keyNew = `${ARCHIVE}|200|8`;
+        await src._persistSet(keyA, "fp", bytes(8));
+        await src._persistSet(keyB, "fp", bytes(8));
+
+        const index = await src._readIndex();
+        index[keyA].size = 150 * 1024 * 1024;
+        index[keyB].size = 150 * 1024 * 1024;
+        index[keyA].t = 1;
+        index[keyB].t = 2;
+        await src._persistGet(keyA, "fp");
+        expect(index[keyA].t).toBe(1000000);
+
+        await src._persistSet(keyNew, "fp", bytes(8));
+        expect(index[keyA]).toBeDefined();
+        expect(index[keyB]).toBeUndefined();
+        expect(index[keyNew]).toBeDefined();
+        expect(fakeCaches.cache.delete).toHaveBeenCalled();
     });
 
     it("shares one source instance per archive URL", () => {

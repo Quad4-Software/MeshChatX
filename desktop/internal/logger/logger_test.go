@@ -83,3 +83,100 @@ func TestWriteToUnwritableDirDisables(t *testing.T) {
 	l.Write("one")
 	l.Write("two") // must not panic; disabled after first failure
 }
+
+func TestRotationReopensFileAfterCountedBytesExceedLimit(t *testing.T) {
+	dir := t.TempDir()
+	logPath := filepath.Join(dir, "meshchatx.log")
+	l := New(func() string { return dir })
+	defer l.Close()
+
+	l.Write("before rotation")
+	l.mu.Lock()
+	firstFile := l.file
+	l.mu.Unlock()
+	if firstFile == nil {
+		t.Fatal("log file was not kept open after first write")
+	}
+
+	// Approach the rotation threshold through bytes written by this logger,
+	// then write one chunk that crosses it. Rotation must use the in-memory
+	// count before that write, close the old handle, and reopen meshchatx.log.
+	for {
+		l.mu.Lock()
+		size := l.fileSize
+		l.mu.Unlock()
+		if size > LogMaxBytes-4096 {
+			break
+		}
+		l.Write(strings.Repeat("x", 1024))
+	}
+	l.Write(strings.Repeat("x", 4096))
+	l.Write("after rotation")
+
+	l.mu.Lock()
+	rotatedFile := l.file
+	trackedSize := l.fileSize
+	l.mu.Unlock()
+	if rotatedFile == nil || rotatedFile == firstFile {
+		t.Fatal("rotation did not close and reopen the kept-open file handle")
+	}
+	if trackedSize <= 0 || trackedSize > LogMaxBytes {
+		t.Fatalf("tracked size after rotation: %d", trackedSize)
+	}
+	if _, err := os.Stat(logPath + ".1"); err != nil {
+		t.Fatal("rotated file missing")
+	}
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "after rotation") || strings.Contains(string(data), "before rotation") {
+		t.Fatalf("new log has wrong entries: %q", data)
+	}
+}
+
+func TestNoStatPerLineWrite(t *testing.T) {
+	dir := t.TempDir()
+	origStat := openFileStat
+	statCalls := 0
+	openFileStat = func(f *os.File) (os.FileInfo, error) {
+		statCalls++
+		return f.Stat()
+	}
+	defer func() { openFileStat = origStat }()
+
+	l := New(func() string { return dir })
+	defer l.Close()
+	l.Write("one")
+	if statCalls != 1 {
+		t.Fatalf("stat calls after open: %d, want 1", statCalls)
+	}
+	l.Write("two")
+	l.Write("three")
+	if statCalls != 1 {
+		t.Fatalf("per-line writes statted the file: %d calls", statCalls)
+	}
+}
+
+func TestCloseReleasesHandleAndWriteReopens(t *testing.T) {
+	dir := t.TempDir()
+	logPath := filepath.Join(dir, "meshchatx.log")
+	l := New(func() string { return dir })
+	l.Write("one")
+	l.Close()
+	l.mu.Lock()
+	closed := l.file == nil
+	l.mu.Unlock()
+	if !closed {
+		t.Fatal("Close did not release the log handle")
+	}
+	l.Write("two")
+	defer l.Close()
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "one") || !strings.Contains(string(data), "two") {
+		t.Fatalf("writes across Close missing: %q", data)
+	}
+}

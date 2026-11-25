@@ -27,6 +27,7 @@ const PERSIST_CAP_BYTES = 256 * 1024 * 1024;
 const REVALIDATE_LEN = 127;
 const DEFAULT_MAX_AGE_MS = 3600 * 1000;
 const STALE_GRACE_MS = 24 * 3600 * 1000;
+const INDEX_WRITE_THROTTLE_MS = 5000;
 
 function supportsCacheApi() {
     return typeof caches !== "undefined" && typeof caches.open === "function";
@@ -98,6 +99,9 @@ export class CachedPmtilesSource {
         this.metaPromise = null;
         this._cache = null;
         this._indexPromise = null;
+        this._indexDirty = false;
+        this._indexFlushTimer = null;
+        this._indexWriteChain = Promise.resolve();
     }
 
     getKey() {
@@ -146,6 +150,37 @@ export class CachedPmtilesSource {
         }
     }
 
+    /**
+     * Coalesce index rewrites. The index object itself is mutated immediately
+     * so in-session eviction sees current LRU truth; only the Cache API write
+     * is trailing-edge throttled. Writes are chained so a slow put cannot be
+     * overwritten out of order by a later flush.
+     */
+    _markIndexDirty() {
+        this._indexDirty = true;
+        if (this._indexFlushTimer) return;
+        this._indexFlushTimer = setTimeout(() => {
+            this._indexFlushTimer = null;
+            this._flushDirtyIndex();
+        }, INDEX_WRITE_THROTTLE_MS);
+        if (typeof this._indexFlushTimer.unref === "function") {
+            this._indexFlushTimer.unref();
+        }
+    }
+
+    _flushDirtyIndex() {
+        if (!this._indexDirty) return;
+        this._indexDirty = false;
+        this._indexWriteChain = this._indexWriteChain
+            .then(async () => {
+                const index = await this._readIndex();
+                await this._writeIndex(index);
+            })
+            .catch(() => {
+                /* cache writes are best-effort and must never reach tile fetches */
+            });
+    }
+
     async _persistGet(key, fingerprint) {
         const index = await this._readIndex();
         const ent = index[key];
@@ -157,7 +192,7 @@ export class CachedPmtilesSource {
             if (!resp || !resp.ok) return null;
             const data = await resp.arrayBuffer();
             index[key].t = Date.now();
-            void this._writeIndex(index);
+            this._markIndexDirty();
             return data;
         } catch {
             return null;
@@ -191,7 +226,7 @@ export class CachedPmtilesSource {
                 total -= index[oldestKey].size || 0;
                 delete index[oldestKey];
             }
-            void this._writeIndex(index);
+            this._markIndexDirty();
         } catch {
             /* non-fatal */
         }
@@ -210,7 +245,7 @@ export class CachedPmtilesSource {
                 }
                 delete index[k];
             }
-            void this._writeIndex(index);
+            this._markIndexDirty();
         }
         this.mem.clear();
     }

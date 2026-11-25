@@ -3,12 +3,29 @@
 import base64
 import threading
 import time
+from datetime import UTC, datetime
 
 from meshchatx.src.backend.meshchat_utils import normalize_hex_identifier
 
 from .database import Database
 
 MAX_ANNOUNCE_APP_DATA_BYTES = 2048
+
+# Duplicate priority announces (network flaps, interface rejoins, path
+# refetches) arrive in bursts of byte-identical re-announcements seconds
+# apart. 60 seconds is long enough to cover those bursts and short enough
+# that the stored last-seen timestamp never lags beyond minute-granularity
+# UI relative-time display; any real content change writes immediately
+# regardless of the window.
+ANNOUNCE_SKIP_IDENTICAL_SECONDS = 60.0
+
+# Per-aspect retention trims are a storage policy, not a correctness
+# invariant: every read path uses explicit LIMITs, favourites/contacts are
+# protected inside the trim itself, and the background journal path already
+# trims only once per flush. Running the count+delete at most once a minute
+# per aspect (monotonic clock) lets rows sit slightly over cap for seconds
+# while taking a write transaction off every immediate announce.
+ANNOUNCE_TRIM_INTERVAL_SECONDS = 60.0
 
 # How often the deferred announce journal is committed to SQLite in one
 # transaction. Backbone announce floods otherwise cost a WAL write plus
@@ -95,6 +112,14 @@ class AnnounceManager:
         self._pending_aspects: set = set()
         self._flush_stop = threading.Event()
         self._flush_thread: threading.Thread | None = None
+        # aspect -> time.monotonic() of the last immediate-path trim.
+        self._trim_lock = threading.Lock()
+        self._last_trim_at: dict = {}
+        # destination_hash -> announce_count increments deferred by skipped
+        # byte-identical upserts, folded into the next real write so the
+        # user-visible counter stays exact.
+        self._count_reconcile_lock = threading.Lock()
+        self._pending_announce_counts: dict = {}
 
     def _get_max_stored_for_aspect(self, aspect):
         key = _ASPECT_MAX_STORED_KEYS.get(aspect)
@@ -392,12 +417,116 @@ class AnnounceManager:
                 self._pending_aspects.add(aspect)
             return data
 
-        self.db.announces.upsert_announce(data)
+        destination_key = data["destination_hash"]
+        if self._skip_identical_immediate_upsert(destination_key, data):
+            return data
+
+        # Fold count increments deferred by skipped duplicates into this
+        # write so announce_count ends up exactly as if every duplicate
+        # had been written. Popped before the write and restored on
+        # failure; increments are commutative SQL-side additions, so
+        # concurrent writers cannot lose or double-count them.
+        with self._count_reconcile_lock:
+            count_delta = 1 + self._pending_announce_counts.pop(destination_key, 0)
+        try:
+            self.db.announces.upsert_announce(data, count_delta=count_delta)
+        except Exception:
+            if count_delta > 1:
+                with self._count_reconcile_lock:
+                    self._pending_announce_counts[destination_key] = (
+                        self._pending_announce_counts.get(destination_key, 0)
+                        + count_delta
+                        - 1
+                    )
+            raise
 
         max_stored = self._get_max_stored_for_aspect(aspect)
-        if max_stored is not None:
+        if max_stored is not None and self._trim_due(aspect):
             self.db.announces.trim_announces_for_aspect(aspect, max_stored)
         return data
+
+    @staticmethod
+    def _announce_content_matches_stored(stored: dict, data: dict) -> bool:
+        """Cheap exact comparison of every persisted content column.
+
+        app_data is only compared when the new announce carries it,
+        mirroring the upsert's COALESCE semantics that keep the stored
+        blob when the re-announce omits it. rssi/snr/quality are included
+        on purpose: a change in reception telemetry is a real content
+        change and must write, so skipped rows are never stale anywhere.
+        """
+        for field in (
+            "aspect",
+            "identity_hash",
+            "identity_public_key",
+            "rssi",
+            "snr",
+            "quality",
+        ):
+            if stored.get(field) != data.get(field):
+                return False
+        if "app_data" in data and stored.get("app_data") != data.get("app_data"):
+            return False
+        return True
+
+    @staticmethod
+    def _stored_updated_age_seconds(stored: dict) -> float | None:
+        raw = stored.get("updated_at")
+        if raw is None:
+            return None
+        try:
+            parsed = (
+                raw if isinstance(raw, datetime) else datetime.fromisoformat(str(raw))
+            )
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=UTC)
+            return (datetime.now(UTC) - parsed).total_seconds()
+        except (TypeError, ValueError):
+            return None
+
+    def _skip_identical_immediate_upsert(self, destination_key, data) -> bool:
+        """Check for a skippable byte-identical re-announce.
+
+        True when rewriting this announce would change nothing but
+        updated_at/announce_count and the stored row is younger than
+        ANNOUNCE_SKIP_IDENTICAL_SECONDS.
+
+        The skipped announce_count increment is deferred in memory and
+        folded into the next real write for this destination, which the
+        60s window guarantees happens at the latest with the first
+        re-announce after the window expires.
+        """
+        try:
+            stored = self.db.announces.get_announce_by_hash(destination_key)
+        except Exception:
+            # Unreadable rows must not turn into skipped writes.
+            return False
+        if not stored:
+            return False
+        if not self._announce_content_matches_stored(stored, data):
+            return False
+        age = self._stored_updated_age_seconds(stored)
+        if age is None or age >= ANNOUNCE_SKIP_IDENTICAL_SECONDS:
+            return False
+        with self._count_reconcile_lock:
+            self._pending_announce_counts[destination_key] = (
+                self._pending_announce_counts.get(destination_key, 0) + 1
+            )
+        return True
+
+    def _trim_due(self, aspect) -> bool:
+        """Rate-limit immediate-path trims to once per aspect per interval.
+
+        The timestamp is stamped on attempt, not success: a failing trim
+        must not retry on every announce while the database is unhappy.
+        """
+        now = time.monotonic()
+        with self._trim_lock:
+            last = self._last_trim_at.get(aspect)
+            if last is not None and now - last < ANNOUNCE_TRIM_INTERVAL_SECONDS:
+                return False
+            self._last_trim_at[aspect] = now
+            return True
 
     def get_filtered_announces(
         self,

@@ -130,6 +130,40 @@ func TestBuildBackendArgs(t *testing.T) {
 	}
 }
 
+func TestBuildSpawnEnvMarksDesktopShellAndOverridesInheritedValues(t *testing.T) {
+	t.Setenv("MESHCHATX_DESKTOP_SHELL", "0")
+	t.Setenv("MESHCHAT_STORAGE_DIR", "/inherited-storage")
+	m, d := newTestManager(t)
+
+	envList := m.buildSpawnEnv()
+	values := map[string]string{}
+	counts := map[string]int{}
+	for _, kv := range envList {
+		key, value, ok := strings.Cut(kv, "=")
+		if !ok {
+			continue
+		}
+		values[key] = value
+		counts[key]++
+	}
+
+	if got := values["MESHCHATX_DESKTOP_SHELL"]; got != "1" {
+		t.Fatalf("MESHCHATX_DESKTOP_SHELL = %q, want 1", got)
+	}
+	if counts["MESHCHATX_DESKTOP_SHELL"] != 1 {
+		t.Fatalf("desktop shell marker appears %d times", counts["MESHCHATX_DESKTOP_SHELL"])
+	}
+	if got := values["MESHCHAT_STORAGE_DIR"]; got != d.storage {
+		t.Fatalf("MESHCHAT_STORAGE_DIR = %q, want %q", got, d.storage)
+	}
+	if counts["MESHCHAT_STORAGE_DIR"] != 1 {
+		t.Fatalf("MESHCHAT_STORAGE_DIR appears %d times", counts["MESHCHAT_STORAGE_DIR"])
+	}
+	if got := values["MESHCHAT_LOG_DIR"]; got != filepath.Join(d.storage, "logs") {
+		t.Fatalf("MESHCHAT_LOG_DIR = %q", got)
+	}
+}
+
 func TestBuildSpawnArgsAppContainer(t *testing.T) {
 	m, _ := newTestManager(t)
 	orig := appContainerEnabled

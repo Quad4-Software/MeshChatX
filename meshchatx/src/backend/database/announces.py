@@ -15,7 +15,15 @@ class AnnounceDAO:
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
 
-    def upsert_announce(self, data):
+    def upsert_announce(self, data, count_delta: int = 1):
+        """Insert or update the announce row.
+
+        count_delta is the announce_count increment applied on conflict.
+        It exists so the announce manager can fold count increments it
+        deferred while skipping byte-identical rewrite bursts; a fresh
+        insert always starts at 1 because deferred increments reference
+        the pre-existing row they were counted against.
+        """
         if not isinstance(data, dict):
             data = dict(data)
 
@@ -48,13 +56,14 @@ class AnnounceDAO:
             f"INSERT INTO announces ({columns}, created_at, updated_at, announce_count) "  # nosec: BAN-B608
             f"VALUES ({placeholders}, ?, ?, 1) "
             f"ON CONFLICT(destination_hash) DO UPDATE SET {update_set}, updated_at = EXCLUDED.updated_at, "
-            "announce_count = announces.announce_count + 1"
+            "announce_count = announces.announce_count + ?"
         )
 
         params = [data.get(f) for f in fields]
         now = datetime.now(UTC)
         params.append(now)
         params.append(now)
+        params.append(int(count_delta))
         self.provider.execute(query, params)
 
     def trim_announces_for_aspect(self, aspect, max_rows):

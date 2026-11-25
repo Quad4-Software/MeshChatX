@@ -289,7 +289,10 @@ def _atomic_copy_identity_file(src: str, dst: str) -> None:
 log_dir = resolve_log_dir()
 handlers = [memory_log_handler]
 
-if log_dir:
+# The desktop shell owns meshchatx.log and spools backend stdout/stderr into
+# it. Let that be the only file writer there; CLI/container/systemd runs keep
+# Python's own rotating file handler.
+if log_dir and not env_bool("MESHCHATX_DESKTOP_SHELL"):
     file_handler = SafeRotatingFileHandler(
         os.path.join(log_dir, "meshchatx.log"),
         maxBytes=5 * 1024 * 1024,
@@ -10706,28 +10709,54 @@ class ReticulumMeshChat:
                             )
                             if contact and contact.get("is_telemetry_trusted"):
                                 sender_trusted = True
-                            for entry in stream:
-                                if (
-                                    not isinstance(entry, (list, tuple))
-                                    or len(entry) < 3
-                                ):
-                                    continue
-                                entry_source = normalize_lxmf_destination_hash(entry[0])
-                                if not entry_source:
-                                    continue
-                                if entry_source != source_hash and not sender_trusted:
-                                    continue
-                                entry_timestamp = _valid_number(entry[1])
-                                if entry_timestamp is None:
-                                    continue
-                                entry_data = entry[2]
-                                self.process_incoming_telemetry(
-                                    entry_source,
-                                    entry_data,
-                                    lxmf_message,
-                                    timestamp_override=int(entry_timestamp),
-                                    context=ctx,
-                                )
+                            # Batch the whole stream into one explicit
+                            # transaction. Each process_incoming_telemetry
+                            # call writes an upsert plus a trim and a
+                            # tracking-counter reset, so autocommit cost a
+                            # trusted stream of N entries up to 3N WAL
+                            # commits. The begin/commit shape mirrors
+                            # debug_logs insert_logs: when this thread is
+                            # already inside a transaction we join it
+                            # instead of committing a caller's unfinished
+                            # work early.
+                            provider = ctx.database.provider
+                            already_in_transaction = provider.connection.in_transaction
+                            if not already_in_transaction:
+                                provider.begin()
+                            try:
+                                for entry in stream:
+                                    if (
+                                        not isinstance(entry, (list, tuple))
+                                        or len(entry) < 3
+                                    ):
+                                        continue
+                                    entry_source = normalize_lxmf_destination_hash(
+                                        entry[0],
+                                    )
+                                    if not entry_source:
+                                        continue
+                                    if (
+                                        entry_source != source_hash
+                                        and not sender_trusted
+                                    ):
+                                        continue
+                                    entry_timestamp = _valid_number(entry[1])
+                                    if entry_timestamp is None:
+                                        continue
+                                    entry_data = entry[2]
+                                    self.process_incoming_telemetry(
+                                        entry_source,
+                                        entry_data,
+                                        lxmf_message,
+                                        timestamp_override=int(entry_timestamp),
+                                        context=ctx,
+                                    )
+                                if not already_in_transaction:
+                                    provider.commit()
+                            except Exception:
+                                if not already_in_transaction:
+                                    provider.rollback()
+                                raise
             except Exception:
                 msg_hash = getattr(lxmf_message, "hash", None)
                 logger.exception(
@@ -11983,6 +12012,15 @@ class ReticulumMeshChat:
         if not ctx:
             return
 
+        # Dirty-check gate for the 1 Hz persistence below: an unconditional
+        # update per tick costs one UPDATE plus a conversation-summary
+        # rewrite per second for as long as a message is in flight (a slow
+        # 5-minute outbound transfer was ~600 write transactions). The
+        # websocket broadcast still runs every tick so UI progress bars
+        # stay smooth; only the SQLite write is skipped when nothing
+        # material changed. Loop-local on purpose: concurrent messages
+        # each track their own last-persisted state, no shared state.
+        last_persisted = None
         should_update_message = True
         while should_update_message:
             # The loop can outlive its identity: teardown closes the
@@ -11994,19 +12032,38 @@ class ReticulumMeshChat:
                 break
             reticulum = getattr(self, "reticulum", None)
             try:
+                terminal = is_lxmf_outbound_progress_terminal(lxmf_message)
                 progress_pct = round(lxmf_message.progress * 100, 2)
-                ctx.database.messages.update_lxmf_message_state(
-                    message_hash=lxmf_message.hash.hex(),
-                    state=convert_lxmf_state_to_string(lxmf_message),
-                    progress=progress_pct,
-                    delivery_attempts=lxmf_message.delivery_attempts,
-                    next_delivery_attempt_at=getattr(
-                        lxmf_message,
-                        "next_delivery_attempt",
-                        None,
-                    ),
-                    method=convert_lxmf_method_to_string(lxmf_message),
+                state = convert_lxmf_state_to_string(lxmf_message)
+                delivery_attempts = lxmf_message.delivery_attempts
+                next_delivery_attempt_at = getattr(
+                    lxmf_message,
+                    "next_delivery_attempt",
+                    None,
                 )
+                method = convert_lxmf_method_to_string(lxmf_message)
+
+                # Whole-percent progress floor: sub-percent movement is
+                # broadcast but not persisted. State, delivery-attempt,
+                # next-attempt and method changes always persist, as do
+                # the first iteration and any terminal iteration.
+                persist_key = (
+                    state,
+                    int(progress_pct),
+                    delivery_attempts,
+                    next_delivery_attempt_at,
+                    method,
+                )
+                if last_persisted is None or terminal or persist_key != last_persisted:
+                    ctx.database.messages.update_lxmf_message_state(
+                        message_hash=lxmf_message.hash.hex(),
+                        state=state,
+                        progress=progress_pct,
+                        delivery_attempts=delivery_attempts,
+                        next_delivery_attempt_at=next_delivery_attempt_at,
+                        method=method,
+                    )
+                    last_persisted = persist_key
                 self._maybe_store_path_at_send_for_lxmf(ctx, lxmf_message)
 
                 msg_dict = convert_lxmf_message_to_dict(
@@ -12036,7 +12093,12 @@ class ReticulumMeshChat:
 
             # check if we should stop updating
             if is_lxmf_outbound_progress_terminal(lxmf_message):
-                should_update_message = False
+                if terminal:
+                    should_update_message = False
+                # else: the transition happened mid-iteration, so this
+                # iteration may have skipped the write. Loop once more
+                # immediately (no sleep); the top-of-loop terminal check
+                # then forces the final state to persist before exit.
             else:
                 await asyncio.sleep(1)
 

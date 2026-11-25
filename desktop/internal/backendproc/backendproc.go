@@ -268,28 +268,29 @@ func (m *Manager) buildSpawnEnv() []string {
 		"MESHCHAT_LOG_DIR":              logsDir,
 		"MESHCHAT_STORAGE_DIR":          m.deps.StorageDir(),
 		"MESHCHAT_RETICULUM_CONFIG_DIR": m.deps.ReticulumConfigDir(),
+		// The desktop shell owns meshchatx.log and continuously spools the
+		// backend's stdout/stderr into it. Python uses this marker to skip its
+		// own file handler so each line is written once.
+		"MESHCHATX_DESKTOP_SHELL": "1",
 	}
 	for k, v := range system.BackendMemoryEnv(env) {
 		extra[k] = v
 	}
-	// Override existing keys.
+	// Drop inherited copies of keys we control, then append the controlled
+	// values exactly once.
 	out := make([]string, 0, len(env)+len(extra))
-	seen := map[string]bool{}
 	for _, kv := range env {
 		key := kv
 		if i := strings.Index(kv, "="); i >= 0 {
 			key = kv[:i]
 		}
 		if _, ok := extra[key]; ok {
-			seen[key] = true
 			continue
 		}
 		out = append(out, kv)
 	}
 	for k, v := range extra {
-		if !seen[k] {
-			out = append(out, k+"="+v)
-		}
+		out = append(out, k+"="+v)
 	}
 	return out
 }

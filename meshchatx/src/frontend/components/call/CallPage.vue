@@ -1889,6 +1889,10 @@ export default {
         isHalfDuplexCall() {
             return Boolean(this.activeCall && this.activeCall.status === 6 && this.activeCall.is_half_duplex);
         },
+        callNeedsFastPolling() {
+            // initiationStatus covers outgoing setup before active_call exists.
+            return Boolean(this.activeCall || this.initiationStatus);
+        },
         elapsedTime() {
             if (!this.activeCall?.call_start_time) {
                 return null;
@@ -1964,6 +1968,9 @@ export default {
         activeCall() {
             this.stopAudioVisualizer();
         },
+        callNeedsFastPolling() {
+            this.startStatusPollInterval();
+        },
     },
     mounted() {
         this.getConfig();
@@ -1996,6 +2003,9 @@ export default {
 
         // poll for history/voicemails less frequently
         this.historyInterval = setInterval(() => {
+            if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+                return;
+            }
             this.getHistory();
             this.getVoicemails();
             this.getRecordings();
@@ -2060,8 +2070,11 @@ export default {
                 clearInterval(this.statusInterval);
                 this.statusInterval = null;
             }
-            const statusMs = useNetworkStore().liveTransportReady ? 15000 : 1000;
+            const statusMs = useNetworkStore().liveTransportReady ? 15000 : this.callNeedsFastPolling ? 1000 : 5000;
             this.statusInterval = setInterval(() => {
+                if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+                    return;
+                }
                 this.getStatus();
                 this.getVoicemailStatus();
                 this.getRingtoneStatus();

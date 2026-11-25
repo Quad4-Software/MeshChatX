@@ -40,7 +40,7 @@ def test_flood_announces_no_limit(mock_db):
     mock_db.announces.trim_announces_for_aspect.assert_not_called()
 
 
-def test_flood_announces_trims_each_upsert(mock_db):
+def test_flood_announces_trim_gated_to_once_per_interval(mock_db):
     config = MagicMock()
     config.announce_max_stored_lxmf_delivery = MagicMock()
     config.announce_max_stored_lxmf_delivery.get.return_value = 50
@@ -66,7 +66,10 @@ def test_flood_announces_trims_each_upsert(mock_db):
         )
 
     assert mock_db.announces.upsert_announce.call_count == 100
-    assert mock_db.announces.trim_announces_for_aspect.call_count == 100
+    # The trim is a retention policy, not a per-write invariant: within
+    # the 60s cadence window it runs once per aspect no matter how many
+    # immediate upserts land.
+    assert mock_db.announces.trim_announces_for_aspect.call_count == 1
 
 
 def test_load_rapid_nomadnet_announces(mock_db):
