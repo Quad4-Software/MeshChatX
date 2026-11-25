@@ -13,9 +13,9 @@
 - CI uses `github.repository` and `github.repository_owner`, so workflow
   release URLs, the flatpak Pages URL, and the torrent webseed API/download
   endpoints follow the fork remote without edits.
-- `scripts/ci/make-release-torrent.py`, `scripts/ci/build-apk-package.sh`,
-  `scripts/rpi/install_meshchatx.sh`, and `scripts/ci/github-flatpak-ostree-export.sh`
-  read `GITHUB_REPOSITORY` or `brand.json`.
+- `scripts/ci/make-release-torrent.py`, `scripts/rpi/install_meshchatx.sh`,
+  and `scripts/ci/github-flatpak-ostree-export.sh` read `GITHUB_REPOSITORY`
+  or `brand.json`.
 - `FLATPAK_REPO_BASE_URL` defaults to `https://<owner>.github.io/<repo>/flatpak`.
 
 ## Literal surfaces enforced by brand:check
@@ -40,8 +40,7 @@ Secrets referenced by workflows:
   replace `cosign.pub` to match).
 - `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` (Docker Hub publishing).
 
-Variables: `DOCKERHUB_REPOSITORY`, `FLATPAK_REPO_BASE_URL`,
-.
+Variables: `DOCKERHUB_REPOSITORY`, `FLATPAK_REPO_BASE_URL`.
 
 ## GitHub Pages flatpak repo
 

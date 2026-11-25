@@ -565,23 +565,3 @@ func (r *PathGuardRoots) IsAllowedShellPath(targetPath string, broadRoots bool) 
 	}
 	return false
 }
-
-// UserDirs returns the standard user directories used by the path guard.
-func UserDirs() (downloads, documents, pictures, temp string) {
-	home, _ := os.UserHomeDir()
-	downloads = filepath.Join(home, "Downloads")
-	documents = filepath.Join(home, "Documents")
-	pictures = filepath.Join(home, "Pictures")
-	temp = os.TempDir()
-	if runtime.GOOS == "windows" {
-		if v := os.Getenv("USERPROFILE"); v != "" {
-			downloads = filepath.Join(v, "Downloads")
-			documents = filepath.Join(v, "Documents")
-			pictures = filepath.Join(v, "Pictures")
-		}
-		if v := os.Getenv("TEMP"); v != "" {
-			temp = v
-		}
-	}
-	return
-}

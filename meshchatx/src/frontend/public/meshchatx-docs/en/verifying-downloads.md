@@ -41,7 +41,7 @@ slsa-verifier verify-artifact \
     meshchatx-linux-x64.AppImage \
     --provenance-path <artifact>.intoto.jsonl \
     --source-uri github.com/Quad4-Software/MeshChatX \
-    --source-tag v4.9.1
+    --source-tag v4.12.0
 ```
 
 A passing result means: the binary was built by GitHub Actions from the

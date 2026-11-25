@@ -2,7 +2,7 @@
 
 """Move Poetry-built wheels from dist/ into python-dist/.
 
-Avoids filename clashes with Electron build outputs.
+Avoids filename clashes with desktop build outputs.
 """
 
 import shutil

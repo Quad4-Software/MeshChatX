@@ -1,7 +1,7 @@
 /**
  * Thin wrapper over the MeshChatXAndroid JS bridge for download progress,
  * completion notifications, and transfer wake sessions. Every call no-ops
- * cleanly when the bridge or method is absent (browser, Electron, older APK).
+ * cleanly when the bridge or method is absent (browser, desktop, older APK).
  */
 
 function bridge() {

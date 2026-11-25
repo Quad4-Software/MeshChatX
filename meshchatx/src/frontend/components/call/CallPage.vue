@@ -1877,7 +1877,7 @@ export default {
         showWebAudioDeviceSelector() {
             // Android routes call audio through the native mic/speaker, not a
             // browser device picker, so the Web Audio device selector only
-            // applies to browser/Electron hosts.
+            // applies to browser and desktop hosts.
             return this.webAudioBridgeEnabled && !this.isMeshChatXAndroid();
         },
         isMicMuted() {

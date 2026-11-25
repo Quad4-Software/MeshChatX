@@ -143,8 +143,3 @@ export default class AndroidStorageBridge {
         return { restarted: false };
     }
 }
-
-export function restartMeshChatAndroid() {
-    const bridge = new AndroidStorageBridge();
-    return bridge.restartApp();
-}

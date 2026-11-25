@@ -31,7 +31,7 @@ Announce records store signal metadata and parsed app data for display names and
 
 ## Web UI authentication
 
-Optional HTTP basic authentication is enabled with --auth or MESHCHAT_AUTH=true. Sessions use encrypted cookies. Mutating API requests require CSRF tokens.
+Optional password authentication is enabled with --auth or MESHCHAT_AUTH=true. Sessions use encrypted cookies. Mutating API requests require CSRF tokens.
 
 Access attempts are logged. Repeated failures can trigger lockout when auth is enabled.
 

@@ -67,7 +67,7 @@ This document is the reviewable artifact behind the controls referenced in
 - DoS: announce rate limits and flood handling (`test_announce_flood_load.py`),
   ingress gate, per-peer message caps, expiry sweeps.
 - Elevation: no inbound message can trigger filesystem writes outside the
-  storage jail. File sync paths resolve through `resolve_safe_path`.
+  storage jail. File sync paths resolve through `resolve_under_root`.
 
 ### 4. Filesystem path jail
 

@@ -78,16 +78,6 @@ PR gate without GitHub Marketplace actions:
 
 Forgejo and Gitea: `.gitea/workflows/ci.yml` and `.forgejo/workflows/ci.yml`.
 
-Crow CI: `.crow/` holds container pipelines that run the same portable runner
-on a pinned ubuntu:24.04 image. `ci.yaml` runs `run.sh fast` (lint, frontend,
-and lang tests) on push to master or dev, on pull requests, and on manual runs.
-`backend.yaml`, `lint.yaml`, `test.yaml`, and `check.yaml` are manual-only and
-map to `run.sh backend`, `run.sh lint`, `run.sh test`, and `run.sh check`.
-`backend.yaml` limits pytest to two workers because the backend suite needs
-more threads than many container runtimes allow. Trigger a manual pipeline from
-the Crow UI via the repository's manual-run button. Only workflows that list
-`event: manual` appear there.
-
 Pinned versions: `scripts/ci/versions.env`.
 
 ## Local network scenario tests
@@ -106,7 +96,6 @@ The suite is fast and runs inside the default pytest pass. Heavier
 loopback and subprocess suites use the `integration`, `lxst_real`, and
 `long_running` markers registered in `pytest.ini`.
 
-
 ## Lockfiles and install scripts
 
 From a clean clone:
@@ -117,7 +106,7 @@ cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "uv==0.11.15"
+pip install "uv==0.13.5"
 uv lock --check
 uv sync --group dev
 pnpm run build-frontend
@@ -126,7 +115,7 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 
 pnpm install --frozen-lockfile fails if pnpm-lock.yaml does not match package.json, so an unexpected upstream version cannot land silently. Store integrity is also on in pnpm-workspace.yaml. The extra pnpm config set line hardens the user-level config too.
 
-pnpm v11+ blocks lifecycle scripts by default. Only packages listed under allowBuilds in pnpm-workspace.yaml may run install scripts (esbuild). uv lock --check fails if uv.lock is out of date with pyproject.toml. uv sync then installs from the lockfile only. Pin UV with pip install "uv==0.11.15" to match CI.
+pnpm v11+ blocks lifecycle scripts by default. Only packages listed under allowBuilds in pnpm-workspace.yaml may run install scripts (esbuild). uv lock --check fails if uv.lock is out of date with pyproject.toml. uv sync then installs from the lockfile only. Pin UV with pip install "uv==0.13.5" to match CI.
 
 To update dependencies on purpose, run pnpm update or uv lock in its own commit and read the lockfile diff before you push.
 

@@ -167,38 +167,6 @@ func envValue(env map[string]string, key string) string {
 	return env[key]
 }
 
-// DefaultStorageDir / DefaultReticulumConfigDir resolve the roots for the
-// running process (os.Args, os.Environ, user home).
-func DefaultStorageDir() string {
-	storage, _ := ResolvePortableStorageRoots(os.Args, environMap(), homeDir(), runtime.GOOS == "windows", os.Getenv("PORTABLE_EXECUTABLE_DIR"))
-	return storage
-}
-
-func DefaultReticulumConfigDir() string {
-	_, rns := ResolvePortableStorageRoots(os.Args, environMap(), homeDir(), runtime.GOOS == "windows", os.Getenv("PORTABLE_EXECUTABLE_DIR"))
-	return rns
-}
-
-func environMap() map[string]string {
-	m := make(map[string]string)
-	for _, kv := range os.Environ() {
-		for i := 0; i < len(kv); i++ {
-			if kv[i] == '=' {
-				m[kv[:i]] = kv[i+1:]
-				break
-			}
-		}
-	}
-	return m
-}
-
-func homeDir() string {
-	if h, err := os.UserHomeDir(); err == nil && h != "" {
-		return h
-	}
-	return "."
-}
-
 // ArchSegment maps runtime.GOARCH to the freeze build layout segment.
 func ArchSegment() string {
 	switch runtime.GOARCH {

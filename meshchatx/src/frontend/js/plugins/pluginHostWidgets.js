@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import { defineAsyncComponent, h } from "vue";
+import { h } from "vue";
 
 /** Reviewed host widgets plugins may request via manifest ui.widgets. */
 
@@ -66,16 +66,4 @@ const WIDGET_MAP = {
  */
 export function resolveHostWidget(name) {
     return WIDGET_MAP[name] || null;
-}
-
-/**
- * Lazy stub kept for future heavier widgets.
- * @param {string} name
- */
-export function resolveHostWidgetAsync(name) {
-    const comp = resolveHostWidget(name);
-    if (!comp) {
-        return null;
-    }
-    return defineAsyncComponent(() => Promise.resolve(comp));
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: 0BSD
 //
-// Verify a packaged Electron app tree against backend-manifest.json.
+// Verify a packaged desktop app tree against backend-manifest.json.
 //
 // The desktop packaging step can silently drop files that the build
 // manifest hashed (for example dotfile keep-markers under data/). A missing
@@ -11,7 +11,7 @@
 // on the drop instead of users.
 //
 // usage: node scripts/ci/github-verify-backend-manifest.mjs <dir>
-//   <dir> may be an unpacked app dir (dist/win-unpacked), an .app bundle, or
+//   <dir> may be an unpacked app dir (desktop/bin), an .app bundle, or
 //   the backend dir itself. The manifest is located by walking the tree.
 
 import { createHash } from "node:crypto";

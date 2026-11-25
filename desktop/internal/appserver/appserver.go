@@ -62,11 +62,6 @@ func (s *Server) Origin() string {
 	return s.origin
 }
 
-// Upstream returns the backend URL this server proxies to.
-func (s *Server) Upstream() *url.URL {
-	return s.upstream
-}
-
 // SetShutdownStatusFile points the server at the backend's shutdown
 // status JSON so /__shell/shutdown-status can serve it.
 func (s *Server) SetShutdownStatusFile(path string) {

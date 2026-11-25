@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Emit base64-encoded sha256sum lines for Electron outputs under downloaded artifact roots.
+# Emit base64-encoded sha256sum lines for desktop outputs under downloaded artifact roots.
 # Subject paths are the relative paths passed to sha256sum (stable for slsa-verifier).
 set -euo pipefail
 

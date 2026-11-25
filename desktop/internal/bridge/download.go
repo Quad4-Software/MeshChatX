@@ -27,7 +27,6 @@ type DownloadManager struct {
 	getDir  func() string
 	dir     string
 	active  map[string]*downloadState
-	onSaved func(path string)
 
 	// janitor state (lazy; injectable for tests)
 	janitorStarted bool
@@ -53,8 +52,6 @@ func NewDownloadManager(getDownloadsDir func() string) *DownloadManager {
 		now:          time.Now,
 	}
 }
-
-func (d *DownloadManager) SetOnSaved(fn func(path string)) { d.onSaved = fn }
 
 // Dir returns <Downloads>/MeshChatX, creating it lazily. Refuses to use a
 // symlinked exchange dir.
@@ -246,7 +243,7 @@ func (d *DownloadManager) Chunk(id, dataBase64 string) map[string]any {
 	return map[string]any{"ok": true}
 }
 
-// End closes the file and emits the saved path via onSaved.
+// End closes the file and reports the saved path.
 func (d *DownloadManager) End(id string) map[string]any {
 	d.mu.Lock()
 	st := d.active[id]
@@ -265,9 +262,6 @@ func (d *DownloadManager) End(id string) map[string]any {
 			"ok":    false,
 			"error": fmt.Sprintf("incomplete download: %d of %d bytes", st.written, st.size),
 		}
-	}
-	if d.onSaved != nil {
-		d.onSaved(st.path)
 	}
 	return map[string]any{"ok": true, "path": st.path}
 }

@@ -103,5 +103,3 @@ export async function showDeliveryHelptips({ api, peerHash, failureKind, diagnos
 export function resetHelptipFetchesForTests() {
     pendingFetches.clear();
 }
-
-export default { showDeliveryHelptips, resetHelptipFetchesForTests };

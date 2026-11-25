@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 /**
- * Client-side service worker registration helpers (browser only, not Electron).
+ * Client-side service worker registration helpers (browser only, not the desktop shell).
  */
 
 /**
@@ -42,7 +42,7 @@ export function serviceWorkerRegisterOptions() {
 
 /**
  * Vite HMR and Vue DevTools break if a leftover PWA worker intercepts modules.
- * Register only for production-like browser loads (not Electron, not Vite DEV).
+ * Register only for production-like browser loads (not desktop, not Vite DEV).
  *
  * @param {{ isDev?: boolean, isDesktop?: boolean }} state
  * @returns {boolean}

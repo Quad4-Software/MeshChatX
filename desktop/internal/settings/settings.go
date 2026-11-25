@@ -168,13 +168,6 @@ func SaveUiThemePreference(storageDir string, preference string) string {
 	return next
 }
 
-func ShellBackgroundColor(effectiveTheme string) string {
-	if effectiveTheme == "dark" {
-		return "#09090b"
-	}
-	return "#f8fafc"
-}
-
 // ---- desktop privacy settings (electron/desktopPrivacySettings.js) --------
 
 type DesktopPrivacySettings struct {

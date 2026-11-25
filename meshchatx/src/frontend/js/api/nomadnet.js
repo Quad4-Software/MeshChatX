@@ -14,15 +14,6 @@ export function deleteArchives(...rest) {
 export function listArchives(...rest) {
     return window.api.get(apiPath("/nomadnet/archives"), ...rest);
 }
-export function getArchives(id, ...rest) {
-    return window.api.get(apiPath(`/nomadnet/archives/${id}`), ...rest);
-}
 export function getArchivesExport(...rest) {
     return window.api.get(apiPath("/nomadnet/archives/export"), ...rest);
-}
-export function recrawlArchives(data, ...rest) {
-    return window.api.post(apiPath("/nomadnet/archives/recrawl"), data, ...rest);
-}
-export function optOutsCrawl(data, ...rest) {
-    return window.api.post(apiPath("/nomadnet/crawl/opt-outs"), data, ...rest);
 }

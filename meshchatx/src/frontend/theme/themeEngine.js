@@ -2,7 +2,6 @@
 
 import { MESHCHAT_THEME_VARIABLES_DARK, MESHCHAT_THEME_VARIABLES_LIGHT } from "./designTokens.js";
 
-export const THEME_PREFERENCE_VALUES = ["light", "dark", "system"];
 export const THEME_PRESET_IDS = [
     "default",
     "high_contrast",

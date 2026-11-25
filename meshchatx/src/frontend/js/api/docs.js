@@ -8,17 +8,8 @@
 
 import { apiPath } from "../constants";
 
-export function deleteVersion(version, ...rest) {
-    return window.api.delete(apiPath(`/docs/version/${version}`), ...rest);
-}
 export function getSearch(...rest) {
     return window.api.get(apiPath("/docs/search"), ...rest);
-}
-export function getStatus(...rest) {
-    return window.api.get(apiPath("/docs/status"), ...rest);
-}
-export function postSwitch(data, ...rest) {
-    return window.api.post(apiPath("/docs/switch"), data, ...rest);
 }
 export function postUpload(trim, data, ...rest) {
     return window.api.post(apiPath(`/docs/upload?version=${trim}`), data, ...rest);

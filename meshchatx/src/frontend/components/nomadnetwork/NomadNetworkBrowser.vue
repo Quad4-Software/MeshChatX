@@ -747,7 +747,7 @@ export default {
         syncRoute() {
             const tab = this.activeTab;
             // Private tabs keep destination state in memory only (SearXNG-style).
-            // Do not put the hash or page path in the URL bar, history, or Electron title.
+            // Do not put the hash or page path in the URL bar, history, or window title.
             const targetHash = tab?.private ? "" : tab?.destinationHash || "";
             const currentHash = this.$route?.params?.destinationHash || "";
             const currentPath = this.$route?.query?.path || "";

@@ -11,6 +11,3 @@ import { apiPath } from "../constants";
 export function getConfig(...rest) {
     return window.api.get(apiPath("/config"), ...rest);
 }
-export function updateConfig(data, ...rest) {
-    return window.api.patch(apiPath("/config"), data, ...rest);
-}

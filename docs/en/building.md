@@ -18,7 +18,7 @@ Set MESHCHATX_OFFLINE_BUILD=1 before any build command. That skips micron-parser
 ```bash
 MESHCHATX_OFFLINE_BUILD=1 make install
 MESHCHATX_OFFLINE_BUILD=1 pnpm run build:offline
-MESHCHATX_OFFLINE_BUILD=1 pnpm run dist:linux:offline
+MESHCHATX_OFFLINE_BUILD=1 pnpm run dist:linux
 MESHCHATX_OFFLINE_BUILD=1 ./gradlew :app:assembleRelease
 ```
 
@@ -52,8 +52,8 @@ Android is separate. The offline bundle does not include Chaquopy wheels. Build 
 ## Desktop packages from source
 
 ```bash
-pnpm run dist:linux-x64
-pnpm run dist:linux-arm64
+pnpm run dist:linux:x64
+pnpm run dist:linux:arm64
 pnpm run dist:rpm
 task dist:linux:deb
 ```
@@ -72,7 +72,7 @@ GStreamer plugins are copied from the build host, so install `gst-plugins-base`,
 
 ## Container build (wheel, AppImage, deb, rpm)
 
-[Dockerfile.build](../../docker/Dockerfile.build) runs the same shell steps CI uses (Poetry, pnpm, task, packaging APT deps). It is aimed at linux/amd64 (NodeSource amd64 tarball, Task amd64 binary).
+[Dockerfile.build](../../docker/Dockerfile.build) runs the same shell steps CI uses (uv, pnpm, task, wails3, packaging APT deps). It is aimed at linux/amd64 (NodeSource amd64 tarball, Task amd64 binary).
 
 MESHCHATX_BUILD_TARGETS defaults to all. Other values: wheel, or desktop (AppImage + deb + rpm for x64 and arm64, no wheel). The desktop target installs Go, GTK4, WebKitGTK 6.0, and libsoup3 development packages.
 

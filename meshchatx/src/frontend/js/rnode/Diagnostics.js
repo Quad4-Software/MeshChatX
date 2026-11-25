@@ -251,5 +251,3 @@ export function evaluateProductMatch(romDetails, expected) {
     }
     return { matches: true, reason: null };
 }
-
-export default { diagnose, evaluateProductMatch };

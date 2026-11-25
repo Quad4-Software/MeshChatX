@@ -8,7 +8,7 @@ MeshChatX can be installed in several ways. All release artifacts that ship the 
 | --------- | -------------------------------------------------- |
 | Python    | 3.11 or newer (pyproject.toml)                     |
 | Node.js   | 24 or newer (development and frontend builds only) |
-| pnpm      | 11.1.2 (development)                               |
+| pnpm      | 12 (development)                                   |
 | UV        | Used by Taskfile and CI                            |
 
 **Browsers for the web UI:** Safari 16.4+, Chrome 111+, Firefox 128+.

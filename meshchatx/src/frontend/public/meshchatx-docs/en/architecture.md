@@ -31,7 +31,7 @@ ReticulumMeshChat (meshchat.py)
     +-- Shared Reticulum instance (~/.reticulum by default)
 ```
 
-Optional **Wails** wraps the same backend binary and loads the UI from the local HTTPS server.
+The **Wails** desktop shell wraps the same backend binary and loads the UI from the local HTTPS server.
 
 ## Application shell
 
@@ -108,7 +108,7 @@ MeshChatX defaults toward secure local operation:
 
 - HTTPS and WSS enabled by default.
 - Self-signed certificates generated per identity when custom PEM files are absent.
-- Optional HTTP basic authentication (--auth).
+- Optional password authentication for the UI (--auth).
 - Encrypted session cookies via aiohttp_session.
 - CORS, CSP, and defensive middleware on HTTP responses.
 - Access attempt logging with lockout when auth is enabled.

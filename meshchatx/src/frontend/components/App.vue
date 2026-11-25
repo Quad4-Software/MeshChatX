@@ -1988,7 +1988,7 @@ export default {
                     const sourceHash = deliverySourceHash(json);
                     const openHashes = listOpenDestinationHashes();
                     const sourceOpen = openHashes.includes(String(sourceHash || "").toLowerCase());
-                    // Minimized Electron windows often keep hasFocus true while
+                    // Minimized desktop windows often keep hasFocus true while
                     // visibilityState is hidden. Require both for "in foreground".
                     const hasFocus =
                         typeof document !== "undefined"

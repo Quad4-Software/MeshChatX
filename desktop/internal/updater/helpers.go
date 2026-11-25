@@ -59,13 +59,6 @@ func copyFileSync(src, dst string) error {
 	return err
 }
 
-func fsyncFile(path string) {
-	if f, err := os.Open(path); err == nil {
-		_ = f.Sync()
-		_ = f.Close()
-	}
-}
-
 func fsyncDir(dir string) {
 	if f, err := os.Open(dir); err == nil {
 		_ = f.Sync()

@@ -156,10 +156,6 @@ export function resolveSidebarFilterDefs(context, layout) {
     return [...sidebarFilterDefs(context), ...(layout?.custom?.[context] || [])];
 }
 
-export function sidebarFilterDefaults(context) {
-    return (DEFAULT_LAYOUT[context] || []).slice();
-}
-
 /**
  * Move draggedId before/after targetId inside layout[context] and persist.
  * targetId null means drop at the end. Returns the new layout object.

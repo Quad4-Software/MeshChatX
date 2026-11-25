@@ -382,8 +382,7 @@ func BuildDataCleanupGuide(storageDir, reticulumConfigDir, platform, portableExe
 	if reticulumConfigDir == "" {
 		reticulumConfigDir = "~/.reticulum"
 	}
-	legacyDir := regexp.MustCompile(`(?i)meshchatx$`).ReplaceAllString(storageDir, "meshchat")
-	legacyDir = regexp.MustCompile(`(?i)MeshChatX$`).ReplaceAllString(storageDir, "meshchat")
+	legacyDir := regexp.MustCompile(`(?i)MeshChatX$`).ReplaceAllString(storageDir, "meshchat")
 
 	var lines []string
 	lines = append(lines,

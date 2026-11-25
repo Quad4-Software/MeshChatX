@@ -1,6 +1,6 @@
-# Reproducible native build (wheel, Linux AppImage/deb/rpm/apk) in one image.
+# Reproducible native build (wheel, Linux AppImage/deb/rpm) in one image.
 # Default target builds everything; override with --build-arg MESHCHATX_BUILD_TARGETS=wheel|desktop|all
-# Pick specific Linux package formats with --build-arg MESHCHATX_LINUX_FORMATS=appimage,deb,rpm,apk (default: all)
+# Pick specific Linux package formats with --build-arg MESHCHATX_LINUX_FORMATS=appimage,deb,rpm (default: all)
 #
 # Build (all formats):
 #   docker build -f docker/Dockerfile.build -t meshchatx-build:local .

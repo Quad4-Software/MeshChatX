@@ -4,8 +4,6 @@ import { apiPath } from "../constants";
 
 /** Versioned plugin UI descriptor schema (uiDescriptor v1). */
 
-export const UI_DESCRIPTOR_VERSION = 1;
-
 export const KNOWN_NODE_TYPES = Object.freeze([
     "text",
     "input",

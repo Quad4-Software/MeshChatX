@@ -1,6 +1,6 @@
 # Linux sandboxing with Firejail and Bubblewrap
 
-This page shows how to run **meshchatx** under **Firejail** or **Bubblewrap** (bwrap) on Linux. The legacy CLI name **meshchat** installs the same entry point and can be substituted in these examples. Use this when you install MeshChatX natively (wheel, package, or Poetry) and want an extra layer of filesystem and process isolation compared to running the binary directly.
+This page shows how to run **meshchatx** under **Firejail** or **Bubblewrap** (bwrap) on Linux. The legacy CLI name **meshchat** installs the same entry point and can be substituted in these examples. Use this when you install MeshChatX natively (wheel, package, or from source) and want an extra layer of filesystem and process isolation compared to running the binary directly.
 
 These tools do **not** replace a full virtual machine or hardware-enforced boundary. They reduce exposure of your home directory and other paths the process can write to, when you configure them with tight whitelists or bind mounts.
 
@@ -70,7 +70,7 @@ firejail --noprofile --whitelist="$DATA" \
 
 ### From source with UV
 
-Poetry needs the project tree and the virtualenv. Example:
+uv needs the project tree and the virtualenv. Example:
 
 ```bash
 cd /path/to/reticulum-meshchatX

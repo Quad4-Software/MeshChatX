@@ -8,12 +8,6 @@
 
 import { apiPath } from "../constants";
 
-export function getLxmfAddress(hash, ...rest) {
-    return window.api.get(apiPath(`/identity/${hash}/lxmf-address`), ...rest);
-}
-export function backupBase32(data, ...rest) {
-    return window.api.post(apiPath("/identity/backup/base32"), data, ...rest);
-}
 export function downloadBackup(data, ...rest) {
     return window.api.post(apiPath("/identity/backup/download"), data, ...rest);
 }

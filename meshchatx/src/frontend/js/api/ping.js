@@ -11,6 +11,3 @@ import { apiPath } from "../constants";
 export function postLxmfDelivery(destinationHash, data, ...rest) {
     return window.api.post(apiPath(`/ping/${destinationHash}/lxmf.delivery`), data, ...rest);
 }
-export function postLxmfDelivery2(destinationHash, data, ...rest) {
-    return window.api.post(apiPath(`/ping/${destinationHash}/lxmf.delivery`), data, ...rest);
-}

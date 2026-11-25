@@ -229,12 +229,3 @@ export function transportSuggestionKeys(capabilities, transportName) {
     }
     return suggestions;
 }
-
-export default {
-    detectCapabilities,
-    pickDefaultTransport,
-    transportSuggestionKeys,
-    TRANSPORT_SERIAL,
-    TRANSPORT_BLUETOOTH,
-    TRANSPORT_WIFI,
-};

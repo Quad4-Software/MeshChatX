@@ -2,7 +2,6 @@
 
 import { validatePluginManifest } from "./pluginManifest.js";
 import { loadPluginLabelMap, resolvePluginUiString } from "./pluginLabels.js";
-import { setPluginUiLabels, clearPluginUiLabels } from "./pluginUiRegistry.js";
 import { validateUiDescriptor } from "./pluginUiDescriptor.js";
 import { isKnownHostWidget } from "./pluginHostWidgets.js";
 import { grantedPluginPermissions, hasGrantedPluginPermission } from "./pluginPermissions.js";
@@ -164,7 +163,6 @@ export class PluginHost {
             throw new Error("Plugin frontend.type wasm is not implemented yet");
         }
         const labels = await loadPluginLabelMap(apiClient, pluginId, locale, manifest);
-        setPluginUiLabels(pluginId, labels);
         const assetUrl = apiPath(
             `/plugins/${encodeURIComponent(pluginId)}/asset/${manifest.frontend.entry}?v=${encodeURIComponent(manifest.version || "1")}`
         );
@@ -206,7 +204,6 @@ export class PluginHost {
         });
 
         cleanup.push(...this.registerContributions(pluginId, manifest, labels));
-        cleanup.push(() => clearPluginUiLabels(pluginId));
         const routeName = this.ensurePluginRoute(pluginId);
         if (routeName) {
             cleanup.push(() => this.removePluginRoute(pluginId, routeName));

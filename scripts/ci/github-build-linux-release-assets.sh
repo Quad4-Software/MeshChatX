@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Build wheel, Python PYZ, Linux AppImage/deb (x64 + arm64), optional RPM/APK, frontend zip, and SBOM under ./release-assets/.
+# Build wheel, Python PYZ, Linux AppImage/deb (x64 + arm64), optional RPM, frontend zip, and SBOM under ./release-assets/.
 # Expects repo root as cwd, dependencies installed (task install / pnpm), and meshchatx/public populated when building the desktop shell.
 # Optional: SKIP_WHEEL=1, SKIP_PYZ=1, SKIP_DESKTOP=1, TRIVY_SBOM=0
-# Optional: MESHCHATX_LINUX_FORMATS = comma list of appimage,deb,rpm (default: all four)
+# Optional: MESHCHATX_LINUX_FORMATS = comma list of appimage,deb,rpm (default: all three)
 set -euo pipefail
 
 # /tmp can disappear mid-run on self-hosted runners (tmpfiles cleanup,

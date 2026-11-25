@@ -8,18 +8,6 @@
 
 import { apiPath } from "../constants";
 
-export function listStickers(...rest) {
-    return window.api.get(apiPath("/stickers"), ...rest);
-}
 export function getImage(id, ...rest) {
     return window.api.get(apiPath(`/stickers/${id}/image`), ...rest);
-}
-export function getExport(...rest) {
-    return window.api.get(apiPath("/stickers/export"), ...rest);
-}
-export function createStickers(data, ...rest) {
-    return window.api.post(apiPath("/stickers"), data, ...rest);
-}
-export function importStickers(data, ...rest) {
-    return window.api.post(apiPath("/stickers/import"), data, ...rest);
 }

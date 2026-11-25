@@ -504,17 +504,6 @@ func (m *Manager) GetInfo(token string) (PortInfo, error) {
 	return PortInfo{}, ErrUnknownToken
 }
 
-// GrantedPorts lists grants (for getPorts()-style UIs).
-func (m *Manager) GrantedPorts() []Grant {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	out := make([]Grant, 0, len(m.grants))
-	for _, e := range m.grants {
-		out = append(out, *e.grant)
-	}
-	return out
-}
-
 // CloseAll shuts down every session (app quit).
 func (m *Manager) CloseAll() {
 	m.mu.Lock()

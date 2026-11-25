@@ -12,8 +12,6 @@ const KEY = "runtime_override";
 
 /** @typedef {{ source: "upload", releaseTag: string, wasmSri: string, wasmBytes: ArrayBuffer, expectedSha256Hex: string|null }} MicronWasmRuntimeOverrideRecord */
 
-export const WASM_FILENAME = "micron-parser-go.wasm";
-
 export const MAX_WASM_OVERRIDE_BYTES = 14 * 1024 * 1024;
 
 function openDb() {
@@ -24,17 +22,6 @@ function openDb() {
             }
         },
     });
-}
-
-/** @param {ArrayBuffer} buf */
-export async function sha256HexOfBuffer(buf) {
-    const d = await crypto.subtle.digest("SHA-256", buf);
-    const bytes = new Uint8Array(d);
-    let hex = "";
-    for (let i = 0; i < bytes.length; i++) {
-        hex += bytes[i].toString(16).padStart(2, "0");
-    }
-    return hex;
 }
 
 /** @param {ArrayBuffer} buf */

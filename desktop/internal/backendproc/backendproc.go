@@ -111,12 +111,6 @@ func (m *Manager) ResolveExecutablePath(find func() string) string {
 	return m.resolvedExe
 }
 
-func (m *Manager) GetResolvedExecutablePath() string {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return m.resolvedExe
-}
-
 // procExited reports whether the Wait goroutine has finished (done is closed
 // after cmd.Wait() returns). Reading cmd.ProcessState directly races with
 // Wait, so liveness is tracked through these channels instead.

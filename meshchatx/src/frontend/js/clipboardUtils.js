@@ -15,19 +15,6 @@ export function isWindowSecureContext() {
 }
 
 /**
- * Whether async clipboard read is expected to work (secure context + API present).
- * @returns {boolean}
- */
-export function canUseAsyncClipboardRead() {
-    return (
-        typeof navigator !== "undefined" &&
-        !!navigator.clipboard &&
-        typeof navigator.clipboard.readText === "function" &&
-        isWindowSecureContext()
-    );
-}
-
-/**
  * Whether async clipboard image write is expected to work.
  * @returns {boolean}
  */

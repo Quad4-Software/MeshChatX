@@ -261,13 +261,6 @@ export function transformPoint(m, x, y, z, out) {
 }
 
 /**
- * Front of a unit sphere at the origin when dot(p, eye) > 1.
- */
-export function sphereFacing(px, py, pz, eye) {
-    return px * eye.x + py * eye.y + pz * eye.z - 1;
-}
-
-/**
  * Front of a sphere at C with radius R. n is the unit local point.
  */
 export function sphereFacingAt(nx, ny, nz, eye, cx, cy, cz, radius) {

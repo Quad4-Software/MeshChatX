@@ -80,7 +80,7 @@ works on Raspberry Pi ARM and x86_64 Linux systems.
 Upgrade example:
 
 ```bash
-pipx upgrade meshchatx
+pipx upgrade reticulum-meshchatx
 ```
 
 ## 4) Install MeshChatX without pipx (venv + pip)

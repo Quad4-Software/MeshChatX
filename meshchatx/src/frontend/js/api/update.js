@@ -31,9 +31,6 @@ export function applyUpdateFile(file, ...rest) {
     form.append("file", file);
     return window.api.post(apiPath("/update/apply-file"), form, ...rest);
 }
-export function applyUpdatePath(path, channel, ...rest) {
-    return window.api.post(apiPath("/update/apply-file"), { path, channel: channel || null }, ...rest);
-}
 export function discardUpdate(...rest) {
     return window.api.post(apiPath("/update/discard"), {}, ...rest);
 }

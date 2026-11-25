@@ -149,7 +149,7 @@ function writeStoredHopMaxFilter(v) {
 /*
  * Yields control back to the browser so it can paint, dispatch input events,
  * and run other tasks. Prefers the prioritized task scheduler when available
- * (Chromium 94+ / Electron) and falls back to a zero-delay timer everywhere
+ * (Chromium 94+) and falls back to a zero-delay timer everywhere
  * else. setTimeout(0) is intentionally used over Promise.resolve() because
  * microtasks do not give the renderer a chance to repaint.
  */

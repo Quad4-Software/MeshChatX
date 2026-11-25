@@ -17,7 +17,7 @@
     }
 
     /**
-     * Decide whether an HTTP status probe response means the Electron loading
+     * Decide whether an HTTP status probe response means the shell loading
      * page can navigate into the app shell.
      *
      * HTTP may be up while RNS is still starting (`status: "starting"`).

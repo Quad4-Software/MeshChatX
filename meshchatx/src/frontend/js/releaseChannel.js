@@ -3,8 +3,6 @@
  * Release channel helpers for About/sidebar badges and Testing/Beta prompts.
  */
 
-export const PRODUCT_CHANNELS = Object.freeze(["testing", "beta", "stable", "local"]);
-
 /**
  * @param {unknown} raw
  * @returns {"testing"|"beta"|"stable"|"local"|string}

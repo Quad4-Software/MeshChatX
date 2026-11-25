@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 /**
- * Browser-only LAN bind warning. Electron and Android bind locally and
+ * Browser-only LAN bind warning. The desktop shell and Android bind locally and
  * never show this. Headless LAN binds keep running. The UI warns instead.
  */
 

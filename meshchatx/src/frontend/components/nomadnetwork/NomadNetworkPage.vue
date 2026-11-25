@@ -4120,15 +4120,10 @@ export default {
                             if (this.nodeFileDownloadStartTime && progressValue > 0) {
                                 const elapsedTime = (currentTime - this.nodeFileDownloadStartTime) / 1000; // seconds
                                 if (elapsedTime > 0.5) {
-                                    // Only calculate after at least 0.5 seconds
-                                    // Estimate total file size based on progress rate
-                                    // If we've downloaded progressValue in elapsedTime, estimate total time
-                                    // const estimatedTotalTime = elapsedTime / progressValue;
-                                    // Estimate file size based on average download speed assumption
-                                    // We'll refine this when download completes with actual size
-                                    // For now, estimate based on typical mesh network file sizes (100KB-10MB range)
-                                    // Use a conservative estimate that will be updated when download completes
-                                    const estimatedFileSize = 500 * 1024; // Start with 500KB estimate
+                                    // Only calculate after at least 0.5 seconds.
+                                    // Assume a 500KB file to estimate speed until the
+                                    // real size is known at completion.
+                                    const estimatedFileSize = 500 * 1024;
                                     const estimatedBytesDownloaded = estimatedFileSize * progressValue;
                                     const estimatedSpeed = estimatedBytesDownloaded / elapsedTime;
 

@@ -59,30 +59,6 @@ export function setOpenDestinationHashes(hashes) {
 }
 
 /**
- * @param {string} hash
- */
-export function addOpenDestinationHash(hash) {
-    const n = normalizeDestinationHash(hash);
-    if (!n || openHashes.has(n)) {
-        return;
-    }
-    openHashes.add(n);
-    notifyListeners();
-}
-
-/**
- * @param {string} hash
- */
-export function removeOpenDestinationHash(hash) {
-    const n = normalizeDestinationHash(hash);
-    if (!n || !openHashes.has(n)) {
-        return;
-    }
-    openHashes.delete(n);
-    notifyListeners();
-}
-
-/**
  * @returns {string[]}
  */
 export function listOpenDestinationHashes() {
