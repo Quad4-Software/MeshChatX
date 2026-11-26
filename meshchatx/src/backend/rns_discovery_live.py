@@ -80,7 +80,14 @@ def install_discovery_autoconnect_gate() -> bool:
                 except Exception:
                     pass
                 return None
-            return _ORIGINAL_INTERFACE_AUTOCONNECT(self, info)
+            # Read the module global at call time: tests substitute it
+            # with a fake. Fall back to the closure-captured original when
+            # the global has been reset, and narrow non-None for the type
+            # checker without a cast.
+            current = _ORIGINAL_INTERFACE_AUTOCONNECT
+            if current is None:
+                current = original
+            return current(self, info)
 
         autoconnect_with_bandwidth_gate._meshchatx_bandwidth_gate = True
         InterfaceDiscovery.autoconnect = autoconnect_with_bandwidth_gate
