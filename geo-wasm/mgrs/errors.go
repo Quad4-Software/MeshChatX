@@ -3,7 +3,7 @@ package mgrs
 import "errors"
 
 var (
-	ErrLatOutOfUTMRange      = errors.New("mgrs: latitude outside [-80°, 84°) UTM MGRS belt")
+	ErrLatOutOfUTMRange      = errors.New("mgrs: latitude outside the 80S-84N UTM MGRS belt")
 	ErrInvalidDigitPairs     = errors.New("mgrs: invalid digit pair count")
 	ErrShortBuffer           = errors.New("mgrs: destination buffer too small")
 	ErrInvalidMGRS           = errors.New("mgrs: invalid MGRS string")

@@ -1,5 +1,7 @@
 package mgrs
 
+import "math"
+
 func stringIndexASCII(s string, needle byte) int {
 	for i := 0; i < len(s); i++ {
 		if s[i] == needle {
@@ -28,26 +30,18 @@ func parseDigit(b byte) (int, bool) {
 }
 
 func parseZonePrefix(buf []byte) (zone int, used int, err error) {
-	if len(buf) == 0 {
-		return 0, 0, ErrInvalidMGRS
-	}
-	z0, ok := parseDigit(buf[0])
-	if !ok || z0 == 0 {
-		return 0, 0, ErrInvalidMGRS
-	}
-	zone = z0
-	used = 1
-	if used < len(buf) {
-		if z1, ok := parseDigit(buf[used]); ok {
-			next := zone*10 + z1
-			if next > 60 {
-				return 0, 0, ErrInvalidMGRS
-			}
-			zone = next
-			used = 2
+	for used < len(buf) {
+		digit, ok := parseDigit(buf[used])
+		if !ok {
+			break
 		}
+		if used == 2 {
+			return 0, 0, ErrInvalidMGRS
+		}
+		zone = zone*10 + digit
+		used++
 	}
-	if zone < 1 || zone > 60 {
+	if used == 0 || zone < 1 || zone > 60 {
 		return 0, 0, ErrInvalidMGRS
 	}
 	return zone, used, nil
@@ -80,6 +74,30 @@ func decodeNormalizedParts(data []byte, centerCell bool) (Parts, error) {
 	return decodeUPSNormalized(data, centerCell)
 }
 
+const gridZoneDegreesPerTile = float64(utmNorthernShift) / (90 * float64(mgrsTileSize))
+
+func decodeUTMGridZone(zone int, bandLUT int, northp bool, band byte) Parts {
+	xTile := 5.0
+	if zone == 31 && bandLUT == 17 {
+		xTile = 4
+	}
+	easting := xTile * mgrsTileSize
+	northing := math.Floor(8*(float64(bandLUT)-9.5)*gridZoneDegreesPerTile+0.5) * mgrsTileSize
+	if !northp {
+		northing += utmNorthernShift
+	}
+	lat, lon := inverseTM(easting, northing, zone, !northp)
+	return Parts{
+		Zone:       zone,
+		North:      northp,
+		Band:       band,
+		DigitPairs: GridZoneOnly,
+		Easting:    easting,
+		Northing:   northing,
+		Point:      Point{Lat: lat, Lon: lon},
+	}
+}
+
 func decodeUTMNormalized(data []byte, centerCell bool) (Parts, error) {
 	zone, used, err := parseZonePrefix(data)
 	if err != nil {
@@ -97,6 +115,9 @@ func decodeUTMNormalized(data []byte, centerCell bool) (Parts, error) {
 	band := data[idx]
 	idx++
 	northp := bandLUT >= 10
+	if idx == len(data) {
+		return decodeUTMGridZone(zone, bandLUT, northp, band), nil
+	}
 
 	if idx+2 > len(data) {
 		return Parts{}, ErrInvalidMGRS

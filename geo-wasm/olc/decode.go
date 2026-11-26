@@ -1,19 +1,14 @@
 package olc
 
-import "errors"
-
 // Decode decodes a full Open Location Code into its CodeArea.
-// Only the first 15 significant digits are used.
+// Only the first MaxCodeLen significant digits are used.
 func Decode(code string) (CodeArea, error) {
 	var area CodeArea
 	if err := CheckFull(code); err != nil {
 		return area, err
 	}
-	var digits [maxCodeLen]byte
+	var digits [MaxCodeLen]byte
 	codeLen := stripInto(digits[:], code)
-	if codeLen < 2 {
-		return area, errors.New("olc: code too short")
-	}
 	return decodeDigits(digits[:codeLen]), nil
 }
 
@@ -48,7 +43,7 @@ func decodeDigits(code []byte) CodeArea {
 	}
 	width = height
 
-	for i := pairCodeLen; i < maxCodeLen; i++ {
+	for i := pairCodeLen; i < MaxCodeLen; i++ {
 		lat *= gridRows
 		height *= gridRows
 		lng *= gridCols

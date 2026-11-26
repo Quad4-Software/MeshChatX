@@ -49,5 +49,11 @@ func encodedPrefixLen(zone int) int {
 }
 
 func encodedLen(zone, digitPairs int) int {
+	if digitPairs == GridZoneOnly {
+		if zone == ZoneUPS {
+			return 1
+		}
+		return 3
+	}
 	return encodedPrefixLen(zone) + digitPairs*2
 }

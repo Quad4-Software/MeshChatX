@@ -182,4 +182,33 @@ func TestFormatSpaced(t *testing.T) {
 	if again != pretty {
 		t.Fatalf("FormatSpaced not idempotent %q vs %q", pretty, again)
 	}
+
+	unpadded, err := FormatSpaced("1NAA6602100000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unpadded != "01N AA 66021 00000" {
+		t.Fatalf("unpadded zone formatted as %q", unpadded)
+	}
+}
+
+func TestEncodeGrid_BoundaryNudgeReferences(t *testing.T) {
+	cases := []struct {
+		grid Grid
+		want string
+	}{
+		{Grid{Zone: 31, North: true, Easting: 500000, Northing: 5000000}, "31TEL0000000000"},
+		{Grid{Zone: 31, North: true, Easting: 900000, Northing: 5000000}, "31THL9999900000"},
+		{Grid{Zone: 31, North: false, Easting: 500000, Northing: 10000000}, "31MEV0000099999"},
+		{Grid{Zone: ZoneUPS, North: true, Easting: 2000000, Northing: 2000000}, "ZAH0000000000"},
+	}
+	for _, tc := range cases {
+		got, err := EncodeGrid(tc.grid, DefaultDigitPairs)
+		if err != nil {
+			t.Fatalf("EncodeGrid(%+v): %v", tc.grid, err)
+		}
+		if got != tc.want {
+			t.Fatalf("EncodeGrid(%+v) = %q, want %q", tc.grid, got, tc.want)
+		}
+	}
 }

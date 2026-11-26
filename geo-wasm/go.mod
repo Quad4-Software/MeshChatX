@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
-// Copied packages: mgrs from github.com/Quad4-Software/MGRS-Go
-// and olc from github.com/Quad4-Software/olc-go.
+// Copied packages: mgrs from git.quad4.io/libraries/mgrs-go
+// and olc from git.quad4.io/libraries/olc-go.
 module github.com/Quad4-Software/MeshChatX/geo-wasm
 
-go 1.27.3
+go 1.27.4

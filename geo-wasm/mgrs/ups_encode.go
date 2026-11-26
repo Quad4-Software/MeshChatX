@@ -1,7 +1,7 @@
 package mgrs
 
 func encodeUPSInto(dst []byte, north bool, easting, northing float64, digitPairs int) ([]byte, error) {
-	if digitPairs < 0 || digitPairs > MaxDigitPairs {
+	if digitPairs < GridZoneOnly || digitPairs > MaxDigitPairs {
 		return nil, ErrInvalidDigitPairs
 	}
 	xh, yh := eastNorthTileIndices(easting, northing)
@@ -42,11 +42,11 @@ func encodeUPSInto(dst []byte, north bool, easting, northing float64, digitPairs
 	dst = growDst(dst, n)
 	out := dst[base : base+n]
 	out[0] = upsband[iband]
+	if digitPairs == GridZoneOnly {
+		return dst, nil
+	}
 	out[1] = colLetters[icol]
 	out[2] = rowLetters[irow]
 	writeDigitTail(out, 3, digitPairs, easting, northing, xh, yh)
-	if digitPairs == 0 {
-		return dst[:base+3], nil
-	}
 	return dst, nil
 }

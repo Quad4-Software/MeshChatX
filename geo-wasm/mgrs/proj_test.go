@@ -12,7 +12,7 @@ import (
 
 func runProjUTM(t *testing.T, projPath string, lon, lat float64, zone int, southern bool) (e, n float64) {
 	t.Helper()
-	args := []string{"+proj=utm", fmt.Sprintf("+zone=%d", zone), "+datum=WGS84"}
+	args := []string{"-f", "%.12f", "+proj=utm", fmt.Sprintf("+zone=%d", zone), "+datum=WGS84"}
 	if southern {
 		args = append(args, "+south")
 	}
@@ -36,7 +36,7 @@ func runProjUTM(t *testing.T, projPath string, lon, lat float64, zone int, south
 	return east, north
 }
 
-func TestProjForwardUTMmatchesLibrary(t *testing.T) {
+func TestProjForwardUTMMatchesLibrary(t *testing.T) {
 	projPath := requireTool(t, "proj")
 	cases := []struct {
 		name     string
@@ -49,7 +49,7 @@ func TestProjForwardUTMmatchesLibrary(t *testing.T) {
 		{"norway-override", 60, 4},
 		{"svalbard-override", 75, 12},
 	}
-	const metreTol = 0.5
+	const metreTol = 1e-7
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			zone, zerr := LongitudeZone(tc.lat, tc.lon)

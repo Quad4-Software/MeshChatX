@@ -3,13 +3,18 @@ package mgrs
 import "math"
 
 // MaxDigitPairs is the finest supported easting+northing pair count encoded in
-// the numerical MGRS tail (mirrors GeographicLib permitting sub-metre granularity).
+// the numerical MGRS tail. Digits truncate projected metres, following
+// GeographicLib, instead of rounding to the nearest grid cell.
 const MaxDigitPairs = 11
 
-const latBandAngeps = 1e-13
+// GridZoneOnly requests the precisionless grid-zone designator, for example
+// "31U" for UTM or "Z" for UPS. Decode reports this precision as -1.
+const GridZoneOnly = -1
+
+const latBandAngeps = 1.0 / (1 << 46)
 
 func encodeUTMInto(dst []byte, zone int, latDeg float64, north bool, easting, northing float64, digitPairs int) ([]byte, error) {
-	if digitPairs < 0 || digitPairs > MaxDigitPairs {
+	if digitPairs < GridZoneOnly || digitPairs > MaxDigitPairs {
 		return nil, ErrInvalidDigitPairs
 	}
 	if zone < 1 || zone > 60 {
@@ -38,13 +43,13 @@ func encodeUTMInto(dst []byte, zone int, latDeg float64, north bool, easting, no
 	out[0] = digits[zone/mgrsdigitBase]
 	out[1] = digits[zone%mgrsdigitBase]
 	out[2] = latBand[10+iband]
+	if digitPairs == GridZoneOnly {
+		return dst, nil
+	}
 	out[3] = colLetters[icol]
 	rowPos := posMod(yh+((zone-1)&1)*utmevenRowShift, utmerowPeriod)
 	out[4] = utmrows[rowPos]
 	writeDigitTail(out, 5, digitPairs, easting, northing, xh, yh)
-	if digitPairs == 0 {
-		return dst[:base+5], nil
-	}
 	return dst, nil
 }
 

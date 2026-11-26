@@ -1,49 +1,31 @@
 package olc
 
 import (
-	"bufio"
+	"bytes"
+	"embed"
 	"encoding/csv"
 	"math"
-	"os"
-	"path/filepath"
-	"runtime"
+	"path"
 	"strconv"
-	"strings"
 	"testing"
 )
 
-func testdataPath(name string) string {
-	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		panic("caller")
-	}
-	return filepath.Join(filepath.Dir(file), "testdata", name)
-}
+//go:embed testdata/*.csv
+var testdataFS embed.FS
 
 func readCSVRows(t *testing.T, name string) [][]string {
 	t.Helper()
-	f, err := os.Open(testdataPath(name))
+	data, err := testdataFS.ReadFile(path.Join("testdata", name))
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
 
-	var rows [][]string
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		line := strings.TrimSpace(sc.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		r := csv.NewReader(strings.NewReader(line))
-		cols, err := r.Read()
-		if err != nil {
-			t.Fatalf("%s: %v in %q", name, err, line)
-		}
-		rows = append(rows, cols)
-	}
-	if err := sc.Err(); err != nil {
-		t.Fatal(err)
+	r := csv.NewReader(bytes.NewReader(data))
+	r.Comment = '#'
+	r.FieldsPerRecord = -1
+	rows, err := r.ReadAll()
+	if err != nil {
+		t.Fatalf("%s: %v", name, err)
 	}
 	return rows
 }
@@ -114,8 +96,10 @@ func TestEncodingCorpus(t *testing.T) {
 		if got := longitudeAsInteger(lng); got != lngInt {
 			t.Errorf("row %d lngInt got %d want %d", i, got, lngInt)
 		}
-		if got := integerEncode(latInt, lngInt, length); got != want {
-			t.Errorf("row %d integerEncode=%q want %q", i, got, want)
+		var buf [MaxEncodedLen]byte
+		n := integerEncodeTo(buf[:], latInt, lngInt, length)
+		if got := string(buf[:n]); got != want {
+			t.Errorf("row %d integerEncodeTo=%q want %q", i, got, want)
 		}
 		got := Encode(lat, lng, length)
 		if got != want {

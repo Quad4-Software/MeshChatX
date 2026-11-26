@@ -6,24 +6,41 @@ const degRad = math.Pi / 180
 
 const radDeg = 180.0 / math.Pi
 
-func meridianRadiusSin(sinPhi float64) float64 {
-	ss := sinPhi * sinPhi
-	return WGSSemiMajorAxis * (1.0 - wgsE2) / math.Pow(1.0-wgsE2*ss, 1.5)
-}
+var (
+	wgsThirdFlattening = wgsF / (2.0 - wgsF)
+	tmN2               = wgsThirdFlattening * wgsThirdFlattening
+	tmN3               = tmN2 * wgsThirdFlattening
+	tmN4               = tmN3 * wgsThirdFlattening
+	tmN5               = tmN4 * wgsThirdFlattening
+	tmN6               = tmN5 * wgsThirdFlattening
+	tmRectifyingRadius = WGSSemiMajorAxis / (1.0 + wgsThirdFlattening) *
+		(1.0 + tmN2/4.0 + tmN4/64.0 + tmN6/256.0)
 
-func footpointLatitudeFromMeridionalDistance(m float64) float64 {
-	phi := m / WGSSemiMajorAxis
-	const epsFoot = 1e-14
-	for range 16 {
-		sinPhi := math.Sin(phi)
-		f := wgsM(phi) - m
-		if math.Abs(f) < epsFoot {
-			break
-		}
-		phi -= f / meridianRadiusSin(sinPhi)
+	tmAlpha = [...]float64{
+		0.5*wgsThirdFlattening - 2.0/3.0*tmN2 + 5.0/16.0*tmN3 + 41.0/180.0*tmN4 - 127.0/288.0*tmN5 + 7891.0/37800.0*tmN6,
+		13.0/48.0*tmN2 - 3.0/5.0*tmN3 + 557.0/1440.0*tmN4 + 281.0/630.0*tmN5 - 1983433.0/1935360.0*tmN6,
+		61.0/240.0*tmN3 - 103.0/140.0*tmN4 + 15061.0/26880.0*tmN5 + 167603.0/181440.0*tmN6,
+		49561.0/161280.0*tmN4 - 179.0/168.0*tmN5 + 6601661.0/7257600.0*tmN6,
+		34729.0/80640.0*tmN5 - 3418889.0/1995840.0*tmN6,
+		212378941.0 / 319334400.0 * tmN6,
 	}
-	return phi
-}
+	tmBeta = [...]float64{
+		0.5*wgsThirdFlattening - 2.0/3.0*tmN2 + 37.0/96.0*tmN3 - 1.0/360.0*tmN4 - 81.0/512.0*tmN5 + 96199.0/604800.0*tmN6,
+		1.0/48.0*tmN2 + 1.0/15.0*tmN3 - 437.0/1440.0*tmN4 + 46.0/105.0*tmN5 - 1118711.0/3870720.0*tmN6,
+		17.0/480.0*tmN3 - 37.0/840.0*tmN4 - 209.0/4480.0*tmN5 + 5569.0/90720.0*tmN6,
+		4397.0/161280.0*tmN4 - 11.0/504.0*tmN5 - 830251.0/7257600.0*tmN6,
+		4583.0/161280.0*tmN5 - 108847.0/3991680.0*tmN6,
+		20648693.0 / 638668800.0 * tmN6,
+	}
+	tmDelta = [...]float64{
+		2.0*wgsThirdFlattening - 2.0/3.0*tmN2 - 2.0*tmN3 + 116.0/45.0*tmN4 + 26.0/45.0*tmN5 - 2854.0/675.0*tmN6,
+		7.0/3.0*tmN2 - 8.0/5.0*tmN3 - 227.0/45.0*tmN4 + 2704.0/315.0*tmN5 + 2323.0/945.0*tmN6,
+		56.0/15.0*tmN3 - 136.0/35.0*tmN4 - 1262.0/105.0*tmN5 + 73814.0/2835.0*tmN6,
+		4279.0/630.0*tmN4 - 332.0/35.0*tmN5 - 399572.0/14175.0*tmN6,
+		4174.0/315.0*tmN5 - 144838.0/6237.0*tmN6,
+		601676.0 / 22275.0 * tmN6,
+	}
+)
 
 func normalizeLonDeltaRad(dlam float64) float64 {
 	const twoPi = 2 * math.Pi
@@ -36,16 +53,19 @@ func normalizeLonDeltaRad(dlam float64) float64 {
 	return dlam
 }
 
+func normalizeLongitudeDeg(lonDeg float64) float64 {
+	lon := math.Mod(lonDeg+180, 360)
+	if lon < 0 {
+		lon += 360
+	}
+	return lon - 180
+}
+
 func longitudeZoneStandard(latDeg, lonDeg float64) int {
 	if latDeg < -80 || latDeg >= 84 {
 		return 0
 	}
-	ilon := int(math.Floor(lonDeg))
-	if ilon >= 180 {
-		ilon -= 360
-	} else if ilon < -180 {
-		ilon += 360
-	}
+	ilon := int(math.Floor(normalizeLongitudeDeg(lonDeg)))
 	z := (ilon + 186) / 6
 	b := latitudeBand(latDeg)
 	switch {
@@ -76,71 +96,55 @@ func forwardTM(latDeg, lonDeg float64, zone int, south bool) (e, n float64) {
 	lam0 := zoneCentralMeridianDeg(zone) * degRad
 	dlam := normalizeLonDeltaRad(lam - lam0)
 
-	sinPhi, cosPhi := math.Sincos(phi)
-	tanPhi := sinPhi / cosPhi
+	sinPhi := math.Sin(phi)
+	sinLam, cosLam := math.Sincos(dlam)
+	ecc := math.Sqrt(wgsE2)
+	taup := math.Sinh(math.Atanh(sinPhi) - ecc*math.Atanh(ecc*sinPhi))
 
-	N := wgsNFromSin(sinPhi)
-	T := tanPhi * tanPhi
-	C := wgsEp2 * cosPhi * cosPhi
-	A := dlam * cosPhi
-	M := wgsM(phi)
+	xiPrime := math.Atan2(taup, cosLam)
+	etaPrime := math.Asinh(sinLam / math.Hypot(taup, cosLam))
+	xi := xiPrime
+	eta := etaPrime
+	for j := 1; j <= len(tmAlpha); j++ {
+		a := 2 * float64(j)
+		xi += tmAlpha[j-1] * math.Sin(a*xiPrime) * math.Cosh(a*etaPrime)
+		eta += tmAlpha[j-1] * math.Cos(a*xiPrime) * math.Sinh(a*etaPrime)
+	}
 
-	A2 := A * A
-	A3 := A2 * A
-	A4 := A3 * A
-	A5 := A4 * A
-
-	x := tmUTMScaleK0 * N * (A +
-		(1.0-T+C)*A3/6.0 +
-		(5.0-18.0*T+T*T+72.0*C-58.0*wgsEp2)*A5/120.0)
-	y := tmUTMScaleK0 * (M + N*tanPhi*(A2/2.0+
-		(5.0-T+9.0*C+4.0*C*C)*A4/24.0+
-		(61.0-58.0*T+T*T+600.0*C-330.0*wgsEp2)*A2*A3/720.0))
-
-	e = utmFalseEastM + x
+	e = utmFalseEastM + tmUTMScaleK0*tmRectifyingRadius*eta
+	n = tmUTMScaleK0 * tmRectifyingRadius * xi
 	if south {
-		n = utmSouthernFalseNorthM + y
-	} else {
-		n = y
+		n += utmSouthernFalseNorthM
 	}
 	return e, n
 }
 
 func inverseTM(e, n float64, zone int, south bool) (latDeg, lonDeg float64) {
-	x := e - utmFalseEastM
 	y := n
 	if south {
 		y -= utmSouthernFalseNorthM
 	}
+	xi := y / (tmUTMScaleK0 * tmRectifyingRadius)
+	eta := (e - utmFalseEastM) / (tmUTMScaleK0 * tmRectifyingRadius)
 
-	M := y / tmUTMScaleK0
-	phi1 := footpointLatitudeFromMeridionalDistance(M)
+	xiPrime := xi
+	etaPrime := eta
+	for j := 1; j <= len(tmBeta); j++ {
+		a := 2 * float64(j)
+		xiPrime -= tmBeta[j-1] * math.Sin(a*xi) * math.Cosh(a*eta)
+		etaPrime -= tmBeta[j-1] * math.Cos(a*xi) * math.Sinh(a*eta)
+	}
 
-	sin1, cos1 := math.Sincos(phi1)
-	tan1 := sin1 / cos1
+	sinChi := math.Sin(xiPrime) / math.Cosh(etaPrime)
+	sinChi = math.Max(-1, math.Min(1, sinChi))
+	chi := math.Asin(sinChi)
+	phi := chi
+	for j := 1; j <= len(tmDelta); j++ {
+		phi += tmDelta[j-1] * math.Sin(2*float64(j)*chi)
+	}
+	lonDelta := math.Atan2(math.Sinh(etaPrime), math.Cos(xiPrime))
 
-	rho1 := meridianRadiusSin(sin1)
-	nu1 := wgsNFromSin(sin1)
-	T1 := tan1 * tan1
-	C1 := wgsEp2 * cos1 * cos1
-
-	D := x / (nu1 * tmUTMScaleK0)
-	D2 := D * D
-	D3 := D2 * D
-	D4 := D3 * D
-	D5 := D4 * D
-	D6 := D5 * D
-
-	phi := phi1 - nu1*tan1/rho1*(D2/2.0-
-		(5.0+3.0*T1+10.0*C1-4.0*C1*C1-9.0*wgsEp2)*D4/24.0+
-		(61.0+90.0*T1+298.0*C1+45.0*T1*T1-252.0*wgsEp2-3.0*C1*C1)*D6/720.0)
-
-	lam := (D - (1.0+2.0*T1+C1)*D3/6.0 +
-		(5.0-2.0*C1+28.0*T1-3.0*C1*C1+8.0*wgsEp2+24.0*T1*T1)*D5/120.0) / cos1
-
-	lam0 := zoneCentralMeridianDeg(zone) * degRad
-	lonRad := lam0 + lam
-	lonDeg = lonRad * radDeg
+	lonDeg = zoneCentralMeridianDeg(zone) + lonDelta*radDeg
 	lonDeg -= 360 * math.Round(lonDeg/360)
 	latDeg = phi * radDeg
 	return latDeg, lonDeg

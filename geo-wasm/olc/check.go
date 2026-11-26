@@ -3,14 +3,21 @@ package olc
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var (
-	ErrEmpty    = errors.New("olc: empty code")
-	ErrInvalid  = errors.New("olc: invalid code")
-	ErrShort    = errors.New("olc: short code")
+	// ErrEmpty reports an empty or separator-only code.
+	ErrEmpty = errors.New("olc: empty code")
+	// ErrInvalid reports a malformed Open Location Code sequence.
+	ErrInvalid = errors.New("olc: invalid code")
+	// ErrShort reports a short code where a full code is required.
+	ErrShort = errors.New("olc: short code")
+	// ErrNotShort reports a valid non-short code where a short code is required.
 	ErrNotShort = errors.New("olc: not a short code")
-	ErrPadded   = errors.New("olc: cannot shorten padded code")
+	// ErrPadded reports an attempt to shorten a padded code.
+	ErrPadded = errors.New("olc: cannot shorten padded code")
+	// ErrTooShort reports a full code with too few digits to shorten.
 	ErrTooShort = errors.New("olc: code too short to shorten")
 )
 
@@ -81,13 +88,8 @@ func CheckShort(code string) error {
 	if err := Check(code); err != nil {
 		return err
 	}
-	for i := 0; i < len(code); i++ {
-		if code[i] == Separator {
-			if i < sepPos {
-				return nil
-			}
-			break
-		}
+	if sep := strings.IndexByte(code, Separator); sep >= 0 && sep < sepPos {
+		return nil
 	}
 	return ErrNotShort
 }
@@ -117,10 +119,10 @@ func IsShort(code string) bool { return CheckShort(code) == nil }
 // IsFull reports whether code is a valid full Open Location Code.
 func IsFull(code string) bool { return CheckFull(code) == nil }
 
-// StripCode removes separator and padding and uppercases alphabet characters.
-// Result is truncated to maxCodeLen.
+// StripCode removes separators and padding, uppercases alphabet characters,
+// and truncates the result to MaxCodeLen digits. It does not validate code.
 func StripCode(code string) string {
-	var buf [maxCodeLen]byte
+	var buf [MaxCodeLen]byte
 	n := stripInto(buf[:], code)
 	return string(buf[:n])
 }

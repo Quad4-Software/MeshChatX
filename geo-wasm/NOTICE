@@ -1,3 +1,7 @@
 Test CSV files under olc/testdata/ are from the Open Location Code
 project (https://github.com/google/open-location-code) and are licensed
 under the Apache License, Version 2.0.
+
+Portions of the Go implementation are derived from the Go implementation
+in the same project, copyright 2015 Tamás Gulácsi. Those portions are
+licensed under the Apache License, Version 2.0. See LICENSE.apache-2.0.

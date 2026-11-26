@@ -15,6 +15,9 @@ var (
 // checkCoords applies GeographicLib MGRS::CheckCoords rules: closed/open 100 km
 // limits, ~4 nm nudge on exact upper edges, and UTM northing hemisphere fold.
 func checkCoords(utm bool, north *bool, x, y *float64) error {
+	if math.IsNaN(*x) || math.IsNaN(*y) || math.IsInf(*x, 0) || math.IsInf(*y, 0) {
+		return ErrInvalidGrid
+	}
 	ix := int(math.Floor(*x / mgrsTileSize))
 	iy := int(math.Floor(*y / mgrsTileSize))
 	ind := 0

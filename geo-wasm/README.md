@@ -2,8 +2,8 @@
 
 Go packages for MeshChatX map coordinate formats, compiled to WebAssembly.
 
-- mgrs copied from https://github.com/Quad4-Software/MGRS-Go (UTM, MGRS, UPS)
-- olc copied from https://github.com/Quad4-Software/olc-go (Plus Codes)
+- mgrs copied from https://git.quad4.io/libraries/mgrs-go (UTM, MGRS, UPS)
+- olc copied from https://git.quad4.io/libraries/olc-go (Plus Codes)
 - internal/geoparse auto-detect parse/format helpers
 - cmd/wasm browser bridge (`meshchatxGeo*`)
 

@@ -1,5 +1,26 @@
 package mgrs
 
+import "math"
+
+func decodeUPSGridZone(iband int, northp bool, band byte) Parts {
+	side := -1.0
+	if iband&1 != 0 {
+		side = 1
+	}
+	easting := (float64(upsEasting) + side*math.Floor(4*gridZoneDegreesPerTile+0.5)) * mgrsTileSize
+	northing := upsFalseNorth
+	lat, lon := inverseUPS(easting, northing, northp)
+	return Parts{
+		Zone:       ZoneUPS,
+		North:      northp,
+		Band:       band,
+		DigitPairs: GridZoneOnly,
+		Easting:    easting,
+		Northing:   northing,
+		Point:      Point{Lat: lat, Lon: lon},
+	}
+}
+
 func decodeUPSNormalized(data []byte, centerCell bool) (Parts, error) {
 	if len(data) < 1 {
 		return Parts{}, ErrInvalidMGRS
@@ -10,7 +31,7 @@ func decodeUPSNormalized(data []byte, centerCell bool) (Parts, error) {
 	}
 	northp := iband >= 2
 	if len(data) == 1 {
-		return Parts{}, ErrInvalidMGRS
+		return decodeUPSGridZone(iband, northp, data[0]), nil
 	}
 	if len(data) < 3 {
 		return Parts{}, ErrInvalidMGRS

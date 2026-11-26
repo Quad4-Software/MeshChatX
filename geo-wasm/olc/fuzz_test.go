@@ -1,9 +1,6 @@
 package olc
 
-import (
-	"math"
-	"testing"
-)
+import "testing"
 
 func FuzzEncodeDecodeRoundTrip(f *testing.F) {
 	seeds := []struct {
@@ -20,12 +17,6 @@ func FuzzEncodeDecodeRoundTrip(f *testing.F) {
 		f.Add(s.lat, s.lng, s.length)
 	}
 	f.Fuzz(func(t *testing.T, lat, lng float64, length int) {
-		if math.IsNaN(lat) || math.IsNaN(lng) || math.IsInf(lat, 0) || math.IsInf(lng, 0) {
-			t.Skip()
-		}
-		if lat < -90 || lat > 90 {
-			t.Skip()
-		}
 		code := Encode(lat, lng, length)
 		if !IsFull(code) {
 			t.Skip()
@@ -38,6 +29,35 @@ func FuzzEncodeDecodeRoundTrip(f *testing.F) {
 		again := Encode(clat, clng, area.Len)
 		if StripCode(again) != StripCode(code) {
 			t.Fatalf("center re-encode %q != %q for input (%v,%v)", again, code, lat, lng)
+		}
+	})
+}
+
+func FuzzCodeOperations(f *testing.F) {
+	seeds := []string{
+		"6GCRPR78+CV",
+		"8FWCX400+",
+		"45+G6",
+		"+G6GGGGGGGGGGGGGGGG",
+		"849VGJQF+VX7QR3JW",
+		"8FWC2_45+G6",
+		"8FWC2η45+G6",
+		"\xff\xfe+",
+	}
+	for _, code := range seeds {
+		f.Add(code, 37.5397, -122.3751)
+	}
+	f.Fuzz(func(t *testing.T, code string, lat, lng float64) {
+		if CheckFull(code) == nil {
+			if _, err := Decode(code); err != nil {
+				t.Fatalf("Decode(%q): %v", code, err)
+			}
+			_, _ = Shorten(code, lat, lng)
+		}
+		if CheckShort(code) == nil {
+			if _, err := RecoverNearest(code, lat, lng); err != nil {
+				t.Fatalf("RecoverNearest(%q): %v", code, err)
+			}
 		}
 	})
 }

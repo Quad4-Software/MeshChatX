@@ -17,7 +17,7 @@ func runCS2CSUPS(t *testing.T, lon, lat float64, north bool) (e, n float64) {
 		lat0 = -90
 	}
 	args := []string{
-		"+proj=latlong", "+datum=WGS84", "+to",
+		"-f", "%.12f", "+proj=latlong", "+datum=WGS84", "+to",
 		fmt.Sprintf("+proj=stere +lat_0=%d +lat_ts=%d +lon_0=0 +k_0=0.994 +x_0=2000000 +y_0=2000000 +ellps=WGS84", lat0, lat0),
 	}
 	var buf bytes.Buffer
@@ -40,7 +40,7 @@ func runCS2CSUPS(t *testing.T, lon, lat float64, north bool) (e, n float64) {
 	return east, northing
 }
 
-func TestProjForwardUPSmatchesLibrary(t *testing.T) {
+func TestProjForwardUPSMatchesLibrary(t *testing.T) {
 	_ = requireTool(t, "cs2cs")
 	cases := []struct {
 		name     string
@@ -52,7 +52,7 @@ func TestProjForwardUPSmatchesLibrary(t *testing.T) {
 		{"antarctic-doc", -85, 77.85, false},
 		{"antarctic-west", -82, -60, false},
 	}
-	const metreTol = 1.0
+	const metreTol = 1e-7
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			eMine, nMine := forwardUPS(tc.lat, tc.lon, tc.north)

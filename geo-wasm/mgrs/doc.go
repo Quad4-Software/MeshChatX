@@ -6,7 +6,7 @@
 // GeographicLib / MSP GEOTRANS conventions for Norway/Svalbard zone widening,
 // UPS lettering, and upper-bound ~nanometre coordinate nudges.
 //
-// Coverage is the full globe: UTM for latitudes in [-80°, 84°) and UPS outside
+// Coverage is the full globe: UTM between 80S and 84N latitude and UPS outside
 // that belt (bands A/B south, Y/Z north). ZoneUPS (0) identifies polar grid
 // metres in the Grid API.
 //
@@ -14,7 +14,7 @@
 // conscious callers. DecodeParts returns structured zone, band, square,
 // precision, metres, and lat/lon. FormatSpaced pretty-prints compact refs.
 //
-// Tests include a checked-in golden corpus plus optional external oracles.
-// Set MGRS_REQUIRE_ORACLES=1 to fail (instead of skip) when PROJ or
-// GeographicLib GeoConvert are missing. CI installs those tools and requires them.
+// Tests include a checked-in golden corpus plus differential checks against
+// PROJ and GeographicLib GeoConvert when those tools are on PATH.
+// Set MGRS_REQUIRE_DIFF=1 to fail (instead of skip) when they are missing.
 package mgrs

@@ -40,6 +40,8 @@ const (
 
 func LongitudeZone(latDeg, lonDeg float64) (int, error) {
 	switch {
+	case math.IsNaN(latDeg) || math.IsNaN(lonDeg) || math.IsInf(latDeg, 0) || math.IsInf(lonDeg, 0):
+		return 0, ErrInvalidGrid
 	case latDeg < -80 || latDeg >= 84:
 		return 0, ErrLatOutOfUTMRange
 	default:
@@ -55,6 +57,7 @@ func LatLonToGrid(latDeg, lonDeg float64) (Grid, error) {
 	if latDeg < -90 || latDeg > 90 {
 		return Grid{}, ErrInvalidGrid
 	}
+	lonDeg = normalizeLongitudeDeg(lonDeg)
 	if latDeg < -80 || latDeg >= 84 {
 		north := latDeg >= 0
 		e, n := forwardUPS(latDeg, lonDeg, north)
@@ -71,6 +74,9 @@ func LatLonToGrid(latDeg, lonDeg float64) (Grid, error) {
 
 // GridToLatLon converts UTM or UPS metres to WGS84 lat/lon.
 func GridToLatLon(g Grid) (Point, error) {
+	if math.IsNaN(g.Easting) || math.IsNaN(g.Northing) || math.IsInf(g.Easting, 0) || math.IsInf(g.Northing, 0) {
+		return Point{}, ErrInvalidGrid
+	}
 	if g.Zone == ZoneUPS {
 		lat, lon := inverseUPS(g.Easting, g.Northing, g.North)
 		return Point{Lat: lat, Lon: lon}, nil
@@ -83,7 +89,7 @@ func GridToLatLon(g Grid) (Point, error) {
 }
 
 func encodeGridInto(dst []byte, g Grid, digitPairs int, latHint float64, haveLat bool) ([]byte, error) {
-	if digitPairs < 0 || digitPairs > MaxDigitPairs {
+	if digitPairs < GridZoneOnly || digitPairs > MaxDigitPairs {
 		return nil, ErrInvalidDigitPairs
 	}
 	north := g.North
@@ -126,7 +132,7 @@ func EncodeGridBytes(g Grid, digitPairs int) ([]byte, error) {
 
 // EncodeGridTo writes compact MGRS into dst. dst must hold encodedLen bytes.
 func EncodeGridTo(dst []byte, g Grid, digitPairs int) (int, error) {
-	if digitPairs < 0 || digitPairs > MaxDigitPairs {
+	if digitPairs < GridZoneOnly || digitPairs > MaxDigitPairs {
 		return 0, ErrInvalidDigitPairs
 	}
 	if g.Zone != ZoneUPS && (g.Zone < 1 || g.Zone > 60) {
@@ -183,7 +189,7 @@ func EncodeBytes(latDeg, lonDeg float64, digitPairs int) ([]byte, error) {
 // bytes written. dst must have length >= MaxEncodedLen for arbitrary zone.
 // This allows a zero-allocation encode path when the caller reuses a fixed buffer.
 func EncodeTo(dst []byte, latDeg, lonDeg float64, digitPairs int) (int, error) {
-	if digitPairs < 0 || digitPairs > MaxDigitPairs {
+	if digitPairs < GridZoneOnly || digitPairs > MaxDigitPairs {
 		return 0, ErrInvalidDigitPairs
 	}
 	g, err := LatLonToGrid(latDeg, lonDeg)
@@ -207,7 +213,8 @@ func AppendEncode(dst []byte, latDeg, lonDeg float64, digitPairs int) ([]byte, e
 	return marshalMGRSInto(dst, latDeg, lonDeg, digitPairs)
 }
 
-// Decode converts an MGRS reference to a WGS84 point.
+// Decode converts an MGRS reference to a WGS84 point. Grid-zone-only
+// references decode to the representative coordinate used by GeographicLib.
 func Decode(reference string, centerCell bool) (Point, error) {
 	data := compactUpperASCIIFromString(reference)
 	if len(data) == 0 {
@@ -220,7 +227,8 @@ func Decode(reference string, centerCell bool) (Point, error) {
 	return p.Point, nil
 }
 
-// DecodeParts converts an MGRS reference into structured grid and geographic parts.
+// DecodeParts converts an MGRS reference into structured grid and geographic
+// parts. Grid-zone-only references report DigitPairs as GridZoneOnly.
 func DecodeParts(reference string, centerCell bool) (Parts, error) {
 	data := compactUpperASCIIFromString(reference)
 	if len(data) == 0 {

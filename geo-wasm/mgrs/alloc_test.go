@@ -112,3 +112,23 @@ func TestEncodeGridTo_NoAllocsUTMAndUPS(t *testing.T) {
 		t.Fatalf("polar EncodeTo allocs %.3f", allocs)
 	}
 }
+
+func TestEncodeTo_GridZoneOnlyUsesExactSmallBuffer(t *testing.T) {
+	var utm [3]byte
+	n, err := EncodeTo(utm[:], 52.658, 5.892, GridZoneOnly)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 3 || string(utm[:]) != "31U" {
+		t.Fatalf("utm grid zone = %q n=%d", utm[:], n)
+	}
+
+	var ups [1]byte
+	n, err = EncodeTo(ups[:], -85, 77.85, GridZoneOnly)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 || ups[0] != 'B' {
+		t.Fatalf("ups grid zone = %q n=%d", ups[:n], n)
+	}
+}
