@@ -137,6 +137,7 @@ export function buildFullServerConfig(overrides = {}) {
         location_manual_lon: "0.0",
         location_manual_alt: "0.0",
         telemetry_enabled: false,
+        limited_bandwidth_enabled: false,
         nomad_render_markdown_enabled: true,
         nomad_render_html_enabled: true,
         nomad_render_plaintext_enabled: true,

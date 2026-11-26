@@ -698,6 +698,7 @@
         "location_manual_lon": "Längengrad",
         "location_manual_alt": "Höhe (m)",
         "telemetry_enabled": "Telemetrie aktiviert",
+        "limited_bandwidth": "Begrenzte Bandbreite",
         "telemetry_description": "Erlaubt MeshChatX das Senden und Empfangen von Telemetriedaten, wie z. B. Das Beantworten von Standortanfragen vertrauenswürdiger Kontakte.",
         "telemetry_trusted_peers": "Vertrauenswürdige Telemetrie-Peers",
         "telemetry_no_trusted_peers": "Keine vertrauenswürdigen Peers konfiguriert. Vertrauen Sie Peers aus dem Chat-Menü, um ihnen zu erlauben, Ihren Standort abzufragen.",
@@ -2687,6 +2688,15 @@
         "android_remote_backend_unchanged": "Die Backend-URL ist bereits auf diesen Wert gesetzt.",
         "android_remote_backend_already_local": "Es wird bereits das geräteeigene Backend verwendet.",
         "android_remote_backend_restarting": "Neustart, um die Backend-URL zu übernehmen…",
+        "bandwidth": {
+            "eyebrow": "Netzwerk",
+            "title": "Begrenzte Bandbreite",
+            "description": "Reduziert automatischen Hintergrundverkehr auf langsamen oder teuren Verbindungen.",
+            "enabled": "Modus für begrenzte Bandbreite aktivieren",
+            "enabled_desc": "Erhöht automatische Announce- und Propagation-Sync-Intervalle auf mindestens 6 Stunden, Telemetry-Anfragen auf mindestens 15 Minuten und pausiert Crawling sowie automatische Verbindungen zu neu entdeckten Interfaces.",
+            "active_badge": "Der Modus für begrenzte Bandbreite ist aktiv.",
+            "active_summary": "Nachrichten, Anrufe und von dir ausgelöste Zustellpfade werden nicht begrenzt. Deine gespeicherten Intervalle bleiben unverändert und gelten wieder, wenn dieser Modus aus ist."
+        },
         "battery": {
             "eyebrow": "Energie",
             "title": "Energiesparmodus",

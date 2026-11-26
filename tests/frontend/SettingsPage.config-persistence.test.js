@@ -108,6 +108,13 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         emitSpy.mockRestore();
     });
 
+    it("onLimitedBandwidthEnabledChange PATCHes limited_bandwidth_enabled", async () => {
+        const w = await mountSettingsPage(api);
+        await w.vm.onLimitedBandwidthEnabledChange(true);
+        expect(w.vm.config.limited_bandwidth_enabled).toBe(true);
+        expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { limited_bandwidth_enabled: true });
+    });
+
     it("onAnnounceStoreToggle PATCHes a single announce_store flag", async () => {
         const w = await mountSettingsPage(api);
         w.vm.config.announce_store_lxmf_delivery = true;

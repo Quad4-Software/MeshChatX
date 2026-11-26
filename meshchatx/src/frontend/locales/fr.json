@@ -698,6 +698,7 @@
         "location_manual_lon": "Longitude",
         "location_manual_alt": "Altitude (m)",
         "telemetry_enabled": "Télémétrie activée",
+        "limited_bandwidth": "Bande passante limitée",
         "telemetry_description": "Permettre à MeshChatX d'envoyer et de recevoir des données télémétriques. Cela comprend la réponse aux demandes d'emplacement de pairs de confiance.",
         "telemetry_trusted_peers": "Des pairs de télémétrie fiables",
         "telemetry_no_trusted_peers": "Aucun pair de confiance configuré. Faites confiance aux pairs du menu chat pour leur permettre de demander votre emplacement.",
@@ -2687,6 +2688,15 @@
         "android_remote_backend_unchanged": "L'URL du backend est déjà définie sur cette valeur.",
         "android_remote_backend_already_local": "Le backend de l'appareil est déjà utilisé.",
         "android_remote_backend_restarting": "Redémarrage pour appliquer l'URL du backend…",
+        "bandwidth": {
+            "eyebrow": "Réseau",
+            "title": "Bande passante limitée",
+            "description": "Réduit le trafic automatique en arrière-plan sur les liaisons lentes ou coûteuses.",
+            "enabled": "Activer le mode bande passante limitée",
+            "enabled_desc": "Porte les intervalles automatiques d’annonce et de synchronisation de propagation à au moins 6 heures, les requêtes de télémétrie à au moins 15 minutes, et suspend l’exploration ainsi que les connexions automatiques aux interfaces nouvellement découvertes.",
+            "active_badge": "Le mode bande passante limitée est activé.",
+            "active_summary": "Les messages, les appels et les chemins de livraison que vous lancez ne sont pas limités. Vos intervalles enregistrés ne changent pas et s’appliquent de nouveau lorsque ce mode est désactivé."
+        },
         "battery": {
             "eyebrow": "Alimentation",
             "title": "Économiseur de batterie",

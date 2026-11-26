@@ -125,6 +125,13 @@ from meshchatx.src.backend.landlock_sandbox import (
 from meshchatx.src.backend.legacy_migrator import (
     resolve_startup_storage,
 )
+from meshchatx.src.backend.limited_bandwidth import (
+    clamp_periodic_mesh_interval,
+    crawler_runtime_enabled,
+    limited_bandwidth_enabled,
+    read_stored_limited_bandwidth_enabled,
+    telemetry_request_minimum_interval,
+)
 from meshchatx.src.backend.lxmf_message_fields import (
     LxmfAudioField,
     LxmfFileAttachment,
@@ -2290,6 +2297,46 @@ class ReticulumMeshChat:
                 except Exception:
                     pass
 
+    def _limited_bandwidth_enabled_for_identity(self, identity: RNS.Identity) -> bool:
+        """Resolve the mode for an identity before or after context setup."""
+        try:
+            identity_hash = identity.hash.hex()
+        except Exception:
+            return False
+        ctx = self.current_context
+        if (
+            ctx is not None
+            and getattr(ctx, "identity_hash", None) == identity_hash
+            and getattr(ctx, "config", None) is not None
+        ):
+            return limited_bandwidth_enabled(ctx.config)
+        database_path = os.path.join(
+            self.storage_dir,
+            "identities",
+            identity_hash,
+            "database.db",
+        )
+        return read_stored_limited_bandwidth_enabled(database_path)
+
+    def _sync_discovery_autoconnect_pause(self, identity: RNS.Identity | None = None):
+        """Apply the current identity's runtime discovery-autoconnect gate."""
+        try:
+            from meshchatx.src.backend.rns_discovery_live import (
+                set_discovery_autoconnect_paused,
+            )
+
+            subject = identity
+            if subject is None and self.current_context is not None:
+                subject = self.current_context.identity
+            enabled = (
+                self._limited_bandwidth_enabled_for_identity(subject)
+                if subject is not None
+                else False
+            )
+            set_discovery_autoconnect_paused(enabled)
+        except Exception as exc:
+            logger.debug("Could not apply limited-bandwidth discovery gate: %s", exc)
+
     def setup_identity(self, identity: RNS.Identity):
         identity_hash = identity.hash.hex()
 
@@ -2322,6 +2369,7 @@ class ReticulumMeshChat:
                     self.current_context.config,
                     force_enabled=self.web_audio_required(),
                 )
+                self._sync_discovery_autoconnect_pause(identity=identity)
                 if self._network_ready:
                     self._finish_deferred_startup_services()
                 self._apply_demo_mode_runtime()
@@ -2332,6 +2380,7 @@ class ReticulumMeshChat:
             self._set_startup_stage("rns")
             self._ensure_reticulum_config()
             rns_loglevel = _resolve_rns_loglevel(self._rns_loglevel_cli)
+            self._sync_discovery_autoconnect_pause(identity=identity)
             self.reticulum = _create_reticulum_instance(
                 self.reticulum_config_dir,
                 loglevel=rns_loglevel,
@@ -2346,6 +2395,7 @@ class ReticulumMeshChat:
         self.contexts[identity_hash] = context
         self.current_context = context
         context.setup()
+        self._sync_discovery_autoconnect_pause(identity=identity)
         self.web_audio_bridge.configure(
             context.telephone_manager,
             context.config,
@@ -4172,7 +4222,8 @@ class ReticulumMeshChat:
             should_announce = interval_action_due(
                 ctx.config.auto_announce_enabled.get(),
                 ctx.config.last_announced_at.get(),
-                clamp_interval_floor(
+                clamp_periodic_mesh_interval(
+                    ctx.config,
                     ctx.config.auto_announce_interval_seconds.get(),
                 ),
                 now,
@@ -4245,7 +4296,8 @@ class ReticulumMeshChat:
         router = ctx.message_router
         sync_start_time = None
         while self.running and ctx.running and ctx.session_id == session_id:
-            auto_sync_interval_seconds = clamp_interval_floor(
+            auto_sync_interval_seconds = clamp_periodic_mesh_interval(
+                ctx.config,
                 ctx.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get(),
             )
             last_synced_at = (
@@ -4305,7 +4357,7 @@ class ReticulumMeshChat:
 
         while self.running and ctx.running and ctx.session_id == session_id:
             try:
-                if ctx.config.crawler_enabled.get():
+                if crawler_runtime_enabled(ctx.config):
                     crawler = getattr(ctx, "crawler_manager", None)
                     homepage = (
                         ctx.config.nomad_default_page_path.get() or "/page/index.mu"
@@ -4386,6 +4438,8 @@ class ReticulumMeshChat:
         if not ctx:
             return
 
+        if limited_bandwidth_enabled(ctx.config):
+            return
         crawler = getattr(ctx, "crawler_manager", None)
         if crawler is not None:
             crawler.own_destination_hashes = self._own_nomad_destination_hashes()
@@ -6802,6 +6856,9 @@ class ReticulumMeshChat:
                     interval = effective_request_interval(
                         peer.get("interval_seconds", 60),
                         unanswered,
+                        minimum_interval_seconds=telemetry_request_minimum_interval(
+                            ctx.config,
+                        ),
                     )
                     last_req = peer.get("last_request_at")
 
@@ -7661,6 +7718,12 @@ class ReticulumMeshChat:
             self.config.location_manual_alt.set(
                 str(_loc_alt) if _loc_alt is not None else None,
             )
+
+        if "limited_bandwidth_enabled" in data:
+            self.config.limited_bandwidth_enabled.set(
+                self._parse_bool(data["limited_bandwidth_enabled"]),
+            )
+            self._sync_discovery_autoconnect_pause()
 
         if "telemetry_enabled" in data:
             self.config.telemetry_enabled.set(
@@ -8925,6 +8988,7 @@ class ReticulumMeshChat:
             "auto_announce_interval_seconds": clamp_interval_floor(
                 ctx.config.auto_announce_interval_seconds.get(),
             ),
+            "limited_bandwidth_enabled": ctx.config.limited_bandwidth_enabled.get(),
             "last_announced_at": ctx.config.last_announced_at.get(),
             "theme": ctx.config.theme.get(),
             "map_coordinate_format": ctx.config.map_coordinate_format.get(),
@@ -13277,6 +13341,8 @@ class ReticulumMeshChat:
     ):
         ctx = context or self.current_context
         if not ctx:
+            return
+        if limited_bandwidth_enabled(ctx.config):
             return
         crawler = getattr(ctx, "crawler_manager", None)
         if crawler and not force and not ctx.config.crawler_enabled.get():

@@ -702,6 +702,7 @@
         "location_manual_lon": "Longitude",
         "location_manual_alt": "Altitude (m)",
         "telemetry_enabled": "Telemetry Enabled",
+        "limited_bandwidth": "Limited bandwidth",
         "telemetry_description": "Allow MeshChatX to send and receive telemetry data, such as responding to location requests from trusted peers.",
         "telemetry_trusted_peers": "Trusted Telemetry Peers",
         "telemetry_no_trusted_peers": "No trusted peers configured. Trust peers from the chat menu to allow them to request your location.",
@@ -2687,6 +2688,15 @@
         "android_remote_backend_unchanged": "Backend URL is already set to that value.",
         "android_remote_backend_already_local": "Already using the on-device backend.",
         "android_remote_backend_restarting": "Restarting to apply backend URL…",
+        "bandwidth": {
+            "eyebrow": "Network",
+            "title": "Limited bandwidth",
+            "description": "Reduce automatic background traffic on slow or expensive links.",
+            "enabled": "Enable limited bandwidth mode",
+            "enabled_desc": "Raises automatic announce and propagation-sync intervals to at least 6 hours, telemetry requests to at least 15 minutes, and pauses crawling plus automatic connections to newly discovered interfaces.",
+            "active_badge": "Limited bandwidth mode is on.",
+            "active_summary": "Messages, calls, and delivery paths you initiate are not limited. Your saved intervals are unchanged and apply again when this mode is off."
+        },
         "battery": {
             "eyebrow": "Power",
             "title": "Battery saver",

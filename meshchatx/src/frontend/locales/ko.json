@@ -698,6 +698,7 @@
         "location_manual_lon": "경도",
         "location_manual_alt": "고도 (m)",
         "telemetry_enabled": "텔레메트리 활성화됨",
+        "limited_bandwidth": "제한된 대역폭",
         "telemetry_description": "신뢰하는 피어의 위치 요청에 응답하는 등 텔레메트리 데이터를 주고받도록 MeshChatX에 허용합니다.",
         "telemetry_trusted_peers": "신뢰하는 텔레메트리 피어",
         "telemetry_no_trusted_peers": "신뢰하는 피어가 없습니다. 채팅 메뉴에서 피어를 신뢰하면 피어가 내 위치를 요청할 수 있습니다.",
@@ -2687,6 +2688,15 @@
         "android_remote_backend_unchanged": "백엔드 URL이 이미 해당 값으로 설정되어 있습니다.",
         "android_remote_backend_already_local": "이미 기기 내 백엔드를 사용 중입니다.",
         "android_remote_backend_restarting": "백엔드 URL을 적용하기 위해 다시 시작하는 중…",
+        "bandwidth": {
+            "eyebrow": "네트워크",
+            "title": "제한된 대역폭",
+            "description": "느리거나 비용이 높은 링크에서 자동 백그라운드 트래픽을 줄입니다.",
+            "enabled": "제한된 대역폭 모드 사용",
+            "enabled_desc": "자동 announce 및 propagation 동기화 간격을 최소 6시간으로, telemetry 요청을 최소 15분으로 늘리고 크롤링과 새로 발견된 인터페이스로의 자동 연결을 일시 중지합니다.",
+            "active_badge": "제한된 대역폭 모드가 켜져 있습니다.",
+            "active_summary": "메시지, 통화, 사용자가 시작한 전달 경로는 제한되지 않습니다. 저장된 간격은 변경되지 않으며 이 모드를 끄면 다시 적용됩니다."
+        },
         "battery": {
             "eyebrow": "전원",
             "title": "배터리 세이버",

@@ -20,6 +20,11 @@ class ConfigManager:
             "auto_announce_interval_seconds",
             0,
         )
+        self.limited_bandwidth_enabled = self.BoolConfig(
+            self,
+            "limited_bandwidth_enabled",
+            False,
+        )
         self.last_announced_at = self.IntConfig(self, "last_announced_at", None)
         self.theme = self.StringConfig(self, "theme", "system")
         self.theme_preset = self.StringConfig(self, "theme_preset", "void")

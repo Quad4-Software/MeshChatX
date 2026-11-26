@@ -698,6 +698,7 @@
         "location_manual_lon": "Boylam",
         "location_manual_alt": "Rakım (m)",
         "telemetry_enabled": "Telemetri Etkin",
+        "limited_bandwidth": "Sınırlı bant genişliği",
         "telemetry_description": "MeshChatX'in telemetri verisi göndermesine ve almasına izin ver. Örneğin güvenilir eşlerden gelen konum isteklerini yanıtlamak gibi.",
         "telemetry_trusted_peers": "Güvenilir Telemetri Eşleri",
         "telemetry_no_trusted_peers": "Yapılandırılmış güvenilir eş yok. Konumunuzu isteyebilmeleri için sohbet menüsünden eşlere güven verin.",
@@ -2687,6 +2688,15 @@
         "android_remote_backend_unchanged": "Arka uç URL'si zaten bu değere ayarlı.",
         "android_remote_backend_already_local": "Zaten cihaz içi arka uç kullanılıyor.",
         "android_remote_backend_restarting": "Arka uç URL'sini uygulamak için yeniden başlatılıyor…",
+        "bandwidth": {
+            "eyebrow": "Ağ",
+            "title": "Sınırlı bant genişliği",
+            "description": "Yavaş veya maliyetli bağlantılarda otomatik arka plan trafiğini azaltır.",
+            "enabled": "Sınırlı bant genişliği modunu etkinleştir",
+            "enabled_desc": "Otomatik duyuru ve propagation eşitleme aralıklarını en az 6 saate, telemetri isteklerini en az 15 dakikaya çıkarır; taramayı ve yeni keşfedilen arayüzlere otomatik bağlanmayı duraklatır.",
+            "active_badge": "Sınırlı bant genişliği modu açık.",
+            "active_summary": "Mesajlar, aramalar ve sizin başlattığınız teslimat yolları sınırlanmaz. Kayıtlı aralıklarınız değişmez ve bu mod kapalıyken yeniden uygulanır."
+        },
         "battery": {
             "eyebrow": "Güç",
             "title": "Pil tasarrufu",

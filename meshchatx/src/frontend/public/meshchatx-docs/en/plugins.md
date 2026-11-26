@@ -187,7 +187,7 @@ Nothing is available unless it is declared in the manifest and granted in the in
 
 Call managers from a plugin with POST /api/v1/plugins/{id}/invoke and method: "callManager", or `api.callManager(capability, args)` in a frontend Worker. Details for the link transport are in [RNS Link API](rns-link-api.md).
 
-Read managers return bounded, sanitized rows: `contacts.read` allows at most 500 rows per call, `nodes.read` 500, `conversations.list` 500, `messages.read` 200, and `telemetry.read` 500. Conversation rows carry metadata only (peer hash, state, timestamps, attachment flags, and the latest message title); message bodies are never included, so reading content requires `messages.read`. Telemetry rows are unpacked into the same shape the telemetry API returns. `message.send` accepts `destination_hash` (64 hex chars), `content` (max 128 KiB), optional `title` (max 500 chars) and `reply_to_hash`. It sends text only: no attachments, telemetry, commands, or reactions. Sending is refused while demo mode is active.
+Read managers return bounded, sanitized rows: `contacts.read` allows at most 500 rows per call, `nodes.read` 500, `conversations.list` 500, `messages.read` 200, and `telemetry.read` 500. Conversation rows carry metadata only (peer hash, state, timestamps, attachment flags, and the latest message title). Message bodies are never included, so reading content requires `messages.read`. Telemetry rows are unpacked into the same shape the telemetry API returns. `message.send` accepts `destination_hash` (64 hex chars), `content` (max 128 KiB), optional `title` (max 500 chars) and `reply_to_hash`. It sends text only: no attachments, telemetry, commands, or reactions. Sending is refused while demo mode is active.
 
 ### Storage and network
 
@@ -209,7 +209,7 @@ Map access is declared as `"map": "none" | "read" | "write" | "read-write"` in `
 Install preview also scans plugin files for external http:// / https:// URLs and shows them before you grant network access.
 `network: fetch` is not a sandbox for Python code. Once `backend:python` is granted, Python code can use the process's network access directly.
 
-Frontend fetch goes through POST /api/v1/plugins/{id}/fetch, which enforces the `network:fetch` grant, refuses requests while privacy mode is on, and only allows http(s) URLs without embedded credentials or non-public IP literals. Before each request (including every redirect hop, up to 3) the backend resolves the hostname and requires all answers to be globally routable addresses, so DNS names pointing at loopback or LAN space are rejected. Methods are limited to GET, HEAD, POST, PUT, PATCH, DELETE, and OPTIONS; bodies are capped at 256 KiB and responses at 1 MiB (flagged `truncated` when cut). The whole exchange including DNS and redirects is capped at 30 seconds. Host, Content-Length, Transfer-Encoding, and hop-by-hop headers are dropped from requests, Set-Cookie response headers are never returned, and Authorization/Cookie headers are stripped when a redirect crosses origins. The result includes the final `url` after redirects. DNS answers are validated at request time but not pinned to the connection, so a domain whose DNS changes between lookup and connect (rebinding) is not fully defended; grant `network: fetch` only to plugins you trust.
+Frontend fetch goes through POST /api/v1/plugins/{id}/fetch, which enforces the `network:fetch` grant, refuses requests while privacy mode is on, and only allows http(s) URLs without embedded credentials or non-public IP literals. Before each request (including every redirect hop, up to 3) the backend resolves the hostname and requires all answers to be globally routable addresses, so DNS names pointing at loopback or LAN space are rejected. Methods are limited to GET, HEAD, POST, PUT, PATCH, DELETE, and OPTIONS. Bodies are capped at 256 KiB and responses at 1 MiB (flagged `truncated` when cut). The whole exchange including DNS and redirects is capped at 30 seconds. Host, Content-Length, Transfer-Encoding, and hop-by-hop headers are dropped from requests, Set-Cookie response headers are never returned, and Authorization/Cookie headers are stripped when a redirect crosses origins. The result includes the final `url` after redirects. DNS answers are validated at request time but not pinned to the connection, so a domain whose DNS changes between lookup and connect (rebinding) is not fully defended. Grant `network: fetch` only to plugins you trust.
 
 ## How a frontend plugin runs
 
@@ -262,7 +262,7 @@ Layers take a GeoJSON FeatureCollection (a single Feature is accepted too). Feat
 | `api.map.removeLayer(id)`           | map:write  | `{ layerId, removed }`                                       |
 | `api.map.clearLayers()`             | map:write  | `{ cleared }`                                                |
 
-`setView` accepts `center` as `[lon, lat]`, `zoom` 0-22, `bearing` in degrees, `durationMs`, and `navigate`. It resolves after the camera animation finishes and returns the resulting state. Pass `navigate: true` to open the Map page first when no map is active; without it the call fails with `map_not_open`. Layer writes never navigate, they apply silently to every open map and are replayed when a map is created later. All plugin layers are removed when the plugin unloads.
+`setView` accepts `center` as `[lon, lat]`, `zoom` 0-22, `bearing` in degrees, `durationMs`, and `navigate`. It resolves after the camera animation finishes and returns the resulting state. Pass `navigate: true` to open the Map page first when no map is active. Without it the call fails with `map_not_open`. Layer writes never navigate, they apply silently to every open map and are replayed when a map is created later. All plugin layers are removed when the plugin unloads.
 
 Map events use `api.map.on(event, handler)`, which returns a subscription id for `api.map.off(id)`:
 
@@ -292,11 +292,11 @@ await api.storage.clear()                        // number of keys removed
 
 ### Network fetch
 
-Requires `network: fetch`. `api.net.fetch(url, options)` returns `{ status, status_text, headers, body, truncated }`. `options` accepts `method`, `headers` (object, max 32 entries), and `body` (string, max 256 KiB). Requests are refused while privacy mode is enabled and while the URL is not a plain http(s) address. The body is always text; binary responses come back UTF-8 decoded with replacement characters.
+Requires `network: fetch`. `api.net.fetch(url, options)` returns `{ status, status_text, headers, body, truncated }`. `options` accepts `method`, `headers` (object, max 32 entries), and `body` (string, max 256 KiB). Requests are refused while privacy mode is enabled and while the URL is not a plain http(s) address. The body is always text. Binary responses come back UTF-8 decoded with replacement characters.
 
 ### App navigation
 
-`api.app.navigate(route, params)` pushes a named route through the app router. Only built-in route names are allowed (messages, contacts, map, settings, tools, and the other top-level pages); plugin routes, popouts, and arbitrary URLs are rejected. Example: `await api.app.navigate("messages", { destinationHash: peer })`.
+`api.app.navigate(route, params)` pushes a named route through the app router. Only built-in route names are allowed (messages, contacts, map, settings, tools, and the other top-level pages). Plugin routes, popouts, and arbitrary URLs are rejected. Example: `await api.app.navigate("messages", { destinationHash: peer })`.
 
 ### Clipboard
 
@@ -304,7 +304,7 @@ Requires `network: fetch`. `api.net.fetch(url, options)` returns `{ status, stat
 
 ### Events
 
-`api.onEvent(name, handler)` receives hook payloads. Backend hooks (`announce.received`, `rns.link.event`) arrive via `plugin.event`; the LXMF, file transfer, shell, and RRC hooks listed in the permissions table arrive via the PluginHost WebSocket bridge. Each subscription is cleaned up automatically when the plugin unloads.
+`api.onEvent(name, handler)` receives hook payloads. Backend hooks (`announce.received`, `rns.link.event`) arrive via `plugin.event`. The LXMF, file transfer, shell, and RRC hooks listed in the permissions table arrive via the PluginHost WebSocket bridge. Each subscription is cleaned up automatically when the plugin unloads.
 
 ## How a backend plugin runs
 

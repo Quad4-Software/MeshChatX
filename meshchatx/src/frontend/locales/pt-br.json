@@ -698,6 +698,7 @@
         "location_manual_lon": "Longitude",
         "location_manual_alt": "Altitude (m)",
         "telemetry_enabled": "Telemetria Ativada",
+        "limited_bandwidth": "Largura de banda limitada",
         "telemetry_description": "Permita que o MeshChatX envie e receba dados de telemetria, como responder a solicitações de localização de pares confiáveis.",
         "telemetry_trusted_peers": "Pares de Telemetria Confiáveis",
         "telemetry_no_trusted_peers": "Nenhum par confiável configurado. Confie em pares pelo menu do chat para permitir que eles solicitem sua localização.",
@@ -2687,6 +2688,15 @@
         "android_remote_backend_unchanged": "A URL do backend já está definida para esse valor.",
         "android_remote_backend_already_local": "Já usando o backend do dispositivo.",
         "android_remote_backend_restarting": "Reiniciando para aplicar a URL do backend…",
+        "bandwidth": {
+            "eyebrow": "Rede",
+            "title": "Largura de banda limitada",
+            "description": "Reduza o tráfego automático em segundo plano em links lentos ou caros.",
+            "enabled": "Ativar modo de largura de banda limitada",
+            "enabled_desc": "Aumenta os intervalos automáticos de anúncio e sincronização de propagação para pelo menos 6 horas, as solicitações de telemetria para pelo menos 15 minutos e pausa a indexação e as conexões automáticas com interfaces recém-descobertas.",
+            "active_badge": "O modo de largura de banda limitada está ativado.",
+            "active_summary": "Mensagens, chamadas e rotas de entrega iniciadas por você não são limitadas. Seus intervalos salvos não mudam e voltam a valer quando este modo é desativado."
+        },
         "battery": {
             "eyebrow": "Energia",
             "title": "Economia de bateria",

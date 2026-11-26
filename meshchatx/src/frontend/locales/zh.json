@@ -698,6 +698,7 @@
         "location_manual_lon": "经度",
         "location_manual_alt": "海拔（米）",
         "telemetry_enabled": "遥测已启用",
+        "limited_bandwidth": "有限带宽",
         "telemetry_description": "允许 MeshChatX 发送和接收遥测数据。这包括对受信任端点的位置请求作出响应。",
         "telemetry_trusted_peers": "受信任的遥测端点",
         "telemetry_no_trusted_peers": "未配置受信任的端点。从聊天菜单中信任端点，让它们可以请求您的位置。",
@@ -2687,6 +2688,15 @@
         "android_remote_backend_unchanged": "后端 URL 已是该值。",
         "android_remote_backend_already_local": "已在使用设备本地后端。",
         "android_remote_backend_restarting": "正在重启以应用后端 URL…",
+        "bandwidth": {
+            "eyebrow": "网络",
+            "title": "有限带宽",
+            "description": "减少慢速或高成本链路上的自动后台流量。",
+            "enabled": "启用有限带宽模式",
+            "enabled_desc": "将自动 announce 和 propagation 同步间隔提高到至少 6 小时，将 telemetry 请求提高到至少 15 分钟，并暂停爬取以及自动连接到新发现的接口。",
+            "active_badge": "有限带宽模式已开启。",
+            "active_summary": "消息、通话以及由你主动发起的投递路径不受限制。已保存的间隔不会被修改，关闭此模式后会再次生效。"
+        },
         "battery": {
             "eyebrow": "电源",
             "title": "省电模式",

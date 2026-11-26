@@ -1581,6 +1581,12 @@
                             </div>
                         </section>
 
+                        <BandwidthSettingsSection
+                            :visible="showSection('bandwidth')"
+                            :config="config"
+                            @enabled-change="onLimitedBandwidthEnabledChange"
+                        />
+
                         <!-- Transport / shared instance / hop obfuscation -->
                         <section v-show="showSection('transport')" class="settings-section break-inside-avoid">
                             <header class="settings-section__header">
@@ -3210,6 +3216,7 @@ import VisualiserSettingsSection from "./sections/VisualiserSettingsSection.vue"
 import BlockedSettingsSection from "./sections/BlockedSettingsSection.vue";
 import AndroidSettingsSection from "./sections/AndroidSettingsSection.vue";
 import ArchiverSettingsSection from "./sections/ArchiverSettingsSection.vue";
+import BandwidthSettingsSection from "./sections/BandwidthSettingsSection.vue";
 import SettingsNav from "./SettingsNav.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import DesktopUtils from "../../js/DesktopUtils";
@@ -3302,6 +3309,7 @@ export default {
         BlockedSettingsSection,
         AndroidSettingsSection,
         ArchiverSettingsSection,
+        BandwidthSettingsSection,
         MicronWasmUpdateModal,
         NotificationSoundSettings,
     },
@@ -3420,6 +3428,7 @@ export default {
                 map_overlay_max_retries: 3,
                 map_overlay_retry_delay_seconds: 2,
                 telemetry_enabled: false,
+                limited_bandwidth_enabled: false,
                 gitea_base_url: "",
                 csp_extra_connect_src: "",
                 csp_extra_img_src: "",
@@ -4412,6 +4421,13 @@ export default {
                 }
             }
             return merged;
+        },
+        async onLimitedBandwidthEnabledChange(value) {
+            this.config.limited_bandwidth_enabled = value === true;
+            await this.updateConfig(
+                { limited_bandwidth_enabled: this.config.limited_bandwidth_enabled },
+                "limited_bandwidth"
+            );
         },
         async updateConfig(config, label = null) {
             try {

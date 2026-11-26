@@ -70,6 +70,7 @@ export function discoverMegaPageOwnership(repoRoot) {
                 "meshchatx/src/frontend/components/settings/sections/BlockedSettingsSection.vue",
                 "meshchatx/src/frontend/components/settings/sections/AndroidSettingsSection.vue",
                 "meshchatx/src/frontend/components/settings/sections/ArchiverSettingsSection.vue",
+                "meshchatx/src/frontend/components/settings/sections/BandwidthSettingsSection.vue",
                 "meshchatx/src/frontend/components/settings/PluginsSettingsSection.vue",
             ],
             required_shell_imports: [
@@ -86,6 +87,7 @@ export function discoverMegaPageOwnership(repoRoot) {
                 "BlockedSettingsSection",
                 "AndroidSettingsSection",
                 "ArchiverSettingsSection",
+                "BandwidthSettingsSection",
                 "PluginsSettingsSection",
                 "SettingsSectionBlock",
             ],

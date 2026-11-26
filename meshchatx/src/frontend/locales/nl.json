@@ -698,6 +698,7 @@
         "location_manual_lon": "Lengtegraad",
         "location_manual_alt": "Hoogte (m)",
         "telemetry_enabled": "Telemetrie ingeschakeld",
+        "limited_bandwidth": "Beperkte bandbreedte",
         "telemetry_description": "Laat MeshChatX telemetriegegevens verzenden en ontvangen. Dit omvat het beantwoorden van locatieverzoeken van vertrouwde collega's.",
         "telemetry_trusted_peers": "Vertrouwde telemetrie-peers",
         "telemetry_no_trusted_peers": "Geen vertrouwde collega's geconfigureerd. Vertrouw collega's uit het chatmenu om hen in staat te stellen uw locatie te vragen.",
@@ -2687,6 +2688,15 @@
         "android_remote_backend_unchanged": "De backend-URL staat al op die waarde.",
         "android_remote_backend_already_local": "De backend op het apparaat wordt al gebruikt.",
         "android_remote_backend_restarting": "Opnieuw starten om de backend-URL toe te passen…",
+        "bandwidth": {
+            "eyebrow": "Netwerk",
+            "title": "Beperkte bandbreedte",
+            "description": "Verminder automatisch achtergrondverkeer op trage of dure verbindingen.",
+            "enabled": "Beperkte-bandbreedtemodus inschakelen",
+            "enabled_desc": "Verhoogt automatische announce- en propagation-sync-intervallen naar minimaal 6 uur, telemetry-verzoeken naar minimaal 15 minuten en pauzeert crawlen plus automatische verbindingen met nieuw ontdekte interfaces.",
+            "active_badge": "Beperkte-bandbreedtemodus is ingeschakeld.",
+            "active_summary": "Berichten, oproepen en leveringspaden die je zelf start worden niet beperkt. Je opgeslagen intervallen blijven ongewijzigd en gelden weer zodra deze modus uit staat."
+        },
         "battery": {
             "eyebrow": "Energie",
             "title": "Batterijbesparing",

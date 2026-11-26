@@ -18,7 +18,11 @@ TELEMETRY_REQUEST_MAX_INTERVAL_SECONDS = 24 * 60 * 60
 TELEMETRY_REQUEST_MAX_UNANSWERED = 24
 
 
-def effective_request_interval(base_interval_seconds, unanswered_count) -> int:
+def effective_request_interval(
+    base_interval_seconds,
+    unanswered_count,
+    minimum_interval_seconds=1,
+) -> int:
     try:
         base = max(1, int(base_interval_seconds))
     except (TypeError, ValueError):
@@ -27,9 +31,13 @@ def effective_request_interval(base_interval_seconds, unanswered_count) -> int:
         count = max(0, int(unanswered_count))
     except (TypeError, ValueError):
         count = 0
+    try:
+        minimum = max(1, int(minimum_interval_seconds))
+    except (TypeError, ValueError):
+        minimum = 1
     shift = min(count, 20)
     return min(
-        base * (1 << shift),
+        max(base * (1 << shift), minimum),
         TELEMETRY_REQUEST_MAX_INTERVAL_SECONDS,
     )
 

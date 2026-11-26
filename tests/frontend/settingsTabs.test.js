@@ -28,6 +28,7 @@ const KNOWN_SECTIONS_FROM_SETTINGS_PAGE = [
     "android",
     "archiver",
     "nomadRenderer",
+    "bandwidth",
     "crawler",
     "appearance",
     "battery",
@@ -78,6 +79,7 @@ describe("settingsTabs", () => {
         expect(settingsTabForSection("archiver")).toBe("nomad");
         expect(settingsTabForSection("plugins")).toBe("plugins");
         expect(settingsTabForSection("telephony")).toBe("network");
+        expect(settingsTabForSection("bandwidth")).toBe("network");
         expect(settingsTabForSection("banishment")).toBe("privacy");
         expect(settingsTabForSection("selftest")).toBe("maintenance");
         expect(settingsTabForSection("infrastructure")).toBe("maintenance");

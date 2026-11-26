@@ -32,6 +32,103 @@ _DISCOVERY_THRESHOLD_KEYS = (
     ("interface_discovery_remove_after_days", "THRESHOLD_REMOVE", 7 * 24 * 60 * 60),
 )
 
+_AUTOCONNECT_GATE_LOCK = threading.RLock()
+_AUTOCONNECT_GATE_PATCHED = False
+_AUTOCONNECT_GATE_PAUSED = False
+_AUTOCONNECT_RESCAN_ACTIVE = False
+_ORIGINAL_INTERFACE_AUTOCONNECT = None
+
+
+def discovery_autoconnect_paused() -> bool:
+    with _AUTOCONNECT_GATE_LOCK:
+        return _AUTOCONNECT_GATE_PAUSED
+
+
+def install_discovery_autoconnect_gate() -> bool:
+    """Install a narrow runtime gate in front of InterfaceDiscovery.autoconnect.
+
+    Changing Reticulum's configured autoconnect count to zero is not a safe
+    runtime override: InterfaceDiscovery's monitor treats zero as its target
+    count and tears down bootstrap-only interfaces. The gate leaves every
+    configured value and every existing interface untouched, and only refuses
+    the creation of newly discovered interfaces while paused.
+    """
+    global _AUTOCONNECT_GATE_PATCHED, _ORIGINAL_INTERFACE_AUTOCONNECT
+    with _AUTOCONNECT_GATE_LOCK:
+        if _AUTOCONNECT_GATE_PATCHED:
+            return True
+        try:
+            from RNS.Discovery import InterfaceDiscovery
+        except Exception:
+            return False
+        original = getattr(InterfaceDiscovery, "autoconnect", None)
+        if original is None:
+            return False
+        if getattr(original, "_meshchatx_bandwidth_gate", False):
+            _AUTOCONNECT_GATE_PATCHED = True
+            return True
+        _ORIGINAL_INTERFACE_AUTOCONNECT = original
+
+        def autoconnect_with_bandwidth_gate(self, info):
+            if discovery_autoconnect_paused():
+                try:
+                    RNS.log(
+                        "Limited bandwidth mode is active; not auto-connecting "
+                        "a discovered interface",
+                        RNS.LOG_DEBUG,
+                    )
+                except Exception:
+                    pass
+                return None
+            return _ORIGINAL_INTERFACE_AUTOCONNECT(self, info)
+
+        autoconnect_with_bandwidth_gate._meshchatx_bandwidth_gate = True
+        InterfaceDiscovery.autoconnect = autoconnect_with_bandwidth_gate
+        _AUTOCONNECT_GATE_PATCHED = True
+        return True
+
+
+def _resume_discovered_autoconnects() -> None:
+    """Scan persisted discoveries once after the gate opens again."""
+    global _AUTOCONNECT_RESCAN_ACTIVE
+    discovery = _discovery_handler()
+    if discovery is None or not hasattr(discovery, "connect_discovered"):
+        return
+    try:
+        if not RNS.Reticulum.should_autoconnect_discovered_interfaces():
+            return
+    except Exception:
+        return
+    with _AUTOCONNECT_GATE_LOCK:
+        if _AUTOCONNECT_RESCAN_ACTIVE:
+            return
+        _AUTOCONNECT_RESCAN_ACTIVE = True
+
+    def run():
+        global _AUTOCONNECT_RESCAN_ACTIVE
+        try:
+            discovery.connect_discovered()
+        except Exception as exc:
+            logger.debug("Discovery autoconnect resume scan failed: %s", exc)
+        finally:
+            with _AUTOCONNECT_GATE_LOCK:
+                _AUTOCONNECT_RESCAN_ACTIVE = False
+
+    threading.Thread(target=run, daemon=True).start()
+
+
+def set_discovery_autoconnect_paused(paused: bool) -> None:
+    """Pause or resume only new discovery-driven interface connections."""
+    global _AUTOCONNECT_GATE_PAUSED
+    install_discovery_autoconnect_gate()
+    paused = bool(paused)
+    with _AUTOCONNECT_GATE_LOCK:
+        was_paused = _AUTOCONNECT_GATE_PAUSED
+        _AUTOCONNECT_GATE_PAUSED = paused
+    if was_paused and not paused:
+        _resume_discovered_autoconnects()
+
+
 _MODE_MAP = {
     "full": "MODE_FULL",
     "access_point": "MODE_ACCESS_POINT",

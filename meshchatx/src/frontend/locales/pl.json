@@ -698,6 +698,7 @@
         "location_manual_lon": "Długość geograficzna",
         "location_manual_alt": "Wysokość (m)",
         "telemetry_enabled": "Telemetria włączona",
+        "limited_bandwidth": "Ograniczona przepustowość",
         "telemetry_description": "Zezwala MeshChatX na wysyłanie i odbieranie danych telemetrii, na przykład odpowiadanie na żądania lokalizacji od zaufanych peerów.",
         "telemetry_trusted_peers": "Zaufane peery telemetrii",
         "telemetry_no_trusted_peers": "Brak skonfigurowanych zaufanych peerów. Zaufaj peerom z menu czatu, aby mogli żądać Twojej lokalizacji.",
@@ -2687,6 +2688,15 @@
         "android_remote_backend_unchanged": "Adres URL backendu jest już ustawiony na tę wartość.",
         "android_remote_backend_already_local": "Już używasz backendu na urządzeniu.",
         "android_remote_backend_restarting": "Ponowne uruchamianie w celu zastosowania adresu URL backendu…",
+        "bandwidth": {
+            "eyebrow": "Sieć",
+            "title": "Ograniczona przepustowość",
+            "description": "Zmniejsz automatyczny ruch w tle na wolnych lub kosztownych łączach.",
+            "enabled": "Włącz tryb ograniczonej przepustowości",
+            "enabled_desc": "Zwiększa automatyczne interwały ogłoszeń i synchronizacji propagacji do co najmniej 6 godzin, żądania telemetryczne do co najmniej 15 minut oraz wstrzymuje indeksowanie i automatyczne łączenie z nowo wykrytymi interfejsami.",
+            "active_badge": "Tryb ograniczonej przepustowości jest włączony.",
+            "active_summary": "Wiadomości, połączenia i ścieżki dostarczania inicjowane przez użytkownika nie są ograniczane. Zapisane interwały pozostają niezmienione i znów obowiązują po wyłączeniu tego trybu."
+        },
         "battery": {
             "eyebrow": "Zasilanie",
             "title": "Oszczędzanie baterii",

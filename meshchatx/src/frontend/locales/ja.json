@@ -698,6 +698,7 @@
         "location_manual_lon": "経度",
         "location_manual_alt": "高度（m）",
         "telemetry_enabled": "テレメトリを有効化",
+        "limited_bandwidth": "帯域幅制限",
         "telemetry_description": "信頼済みピアからの位置情報要求への応答など、MeshChatX がテレメトリデータを送受信できるようにします。",
         "telemetry_trusted_peers": "信頼済みテレメトリピア",
         "telemetry_no_trusted_peers": "信頼済みピアが設定されていません。チャットメニューからピアを信頼すると、位置情報を要求できるようになります。",
@@ -2687,6 +2688,15 @@
         "android_remote_backend_unchanged": "バックエンド URL は既にその値に設定されています。",
         "android_remote_backend_already_local": "既に端末内バックエンドを使用しています。",
         "android_remote_backend_restarting": "バックエンド URL を適用するため再起動中…",
+        "bandwidth": {
+            "eyebrow": "ネットワーク",
+            "title": "帯域幅制限",
+            "description": "低速または高コストのリンクで自動バックグラウンド通信を減らします。",
+            "enabled": "帯域幅制限モードを有効にする",
+            "enabled_desc": "自動アナウンスと伝播同期の間隔を最低6時間、テレメトリ要求を最低15分に引き上げ、クロールと新しく発見されたインターフェースへの自動接続を一時停止します。",
+            "active_badge": "帯域幅制限モードが有効です。",
+            "active_summary": "メッセージ、通話、自分から開始した配送経路は制限されません。保存済みの間隔は変更されず、このモードをオフにすると再び適用されます。"
+        },
         "battery": {
             "eyebrow": "電源",
             "title": "バッテリーセーバー",

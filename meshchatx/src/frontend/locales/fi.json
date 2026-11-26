@@ -698,6 +698,7 @@
         "location_manual_lon": "Pituus",
         "location_manual_alt": "Korkeus (m)",
         "telemetry_enabled": "Käytönseuranta kytketty",
+        "limited_bandwidth": "Rajoitettu kaistanleveys",
         "telemetry_description": "Salli MeshChatX:n välittää käyttötietoja, esimerkiksi luotettujen verkon osallistujien sijaintipyyntöihin vastaamiseen.",
         "telemetry_trusted_peers": "Luotetut osallistujat käyttötietojen välittämiseksi",
         "telemetry_no_trusted_peers": "Ei luotettuja osallistujia. Luota yhteyshenkilöihin keskusteluvalikossa antaaksesi luvan sijaintipyyntöihin.",
@@ -2687,6 +2688,15 @@
         "android_remote_backend_unchanged": "Taustajärjestelmän URL on jo asetettu tähän arvoon.",
         "android_remote_backend_already_local": "Laitteen oma taustajärjestelmä on jo käytössä.",
         "android_remote_backend_restarting": "Käynnistetään uudelleen taustajärjestelmän URL:n käyttöönottoa varten…",
+        "bandwidth": {
+            "eyebrow": "Verkko",
+            "title": "Rajoitettu kaistanleveys",
+            "description": "Vähennä automaattista taustaliikennettä hitailla tai kalliilla yhteyksillä.",
+            "enabled": "Ota rajoitetun kaistanleveyden tila käyttöön",
+            "enabled_desc": "Nostaa automaattisten ilmoitusten ja propagation-synkronointien välit vähintään 6 tuntiin, telemetriapyynnöt vähintään 15 minuuttiin sekä keskeyttää indeksoinnin ja automaattiset yhteydet uusiin löydettyihin rajapintoihin.",
+            "active_badge": "Rajoitetun kaistanleveyden tila on käytössä.",
+            "active_summary": "Viestejä, puheluja tai itse aloittamiasi toimitusreittejä ei rajoiteta. Tallennetut intervalleja ei muuteta, ja ne ovat taas voimassa kun tila on pois käytöstä."
+        },
         "battery": {
             "eyebrow": "Virta",
             "title": "Akunsäästö",

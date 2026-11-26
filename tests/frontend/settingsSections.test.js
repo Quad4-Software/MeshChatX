@@ -12,6 +12,7 @@ import VisualiserSettingsSection from "../../meshchatx/src/frontend/components/s
 import BlockedSettingsSection from "../../meshchatx/src/frontend/components/settings/sections/BlockedSettingsSection.vue";
 import AndroidSettingsSection from "../../meshchatx/src/frontend/components/settings/sections/AndroidSettingsSection.vue";
 import ArchiverSettingsSection from "../../meshchatx/src/frontend/components/settings/sections/ArchiverSettingsSection.vue";
+import BandwidthSettingsSection from "../../meshchatx/src/frontend/components/settings/sections/BandwidthSettingsSection.vue";
 
 describe("SettingToggleRow", () => {
     it("renders title and description and emits updates", async () => {
@@ -58,6 +59,26 @@ describe("StrangerProtectionSettingsSection", () => {
         expect(wrapper.emitted("block-all-change")).toEqual([[true]]);
         expect(wrapper.emitted("unknown-banner-change")).toEqual([[false]]);
         expect(wrapper.emitted("warn-links-change")).toEqual([[false]]);
+    });
+});
+
+describe("BandwidthSettingsSection", () => {
+    it("emits enabled-change and shows the active summary only when enabled", async () => {
+        const wrapper = mount(BandwidthSettingsSection, {
+            props: {
+                visible: true,
+                config: { limited_bandwidth_enabled: false },
+            },
+            global: {
+                mocks: { $t: (key) => key },
+            },
+        });
+        expect(wrapper.text()).toContain("settings.bandwidth.title");
+        expect(wrapper.text()).not.toContain("settings.bandwidth.active_summary");
+        await wrapper.findComponent({ name: "SettingToggleRow" }).vm.$emit("update:modelValue", true);
+        expect(wrapper.emitted("enabled-change")).toEqual([[true]]);
+        await wrapper.setProps({ config: { limited_bandwidth_enabled: true } });
+        expect(wrapper.text()).toContain("settings.bandwidth.active_summary");
     });
 });
 

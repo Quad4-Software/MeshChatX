@@ -660,18 +660,22 @@ def interval_action_due(
     return now > last_at + iv
 
 
-def clamp_interval_floor(interval_seconds):
-    """Raise a stored interval to the shared announce floor when needed.
+def clamp_interval_floor(interval_seconds, floor_seconds=MIN_ANNOUNCE_INTERVAL_SECONDS):
+    """Raise a stored interval to a runtime floor when needed.
 
     Config values written before the floor was raised would otherwise keep
     firing at the old cadence forever. ``None``, ``0``, negatives, and
     unparseable values pass through untouched so callers keep their own
-    enable/disable semantics.
+    enable/disable semantics. The result is never persisted here.
     """
     try:
         value = int(interval_seconds)
     except (TypeError, ValueError):
         return interval_seconds
-    if 0 < value < MIN_ANNOUNCE_INTERVAL_SECONDS:
-        return MIN_ANNOUNCE_INTERVAL_SECONDS
+    try:
+        floor = int(floor_seconds)
+    except (TypeError, ValueError):
+        floor = MIN_ANNOUNCE_INTERVAL_SECONDS
+    if 0 < value < floor:
+        return floor
     return value

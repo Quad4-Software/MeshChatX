@@ -11,6 +11,10 @@ from typing import Any
 import RNS
 
 from meshchatx.src.backend import reticulum_pathfinding as rp
+from meshchatx.src.backend.limited_bandwidth import (
+    clamp_periodic_mesh_interval,
+    limited_bandwidth_enabled,
+)
 from meshchatx.src.backend.meshchat_utils import parse_lxmf_stamp_cost
 
 
@@ -104,6 +108,8 @@ def build_delivery_diagnostics(
 
     auto_announce_enabled = False
     auto_announce_interval_seconds = 0
+    effective_auto_announce_interval_seconds = 0
+    limited_bandwidth = False
     last_announced_at = None
     if ctx is not None and ctx.config is not None:
         with contextlib.suppress(Exception):
@@ -114,6 +120,15 @@ def build_delivery_diagnostics(
             )
         with contextlib.suppress(Exception):
             last_announced_at = ctx.config.last_announced_at.get()
+        limited_bandwidth = limited_bandwidth_enabled(ctx.config)
+        with contextlib.suppress(Exception):
+            effective_auto_announce_interval_seconds = int(
+                clamp_periodic_mesh_interval(
+                    ctx.config,
+                    auto_announce_interval_seconds,
+                )
+                or 0,
+            )
 
     seconds_since_last_announce = None
     if last_announced_at is not None:
@@ -225,6 +240,8 @@ def build_delivery_diagnostics(
         "self": {
             "auto_announce_enabled": auto_announce_enabled,
             "auto_announce_interval_seconds": auto_announce_interval_seconds,
+            "limited_bandwidth_enabled": limited_bandwidth,
+            "effective_auto_announce_interval_seconds": effective_auto_announce_interval_seconds,
             "last_announced_at": last_announced_at,
             "seconds_since_last_announce": seconds_since_last_announce,
         },

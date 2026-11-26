@@ -364,6 +364,16 @@ export const CORE_SETTINGS_SECTION_KEYWORDS = {
         "zh",
         "locale",
     ],
+    bandwidth: [
+        "bandwidth",
+        "limited bandwidth",
+        "low bandwidth",
+        "airtime",
+        "LoRa traffic",
+        "settings.bandwidth.title",
+        "settings.bandwidth.description",
+        "settings.bandwidth.enabled",
+    ],
     networkSecurity: [
         "firewall",
         "rate limit",

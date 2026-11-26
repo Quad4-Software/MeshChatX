@@ -35,7 +35,7 @@ export const SETTINGS_TABS = [
         labelKey: "settings.tabs.network",
         descriptionKey: "settings.tabs.network_desc",
         icon: "access-point-network",
-        sections: ["transport", "interfaces", "visualiser", "crawler", "networkSecurity", "telephony"],
+        sections: ["bandwidth", "transport", "interfaces", "visualiser", "crawler", "networkSecurity", "telephony"],
     },
     {
         id: "nomad",
@@ -76,6 +76,7 @@ export const DEFAULT_SETTINGS_TAB = "general";
  */
 const ADVANCED_SETTINGS_SECTIONS = new Set([
     "translation",
+    "bandwidth",
     "experimentalLive",
     "transport",
     "interfaces",
