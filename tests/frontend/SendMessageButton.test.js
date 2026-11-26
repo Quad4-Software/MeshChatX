@@ -54,6 +54,13 @@ const runLongPressReleaseAssertions = async (wrapper, button, outsideEventType) 
     expect(wrapper.vm.isShowingMenu).toBe(true);
     expect(wrapper.emitted("send")).toBeUndefined();
 
+    // the click synthesized when the finger/mouse is released off the button
+    // lands on another element and must not dismiss the menu either
+    dispatchOnDocumentElement(outsideEventType);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.vm.isShowingMenu).toBe(true);
+
+    vi.advanceTimersByTime(400);
     dispatchOnDocumentElement(outsideEventType);
     await wrapper.vm.$nextTick();
     expect(wrapper.vm.isShowingMenu).toBe(false);

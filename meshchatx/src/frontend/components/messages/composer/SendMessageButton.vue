@@ -203,6 +203,8 @@ export default {
             compactLongPressTimer: null,
             compactTapArmed: false,
             compactMenuOpenedByHold: false,
+            compactHoldActive: false,
+            compactHoldReleasedAt: 0,
         };
     },
     computed: {
@@ -215,6 +217,7 @@ export default {
     },
     beforeUnmount() {
         this.clearCompactLongPressTimer();
+        this.removeHoldReleaseListeners();
     },
     methods: {
         clearCompactLongPressTimer() {
@@ -222,6 +225,15 @@ export default {
                 clearTimeout(this.compactLongPressTimer);
                 this.compactLongPressTimer = null;
             }
+        },
+        removeHoldReleaseListeners() {
+            window.removeEventListener("pointerup", this.onHoldRelease, true);
+            window.removeEventListener("pointercancel", this.onHoldRelease, true);
+        },
+        onHoldRelease() {
+            this.removeHoldReleaseListeners();
+            this.compactHoldActive = false;
+            this.compactHoldReleasedAt = Date.now();
         },
         onCompactPointerDown() {
             if (!this.compact || (!this.canSendMessage && !this.canOpenSendMenu)) {
@@ -233,8 +245,11 @@ export default {
             this.compactLongPressTimer = window.setTimeout(() => {
                 this.compactLongPressTimer = null;
                 this.compactTapArmed = false;
-                this.showMenu();
                 this.compactMenuOpenedByHold = true;
+                this.compactHoldActive = true;
+                window.addEventListener("pointerup", this.onHoldRelease, true);
+                window.addEventListener("pointercancel", this.onHoldRelease, true);
+                this.showMenu();
             }, 500);
         },
         onCompactPointerUp() {
@@ -242,6 +257,9 @@ export default {
                 return;
             }
             this.clearCompactLongPressTimer();
+            if (this.compactHoldActive) {
+                this.onHoldRelease();
+            }
         },
         onCompactPointerCancel() {
             if (!this.compact) {
@@ -249,6 +267,9 @@ export default {
             }
             this.clearCompactLongPressTimer();
             this.compactTapArmed = false;
+            if (this.compactHoldActive) {
+                this.onHoldRelease();
+            }
         },
         onCompactClick() {
             if (!this.compact) {
@@ -264,6 +285,9 @@ export default {
             this.isShowingMenu = true;
         },
         compactMenuOutsideMiddleware(event) {
+            if (this.compactHoldActive || Date.now() - this.compactHoldReleasedAt < 400) {
+                return false;
+            }
             if (!this.compactMenuOpenedByHold) {
                 return true;
             }
