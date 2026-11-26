@@ -2,4 +2,4 @@
 
 module github.com/Quad4-Software/MeshChatX/visualiser-wasm
 
-go 1.27.3
+go 1.27.4

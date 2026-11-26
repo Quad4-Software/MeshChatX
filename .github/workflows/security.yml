@@ -85,7 +85,7 @@ env:
     NODE_VERSION: "24"
     UV_VERSION: "0.13.5"
     PNPM_VERSION: "12.15.0"
-    GO_VERSION: "1.27.x"
+    GO_VERSION: "1.27.4"
     TRIVY_VERSION: "0.76.0"
 
 jobs:

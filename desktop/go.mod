@@ -1,6 +1,6 @@
 module github.com/Quad4-Software/MeshChatX/desktop
 
-go 1.26.0
+go 1.27.4
 
 require (
 	github.com/godbus/dbus/v5 v5.2.4
