@@ -12,7 +12,7 @@
                 type="button"
                 class="rnf-action-btn"
                 :class="{ 'rnf-action-btn--danger': action.danger }"
-                @click="$emit('action', action.id)"
+                @click="emit('action', action.id)"
             >
                 <MaterialDesignIcon :icon-name="action.icon" class="size-4" />
                 <span>{{ $t(action.labelKey) }}</span>
@@ -21,10 +21,18 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
-const ALL_ACTIONS = [
+interface RNodeAction {
+    id: string;
+    icon: string;
+    labelKey: string;
+    danger?: boolean;
+}
+
+const ALL_ACTIONS: RNodeAction[] = [
     { id: "detect", icon: "magnify", labelKey: "tools.rnode_flasher.detect_rnode" },
     { id: "diagnose", icon: "stethoscope", labelKey: "tools.rnode_flasher.run_diagnostics" },
     { id: "reboot", icon: "restart", labelKey: "tools.rnode_flasher.reboot_rnode" },
@@ -38,22 +46,20 @@ const ALL_ACTIONS = [
     },
 ];
 
-export default {
-    name: "RNodeAdvancedTools",
-    components: { MaterialDesignIcon },
-    props: {
-        disabledActions: {
-            type: Array,
-            default: () => [],
-        },
-    },
-    emits: ["action"],
-    computed: {
-        availableActions() {
-            return ALL_ACTIONS.filter((a) => !this.disabledActions.includes(a.id));
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        disabledActions?: string[];
+    }>(),
+    {
+        disabledActions: () => [],
+    }
+);
+
+const emit = defineEmits<{
+    action: [action: string];
+}>();
+
+const availableActions = computed(() => ALL_ACTIONS.filter((a) => !props.disabledActions.includes(a.id)));
 </script>
 
 <style scoped>

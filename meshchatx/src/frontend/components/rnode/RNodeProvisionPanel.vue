@@ -16,7 +16,7 @@
                 v-if="!isProvisioning"
                 :disabled="!canProvision"
                 class="w-full sm:max-w-xs mx-auto inline-flex items-center justify-center gap-2 rounded-xl bg-sem-accent/10 hover:bg-sem-accent/20 px-4 py-2.5 text-sm font-bold text-sem-accent transition-colors disabled:opacity-50"
-                @click="$emit('provision')"
+                @click="emit('provision')"
             >
                 {{ $t("tools.rnode_flasher.provision") }}
             </button>
@@ -39,7 +39,7 @@
             <button
                 v-if="!isSettingFirmwareHash"
                 class="w-full sm:max-w-xs mx-auto inline-flex items-center justify-center gap-2 rounded-xl bg-sem-accent/10 hover:bg-sem-accent/20 px-4 py-2.5 text-sm font-bold text-sem-accent transition-colors"
-                @click="$emit('set-hash')"
+                @click="emit('set-hash')"
             >
                 {{ $t("tools.rnode_flasher.set_firmware_hash") }}
             </button>
@@ -51,18 +51,26 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
-export default {
-    name: "RNodeProvisionPanel",
-    components: { MaterialDesignIcon },
-    props: {
-        provisionStepNumber: { type: Number, default: 3 },
-        canProvision: { type: Boolean, default: false },
-        isProvisioning: { type: Boolean, default: false },
-        isSettingFirmwareHash: { type: Boolean, default: false },
-    },
-    emits: ["provision", "set-hash"],
-};
+withDefaults(
+    defineProps<{
+        provisionStepNumber?: number;
+        canProvision?: boolean;
+        isProvisioning?: boolean;
+        isSettingFirmwareHash?: boolean;
+    }>(),
+    {
+        provisionStepNumber: 3,
+        canProvision: false,
+        isProvisioning: false,
+        isSettingFirmwareHash: false,
+    }
+);
+
+const emit = defineEmits<{
+    provision: [];
+    "set-hash": [];
+}>();
 </script>

@@ -5,21 +5,21 @@
         <button
             :class="tabClass('phone')"
             class="py-2 px-4 border-b-2 font-medium text-sm transition-all"
-            @click="$emit('update:activeTab', 'phone')"
+            @click="emit('update:activeTab', 'phone')"
         >
             Phone
         </button>
         <button
             :class="tabClass('phonebook')"
             class="py-2 px-4 border-b-2 font-medium text-sm transition-all"
-            @click="$emit('update:activeTab', 'phonebook')"
+            @click="emit('update:activeTab', 'phonebook')"
         >
             Phonebook
         </button>
         <button
             :class="tabClass('voicemail')"
             class="py-2 px-4 border-b-2 font-medium text-sm flex items-center gap-2 transition-all"
-            @click="$emit('update:activeTab', 'voicemail')"
+            @click="emit('update:activeTab', 'voicemail')"
         >
             Voicemail
             <span
@@ -31,40 +31,38 @@
         <button
             :class="tabClass('contacts')"
             class="py-2 px-4 border-b-2 font-medium text-sm transition-all"
-            @click="$emit('update:activeTab', 'contacts')"
+            @click="emit('update:activeTab', 'contacts')"
         >
             Contacts
         </button>
         <button
             :class="tabClass('ringtone')"
             class="py-2 px-4 border-b-2 font-medium text-sm transition-all"
-            @click="$emit('update:activeTab', 'ringtone')"
+            @click="emit('update:activeTab', 'ringtone')"
         >
             {{ $t("call.ringtone") }}
         </button>
     </div>
 </template>
 
-<script>
-export default {
-    name: "CallTabBar",
-    props: {
-        activeTab: {
-            type: String,
-            required: true,
-        },
-        unreadVoicemailsCount: {
-            type: Number,
-            default: 0,
-        },
-    },
-    emits: ["update:activeTab"],
-    methods: {
-        tabClass(tab) {
-            return this.activeTab === tab
-                ? "border-sem-accent text-sem-accent"
-                : "border-transparent text-sem-fg-muted hover:text-sem-fg-muted hover:text-sem-fg hover:border-sem-border";
-        },
-    },
-};
+<script setup lang="ts">
+const props = withDefaults(
+    defineProps<{
+        activeTab: string;
+        unreadVoicemailsCount?: number;
+    }>(),
+    {
+        unreadVoicemailsCount: 0,
+    }
+);
+
+const emit = defineEmits<{
+    "update:activeTab": [tab: string];
+}>();
+
+function tabClass(tab: string) {
+    return props.activeTab === tab
+        ? "border-sem-accent text-sem-accent"
+        : "border-transparent text-sem-fg-muted hover:text-sem-fg-muted hover:text-sem-fg hover:border-sem-border";
+}
 </script>

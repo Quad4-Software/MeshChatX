@@ -20,50 +20,30 @@
     </div>
 </template>
 
-<script>
-export default {
-    name: "OutboundTransferProgressFooter",
-    props: {
-        lxmfMessage: {
-            type: Object,
-            required: true,
-        },
-        chatItem: {
-            type: Object,
-            required: true,
-        },
-        cv: {
-            type: Object,
-            required: true,
-        },
-        variant: {
-            type: String,
-            default: "bubble",
-            validator: (value) => ["bubble", "image"].includes(value),
-        },
-    },
-    computed: {
-        statsLabel() {
-            return this.cv.outboundTransferStatsLabel(this.lxmfMessage, this.chatItem);
-        },
-        shellClass() {
-            if (this.variant === "image") {
-                return "bg-black/75 backdrop-blur-md px-2.5 py-1.5";
-            }
-            return "border-t border-black/8 dark:border-white/10 bg-black/[0.04] dark:bg-white/[0.05] px-3 py-1.5";
-        },
-        trackClass() {
-            return this.variant === "image" ? "bg-white/20" : "bg-sem-surface-muted/90 bg-sem-surface";
-        },
-        barClass() {
-            return this.variant === "image" ? "bg-sem-surface" : "bg-sem-accent";
-        },
-        percentClass() {
-            return this.variant === "image" ? "text-white/95" : "text-sem-fg-muted";
-        },
-        statsClass() {
-            return this.variant === "image" ? "text-white/75" : "text-sem-fg-muted";
-        },
-    },
-};
+<script setup lang="ts">
+import { computed } from "vue";
+
+const props = withDefaults(
+    defineProps<{
+        lxmfMessage: Record<string, any>;
+        chatItem: Record<string, any>;
+        cv: Record<string, any>;
+        variant?: "bubble" | "image";
+    }>(),
+    {
+        variant: "bubble",
+    }
+);
+
+const statsLabel = computed(() => props.cv.outboundTransferStatsLabel(props.lxmfMessage, props.chatItem));
+const isImage = computed(() => props.variant === "image");
+const shellClass = computed(() =>
+    isImage.value
+        ? "bg-black/75 backdrop-blur-md px-2.5 py-1.5"
+        : "border-t border-black/8 dark:border-white/10 bg-black/[0.04] dark:bg-white/[0.05] px-3 py-1.5"
+);
+const trackClass = computed(() => (isImage.value ? "bg-white/20" : "bg-sem-surface-muted/90 bg-sem-surface"));
+const barClass = computed(() => (isImage.value ? "bg-sem-surface" : "bg-sem-accent"));
+const percentClass = computed(() => (isImage.value ? "text-white/95" : "text-sem-fg-muted"));
+const statsClass = computed(() => (isImage.value ? "text-white/75" : "text-sem-fg-muted"));
 </script>
