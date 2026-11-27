@@ -3,5 +3,3 @@
 <template>
     <div class="context-menu-divider" role="separator" />
 </template>
-
-<script setup lang="ts"></script>

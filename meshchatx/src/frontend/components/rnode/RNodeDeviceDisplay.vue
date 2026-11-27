@@ -6,21 +6,26 @@
         <button
             type="button"
             class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted hover:text-sem-fg"
-            @click="$emit('clear')"
+            @click="emit('clear')"
         >
             {{ $t("common.clear") }}
         </button>
     </div>
 </template>
 
-<script>
-export default {
-    name: "RNodeDeviceDisplay",
-    props: {
-        image: { type: String, default: null },
-    },
-    emits: ["clear"],
-};
+<script setup lang="ts">
+withDefaults(
+    defineProps<{
+        image?: string | null;
+    }>(),
+    {
+        image: null,
+    }
+);
+
+const emit = defineEmits<{
+    clear: [];
+}>();
 </script>
 
 <style scoped>

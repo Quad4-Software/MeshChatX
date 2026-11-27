@@ -16,25 +16,18 @@
     </svg>
 </template>
 
-<script>
-import { getMdiIconPath, resolveMdiIconKey } from "../js/mdiIconNames.js";
+<script setup lang="ts">
+import { computed } from "vue";
+import { getMdiIconPath } from "../js/mdiIconNames.js";
 
-export default {
-    name: "MaterialDesignIcon",
-    props: {
-        iconName: {
-            type: String,
-            required: false,
-            default: "",
-        },
-    },
-    computed: {
-        mdiIconName() {
-            return resolveMdiIconKey(this.iconName);
-        },
-        iconPath() {
-            return getMdiIconPath(this.iconName);
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        iconName?: string;
+    }>(),
+    {
+        iconName: "",
+    }
+);
+
+const iconPath = computed(() => getMdiIconPath(props.iconName));
 </script>

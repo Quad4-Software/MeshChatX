@@ -18,14 +18,13 @@
     </section>
 </template>
 
-<script>
-export default {
-    name: "BlockedSettingsSection",
-    props: {
-        visible: {
-            type: Boolean,
-            default: true,
-        },
-    },
-};
+<script setup lang="ts">
+withDefaults(
+    defineProps<{
+        visible?: boolean;
+    }>(),
+    {
+        visible: true,
+    }
+);
 </script>

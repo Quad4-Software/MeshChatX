@@ -16,23 +16,17 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
-export default {
-    name: "LoadingState",
-    components: {
-        MaterialDesignIcon,
-    },
-    props: {
-        message: {
-            type: String,
-            default: "",
-        },
-        rootClass: {
-            type: String,
-            default: "",
-        },
-    },
-};
+withDefaults(
+    defineProps<{
+        message?: string;
+        rootClass?: string;
+    }>(),
+    {
+        message: "",
+        rootClass: "",
+    }
+);
 </script>

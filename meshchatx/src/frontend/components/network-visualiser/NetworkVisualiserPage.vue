@@ -4,13 +4,6 @@
     <NetworkVisualiser />
 </template>
 
-<script>
+<script setup lang="ts">
 import NetworkVisualiser from "./NetworkVisualiser.vue";
-
-export default {
-    name: "NetworkVisualiserPage",
-    components: {
-        NetworkVisualiser,
-    },
-};
 </script>

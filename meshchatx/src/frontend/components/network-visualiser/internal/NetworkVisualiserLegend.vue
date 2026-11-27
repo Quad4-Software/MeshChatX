@@ -21,12 +21,15 @@
     </div>
 </template>
 
-<script>
-export default {
-    name: "NetworkVisualiserLegend",
-    props: {
-        showDiscoveredInterfaces: { type: Boolean, default: false },
-        discoveredCount: { type: Number, default: 0 },
-    },
-};
+<script setup lang="ts">
+withDefaults(
+    defineProps<{
+        showDiscoveredInterfaces?: boolean;
+        discoveredCount?: number;
+    }>(),
+    {
+        showDiscoveredInterfaces: false,
+        discoveredCount: 0,
+    }
+);
 </script>
