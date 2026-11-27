@@ -47,145 +47,135 @@
     </Teleport>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, nextTick, ref, watch } from "vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
-export default {
-    name: "AppModal",
-    components: {
-        MaterialDesignIcon,
+defineOptions({ name: "AppModal" });
+
+const props = withDefaults(
+    defineProps<{
+        modelValue?: boolean;
+        title?: string;
+        persistent?: boolean;
+        maxWidth?: number | string;
+        fullscreen?: boolean;
+        scrollable?: boolean;
+        showClose?: boolean;
+        panelClass?: string;
+        bodyClass?: string;
+    }>(),
+    {
+        modelValue: false,
+        title: "",
+        persistent: false,
+        maxWidth: 520,
+        fullscreen: false,
+        scrollable: true,
+        showClose: false,
+        panelClass: "",
+        bodyClass: "overflow-y-auto overscroll-contain",
+    }
+);
+
+const emit = defineEmits<{
+    "update:modelValue": [value: boolean];
+    close: [];
+}>();
+
+let previouslyFocused: Element | null = null;
+let focusTrapHandler: ((e: KeyboardEvent) => void) | null = null;
+
+const dialog = ref<HTMLElement | null>(null);
+
+const panelStyle = computed(() => {
+    if (props.fullscreen) {
+        return { maxHeight: "100%", height: "100%", maxWidth: "100%", width: "100%" };
+    }
+    const raw = props.maxWidth;
+    const px = typeof raw === "number" ? `${raw}px` : String(raw);
+    return {
+        maxWidth: px.includes("px") || px.includes("rem") || px.includes("%") ? px : `${px}px`,
+        maxHeight: "min(90dvh, 100%)",
+    };
+});
+
+watch(
+    () => props.modelValue,
+    (newVal) => {
+        if (newVal) {
+            previouslyFocused = document.activeElement;
+            nextTick(() => {
+                attachFocusTrap();
+                focusFirst();
+            });
+        } else {
+            detachFocusTrap();
+            if (previouslyFocused && typeof (previouslyFocused as HTMLElement).focus === "function") {
+                (previouslyFocused as HTMLElement).focus();
+            }
+        }
     },
-    props: {
-        modelValue: {
-            type: Boolean,
-            default: false,
-        },
-        title: {
-            type: String,
-            default: "",
-        },
-        persistent: {
-            type: Boolean,
-            default: false,
-        },
-        maxWidth: {
-            type: [Number, String],
-            default: 520,
-        },
-        fullscreen: {
-            type: Boolean,
-            default: false,
-        },
-        scrollable: {
-            type: Boolean,
-            default: true,
-        },
-        showClose: {
-            type: Boolean,
-            default: false,
-        },
-        panelClass: {
-            type: String,
-            default: "",
-        },
-        bodyClass: {
-            type: String,
-            default: "overflow-y-auto overscroll-contain",
-        },
-    },
-    emits: ["update:modelValue", "close"],
-    data() {
-        return {
-            previouslyFocused: null,
-            focusTrapHandler: null,
-        };
-    },
-    computed: {
-        panelStyle() {
-            if (this.fullscreen) {
-                return { maxHeight: "100%", height: "100%", maxWidth: "100%", width: "100%" };
-            }
-            const raw = this.maxWidth;
-            const px = typeof raw === "number" ? `${raw}px` : String(raw);
-            return {
-                maxWidth: px.includes("px") || px.includes("rem") || px.includes("%") ? px : `${px}px`,
-                maxHeight: "min(90dvh, 100%)",
-            };
-        },
-    },
-    watch: {
-        modelValue: {
-            immediate: true,
-            handler(newVal) {
-                if (newVal) {
-                    this.previouslyFocused = document.activeElement;
-                    this.$nextTick(() => {
-                        this.attachFocusTrap();
-                        this.focusFirst();
-                    });
-                } else {
-                    this.detachFocusTrap();
-                    if (this.previouslyFocused && typeof this.previouslyFocused.focus === "function") {
-                        this.previouslyFocused.focus();
-                    }
-                }
-            },
-        },
-    },
-    methods: {
-        close() {
-            this.$emit("update:modelValue", false);
-            this.$emit("close");
-        },
-        onBackdropClick() {
-            if (!this.persistent) {
-                this.close();
-            }
-        },
-        getFocusableElements() {
-            const root = this.$refs.dialog;
-            if (!root) {
-                return [];
-            }
-            const selector =
-                'button:not([disabled]), [href]:not([tabindex="-1"]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-            return Array.from(root.querySelectorAll(selector)).filter(
-                (el) => !el.disabled && el.getAttribute("aria-hidden") !== "true" && el.getAttribute("hidden") === null
-            );
-        },
-        focusFirst() {
-            const focusable = this.getFocusableElements();
-            if (focusable.length > 0) {
-                focusable[0].focus();
-            }
-        },
-        handleFocusTrap(e) {
-            if (e.key !== "Tab") return;
-            const focusable = this.getFocusableElements();
-            if (focusable.length === 0) return;
-            const first = focusable[0];
-            const last = focusable[focusable.length - 1];
-            if (e.shiftKey && document.activeElement === first) {
-                e.preventDefault();
-                last.focus();
-            } else if (!e.shiftKey && document.activeElement === last) {
-                e.preventDefault();
-                first.focus();
-            }
-        },
-        attachFocusTrap() {
-            this.detachFocusTrap();
-            this.focusTrapHandler = (e) => this.handleFocusTrap(e);
-            if (this.$refs.dialog) {
-                this.$refs.dialog.addEventListener("keydown", this.focusTrapHandler, true);
-            }
-        },
-        detachFocusTrap() {
-            if (this.focusTrapHandler && this.$refs.dialog) {
-                this.$refs.dialog.removeEventListener("keydown", this.focusTrapHandler, true);
-            }
-            this.focusTrapHandler = null;
-        },
-    },
-};
+    { immediate: true }
+);
+
+function close() {
+    emit("update:modelValue", false);
+    emit("close");
+}
+
+function onBackdropClick() {
+    if (!props.persistent) {
+        close();
+    }
+}
+
+function getFocusableElements(): HTMLElement[] {
+    const root = dialog.value;
+    if (!root) {
+        return [];
+    }
+    const selector =
+        'button:not([disabled]), [href]:not([tabindex="-1"]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    return Array.from(root.querySelectorAll<HTMLElement>(selector)).filter(
+        (el) => !(el as any).disabled && el.getAttribute("aria-hidden") !== "true" && el.getAttribute("hidden") === null
+    );
+}
+
+function focusFirst() {
+    const focusable = getFocusableElements();
+    if (focusable.length > 0) {
+        focusable[0].focus();
+    }
+}
+
+function handleFocusTrap(e: KeyboardEvent) {
+    if (e.key !== "Tab") return;
+    const focusable = getFocusableElements();
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+    }
+}
+
+function attachFocusTrap() {
+    detachFocusTrap();
+    focusTrapHandler = (e: KeyboardEvent) => handleFocusTrap(e);
+    if (dialog.value) {
+        dialog.value.addEventListener("keydown", focusTrapHandler, true);
+    }
+}
+
+function detachFocusTrap() {
+    if (focusTrapHandler && dialog.value) {
+        dialog.value.removeEventListener("keydown", focusTrapHandler, true);
+    }
+    focusTrapHandler = null;
+}
 </script>

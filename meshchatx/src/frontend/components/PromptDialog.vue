@@ -56,111 +56,111 @@
     </Transition>
 </template>
 
-<script>
+<script setup lang="ts">
+import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import GlobalEmitter from "../js/GlobalEmitter";
 import { EMITTER_EVENTS } from "../js/constants";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
-function isComposingKey(event) {
+function isComposingKey(event: KeyboardEvent) {
     return Boolean(event && (event.isComposing || event.keyCode === 229));
 }
 
-export default {
-    name: "PromptDialog",
-    components: {
-        MaterialDesignIcon,
-    },
-    data() {
-        return {
-            pendingPrompt: null,
-            resolvePromise: null,
-            inputValue: "",
-            inputType: "text",
-            titleId: "prompt-dialog-title",
-            messageId: "prompt-dialog-message",
-        };
-    },
-    mounted() {
-        GlobalEmitter.on(EMITTER_EVENTS.PROMPT, this.show);
-        GlobalEmitter.on(EMITTER_EVENTS.CONFIRM, this.dismissForOtherDialog);
-        window.addEventListener("keydown", this.onWindowKeydown, true);
-    },
-    beforeUnmount() {
-        this.cancel();
-        GlobalEmitter.off(EMITTER_EVENTS.PROMPT, this.show);
-        GlobalEmitter.off(EMITTER_EVENTS.CONFIRM, this.dismissForOtherDialog);
-        window.removeEventListener("keydown", this.onWindowKeydown, true);
-    },
-    methods: {
-        show(payload = {}) {
-            if (payload && typeof payload === "object") {
-                payload.handled = true;
-            }
-            const { message, defaultValue, resolve, inputType } = payload;
-            if (typeof this.resolvePromise === "function") {
-                this.resolvePromise(null);
-            }
-            this.pendingPrompt = { message: message == null ? "" : String(message) };
-            this.inputValue = defaultValue == null ? "" : String(defaultValue);
-            this.inputType = inputType === "password" ? "password" : "text";
-            this.resolvePromise = typeof resolve === "function" ? resolve : null;
-            this.$nextTick(() => {
-                const input = this.$refs.promptInput;
-                if (input && typeof input.focus === "function") {
-                    input.focus();
-                    input.select();
-                }
-            });
-        },
-        dismissForOtherDialog() {
-            this.cancel();
-        },
-        onInputKeydown(event) {
-            if (event.key === "Escape") {
-                event.preventDefault();
-                this.cancel();
-                return;
-            }
-            if (event.key !== "Enter") {
-                return;
-            }
-            if (isComposingKey(event)) {
-                return;
-            }
-            event.preventDefault();
-            this.confirm();
-        },
-        onWindowKeydown(event) {
-            if (!this.pendingPrompt) {
-                return;
-            }
-            if (event.key !== "Escape") {
-                return;
-            }
-            event.preventDefault();
-            event.stopPropagation();
-            this.cancel();
-        },
-        confirm() {
-            if (this.resolvePromise) {
-                this.resolvePromise(this.inputValue);
-                this.resolvePromise = null;
-            }
-            this.pendingPrompt = null;
-            this.inputValue = "";
-            this.inputType = "text";
-        },
-        cancel() {
-            if (this.resolvePromise) {
-                this.resolvePromise(null);
-                this.resolvePromise = null;
-            }
-            this.pendingPrompt = null;
-            this.inputValue = "";
-            this.inputType = "text";
-        },
-    },
-};
+const pendingPrompt = ref<{ message: string } | null>(null);
+const inputValue = ref("");
+const inputType = ref("text");
+const titleId = "prompt-dialog-title";
+const messageId = "prompt-dialog-message";
+
+let resolvePromise: ((value: string | null) => void) | null = null;
+
+const promptInput = ref<HTMLInputElement | null>(null);
+
+onMounted(() => {
+    GlobalEmitter.on(EMITTER_EVENTS.PROMPT, show);
+    GlobalEmitter.on(EMITTER_EVENTS.CONFIRM, dismissForOtherDialog);
+    window.addEventListener("keydown", onWindowKeydown, true);
+});
+
+onBeforeUnmount(() => {
+    cancel();
+    GlobalEmitter.off(EMITTER_EVENTS.PROMPT, show);
+    GlobalEmitter.off(EMITTER_EVENTS.CONFIRM, dismissForOtherDialog);
+    window.removeEventListener("keydown", onWindowKeydown, true);
+});
+
+function show(payload: any = {}) {
+    if (payload && typeof payload === "object") {
+        payload.handled = true;
+    }
+    const { message, defaultValue, resolve, inputType: type } = payload;
+    if (typeof resolvePromise === "function") {
+        resolvePromise(null);
+    }
+    pendingPrompt.value = { message: message == null ? "" : String(message) };
+    inputValue.value = defaultValue == null ? "" : String(defaultValue);
+    inputType.value = type === "password" ? "password" : "text";
+    resolvePromise = typeof resolve === "function" ? resolve : null;
+    nextTick(() => {
+        const input = promptInput.value;
+        if (input && typeof input.focus === "function") {
+            input.focus();
+            input.select();
+        }
+    });
+}
+
+function dismissForOtherDialog() {
+    cancel();
+}
+
+function onInputKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape") {
+        event.preventDefault();
+        cancel();
+        return;
+    }
+    if (event.key !== "Enter") {
+        return;
+    }
+    if (isComposingKey(event)) {
+        return;
+    }
+    event.preventDefault();
+    confirm();
+}
+
+function onWindowKeydown(event: KeyboardEvent) {
+    if (!pendingPrompt.value) {
+        return;
+    }
+    if (event.key !== "Escape") {
+        return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    cancel();
+}
+
+function confirm() {
+    if (resolvePromise) {
+        resolvePromise(inputValue.value);
+        resolvePromise = null;
+    }
+    pendingPrompt.value = null;
+    inputValue.value = "";
+    inputType.value = "text";
+}
+
+function cancel() {
+    if (resolvePromise) {
+        resolvePromise(null);
+        resolvePromise = null;
+    }
+    pendingPrompt.value = null;
+    inputValue.value = "";
+    inputType.value = "text";
+}
 </script>
 
 <style scoped>

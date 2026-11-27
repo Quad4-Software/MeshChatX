@@ -26,7 +26,7 @@
                               ? 'bg-sem-surface-muted border-sem-border text-sem-fg-muted hover:bg-sem-surface-muted'
                               : 'bg-sem-surface-muted border-sem-border text-sem-fg-muted opacity-60 cursor-not-allowed'
                     "
-                    @click="option.available && $emit('update:connectionMethod', option.id)"
+                    @click="option.available && emit('update:connectionMethod', option.id)"
                 >
                     <MaterialDesignIcon :icon-name="option.icon" class="size-4 sm:size-5" />
                     <span>{{ $t(option.labelKey) }}</span>
@@ -44,7 +44,7 @@
                 spellcheck="false"
                 class="rnf-input"
                 :placeholder="$t('tools.rnode_flasher.ip_address_placeholder')"
-                @input="$emit('update:wifiHost', $event.target.value)"
+                @input="emit('update:wifiHost', $event.target.value)"
             />
             <p class="text-[10px] text-sem-fg-muted">
                 {{ $t("tools.rnode_flasher.wifi_help") }}
@@ -82,7 +82,7 @@
             v-if="selectedProduct?.platform === 0x70 && connectionMethod === 'serial'"
             :disabled="isEnteringDfuMode"
             class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-sem-warning/15 hover:bg-sem-warning/25 px-4 py-2.5 text-sm font-bold text-sem-warning transition-colors disabled:opacity-50"
-            @click="$emit('enter-dfu')"
+            @click="emit('enter-dfu')"
         >
             <MaterialDesignIcon
                 v-if="isEnteringDfuMode"
@@ -101,68 +101,74 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
-export default {
-    name: "RNodeDeviceSelector",
-    components: { MaterialDesignIcon },
-    props: {
-        stepNumber: { type: Number, default: 1 },
-        connectionMethod: { type: String, required: true },
-        wifiHost: { type: String, default: "" },
-        selectedProduct: { type: Object, default: null },
-        selectedModel: { type: Object, default: null },
-        products: { type: Array, required: true },
-        capabilities: { type: Object, required: true },
-        isEnteringDfuMode: { type: Boolean, default: false },
-    },
-    emits: [
-        "update:connectionMethod",
-        "update:wifiHost",
-        "update:selectedProduct",
-        "update:selectedModel",
-        "enter-dfu",
-    ],
-    computed: {
-        connectionOptions() {
-            const t = this.capabilities?.transports || {};
-            return [
-                {
-                    id: "serial",
-                    labelKey: "tools.rnode_flasher.serial",
-                    icon: "usb-port",
-                    available: Boolean(t.serial?.available),
-                },
-                {
-                    id: "bluetooth",
-                    labelKey: "tools.rnode_flasher.bluetooth",
-                    icon: "bluetooth",
-                    available: Boolean(t.bluetooth?.available),
-                },
-                {
-                    id: "wifi",
-                    labelKey: "tools.rnode_flasher.wifi",
-                    icon: "wifi",
-                    available: Boolean(t.wifi?.available),
-                },
-            ];
+const props = withDefaults(
+    defineProps<{
+        stepNumber?: number;
+        connectionMethod: string;
+        wifiHost?: string;
+        selectedProduct?: Record<string, any> | null;
+        selectedModel?: Record<string, any> | null;
+        products: any[];
+        capabilities: Record<string, any>;
+        isEnteringDfuMode?: boolean;
+    }>(),
+    {
+        stepNumber: 1,
+        wifiHost: "",
+        selectedProduct: null,
+        selectedModel: null,
+        isEnteringDfuMode: false,
+    }
+);
+
+const emit = defineEmits<{
+    "update:connectionMethod": [value: string];
+    "update:wifiHost": [value: string];
+    "update:selectedProduct": [product: any];
+    "update:selectedModel": [model: any];
+    "enter-dfu": [];
+}>();
+
+const connectionOptions = computed(() => {
+    const t = props.capabilities?.transports || {};
+    return [
+        {
+            id: "serial",
+            labelKey: "tools.rnode_flasher.serial",
+            icon: "usb-port",
+            available: Boolean(t.serial?.available),
         },
-    },
-    methods: {
-        onProductChange(event) {
-            const id = event.target.value;
-            const product = this.products.find((p) => String(p.id) === String(id)) || null;
-            this.$emit("update:selectedProduct", product);
-            this.$emit("update:selectedModel", null);
+        {
+            id: "bluetooth",
+            labelKey: "tools.rnode_flasher.bluetooth",
+            icon: "bluetooth",
+            available: Boolean(t.bluetooth?.available),
         },
-        onModelChange(event) {
-            const id = event.target.value;
-            const model = this.selectedProduct?.models?.find((m) => String(m.id) === String(id)) || null;
-            this.$emit("update:selectedModel", model);
+        {
+            id: "wifi",
+            labelKey: "tools.rnode_flasher.wifi",
+            icon: "wifi",
+            available: Boolean(t.wifi?.available),
         },
-    },
-};
+    ];
+});
+
+function onProductChange(event: Event) {
+    const id = (event.target as HTMLSelectElement).value;
+    const product = props.products.find((p) => String(p.id) === String(id)) || null;
+    emit("update:selectedProduct", product);
+    emit("update:selectedModel", null);
+}
+
+function onModelChange(event: Event) {
+    const id = (event.target as HTMLSelectElement).value;
+    const model = props.selectedProduct?.models?.find((m: any) => String(m.id) === String(id)) || null;
+    emit("update:selectedModel", model);
+}
 </script>
 
 <style scoped>
