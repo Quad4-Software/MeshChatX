@@ -18,7 +18,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { getMdiIconPath } from "../js/mdiIconNames.js";
+import { getMdiIconPath, resolveMdiIconKey } from "../js/mdiIconNames.js";
 
 const props = withDefaults(
     defineProps<{
@@ -29,5 +29,8 @@ const props = withDefaults(
     }
 );
 
+const mdiIconName = computed(() => resolveMdiIconKey(props.iconName));
 const iconPath = computed(() => getMdiIconPath(props.iconName));
+
+defineExpose({ mdiIconName });
 </script>
