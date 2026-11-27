@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from "vue";
+import { computed, getCurrentInstance, nextTick, ref } from "vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import { clampFloatingToViewport } from "../js/clampFloatingToViewport.js";
 import { ensureLocaleMessages, getUiI18n, listLocaleOptions, setLocale } from "../js/localeLoader.js";
@@ -72,9 +72,16 @@ const dropdownMaxHeight = ref<number | null>(null);
 
 const languageDropdown = ref<HTMLElement | null>(null);
 
+const instance = getCurrentInstance();
+
+function resolveI18n(): any {
+    // In tests globalProperties.$i18n is mocked; in the app it is the vue-i18n
+    // global injection proxying the same composer registerUiI18n holds.
+    return (instance?.proxy as any)?.$i18n ?? getUiI18n();
+}
+
 const currentLanguage = computed(() => {
-    const composer = getUiI18n();
-    const locale = (composer as any)?.locale;
+    const locale = resolveI18n()?.locale;
     if (locale && typeof locale === "object" && "value" in locale) {
         return locale.value;
     }
@@ -134,11 +141,11 @@ async function selectLanguage(langCode: string) {
 
     // Apply immediately. Parent persists config. The registered composer is the
     // same instance Options API this.$i18n proxies to.
-    const composer = getUiI18n();
+    const i18n = resolveI18n();
     try {
-        const ok = await setLocale(composer, langCode);
+        const ok = await setLocale(i18n, langCode);
         if (!ok) {
-            await ensureLocaleMessages(composer, langCode);
+            await ensureLocaleMessages(i18n, langCode);
         }
     } catch {
         // Locale pack may be unavailable in tests or offline shells.
