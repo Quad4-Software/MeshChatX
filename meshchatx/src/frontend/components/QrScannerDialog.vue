@@ -39,8 +39,10 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
+import { useTranslateUi } from "../js/localeLoader.js";
 import {
     attachStreamToVideo,
     decodeQrFromVideo,
@@ -56,148 +58,145 @@ import {
  * scanning (invalid payload). All camera/track cleanup happens on close and
  * on unmount, including streams that resolve after the dialog was dismissed.
  */
-export default {
-    name: "QrScannerDialog",
-    components: {
-        MaterialDesignIcon,
+const props = withDefaults(
+    defineProps<{
+        modelValue?: boolean;
+        title?: string;
+        hint?: string;
+    }>(),
+    {
+        modelValue: false,
+        title: "",
+        hint: "",
+    }
+);
+
+const emit = defineEmits<{
+    "update:modelValue": [value: boolean];
+    scan: [value: string];
+}>();
+
+const t = useTranslateUi();
+
+const scannerError = ref<string | null>(null);
+const starting = ref(false);
+
+let scannerStream: MediaStream | null = null;
+let scannerAnimationFrame: number | null = null;
+let lastScannedValue: string | null = null;
+
+const scannerVideo = ref<HTMLVideoElement | null>(null);
+
+const displayTitle = computed(() => props.title || t("qr_scanner.title"));
+const displayHint = computed(() => props.hint || t("qr_scanner.hint"));
+
+watch(
+    () => props.modelValue,
+    async (open) => {
+        if (open) {
+            lastScannedValue = null;
+            scannerError.value = null;
+            await nextTick();
+            await startScanner();
+        } else {
+            stopScanner();
+        }
     },
-    props: {
-        modelValue: {
-            type: Boolean,
-            default: false,
-        },
-        title: {
-            type: String,
-            default: "",
-        },
-        hint: {
-            type: String,
-            default: "",
-        },
-    },
-    emits: ["update:modelValue", "scan"],
-    data() {
-        return {
-            scannerError: null,
-            scannerStream: null,
-            scannerAnimationFrame: null,
-            lastScannedValue: null,
-            starting: false,
-        };
-    },
-    computed: {
-        displayTitle() {
-            return this.title || this.$t("qr_scanner.title");
-        },
-        displayHint() {
-            return this.hint || this.$t("qr_scanner.hint");
-        },
-    },
-    watch: {
-        modelValue: {
-            immediate: true,
-            async handler(open) {
-                if (open) {
-                    this.lastScannedValue = null;
-                    this.scannerError = null;
-                    await this.$nextTick();
-                    await this.startScanner();
-                } else {
-                    this.stopScanner();
-                }
-            },
-        },
-    },
-    beforeUnmount() {
-        this.stopScanner();
-    },
-    methods: {
-        requestClose() {
-            this.$emit("update:modelValue", false);
-        },
-        async startScanner() {
-            if (this.starting) {
+    { immediate: true }
+);
+
+onBeforeUnmount(() => {
+    stopScanner();
+});
+
+function requestClose() {
+    emit("update:modelValue", false);
+}
+
+async function startScanner() {
+    if (starting.value) {
+        return;
+    }
+    if (!isCameraSupported()) {
+        scannerError.value = t("qr_scanner.camera_not_supported");
+        return;
+    }
+    starting.value = true;
+    try {
+        const stream = await startCameraStream();
+        // The dialog may have been closed while the permission
+        // prompt was open; release the stream instead of leaking it.
+        if (!props.modelValue) {
+            stream.getTracks().forEach((track) => track.stop());
+            return;
+        }
+        if (!stream.getVideoTracks().length) {
+            scannerError.value = t("qr_scanner.camera_not_found");
+            stream.getTracks().forEach((track) => track.stop());
+            return;
+        }
+        scannerStream = stream;
+        const video = scannerVideo.value;
+        if (!(await attachStreamToVideo(stream, video))) {
+            if (props.modelValue) {
+                scannerError.value = t("qr_scanner.camera_failed");
+            }
+            stopScanner();
+            return;
+        }
+        if (!props.modelValue) {
+            stopScanner();
+            return;
+        }
+        detectQrLoop();
+    } catch (e) {
+        if (props.modelValue) {
+            scannerError.value = describeCameraError(e);
+        }
+    } finally {
+        starting.value = false;
+    }
+}
+
+function detectQrLoop() {
+    if (!props.modelValue) {
+        return;
+    }
+    const video = scannerVideo.value;
+    decodeQrFromVideo(video)
+        .then((qr: string | null) => {
+            if (!props.modelValue) {
                 return;
             }
-            if (!isCameraSupported()) {
-                this.scannerError = this.$t("qr_scanner.camera_not_supported");
-                return;
+            if (qr && qr !== lastScannedValue) {
+                lastScannedValue = qr;
+                emit("scan", qr);
             }
-            this.starting = true;
-            try {
-                const stream = await startCameraStream();
-                // The dialog may have been closed while the permission
-                // prompt was open; release the stream instead of leaking it.
-                if (!this.modelValue) {
-                    stream.getTracks().forEach((track) => track.stop());
-                    return;
-                }
-                if (!stream.getVideoTracks().length) {
-                    this.scannerError = this.$t("qr_scanner.camera_not_found");
-                    stream.getTracks().forEach((track) => track.stop());
-                    return;
-                }
-                this.scannerStream = stream;
-                const video = this.$refs.scannerVideo;
-                if (!(await attachStreamToVideo(stream, video))) {
-                    if (this.modelValue) {
-                        this.scannerError = this.$t("qr_scanner.camera_failed");
-                    }
-                    this.stopScanner();
-                    return;
-                }
-                if (!this.modelValue) {
-                    this.stopScanner();
-                    return;
-                }
-                this.detectQrLoop();
-            } catch (e) {
-                if (this.modelValue) {
-                    this.scannerError = this.describeCameraError(e);
-                }
-            } finally {
-                this.starting = false;
+            scannerAnimationFrame = requestAnimationFrame(() => detectQrLoop());
+        })
+        .catch(() => {
+            if (props.modelValue) {
+                scannerAnimationFrame = requestAnimationFrame(() => detectQrLoop());
             }
-        },
-        detectQrLoop() {
-            if (!this.modelValue) {
-                return;
-            }
-            const video = this.$refs.scannerVideo;
-            decodeQrFromVideo(video)
-                .then((qr) => {
-                    if (!this.modelValue) {
-                        return;
-                    }
-                    if (qr && qr !== this.lastScannedValue) {
-                        this.lastScannedValue = qr;
-                        this.$emit("scan", qr);
-                    }
-                    this.scannerAnimationFrame = requestAnimationFrame(() => this.detectQrLoop());
-                })
-                .catch(() => {
-                    if (this.modelValue) {
-                        this.scannerAnimationFrame = requestAnimationFrame(() => this.detectQrLoop());
-                    }
-                });
-        },
-        stopScanner() {
-            if (this.scannerAnimationFrame != null) {
-                cancelAnimationFrame(this.scannerAnimationFrame);
-                this.scannerAnimationFrame = null;
-            }
-            if (this.scannerStream) {
-                this.scannerStream.getTracks().forEach((track) => track.stop());
-                this.scannerStream = null;
-            }
-        },
-        describeCameraError(error) {
-            return describeQrCameraError(error, {
-                permissionDenied: this.$t("qr_scanner.camera_permission_denied"),
-                notFound: this.$t("qr_scanner.camera_not_found"),
-                failed: this.$t("qr_scanner.camera_failed"),
-            });
-        },
-    },
-};
+        });
+}
+
+function stopScanner() {
+    if (scannerAnimationFrame != null) {
+        cancelAnimationFrame(scannerAnimationFrame);
+        scannerAnimationFrame = null;
+    }
+    if (scannerStream) {
+        scannerStream.getTracks().forEach((track) => track.stop());
+        scannerStream = null;
+    }
+}
+
+function describeCameraError(error: unknown) {
+    return describeQrCameraError(error, {
+        permissionDenied: t("qr_scanner.camera_permission_denied"),
+        notFound: t("qr_scanner.camera_not_found"),
+        failed: t("qr_scanner.camera_failed"),
+    });
+}
 </script>
