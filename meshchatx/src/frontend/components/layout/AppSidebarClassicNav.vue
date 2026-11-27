@@ -41,8 +41,7 @@
                     :to="item.route"
                     :is-collapsed="isCollapsed"
                     :edit-mode="isEditing"
-                    <!-- eslint-disable-next-line vue/attribute-hyphenation -- camelCase required: vue-tsc does not normalize aria-label to the ariaLabel prop -->
-                    :ariaLabel="item.label || $t(item.labelKey)"
+                    v-bind="{ ariaLabel: item.label || $t(item.labelKey) }"
                 >
                     <template #icon>
                         <span class="relative inline-flex shrink-0">
