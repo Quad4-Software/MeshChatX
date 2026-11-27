@@ -112,14 +112,6 @@ patchFile("packaging/arch/.SRCINFO", (c) =>
 
 patchFile("helm/meshchatx/Chart.yaml", (c) => c.replace(/^appVersion: "[^"]+"/m, `appVersion: "${version}"`));
 
-patchFile("packaging/flatpak/com.meshchatx.app.metainfo.xml", (c) => {
-    if (c.includes(`<release version="${version}"`)) {
-        return c;
-    }
-    const date = new Date().toISOString().slice(0, 10);
-    return c.replace(/^(\s*)<releases>\n/m, `$1<releases>\n$1    <release version="${version}" date="${date}"/>\n`);
-});
-
 patchFile("desktop/build/config.yml", (c) => c.replace(/^( {2}version: )"[^"]*"/m, `$1"${version}"`));
 patchFile("desktop/build/linux/nfpm/nfpm.yaml", (c) => c.replace(/^version: "[^"]*"/m, `version: "${version}"`));
 patchFile("desktop/build/windows/nsis/wails_tools.nsh", (c) =>

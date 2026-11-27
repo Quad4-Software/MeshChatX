@@ -67,9 +67,6 @@ EXTRACTORS = {
     "desktop/build/darwin/Info.plist": _plist_versions,
     "desktop/build/darwin/Info.dev.plist": _plist_versions,
     "helm/meshchatx/Chart.yaml": lambda rel: [_first(r'^appVersion:\s*"([^"]+)"', rel)],
-    "packaging/flatpak/com.meshchatx.app.metainfo.xml": lambda rel: [
-        _first(r'<release version="([^"]+)"', rel)
-    ],
 }
 
 
