@@ -21,94 +21,107 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { attachInView } from "../../js/inViewObserver.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
-export default {
-    name: "StickerView",
-    components: { MaterialDesignIcon },
-    props: {
-        src: { type: String, required: true },
-        imageType: { type: String, default: "" },
-        alt: { type: String, default: "" },
-        size: { type: String, default: "auto" },
-    },
-    emits: ["error"],
-    data() {
-        return {
-            destroyed: false,
-            inView: false,
-            ioCleanup: null,
-        };
-    },
-    computed: {
-        isVideo() {
-            return (this.imageType || "").toLowerCase() === "webm";
-        },
-        isAnimated() {
-            return (this.imageType || "").toLowerCase() === "tgs";
-        },
-        sizeClass() {
-            return `sticker-view--${this.size}`;
-        },
-    },
-    watch: {
-        inView() {
-            this.onInViewChanged();
-        },
-        src() {
-            if (this.isVideo) {
-                this.$nextTick(() => this.syncVideoPlayback());
-            }
-        },
-        imageType() {
-            if (this.isVideo) {
-                this.$nextTick(() => this.syncVideoPlayback());
-            }
-        },
-    },
-    mounted() {
-        this.$nextTick(() => this.setupInView());
-    },
-    beforeUnmount() {
-        this.destroyed = true;
-        if (this.ioCleanup) {
-            this.ioCleanup();
-            this.ioCleanup = null;
+const props = withDefaults(
+    defineProps<{
+        src: string;
+        imageType?: string;
+        alt?: string;
+        size?: string;
+    }>(),
+    {
+        imageType: "",
+        alt: "",
+        size: "auto",
+    }
+);
+
+const emit = defineEmits<{
+    error: [event: Event];
+}>();
+
+let destroyed = false;
+const inView = ref(false);
+let ioCleanup: (() => void) | null = null;
+
+const stickerRoot = ref<HTMLElement | null>(null);
+const videoEl = ref<HTMLVideoElement | null>(null);
+
+const isVideo = computed(() => (props.imageType || "").toLowerCase() === "webm");
+const isAnimated = computed(() => (props.imageType || "").toLowerCase() === "tgs");
+const sizeClass = computed(() => `sticker-view--${props.size}`);
+
+watch(inView, () => {
+    onInViewChanged();
+});
+
+watch(
+    () => props.src,
+    () => {
+        if (isVideo.value) {
+            nextTick(() => syncVideoPlayback());
         }
-    },
-    methods: {
-        setupInView() {
-            const el = this.$refs.stickerRoot;
-            if (!el) {
-                return;
-            }
-            this.ioCleanup = attachInView(el, (entry) => {
-                this.inView = entry.isIntersecting;
-            });
-        },
-        onInViewChanged() {
-            if (this.isVideo) {
-                this.syncVideoPlayback();
-            }
-        },
-        syncVideoPlayback() {
-            const v = this.$refs.videoEl;
-            if (!v || !this.isVideo) {
-                return;
-            }
-            if (this.inView) {
-                v.play?.().catch(() => {});
-            } else {
-                v.pause?.();
-            }
-        },
-        onError(e) {
-            this.$emit("error", e);
-        },
-    },
-};
+    }
+);
+
+watch(
+    () => props.imageType,
+    () => {
+        if (isVideo.value) {
+            nextTick(() => syncVideoPlayback());
+        }
+    }
+);
+
+onMounted(() => {
+    nextTick(() => setupInView());
+});
+
+onBeforeUnmount(() => {
+    destroyed = true;
+    if (ioCleanup) {
+        ioCleanup();
+        ioCleanup = null;
+    }
+});
+
+function setupInView() {
+    const el = stickerRoot.value;
+    if (!el) {
+        return;
+    }
+    ioCleanup = attachInView(el, (entry: IntersectionObserverEntry) => {
+        inView.value = entry.isIntersecting;
+    });
+}
+
+function onInViewChanged() {
+    if (isVideo.value) {
+        syncVideoPlayback();
+    }
+}
+
+function syncVideoPlayback() {
+    const v = videoEl.value;
+    if (!v || !isVideo.value) {
+        return;
+    }
+    if (inView.value) {
+        v.play?.().catch(() => {});
+    } else {
+        v.pause?.();
+    }
+}
+
+function onError(e: Event) {
+    emit("error", e);
+}
+
+void destroyed;
 </script>
 
 <style scoped>
