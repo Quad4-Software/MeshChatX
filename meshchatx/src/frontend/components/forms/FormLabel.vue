@@ -5,8 +5,4 @@
         <slot />
     </label>
 </template>
-<script>
-export default {
-    name: "FormLabel",
-};
-</script>
+<script setup lang="ts"></script>

@@ -6,8 +6,4 @@
     </div>
 </template>
 
-<script>
-export default {
-    name: "ContextMenuSectionLabel",
-};
-</script>
+<script setup lang="ts"></script>

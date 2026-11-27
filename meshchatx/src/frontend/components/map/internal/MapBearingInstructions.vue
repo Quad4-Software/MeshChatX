@@ -12,7 +12,7 @@
                 v-if="showFromHere"
                 type="button"
                 class="w-full py-1.5 rounded-lg bg-sem-success hover:bg-sem-success text-white text-[11px] font-semibold transition-colors"
-                @click="$emit('use-my-location')"
+                @click="emit('use-my-location')"
             >
                 {{ $t("map.bearing_from_here") }}
             </button>
@@ -20,27 +20,30 @@
     </div>
 </template>
 
-<script>
-export default {
-    name: "MapBearingInstructions",
-    props: {
-        fromGpsActive: { type: Boolean, default: false },
-        awaitingSecondTap: { type: Boolean, default: false },
-    },
-    emits: ["use-my-location"],
-    computed: {
-        instructionText() {
-            if (this.fromGpsActive) {
-                return this.$t("map.bearing_hint_destination");
-            }
-            if (this.awaitingSecondTap) {
-                return this.$t("map.bearing_hint_second");
-            }
-            return this.$t("map.bearing_hint_first");
-        },
-        showFromHere() {
-            return !this.fromGpsActive;
-        },
-    },
-};
+<script setup lang="ts">
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
+
+const props = defineProps<{
+    fromGpsActive?: boolean;
+    awaitingSecondTap?: boolean;
+}>();
+
+const emit = defineEmits<{
+    "use-my-location": [];
+}>();
+
+const { t } = useI18n();
+
+const instructionText = computed(() => {
+    if (props.fromGpsActive) {
+        return t("map.bearing_hint_destination");
+    }
+    if (props.awaitingSecondTap) {
+        return t("map.bearing_hint_second");
+    }
+    return t("map.bearing_hint_first");
+});
+
+const showFromHere = computed(() => !props.fromGpsActive);
 </script>

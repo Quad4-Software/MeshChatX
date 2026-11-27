@@ -14,7 +14,7 @@
                     :key="p.id"
                     type="button"
                     class="px-2 py-1 text-[10px] font-bold uppercase tracking-tight rounded-lg bg-sem-surface dark:bg-sem-surface border border-sem-border text-sem-fg shadow-xs hover:bg-sem-surface-muted"
-                    @click="$emit('select-preset', p)"
+                    @click="emit('select-preset', p)"
                 >
                     {{ $t(`map.export_region_${p.id}`) }}
                 </button>
@@ -23,12 +23,16 @@
     </div>
 </template>
 
-<script>
-export default {
-    name: "MapExportInstructions",
-    props: {
-        presets: { type: Array, default: () => [] },
-    },
-    emits: ["select-preset"],
-};
+<script setup lang="ts">
+interface ExportPreset {
+    id: string;
+}
+
+defineProps<{
+    presets?: ExportPreset[];
+}>();
+
+const emit = defineEmits<{
+    "select-preset": [preset: ExportPreset];
+}>();
 </script>

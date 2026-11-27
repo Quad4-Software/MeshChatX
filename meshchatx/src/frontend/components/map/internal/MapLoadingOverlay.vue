@@ -9,11 +9,8 @@
     </div>
 </template>
 
-<script>
-export default {
-    name: "MapLoadingOverlay",
-    props: {
-        message: { type: String, default: null },
-    },
-};
+<script setup lang="ts">
+defineProps<{
+    message?: string | null;
+}>();
 </script>
