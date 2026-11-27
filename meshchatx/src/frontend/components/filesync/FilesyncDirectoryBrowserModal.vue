@@ -4,7 +4,7 @@
     <div
         v-if="open"
         class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
-        @click.self="$emit('close')"
+        @click.self="emit('close')"
     >
         <div
             class="flex w-full max-w-lg max-h-[min(36rem,90vh)] flex-col rounded-2xl border border-sem-border-card bg-sem-surface shadow-xl"
@@ -17,7 +17,7 @@
                     type="button"
                     class="rounded-lg p-1 text-sem-fg-muted hover:bg-sem-surface-muted"
                     :title="$t('common.close')"
-                    @click="$emit('close')"
+                    @click="emit('close')"
                 >
                     <MaterialDesignIcon icon-name="close" class="size-5" />
                 </button>
@@ -84,7 +84,7 @@
                     </button>
                 </div>
                 <div class="flex justify-end gap-2">
-                    <button type="button" class="secondary-chip px-4 py-2 text-sm" @click="$emit('close')">
+                    <button type="button" class="secondary-chip px-4 py-2 text-sm" @click="emit('close')">
                         {{ $t("common.cancel") }}
                     </button>
                     <button
@@ -101,124 +101,135 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, watch } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import { apiPath } from "../../js/constants";
+import { useTranslateUi } from "../../js/localeLoader";
 
-export default {
-    name: "FilesyncDirectoryBrowserModal",
-    components: {
-        MaterialDesignIcon,
+defineOptions({ name: "FilesyncDirectoryBrowserModal" });
+
+const props = withDefaults(
+    defineProps<{
+        open?: boolean;
+        initialPath?: string;
+    }>(),
+    {
+        open: false,
+        initialPath: "",
+    }
+);
+
+const emit = defineEmits<{
+    close: [];
+    select: [path: string];
+}>();
+
+interface DirectoryEntry {
+    name: string;
+    path: string;
+}
+
+const t = useTranslateUi();
+
+const busy = ref(false);
+const root = ref("");
+const current = ref("");
+const parent = ref<string | null>(null);
+const directories = ref<DirectoryEntry[]>([]);
+const newFolderName = ref("");
+
+let loadSeq = 0;
+
+async function load(path?: string): Promise<boolean> {
+    const requestId = (loadSeq = loadSeq + 1);
+    busy.value = true;
+    try {
+        const url = path
+            ? apiPath(`/filesync/directories?path=${encodeURIComponent(path)}`)
+            : apiPath("/filesync/directories");
+        const response = await window.api.get(url);
+        if (requestId !== loadSeq) {
+            return false;
+        }
+        const data = response?.data || {};
+        root.value = data.root || "";
+        current.value = data.current || "";
+        parent.value = data.parent || null;
+        directories.value = Array.isArray(data.directories) ? data.directories : [];
+        return true;
+    } catch (err: any) {
+        if (requestId === loadSeq) {
+            ToastUtils.error(err?.message || t("rns_filesync.error"));
+        }
+        return false;
+    } finally {
+        if (requestId === loadSeq) {
+            busy.value = false;
+        }
+    }
+}
+
+async function enterDirectory(path: string) {
+    await load(path);
+}
+
+async function goParent() {
+    if (!parent.value) {
+        return;
+    }
+    await load(parent.value);
+}
+
+async function createFolder() {
+    const name = String(newFolderName.value || "").trim();
+    if (!name) {
+        return;
+    }
+    busy.value = true;
+    try {
+        const response = await window.api.post(apiPath("/filesync/directories"), {
+            parent: current.value,
+            name,
+        });
+        const created = response?.data?.path;
+        newFolderName.value = "";
+        ToastUtils.success(t("rns_filesync.browser_created"));
+        if (created) {
+            await load(created);
+        } else {
+            await load(current.value);
+        }
+    } catch (err: any) {
+        ToastUtils.error(err?.message || t("rns_filesync.error"));
+    } finally {
+        busy.value = false;
+    }
+}
+
+function confirmSelection() {
+    const path = String(current.value || "").trim();
+    if (!path) {
+        return;
+    }
+    emit("select", path);
+    emit("close");
+}
+
+watch(
+    () => props.open,
+    async (isOpen) => {
+        if (!isOpen) {
+            return;
+        }
+        newFolderName.value = "";
+        const start = String(props.initialPath || "").trim();
+        const loaded = await load(start || undefined);
+        if (!loaded && start) {
+            await load(undefined);
+        }
     },
-    props: {
-        open: {
-            type: Boolean,
-            default: false,
-        },
-        initialPath: {
-            type: String,
-            default: "",
-        },
-    },
-    emits: ["close", "select"],
-    data() {
-        return {
-            busy: false,
-            root: "",
-            current: "",
-            parent: null,
-            directories: [],
-            newFolderName: "",
-        };
-    },
-    watch: {
-        open: {
-            immediate: true,
-            async handler(isOpen) {
-                if (!isOpen) {
-                    return;
-                }
-                this.newFolderName = "";
-                const start = String(this.initialPath || "").trim();
-                const loaded = await this.load(start || undefined);
-                if (!loaded && start) {
-                    await this.load(undefined);
-                }
-            },
-        },
-    },
-    methods: {
-        async load(path) {
-            const requestId = (this._loadSeq = (this._loadSeq || 0) + 1);
-            this.busy = true;
-            try {
-                const url = path
-                    ? apiPath(`/filesync/directories?path=${encodeURIComponent(path)}`)
-                    : apiPath("/filesync/directories");
-                const response = await window.api.get(url);
-                if (requestId !== this._loadSeq) {
-                    return false;
-                }
-                const data = response?.data || {};
-                this.root = data.root || "";
-                this.current = data.current || "";
-                this.parent = data.parent || null;
-                this.directories = Array.isArray(data.directories) ? data.directories : [];
-                return true;
-            } catch (err) {
-                if (requestId === this._loadSeq) {
-                    ToastUtils.error(err?.message || this.$t("rns_filesync.error"));
-                }
-                return false;
-            } finally {
-                if (requestId === this._loadSeq) {
-                    this.busy = false;
-                }
-            }
-        },
-        async enterDirectory(path) {
-            await this.load(path);
-        },
-        async goParent() {
-            if (!this.parent) {
-                return;
-            }
-            await this.load(this.parent);
-        },
-        async createFolder() {
-            const name = String(this.newFolderName || "").trim();
-            if (!name) {
-                return;
-            }
-            this.busy = true;
-            try {
-                const response = await window.api.post(apiPath("/filesync/directories"), {
-                    parent: this.current,
-                    name,
-                });
-                const created = response?.data?.path;
-                this.newFolderName = "";
-                ToastUtils.success(this.$t("rns_filesync.browser_created"));
-                if (created) {
-                    await this.load(created);
-                } else {
-                    await this.load(this.current);
-                }
-            } catch (err) {
-                ToastUtils.error(err?.message || this.$t("rns_filesync.error"));
-            } finally {
-                this.busy = false;
-            }
-        },
-        confirmSelection() {
-            const path = String(this.current || "").trim();
-            if (!path) {
-                return;
-            }
-            this.$emit("select", path);
-            this.$emit("close");
-        },
-    },
-};
+    { immediate: true }
+);
 </script>
