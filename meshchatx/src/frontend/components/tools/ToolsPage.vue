@@ -93,12 +93,14 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, ref } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import EmptyState from "../EmptyState.vue";
 import ToolListRow from "./ToolListRow.vue";
 import { listTools } from "../../js/registries/toolsRegistry";
+import { useTranslateUi } from "../../js/localeLoader.js";
 
 const TOOL_GROUP_ORDER = ["diagnostics", "transfer", "messaging", "network", "other"];
 const COLLAPSED_GROUPS_KEY = "meshchatx.tools.collapsedGroups";
@@ -113,90 +115,78 @@ function loadCollapsedGroups() {
     }
 }
 
-export default {
-    name: "ToolsPage",
-    components: {
-        MaterialDesignIcon,
-        SearchInput,
-        EmptyState,
-        ToolListRow,
-    },
-    data() {
-        return {
-            searchQuery: "",
-            collapsedGroups: loadCollapsedGroups(),
-        };
-    },
-    computed: {
-        tools() {
-            return listTools();
-        },
-        toolsWithTranslations() {
-            return this.tools.map((tool) => ({
-                ...tool,
-                title: tool.title || (tool.titleKey ? this.$t(tool.titleKey) : ""),
-                description: tool.description || (tool.descriptionKey ? this.$t(tool.descriptionKey) : ""),
-            }));
-        },
-        filteredTools() {
-            if (!this.searchQuery.trim()) {
-                return this.toolsWithTranslations;
-            }
+const t = useTranslateUi();
 
-            const query = this.searchQuery.toLowerCase().trim();
-            return this.toolsWithTranslations.filter((tool) => {
-                return (
-                    tool.title.toLowerCase().includes(query) ||
-                    tool.description.toLowerCase().includes(query) ||
-                    tool.name.toLowerCase().includes(query)
-                );
-            });
-        },
-        groupedToolSections() {
-            if (this.searchQuery.trim()) {
-                return null;
-            }
-            const groups = {};
-            for (const tool of this.filteredTools) {
-                const groupId = tool.group || "other";
-                if (!groups[groupId]) {
-                    groups[groupId] = [];
-                }
-                groups[groupId].push(tool);
-            }
-            return TOOL_GROUP_ORDER.filter((groupId) => groups[groupId]?.length).map((groupId) => ({
-                id: groupId,
-                tools: groups[groupId],
-            }));
-        },
-    },
-    methods: {
-        isGroupCollapsed(groupId) {
-            return this.collapsedGroups.has(groupId);
-        },
-        toggleGroup(groupId) {
-            const next = new Set(this.collapsedGroups);
-            if (next.has(groupId)) {
-                next.delete(groupId);
-            } else {
-                next.add(groupId);
-            }
-            this.collapsedGroups = next;
-            try {
-                localStorage.setItem(COLLAPSED_GROUPS_KEY, JSON.stringify([...next]));
-            } catch {
-                /* storage unavailable */
-            }
-        },
-        toolRowClass(tool) {
-            return [
-                "tool-row",
-                tool.customClass,
-                tool.comingSoon ? "opacity-60 grayscale-[0.5] cursor-default" : "",
-            ].filter(Boolean);
-        },
-    },
-};
+const searchQuery = ref("");
+const collapsedGroups = ref<Set<string>>(loadCollapsedGroups() as Set<string>);
+
+const tools = computed(() => listTools());
+
+const toolsWithTranslations = computed(() =>
+    tools.value.map((tool: any) => ({
+        ...tool,
+        title: tool.title || (tool.titleKey ? t(tool.titleKey) : ""),
+        description: tool.description || (tool.descriptionKey ? t(tool.descriptionKey) : ""),
+    }))
+);
+
+const filteredTools = computed(() => {
+    if (!searchQuery.value.trim()) {
+        return toolsWithTranslations.value;
+    }
+
+    const query = searchQuery.value.toLowerCase().trim();
+    return toolsWithTranslations.value.filter((tool: any) => {
+        return (
+            tool.title.toLowerCase().includes(query) ||
+            tool.description.toLowerCase().includes(query) ||
+            tool.name.toLowerCase().includes(query)
+        );
+    });
+});
+
+const groupedToolSections = computed(() => {
+    if (searchQuery.value.trim()) {
+        return null;
+    }
+    const groups: Record<string, any[]> = {};
+    for (const tool of filteredTools.value) {
+        const groupId = tool.group || "other";
+        if (!groups[groupId]) {
+            groups[groupId] = [];
+        }
+        groups[groupId].push(tool);
+    }
+    return TOOL_GROUP_ORDER.filter((groupId) => groups[groupId]?.length).map((groupId) => ({
+        id: groupId,
+        tools: groups[groupId],
+    }));
+});
+
+function isGroupCollapsed(groupId: string) {
+    return collapsedGroups.value.has(groupId);
+}
+
+function toggleGroup(groupId: string) {
+    const next = new Set(collapsedGroups.value);
+    if (next.has(groupId)) {
+        next.delete(groupId);
+    } else {
+        next.add(groupId);
+    }
+    collapsedGroups.value = next;
+    try {
+        localStorage.setItem(COLLAPSED_GROUPS_KEY, JSON.stringify([...next]));
+    } catch {
+        /* storage unavailable */
+    }
+}
+
+function toolRowClass(tool: any) {
+    return ["tool-row", tool.customClass, tool.comingSoon ? "opacity-60 grayscale-[0.5] cursor-default" : ""].filter(
+        Boolean
+    );
+}
 </script>
 
 <style scoped>

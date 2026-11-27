@@ -103,106 +103,141 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, getCurrentInstance, onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import logoUrl from "../../assets/images/logo.png";
 import { apiPath } from "../../js/constants";
+import { getUiI18n, useTranslateUi } from "../../js/localeLoader.js";
 
-export default {
-    name: "AuthPage",
-    data() {
-        return {
-            logoUrl,
-            password: "",
-            confirmPassword: "",
-            error: "",
-            isLoading: false,
-            isSetup: false,
-            oidcEnabled: false,
-            oidcName: "SSO",
-            passwordSet: false,
-            showPasswordForm: true,
-            authPageHint: "",
-        };
-    },
-    computed: {
-        showSetupForm() {
-            return this.showPasswordForm && this.isSetup;
-        },
-    },
-    async mounted() {
-        await this.checkAuthStatus();
-    },
-    methods: {
-        async checkAuthStatus() {
-            try {
-                const response = await window.api.get(apiPath("/auth/status"));
-                const status = response.data;
+const instance = getCurrentInstance();
+// Tests mock $router/$route as global properties without installing vue-router,
+// so resolve through the instance proxy first and fall back to the injection.
+const injectedRouter = useRouter();
+const injectedRoute = useRoute();
 
-                if (!status.auth_enabled) {
-                    this.$router.push("/");
-                    return;
-                }
+// Resolve lazily at call time: test mocks land on the instance after setup,
+// matching how the Options API this.$router access worked inside methods.
+function resolveRouter(): any {
+    return (instance?.proxy as any)?.$router ?? injectedRouter;
+}
 
-                if (status.authenticated) {
-                    this.$router.push("/");
-                    return;
-                }
+function resolveRoute(): any {
+    return (instance?.proxy as any)?.$route ?? injectedRoute;
+}
+const t = useTranslateUi();
 
-                this.isSetup = !status.password_set;
-                this.passwordSet = !!status.password_set;
-                this.oidcEnabled = !!status.oidc_enabled;
-                this.oidcName = status.oidc_display_name || "SSO";
-                // With SSO only (no password yet), hide the password form behind
-                // a link. With a password set, offer both methods.
-                this.showPasswordForm = !this.oidcEnabled || this.passwordSet;
+function te(key: string): boolean {
+    const proxyTe = (instance?.proxy as any)?.$te;
+    if (typeof proxyTe === "function") {
+        return proxyTe(key);
+    }
+    const composer: any = getUiI18n();
+    return typeof composer?.te === "function" ? composer.te(key) : false;
+}
 
-                const oidcError = this.$route.query.oidc_error;
-                if (typeof oidcError === "string" && oidcError) {
-                    const key = `auth.oidc_error_${oidcError}`;
-                    this.error = this.$te(key) ? this.$t(key) : this.$t("auth.oidc_error_failed");
-                }
+const password = ref("");
+const confirmPassword = ref("");
+const error = ref("");
+const isLoading = ref(false);
+const isSetup = ref(false);
+const oidcEnabled = ref(false);
+const oidcName = ref("SSO");
+const passwordSet = ref(false);
+const showPasswordForm = ref(true);
+const authPageHint = ref("");
 
-                const hint = status.auth_page_hint;
-                this.authPageHint = typeof hint === "string" ? hint : "";
-            } catch (e) {
-                console.error("Failed to check auth status:", e);
-                this.error = this.$t("auth.status_check_failed");
-            }
-        },
-        startOidcLogin() {
-            window.location.assign(apiPath("/auth/oidc/login"));
-        },
-        async handleSubmit() {
-            this.error = "";
+const showSetupForm = computed(() => showPasswordForm.value && isSetup.value);
 
-            if (this.showSetupForm) {
-                if (this.password !== this.confirmPassword) {
-                    this.error = this.$t("auth.passwords_mismatch");
-                    return;
-                }
+onMounted(async () => {
+    await checkAuthStatus();
+});
 
-                if (this.password.length < 8) {
-                    this.error = this.$t("auth.password_min_length");
-                    return;
-                }
-            }
+async function checkAuthStatus() {
+    try {
+        const response = await (window as any).api.get(apiPath("/auth/status"));
+        const status = response.data;
 
-            this.isLoading = true;
+        if (!status.auth_enabled) {
+            resolveRouter().push("/");
+            return;
+        }
 
-            try {
-                const endpoint = this.isSetup ? apiPath("/auth/setup") : apiPath("/auth/login");
-                const body = { password: this.password };
-                await window.api.post(endpoint, body);
+        if (status.authenticated) {
+            resolveRouter().push("/");
+            return;
+        }
 
-                window.location.reload();
-            } catch (e) {
-                this.error = e.response?.data?.error || this.$t("auth.failed");
-                this.password = "";
-                this.confirmPassword = "";
-            } finally {
-                this.isLoading = false;
-            }
-        },
-    },
-};
+        isSetup.value = !status.password_set;
+        passwordSet.value = !!status.password_set;
+        oidcEnabled.value = !!status.oidc_enabled;
+        oidcName.value = status.oidc_display_name || "SSO";
+        // With SSO only (no password yet), hide the password form behind
+        // a link. With a password set, offer both methods.
+        showPasswordForm.value = !oidcEnabled.value || passwordSet.value;
+
+        const oidcError = resolveRoute()?.query?.oidc_error;
+        if (typeof oidcError === "string" && oidcError) {
+            const key = `auth.oidc_error_${oidcError}`;
+            error.value = te(key) ? t(key) : t("auth.oidc_error_failed");
+        }
+
+        const hint = status.auth_page_hint;
+        authPageHint.value = typeof hint === "string" ? hint : "";
+    } catch (e) {
+        console.error("Failed to check auth status:", e);
+        error.value = t("auth.status_check_failed");
+    }
+}
+
+function startOidcLogin() {
+    window.location.assign(apiPath("/auth/oidc/login"));
+}
+
+async function handleSubmit() {
+    error.value = "";
+
+    if (showSetupForm.value) {
+        if (password.value !== confirmPassword.value) {
+            error.value = t("auth.passwords_mismatch");
+            return;
+        }
+
+        if (password.value.length < 8) {
+            error.value = t("auth.password_min_length");
+            return;
+        }
+    }
+
+    isLoading.value = true;
+
+    try {
+        const endpoint = isSetup.value ? apiPath("/auth/setup") : apiPath("/auth/login");
+        const body = { password: password.value };
+        await (window as any).api.post(endpoint, body);
+
+        window.location.reload();
+    } catch (e: any) {
+        error.value = e.response?.data?.error || t("auth.failed");
+        password.value = "";
+        confirmPassword.value = "";
+    } finally {
+        isLoading.value = false;
+    }
+}
+
+defineExpose({
+    checkAuthStatus,
+    handleSubmit,
+    password,
+    confirmPassword,
+    error,
+    isLoading,
+    isSetup,
+    oidcEnabled,
+    oidcName,
+    passwordSet,
+    showPasswordForm,
+    authPageHint,
+});
 </script>
