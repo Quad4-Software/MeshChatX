@@ -40,108 +40,110 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, nextTick, ref } from "vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import { clampFloatingToViewport } from "../js/clampFloatingToViewport.js";
-import { ensureLocaleMessages, listLocaleOptions, setLocale } from "../js/localeLoader.js";
+import { ensureLocaleMessages, getUiI18n, listLocaleOptions, setLocale } from "../js/localeLoader.js";
 
 const languageOptions = listLocaleOptions();
 
-export default {
-    name: "LanguageSelector",
-    components: {
-        MaterialDesignIcon,
-    },
-    directives: {
-        "click-outside": {
-            mounted(el, binding) {
-                el.clickOutsideEvent = function (event) {
-                    if (!(el === event.target || el.contains(event.target))) {
-                        binding.value();
-                    }
-                };
-                document.addEventListener("click", el.clickOutsideEvent);
-            },
-            unmounted(el) {
-                document.removeEventListener("click", el.clickOutsideEvent);
-            },
-        },
-    },
-    emits: ["language-change"],
-    data() {
-        return {
-            isDropdownOpen: false,
-            dropdownPosition: { top: 0, left: 0 },
-            dropdownMaxHeight: null,
-        };
-    },
-    computed: {
-        currentLanguage() {
-            return this.$i18n.locale;
-        },
-        languages() {
-            return languageOptions;
-        },
-        dropdownStyle() {
-            const style = {
-                top: `${this.dropdownPosition.top}px`,
-                left: `${this.dropdownPosition.left}px`,
-            };
-            if (this.dropdownMaxHeight != null) {
-                style.maxHeight = `${this.dropdownMaxHeight}px`;
-                style.overflowY = "auto";
-            } else {
-                style.overflow = "hidden";
-            }
-            return style;
-        },
-    },
-    methods: {
-        toggleDropdown(event) {
-            this.isDropdownOpen = !this.isDropdownOpen;
-            if (this.isDropdownOpen) {
-                this.updateDropdownPosition(event);
-            }
-        },
-        updateDropdownPosition(event) {
-            const button = event.currentTarget;
-            const rect = button.getBoundingClientRect();
-            this.dropdownMaxHeight = null;
-            this.dropdownPosition = {
-                top: rect.bottom + 8,
-                left: Math.max(8, rect.right - 192),
-            };
-            this.$nextTick(() => {
-                const panel = this.$refs.languageDropdown;
-                if (!panel) return;
-                const pr = panel.getBoundingClientRect();
-                const { left, top, maxHeight } = clampFloatingToViewport(pr.left, pr.top, pr.width, pr.height);
-                this.dropdownPosition = { left, top };
-                this.dropdownMaxHeight = maxHeight;
-            });
-        },
-        closeDropdown() {
-            this.isDropdownOpen = false;
-        },
-        async selectLanguage(langCode) {
-            if (this.currentLanguage === langCode) {
-                this.closeDropdown();
-                return;
-            }
+const emit = defineEmits<{
+    "language-change": [langCode: string];
+}>();
 
-            // Apply immediately. Parent persists config. Options API this.$i18n is a
-            // locale-only proxy under legacy:false so setLocale uses registerUiI18n.
-            try {
-                const ok = await setLocale(this.$i18n, langCode);
-                if (!ok) {
-                    await ensureLocaleMessages(this.$i18n, langCode);
-                }
-            } catch {
-                // Locale pack may be unavailable in tests or offline shells.
+const vClickOutside = {
+    mounted(el: any, binding: any) {
+        el.clickOutsideEvent = function (event: Event) {
+            if (!(el === event.target || el.contains(event.target))) {
+                binding.value();
             }
-            this.$emit("language-change", langCode);
-            this.closeDropdown();
-        },
+        };
+        document.addEventListener("click", el.clickOutsideEvent);
+    },
+    unmounted(el: any) {
+        document.removeEventListener("click", el.clickOutsideEvent);
     },
 };
+
+const isDropdownOpen = ref(false);
+const dropdownPosition = ref<{ top: number; left: number }>({ top: 0, left: 0 });
+const dropdownMaxHeight = ref<number | null>(null);
+
+const languageDropdown = ref<HTMLElement | null>(null);
+
+const currentLanguage = computed(() => {
+    const composer = getUiI18n();
+    const locale = (composer as any)?.locale;
+    if (locale && typeof locale === "object" && "value" in locale) {
+        return locale.value;
+    }
+    return locale || "";
+});
+
+const languages = computed(() => languageOptions);
+
+const dropdownStyle = computed(() => {
+    const style: Record<string, string> = {
+        top: `${dropdownPosition.value.top}px`,
+        left: `${dropdownPosition.value.left}px`,
+    };
+    if (dropdownMaxHeight.value != null) {
+        style.maxHeight = `${dropdownMaxHeight.value}px`;
+        style.overflowY = "auto";
+    } else {
+        style.overflow = "hidden";
+    }
+    return style;
+});
+
+function toggleDropdown(event: MouseEvent) {
+    isDropdownOpen.value = !isDropdownOpen.value;
+    if (isDropdownOpen.value) {
+        updateDropdownPosition(event);
+    }
+}
+
+function updateDropdownPosition(event: MouseEvent) {
+    const button = event.currentTarget as HTMLElement;
+    const rect = button.getBoundingClientRect();
+    dropdownMaxHeight.value = null;
+    dropdownPosition.value = {
+        top: rect.bottom + 8,
+        left: Math.max(8, rect.right - 192),
+    };
+    nextTick(() => {
+        const panel = languageDropdown.value;
+        if (!panel) return;
+        const pr = panel.getBoundingClientRect();
+        const { left, top, maxHeight } = clampFloatingToViewport(pr.left, pr.top, pr.width, pr.height);
+        dropdownPosition.value = { left, top };
+        dropdownMaxHeight.value = maxHeight;
+    });
+}
+
+function closeDropdown() {
+    isDropdownOpen.value = false;
+}
+
+async function selectLanguage(langCode: string) {
+    if (currentLanguage.value === langCode) {
+        closeDropdown();
+        return;
+    }
+
+    // Apply immediately. Parent persists config. The registered composer is the
+    // same instance Options API this.$i18n proxies to.
+    const composer = getUiI18n();
+    try {
+        const ok = await setLocale(composer, langCode);
+        if (!ok) {
+            await ensureLocaleMessages(composer, langCode);
+        }
+    } catch {
+        // Locale pack may be unavailable in tests or offline shells.
+    }
+    emit("language-change", langCode);
+    closeDropdown();
+}
 </script>

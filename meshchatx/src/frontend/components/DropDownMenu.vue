@@ -6,7 +6,7 @@
         class="cursor-default relative inline-block text-left"
     >
         <!-- menu button -->
-        <div ref="dropdown-button" class="touch-manipulation" @click.stop="toggleMenu">
+        <div ref="dropdownButton" class="touch-manipulation" @click.stop="toggleMenu">
             <slot name="button" />
         </div>
 
@@ -40,104 +40,98 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, nextTick, ref } from "vue";
 import { clampFloatingToViewport } from "../js/clampFloatingToViewport.js";
 
-export default {
-    name: "DropDownMenu",
-    data() {
-        return {
-            isShowingMenu: false,
-            dropdownPosition: null,
-            caretStyle: null,
-        };
-    },
-    computed: {
-        dropdownPanelStyle() {
-            if (!this.dropdownPosition) {
-                return {};
-            }
-            const style = {
-                left: `${this.dropdownPosition.x}px`,
-                top: `${this.dropdownPosition.y}px`,
+const isShowingMenu = ref(false);
+const dropdownPosition = ref<Record<string, any> | null>(null);
+const caretStyle = ref<Record<string, string> | null>(null);
+
+const dropdownPanel = ref<HTMLElement | null>(null);
+const dropdownButton = ref<HTMLElement | null>(null);
+
+const dropdownPanelStyle = computed(() => {
+    if (!dropdownPosition.value) {
+        return {};
+    }
+    const style: Record<string, string> = {
+        left: `${dropdownPosition.value.x}px`,
+        top: `${dropdownPosition.value.y}px`,
+    };
+    if (dropdownPosition.value.maxHeight != null) {
+        style.maxHeight = `${dropdownPosition.value.maxHeight}px`;
+        style.overflowY = "auto";
+    } else {
+        style.overflow = "hidden";
+    }
+    return style;
+});
+
+function toggleMenu() {
+    if (isShowingMenu.value) {
+        hideMenu();
+    } else {
+        showMenu();
+    }
+}
+
+function showMenu() {
+    isShowingMenu.value = true;
+    adjustDropdownPosition();
+}
+
+function hideMenu() {
+    isShowingMenu.value = false;
+    dropdownPosition.value = null;
+    caretStyle.value = null;
+}
+
+function onClickOutsideMenu(event: Event) {
+    // The panel is teleported to body, so it is not a descendant of
+    // the element the click-outside directive watches. Touches on
+    // menu items must not count as outside.
+    const panel = dropdownPanel.value;
+    if (event && panel) {
+        const path = typeof event.composedPath === "function" ? event.composedPath() : null;
+        if ((path && path.includes(panel)) || panel.contains(event.target as Node)) {
+            return;
+        }
+    }
+    if (isShowingMenu.value) {
+        hideMenu();
+    }
+}
+
+function adjustDropdownPosition() {
+    nextTick(() => {
+        const button = dropdownButton.value;
+        if (!button) return;
+
+        const buttonRect = button.getBoundingClientRect();
+        const menuWidth = 224;
+        let x = buttonRect.right - menuWidth;
+        x = Math.min(Math.max(8, x), window.innerWidth - menuWidth - 8);
+
+        const spaceBelow = window.innerHeight - buttonRect.bottom - 4;
+        const spaceAbove = buttonRect.top - 8;
+        const opensUp = spaceAbove > spaceBelow;
+        const y = opensUp ? Math.max(8, buttonRect.top - 200 - 4) : buttonRect.bottom + 4;
+
+        dropdownPosition.value = { x, y, maxHeight: null, opensUp };
+        nextTick(() => {
+            const panel = dropdownPanel.value;
+            if (!panel) return;
+            const rect = panel.getBoundingClientRect();
+            const { left, top, maxHeight } = clampFloatingToViewport(rect.left, rect.top, rect.width, rect.height);
+            dropdownPosition.value = { x: left, y: top, maxHeight, opensUp };
+            const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+            const caretX = Math.min(Math.max(buttonCenterX, left + 12), left + rect.width - 12);
+            caretStyle.value = {
+                left: `${caretX - 5}px`,
+                top: opensUp ? `${top + rect.height - 5}px` : `${top - 5}px`,
             };
-            if (this.dropdownPosition.maxHeight != null) {
-                style.maxHeight = `${this.dropdownPosition.maxHeight}px`;
-                style.overflowY = "auto";
-            } else {
-                style.overflow = "hidden";
-            }
-            return style;
-        },
-    },
-    methods: {
-        toggleMenu() {
-            if (this.isShowingMenu) {
-                this.hideMenu();
-            } else {
-                this.showMenu();
-            }
-        },
-        showMenu() {
-            this.isShowingMenu = true;
-            this.adjustDropdownPosition();
-        },
-        hideMenu() {
-            this.isShowingMenu = false;
-            this.dropdownPosition = null;
-            this.caretStyle = null;
-        },
-        onClickOutsideMenu(event) {
-            // The panel is teleported to body, so it is not a descendant of
-            // the element the click-outside directive watches. Touches on
-            // menu items must not count as outside.
-            const panel = this.$refs.dropdownPanel;
-            if (event && panel) {
-                const path = typeof event.composedPath === "function" ? event.composedPath() : null;
-                if ((path && path.includes(panel)) || panel.contains(event.target)) {
-                    return;
-                }
-            }
-            if (this.isShowingMenu) {
-                this.hideMenu();
-            }
-        },
-        adjustDropdownPosition() {
-            this.$nextTick(() => {
-                const button = this.$refs["dropdown-button"];
-                if (!button) return;
-
-                const buttonRect = button.getBoundingClientRect();
-                const menuWidth = 224;
-                let x = buttonRect.right - menuWidth;
-                x = Math.min(Math.max(8, x), window.innerWidth - menuWidth - 8);
-
-                const spaceBelow = window.innerHeight - buttonRect.bottom - 4;
-                const spaceAbove = buttonRect.top - 8;
-                const opensUp = spaceAbove > spaceBelow;
-                const y = opensUp ? Math.max(8, buttonRect.top - 200 - 4) : buttonRect.bottom + 4;
-
-                this.dropdownPosition = { x, y, maxHeight: null, opensUp };
-                this.$nextTick(() => {
-                    const panel = this.$refs.dropdownPanel;
-                    if (!panel) return;
-                    const rect = panel.getBoundingClientRect();
-                    const { left, top, maxHeight } = clampFloatingToViewport(
-                        rect.left,
-                        rect.top,
-                        rect.width,
-                        rect.height
-                    );
-                    this.dropdownPosition = { x: left, y: top, maxHeight, opensUp };
-                    const buttonCenterX = buttonRect.left + buttonRect.width / 2;
-                    const caretX = Math.min(Math.max(buttonCenterX, left + 12), left + rect.width - 12);
-                    this.caretStyle = {
-                        left: `${caretX - 5}px`,
-                        top: opensUp ? `${top + rect.height - 5}px` : `${top - 5}px`,
-                    };
-                });
-            });
-        },
-    },
-};
+        });
+    });
+}
 </script>

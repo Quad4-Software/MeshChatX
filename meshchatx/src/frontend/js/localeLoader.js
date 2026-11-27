@@ -75,6 +75,14 @@ function resolveComposer(i18nOrComposer) {
  * @param {Record<string, unknown>} [params]
  * @returns {string}
  */
+/**
+ * Access the registered app i18n composer for use outside Options API.
+ * @returns {import("vue-i18n").Composer | null}
+ */
+export function getUiI18n() {
+    return registeredComposer;
+}
+
 export function translateUi(key, params) {
     if (registeredComposer && typeof registeredComposer.t === "function") {
         return registeredComposer.t(key, params);
