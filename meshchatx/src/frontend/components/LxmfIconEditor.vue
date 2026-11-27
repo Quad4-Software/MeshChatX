@@ -79,97 +79,85 @@
     </div>
 </template>
 
-<script>
+<script lang="ts">
+export { defaultBotIconDraft } from "./lxmfIconDraft";
+</script>
+
+<script setup lang="ts">
 import * as mdi from "@mdi/js";
+import { computed, onMounted, ref } from "vue";
 import ColourPickerDropdown from "./ColourPickerDropdown.vue";
 import LxmfUserIcon from "./LxmfUserIcon.vue";
 import SearchInput from "./SearchInput.vue";
+import { type BotIconDraft } from "./lxmfIconDraft";
 
 const DEFAULT_FG = "#6b7280";
 const DEFAULT_BG = "#e5e7eb";
 
-export function defaultBotIconDraft(spec = "robot") {
-    if (spec && typeof spec === "object") {
-        return {
-            icon_name: spec.icon_name || "robot",
-            fg_color: spec.fg_color || DEFAULT_FG,
-            bg_color: spec.bg_color || DEFAULT_BG,
-        };
+const props = withDefaults(
+    defineProps<{
+        modelValue?: BotIconDraft | null;
+    }>(),
+    {
+        modelValue: null,
     }
+);
+
+const emit = defineEmits<{
+    "update:modelValue": [value: BotIconDraft | null];
+}>();
+
+const search = ref("");
+const maxSearchResults = 200;
+const iconNames = ref<string[]>([]);
+
+const draft = computed<BotIconDraft>(() => {
+    const v = props.modelValue;
     return {
-        icon_name: spec || "robot",
-        fg_color: DEFAULT_FG,
-        bg_color: DEFAULT_BG,
+        icon_name: v && v.icon_name ? v.icon_name : "",
+        fg_color: v && v.fg_color ? v.fg_color : DEFAULT_FG,
+        bg_color: v && v.bg_color ? v.bg_color : DEFAULT_BG,
     };
+});
+
+const draftKey = computed(() => `${draft.value.icon_name}|${draft.value.fg_color}|${draft.value.bg_color}`);
+
+const searchedIconNames = computed(() => {
+    const q = search.value.toLowerCase();
+    return iconNames.value.filter((name) => name.toLowerCase().includes(q)).slice(0, maxSearchResults);
+});
+
+onMounted(() => {
+    iconNames.value = Object.keys(mdi).map((name) =>
+        name
+            .replace(/^mdi/, "")
+            .replace(/([a-z])([A-Z])/g, "$1-$2")
+            .toLowerCase()
+    );
+});
+
+function patchDraft(patch: Partial<BotIconDraft>) {
+    const next = { ...draft.value, ...patch };
+    if (!next.icon_name) {
+        emit("update:modelValue", null);
+        return;
+    }
+    emit("update:modelValue", next);
 }
 
-export default {
-    name: "LxmfIconEditor",
-    components: {
-        ColourPickerDropdown,
-        LxmfUserIcon,
-        SearchInput,
-    },
-    props: {
-        modelValue: {
-            type: Object,
-            default: null,
-        },
-    },
-    emits: ["update:modelValue"],
-    data() {
-        return {
-            search: "",
-            maxSearchResults: 200,
-            iconNames: [],
-        };
-    },
-    computed: {
-        draft() {
-            const v = this.modelValue;
-            return {
-                icon_name: v && v.icon_name ? v.icon_name : "",
-                fg_color: v && v.fg_color ? v.fg_color : DEFAULT_FG,
-                bg_color: v && v.bg_color ? v.bg_color : DEFAULT_BG,
-            };
-        },
-        draftKey() {
-            return `${this.draft.icon_name}|${this.draft.fg_color}|${this.draft.bg_color}`;
-        },
-        searchedIconNames() {
-            const q = this.search.toLowerCase();
-            return this.iconNames.filter((name) => name.toLowerCase().includes(q)).slice(0, this.maxSearchResults);
-        },
-    },
-    mounted() {
-        this.iconNames = Object.keys(mdi).map((name) =>
-            name
-                .replace(/^mdi/, "")
-                .replace(/([a-z])([A-Z])/g, "$1-$2")
-                .toLowerCase()
-        );
-    },
-    methods: {
-        emit(patch) {
-            const next = { ...this.draft, ...patch };
-            if (!next.icon_name) {
-                this.$emit("update:modelValue", null);
-                return;
-            }
-            this.$emit("update:modelValue", next);
-        },
-        selectIcon(name) {
-            this.emit({ icon_name: name });
-        },
-        setFg(value) {
-            this.emit({ fg_color: String(value || "").trim() });
-        },
-        setBg(value) {
-            this.emit({ bg_color: String(value || "").trim() });
-        },
-        clear() {
-            this.$emit("update:modelValue", null);
-        },
-    },
-};
+function selectIcon(name: string) {
+    patchDraft({ icon_name: name });
+}
+
+function setFg(value: string) {
+    patchDraft({ fg_color: String(value || "").trim() });
+}
+
+function setBg(value: string) {
+    patchDraft({ bg_color: String(value || "").trim() });
+}
+
+function clear() {
+    emit("update:modelValue", null);
+}
 </script>

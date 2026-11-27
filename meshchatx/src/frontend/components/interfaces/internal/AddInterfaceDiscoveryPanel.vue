@@ -140,29 +140,20 @@
     </ExpandingSection>
 </template>
 
-<script>
+<script setup lang="ts">
 import ExpandingSection from "../ExpandingSection.vue";
 import FormLabel from "../../forms/FormLabel.vue";
 import Toggle from "../../forms/Toggle.vue";
 
-export default {
-    name: "AddInterfaceDiscoveryPanel",
-    components: {
-        ExpandingSection,
-        FormLabel,
-        Toggle,
-    },
-    props: {
-        discovery: {
-            type: Object,
-            required: true,
-        },
-    },
-    emits: ["patch"],
-    methods: {
-        patchField(key, value) {
-            this.$emit("patch", { [key]: value });
-        },
-    },
-};
+defineProps<{
+    discovery: Record<string, any>;
+}>();
+
+const emit = defineEmits<{
+    patch: [update: Record<string, any>];
+}>();
+
+function patchField(key: string, value: any) {
+    emit("patch", { [key]: value });
+}
 </script>

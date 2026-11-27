@@ -14,161 +14,150 @@
     />
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, ref } from "vue";
 import AppUpdatePrompt from "./AppUpdatePrompt.vue";
 import { listPostInstallPromptsByPriority } from "../js/registries/postInstallPromptRegistry";
 import { markPromptSeen, shouldShowPrompt } from "../js/postInstallPromptState.js";
+import { translateUi } from "../js/localeLoader.js";
 
-export default {
-    name: "PostInstallPromptHost",
-    components: { AppUpdatePrompt },
-    emits: ["completed", "dismissed"],
-    data() {
-        return {
-            visible: false,
-            busy: false,
-            activeEntry: null,
-        };
-    },
-    computed: {
-        resolvedTitle() {
-            if (!this.activeEntry?.titleKey) {
-                return "";
-            }
-            return this.$t(this.activeEntry.titleKey);
-        },
-        resolvedDescription() {
-            if (!this.activeEntry?.descriptionKey) {
-                return "";
-            }
-            return this.$t(this.activeEntry.descriptionKey);
-        },
-        resolvedPrimaryLabel() {
-            const key = this.activeEntry?.primaryLabelKey || "common.continue";
-            return this.$t(key);
-        },
-        resolvedSecondaryLabel() {
-            if (!this.activeEntry?.secondaryLabelKey) {
-                return "";
-            }
-            return this.$t(this.activeEntry.secondaryLabelKey);
-        },
-    },
-    methods: {
-        /**
-         * Find and show the next pending registry prompt.
-         * @returns {Promise<boolean>} true if a prompt was opened
-         */
-        async showNext() {
-            if (this.visible) {
-                return true;
-            }
-            const pending = await this.findNextPending();
-            if (!pending) {
-                return false;
-            }
-            this.activeEntry = pending;
-            this.visible = true;
-            return true;
-        },
-        /**
-         * @returns {Promise<import('../js/registries/postInstallPromptRegistry').PostInstallPromptEntry | null>}
-         */
-        async findNextPending() {
-            for (const entry of listPostInstallPromptsByPriority()) {
-                if (!shouldShowPrompt(entry.id, entry.revision)) {
+const emit = defineEmits<{
+    completed: [result: { id: string | undefined; revision: number | undefined }];
+    dismissed: [];
+}>();
+
+const visible = ref(false);
+const busy = ref(false);
+const activeEntry = ref<Record<string, any> | null>(null);
+
+const resolvedTitle = computed(() => {
+    if (!activeEntry.value?.titleKey) {
+        return "";
+    }
+    return translateUi(activeEntry.value.titleKey);
+});
+
+const resolvedDescription = computed(() => {
+    if (!activeEntry.value?.descriptionKey) {
+        return "";
+    }
+    return translateUi(activeEntry.value.descriptionKey);
+});
+
+const resolvedPrimaryLabel = computed(() => {
+    const key = activeEntry.value?.primaryLabelKey || "common.continue";
+    return translateUi(key);
+});
+
+const resolvedSecondaryLabel = computed(() => {
+    if (!activeEntry.value?.secondaryLabelKey) {
+        return "";
+    }
+    return translateUi(activeEntry.value.secondaryLabelKey);
+});
+
+/**
+ * Find and show the next pending registry prompt.
+ * @returns true if a prompt was opened
+ */
+async function showNext(): Promise<boolean> {
+    if (visible.value) {
+        return true;
+    }
+    const pending = await findNextPending();
+    if (!pending) {
+        return false;
+    }
+    activeEntry.value = pending;
+    visible.value = true;
+    return true;
+}
+
+async function findNextPending(): Promise<Record<string, any> | null> {
+    for (const entry of listPostInstallPromptsByPriority()) {
+        if (!shouldShowPrompt(entry.id, entry.revision)) {
+            continue;
+        }
+        if (typeof entry.shouldShow === "function") {
+            try {
+                const ok = await entry.shouldShow();
+                if (!ok) {
                     continue;
                 }
-                if (typeof entry.shouldShow === "function") {
-                    try {
-                        const ok = await entry.shouldShow();
-                        if (!ok) {
-                            continue;
-                        }
-                    } catch (e) {
-                        console.error(`post-install prompt ${entry.id} shouldShow failed`, e);
-                        continue;
-                    }
-                }
-                return entry;
-            }
-            return null;
-        },
-        hide() {
-            this.visible = false;
-            this.activeEntry = null;
-            this.busy = false;
-        },
-        onVisibleUpdate(val) {
-            this.visible = val;
-            if (!val) {
-                this.$emit("dismissed");
-                this.activeEntry = null;
-                this.busy = false;
-            }
-        },
-        dismissActive() {
-            const entry = this.activeEntry;
-            if (entry) {
-                markPromptSeen(entry.id, entry.revision);
-            }
-            this.hide();
-            this.$emit("completed", { id: entry?.id, revision: entry?.revision });
-        },
-        async onPrimary() {
-            if (this.busy || !this.activeEntry) {
-                return;
-            }
-            this.busy = true;
-            try {
-                const entry = this.activeEntry;
-                let keepOpen = false;
-                if (typeof entry.onPrimary === "function") {
-                    const result = await entry.onPrimary({ entry });
-                    keepOpen = result === false;
-                }
-                if (keepOpen) {
-                    return;
-                }
-                if (entry.dismissOnPrimary !== false) {
-                    this.dismissActive();
-                } else {
-                    this.hide();
-                    this.$emit("completed", { id: entry.id, revision: entry.revision });
-                }
             } catch (e) {
-                console.error("post-install prompt primary action failed", e);
-            } finally {
-                this.busy = false;
+                console.error(`post-install prompt ${entry.id} shouldShow failed`, e);
+                continue;
             }
-        },
-        async onSecondary() {
-            if (this.busy || !this.activeEntry?.secondaryLabelKey) {
-                return;
-            }
-            this.busy = true;
-            try {
-                const entry = this.activeEntry;
-                let keepOpen = false;
-                if (typeof entry.onSecondary === "function") {
-                    const result = await entry.onSecondary({ entry });
-                    keepOpen = result === false;
-                }
-                if (keepOpen) {
-                    return;
-                }
-                if (entry.dismissOnSecondary !== false) {
-                    this.dismissActive();
-                } else {
-                    this.hide();
-                    this.$emit("completed", { id: entry.id, revision: entry.revision });
-                }
-            } catch (e) {
-                console.error("post-install prompt secondary action failed", e);
-            } finally {
-                this.busy = false;
-            }
-        },
-    },
-};
+        }
+        return entry;
+    }
+    return null;
+}
+
+function hide() {
+    visible.value = false;
+    activeEntry.value = null;
+    busy.value = false;
+}
+
+function onVisibleUpdate(val: boolean) {
+    visible.value = val;
+    if (!val) {
+        emit("dismissed");
+        activeEntry.value = null;
+        busy.value = false;
+    }
+}
+
+function dismissActive() {
+    const entry = activeEntry.value;
+    if (entry) {
+        markPromptSeen(entry.id, entry.revision);
+    }
+    hide();
+    emit("completed", { id: entry?.id, revision: entry?.revision });
+}
+
+async function runAction(kind: "primary" | "secondary") {
+    if (busy.value || !activeEntry.value) {
+        return;
+    }
+    if (kind === "secondary" && !activeEntry.value.secondaryLabelKey) {
+        return;
+    }
+    busy.value = true;
+    try {
+        const entry = activeEntry.value;
+        const handler = kind === "primary" ? entry.onPrimary : entry.onSecondary;
+        const dismissFlag = kind === "primary" ? entry.dismissOnPrimary : entry.dismissOnSecondary;
+        let keepOpen = false;
+        if (typeof handler === "function") {
+            const result = await handler({ entry });
+            keepOpen = result === false;
+        }
+        if (keepOpen) {
+            return;
+        }
+        if (dismissFlag !== false) {
+            dismissActive();
+        } else {
+            hide();
+            emit("completed", { id: entry.id, revision: entry.revision });
+        }
+    } catch (e) {
+        console.error(`post-install prompt ${kind} action failed`, e);
+    } finally {
+        busy.value = false;
+    }
+}
+
+function onPrimary() {
+    return runAction("primary");
+}
+
+function onSecondary() {
+    return runAction("secondary");
+}
+
+defineExpose({ showNext });
 </script>

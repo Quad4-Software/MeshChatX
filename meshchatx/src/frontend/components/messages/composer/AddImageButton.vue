@@ -60,113 +60,85 @@
         </div>
 
         <!-- hidden file input for selecting files -->
-        <input ref="image-input" type="file" accept="image/*" style="display: none" @change="onImageInputChange" />
+        <input ref="imageInput" type="file" accept="image/*" style="display: none" @change="onImageInputChange" />
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import Compressor from "compressorjs";
+import { ref } from "vue";
 import DialogUtils from "../../../js/DialogUtils";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
-export default {
-    name: "AddImageButton",
-    components: {
-        MaterialDesignIcon,
-    },
-    emits: ["add-image"],
-    data() {
-        return {
-            isShowingMenu: false,
-            selectedImageQuality: null,
-        };
-    },
-    methods: {
-        showMenu() {
-            this.isShowingMenu = true;
-        },
-        hideMenu() {
-            this.isShowingMenu = false;
-        },
-        addImage(quality) {
-            this.isShowingMenu = false;
-            this.selectedImageQuality = quality;
-            this.$refs["image-input"].click();
-        },
-        clearImageInput: function () {
-            this.$refs["image-input"].value = null;
-        },
-        onImageInputChange: async function (event) {
-            if (event.target.files.length > 0) {
-                // get selected file
-                const file = event.target.files[0];
 
-                // process file based on selected image quality
-                switch (this.selectedImageQuality) {
-                    case "low": {
-                        new Compressor(file, {
-                            maxWidth: 320,
-                            maxHeight: 320,
-                            quality: 0.2,
-                            mimeType: "image/webp",
-                            success: (result) => {
-                                // ensure result is a File with the same name as original
-                                const compressedFile = new File([result], file.name, { type: result.type });
-                                this.$emit("add-image", compressedFile);
-                            },
-                            error: (err) => {
-                                DialogUtils.alert(err.message);
-                            },
-                        });
-                        break;
-                    }
-                    case "medium": {
-                        new Compressor(file, {
-                            maxWidth: 640,
-                            maxHeight: 640,
-                            quality: 0.6,
-                            mimeType: "image/webp",
-                            success: (result) => {
-                                // ensure result is a File with the same name as original
-                                const compressedFile = new File([result], file.name, { type: result.type });
-                                this.$emit("add-image", compressedFile);
-                            },
-                            error: (err) => {
-                                DialogUtils.alert(err.message);
-                            },
-                        });
-                        break;
-                    }
-                    case "high": {
-                        new Compressor(file, {
-                            maxWidth: 1280,
-                            maxHeight: 1280,
-                            quality: 0.75,
-                            mimeType: "image/webp",
-                            success: (result) => {
-                                // ensure result is a File with the same name as original
-                                const compressedFile = new File([result], file.name, { type: result.type });
-                                this.$emit("add-image", compressedFile);
-                            },
-                            error: (err) => {
-                                DialogUtils.alert(err.message);
-                            },
-                        });
-                        break;
-                    }
-                    case "original": {
-                        this.$emit("add-image", file);
-                        break;
-                    }
-                    default: {
-                        DialogUtils.alert(`Unsupported image quality: ${this.selectedImageQuality}`);
-                        break;
-                    }
-                }
+const emit = defineEmits<{
+    "add-image": [file: File];
+}>();
 
-                // clear image input to allow selecting the same file after user removed it
-                this.clearImageInput();
-            }
-        },
-    },
+const isShowingMenu = ref(false);
+const selectedImageQuality = ref<string | null>(null);
+
+const imageInput = ref<HTMLInputElement | null>(null);
+
+function showMenu() {
+    isShowingMenu.value = true;
+}
+
+function hideMenu() {
+    isShowingMenu.value = false;
+}
+
+function addImage(quality: string) {
+    isShowingMenu.value = false;
+    selectedImageQuality.value = quality;
+    imageInput.value?.click();
+}
+
+function clearImageInput() {
+    if (imageInput.value) {
+        imageInput.value.value = "";
+    }
+}
+
+const COMPRESSION_PRESETS: Record<string, { maxWidth: number; maxHeight: number; quality: number }> = {
+    low: { maxWidth: 320, maxHeight: 320, quality: 0.2 },
+    medium: { maxWidth: 640, maxHeight: 640, quality: 0.6 },
+    high: { maxWidth: 1280, maxHeight: 1280, quality: 0.75 },
 };
+
+async function onImageInputChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const files = target.files;
+    if (!files || files.length === 0) {
+        return;
+    }
+
+    // get selected file
+    const file = files[0];
+    const quality = selectedImageQuality.value || "";
+    const preset = COMPRESSION_PRESETS[quality];
+
+    if (quality === "original") {
+        emit("add-image", file);
+    } else if (preset) {
+        new Compressor(file, {
+            ...preset,
+            mimeType: "image/webp",
+            success: (result: Blob) => {
+                // ensure result is a File with the same name as original
+                const compressedFile = new File([result], file.name, { type: result.type });
+                emit("add-image", compressedFile);
+            },
+            error: (err: Error) => {
+                DialogUtils.alert(err.message);
+            },
+        });
+    } else {
+        DialogUtils.alert(`Unsupported image quality: ${quality}`);
+    }
+
+    // clear image input to allow selecting the same file after user removed it
+    clearImageInput();
+}
+
+defineExpose({ clearImageInput });
 </script>
