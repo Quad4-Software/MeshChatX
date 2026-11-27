@@ -314,6 +314,9 @@ jobs:
                   done
                   echo "pycodec2 wheels bundle libcodec2.so"
 
+            - name: Bake build metadata
+              run: node scripts/bake_build_meta.js
+
             - name: Run unit tests
               if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_tests }}
               working-directory: android
