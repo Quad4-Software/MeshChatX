@@ -23,6 +23,7 @@
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { clampFloatingToViewport } from "../../js/clampFloatingToViewport.js";
 import { HANDLERS_PROPERTY } from "../../libs/clickOutside.js";
+import { computeCaretPlacement } from "./contextMenuCaret";
 
 defineOptions({ name: "ContextMenuPanel", inheritAttrs: false });
 
@@ -194,35 +195,8 @@ function repositionToViewport() {
 }
 
 function updateCaret(left: number, top: number, width: number, height: number) {
-    const ox = props.x;
-    const oy = props.y;
-    // An anchor inside or on the panel edge has nothing to point at.
-    const insideX = ox >= left && ox <= left + width;
-    const insideY = oy >= top && oy <= top + height;
-    if (insideX && insideY) {
-        caretStyle.value = null;
-        return;
-    }
-    const size = 5;
-    // Keep the caret on the straight part of the edge: rounded-xl
-    // corners span 12px and the caret is 10px wide.
-    const margin = 18;
-    if (oy <= top) {
-        const cx = Math.min(Math.max(ox, left + margin), left + width - margin);
-        caretStyle.value = { left: `${cx - size}px`, top: `${top - size}px` };
-        caretBorderClass.value = "border-t border-l";
-    } else if (oy >= top + height) {
-        const cx = Math.min(Math.max(ox, left + margin), left + width - margin);
-        caretStyle.value = { left: `${cx - size}px`, top: `${top + height - size}px` };
-        caretBorderClass.value = "border-b border-r";
-    } else if (ox <= left) {
-        const cy = Math.min(Math.max(oy, top + margin), top + height - margin);
-        caretStyle.value = { left: `${left - size}px`, top: `${cy - size}px` };
-        caretBorderClass.value = "border-b border-l";
-    } else {
-        const cy = Math.min(Math.max(oy, top + margin), top + height - margin);
-        caretStyle.value = { left: `${left + width - size}px`, top: `${cy - size}px` };
-        caretBorderClass.value = "border-t border-r";
-    }
+    const placement = computeCaretPlacement(props.x, props.y, left, top, width, height);
+    caretStyle.value = placement.style;
+    caretBorderClass.value = placement.borderClass;
 }
 </script>
