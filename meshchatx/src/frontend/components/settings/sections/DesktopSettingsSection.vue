@@ -25,7 +25,7 @@
                 <Toggle
                     id="desktop-hardware-acceleration-enabled"
                     :model-value="config.desktop_hardware_acceleration_enabled"
-                    @update:model-value="$emit('hardware-acceleration-change', $event)"
+                    @update:model-value="emit('hardware-acceleration-change', $event)"
                 />
                 <span class="setting-toggle__label">
                     <span class="setting-toggle__title">{{ $t("app.desktop_hardware_acceleration_enabled") }}</span>
@@ -40,7 +40,7 @@
                 <Toggle
                     id="desktop-tray-enabled"
                     :model-value="desktopCloseSettings.trayEnabled"
-                    @update:model-value="$emit('tray-enabled-change', $event)"
+                    @update:model-value="emit('tray-enabled-change', $event)"
                 />
                 <span class="setting-toggle__label">
                     <span class="setting-toggle__title">{{ $t("app.desktop_tray_enabled") }}</span>
@@ -55,56 +55,47 @@
                     id="desktop-close-behavior"
                     :model-value="desktopCloseSettings.closeBehavior"
                     :options="closeBehaviorOptions"
-                    @change="$emit('close-behavior-change', $event)"
+                    @change="emit('close-behavior-change', $event)"
                 />
             </label>
         </div>
     </section>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from "vue";
 import Toggle from "../../forms/Toggle.vue";
 import SegmentedControl from "../../forms/SegmentedControl.vue";
 import DesktopUtils from "../../../js/DesktopUtils";
 
-export default {
-    name: "DesktopSettingsSection",
-    components: {
-        SegmentedControl,
-        Toggle,
+const props = withDefaults(
+    defineProps<{
+        visible?: boolean;
+        config: Record<string, any>;
+        desktopCloseSettings: Record<string, any>;
+    }>(),
+    {
+        visible: true,
+    }
+);
+
+const emit = defineEmits<{
+    "hardware-acceleration-change": [value: boolean];
+    "tray-enabled-change": [value: boolean];
+    "close-behavior-change": [value: string];
+}>();
+
+const closeBehaviorOptions = computed(() => [
+    { value: "ask", icon: "help-circle-outline", label: "app.desktop_close_behavior_ask" },
+    { value: "quit", icon: "close-circle-outline", label: "app.desktop_close_behavior_quit" },
+    {
+        value: "background",
+        icon: "arrow-down-circle-outline",
+        label: props.desktopCloseSettings.trayEnabled
+            ? "app.desktop_close_behavior_background"
+            : "app.desktop_close_behavior_background_no_tray",
     },
-    props: {
-        visible: {
-            type: Boolean,
-            default: true,
-        },
-        config: {
-            type: Object,
-            required: true,
-        },
-        desktopCloseSettings: {
-            type: Object,
-            required: true,
-        },
-    },
-    emits: ["hardware-acceleration-change", "tray-enabled-change", "close-behavior-change"],
-    computed: {
-        closeBehaviorOptions() {
-            return [
-                { value: "ask", icon: "help-circle-outline", label: "app.desktop_close_behavior_ask" },
-                { value: "quit", icon: "close-circle-outline", label: "app.desktop_close_behavior_quit" },
-                {
-                    value: "background",
-                    icon: "arrow-down-circle-outline",
-                    label: this.desktopCloseSettings.trayEnabled
-                        ? "app.desktop_close_behavior_background"
-                        : "app.desktop_close_behavior_background_no_tray",
-                },
-            ];
-        },
-        isDesktop() {
-            return DesktopUtils.isDesktop();
-        },
-    },
-};
+]);
+
+const isDesktop = computed(() => DesktopUtils.isDesktop());
 </script>

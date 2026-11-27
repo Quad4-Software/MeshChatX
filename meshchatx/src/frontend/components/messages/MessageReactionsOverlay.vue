@@ -36,76 +36,59 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 const MAX_VISIBLE_REACTIONS = 4;
 
-export default {
-    name: "MessageReactionsOverlay",
-    components: {
-        MaterialDesignIcon,
-    },
-    props: {
-        reactions: {
-            type: Array,
-            default: () => [],
-        },
-        isOutbound: {
-            type: Boolean,
-            default: false,
-        },
-        chatItem: {
-            type: Object,
-            required: true,
-        },
-        cv: {
-            type: Object,
-            required: true,
-        },
-        showReactButton: {
-            type: Boolean,
-            default: true,
-        },
-        elevated: {
-            type: Boolean,
-            default: false,
-        },
-    },
-    computed: {
-        visibleReactions() {
-            const list = Array.isArray(this.reactions) ? this.reactions : [];
-            return list.filter((r) => r && typeof r === "object").slice(0, MAX_VISIBLE_REACTIONS);
-        },
-        hiddenReactionCount() {
-            const list = Array.isArray(this.reactions) ? this.reactions : [];
-            const valid = list.filter((r) => r && typeof r === "object");
-            return Math.max(0, valid.length - MAX_VISIBLE_REACTIONS);
-        },
-        reactionChips() {
-            const chips = this.visibleReactions.map((r, idx) => ({
-                kind: "reaction",
-                key: r.reactionHash || `reaction-${idx}-${r.emoji || ""}-${r.sender || ""}`,
-                reaction: r,
-            }));
-            if (this.hiddenReactionCount > 0) {
-                chips.push({ kind: "more", key: "reaction-more" });
-            }
-            return chips;
-        },
-    },
-    methods: {
-        reactionTitle(reaction) {
-            try {
-                if (!reaction || typeof this.cv?.reactionReactorLabel !== "function") {
-                    return "";
-                }
-                return this.cv.reactionReactorLabel(reaction.sender) || "";
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        reactions?: any[];
+        isOutbound?: boolean;
+        chatItem: Record<string, any>;
+        cv: Record<string, any>;
+        showReactButton?: boolean;
+        elevated?: boolean;
+    }>(),
+    {
+        reactions: () => [],
+        isOutbound: false,
+        showReactButton: true,
+        elevated: false,
+    }
+);
+
+const validReactions = computed(() => {
+    const list = Array.isArray(props.reactions) ? props.reactions : [];
+    return list.filter((r) => r && typeof r === "object");
+});
+
+const visibleReactions = computed(() => validReactions.value.slice(0, MAX_VISIBLE_REACTIONS));
+
+const hiddenReactionCount = computed(() => Math.max(0, validReactions.value.length - MAX_VISIBLE_REACTIONS));
+
+const reactionChips = computed(() => {
+    const chips = visibleReactions.value.map((r, idx) => ({
+        kind: "reaction",
+        key: r.reactionHash || `reaction-${idx}-${r.emoji || ""}-${r.sender || ""}`,
+        reaction: r,
+    }));
+    if (hiddenReactionCount.value > 0) {
+        chips.push({ kind: "more", key: "reaction-more" });
+    }
+    return chips;
+});
+
+function reactionTitle(reaction: any) {
+    try {
+        if (!reaction || typeof props.cv?.reactionReactorLabel !== "function") {
+            return "";
+        }
+        return props.cv.reactionReactorLabel(reaction.sender) || "";
+    } catch (e) {
+        console.error(e);
+        return "";
+    }
+}
 </script>

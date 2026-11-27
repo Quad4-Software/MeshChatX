@@ -21,7 +21,7 @@
                     id="settings-visualiser-renderer"
                     :model-value="renderer"
                     :options="rendererOptions"
-                    @change="$emit('renderer-change', $event)"
+                    @change="emit('renderer-change', $event)"
                 />
             </div>
             <div class="space-y-2">
@@ -35,14 +35,14 @@
                     id="settings-visualiser-view-mode"
                     :model-value="viewMode"
                     :options="viewModeOptions"
-                    @change="$emit('view-mode-change', $event)"
+                    @change="emit('view-mode-change', $event)"
                 />
             </div>
             <label class="setting-toggle">
                 <Toggle
                     id="settings-visualiser-offline"
                     :model-value="showDisabledInterfaces"
-                    @update:model-value="$emit('show-disabled-change', $event)"
+                    @update:model-value="emit('show-disabled-change', $event)"
                 />
                 <span class="setting-toggle__label">
                     <span class="setting-toggle__title">{{ $t("visualiser.show_disabled_interfaces") }}</span>
@@ -52,7 +52,7 @@
                 <Toggle
                     id="settings-visualiser-discovered"
                     :model-value="showDiscoveredInterfaces"
-                    @update:model-value="$emit('show-discovered-change', $event)"
+                    @update:model-value="emit('show-discovered-change', $event)"
                 />
                 <span class="setting-toggle__label">
                     <span class="setting-toggle__title">{{ $t("visualiser.show_discovered_interfaces") }}</span>
@@ -62,53 +62,42 @@
     </section>
 </template>
 
-<script>
+<script setup lang="ts">
 import Toggle from "../../forms/Toggle.vue";
 import SegmentedControl from "../../forms/SegmentedControl.vue";
 
-export default {
-    name: "VisualiserSettingsSection",
-    components: {
-        SegmentedControl,
-        Toggle,
-    },
-    props: {
-        visible: {
-            type: Boolean,
-            default: true,
-        },
-        renderer: {
-            type: String,
-            default: "auto",
-        },
-        viewMode: {
-            type: String,
-            default: "flat",
-        },
-        showDisabledInterfaces: {
-            type: Boolean,
-            default: false,
-        },
-        showDiscoveredInterfaces: {
-            type: Boolean,
-            default: false,
-        },
-    },
-    emits: ["renderer-change", "view-mode-change", "show-disabled-change", "show-discovered-change"],
-    computed: {
-        rendererOptions() {
-            return [
-                { value: "auto", label: "visualiser.renderer_option_auto" },
-                { value: "webgl", label: "visualiser.renderer_option_webgl" },
-                { value: "vis", label: "visualiser.renderer_option_vis" },
-            ];
-        },
-        viewModeOptions() {
-            return [
-                { value: "flat", icon: "earth", label: "visualiser.view_mode_flat_full" },
-                { value: "planet", icon: "orbit", label: "visualiser.view_mode_planet_full" },
-            ];
-        },
-    },
-};
+withDefaults(
+    defineProps<{
+        visible?: boolean;
+        renderer?: string;
+        viewMode?: string;
+        showDisabledInterfaces?: boolean;
+        showDiscoveredInterfaces?: boolean;
+    }>(),
+    {
+        visible: true,
+        renderer: "auto",
+        viewMode: "flat",
+        showDisabledInterfaces: false,
+        showDiscoveredInterfaces: false,
+    }
+);
+
+const emit = defineEmits<{
+    "renderer-change": [value: string];
+    "view-mode-change": [value: string];
+    "show-disabled-change": [value: boolean];
+    "show-discovered-change": [value: boolean];
+}>();
+
+const rendererOptions = [
+    { value: "auto", label: "visualiser.renderer_option_auto" },
+    { value: "webgl", label: "visualiser.renderer_option_webgl" },
+    { value: "vis", label: "visualiser.renderer_option_vis" },
+];
+
+const viewModeOptions = [
+    { value: "flat", icon: "earth", label: "visualiser.view_mode_flat_full" },
+    { value: "planet", icon: "orbit", label: "visualiser.view_mode_planet_full" },
+];
 </script>

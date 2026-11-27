@@ -11,14 +11,14 @@
             <button
                 v-if="status.status === 'completed' || status.status === 'failed'"
                 class="text-sem-fg-muted"
-                @click="$emit('dismiss')"
+                @click="emit('dismiss')"
             >
                 <MaterialDesignIcon icon-name="close" class="size-4" />
             </button>
             <button
                 v-else
                 class="text-xs font-bold text-sem-danger hover:text-sem-danger uppercase tracking-tighter"
-                @click="$emit('cancel')"
+                @click="emit('cancel')"
             >
                 {{ $t("common.cancel") }}
             </button>
@@ -47,7 +47,7 @@
             </a>
             <button
                 class="flex items-center justify-center space-x-2 w-full py-2 bg-sem-info hover:bg-sem-action-primary text-sem-action-primary-text rounded-lg font-bold transition-colors shadow-md text-xs"
-                @click="$emit('show-offline-maps')"
+                @click="emit('show-offline-maps')"
             >
                 <MaterialDesignIcon icon-name="map-check" class="size-4" />
                 <span>Show in Offline Maps</span>
@@ -63,51 +63,62 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, onMounted, onUnmounted, watch } from "vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import AndroidDownloadBridge from "../../../js/AndroidDownloadBridge";
+import { translateUi } from "../../../js/localeLoader.js";
 
-export default {
-    name: "MapExportProgressPanel",
-    components: { MaterialDesignIcon },
-    props: {
-        status: { type: Object, required: true },
-        exportId: { type: [String, Number], default: null },
-    },
-    emits: ["dismiss", "cancel", "show-offline-maps"],
-    computed: {
-        notificationId() {
-            return `map-export-${this.exportId}`;
-        },
-        notificationName() {
-            return this.$t("map.exporting");
-        },
-    },
-    watch: {
-        "status.progress"(progress) {
-            if (this.status.status !== "completed" && this.status.status !== "failed") {
-                AndroidDownloadBridge.notifyProgress(this.notificationId, this.notificationName, progress);
-            }
-        },
-        "status.status"(status) {
-            if (status === "completed") {
-                AndroidDownloadBridge.cancelNotification(this.notificationId);
-                AndroidDownloadBridge.sessionEnd(this.notificationId);
-            } else if (status === "failed") {
-                AndroidDownloadBridge.notifyFailed(this.notificationId, this.notificationName);
-                AndroidDownloadBridge.sessionEnd(this.notificationId);
-            }
-        },
-    },
-    mounted() {
-        AndroidDownloadBridge.sessionStart(this.notificationId);
-        if (this.status.status !== "completed" && this.status.status !== "failed") {
-            AndroidDownloadBridge.notifyProgress(this.notificationId, this.notificationName, this.status.progress);
+const props = withDefaults(
+    defineProps<{
+        status: Record<string, any>;
+        exportId?: string | number | null;
+    }>(),
+    {
+        exportId: null,
+    }
+);
+
+const emit = defineEmits<{
+    dismiss: [];
+    cancel: [];
+    "show-offline-maps": [];
+}>();
+
+const notificationId = computed(() => `map-export-${props.exportId}`);
+const notificationName = computed(() => translateUi("map.exporting"));
+
+watch(
+    () => props.status.progress,
+    (progress) => {
+        if (props.status.status !== "completed" && props.status.status !== "failed") {
+            AndroidDownloadBridge.notifyProgress(notificationId.value, notificationName.value, progress);
         }
-    },
-    unmounted() {
-        AndroidDownloadBridge.cancelNotification(this.notificationId);
-        AndroidDownloadBridge.sessionEnd(this.notificationId);
-    },
-};
+    }
+);
+
+watch(
+    () => props.status.status,
+    (status) => {
+        if (status === "completed") {
+            AndroidDownloadBridge.cancelNotification(notificationId.value);
+            AndroidDownloadBridge.sessionEnd(notificationId.value);
+        } else if (status === "failed") {
+            AndroidDownloadBridge.notifyFailed(notificationId.value, notificationName.value);
+            AndroidDownloadBridge.sessionEnd(notificationId.value);
+        }
+    }
+);
+
+onMounted(() => {
+    AndroidDownloadBridge.sessionStart(notificationId.value);
+    if (props.status.status !== "completed" && props.status.status !== "failed") {
+        AndroidDownloadBridge.notifyProgress(notificationId.value, notificationName.value, props.status.progress);
+    }
+});
+
+onUnmounted(() => {
+    AndroidDownloadBridge.cancelNotification(notificationId.value);
+    AndroidDownloadBridge.sessionEnd(notificationId.value);
+});
 </script>

@@ -68,6 +68,20 @@ function resolveComposer(i18nOrComposer) {
  * Register the app i18n instance so Options API this.$i18n proxies can load packs.
  * @param {import("vue-i18n").I18n | import("vue-i18n").Composer | null | undefined} i18nOrComposer
  */
+/**
+ * Translate a key outside component templates, using the registered composer.
+ * Falls back to the key itself when no composer is registered (unit tests).
+ * @param {string} key
+ * @param {Record<string, unknown>} [params]
+ * @returns {string}
+ */
+export function translateUi(key, params) {
+    if (registeredComposer && typeof registeredComposer.t === "function") {
+        return registeredComposer.t(key, params);
+    }
+    return key;
+}
+
 export function registerUiI18n(i18nOrComposer) {
     if (!i18nOrComposer) {
         registeredComposer = null;
