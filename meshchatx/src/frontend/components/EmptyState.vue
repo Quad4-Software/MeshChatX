@@ -25,35 +25,23 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
-export default {
-    name: "EmptyState",
-    components: {
-        MaterialDesignIcon,
-    },
-    props: {
-        icon: {
-            type: String,
-            default: "",
-        },
-        title: {
-            type: String,
-            default: "",
-        },
-        description: {
-            type: String,
-            default: "",
-        },
-        rootClass: {
-            type: String,
-            default: "",
-        },
-        plain: {
-            type: Boolean,
-            default: false,
-        },
-    },
-};
+withDefaults(
+    defineProps<{
+        icon?: string;
+        title?: string;
+        description?: string;
+        rootClass?: string;
+        plain?: boolean;
+    }>(),
+    {
+        icon: "",
+        title: "",
+        description: "",
+        rootClass: "",
+        plain: false,
+    }
+);
 </script>

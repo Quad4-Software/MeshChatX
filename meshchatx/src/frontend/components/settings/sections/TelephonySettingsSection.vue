@@ -14,31 +14,26 @@
             title="Enable Telephone (LXST)"
             description="Allow incoming and outgoing voice calls over the mesh network."
             hint="Disabling will end any active calls."
-            @update:model-value="$emit('enabled-change', $event)"
+            @update:model-value="emit('enabled-change', $event)"
         />
     </SettingsSectionBlock>
 </template>
 
-<script>
+<script setup lang="ts">
 import SettingsSectionBlock from "../SettingsSectionBlock.vue";
 import SettingToggleRow from "../SettingToggleRow.vue";
 
-export default {
-    name: "TelephonySettingsSection",
-    components: {
-        SettingsSectionBlock,
-        SettingToggleRow,
-    },
-    props: {
-        visible: {
-            type: Boolean,
-            default: true,
-        },
-        config: {
-            type: Object,
-            required: true,
-        },
-    },
-    emits: ["enabled-change"],
-};
+withDefaults(
+    defineProps<{
+        visible?: boolean;
+        config: Record<string, any>;
+    }>(),
+    {
+        visible: true,
+    }
+);
+
+const emit = defineEmits<{
+    "enabled-change": [enabled: boolean];
+}>();
 </script>

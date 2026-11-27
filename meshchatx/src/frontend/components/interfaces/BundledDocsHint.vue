@@ -14,34 +14,29 @@
     </p>
 </template>
 
-<script>
+<script setup lang="ts">
+import { useRouter } from "vue-router";
 import { RETICULUM_MANUAL_INTERFACES_COMMON_OPTIONS_REL } from "../../js/reticulumDocsEntryUrl.js";
 import { openBundledReticulumManualPath } from "../../js/reticulumDocsNavigation.js";
 
-export default {
-    name: "BundledDocsHint",
-    props: {
-        paragraphClass: {
-            type: String,
-            default: "text-xs text-sem-fg-muted mt-0.5",
-        },
-        hintI18nKey: {
-            type: String,
-            default: "interfaces.discovery_default_bootstrap_only_hint",
-        },
-        linkI18nKey: {
-            type: String,
-            default: "interfaces.discovery_default_bootstrap_docs_link",
-        },
-        docsRelPath: {
-            type: String,
-            default: RETICULUM_MANUAL_INTERFACES_COMMON_OPTIONS_REL,
-        },
-    },
-    methods: {
-        openDocs() {
-            openBundledReticulumManualPath(this.$router, this.docsRelPath);
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        paragraphClass?: string;
+        hintI18nKey?: string;
+        linkI18nKey?: string;
+        docsRelPath?: string;
+    }>(),
+    {
+        paragraphClass: "text-xs text-sem-fg-muted mt-0.5",
+        hintI18nKey: "interfaces.discovery_default_bootstrap_only_hint",
+        linkI18nKey: "interfaces.discovery_default_bootstrap_docs_link",
+        docsRelPath: RETICULUM_MANUAL_INTERFACES_COMMON_OPTIONS_REL,
+    }
+);
+
+const router = useRouter();
+
+function openDocs() {
+    openBundledReticulumManualPath(router, props.docsRelPath);
+}
 </script>

@@ -36,13 +36,8 @@
         </div>
     </div>
 </template>
-<script>
-export default {
-    name: "ExpandingSection",
-    data() {
-        return {
-            isExpanded: false,
-        };
-    },
-};
+<script setup lang="ts">
+import { ref } from "vue";
+
+const isExpanded = ref(false);
 </script>

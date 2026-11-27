@@ -15,35 +15,27 @@
     </section>
 </template>
 
-<script>
-export default {
-    name: "SettingsSectionBlock",
-    props: {
-        eyebrow: {
-            type: String,
-            default: "",
-        },
-        title: {
-            type: String,
-            default: "",
-        },
-        description: {
-            type: String,
-            default: "",
-        },
-        sectionClass: {
-            type: [String, Array, Object],
-            default: "",
-        },
-        bodyClass: {
-            type: [String, Array, Object],
-            default: "",
-        },
-    },
-    computed: {
-        hasHeader() {
-            return Boolean(this.eyebrow || this.title || this.description);
-        },
-    },
-};
+<script setup lang="ts">
+import { computed } from "vue";
+
+type ClassValue = string | string[] | Record<string, boolean>;
+
+const props = withDefaults(
+    defineProps<{
+        eyebrow?: string;
+        title?: string;
+        description?: string;
+        sectionClass?: ClassValue;
+        bodyClass?: ClassValue;
+    }>(),
+    {
+        eyebrow: "",
+        title: "",
+        description: "",
+        sectionClass: "",
+        bodyClass: "",
+    }
+);
+
+const hasHeader = computed(() => Boolean(props.eyebrow || props.title || props.description));
 </script>

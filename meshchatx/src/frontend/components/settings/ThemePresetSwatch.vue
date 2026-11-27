@@ -13,36 +13,37 @@
     </div>
 </template>
 
-<script>
-export default {
-    name: "ThemePresetSwatch",
-    props: {
-        colors: {
-            type: Object,
-            required: true,
-        },
-        size: {
-            type: String,
-            default: "md",
-            validator: (value) => ["sm", "md", "lg"].includes(value),
-        },
-        round: {
-            type: Boolean,
-            default: false,
-        },
-    },
-    computed: {
-        sizeClass() {
-            if (this.size === "sm") {
-                return "h-7 w-7";
-            }
-            if (this.size === "lg") {
-                return "h-10 w-10";
-            }
-            return "h-8 w-8";
-        },
-    },
-};
+<script setup lang="ts">
+import { computed } from "vue";
+
+interface SwatchColors {
+    canvas: string;
+    surface: string;
+    accent: string;
+    border: string;
+}
+
+const props = withDefaults(
+    defineProps<{
+        colors: SwatchColors;
+        size?: "sm" | "md" | "lg";
+        round?: boolean;
+    }>(),
+    {
+        size: "md",
+        round: false,
+    }
+);
+
+const sizeClass = computed(() => {
+    if (props.size === "sm") {
+        return "h-7 w-7";
+    }
+    if (props.size === "lg") {
+        return "h-10 w-10";
+    }
+    return "h-8 w-8";
+});
 </script>
 
 <style scoped>

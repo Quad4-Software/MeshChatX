@@ -10,17 +10,17 @@
         </div>
         <div class="p-4 sm:p-6 space-y-4">
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                <button class="rnf-action-btn" @click="$emit('action', 'enable-bluetooth')">
+                <button class="rnf-action-btn" @click="emit('action', 'enable-bluetooth')">
                     <MaterialDesignIcon icon-name="bluetooth-connect" class="size-4" />
                     {{ $t("tools.rnode_flasher.enable") }}
                 </button>
-                <button class="rnf-action-btn" @click="$emit('action', 'disable-bluetooth')">
+                <button class="rnf-action-btn" @click="emit('action', 'disable-bluetooth')">
                     <MaterialDesignIcon icon-name="bluetooth-off" class="size-4" />
                     {{ $t("tools.rnode_flasher.disable") }}
                 </button>
                 <button
                     class="rnf-action-btn col-span-2 sm:col-span-1 bg-sem-action-primary text-sem-action-primary-text! border-none! hover:bg-sem-action-primary-hover"
-                    @click="$emit('action', 'pair-bluetooth')"
+                    @click="emit('action', 'pair-bluetooth')"
                 >
                     <MaterialDesignIcon icon-name="key-link" class="size-4" />
                     {{ $t("tools.rnode_flasher.start_pairing") }}
@@ -33,14 +33,12 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
-export default {
-    name: "RNodeBluetoothPanel",
-    components: { MaterialDesignIcon },
-    emits: ["action"],
-};
+const emit = defineEmits<{
+    action: [action: string];
+}>();
 </script>
 
 <style scoped>

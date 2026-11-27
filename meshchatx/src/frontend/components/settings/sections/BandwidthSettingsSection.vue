@@ -15,7 +15,7 @@
                 :model-value="config.limited_bandwidth_enabled === true"
                 :title="$t('settings.bandwidth.enabled')"
                 :description="$t('settings.bandwidth.enabled_desc')"
-                @update:model-value="$emit('enabled-change', $event)"
+                @update:model-value="emit('enabled-change', $event)"
             />
             <div
                 v-if="config.limited_bandwidth_enabled === true"
@@ -29,24 +29,20 @@
     </section>
 </template>
 
-<script>
+<script setup lang="ts">
 import SettingToggleRow from "../SettingToggleRow.vue";
 
-export default {
-    name: "BandwidthSettingsSection",
-    components: {
-        SettingToggleRow,
-    },
-    props: {
-        visible: {
-            type: Boolean,
-            default: true,
-        },
-        config: {
-            type: Object,
-            required: true,
-        },
-    },
-    emits: ["enabled-change"],
-};
+withDefaults(
+    defineProps<{
+        visible?: boolean;
+        config: Record<string, any>;
+    }>(),
+    {
+        visible: true,
+    }
+);
+
+const emit = defineEmits<{
+    "enabled-change": [enabled: boolean];
+}>();
 </script>

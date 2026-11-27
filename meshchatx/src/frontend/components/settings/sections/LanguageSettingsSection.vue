@@ -19,36 +19,29 @@
     </section>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from "vue";
 import { listLocaleOptions, normalizeUiLocaleCode } from "../../../js/localeLoader.js";
 
-const languageOptions = listLocaleOptions();
+const props = withDefaults(
+    defineProps<{
+        visible?: boolean;
+        language?: string;
+    }>(),
+    {
+        visible: true,
+        language: "en",
+    }
+);
 
-export default {
-    name: "LanguageSettingsSection",
-    props: {
-        visible: {
-            type: Boolean,
-            default: true,
-        },
-        language: {
-            type: String,
-            default: "en",
-        },
-    },
-    emits: ["change"],
-    computed: {
-        selectedLanguage() {
-            return normalizeUiLocaleCode(this.language);
-        },
-        languages() {
-            return languageOptions;
-        },
-    },
-    methods: {
-        onSelect(event) {
-            this.$emit("change", event.target.value);
-        },
-    },
-};
+const emit = defineEmits<{
+    change: [language: string];
+}>();
+
+const languages = listLocaleOptions();
+const selectedLanguage = computed(() => normalizeUiLocaleCode(props.language));
+
+function onSelect(event: Event) {
+    emit("change", (event.target as HTMLSelectElement).value);
+}
 </script>
