@@ -60,6 +60,14 @@ makensis -VERSION | head -1
 cd desktop && task windows:package
 cd "$ROOT"
 
+# Regression guard: 4.12.0/4.12.1 installers extracted the backend into the
+# install root instead of backend\. Fail the build if the layout regresses.
+shopt -s nullglob
+for installer in desktop/bin/ReticulumMeshChatX-v*-win32-*-installer.exe; do
+    ${PYTHON_CMD:-uv run python} scripts/ci/check_windows_installer_layout.py "$installer"
+done
+shopt -u nullglob
+
 mkdir -p dist
 cp -f desktop/bin/ReticulumMeshChat*-win32-*.zip \
       desktop/bin/ReticulumMeshChatX-v*-win32-*-installer.exe dist/ 2>/dev/null || true
