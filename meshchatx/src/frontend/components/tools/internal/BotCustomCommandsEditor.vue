@@ -60,93 +60,50 @@
     </div>
 </template>
 
-<script>
+<script lang="ts">
+export { buildCustomPayload, defaultCustomDraft, draftFromBotCustom } from "./botCustomDraft";
+</script>
+
+<script setup lang="ts">
+import { computed } from "vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
+import { defaultCustomDraft, type CustomDraft } from "./botCustomDraft";
 
-export function defaultCustomDraft() {
-    return { welcome: "", commands: [] };
+const props = withDefaults(
+    defineProps<{
+        modelValue?: CustomDraft | null;
+    }>(),
+    {
+        modelValue: null,
+    }
+);
+
+const emit = defineEmits<{
+    "update:modelValue": [value: CustomDraft];
+}>();
+
+const draft = computed<CustomDraft>(() => props.modelValue || defaultCustomDraft());
+
+function patch(update: Partial<CustomDraft>) {
+    emit("update:modelValue", { ...draft.value, ...update });
 }
 
-export function draftFromBotCustom(custom) {
-    const draft = defaultCustomDraft();
-    if (!custom || typeof custom !== "object") {
-        return draft;
-    }
-    if (typeof custom.welcome === "string") {
-        draft.welcome = custom.welcome;
-    }
-    if (Array.isArray(custom.commands)) {
-        draft.commands = custom.commands
-            .filter((c) => c && typeof c === "object" && c.name)
-            .map((c) => ({
-                name: String(c.name),
-                response: String(c.response || ""),
-                description: c.description ? String(c.description) : "",
-            }));
-    }
-    return draft;
+function patchCommand(index: number, update: Partial<{ name: string; response: string; description: string }>) {
+    const commands = draft.value.commands.map((c, i) => (i === index ? { ...c, ...update } : c));
+    patch({ commands });
 }
 
-export function buildCustomPayload(draft) {
-    const commands = (draft.commands || [])
-        .map((c) => ({
-            name: String(c.name || "").trim(),
-            response: String(c.response || "").trim(),
-            description: String(c.description || "").trim(),
-        }))
-        .filter((c) => c.name && c.response)
-        .map((c) => {
-            const out = { name: c.name, response: c.response };
-            if (c.description) {
-                out.description = c.description;
-            }
-            return out;
-        });
-    const payload = { commands };
-    const welcome = String(draft.welcome || "").trim();
-    if (welcome) {
-        payload.welcome = welcome;
-    }
-    return payload;
+function addCommand() {
+    patch({
+        commands: [...draft.value.commands, { name: "", response: "", description: "" }],
+    });
 }
 
-export default {
-    name: "BotCustomCommandsEditor",
-    components: {
-        MaterialDesignIcon,
-    },
-    props: {
-        modelValue: {
-            type: Object,
-            default: null,
-        },
-    },
-    emits: ["update:modelValue"],
-    computed: {
-        draft() {
-            return this.modelValue || defaultCustomDraft();
-        },
-    },
-    methods: {
-        patch(update) {
-            this.$emit("update:modelValue", { ...this.draft, ...update });
-        },
-        patchCommand(index, update) {
-            const commands = this.draft.commands.map((c, i) => (i === index ? { ...c, ...update } : c));
-            this.patch({ commands });
-        },
-        addCommand() {
-            this.patch({
-                commands: [...this.draft.commands, { name: "", response: "", description: "" }],
-            });
-        },
-        removeCommand(index) {
-            this.patch({
-                commands: this.draft.commands.filter((_, i) => i !== index),
-            });
-        },
-    },
-};
+function removeCommand(index: number) {
+    patch({
+        commands: draft.value.commands.filter((_, i) => i !== index),
+    });
+}
 </script>
 
 <style scoped>

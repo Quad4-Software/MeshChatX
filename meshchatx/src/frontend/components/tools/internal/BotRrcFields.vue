@@ -72,81 +72,32 @@
     </div>
 </template>
 
-<script>
-export function defaultRrcDraft() {
-    return {
-        hub: "",
-        rooms: "",
-        nick: "",
-        mention_only: true,
-        prefix: "!",
-        rate_seconds: "8",
-    };
-}
+<script lang="ts">
+export { buildRrcPayload, defaultRrcDraft, draftFromBotRrc } from "./botRrcDraft";
+</script>
 
-export function draftFromBotRrc(rrc) {
-    const draft = defaultRrcDraft();
-    if (!rrc || typeof rrc !== "object") {
-        return draft;
-    }
-    if (rrc.hub) {
-        draft.hub = String(rrc.hub);
-    }
-    if (Array.isArray(rrc.rooms)) {
-        draft.rooms = rrc.rooms.join(", ");
-    }
-    if (rrc.nick) {
-        draft.nick = String(rrc.nick);
-    }
-    if (rrc.mention_only !== undefined) {
-        draft.mention_only = Boolean(rrc.mention_only);
-    }
-    if (rrc.prefix) {
-        draft.prefix = String(rrc.prefix);
-    }
-    if (rrc.rate_seconds !== undefined && rrc.rate_seconds !== null) {
-        draft.rate_seconds = String(rrc.rate_seconds);
-    }
-    return draft;
-}
+<script setup lang="ts">
+import { computed } from "vue";
+import { defaultRrcDraft, type RrcDraft } from "./botRrcDraft";
 
-export function buildRrcPayload(draft) {
-    const rooms = String(draft.rooms || "")
-        .split(",")
-        .map((r) => r.trim().replace(/^#+/, ""))
-        .filter(Boolean);
-    return {
-        hub: String(draft.hub || "")
-            .trim()
-            .toLowerCase(),
-        rooms,
-        nick: String(draft.nick || "").trim() || null,
-        mention_only: Boolean(draft.mention_only),
-        prefix: String(draft.prefix || "!"),
-        rate_seconds: Math.max(0, Math.min(3600, Number(draft.rate_seconds) || 8)),
-    };
-}
+const props = withDefaults(
+    defineProps<{
+        modelValue?: RrcDraft | null;
+    }>(),
+    {
+        modelValue: null,
+    }
+);
 
-export default {
-    name: "BotRrcFields",
-    props: {
-        modelValue: {
-            type: Object,
-            default: null,
-        },
-    },
-    emits: ["update:modelValue"],
-    computed: {
-        draft() {
-            return this.modelValue || defaultRrcDraft();
-        },
-    },
-    methods: {
-        patch(update) {
-            this.$emit("update:modelValue", { ...this.draft, ...update });
-        },
-    },
-};
+const emit = defineEmits<{
+    "update:modelValue": [value: RrcDraft];
+}>();
+
+const draft = computed<RrcDraft>(() => props.modelValue || defaultRrcDraft());
+
+function patch(update: Partial<RrcDraft>) {
+    emit("update:modelValue", { ...draft.value, ...update });
+}
 </script>
 
 <style scoped>

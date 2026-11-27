@@ -42,10 +42,12 @@
     </AppUpdatePrompt>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, ref } from "vue";
 import AppUpdatePrompt from "./AppUpdatePrompt.vue";
 import ToastUtils from "../js/ToastUtils";
 import { apiPath } from "../js/constants";
+import { translateUi } from "../js/localeLoader.js";
 import {
     channelBugReportTarget,
     channelLabelKey,
@@ -54,105 +56,98 @@ import {
     shouldShowChannelPrompt,
 } from "../js/releaseChannel.js";
 
-export default {
-    name: "ChannelPromptModal",
-    components: {
-        AppUpdatePrompt,
-    },
-    data() {
-        return {
-            visible: false,
-            appInfo: null,
-        };
-    },
-    computed: {
-        channel() {
-            return normalizeReleaseChannel(this.appInfo?.build_channel);
-        },
-        titleText() {
-            const label = this.$t(channelLabelKey(this.channel));
-            return this.$t("channel_prompt.title", { channel: label });
-        },
-        introText() {
-            const label = this.$t(channelLabelKey(this.channel));
-            return this.$t("channel_prompt.intro", { channel: label });
-        },
-        prompt() {
-            const p = this.appInfo?.channel_prompt;
-            return p && typeof p === "object" ? p : {};
-        },
-        notes() {
-            return typeof this.prompt.notes === "string" ? this.prompt.notes.trim() : "";
-        },
-        focusAreas() {
-            return Array.isArray(this.prompt.focus_areas)
-                ? this.prompt.focus_areas.map((s) => String(s)).filter(Boolean)
-                : [];
-        },
-        bugReportSteps() {
-            return Array.isArray(this.prompt.bug_report_steps)
-                ? this.prompt.bug_report_steps.map((s) => String(s)).filter(Boolean)
-                : [];
-        },
-        reportTarget() {
-            return channelBugReportTarget(this.prompt);
-        },
-        secondaryLabel() {
-            if (!this.reportTarget.value) {
-                return "";
-            }
-            if (this.reportTarget.kind === "lxmf") {
-                return this.$t("channel_prompt.copy_lxmf");
-            }
-            return this.$t("channel_prompt.copy_url");
-        },
-    },
-    methods: {
-        show(appInfo) {
-            if (!shouldShowChannelPrompt(appInfo)) {
-                return false;
-            }
-            this.appInfo = appInfo;
-            this.visible = true;
-            return true;
-        },
-        async onDismiss() {
-            await this.markSeen();
-            this.visible = false;
-        },
-        async onSecondary() {
-            if (!this.reportTarget.value) {
-                return;
-            }
-            try {
-                await navigator.clipboard.writeText(this.reportTarget.value);
-                ToastUtils.success(
-                    this.reportTarget.kind === "lxmf"
-                        ? this.$t("channel_prompt.lxmf_copied")
-                        : this.$t("channel_prompt.url_copied")
-                );
-            } catch {
-                ToastUtils.error(
-                    this.reportTarget.kind === "lxmf"
-                        ? this.$t("channel_prompt.lxmf_copy_failed")
-                        : this.$t("channel_prompt.url_copy_failed")
-                );
-            }
-        },
-        async markSeen() {
-            if (!this.appInfo) {
-                return;
-            }
-            const key = channelPromptSeenKey(this.appInfo);
-            try {
-                await window.api.post(apiPath("/app/channel-prompt/seen"), { key });
-                if (this.appInfo) {
-                    this.appInfo.channel_prompt_seen = key;
-                }
-            } catch (e) {
-                console.log(e);
-            }
-        },
-    },
-};
+const visible = ref(false);
+const appInfo = ref<Record<string, any> | null>(null);
+
+const channel = computed(() => normalizeReleaseChannel(appInfo.value?.build_channel));
+
+const titleText = computed(() => {
+    const label = translateUi(channelLabelKey(channel.value));
+    return translateUi("channel_prompt.title", { channel: label });
+});
+
+const introText = computed(() => {
+    const label = translateUi(channelLabelKey(channel.value));
+    return translateUi("channel_prompt.intro", { channel: label });
+});
+
+const prompt = computed(() => {
+    const p = appInfo.value?.channel_prompt;
+    return p && typeof p === "object" ? p : {};
+});
+
+const notes = computed(() => (typeof prompt.value.notes === "string" ? prompt.value.notes.trim() : ""));
+
+const focusAreas = computed(() =>
+    Array.isArray(prompt.value.focus_areas) ? prompt.value.focus_areas.map((s: any) => String(s)).filter(Boolean) : []
+);
+
+const bugReportSteps = computed(() =>
+    Array.isArray(prompt.value.bug_report_steps)
+        ? prompt.value.bug_report_steps.map((s: any) => String(s)).filter(Boolean)
+        : []
+);
+
+const reportTarget = computed(() => channelBugReportTarget(prompt.value));
+
+const secondaryLabel = computed(() => {
+    if (!reportTarget.value.value) {
+        return "";
+    }
+    if (reportTarget.value.kind === "lxmf") {
+        return translateUi("channel_prompt.copy_lxmf");
+    }
+    return translateUi("channel_prompt.copy_url");
+});
+
+function show(info: Record<string, any>) {
+    if (!shouldShowChannelPrompt(info)) {
+        return false;
+    }
+    appInfo.value = info;
+    visible.value = true;
+    return true;
+}
+
+async function onDismiss() {
+    await markSeen();
+    visible.value = false;
+}
+
+async function onSecondary() {
+    if (!reportTarget.value.value) {
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(reportTarget.value.value);
+        ToastUtils.success(
+            reportTarget.value.kind === "lxmf"
+                ? translateUi("channel_prompt.lxmf_copied")
+                : translateUi("channel_prompt.url_copied")
+        );
+    } catch {
+        ToastUtils.error(
+            reportTarget.value.kind === "lxmf"
+                ? translateUi("channel_prompt.lxmf_copy_failed")
+                : translateUi("channel_prompt.url_copy_failed")
+        );
+    }
+}
+
+async function markSeen() {
+    if (!appInfo.value) {
+        return;
+    }
+    const key = channelPromptSeenKey(appInfo.value);
+    try {
+        await (window as any).api.post(apiPath("/app/channel-prompt/seen"), { key });
+        if (appInfo.value) {
+            appInfo.value.channel_prompt_seen = key;
+        }
+    } catch (e) {
+        console.log(e);
+    }
+}
+
+defineExpose({ show });
 </script>

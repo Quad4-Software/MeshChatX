@@ -61,7 +61,7 @@
                                         <span
                                             class="text-[10px] text-sem-fg-muted font-mono truncate cursor-pointer hover:text-sem-info transition-colors"
                                             :title="announce.destination_hash"
-                                            @click.stop="$emit('copy-hash', announce.destination_hash)"
+                                            @click.stop="emit('copy-hash', announce.destination_hash)"
                                         >
                                             {{ formatDestinationHash(announce.destination_hash) }}
                                         </span>
@@ -75,7 +75,7 @@
                                     <button
                                         type="button"
                                         class="text-[10px] bg-sem-info/15 text-sem-info dark:bg-sem-info/15 dark:text-sem-info px-3 py-1 rounded-full font-bold uppercase tracking-wider hover:bg-sem-info/15 dark:hover:bg-sem-info/15 transition-colors shrink-0"
-                                        @click="$emit('call', announce.destination_hash)"
+                                        @click="emit('call', announce.destination_hash)"
                                     >
                                         Call
                                     </button>
@@ -88,7 +88,7 @@
                     <button
                         type="button"
                         class="text-xs text-sem-info hover:text-sem-info font-bold uppercase tracking-widest"
-                        @click="$emit('load-more')"
+                        @click="emit('load-more')"
                     >
                         {{ $t("call.load_more") }}
                     </button>
@@ -98,54 +98,40 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import SearchInput from "../../SearchInput.vue";
 import LxmfUserIcon from "../../LxmfUserIcon.vue";
 
-export default {
-    name: "CallPhonebookTab",
-    components: {
-        MaterialDesignIcon,
-        SearchInput,
-        LxmfUserIcon,
-    },
-    props: {
-        active: {
-            type: Boolean,
-            default: false,
-        },
-        discoverySearch: {
-            type: String,
-            default: "",
-        },
-        totalDiscoveryCount: {
-            type: Number,
-            default: 0,
-        },
-        discoveryAnnounces: {
-            type: Array,
-            default: () => [],
-        },
-        hasMoreDiscovery: {
-            type: Boolean,
-            default: false,
-        },
-        formatTimeAgo: {
-            type: Function,
-            required: true,
-        },
-        formatDestinationHash: {
-            type: Function,
-            required: true,
-        },
-    },
-    emits: ["update:discoverySearch", "search-input", "copy-hash", "load-more", "call"],
-    methods: {
-        onSearchInput(value) {
-            this.$emit("update:discoverySearch", value);
-            this.$emit("search-input");
-        },
-    },
-};
+withDefaults(
+    defineProps<{
+        active?: boolean;
+        discoverySearch?: string;
+        totalDiscoveryCount?: number;
+        discoveryAnnounces?: any[];
+        hasMoreDiscovery?: boolean;
+        formatTimeAgo: (...args: any[]) => any;
+        formatDestinationHash: (...args: any[]) => any;
+    }>(),
+    {
+        active: false,
+        discoverySearch: "",
+        totalDiscoveryCount: 0,
+        discoveryAnnounces: () => [],
+        hasMoreDiscovery: false,
+    }
+);
+
+const emit = defineEmits<{
+    "update:discoverySearch": [value: string];
+    "search-input": [];
+    "copy-hash": [peer: any];
+    "load-more": [];
+    call: [peer: any];
+}>();
+
+function onSearchInput(value: string) {
+    emit("update:discoverySearch", value);
+    emit("search-input");
+}
 </script>
