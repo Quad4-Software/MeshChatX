@@ -876,6 +876,12 @@ export default {
                     this.announcesAbortController = new AbortController();
                     myController = this.announcesAbortController;
                 }
+                if (!append) {
+                    // Wipe before the await, not after: announces pushed over
+                    // the websocket while the request is in flight must not be
+                    // discarded when the response lands.
+                    this.peers = {};
+                }
                 const offset = append ? Object.keys(this.peers).length : 0;
                 const response = await announcesApi.listAnnounces({
                     params: {
@@ -888,9 +894,6 @@ export default {
                 });
 
                 const newAnnounces = response.data.announces;
-                if (!append) {
-                    this.peers = {};
-                }
 
                 this.totalPeersCount = response.data.total_count || 0;
 
@@ -902,6 +905,12 @@ export default {
             } catch (e) {
                 if (window.api.isCancel?.(e)) return;
                 console.log(e);
+                if (!append) {
+                    // Allow the next tab activation to retry; otherwise a
+                    // fetch that fails during backend cold start (Android)
+                    // leaves the announces tab empty until a manual search.
+                    this.announcesLoaded = false;
+                }
             } finally {
                 if (this.announcesAbortController === myController) {
                     this.isLoadingMoreAnnounces = false;

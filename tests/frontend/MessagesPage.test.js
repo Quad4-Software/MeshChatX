@@ -352,6 +352,69 @@ describe("MessagesPage.vue", () => {
         vi.useRealTimers();
     });
 
+    it("keeps websocket announces that arrive while the initial fetch is in flight", async () => {
+        const pending = [];
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/config")
+                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
+            if (url === "/api/v1/announces") {
+                return new Promise((resolve) => pending.push({ resolve }));
+            }
+            if (url === "/api/v1/lxmf/conversations") return Promise.resolve({ data: { conversations: [] } });
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.getLxmfDeliveryAnnounces();
+        expect(pending.length).toBe(1);
+
+        // A live announce arrives over the websocket mid-fetch.
+        wrapper.vm.updatePeerFromAnnounce({
+            destination_hash: "live-peer",
+            display_name: "Live Peer",
+            aspect: "lxmf.delivery",
+            updated_at: new Date().toISOString(),
+        });
+        expect(wrapper.vm.peers["live-peer"]).toBeTruthy();
+
+        pending[0].resolve({ data: { announces: [], total_count: 1 } });
+        await flushPromises();
+
+        // The wipe must happen before the await, so the live peer survives.
+        expect(wrapper.vm.peers["live-peer"]).toBeTruthy();
+    });
+
+    it("resets announcesLoaded when the initial fetch fails so tab activation retries", async () => {
+        let announceCalls = 0;
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/config")
+                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
+            if (url === "/api/v1/announces") {
+                announceCalls++;
+                if (announceCalls === 1) return Promise.reject(new Error("backend cold start"));
+                return Promise.resolve({ data: { announces: [], total_count: 0 } });
+            }
+            if (url === "/api/v1/lxmf/conversations") return Promise.resolve({ data: { conversations: [] } });
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.onAnnouncesTabActivated();
+        await flushPromises();
+        expect(announceCalls).toBe(1);
+        expect(wrapper.vm.announcesLoaded).toBe(false);
+
+        // Reactivating the tab must retry instead of treating the tab as loaded.
+        wrapper.vm.onAnnouncesTabActivated();
+        await flushPromises();
+        expect(announceCalls).toBe(2);
+        expect(wrapper.vm.announcesLoaded).toBe(true);
+    });
+
     it("opens ingest paper message modal", async () => {
         const wrapper = mountMessagesPage();
         await wrapper.vm.$nextTick();
