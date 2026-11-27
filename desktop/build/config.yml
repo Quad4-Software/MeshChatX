@@ -9,7 +9,7 @@ info:
   description: "A simple mesh network communications app powered by the Reticulum Network Stack"
   copyright: "(c) 2025, Quad4"
   comments: "Mesh networking chat client"
-  version: "4.12.0"
+  version: "4.12.2"
 
 dev_mode:
   root_path: .

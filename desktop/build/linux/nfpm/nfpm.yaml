@@ -5,7 +5,7 @@
 name: "meshchatx-desktop"
 arch: ${GOARCH}
 platform: "linux"
-version: "4.12.0"
+version: "4.12.2"
 section: "default"
 priority: "extra"
 maintainer: "Quad4 <quad4@proton.me>"

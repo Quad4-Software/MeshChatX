@@ -1,3 +1,10 @@
+## [4.12.2] - 2026-11-27
+
+### Fixed
+
+- Windows: the NSIS installer put the Python backend in the install root instead of `backend\`, so the app started but never found or launched the backend and showed "backend unavailable". `CreateDirectory` does not change the NSIS output path, so `File /r` extracted into `$INSTDIR`. The installer now sets the output path to `$INSTDIR\backend` for the payload. When it finds the old layout (a `ReticulumMeshChatX.exe` in the install root from 4.12.0 or 4.12.1), it removes the stray files before installing. The portable zip was not affected. Installing 4.12.2 over 4.12.0 or 4.12.1 repairs the install.
+- Desktop packaging: the Windows installer, the exe file version, the macOS Info.plist, the deb and rpm package version and the Wails build config stayed at 4.12.0 in the 4.12.1 build because `pnpm run version:sync` never touched them. The sync now updates all of them, plus the Flatpak release list.
+
 ## [4.12.1] - 2026-11-27
 
 ### Added
