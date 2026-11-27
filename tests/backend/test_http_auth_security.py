@@ -519,3 +519,47 @@ def test_insecure_remote_access_flag(tmp_path, monkeypatch):
     )
     # A chain of only trusted hops collapses back to the loopback peer.
     assert insecure_remote_access(app, req("127.0.0.1", "127.0.0.1")) is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+async def test_unauthenticated_logout_does_not_bump_session_epoch(mock_app):
+    mock_app.config.auth_enabled.set(True)
+    pw = b"epoch-guard-password-ok"
+    mock_app.config.auth_password_hash.set(
+        bcrypt.hashpw(pw, bcrypt.gensalt()).decode("utf-8"),
+    )
+    aio_app = _make_aio_app(mock_app, use_https=False)
+
+    server = TestServer(aio_app)
+    async with TestClient(server) as client_a:
+        headers = await fetch_api_csrf_headers(client_a)
+        login = await client_a.post(
+            "/api/v1/auth/login",
+            json={"password": pw.decode("utf-8")},
+            headers=headers,
+        )
+        assert login.status == 200
+
+        async with TestClient(server) as client_b:
+            headers_b = await fetch_api_csrf_headers(client_b)
+            epoch_before = mock_app._current_auth_session_epoch()
+            out = await client_b.post("/api/v1/auth/logout", headers=headers_b)
+            assert out.status == 200
+            assert mock_app._current_auth_session_epoch() == epoch_before
+
+            assert (await client_a.get("/api/v1/database/backups")).status == 200
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+async def test_translation_packs_requires_auth_when_enabled(mock_app):
+    mock_app.config.auth_enabled.set(True)
+    mock_app.config.auth_password_hash.set(
+        bcrypt.hashpw(b"x", bcrypt.gensalt()).decode("utf-8"),
+    )
+    aio_app = _make_aio_app(mock_app, use_https=False)
+
+    async with TestClient(TestServer(aio_app)) as client:
+        r = await client.get("/translation-packs/registry.json")
+        assert r.status == 401

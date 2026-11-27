@@ -292,7 +292,7 @@ def create_auth_middleware(app):
         # Docs routes serve user-uploaded content, so they are excluded here and
         # gated by the auth check below when authentication is enabled.
         if not path.startswith("/api/") and not path.startswith(
-            ("/reticulum-docs/", "/meshchatx-docs/"),
+            ("/reticulum-docs/", "/meshchatx-docs/", "/translation-packs/"),
         ):
             if (
                 path == "/"

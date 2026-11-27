@@ -394,8 +394,15 @@ def register_auth_routes(routes, app):
     @routes.post(API_V1_PREFIX + "/auth/logout")
     async def auth_logout(request):
         session = await get_session(request)
+        was_authenticated = not app.auth_enabled or (
+            bool(session.get("authenticated", False))
+            and app.identity is not None
+            and session.get("identity_hash") == app.identity.hash.hex()
+            and app._auth_session_epoch_valid(session)
+        )
         session.invalidate()
-        app._bump_auth_session_epoch()
+        if was_authenticated:
+            app._bump_auth_session_epoch()
         return web.json_response({"message": "Logged out successfully"})
 
     # fetch com ports
