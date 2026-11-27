@@ -73,7 +73,7 @@
                         class="p-0.5 text-sem-fg-muted hover:text-sem-fg hover:text-sem-fg"
                         :title="$t('app.nav_move_up')"
                         :aria-label="$t('app.nav_move_up')"
-                        @click.stop="$emit('nav-reorder', { kind: 'item-offset', itemId: item.id, delta: -1 })"
+                        @click.stop="emit('nav-reorder', { kind: 'item-offset', itemId: item.id, delta: -1 })"
                     >
                         <MaterialDesignIcon icon-name="chevron-up" class="size-4" />
                     </button>
@@ -82,7 +82,7 @@
                         class="p-0.5 text-sem-fg-muted hover:text-sem-fg hover:text-sem-fg"
                         :title="$t('app.nav_move_down')"
                         :aria-label="$t('app.nav_move_down')"
-                        @click.stop="$emit('nav-reorder', { kind: 'item-offset', itemId: item.id, delta: 1 })"
+                        @click.stop="emit('nav-reorder', { kind: 'item-offset', itemId: item.id, delta: 1 })"
                     >
                         <MaterialDesignIcon icon-name="chevron-down" class="size-4" />
                     </button>
@@ -92,85 +92,95 @@
     </nav>
 </template>
 
-<script>
+<script setup lang="ts">
+import { toRef } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SidebarLink from "../SidebarLink.vue";
-import { navEditHoldMixin } from "../../js/appSidebarNavEditHold.js";
+import { useNavEditHold } from "../../js/useNavEditHold";
 
-export default {
-    name: "AppSidebarClassicNav",
-    components: {
-        MaterialDesignIcon,
-        SidebarLink,
-    },
-    mixins: [navEditHoldMixin],
-    props: {
-        navItems: {
-            type: Array,
-            required: true,
-        },
-        isCollapsed: {
-            type: Boolean,
-            default: false,
-        },
-        isEditing: {
-            type: Boolean,
-            default: false,
-        },
-        unreadConversationsCount: {
-            type: Number,
-            default: 0,
-        },
-        relayChatUnreadCount: {
-            type: Number,
-            default: 0,
-        },
-        missedCallsCount: {
-            type: Number,
-            default: 0,
-        },
-    },
-    emits: ["edit-start", "nav-reorder"],
-    methods: {
-        getNavBadgeCount(item) {
-            if (!item.badge?.source) {
-                return 0;
-            }
-            if (item.badge.source === "unreadConversationsCount") {
-                return this.unreadConversationsCount;
-            }
-            if (item.badge.source === "relayChatUnreadCount") {
-                return this.relayChatUnreadCount;
-            }
-            if (item.badge.source === "missedCallsCount") {
-                return this.missedCallsCount;
-            }
-            return 0;
-        },
-        formatNavBadgeCount(item) {
-            const count = this.getNavBadgeCount(item);
-            const cap = item.badge?.cap;
-            if (cap != null && count > cap) {
-                return `${cap}+`;
-            }
-            return String(count);
-        },
-        onItemDragStart(itemId, event) {
-            this.beginNavDrag("item", itemId, event);
-        },
-        onItemDragOver(itemId, event) {
-            this.setNavDragOver(`item:${itemId}`, event);
-        },
-        onItemDrop(itemId, event) {
-            if (this.draggingKind === "item" && this.draggingId && this.draggingId !== itemId) {
-                this.$emit("nav-reorder", {
-                    kind: "item",
-                    itemId: this.draggingId,
-                    target: { type: "item", id: itemId, position: this.dropPosition(event) },
-                });
-            }
-            this.clearNavDrag();
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        navItems: any[];
+        isCollapsed?: boolean;
+        isEditing?: boolean;
+        unreadConversationsCount?: number;
+        relayChatUnreadCount?: number;
+        missedCallsCount?: number;
+    }>(),
+    {
+        isCollapsed: false,
+        isEditing: false,
+        unreadConversationsCount: 0,
+        relayChatUnreadCount: 0,
+        missedCallsCount: 0,
+    }
+);
+
+const emit = defineEmits<{
+    "edit-start": [];
+    "nav-reorder": [payload: Record<string, any>];
+}>();
+
+const {
+    draggingKind,
+    draggingId,
+    dragOverKey,
+    clearNavDrag,
+    onNavHoldPointerDown,
+    onNavHoldPointerMove,
+    onNavHoldPointerUp,
+    onNavHoldClickCapture,
+    onNavHoldContextMenu,
+    beginNavDrag,
+    setNavDragOver,
+    dropPosition,
+} = useNavEditHold({
+    isEditing: toRef(props, "isEditing"),
+    isCollapsed: toRef(props, "isCollapsed"),
+    onEditStart: () => emit("edit-start"),
+});
+
+function getNavBadgeCount(item: any) {
+    if (!item.badge?.source) {
+        return 0;
+    }
+    if (item.badge.source === "unreadConversationsCount") {
+        return props.unreadConversationsCount;
+    }
+    if (item.badge.source === "relayChatUnreadCount") {
+        return props.relayChatUnreadCount;
+    }
+    if (item.badge.source === "missedCallsCount") {
+        return props.missedCallsCount;
+    }
+    return 0;
+}
+
+function formatNavBadgeCount(item: any) {
+    const count = getNavBadgeCount(item);
+    const cap = item.badge?.cap;
+    if (cap != null && count > cap) {
+        return `${cap}+`;
+    }
+    return String(count);
+}
+
+function onItemDragStart(itemId: string, event: DragEvent) {
+    beginNavDrag("item", itemId, event);
+}
+
+function onItemDragOver(itemId: string, event: DragEvent) {
+    setNavDragOver(`item:${itemId}`, event);
+}
+
+function onItemDrop(itemId: string, event: DragEvent) {
+    if (draggingKind.value === "item" && draggingId.value && draggingId.value !== itemId) {
+        emit("nav-reorder", {
+            kind: "item",
+            itemId: draggingId.value,
+            target: { type: "item", id: itemId, position: dropPosition(event) },
+        });
+    }
+    clearNavDrag();
+}
 </script>
