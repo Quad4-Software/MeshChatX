@@ -135,7 +135,8 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, ref } from "vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import {
     buildTelemetryBatteryChartSpec,
@@ -144,101 +145,111 @@ import {
 } from "../../../js/telemetryBatteryChartSpec.js";
 import { formatDate } from "../../../libs/datetime.js";
 
-export default {
-    name: "TelemetryBatteryChart",
-    components: { MaterialDesignIcon },
-    props: {
-        samples: {
-            type: Array,
-            required: true,
-        },
-        idSuffix: {
-            type: String,
-            default: "default",
-        },
-    },
-    data() {
-        return {
-            hover: null,
-        };
-    },
-    computed: {
-        spec() {
-            return buildTelemetryBatteryChartSpec(this.samples, this.idSuffix);
-        },
-        firstPct() {
-            if (!this.samples.length) return 0;
-            return Math.round(this.samples[0].y);
-        },
-        lastPct() {
-            if (!this.samples.length) return 0;
-            return Math.round(this.samples[this.samples.length - 1].y);
-        },
-        startLabel() {
-            if (!this.samples.length) return "";
-            return formatDate(this.samples[0].x * 1000, "MMM D, HH:mm");
-        },
-        endLabel() {
-            if (!this.samples.length) return "";
-            return formatDate(this.samples[this.samples.length - 1].x * 1000, "MMM D, HH:mm");
-        },
-        hoverTipStyle() {
-            if (!this.hover) return {};
-            return {
-                left: `${this.hover.tipLeft}px`,
-                top: `${this.hover.tipTop}px`,
-                transform: "translate(-50%, calc(-100% - 6px))",
-            };
-        },
-    },
-    methods: {
-        svgPointFromClient(clientX, clientY) {
-            const svg = this.$refs.chartSvg;
-            if (!svg) return null;
-            const ctm = svg.getScreenCTM();
-            if (!ctm) return null;
-            return new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());
-        },
-        updateHoverFromClient(clientX, clientY) {
-            const spec = this.spec;
-            if (!spec) return;
-            const p = this.svgPointFromClient(clientX, clientY);
-            if (!p) return;
-            const { PL, PR, PT, PB, minX, maxX } = spec.layout;
-            let gx = p.x;
-            if (gx < PL) gx = PL;
-            if (gx > PR) gx = PR;
-            const rangeX = maxX - minX || 1;
-            const ts = minX + ((gx - PL) / (PR - PL)) * rangeX;
-            const { y } = interpolateBatteryByTime(this.samples, ts);
-            const gy = PT + (1 - clampBatteryPercent(y) / 100) * (PB - PT);
-            const wrap = this.$refs.chartWrap;
-            let tipLeft = 0;
-            let tipTop = 0;
-            if (wrap) {
-                const r = wrap.getBoundingClientRect();
-                tipLeft = Math.min(Math.max(clientX - r.left, 10), Math.max(10, r.width - 10));
-                tipTop = clientY - r.top;
-            }
-            this.hover = {
-                gx,
-                gy,
-                pct: Math.round(y),
-                timeLabel: formatDate(ts * 1000, "MMM D, HH:mm"),
-                tipLeft,
-                tipTop,
-            };
-        },
-        onChartMove(ev) {
-            this.updateHoverFromClient(ev.clientX, ev.clientY);
-        },
-        onChartTouch(ev) {
-            const t = ev.touches[0];
-            if (t) this.updateHoverFromClient(t.clientX, t.clientY);
-        },
-        onChartLeave() {
-            this.hover = null;
-        },
-    },
-};
+defineOptions({ name: "TelemetryBatteryChart" });
+
+interface BatterySample {
+    x: number;
+    y: number;
+}
+
+interface HoverState {
+    gx: number;
+    gy: number;
+    pct: number;
+    timeLabel: string;
+    tipLeft: number;
+    tipTop: number;
+}
+
+const props = withDefaults(
+    defineProps<{
+        samples: BatterySample[];
+        idSuffix?: string;
+    }>(),
+    {
+        idSuffix: "default",
+    }
+);
+
+const hover = ref<HoverState | null>(null);
+const chartSvg = ref<SVGSVGElement | null>(null);
+const chartWrap = ref<HTMLElement | null>(null);
+
+const spec = computed(() => buildTelemetryBatteryChartSpec(props.samples, props.idSuffix));
+const firstPct = computed(() => {
+    if (!props.samples.length) return 0;
+    return Math.round(props.samples[0].y);
+});
+const lastPct = computed(() => {
+    if (!props.samples.length) return 0;
+    return Math.round(props.samples[props.samples.length - 1].y);
+});
+const startLabel = computed(() => {
+    if (!props.samples.length) return "";
+    return formatDate(props.samples[0].x * 1000, "MMM D, HH:mm");
+});
+const endLabel = computed(() => {
+    if (!props.samples.length) return "";
+    return formatDate(props.samples[props.samples.length - 1].x * 1000, "MMM D, HH:mm");
+});
+const hoverTipStyle = computed(() => {
+    if (!hover.value) return {};
+    return {
+        left: `${hover.value.tipLeft}px`,
+        top: `${hover.value.tipTop}px`,
+        transform: "translate(-50%, calc(-100% - 6px))",
+    };
+});
+
+function svgPointFromClient(clientX: number, clientY: number): DOMPoint | null {
+    const svg = chartSvg.value;
+    if (!svg) return null;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    return new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());
+}
+
+function updateHoverFromClient(clientX: number, clientY: number) {
+    const s = spec.value;
+    if (!s) return;
+    const p = svgPointFromClient(clientX, clientY);
+    if (!p) return;
+    const { PL, PR, PT, PB, minX, maxX } = s.layout;
+    let gx = p.x;
+    if (gx < PL) gx = PL;
+    if (gx > PR) gx = PR;
+    const rangeX = maxX - minX || 1;
+    const ts = minX + ((gx - PL) / (PR - PL)) * rangeX;
+    const { y } = interpolateBatteryByTime(props.samples, ts);
+    const gy = PT + (1 - clampBatteryPercent(y) / 100) * (PB - PT);
+    const wrap = chartWrap.value;
+    let tipLeft = 0;
+    let tipTop = 0;
+    if (wrap) {
+        const r = wrap.getBoundingClientRect();
+        tipLeft = Math.min(Math.max(clientX - r.left, 10), Math.max(10, r.width - 10));
+        tipTop = clientY - r.top;
+    }
+    hover.value = {
+        gx,
+        gy,
+        pct: Math.round(y),
+        timeLabel: formatDate(ts * 1000, "MMM D, HH:mm"),
+        tipLeft,
+        tipTop,
+    };
+}
+
+function onChartMove(ev: MouseEvent) {
+    updateHoverFromClient(ev.clientX, ev.clientY);
+}
+
+function onChartTouch(ev: TouchEvent) {
+    const touch = ev.touches[0];
+    if (touch) updateHoverFromClient(touch.clientX, touch.clientY);
+}
+
+function onChartLeave() {
+    hover.value = null;
+}
 </script>

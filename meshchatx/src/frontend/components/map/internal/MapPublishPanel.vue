@@ -70,15 +70,30 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { onMounted, ref } from "vue";
 import ToastUtils from "../../../js/ToastUtils";
 import { apiPath } from "../../../js/constants";
+import { useTranslateUi } from "../../../js/localeLoader";
 
-function fileToB64(file) {
+defineOptions({ name: "MapPublishPanel" });
+
+defineProps<{
+    drawSource?: object | null;
+}>();
+
+interface PublishedMap {
+    map_id: string;
+    name: string;
+    format: string;
+    size: number;
+}
+
+function fileToB64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
-            const buf = reader.result;
+            const buf = reader.result as ArrayBuffer;
             const bytes = new Uint8Array(buf);
             let binary = "";
             for (let i = 0; i < bytes.length; i++) {
@@ -91,7 +106,7 @@ function fileToB64(file) {
     });
 }
 
-function hintedFormat(name) {
+function hintedFormat(name: string): string {
     const lower = String(name || "").toLowerCase();
     if (lower.endsWith(".kmz")) {
         return "kmz";
@@ -102,120 +117,118 @@ function hintedFormat(name) {
     return "geojson";
 }
 
-export default {
-    name: "MapPublishPanel",
-    props: {
-        drawSource: { type: Object, default: null },
-    },
-    data() {
-        return {
-            displayName: "Maps",
-            announceEnabled: false,
-            announceInterval: 21600,
-            published: [],
-            strippedPreview: [],
-            publishing: false,
-            announcing: false,
-        };
-    },
-    mounted() {
-        this.load();
-    },
-    methods: {
-        formatSize(n) {
-            const v = Number(n) || 0;
-            if (v < 1024) {
-                return `${v} B`;
-            }
-            return `${(v / 1024).toFixed(1)} KiB`;
-        },
-        async load() {
-            try {
-                const status = await window.api.get(apiPath("/map/data/status"));
-                const s = status.data || {};
-                this.displayName = s.display_name || "Maps";
-                this.announceEnabled = Boolean(s.announce_enabled);
-                this.announceInterval = s.announce_interval || 21600;
-                const listed = await window.api.get(apiPath("/map/data/published"));
-                this.published = listed.data.maps || [];
-            } catch {
-                ToastUtils.error(this.$t("map.data_unavailable"));
-            }
-        },
-        async saveConfig() {
-            try {
-                await window.api.patch(apiPath("/map/data/config"), {
-                    display_name: this.displayName,
-                    announce_enabled: this.announceEnabled,
-                    announce_interval: this.announceInterval,
-                });
-            } catch {
-                ToastUtils.error(this.$t("map.data_unavailable"));
-            }
-        },
-        pickFile() {
-            this.$refs.fileInput?.click();
-        },
-        async onFile(ev) {
-            const file = ev.target.files && ev.target.files[0];
-            ev.target.value = "";
-            if (!file) {
-                return;
-            }
-            this.publishing = true;
-            this.strippedPreview = [];
-            try {
-                const dataB64 = await fileToB64(file);
-                const response = await window.api.post(apiPath("/map/data/publish"), {
-                    name: file.name.replace(/\.[^.]+$/, "") || "map",
-                    format: hintedFormat(file.name),
-                    data_b64: dataB64,
-                });
-                this.strippedPreview = response.data.stripped || [];
-                ToastUtils.success(this.$t("map.data_publish_ok"));
-                await this.load();
-            } catch (e) {
-                const code = e.response?.data?.error;
-                if (code === "file_too_large") {
-                    ToastUtils.error(this.$t("map.data_file_too_large"));
-                } else if (code === "remote_content" || code === "dtd_forbidden" || code === "unsafe_kmz_entry") {
-                    ToastUtils.error(this.$t("map.data_sanitize_reject"));
-                } else {
-                    ToastUtils.error(this.$t("map.data_publish_failed"));
-                }
-            } finally {
-                this.publishing = false;
-            }
-        },
-        async announceNow() {
-            if (!this.published.length) {
-                ToastUtils.warning(this.$t("map.data_announce_needs_publish"));
-                return;
-            }
-            this.announcing = true;
-            try {
-                await window.api.post(apiPath("/map/data/announce"));
-                ToastUtils.success(this.$t("map.data_announce_ok"));
-            } catch (e) {
-                const code = e.response?.data?.error;
-                if (code === "nothing_published") {
-                    ToastUtils.warning(this.$t("map.data_announce_needs_publish"));
-                } else {
-                    ToastUtils.error(this.$t("map.data_unavailable"));
-                }
-            } finally {
-                this.announcing = false;
-            }
-        },
-        async unpublish(mapId) {
-            try {
-                await window.api.delete(apiPath(`/map/data/published/${mapId}`));
-                ToastUtils.success(this.$t("map.data_unpublish_ok"));
-                await this.load();
-            } catch {
-                ToastUtils.error(this.$t("map.data_unavailable"));
-            }
-        },
-    },
-};
+const t = useTranslateUi();
+
+const displayName = ref("Maps");
+const announceEnabled = ref(false);
+const announceInterval = ref(21600);
+const published = ref<PublishedMap[]>([]);
+const strippedPreview = ref<string[]>([]);
+const publishing = ref(false);
+const announcing = ref(false);
+const fileInput = ref<HTMLInputElement | null>(null);
+
+function formatSize(n: number): string {
+    const v = Number(n) || 0;
+    if (v < 1024) {
+        return `${v} B`;
+    }
+    return `${(v / 1024).toFixed(1)} KiB`;
+}
+
+async function load() {
+    try {
+        const status = await window.api.get(apiPath("/map/data/status"));
+        const s = status.data || {};
+        displayName.value = s.display_name || "Maps";
+        announceEnabled.value = Boolean(s.announce_enabled);
+        announceInterval.value = s.announce_interval || 21600;
+        const listed = await window.api.get(apiPath("/map/data/published"));
+        published.value = listed.data.maps || [];
+    } catch {
+        ToastUtils.error(t("map.data_unavailable"));
+    }
+}
+
+async function saveConfig() {
+    try {
+        await window.api.patch(apiPath("/map/data/config"), {
+            display_name: displayName.value,
+            announce_enabled: announceEnabled.value,
+            announce_interval: announceInterval.value,
+        });
+    } catch {
+        ToastUtils.error(t("map.data_unavailable"));
+    }
+}
+
+function pickFile() {
+    fileInput.value?.click();
+}
+
+async function onFile(ev: Event) {
+    const target = ev.target as HTMLInputElement;
+    const file = target.files && target.files[0];
+    target.value = "";
+    if (!file) {
+        return;
+    }
+    publishing.value = true;
+    strippedPreview.value = [];
+    try {
+        const dataB64 = await fileToB64(file);
+        const response = await window.api.post(apiPath("/map/data/publish"), {
+            name: file.name.replace(/\.[^.]+$/, "") || "map",
+            format: hintedFormat(file.name),
+            data_b64: dataB64,
+        });
+        strippedPreview.value = response.data.stripped || [];
+        ToastUtils.success(t("map.data_publish_ok"));
+        await load();
+    } catch (e: any) {
+        const code = e.response?.data?.error;
+        if (code === "file_too_large") {
+            ToastUtils.error(t("map.data_file_too_large"));
+        } else if (code === "remote_content" || code === "dtd_forbidden" || code === "unsafe_kmz_entry") {
+            ToastUtils.error(t("map.data_sanitize_reject"));
+        } else {
+            ToastUtils.error(t("map.data_publish_failed"));
+        }
+    } finally {
+        publishing.value = false;
+    }
+}
+
+async function announceNow() {
+    if (!published.value.length) {
+        ToastUtils.warning(t("map.data_announce_needs_publish"));
+        return;
+    }
+    announcing.value = true;
+    try {
+        await window.api.post(apiPath("/map/data/announce"));
+        ToastUtils.success(t("map.data_announce_ok"));
+    } catch (e: any) {
+        const code = e.response?.data?.error;
+        if (code === "nothing_published") {
+            ToastUtils.warning(t("map.data_announce_needs_publish"));
+        } else {
+            ToastUtils.error(t("map.data_unavailable"));
+        }
+    } finally {
+        announcing.value = false;
+    }
+}
+
+async function unpublish(mapId: string) {
+    try {
+        await window.api.delete(apiPath(`/map/data/published/${mapId}`));
+        ToastUtils.success(t("map.data_unpublish_ok"));
+        await load();
+    } catch {
+        ToastUtils.error(t("map.data_unavailable"));
+    }
+}
+
+onMounted(load);
 </script>
