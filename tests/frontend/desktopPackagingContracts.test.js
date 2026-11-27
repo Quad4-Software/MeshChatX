@@ -37,6 +37,17 @@ describe("desktop packaging contracts", () => {
         expect(nsi).toContain("bin\\backend");
     });
 
+    it("windows nsis extracts the backend into $INSTDIR\\backend", () => {
+        const nsi = read("build/windows/nsis/project.nsi");
+        const setOut = nsi.indexOf('SetOutPath "$INSTDIR\\backend"');
+        const file = nsi.indexOf('File /r "..\\..\\..\\bin\\backend\\*.*"');
+        const restore = nsi.indexOf("SetOutPath $INSTDIR", file);
+        expect(setOut).toBeGreaterThan(-1);
+        expect(file).toBeGreaterThan(setOut);
+        expect(restore).toBeGreaterThan(file);
+        expect(nsi).toContain("Function CleanStrandedBackend");
+    });
+
     it("macOS bundle declares URL schemes and backend resource dir", () => {
         const plist = read("build/darwin/Info.plist");
         expect(plist).toContain("<string>lxmf</string>");
@@ -116,14 +127,8 @@ describe("desktop packaging contracts", () => {
 
         // StartupWMClass in every shipped desktop file matches the id so
         // windows group with the launcher on Wayland and X11.
-        const flatpakDesktop = fs.readFileSync(
-            path.join(ROOT, "packaging/flatpak/com.meshchatx.app.desktop"),
-            "utf8"
-        );
-        const archDesktop = fs.readFileSync(
-            path.join(ROOT, "packaging/arch/reticulum-meshchatx.desktop"),
-            "utf8"
-        );
+        const flatpakDesktop = fs.readFileSync(path.join(ROOT, "packaging/flatpak/com.meshchatx.app.desktop"), "utf8");
+        const archDesktop = fs.readFileSync(path.join(ROOT, "packaging/arch/reticulum-meshchatx.desktop"), "utf8");
         for (const desktop of [flatpakDesktop, archDesktop]) {
             expect(desktop).toContain("StartupWMClass=com.meshchatx.app");
         }

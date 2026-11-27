@@ -43,6 +43,31 @@ Function .onInit
    !insertmacro wails.checkArchitecture
 FunctionEnd
 
+Function CleanStrandedBackend
+    Push $0
+    Push $1
+    FindFirst $0 $1 "$INSTDIR\*.*"
+    cleanLoop:
+        StrCmp $1 "" cleanDone
+        StrCmp $1 "." cleanNext
+        StrCmp $1 ".." cleanNext
+        StrCmp $1 "backend" cleanNext
+        StrCmp $1 "uninstall.exe" cleanNext
+        StrCmp $1 "${PRODUCT_EXECUTABLE}" cleanNext
+        IfFileExists "$INSTDIR\$1\*.*" cleanIsDir 0
+        Delete "$INSTDIR\$1"
+        Goto cleanNext
+        cleanIsDir:
+        RMDir /r "$INSTDIR\$1"
+        cleanNext:
+        FindNext $0 $1
+        Goto cleanLoop
+    cleanDone:
+    FindClose $0
+    Pop $1
+    Pop $0
+FunctionEnd
+
 Section
     !insertmacro wails.setShellContext
 
@@ -50,11 +75,19 @@ Section
 
     SetOutPath $INSTDIR
 
+    ; 4.12.0 and 4.12.1 extracted the backend into the install root. Clear
+    ; that payload so it does not sit next to the real backend\ directory.
+    IfFileExists "$INSTDIR\ReticulumMeshChatX.exe" 0 +2
+    Call CleanStrandedBackend
+
     !insertmacro wails.files
 
-    ; Bundle the frozen Python backend next to the shell executable.
-    CreateDirectory "$INSTDIR\backend"
+    ; Bundle the frozen Python backend in backend\ next to the shell executable.
+    ; CreateDirectory does not change $OUTDIR, so SetOutPath is required or
+    ; File /r extracts into $INSTDIR and the shell cannot find the backend.
+    SetOutPath "$INSTDIR\backend"
     File /r "..\..\..\bin\backend\*.*"
+    SetOutPath $INSTDIR
 
     ; URL scheme handlers: lxmf:// and rns://
     DeleteRegKey HKCR "lxmf"
