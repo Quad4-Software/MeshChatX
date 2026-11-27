@@ -35,6 +35,13 @@ Two paths: **GitHub pull requests** (full dev workflow below) and **LXMF patches
 
 Editor baseline: .editorconfig.
 
+### Frontend component rule
+
+New Vue components, and any component extracted during refactoring, use the
+composition API (`<script setup>`) and TypeScript. Existing Options API
+components are migrated piecemeal as they are touched for other reasons; there
+is no big-bang rewrite. See TODO.md item 3.
+
 ### Commit signing
 
 Project commits are signed with rngcs, which binds each commit to a Reticulum identity using Git's SSH signature format. Verification is fully offline: no keyserver, no allowed-signers file, only rngcs installed.
