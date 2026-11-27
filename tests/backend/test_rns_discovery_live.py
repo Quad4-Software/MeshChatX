@@ -174,3 +174,12 @@ def test_discovery_enable_unpauses_existing(saved_rns_state, monkeypatch):
     assert applied is True
     assert reason is None
     assert discovery.handler.paused is False
+
+
+def test_parse_discovery_sources_fallback_accepts_32_hex(monkeypatch):
+    # A broken TRUNCATED_HASHLENGTH must not shrink the accepted length:
+    # truncated identity hashes are 16 bytes = 32 hex chars.
+    monkeypatch.setattr(RNS.Reticulum, "TRUNCATED_HASHLENGTH", object())
+    digest_hex = "ab" * 16
+    sources = live._parse_discovery_sources(digest_hex)
+    assert sources == [bytes.fromhex(digest_hex)]

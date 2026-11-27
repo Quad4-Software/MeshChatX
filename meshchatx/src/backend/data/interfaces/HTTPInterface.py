@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import os
 import socket
 import ssl
@@ -281,6 +282,7 @@ class HTTPTunnelInterface(Interface):
 
     DEFAULT_MTU = 4096
     TUNNEL_USER_AGENT = "RNS-HTTP-Tunnel/1.0"
+    MAX_HTTP_BODY_BYTES = 2 * 1024 * 1024
     # This tunnel is a fallback transport for store-and-forward mesh traffic,
     # not an interactive low-latency link. Five seconds keeps an idle client
     # near 17k empty polls/day instead of hundreds of thousands, while the
@@ -584,10 +586,30 @@ class HTTPTunnelInterface(Interface):
                 key.decode("latin1"): value.decode("latin1")
                 for key, value in scope.get("headers", [])
             }
-            body = b""
+            body = bytearray()
             while True:
                 message = await receive()
+                if message.get("type") == "http.disconnect":
+                    return
                 body += message.get("body", b"")
+                if len(body) > interface.MAX_HTTP_BODY_BYTES:
+                    await send(
+                        {
+                            "type": "http.response.start",
+                            "status": 413,
+                            "headers": [
+                                (b"content-type", b"text/plain"),
+                                (b"content-length", b"17"),
+                            ],
+                        },
+                    )
+                    await send(
+                        {
+                            "type": "http.response.body",
+                            "body": b"Payload Too Large",
+                        },
+                    )
+                    return
                 if not message.get("more_body", False):
                     break
 
@@ -598,7 +620,7 @@ class HTTPTunnelInterface(Interface):
                 scope.get("method", "GET"),
                 scope.get("path", "/"),
                 headers,
-                body,
+                bytes(body),
             )
             await send(
                 {
@@ -643,7 +665,16 @@ class HTTPTunnelInterface(Interface):
                     self.wfile.write(body)
 
             def do_POST(self):
-                content_length = int(self.headers.get("Content-Length", 0))
+                try:
+                    content_length = int(self.headers.get("Content-Length", 0))
+                except (TypeError, ValueError):
+                    content_length = -1
+                if content_length < 0:
+                    self.send_error(400, "Bad Request")
+                    return
+                if content_length > interface_instance.MAX_HTTP_BODY_BYTES:
+                    self.send_error(413, "Payload Too Large")
+                    return
                 body = self.rfile.read(content_length) if content_length > 0 else b""
                 status, content_type, response = (
                     interface_instance._handle_tunnel_exchange(
@@ -955,8 +986,13 @@ class HTTPTunnelInterface(Interface):
                             pass
                         self._server_thread.join(timeout=1)
             else:
-                if self._asgi_loop is not None and self._asgi_shutdown is not None:
-                    self._asgi_loop.call_soon_threadsafe(self._asgi_shutdown.set)
+                if (
+                    self._asgi_loop is not None
+                    and self._asgi_shutdown is not None
+                    and not self._asgi_loop.is_closed()
+                ):
+                    with contextlib.suppress(RuntimeError):
+                        self._asgi_loop.call_soon_threadsafe(self._asgi_shutdown.set)
                 if hasattr(self, "_server_thread") and self._server_thread:
                     self._server_thread.join(timeout=5)
 

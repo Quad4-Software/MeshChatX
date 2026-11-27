@@ -1306,3 +1306,40 @@ def test_page_node_manager_start_all_staggers_initial_announces(tmp_path, monkey
         ("node-1", 0.5),
         ("node-2", 1.0),
     ]
+
+
+class TestPageNodeMediaRegressions:
+    def test_jail_media_path_rejects_dotdot_prefixed_names(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        assert node._jail_media_path("..secret.png", must_exist=False) is None
+        assert node._jail_media_path("sub/..hidden.png", must_exist=False) is None
+
+    def test_media_responder_reads_quality_from_json_bytes(self, node_dir, mock_rns):
+        import json
+
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        image_path = os.path.join(node.files_dir, "icon.webp")
+        with open(image_path, "wb") as f:
+            f.write(b"RIFF\x00\x00\x00\x00WEBPVP8 ")
+        node._grant_file_access(b"\xab" * 16, None, ttl=300)
+
+        captured = {}
+
+        def fake_convert(source_path, quality, max_dimension):
+            captured["quality"] = quality
+            captured["max_dimension"] = max_dimension
+            return image_path
+
+        payload = json.dumps(
+            {"path": "/media/icon.webp", "quality": 50, "max_dimension": 512}
+        ).encode("utf-8")
+        with patch.object(node, "_get_converted_media_path", side_effect=fake_convert):
+            responder = node._make_media_responder()
+            result = responder("/media", payload, "r1", b"\xab" * 16, None, 0)
+
+        assert result is not None
+        result[0].close()
+        assert captured["quality"] == 50
+        assert captured["max_dimension"] == 512

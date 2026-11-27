@@ -172,3 +172,24 @@ def test_run_auto_database_recover_none_without_backups_or_db(tmp_path):
         sqlite_recover_fn=None,
     )
     assert result["strategy"] == "none"
+
+
+def test_pick_compatible_backup_falls_back_to_valid_suspicious(tmp_path):
+    temp_dir = str(tmp_path)
+    db_path = os.path.join(temp_dir, "database.db")
+    db = Database(db_path)
+    db.initialize()
+
+    backup_dir = os.path.join(temp_dir, "database-backups")
+    os.makedirs(backup_dir)
+    suspicious_path = os.path.join(backup_dir, "backup-SUSPICIOUS-valid.zip")
+    db.backup_database(temp_dir, backup_path=suspicious_path)
+    db.close_all()
+
+    corrupt_path = os.path.join(backup_dir, "backup-corrupt.zip")
+    with open(corrupt_path, "wb") as handle:
+        handle.write(b"not-a-zip")
+
+    picked = pick_compatible_backup(temp_dir, DatabaseSchema.LATEST_VERSION)
+    assert picked is not None
+    assert picked["name"] == "backup-SUSPICIOUS-valid.zip"

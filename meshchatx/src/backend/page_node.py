@@ -63,6 +63,8 @@ SUPPORTED_IMAGE_EXTENSIONS = frozenset(
 )
 
 MEDIA_QUALITY = 85
+# tempfile.tempdir / os.environ are process-global, so every media convert
+# across every PageNode instance must serialize on one shared lock.
 _MEDIA_CONVERT_ENV_LOCK = threading.Lock()
 MEDIA_MAX_DIMENSION = 1920
 MEDIA_CONVERT_TIMEOUT_SECONDS = 10
@@ -80,9 +82,6 @@ MEDIA_HASH_CACHE_MAX_ENTRIES = 1024
 MEDIA_CONVERT_FAILURE_RETRY_SECONDS = 3600
 HOSTED_FILE_MAX_BYTES = 64 * 1024 * 1024
 _FILE_READ_CHUNK_BYTES = 64 * 1024
-# tempfile.tempdir / os.environ are process-global, so every media convert
-# across every PageNode instance must serialize on one shared lock.
-_MEDIA_ENV_LOCK = threading.Lock()
 
 
 def _media_quantize(value, lattice):
@@ -409,6 +408,7 @@ class PageNode:
         self._unique_remote_hashes = set()
         self._file_access_grants = {}
         self._file_access_grants_by_identity = {}
+        self._file_access_grants_lock = threading.Lock()
         self._file_access_grant_ttl = 300
         self._exec_page_sem = threading.Semaphore(EXECUTABLE_PAGE_MAX_CONCURRENT)
         self._media_cache_lock = threading.Lock()
@@ -945,6 +945,10 @@ class PageNode:
             return None
 
     def _cleanup_file_access_grants(self):
+        with self._file_access_grants_lock:
+            self._cleanup_file_access_grants_locked()
+
+    def _cleanup_file_access_grants_locked(self):
         now = time.time()
         expired_links = [
             lid
@@ -967,32 +971,34 @@ class PageNode:
         if ttl is None:
             ttl = self._file_access_grant_ttl
         expires = time.time() + max(0, ttl)
-        self._file_access_grants[link_id] = (remote_identity, expires)
-        if remote_identity is not None:
-            try:
-                rid = RNS.hexrep(remote_identity.hash, delimit=False)
-            except Exception:
-                rid = str(remote_identity)
-            if rid:
-                self._file_access_grants_by_identity[rid] = expires
-        # Cleanup also runs on the write path: peers that fetch pages but
-        # never request files would otherwise leave expired grants in the
-        # dicts forever. Runs after the insert so a zero-TTL grant cannot
-        # outlive its own call.
-        self._cleanup_file_access_grants()
+        with self._file_access_grants_lock:
+            self._file_access_grants[link_id] = (remote_identity, expires)
+            if remote_identity is not None:
+                try:
+                    rid = RNS.hexrep(remote_identity.hash, delimit=False)
+                except Exception:
+                    rid = str(remote_identity)
+                if rid:
+                    self._file_access_grants_by_identity[rid] = expires
+            # Cleanup also runs on the write path: peers that fetch pages but
+            # never request files would otherwise leave expired grants in the
+            # dicts forever. Runs after the insert so a zero-TTL grant cannot
+            # outlive its own call.
+            self._cleanup_file_access_grants_locked()
 
     def _check_file_access(self, link_id, remote_identity):
-        self._cleanup_file_access_grants()
-        if link_id and link_id in self._file_access_grants:
-            return True
-        if remote_identity is not None:
-            try:
-                rid = RNS.hexrep(remote_identity.hash, delimit=False)
-            except Exception:
-                rid = str(remote_identity)
-            if rid and rid in self._file_access_grants_by_identity:
+        with self._file_access_grants_lock:
+            self._cleanup_file_access_grants_locked()
+            if link_id and link_id in self._file_access_grants:
                 return True
-        return False
+            if remote_identity is not None:
+                try:
+                    rid = RNS.hexrep(remote_identity.hash, delimit=False)
+                except Exception:
+                    rid = str(remote_identity)
+                if rid and rid in self._file_access_grants_by_identity:
+                    return True
+            return False
 
     def _make_page_responder(self, page_name):
         """Return a closure that serves a specific page."""
@@ -1111,7 +1117,7 @@ class PageNode:
         for part in name.split("/"):
             if not part or part in (".", ".."):
                 return None
-            if part.startswith(".") and not part.startswith(".."):
+            if part.startswith("."):
                 return None
             if "/" in part or "\\" in part or "\x00" in part:
                 return None
@@ -1300,7 +1306,7 @@ class PageNode:
         if converted_path is None:
             return None
         try:
-            with open(converted_path, "rb") as f:
+            with self._open_jailed(converted_path) as f:
                 file_bytes = f.read()
         except OSError:
             return None
@@ -1315,20 +1321,18 @@ class PageNode:
             if not self._check_file_access(link_id, remote_identity):
                 return None
 
-            media_name = ""
-            if isinstance(data, dict):
-                raw_path = data.get("path") or ""
-                if isinstance(raw_path, (bytes, bytearray)):
-                    raw_path = raw_path.decode("utf-8", errors="replace")
-                media_name = str(raw_path).strip()
-            elif isinstance(data, (bytes, bytearray)):
+            payload = data if isinstance(data, dict) else {}
+            if not payload and isinstance(data, (bytes, bytearray)):
                 with contextlib.suppress(Exception):
                     parsed = json.loads(data.decode("utf-8", errors="replace"))
                     if isinstance(parsed, dict):
-                        raw_path = parsed.get("path") or ""
-                        if isinstance(raw_path, (bytes, bytearray)):
-                            raw_path = raw_path.decode("utf-8", errors="replace")
-                        media_name = str(raw_path).strip()
+                        payload = parsed
+
+            media_name = ""
+            raw_path = payload.get("path") or ""
+            if isinstance(raw_path, (bytes, bytearray)):
+                raw_path = raw_path.decode("utf-8", errors="replace")
+            media_name = str(raw_path).strip()
             if not media_name:
                 return None
 
@@ -1338,17 +1342,16 @@ class PageNode:
 
             quality = MEDIA_QUALITY
             max_dimension = MEDIA_MAX_DIMENSION
-            if isinstance(data, dict):
+            try:
+                quality = int(payload.get("quality", quality))
+            except (TypeError, ValueError):
+                quality = MEDIA_QUALITY
+            max_dimension_raw = payload.get("max_dimension")
+            if max_dimension_raw is not None:
                 try:
-                    quality = int(data.get("quality", quality))
+                    max_dimension = int(max_dimension_raw)
                 except (TypeError, ValueError):
-                    quality = MEDIA_QUALITY
-                max_dimension_raw = data.get("max_dimension")
-                if max_dimension_raw is not None:
-                    try:
-                        max_dimension = int(max_dimension_raw)
-                    except (TypeError, ValueError):
-                        max_dimension = MEDIA_MAX_DIMENSION
+                    max_dimension = MEDIA_MAX_DIMENSION
             # Quantize onto a fixed lattice so arbitrary peer values cannot
             # grow the media cache with one file per quality/dimension pair.
             quality = _media_quantize(
@@ -1368,7 +1371,7 @@ class PageNode:
             if converted_path is None:
                 return None
             try:
-                fh = open(converted_path, "rb")
+                fh = self._open_jailed(converted_path)
                 metadata = {"name": b"image.webp"}
                 self._stats["files_served"] += 1
                 return [fh, metadata]

@@ -125,13 +125,13 @@ def register_database_routes(routes, app):
 
                 with tempfile.NamedTemporaryFile(delete=False) as tmp:
                     temp_path = tmp.name
-                await write_field_to_path(
-                    field,
-                    temp_path,
-                    UPLOAD_LIMITS["database_restore"],
-                )
 
                 try:
+                    await write_field_to_path(
+                        field,
+                        temp_path,
+                        UPLOAD_LIMITS["database_restore"],
+                    )
                     # Restore tears down identity contexts and blocks for up
                     # to ~30s. Keep it off the event loop.
                     result = await asyncio.to_thread(

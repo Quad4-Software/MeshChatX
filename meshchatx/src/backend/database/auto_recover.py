@@ -174,7 +174,8 @@ def pick_compatible_backup(
 ) -> dict[str, Any] | None:
     candidates = list_recovery_backup_candidates(storage_path)
     healthy = [row for row in candidates if not row.suspicious]
-    ordered = healthy or list(candidates)
+    suspicious = [row for row in candidates if row.suspicious]
+    ordered = healthy + suspicious
 
     for candidate in ordered:
         probe = probe_backup_zip(candidate.path)

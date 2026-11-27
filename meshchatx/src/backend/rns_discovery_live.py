@@ -225,7 +225,7 @@ def _parse_discovery_sources(value: Any) -> list[bytes]:
     try:
         hash_hex_len = (RNS.Reticulum.TRUNCATED_HASHLENGTH // 8) * 2
     except Exception:
-        hash_hex_len = 16
+        hash_hex_len = 32
     sources: list[bytes] = []
     for item in raw_items:
         hexhash = str(item).strip()
