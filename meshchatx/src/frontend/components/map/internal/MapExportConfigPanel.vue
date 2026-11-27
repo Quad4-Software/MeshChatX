@@ -8,7 +8,7 @@
             <h3 class="font-semibold text-sem-fg">{{ $t("map.export_area") }}</h3>
             <button
                 class="text-sem-fg-muted hover:text-sem-fg dark:hover:text-sem-fg-secondary"
-                @click="$emit('cancel')"
+                @click="emit('cancel')"
             >
                 <MaterialDesignIcon icon-name="close" class="size-5" />
             </button>
@@ -25,7 +25,7 @@
                         min="0"
                         max="20"
                         class="w-full bg-sem-surface-muted border border-sem-border rounded-lg px-3 py-2 text-sm text-sem-fg"
-                        @input="$emit('update:minZoom', Number($event.target.value))"
+                        @input="onMinZoomInput"
                     />
                 </div>
                 <div>
@@ -38,7 +38,7 @@
                         min="0"
                         max="20"
                         class="w-full bg-sem-surface-muted border border-sem-border rounded-lg px-3 py-2 text-sm text-sem-fg"
-                        @input="$emit('update:maxZoom', Number($event.target.value))"
+                        @input="onMaxZoomInput"
                     />
                 </div>
             </div>
@@ -53,14 +53,14 @@
                 <button
                     :disabled="exporting"
                     class="flex-1 py-2 bg-sem-surface-muted hover:bg-gray-300 bg-sem-surface dark:hover:bg-zinc-600 disabled:bg-gray-100 dark:disabled:bg-sem-surface text-sem-fg rounded-lg font-bold transition-colors focus-ring-sem"
-                    @click="$emit('cancel')"
+                    @click="emit('cancel')"
                 >
                     {{ $t("common.cancel") }}
                 </button>
                 <button
                     :disabled="exporting || tileLimitExceeded"
                     class="flex-1 py-2 bg-sem-info hover:bg-sem-action-primary disabled:opacity-50 text-sem-action-primary-text rounded-lg font-bold transition-colors shadow-md focus-ring-sem"
-                    @click="$emit('start')"
+                    @click="emit('start')"
                 >
                     {{ $t("map.start_export") }}
                 </button>
@@ -69,19 +69,36 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 
-export default {
-    name: "MapExportConfigPanel",
-    components: { MaterialDesignIcon },
-    props: {
-        minZoom: { type: Number, required: true },
-        maxZoom: { type: Number, required: true },
-        estimatedTiles: { type: [Number, String], default: 0 },
-        exporting: { type: Boolean, default: false },
-        tileLimitExceeded: { type: Boolean, default: false },
-    },
-    emits: ["cancel", "start", "update:minZoom", "update:maxZoom"],
-};
+withDefaults(
+    defineProps<{
+        minZoom: number;
+        maxZoom: number;
+        estimatedTiles?: number | string;
+        exporting?: boolean;
+        tileLimitExceeded?: boolean;
+    }>(),
+    {
+        estimatedTiles: 0,
+        exporting: false,
+        tileLimitExceeded: false,
+    }
+);
+
+const emit = defineEmits<{
+    cancel: [];
+    start: [];
+    "update:minZoom": [zoom: number];
+    "update:maxZoom": [zoom: number];
+}>();
+
+function onMinZoomInput(event: Event) {
+    emit("update:minZoom", Number((event.target as HTMLInputElement).value));
+}
+
+function onMaxZoomInput(event: Event) {
+    emit("update:maxZoom", Number((event.target as HTMLInputElement).value));
+}
 </script>

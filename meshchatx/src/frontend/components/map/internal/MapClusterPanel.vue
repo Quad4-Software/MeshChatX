@@ -21,7 +21,7 @@
             <button
                 class="text-sem-fg-muted hover:text-sem-fg dark:hover:text-sem-fg-secondary p-1"
                 title="Close"
-                @click="$emit('close')"
+                @click="emit('close')"
             >
                 <MaterialDesignIcon icon-name="close" class="size-5" />
             </button>
@@ -31,7 +31,7 @@
                 v-for="(item, idx) in cluster.items"
                 :key="idx"
                 class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-sem-surface-muted transition-colors"
-                @click="$emit('select', item)"
+                @click="emit('select', item)"
             >
                 <div
                     v-if="item.kind === 'discovered'"
@@ -66,22 +66,16 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import { getDiscoveredIconName } from "./discoveredIcons.js";
 
-export default {
-    name: "MapClusterPanel",
-    components: { MaterialDesignIcon },
-    props: {
-        cluster: {
-            type: Object,
-            required: true,
-        },
-    },
-    emits: ["close", "select"],
-    methods: {
-        getDiscoveredIconName,
-    },
-};
+defineProps<{
+    cluster: Record<string, any>;
+}>();
+
+const emit = defineEmits<{
+    close: [];
+    select: [item: any];
+}>();
 </script>
