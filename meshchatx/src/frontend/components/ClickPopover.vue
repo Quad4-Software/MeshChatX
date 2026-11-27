@@ -27,89 +27,101 @@
     </div>
 </template>
 
-<script>
-export default {
-    name: "ClickPopover",
-    props: {
-        modelValue: {
-            type: Boolean,
-            default: false,
-        },
-        placement: {
-            type: String,
-            default: "bottom",
-        },
-    },
-    emits: ["update:modelValue"],
-    data() {
-        return {
-            open: this.modelValue,
-            panelStyle: {},
-            onDocClick: null,
-            onDocKeydown: null,
+<script setup lang="ts">
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+
+const props = withDefaults(
+    defineProps<{
+        modelValue?: boolean;
+        placement?: string;
+    }>(),
+    {
+        modelValue: false,
+        placement: "bottom",
+    }
+);
+
+const emit = defineEmits<{
+    "update:modelValue": [value: boolean];
+}>();
+
+const open = ref(props.modelValue);
+const panelStyle = ref<Record<string, string>>({});
+
+const rootRef = ref<HTMLElement | null>(null);
+const panelRef = ref<HTMLElement | null>(null);
+const activatorRef = ref<HTMLElement | null>(null);
+
+watch(
+    () => props.modelValue,
+    (value) => {
+        open.value = value;
+        if (value) {
+            nextTick(() => positionPanel());
+        }
+    }
+);
+
+watch(open, (value) => {
+    emit("update:modelValue", value);
+});
+
+let onDocClick: ((event: MouseEvent) => void) | null = null;
+let onDocKeydown: ((event: KeyboardEvent) => void) | null = null;
+
+onMounted(() => {
+    onDocClick = (event: MouseEvent) => {
+        if (!open.value) {
+            return;
+        }
+        const target = event.target as Node;
+        if (rootRef.value?.contains(target) || panelRef.value?.contains(target)) {
+            return;
+        }
+        open.value = false;
+    };
+    onDocKeydown = (event: KeyboardEvent) => {
+        if (event.key === "Escape" && open.value) {
+            open.value = false;
+        }
+    };
+    document.addEventListener("click", onDocClick, true);
+    document.addEventListener("keydown", onDocKeydown);
+});
+
+onBeforeUnmount(() => {
+    if (onDocClick) {
+        document.removeEventListener("click", onDocClick, true);
+    }
+    if (onDocKeydown) {
+        document.removeEventListener("keydown", onDocKeydown);
+    }
+});
+
+function toggle() {
+    open.value = !open.value;
+    if (open.value) {
+        nextTick(() => positionPanel());
+    }
+}
+
+function positionPanel() {
+    const activator = activatorRef.value;
+    if (!activator || typeof activator.getBoundingClientRect !== "function") {
+        return;
+    }
+    const rect = activator.getBoundingClientRect();
+    const gap = 6;
+    if (props.placement === "bottom") {
+        panelStyle.value = {
+            top: `${rect.bottom + gap}px`,
+            left: `${rect.left}px`,
         };
-    },
-    watch: {
-        modelValue(value) {
-            this.open = value;
-            if (value) {
-                this.$nextTick(() => this.positionPanel());
-            }
-        },
-        open(value) {
-            this.$emit("update:modelValue", value);
-        },
-    },
-    mounted() {
-        this.onDocClick = (event) => {
-            if (!this.open) {
-                return;
-            }
-            const root = this.$refs.rootRef;
-            const panel = this.$refs.panelRef;
-            if (root?.contains(event.target) || panel?.contains(event.target)) {
-                return;
-            }
-            this.open = false;
-        };
-        this.onDocKeydown = (event) => {
-            if (event.key === "Escape" && this.open) {
-                this.open = false;
-            }
-        };
-        document.addEventListener("click", this.onDocClick, true);
-        document.addEventListener("keydown", this.onDocKeydown);
-    },
-    beforeUnmount() {
-        document.removeEventListener("click", this.onDocClick, true);
-        document.removeEventListener("keydown", this.onDocKeydown);
-    },
-    methods: {
-        toggle() {
-            this.open = !this.open;
-            if (this.open) {
-                this.$nextTick(() => this.positionPanel());
-            }
-        },
-        positionPanel() {
-            const activator = this.$refs.activatorRef;
-            if (!activator || typeof activator.getBoundingClientRect !== "function") {
-                return;
-            }
-            const rect = activator.getBoundingClientRect();
-            const gap = 6;
-            if (this.placement === "bottom") {
-                this.panelStyle = {
-                    top: `${rect.bottom + gap}px`,
-                    left: `${rect.left}px`,
-                };
-                return;
-            }
-            this.panelStyle = {
-                top: `${rect.bottom + gap}px`,
-                left: `${rect.left}px`,
-            };
-        },
-    },
-};
+        return;
+    }
+    panelStyle.value = {
+        top: `${rect.bottom + gap}px`,
+        left: `${rect.left}px`,
+    };
+}
 </script>

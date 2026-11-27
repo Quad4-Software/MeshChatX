@@ -55,71 +55,58 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, ref } from "vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import ToastUtils from "../js/ToastUtils.js";
 import { copyTextToClipboard } from "../js/clipboardUtils.js";
 import { formatFatalErrorReport } from "../js/fatalErrorState.js";
+import { translateUi } from "../js/localeLoader.js";
 
-export default {
-    name: "FatalErrorPage",
-    components: {
-        MaterialDesignIcon,
-    },
-    props: {
-        error: {
-            type: Object,
-            required: true,
-        },
-        embedded: {
-            type: Boolean,
-            default: false,
-        },
-    },
-    data() {
-        return {
-            copyLabel: "",
-            headingId: `fatal-error-title-${Math.random().toString(36).slice(2, 9)}`,
-            messageId: `fatal-error-message-${Math.random().toString(36).slice(2, 9)}`,
-        };
-    },
-    computed: {
-        kind() {
-            return this.error?.kind === "backend" ? "backend" : "frontend";
-        },
-        resolvedTitle() {
-            if (this.error?.title) {
-                return this.error.title;
-            }
-            return this.kind === "backend" ? this.$t("app.error_backend_title") : this.$t("app.error_frontend_title");
-        },
-        hasDetails() {
-            return Boolean(this.detailBody);
-        },
-        detailBody() {
-            return [this.error?.details, this.error?.context, this.error?.stack].filter(Boolean).join("\n\n");
-        },
-    },
-    created() {
-        this.copyLabel = this.$t("app.error_copy_details");
-    },
-    methods: {
-        onReload() {
-            window.location.reload();
-        },
-        async onCopy() {
-            const report = formatFatalErrorReport(this.error);
-            const ok = await copyTextToClipboard(report);
-            if (ok) {
-                ToastUtils.success(this.$t("common.copied"));
-                this.copyLabel = this.$t("common.copied");
-                window.setTimeout(() => {
-                    this.copyLabel = this.$t("app.error_copy_details");
-                }, 1800);
-            } else {
-                ToastUtils.error(this.$t("common.failed_to_copy"));
-            }
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        error: Record<string, any>;
+        embedded?: boolean;
+    }>(),
+    {
+        embedded: false,
+    }
+);
+
+const copyLabel = ref(translateUi("app.error_copy_details"));
+const headingId = `fatal-error-title-${Math.random().toString(36).slice(2, 9)}`;
+const messageId = `fatal-error-message-${Math.random().toString(36).slice(2, 9)}`;
+
+const kind = computed(() => (props.error?.kind === "backend" ? "backend" : "frontend"));
+
+const resolvedTitle = computed(() => {
+    if (props.error?.title) {
+        return props.error.title;
+    }
+    return kind.value === "backend" ? translateUi("app.error_backend_title") : translateUi("app.error_frontend_title");
+});
+
+const detailBody = computed(() =>
+    [props.error?.details, props.error?.context, props.error?.stack].filter(Boolean).join("\n\n")
+);
+
+const hasDetails = computed(() => Boolean(detailBody.value));
+
+function onReload() {
+    window.location.reload();
+}
+
+async function onCopy() {
+    const report = formatFatalErrorReport(props.error);
+    const ok = await copyTextToClipboard(report);
+    if (ok) {
+        ToastUtils.success(translateUi("common.copied"));
+        copyLabel.value = translateUi("common.copied");
+        window.setTimeout(() => {
+            copyLabel.value = translateUi("app.error_copy_details");
+        }, 1800);
+    } else {
+        ToastUtils.error(translateUi("common.failed_to_copy"));
+    }
+}
 </script>

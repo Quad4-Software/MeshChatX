@@ -61,66 +61,57 @@
     </AppModal>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, onMounted, ref } from "vue";
 import AppModal from "./AppModal.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import ToastUtils from "../js/ToastUtils";
 import { apiPath, STORAGE_KEYS } from "../js/constants";
+import { translateUi } from "../js/localeLoader.js";
 
-export default {
-    name: "IntegrityWarningModal",
-    components: {
-        AppModal,
-        MaterialDesignIcon,
-    },
-    data() {
-        return {
-            visible: false,
-            dontShowAgain: false,
-            integrity: {
-                backend: { ok: true, issues: [] },
-                data: { ok: true, issues: [] },
-            },
-        };
-    },
-    computed: {
-        issues() {
-            return [...this.integrity.backend.issues, ...this.integrity.data.issues];
-        },
-    },
-    async mounted() {
-        if (window.desktop && window.desktop.getIntegrityStatus) {
-            this.integrity = await window.desktop.getIntegrityStatus();
+const visible = ref(false);
+const dontShowAgain = ref(false);
+const integrity = ref<any>({
+    backend: { ok: true, issues: [] },
+    data: { ok: true, issues: [] },
+});
 
-            const isOk = this.integrity.backend.ok && this.integrity.data.ok;
-            if (!isOk) {
-                const dismissed = localStorage.getItem(STORAGE_KEYS.INTEGRITY_WARNING_DISMISSED);
-                const appVersion = await window.desktop.appVersion();
+const issues = computed(() => [...integrity.value.backend.issues, ...integrity.value.data.issues]);
 
-                if (dismissed !== appVersion) {
-                    this.visible = true;
-                }
+onMounted(async () => {
+    const desktop = (window as any).desktop;
+    if (desktop && desktop.getIntegrityStatus) {
+        integrity.value = await desktop.getIntegrityStatus();
+
+        const isOk = integrity.value.backend.ok && integrity.value.data.ok;
+        if (!isOk) {
+            const dismissed = localStorage.getItem(STORAGE_KEYS.INTEGRITY_WARNING_DISMISSED);
+            const appVersion = await desktop.appVersion();
+
+            if (dismissed !== appVersion) {
+                visible.value = true;
             }
         }
-    },
-    methods: {
-        async close() {
-            if (this.dontShowAgain && window.desktop) {
-                const appVersion = await window.desktop.appVersion();
-                localStorage.setItem(STORAGE_KEYS.INTEGRITY_WARNING_DISMISSED, appVersion);
-            }
-            this.visible = false;
-        },
-        async acknowledgeAndReset() {
-            try {
-                await window.api.post(apiPath("/app/integrity/acknowledge"));
-                ToastUtils.success(this.$t("about.integrity_acknowledged_reset"));
-                this.visible = false;
-            } catch (e) {
-                ToastUtils.error(this.$t("about.failed_acknowledge_integrity"));
-                console.error(e);
-            }
-        },
-    },
-};
+    }
+});
+
+async function close() {
+    const desktop = (window as any).desktop;
+    if (dontShowAgain.value && desktop) {
+        const appVersion = await desktop.appVersion();
+        localStorage.setItem(STORAGE_KEYS.INTEGRITY_WARNING_DISMISSED, appVersion);
+    }
+    visible.value = false;
+}
+
+async function acknowledgeAndReset() {
+    try {
+        await (window as any).api.post(apiPath("/app/integrity/acknowledge"));
+        ToastUtils.success(translateUi("about.integrity_acknowledged_reset"));
+        visible.value = false;
+    } catch (e) {
+        ToastUtils.error(translateUi("about.failed_acknowledge_integrity"));
+        console.error(e);
+    }
+}
 </script>

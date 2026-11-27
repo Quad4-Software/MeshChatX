@@ -46,69 +46,72 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, watch } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 
-export default {
-    name: "ShortcutRecorder",
-    components: { MaterialDesignIcon },
-    props: {
-        modelValue: {
-            type: Array,
-            default: () => [],
-        },
-        action: {
-            type: String,
-            required: true,
-        },
-    },
-    emits: ["update:modelValue", "save", "delete"],
-    data() {
-        return {
-            isRecording: false,
-            keys: [...this.modelValue],
-        };
-    },
-    watch: {
-        modelValue(newVal) {
-            this.keys = [...newVal];
-        },
-    },
-    methods: {
-        formatKey(key) {
-            if (key === "control") return "Ctrl";
-            if (key === "alt") return "Alt";
-            if (key === "shift") return "Shift";
-            if (key === "meta") return "⌘";
-            if (key === " ") return "Space";
-            return key;
-        },
-        toggleRecording() {
-            if (this.isRecording) {
-                this.stopRecording();
-            } else {
-                this.startRecording();
-            }
-        },
-        startRecording() {
-            this.isRecording = true;
-            this.keys = [];
-            KeyboardShortcuts.startRecording((keys) => {
-                this.keys = keys;
-            });
-        },
-        stopRecording() {
-            this.isRecording = false;
-            KeyboardShortcuts.stopRecording();
-            this.$emit("update:modelValue", this.keys);
-            this.$emit("save", this.keys);
-        },
-        clearShortcut() {
-            this.keys = [];
-            this.$emit("update:modelValue", []);
-            this.$emit("delete");
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        modelValue?: string[];
+        action: string;
+    }>(),
+    {
+        modelValue: () => [],
+    }
+);
+
+const emit = defineEmits<{
+    "update:modelValue": [keys: string[]];
+    save: [keys: string[]];
+    delete: [];
+}>();
+
+const isRecording = ref(false);
+const keys = ref<string[]>([...props.modelValue]);
+
+watch(
+    () => props.modelValue,
+    (newVal) => {
+        keys.value = [...newVal];
+    }
+);
+
+function formatKey(key: string) {
+    if (key === "control") return "Ctrl";
+    if (key === "alt") return "Alt";
+    if (key === "shift") return "Shift";
+    if (key === "meta") return "⌘";
+    if (key === " ") return "Space";
+    return key;
+}
+
+function toggleRecording() {
+    if (isRecording.value) {
+        stopRecording();
+    } else {
+        startRecording();
+    }
+}
+
+function startRecording() {
+    isRecording.value = true;
+    keys.value = [];
+    KeyboardShortcuts.startRecording((recorded: string[]) => {
+        keys.value = recorded;
+    });
+}
+
+function stopRecording() {
+    isRecording.value = false;
+    KeyboardShortcuts.stopRecording();
+    emit("update:modelValue", keys.value);
+    emit("save", keys.value);
+}
+
+function clearShortcut() {
+    keys.value = [];
+    emit("update:modelValue", []);
+    emit("delete");
+}
 </script>

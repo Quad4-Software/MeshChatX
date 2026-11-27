@@ -68,48 +68,49 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref } from "vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
-export default {
-    name: "AddAudioButton",
-    components: {
-        MaterialDesignIcon,
-    },
-    props: {
-        isRecordingAudioAttachment: Boolean,
-    },
-    emits: ["start-recording", "stop-recording"],
-    data() {
-        return {
-            isShowingMenu: false,
-        };
-    },
-    methods: {
-        showMenu() {
-            this.isShowingMenu = true;
-        },
-        hideMenu() {
-            this.isShowingMenu = false;
-        },
-        startRecordingAudioAttachment(args) {
-            this.isShowingMenu = false;
-            this.$emit("start-recording", args);
-        },
-        startRecordingCodec2(mode) {
-            this.startRecordingAudioAttachment({
-                codec: "codec2",
-                mode: mode,
-            });
-        },
-        startRecordingOpus() {
-            this.startRecordingAudioAttachment({
-                codec: "opus",
-            });
-        },
-        stopRecordingAudioAttachment() {
-            this.isShowingMenu = false;
-            this.$emit("stop-recording");
-        },
-    },
-};
+
+defineProps<{
+    isRecordingAudioAttachment?: boolean;
+}>();
+
+const emit = defineEmits<{
+    "start-recording": [args: Record<string, any>];
+    "stop-recording": [];
+}>();
+
+const isShowingMenu = ref(false);
+
+function showMenu() {
+    isShowingMenu.value = true;
+}
+
+function hideMenu() {
+    isShowingMenu.value = false;
+}
+
+function startRecordingAudioAttachment(args: Record<string, any>) {
+    isShowingMenu.value = false;
+    emit("start-recording", args);
+}
+
+function startRecordingCodec2(mode: string) {
+    startRecordingAudioAttachment({
+        codec: "codec2",
+        mode: mode,
+    });
+}
+
+function startRecordingOpus() {
+    startRecordingAudioAttachment({
+        codec: "opus",
+    });
+}
+
+function stopRecordingAudioAttachment() {
+    isShowingMenu.value = false;
+    emit("stop-recording");
+}
 </script>

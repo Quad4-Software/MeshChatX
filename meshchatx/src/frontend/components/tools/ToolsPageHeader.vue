@@ -36,8 +36,10 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import { translateUi } from "../../js/localeLoader.js";
 
 const ACCENT = {
     blue: {
@@ -90,35 +92,27 @@ const ACCENT = {
     },
 };
 
-export default {
-    name: "ToolsPageHeader",
-    components: { MaterialDesignIcon },
-    props: {
-        icon: { type: String, required: true },
-        title: { type: String, required: true },
-        description: { type: String, default: "" },
-        eyebrow: { type: String, default: "" },
-        accent: {
-            type: String,
-            default: "blue",
-            validator: (v) => Object.prototype.hasOwnProperty.call(ACCENT, v),
-        },
-        backTo: { type: [String, Object], default: "/tools" },
-        backLabel: { type: String, default: "" },
-    },
-    computed: {
-        palette() {
-            return ACCENT[this.accent] || ACCENT.blue;
-        },
-        iconWrapClass() {
-            return this.palette.wrap;
-        },
-        iconClass() {
-            return this.palette.icon;
-        },
-        resolvedBackLabel() {
-            return this.backLabel || this.$t("app.tools");
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        icon: string;
+        title: string;
+        description?: string;
+        eyebrow?: string;
+        accent?: string;
+        backTo?: string | Record<string, any>;
+        backLabel?: string;
+    }>(),
+    {
+        description: "",
+        eyebrow: "",
+        accent: "blue",
+        backTo: "/tools",
+        backLabel: "",
+    }
+);
+
+const palette = computed(() => (ACCENT as Record<string, any>)[props.accent] || (ACCENT as Record<string, any>).blue);
+const iconWrapClass = computed(() => palette.value.wrap);
+const iconClass = computed(() => palette.value.icon);
+const resolvedBackLabel = computed(() => props.backLabel || translateUi("app.tools"));
 </script>
