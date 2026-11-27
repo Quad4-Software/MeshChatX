@@ -27,70 +27,58 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from "vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
-export default {
-    name: "LxmfUserIcon",
-    components: {
-        MaterialDesignIcon,
-    },
-    props: {
-        customImage: {
-            type: String,
-            default: "",
-        },
-        iconName: {
-            type: String,
-            default: "",
-        },
-        iconForegroundColour: {
-            type: String,
-            default: "",
-        },
-        iconBackgroundColour: {
-            type: String,
-            default: "",
-        },
-        iconClass: {
-            type: String,
-            default: "",
-        },
-        iconStyle: {
-            type: Object,
-            default: () => ({}),
-        },
-    },
-    computed: {
-        resolvedShellClass() {
-            const extra = (this.iconClass || "").trim();
-            if (
-                /\bsize-[\w.]+\b/.test(extra) ||
-                /\bw-[\w.]+\b/.test(extra) ||
-                /\bh-[\w.]+\b/.test(extra) ||
-                /\bmin-w-/.test(extra) ||
-                /\bmin-h-/.test(extra)
-            ) {
-                return extra;
-            }
-            return ["size-6", extra].filter(Boolean).join(" ").trim();
-        },
-        finalForegroundColor() {
-            return this.iconForegroundColour && this.iconForegroundColour !== ""
-                ? this.iconForegroundColour
-                : "#6b7280";
-        },
-        finalBackgroundColor() {
-            if (this.iconBackgroundColour && this.iconBackgroundColour !== "") {
-                return this.iconBackgroundColour;
-            }
-            return "#e5e7eb";
-        },
-        fallbackBackgroundColor() {
-            if (this.iconBackgroundColour && this.iconBackgroundColour !== "") {
-                return this.iconBackgroundColour;
-            }
-            return "";
-        },
-    },
-};
+
+const props = withDefaults(
+    defineProps<{
+        customImage?: string;
+        iconName?: string;
+        iconForegroundColour?: string;
+        iconBackgroundColour?: string;
+        iconClass?: string;
+        iconStyle?: Record<string, any>;
+    }>(),
+    {
+        customImage: "",
+        iconName: "",
+        iconForegroundColour: "",
+        iconBackgroundColour: "",
+        iconClass: "",
+        iconStyle: () => ({}),
+    }
+);
+
+const resolvedShellClass = computed(() => {
+    const extra = (props.iconClass || "").trim();
+    if (
+        /\bsize-[\w.]+\b/.test(extra) ||
+        /\bw-[\w.]+\b/.test(extra) ||
+        /\bh-[\w.]+\b/.test(extra) ||
+        /\bmin-w-/.test(extra) ||
+        /\bmin-h-/.test(extra)
+    ) {
+        return extra;
+    }
+    return ["size-6", extra].filter(Boolean).join(" ").trim();
+});
+
+const finalForegroundColor = computed(() =>
+    props.iconForegroundColour && props.iconForegroundColour !== "" ? props.iconForegroundColour : "#6b7280"
+);
+
+const finalBackgroundColor = computed(() => {
+    if (props.iconBackgroundColour && props.iconBackgroundColour !== "") {
+        return props.iconBackgroundColour;
+    }
+    return "#e5e7eb";
+});
+
+const fallbackBackgroundColor = computed(() => {
+    if (props.iconBackgroundColour && props.iconBackgroundColour !== "") {
+        return props.iconBackgroundColour;
+    }
+    return "";
+});
 </script>

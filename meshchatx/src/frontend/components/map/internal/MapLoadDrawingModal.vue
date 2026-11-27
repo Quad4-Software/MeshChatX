@@ -11,7 +11,7 @@
                         <MaterialDesignIcon icon-name="folder-open-outline" class="size-6 text-sem-info" />
                         {{ $t("map.load_drawing_title") }}
                     </h2>
-                    <button class="text-sem-fg-muted hover:text-sem-fg-secondary" @click="$emit('close')">
+                    <button class="text-sem-fg-muted hover:text-sem-fg-secondary" @click="emit('close')">
                         <MaterialDesignIcon icon-name="close" class="size-6" />
                     </button>
                 </div>
@@ -37,7 +37,7 @@
                         v-for="drawing in drawings"
                         :key="drawing.id"
                         class="group p-4 bg-sem-surface-muted/50 hover:bg-sem-info/15 dark:hover:bg-sem-info/15 rounded-2xl border border-transparent hover:border-sem-info dark:hover:border-sem-info transition-all cursor-pointer flex items-center justify-between"
-                        @click="$emit('load', drawing)"
+                        @click="emit('load', drawing)"
                     >
                         <div class="flex-1 min-w-0 mr-4">
                             <div class="font-bold text-sem-fg truncate">{{ drawing.name }}</div>
@@ -48,7 +48,7 @@
                         <button
                             class="p-2 text-sem-fg-muted hover:text-sem-danger transition-colors"
                             :title="$t('common.delete')"
-                            @click.stop="$emit('delete', drawing)"
+                            @click.stop="emit('delete', drawing)"
                         >
                             <MaterialDesignIcon icon-name="trash-can-outline" class="size-5" />
                         </button>
@@ -59,7 +59,7 @@
                     <button
                         type="button"
                         class="px-6 py-2.5 rounded-xl border border-sem-border text-sm font-semibold text-sem-fg hover:bg-sem-surface-muted transition"
-                        @click="$emit('close')"
+                        @click="emit('close')"
                     >
                         {{ $t("common.close") }}
                     </button>
@@ -69,28 +69,25 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 
-export default {
-    name: "MapLoadDrawingModal",
-    components: {
-        MaterialDesignIcon,
-    },
-    props: {
-        show: {
-            type: Boolean,
-            default: false,
-        },
-        loading: {
-            type: Boolean,
-            default: false,
-        },
-        drawings: {
-            type: Array,
-            default: () => [],
-        },
-    },
-    emits: ["close", "load", "delete"],
-};
+withDefaults(
+    defineProps<{
+        show?: boolean;
+        loading?: boolean;
+        drawings?: any[];
+    }>(),
+    {
+        show: false,
+        loading: false,
+        drawings: () => [],
+    }
+);
+
+const emit = defineEmits<{
+    close: [];
+    load: [drawing: any];
+    delete: [drawing: any];
+}>();
 </script>

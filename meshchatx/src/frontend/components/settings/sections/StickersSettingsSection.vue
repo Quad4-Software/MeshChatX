@@ -16,7 +16,7 @@
                 :checked="replaceDuplicates"
                 type="checkbox"
                 class="rounded-sm"
-                @change="$emit('update:replaceDuplicates', $event.target.checked)"
+                @change="onReplaceDuplicatesChange"
             />
             {{ $t("stickers.replace_duplicates") }}
         </label>
@@ -24,7 +24,7 @@
             <button
                 type="button"
                 class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-sem-warning dark:border-sem-border bg-white/50 dark:bg-sem-surface/80 hover:border-sem-warning transition group"
-                @click="$emit('export')"
+                @click="emit('export')"
             >
                 <MaterialDesignIcon
                     icon-name="export"
@@ -63,40 +63,42 @@
     </SettingsSectionBlock>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref } from "vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import StickerPacksManager from "../../stickers/StickerPacksManager.vue";
 import SettingsSectionBlock from "../SettingsSectionBlock.vue";
 
-export default {
-    name: "StickersSettingsSection",
-    components: {
-        MaterialDesignIcon,
-        StickerPacksManager,
-        SettingsSectionBlock,
-    },
-    props: {
-        visible: {
-            type: Boolean,
-            default: true,
-        },
-        stickerCount: {
-            type: Number,
-            default: 0,
-        },
-        replaceDuplicates: {
-            type: Boolean,
-            default: false,
-        },
-    },
-    emits: ["export", "import", "update:replaceDuplicates"],
-    methods: {
-        triggerImport() {
-            this.$refs.importFile?.click();
-        },
-        onImportChange(event) {
-            this.$emit("import", event);
-        },
-    },
-};
+withDefaults(
+    defineProps<{
+        visible?: boolean;
+        stickerCount?: number;
+        replaceDuplicates?: boolean;
+    }>(),
+    {
+        visible: true,
+        stickerCount: 0,
+        replaceDuplicates: false,
+    }
+);
+
+const emit = defineEmits<{
+    export: [];
+    import: [event: Event];
+    "update:replaceDuplicates": [value: boolean];
+}>();
+
+const importFile = ref<HTMLInputElement | null>(null);
+
+function triggerImport() {
+    importFile.value?.click();
+}
+
+function onImportChange(event: Event) {
+    emit("import", event);
+}
+
+function onReplaceDuplicatesChange(event: Event) {
+    emit("update:replaceDuplicates", (event.target as HTMLInputElement).checked);
+}
 </script>

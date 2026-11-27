@@ -16,83 +16,80 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useConfigStore } from "../../js/stores/configStore";
 
 import PluginSlotRenderer from "./PluginSlotRenderer.vue";
 import { pluginHost } from "../../js/plugins/PluginHost.js";
 import { resolveEffectiveTheme, shellCanvasBackgroundStyle } from "../../theme/themeEngine.js";
 
-export default {
-    name: "PluginPage",
-    components: { PluginSlotRenderer },
-    props: {
-        pluginId: {
-            type: String,
-            required: true,
-        },
-    },
-    data() {
-        return {
-            descriptor: null,
-            uiError: "",
-            allowedWidgets: [],
-            allowHtmlFrame: false,
-        };
-    },
-    computed: {
-        config() {
-            return useConfigStore().config || {};
-        },
-        effectiveThemeMode() {
-            return resolveEffectiveTheme(this.config.theme);
-        },
-        pageStyle() {
-            const transparency = Number(this.config.ui_transparency) || 0;
-            if (transparency <= 0) {
-                return {};
-            }
-            return {
-                backgroundColor: shellCanvasBackgroundStyle(this.config, this.effectiveThemeMode),
-            };
-        },
-        panelClass() {
-            const glass = this.config.ui_glass_enabled !== false;
-            return glass ? "glass-card bg-sem-surface/90" : "bg-sem-surface";
-        },
-    },
-    mounted() {
-        const caps = pluginHost.getPluginUiCaps(this.pluginId);
-        this.allowedWidgets = caps.allowedWidgets || [];
-        this.allowHtmlFrame = Boolean(caps.allowHtmlFrame);
-        this.descriptor = pluginHost.getLastDescriptor(this.pluginId);
-        this.uiError = pluginHost.getLastUiError(this.pluginId) || "";
-        this.uiListener = (event) => {
-            if (event.detail?.pluginId === this.pluginId) {
-                this.descriptor = event.detail.descriptor;
-                this.uiError = event.detail.error || "";
-            }
-        };
-        this.errorListener = (event) => {
-            if (event.detail?.pluginId === this.pluginId && event.detail?.uiError) {
-                this.uiError = event.detail.message || "";
-            }
-        };
-        window.addEventListener("meshchatx-plugin-ui", this.uiListener);
-        window.addEventListener("meshchatx-plugin-ui-error", this.errorListener);
-        pluginHost.requestUiRefresh(this.pluginId);
-    },
-    beforeUnmount() {
-        window.removeEventListener("meshchatx-plugin-ui", this.uiListener);
-        window.removeEventListener("meshchatx-plugin-ui-error", this.errorListener);
-    },
-    methods: {
-        onAction(actionId) {
-            pluginHost.postAction(this.pluginId, actionId);
-        },
-        onInput(payload) {
-            pluginHost.postInput(this.pluginId, payload.id, payload.value);
-        },
-    },
-};
+const props = defineProps<{
+    pluginId: string;
+}>();
+
+const descriptor = ref<any>(null);
+const uiError = ref("");
+const allowedWidgets = ref<string[]>([]);
+const allowHtmlFrame = ref(false);
+
+const config = computed(() => useConfigStore().config || {});
+const effectiveThemeMode = computed(() => resolveEffectiveTheme(config.value.theme));
+const pageStyle = computed(() => {
+    const transparency = Number(config.value.ui_transparency) || 0;
+    if (transparency <= 0) {
+        return {};
+    }
+    return {
+        backgroundColor: shellCanvasBackgroundStyle(config.value, effectiveThemeMode.value),
+    };
+});
+const panelClass = computed(() => {
+    const glass = config.value.ui_glass_enabled !== false;
+    return glass ? "glass-card bg-sem-surface/90" : "bg-sem-surface";
+});
+
+let uiListener: ((event: Event) => void) | null = null;
+let errorListener: ((event: Event) => void) | null = null;
+
+onMounted(() => {
+    const caps = pluginHost.getPluginUiCaps(props.pluginId);
+    allowedWidgets.value = caps.allowedWidgets || [];
+    allowHtmlFrame.value = Boolean(caps.allowHtmlFrame);
+    descriptor.value = pluginHost.getLastDescriptor(props.pluginId);
+    uiError.value = pluginHost.getLastUiError(props.pluginId) || "";
+    uiListener = (event: Event) => {
+        const detail = (event as CustomEvent).detail;
+        if (detail?.pluginId === props.pluginId) {
+            descriptor.value = detail.descriptor;
+            uiError.value = detail.error || "";
+        }
+    };
+    errorListener = (event: Event) => {
+        const detail = (event as CustomEvent).detail;
+        if (detail?.pluginId === props.pluginId && detail?.uiError) {
+            uiError.value = detail.message || "";
+        }
+    };
+    window.addEventListener("meshchatx-plugin-ui", uiListener);
+    window.addEventListener("meshchatx-plugin-ui-error", errorListener);
+    pluginHost.requestUiRefresh(props.pluginId);
+});
+
+onBeforeUnmount(() => {
+    if (uiListener) {
+        window.removeEventListener("meshchatx-plugin-ui", uiListener);
+    }
+    if (errorListener) {
+        window.removeEventListener("meshchatx-plugin-ui-error", errorListener);
+    }
+});
+
+function onAction(actionId: string) {
+    pluginHost.postAction(props.pluginId, actionId);
+}
+
+function onInput(payload: { id: string; value: any }) {
+    pluginHost.postInput(props.pluginId, payload.id, payload.value);
+}
 </script>
