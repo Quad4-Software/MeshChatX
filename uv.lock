@@ -3062,7 +3062,7 @@ wheels = [
 
 [[package]]
 name = "reticulum-meshchatx"
-version = "4.12.2"
+version = "4.13.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },

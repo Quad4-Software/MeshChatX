@@ -11,11 +11,11 @@
         <key>CFBundleIdentifier</key>
         <string>com.meshchatx.app</string>
         <key>CFBundleVersion</key>
-        <string>4.12.2</string>
+        <string>4.13.0</string>
         <key>CFBundleGetInfoString</key>
         <string>Mesh networking chat client</string>
         <key>CFBundleShortVersionString</key>
-        <string>4.12.2</string>
+        <string>4.13.0</string>
         <key>CFBundleIconFile</key>
         <string>icons</string>
         <key>LSMinimumSystemVersion</key>

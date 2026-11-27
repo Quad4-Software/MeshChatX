@@ -14,7 +14,7 @@
     !define INFO_PRODUCTNAME "Reticulum MeshChatX"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "4.12.2"
+    !define INFO_PRODUCTVERSION "4.13.0"
 !endif
 !ifndef INFO_COPYRIGHT
     !define INFO_COPYRIGHT "(c) 2025, Quad4"
