@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeshChatX Flatpak</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 44rem; margin: 3rem auto; padding: 0 1rem; line-height: 1.5; }
+    code, pre { background: #f4f4f5; border-radius: 6px; }
+    code { padding: .1em .35em; }
+    pre { padding: 1rem; overflow-x: auto; }
+    h1 { margin-bottom: .2rem; }
+  </style>
+</head>
+<body>
+  <h1>MeshChatX Flatpak</h1>
+  <p>Install from the remote, then run <code>flatpak update</code> for new releases on that branch.</p>
+  <p>Only channels with a published build are listed. Beta and testing refs appear after the first beta-* or nightly-*/testing-* tag publishes.</p>
+  <h2>Stable</h2>
+  <pre>flatpak install --from https://quad4-software.github.io/MeshChatX/flatpak/meshchatx-stable.flatpakref</pre>
+  <h2>Remote only</h2>
+  <pre>flatpak remote-add --if-not-exists meshchatx https://quad4-software.github.io/MeshChatX/flatpak/meshchatx.flatpakrepo
+flatpak install meshchatx com.meshchatx.app//stable</pre>
+  <p>Then run <code>flatpak run com.meshchatx.app</code> or launch from your app menu.</p>
+  <p><a href="https://github.com/Quad4-Software/MeshChatX">Project on GitHub</a></p>
+</body>
+</html>
