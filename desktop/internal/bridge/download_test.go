@@ -2,6 +2,7 @@ package bridge
 
 import (
 	"encoding/base64"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -205,4 +206,54 @@ func TestChunkRejectsOversizedBase64Input(t *testing.T) {
 		t.Fatal("oversized base64 payload accepted")
 	}
 	d.Abort(id)
+}
+
+func TestSanitizeNameLongExtension(t *testing.T) {
+	got := sanitizeName("a." + strings.Repeat("b", 300))
+	if len(got) > maxNameBytes {
+		t.Fatalf("len=%d exceeds maxNameBytes", len(got))
+	}
+	if !utf8Valid(got) {
+		t.Fatal("invalid UTF-8")
+	}
+	if got == "" {
+		t.Fatal("empty result")
+	}
+}
+
+func TestBeginConcurrentCap(t *testing.T) {
+	dir := t.TempDir()
+	d := NewDownloadManager(func() string { return dir })
+	const callers = 24
+	var wg sync.WaitGroup
+	results := make([]map[string]any, callers)
+	for i := 0; i < callers; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			results[i] = d.Begin(fmt.Sprintf("f%02d.bin", i), 1, 1)
+		}(i)
+	}
+	wg.Wait()
+	ok := 0
+	for _, r := range results {
+		if r["ok"] == true {
+			ok++
+		} else if r["error"] != "too many concurrent downloads" {
+			t.Fatalf("unexpected begin failure: %v", r)
+		}
+	}
+	d.mu.Lock()
+	active := len(d.active)
+	d.mu.Unlock()
+	if ok != maxConcurrentDownloads || active != maxConcurrentDownloads {
+		t.Fatalf("cap bypassed: ok=%d active=%d", ok, active)
+	}
+	entries, err := os.ReadDir(filepath.Join(dir, "MeshChatX"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != ok {
+		t.Fatalf("rejected begins leaked files: %d files for %d accepted", len(entries), ok)
+	}
 }

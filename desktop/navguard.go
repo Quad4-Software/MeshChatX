@@ -24,6 +24,7 @@ const (
 type navPending struct {
 	since   time.Time
 	retried bool
+	seq     uint64
 }
 
 // navGuard enforces in-window navigation policy after each page finishes
@@ -44,6 +45,8 @@ type navGuard struct {
 
 	fallback string
 	lastGood string
+	seq      uint64
+	seqByID  map[uint]uint64
 	pending  map[uint]navPending
 	cancels  map[uint]func()
 	enf      map[uint][]time.Time
@@ -54,6 +57,7 @@ func newNavGuard(fallback string) *navGuard {
 		now:      time.Now,
 		fallback: fallback,
 		lastGood: fallback,
+		seqByID:  map[uint]uint64{},
 		pending:  map[uint]navPending{},
 		cancels:  map[uint]func(){},
 		enf:      map[uint][]time.Time{},
@@ -74,16 +78,22 @@ func (g *navGuard) onPageFinished(id uint) {
 	}
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	g.pending[id] = navPending{since: g.now()}
+	g.seq++
+	seq := g.seq
+	g.seqByID[id] = seq
+	g.pending[id] = navPending{since: g.now(), seq: seq}
 	if c, ok := g.cancels[id]; ok {
 		c()
 	}
-	g.cancels[id] = g.schedule(navCheckDelay, func() { g.check(id) })
+	g.cancels[id] = g.schedule(navCheckDelay, func() { g.check(id, seq) })
 }
 
-func (g *navGuard) check(id uint) {
+func (g *navGuard) check(id uint, seq uint64) {
 	g.mu.Lock()
 	p, ok := g.pending[id]
+	if ok && p.seq != seq {
+		ok = false
+	}
 	if ok {
 		delete(g.pending, id)
 	}
@@ -102,7 +112,9 @@ func (g *navGuard) check(id uint) {
 	if action == security.NavAllow {
 		if fresh && !child && isRestorableURL(url) {
 			g.mu.Lock()
-			g.lastGood = url
+			if g.seqByID[id] == seq {
+				g.lastGood = url
+			}
 			g.mu.Unlock()
 		}
 		return
@@ -111,11 +123,24 @@ func (g *navGuard) check(id uint) {
 		// No bridge report yet: the page may still be initialising. Retry
 		// once before treating the load as a foreign (bridge-less) page.
 		g.mu.Lock()
-		g.pending[id] = navPending{since: p.since, retried: true}
-		g.cancels[id] = g.schedule(navRetryDelay, func() { g.check(id) })
+		if g.seqByID[id] != seq {
+			g.mu.Unlock()
+			return
+		}
+		if c, ok := g.cancels[id]; ok {
+			c()
+		}
+		g.pending[id] = navPending{since: p.since, retried: true, seq: seq}
+		g.cancels[id] = g.schedule(navRetryDelay, func() { g.check(id, seq) })
 		g.mu.Unlock()
 		return
 	}
+	g.mu.Lock()
+	if g.seqByID[id] != seq {
+		g.mu.Unlock()
+		return
+	}
+	g.mu.Unlock()
 	if g.log != nil {
 		kind := "main"
 		if child {

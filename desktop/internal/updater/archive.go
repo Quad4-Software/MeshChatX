@@ -102,6 +102,13 @@ func (s *extractState) addFile(path string, mode os.FileMode, r io.Reader, limit
 	if s.total > maxExtractBytes {
 		return fmt.Errorf("payload exceeds extraction cap")
 	}
+	remaining := maxExtractBytes - s.total
+	if remaining < 0 {
+		return fmt.Errorf("payload exceeds extraction cap")
+	}
+	if limit > remaining {
+		limit = remaining
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}

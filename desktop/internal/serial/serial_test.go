@@ -462,3 +462,58 @@ func TestGrantUseRefreshesExpiry(t *testing.T) {
 		t.Fatalf("grant used at TTL-1m should still live: %v", err)
 	}
 }
+
+func TestActiveSessionSurvivesGrantTTL(t *testing.T) {
+	port := newFakePort()
+	m := newTestManager(port)
+	base := time.Now()
+	m.now = func() time.Time { return base }
+	g, err := m.GrantPort("/dev/ttyUSB0", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Open(g.Token, OpenOptions{}, func(string, any) {}); err != nil {
+		t.Fatal(err)
+	}
+	// Activity right before the TTL boundary refreshes the grant.
+	base = base.Add(grantTTL - time.Second)
+	if _, err := m.Read(g.Token, 16); err != nil {
+		t.Fatal(err)
+	}
+	// Now past grant time + TTL: a new grant purges only stale grants.
+	base = base.Add(2 * time.Second)
+	if _, err := m.GrantPort("/dev/ttyACM0", nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Write(g.Token, []byte{0x01}); err != nil {
+		t.Fatalf("active session killed by grant TTL: %v", err)
+	}
+	if _, err := m.Read(g.Token, 16); err != nil {
+		t.Fatalf("active session killed by grant TTL: %v", err)
+	}
+}
+
+func TestGrantOrderStaysBounded(t *testing.T) {
+	m := newTestManager(newFakePort())
+	base := time.Now()
+	m.now = func() time.Time { return base }
+	for i := 0; i < maxGrants*3; i++ {
+		g, err := m.GrantPort("/dev/ttyUSB0", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		switch i % 3 {
+		case 0:
+			m.RevokeGrant(g.Token)
+		case 1:
+			base = base.Add(2 * grantTTL) // expire on next purge
+		}
+	}
+	m.mu.Lock()
+	n := len(m.grantOrder)
+	g := len(m.grants)
+	m.mu.Unlock()
+	if n > maxGrants {
+		t.Fatalf("grantOrder grew unbounded: %d (grants=%d)", n, g)
+	}
+}

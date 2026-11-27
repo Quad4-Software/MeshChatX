@@ -161,6 +161,7 @@ func (m *Manager) GrantPort(path string, filters []Filter) (*Grant, error) {
 	m.mu.Lock()
 	var closing []*session
 	m.purgeGrantsLocked(&closing)
+	m.compactGrantOrderLocked()
 	for len(m.grants) >= maxGrants {
 		oldest := ""
 		for _, t := range m.grantOrder {
@@ -178,6 +179,7 @@ func (m *Manager) GrantPort(path string, filters []Filter) (*Grant, error) {
 			closing = append(closing, s)
 		}
 	}
+	m.compactGrantOrderLocked()
 	m.grants[token] = &grantEntry{grant: g, used: m.now()}
 	m.grantOrder = append(m.grantOrder, token)
 	m.mu.Unlock()
@@ -198,6 +200,18 @@ func (m *Manager) purgeGrantsLocked(closing *[]*session) {
 			}
 		}
 	}
+}
+
+// compactGrantOrderLocked drops stale tokens so grantOrder stays bounded
+// by the number of live grants.
+func (m *Manager) compactGrantOrderLocked() {
+	kept := m.grantOrder[:0]
+	for _, t := range m.grantOrder {
+		if _, ok := m.grants[t]; ok {
+			kept = append(kept, t)
+		}
+	}
+	m.grantOrder = kept
 }
 
 func (m *Manager) grantLocked(token string) *grantEntry {
@@ -237,6 +251,7 @@ func newToken() (string, error) {
 func (m *Manager) RevokeGrant(token string) {
 	m.mu.Lock()
 	delete(m.grants, token)
+	m.compactGrantOrderLocked()
 	s := m.sessions[token]
 	delete(m.sessions, token)
 	m.mu.Unlock()
@@ -384,6 +399,9 @@ func (m *Manager) session(token string) (*session, error) {
 	s, ok := m.sessions[token]
 	if !ok {
 		return nil, ErrPortNotOpen
+	}
+	if e, ok := m.grants[token]; ok {
+		e.used = m.now()
 	}
 	return s, nil
 }

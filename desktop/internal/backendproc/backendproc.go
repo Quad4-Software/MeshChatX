@@ -407,7 +407,8 @@ func (m *Manager) SpawnBackend(exePath string, integrityRef *integrity.Result) (
 
 	m.mu.Lock()
 	m.child = cmd
-	m.childDone = make(chan struct{})
+	done := make(chan struct{})
+	m.childDone = done
 	m.childExitCode = nil
 	m.childExitSignal = ""
 	m.childKilled = false
@@ -419,7 +420,7 @@ func (m *Manager) SpawnBackend(exePath string, integrityRef *integrity.Result) (
 	}
 	m.mu.Unlock()
 
-	m.wireChild(cmd, stdout, stderr, false)
+	m.wireChild(cmd, done, stdout, stderr, false)
 	return map[string]any{"ok": true, "pid": pid}, nil
 }
 
@@ -469,7 +470,7 @@ func pumpReadLine(br *bufio.Reader) (string, error) {
 	}
 }
 
-func (m *Manager) wireChild(cmd *exec.Cmd, stdout, stderr interface{ Read([]byte) (int, error) }, isMaintenance bool) {
+func (m *Manager) wireChild(cmd *exec.Cmd, done chan struct{}, stdout, stderr interface{ Read([]byte) (int, error) }, isMaintenance bool) {
 	pump := func(streamName string, r interface{ Read([]byte) (int, error) }) {
 		br := bufio.NewReaderSize(r, pumpLineCap+1)
 		for {
@@ -491,7 +492,6 @@ func (m *Manager) wireChild(cmd *exec.Cmd, stdout, stderr interface{ Read([]byte
 	go pump("stdout", stdout)
 	go pump("stderr", stderr)
 
-	done := make(chan struct{})
 	go func() {
 		err := cmd.Wait()
 		code := -1
@@ -535,16 +535,6 @@ func (m *Manager) wireChild(cmd *exec.Cmd, stdout, stderr interface{ Read([]byte
 		}
 		m.handleChildExit(codePtr, signal)
 	}()
-
-	if isMaintenance {
-		m.mu.Lock()
-		m.maintenanceDone = done
-		m.mu.Unlock()
-	} else {
-		m.mu.Lock()
-		m.childDone = done
-		m.mu.Unlock()
-	}
 }
 
 func (m *Manager) handleChildExit(code *int, signal string) {

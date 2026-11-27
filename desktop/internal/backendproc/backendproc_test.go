@@ -500,3 +500,28 @@ func TestMaintenanceTaskOutputCapped(t *testing.T) {
 		t.Fatalf("stdout not capped: %d", len(res["stdout"].(string)))
 	}
 }
+
+func TestChildDoneChannelCapturedAtSpawnCloses(t *testing.T) {
+	m, _ := newTestManager(t)
+	exe := writeStubBackend(t, t.TempDir(), "ReticulumMeshChatX", "#!/bin/sh\nsleep 30\n")
+	if _, err := m.SpawnBackend(exe, nil); err != nil {
+		t.Fatal(err)
+	}
+	m.mu.Lock()
+	done := m.childDone
+	m.mu.Unlock()
+	if done == nil {
+		t.Fatal("childDone not set at spawn")
+	}
+	m.KillChild(syscall.SIGKILL)
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("captured childDone channel never closed")
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.childDone != done {
+		t.Fatal("childDone was replaced after spawn")
+	}
+}

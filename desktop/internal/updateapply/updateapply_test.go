@@ -196,3 +196,62 @@ func TestCopyFileSync(t *testing.T) {
 		t.Fatalf("copied %q", got)
 	}
 }
+
+func TestSha256FileOnDirectoryReturnsError(t *testing.T) {
+	if got, err := sha256File(t.TempDir()); err == nil {
+		t.Fatalf("expected error hashing a directory, got hash %q", got)
+	}
+}
+
+func TestReplaceFileByCopyPreservesExecutableMode(t *testing.T) {
+	dir := t.TempDir()
+	src := filepath.Join(dir, "src.bin")
+	dst := filepath.Join(dir, "dst.bin")
+	if err := os.WriteFile(src, []byte("new-payload"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(dst, []byte("old"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := replaceFileByCopy(src, dst, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(dst)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "new-payload" {
+		t.Fatalf("dst content = %q", data)
+	}
+	info, err := os.Stat(dst)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o755 {
+		t.Fatalf("dst mode = %o", info.Mode().Perm())
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		if filepath.Base(e.Name()) != e.Name() || len(e.Name()) == 0 {
+			continue
+		}
+		if filepath.Ext(e.Name()) == "" && e.Name() != "src.bin" && e.Name() != "dst.bin" {
+			t.Fatalf("temp sibling leaked: %s", e.Name())
+		}
+	}
+}
+
+func TestReplaceFileByCopyMissingDestDir(t *testing.T) {
+	dir := t.TempDir()
+	src := filepath.Join(dir, "src.bin")
+	if err := os.WriteFile(src, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := replaceFileByCopy(src, filepath.Join(dir, "no-such-dir", "dst.bin"), 0o755)
+	if err == nil {
+		t.Fatal("expected error for missing destination dir")
+	}
+}

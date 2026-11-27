@@ -155,3 +155,36 @@ func TestNavGuardDataURLNoExternal(t *testing.T) {
 		t.Fatal("data: URL not restored")
 	}
 }
+
+func TestNavGuardStaleCheckDoesNotSupersede(t *testing.T) {
+	f := newNavFake()
+	g := f.guard()
+
+	superseded := false
+	g.report = func(id uint) (bridge.PageReport, bool) {
+		if !superseded {
+			superseded = true
+			// A newer page load lands while the first check is mid-flight.
+			g.onPageFinished(1)
+		}
+		return bridge.PageReport{}, false
+	}
+
+	g.onPageFinished(1)
+	f.fireLast() // stale check (seq 1): superseded mid-flight -> no retry write
+	if len(f.mainSet) != 0 || len(f.closed) != 0 || f.crashed != 0 {
+		t.Fatal("stale check enforced")
+	}
+	if len(f.scheduled) != 1 {
+		t.Fatalf("newer pending schedule lost: %d scheduled", len(f.scheduled))
+	}
+
+	f.fireLast() // newer check (seq 2): still no report -> retry armed
+	if len(f.mainSet) != 0 {
+		t.Fatal("enforced before retry")
+	}
+	f.fireLast() // retry: no report -> enforce
+	if len(f.mainSet) != 1 {
+		t.Fatalf("newer pending check did not enforce: %v", f.mainSet)
+	}
+}

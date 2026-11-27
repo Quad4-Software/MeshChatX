@@ -23,10 +23,10 @@ const (
 // under <Downloads>/MeshChatX (Electron's exchange dir), sanitizing names and
 // de-duplicating collisions.
 type DownloadManager struct {
-	mu      sync.Mutex
-	getDir  func() string
-	dir     string
-	active  map[string]*downloadState
+	mu     sync.Mutex
+	getDir func() string
+	dir    string
+	active map[string]*downloadState
 
 	// janitor state (lazy; injectable for tests)
 	janitorStarted bool
@@ -118,18 +118,22 @@ func sanitizeName(name string) string {
 	if reservedNames[stem] {
 		out = "_" + out
 	}
-	// rune-safe byte cap keeping the extension
+	// rune-safe byte cap keeping the extension when it is short enough to
+	// be worth keeping; a longer "extension" is just tail bytes, so drop it.
 	if len(out) > maxNameBytes {
 		ext := filepath.Ext(out)
-		keep := maxNameBytes - len(ext)
-		if keep < 16 {
-			keep = 16
+		if len(ext) > 32 || len(ext) > maxNameBytes-16 {
+			ext = ""
 		}
+		keep := maxNameBytes - len(ext)
 		runes := []rune(out)
 		for len(string(runes)) > keep {
 			runes = runes[:len(runes)-1]
 		}
-		out = string(runes) + ext
+		out = strings.TrimRight(string(runes), ". ") + ext
+		if out == "" {
+			out = "download"
+		}
 	}
 	return out
 }
@@ -187,6 +191,14 @@ func (d *DownloadManager) Begin(name string, size int64, windowID uint) map[stri
 	_, _ = rand.Read(idBytes[:])
 	id := fmt.Sprintf("dl-%x", idBytes)
 	d.mu.Lock()
+	// Re-check under the lock: the early check races with other Begin calls
+	// that may have filled the cap while this file was being created.
+	if len(d.active) >= maxConcurrentDownloads {
+		d.mu.Unlock()
+		_ = f.Close()
+		_ = os.Remove(path)
+		return map[string]any{"ok": false, "error": "too many concurrent downloads"}
+	}
 	d.active[id] = &downloadState{path: path, file: f, size: size, lastSeen: d.now(), windowID: windowID}
 	if !d.janitorStarted {
 		d.janitorStarted = true

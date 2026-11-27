@@ -23,15 +23,8 @@ func sha256File(filePath string) (string, error) {
 	}
 	defer f.Close()
 	h := sha256.New()
-	buf := make([]byte, 1<<20)
-	for {
-		n, err := f.Read(buf)
-		if n > 0 {
-			h.Write(buf[:n])
-		}
-		if err != nil {
-			break
-		}
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
 	}
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
@@ -122,8 +115,8 @@ func ApplyPendingUpdate(storageDir string) map[string]any {
 	}
 	_ = os.Chmod(stagedPath, 0o755)
 	if err := os.Rename(stagedPath, targetPath); err != nil {
-		if cerr := copyFileSync(stagedPath, targetPath); cerr != nil {
-			return fail(fmt.Sprintf("swap_failed: %s", err.Error()), nil)
+		if cerr := replaceFileByCopy(stagedPath, targetPath, 0o755); cerr != nil {
+			return fail(fmt.Sprintf("swap_failed: %s", cerr.Error()), nil)
 		}
 		_ = os.Remove(stagedPath)
 	}
@@ -186,4 +179,52 @@ func fsyncDir(dir string) {
 		_ = f.Sync()
 		_ = f.Close()
 	}
+}
+
+// replaceFileByCopy swaps src into dst for cross-device cases where
+// os.Rename fails: copy to a temp sibling of dst, then rename within the
+// same directory so the final swap stays atomic.
+func replaceFileByCopy(src, dst string, mode os.FileMode) error {
+	dir := filepath.Dir(dst)
+	tmp, err := os.CreateTemp(dir, ".swap-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	ok := false
+	defer func() {
+		if !ok {
+			_ = os.Remove(tmpPath)
+		}
+	}()
+	in, err := os.Open(src)
+	if err != nil {
+		tmp.Close()
+		return err
+	}
+	if _, err := io.Copy(tmp, in); err != nil {
+		in.Close()
+		tmp.Close()
+		return err
+	}
+	if err := in.Close(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := os.Chmod(tmpPath, mode); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpPath, dst); err != nil {
+		return err
+	}
+	ok = true
+	return nil
 }
