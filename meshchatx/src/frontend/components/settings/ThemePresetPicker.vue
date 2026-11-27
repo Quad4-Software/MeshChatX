@@ -103,7 +103,6 @@ function previewColorsForPreset(presetId: string) {
     return getThemePresetPreviewColors(previewConfigForPreset(presetId), previewMode.value);
 }
 
-
 function previewPreset(presetId: string) {
     if (normalizeThemePreset(presetId) === normalizedValue.value) {
         return;
