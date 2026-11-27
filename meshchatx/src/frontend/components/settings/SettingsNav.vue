@@ -8,7 +8,7 @@
                 class="settings-nav__mode-btn focus-ring-sem"
                 :class="{ 'settings-nav__mode-btn--active': mode === 'simple' }"
                 :aria-pressed="mode === 'simple' ? 'true' : 'false'"
-                @click="$emit('update:mode', 'simple')"
+                @click="emit('update:mode', 'simple')"
             >
                 {{ $t("settings.mode_simple") }}
             </button>
@@ -17,7 +17,7 @@
                 class="settings-nav__mode-btn focus-ring-sem"
                 :class="{ 'settings-nav__mode-btn--active': mode === 'advanced' }"
                 :aria-pressed="mode === 'advanced' ? 'true' : 'false'"
-                @click="$emit('update:mode', 'advanced')"
+                @click="emit('update:mode', 'advanced')"
             >
                 {{ $t("settings.mode_advanced") }}
             </button>
@@ -46,61 +46,53 @@
     </nav>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import { SETTINGS_TABS, isAdvancedSettingsSection } from "../../js/settings/settingsTabs.js";
 
-export default {
-    name: "SettingsNav",
-    components: {
-        MaterialDesignIcon,
-    },
-    props: {
-        activeTab: {
-            type: String,
-            required: true,
-        },
-        matchCounts: {
-            type: Object,
-            default: null,
-        },
-        mode: {
-            type: String,
-            default: "advanced",
-        },
-    },
-    emits: ["select", "update:mode"],
-    data() {
-        return {
-            tabs: SETTINGS_TABS,
-        };
-    },
-    computed: {
-        searchActive() {
-            return this.matchCounts != null;
-        },
-        visibleTabs() {
-            if (this.searchActive || this.mode !== "simple") {
-                return this.tabs;
-            }
-            return this.tabs.filter((tab) => tab.sections.some((s) => !isAdvancedSettingsSection(s)));
-        },
-    },
-    methods: {
-        matchCount(tabId) {
-            if (!this.matchCounts) return 0;
-            const n = this.matchCounts[tabId];
-            return typeof n === "number" && n > 0 ? n : 0;
-        },
-        isSearchEmpty(tabId) {
-            return this.searchActive && this.matchCount(tabId) === 0;
-        },
-        onTabClick(tabId) {
-            if (this.isSearchEmpty(tabId)) return;
-            this.$emit("select", tabId);
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        activeTab: string;
+        matchCounts?: Record<string, number> | null;
+        mode?: string;
+    }>(),
+    {
+        matchCounts: null,
+        mode: "advanced",
+    }
+);
+
+const emit = defineEmits<{
+    select: [tabId: string];
+    "update:mode": [mode: string];
+}>();
+
+const tabs = SETTINGS_TABS;
+
+const searchActive = computed(() => props.matchCounts != null);
+
+const visibleTabs = computed(() => {
+    if (searchActive.value || props.mode !== "simple") {
+        return tabs;
+    }
+    return (tabs as any[]).filter((tab) => tab.sections.some((s: string) => !isAdvancedSettingsSection(s)));
+});
+
+function matchCount(tabId: string) {
+    if (!props.matchCounts) return 0;
+    const n = props.matchCounts[tabId];
+    return typeof n === "number" && n > 0 ? n : 0;
+}
+
+function isSearchEmpty(tabId: string) {
+    return searchActive.value && matchCount(tabId) === 0;
+}
+
+function onTabClick(tabId: string) {
+    if (isSearchEmpty(tabId)) return;
+    emit("select", tabId);
+}
 </script>
 
 <style scoped>
