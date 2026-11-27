@@ -22,7 +22,7 @@
             <button
                 type="button"
                 class="rounded-lg border border-sem-border bg-sem-surface-muted px-3 py-1.5 text-xs font-semibold text-sem-fg transition-colors hover:bg-sem-surface focus:outline-hidden focus-visible:ring-1 focus-visible:ring-sem-info/50"
-                @click="$emit('cancel')"
+                @click="emit('cancel')"
             >
                 {{ $t("common.cancel") }}
             </button>
@@ -45,17 +45,27 @@
     </div>
 </template>
 
-<script>
-export default {
-    name: "NetworkVisualiserLoadingOverlay",
-    props: {
-        isLoading: { type: Boolean, default: false },
-        loadingStatus: { type: String, default: "" },
-        totalNodesToLoad: { type: Number, default: 0 },
-        loadedNodesCount: { type: Number, default: 0 },
-        currentBatch: { type: Number, default: 0 },
-        totalBatches: { type: Number, default: 0 },
-    },
-    emits: ["cancel"],
-};
+<script setup lang="ts">
+withDefaults(
+    defineProps<{
+        isLoading?: boolean;
+        loadingStatus?: string;
+        totalNodesToLoad?: number;
+        loadedNodesCount?: number;
+        currentBatch?: number;
+        totalBatches?: number;
+    }>(),
+    {
+        isLoading: false,
+        loadingStatus: "",
+        totalNodesToLoad: 0,
+        loadedNodesCount: 0,
+        currentBatch: 0,
+        totalBatches: 0,
+    }
+);
+
+const emit = defineEmits<{
+    cancel: [];
+}>();
 </script>

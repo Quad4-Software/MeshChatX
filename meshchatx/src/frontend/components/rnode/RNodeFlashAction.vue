@@ -15,7 +15,7 @@
             :disabled="!canFlash || isFlashing"
             data-testid="rnode-flash-btn"
             class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-sem-action-primary hover:bg-sem-action-primary-hover px-4 py-3 text-sm font-bold text-sem-action-primary-text shadow-lg shadow-sem-action-primary/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-            @click="$emit('flash')"
+            @click="emit('flash')"
         >
             <MaterialDesignIcon v-if="isFlashing" icon-name="loading" class="size-4 animate-spin text-white" />
             <MaterialDesignIcon v-else icon-name="flash" class="size-5" />
@@ -43,19 +43,27 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
-export default {
-    name: "RNodeFlashAction",
-    components: { MaterialDesignIcon },
-    props: {
-        canFlash: { type: Boolean, default: false },
-        isFlashing: { type: Boolean, default: false },
-        flashingProgress: { type: Number, default: 0 },
-        flashingStatus: { type: String, default: "" },
-        errorMessage: { type: String, default: null },
-    },
-    emits: ["flash"],
-};
+withDefaults(
+    defineProps<{
+        canFlash?: boolean;
+        isFlashing?: boolean;
+        flashingProgress?: number;
+        flashingStatus?: string;
+        errorMessage?: string | null;
+    }>(),
+    {
+        canFlash: false,
+        isFlashing: false,
+        flashingProgress: 0,
+        flashingStatus: "",
+        errorMessage: null,
+    }
+);
+
+const emit = defineEmits<{
+    flash: [];
+}>();
 </script>

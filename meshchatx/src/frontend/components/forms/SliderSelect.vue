@@ -28,34 +28,47 @@
     </div>
 </template>
 
-<script>
-export default {
-    name: "SliderSelect",
-    props: {
-        modelValue: { type: String, required: true },
-        options: { type: Array, required: true },
-        label: { type: String, default: "" },
-    },
-    emits: ["update:modelValue", "change"],
-    computed: {
-        indexOfValue() {
-            const i = this.options.findIndex((o) => o.value === this.modelValue);
-            return i >= 0 ? i : 0;
-        },
-    },
-    methods: {
-        onInput(e) {
-            this.selectIndex(Number(e.target.value));
-        },
-        onChange(e) {
-            this.selectIndex(Number(e.target.value));
-        },
-        selectIndex(i) {
-            const opt = this.options[i];
-            if (!opt) return;
-            this.$emit("update:modelValue", opt.value);
-            this.$emit("change", opt.value);
-        },
-    },
-};
+<script setup lang="ts">
+import { computed } from "vue";
+
+interface SliderOption {
+    value: string;
+    label: string;
+}
+
+const props = withDefaults(
+    defineProps<{
+        modelValue: string;
+        options: SliderOption[];
+        label?: string;
+    }>(),
+    {
+        label: "",
+    }
+);
+
+const emit = defineEmits<{
+    "update:modelValue": [value: string];
+    change: [value: string];
+}>();
+
+const indexOfValue = computed(() => {
+    const i = props.options.findIndex((o) => o.value === props.modelValue);
+    return i >= 0 ? i : 0;
+});
+
+function selectIndex(i: number) {
+    const opt = props.options[i];
+    if (!opt) return;
+    emit("update:modelValue", opt.value);
+    emit("change", opt.value);
+}
+
+function onInput(event: Event) {
+    selectIndex(Number((event.target as HTMLInputElement).value));
+}
+
+function onChange(event: Event) {
+    selectIndex(Number((event.target as HTMLInputElement).value));
+}
 </script>
