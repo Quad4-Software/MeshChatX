@@ -39,20 +39,16 @@
     </transition>
 </template>
 
-<script>
-export default {
-    name: "AppIdentitySwitchOverlay",
-    props: {
-        show: {
-            type: Boolean,
-            default: false,
-        },
-        logoUrl: {
-            type: String,
-            required: true,
-        },
-    },
-};
+<script setup lang="ts">
+withDefaults(
+    defineProps<{
+        show?: boolean;
+        logoUrl: string;
+    }>(),
+    {
+        show: false,
+    }
+);
 </script>
 
 <style>

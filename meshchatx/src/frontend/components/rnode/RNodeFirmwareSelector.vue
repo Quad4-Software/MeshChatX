@@ -42,37 +42,48 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
-export default {
-    name: "RNodeFirmwareSelector",
-    components: { MaterialDesignIcon },
-    props: {
-        stepNumber: { type: Number, default: 2 },
-        firmwareFile: { type: Object, default: null },
-    },
-    emits: ["update:firmwareFile"],
-    methods: {
-        onFileChange(event) {
-            const file = event.target.files?.[0] || null;
-            this.$emit("update:firmwareFile", file);
-        },
-        clearFile() {
-            if (this.$refs.file) {
-                this.$refs.file.value = "";
-            }
-            this.$emit("update:firmwareFile", null);
-        },
-        setFile(file) {
-            if (!this.$refs.file) return;
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            this.$refs.file.files = dataTransfer.files;
-            this.$emit("update:firmwareFile", file);
-        },
-    },
-};
+withDefaults(
+    defineProps<{
+        stepNumber?: number;
+        firmwareFile?: File | null;
+    }>(),
+    {
+        stepNumber: 2,
+        firmwareFile: null,
+    }
+);
+
+const emit = defineEmits<{
+    "update:firmwareFile": [file: File | null];
+}>();
+
+const file = ref<HTMLInputElement | null>(null);
+
+function onFileChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    emit("update:firmwareFile", target.files?.[0] || null);
+}
+
+function clearFile() {
+    if (file.value) {
+        file.value.value = "";
+    }
+    emit("update:firmwareFile", null);
+}
+
+function setFile(f: File) {
+    if (!file.value) return;
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(f);
+    file.value.files = dataTransfer.files;
+    emit("update:firmwareFile", f);
+}
+
+defineExpose({ clearFile, setFile });
 </script>
 
 <style scoped>

@@ -25,59 +25,58 @@
     </RouterLink>
 </template>
 
-<script>
+<script setup lang="ts">
+import { useRoute } from "vue-router";
 import { navRouteIsActive } from "../js/navRouteActive.js";
 
-export default {
-    name: "SidebarLink",
-    props: {
-        ariaLabel: {
-            type: String,
-            default: "",
-        },
-        to: {
-            type: Object,
-            required: true,
-        },
-        isCollapsed: {
-            type: Boolean,
-            default: false,
-        },
-        editMode: {
-            type: Boolean,
-            default: false,
-        },
-    },
-    emits: ["click"],
-    methods: {
-        navActive(routerIsActive) {
-            if (navRouteIsActive(this.to?.name, this.$route?.name)) {
-                return true;
-            }
-            return Boolean(routerIsActive);
-        },
-        collapsedActiveClass(isActive) {
-            if (this.isCollapsed && isActive) {
-                return [
-                    "text-sem-accent",
-                    "bg-sem-surface-muted",
-                    "shadow-[inset_2px_2px_5px_rgba(0,0,0,0.12),inset_-1px_-1px_2px_rgba(255,255,255,0.6)]",
-                    "dark:shadow-[inset_2px_2px_6px_rgba(0,0,0,0.72),inset_-1px_-1px_1px_rgba(255,255,255,0.07)]",
-                ].join(" ");
-            }
-            if (isActive) {
-                return "sidebar-nav-link--active";
-            }
-            return "sidebar-nav-link--hover";
-        },
-        handleNavigate(event, navigate) {
-            this.$emit("click");
-            if (this.editMode) {
-                event.preventDefault();
-                return;
-            }
-            navigate(event);
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        ariaLabel?: string;
+        to: Record<string, any>;
+        isCollapsed?: boolean;
+        editMode?: boolean;
+    }>(),
+    {
+        ariaLabel: "",
+        isCollapsed: false,
+        editMode: false,
+    }
+);
+
+const emit = defineEmits<{
+    click: [];
+}>();
+
+const route = useRoute();
+
+function navActive(routerIsActive: boolean) {
+    if (navRouteIsActive(props.to?.name, route?.name)) {
+        return true;
+    }
+    return Boolean(routerIsActive);
+}
+
+function collapsedActiveClass(isActive: boolean) {
+    if (props.isCollapsed && isActive) {
+        return [
+            "text-sem-accent",
+            "bg-sem-surface-muted",
+            "shadow-[inset_2px_2px_5px_rgba(0,0,0,0.12),inset_-1px_-1px_2px_rgba(255,255,255,0.6)]",
+            "dark:shadow-[inset_2px_2px_6px_rgba(0,0,0,0.72),inset_-1px_-1px_1px_rgba(255,255,255,0.07)]",
+        ].join(" ");
+    }
+    if (isActive) {
+        return "sidebar-nav-link--active";
+    }
+    return "sidebar-nav-link--hover";
+}
+
+function handleNavigate(event: Event, navigate: (e: Event) => void) {
+    emit("click");
+    if (props.editMode) {
+        event.preventDefault();
+        return;
+    }
+    navigate(event);
+}
 </script>

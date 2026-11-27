@@ -6,7 +6,7 @@
             :id="id"
             :model-value="modelValue"
             :disabled="disabled"
-            @update:model-value="$emit('update:modelValue', $event)"
+            @update:model-value="emit('update:modelValue', $event)"
         />
         <span class="setting-toggle__label">
             <span class="setting-toggle__title">{{ title }}</span>
@@ -18,42 +18,29 @@
     </label>
 </template>
 
-<script>
+<script setup lang="ts">
 import Toggle from "../forms/Toggle.vue";
 
-export default {
-    name: "SettingToggleRow",
-    components: {
-        Toggle,
-    },
-    props: {
-        id: {
-            type: String,
-            required: true,
-        },
-        modelValue: {
-            type: Boolean,
-            default: false,
-        },
-        title: {
-            type: String,
-            required: true,
-        },
-        description: {
-            type: String,
-            default: "",
-        },
-        hint: {
-            type: String,
-            default: "",
-        },
-        disabled: {
-            type: Boolean,
-            default: false,
-        },
-    },
-    emits: ["update:modelValue"],
-};
+withDefaults(
+    defineProps<{
+        id: string;
+        modelValue?: boolean;
+        title: string;
+        description?: string;
+        hint?: string;
+        disabled?: boolean;
+    }>(),
+    {
+        modelValue: false,
+        description: "",
+        hint: "",
+        disabled: false,
+    }
+);
+
+const emit = defineEmits<{
+    "update:modelValue": [value: boolean];
+}>();
 </script>
 
 <style scoped>

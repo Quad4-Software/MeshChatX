@@ -13,7 +13,7 @@
             :model-value="config.banished_effect_enabled"
             :title="$t('app.banished_effect_enabled')"
             :description="$t('app.banished_effect_description')"
-            @update:model-value="$emit('enabled-change', $event)"
+            @update:model-value="emit('enabled-change', $event)"
         />
 
         <div v-if="config.banished_effect_enabled" class="space-y-4">
@@ -21,12 +21,7 @@
                 <div class="text-sm font-medium text-sem-fg">
                     {{ $t("app.banished_text_label") }}
                 </div>
-                <input
-                    :value="config.banished_text"
-                    type="text"
-                    class="input-field"
-                    @input="$emit('text-change', $event.target.value)"
-                />
+                <input :value="config.banished_text" type="text" class="input-field" @input="onTextInput" />
                 <div class="text-xs text-sem-fg-muted">
                     {{ $t("app.banished_text_description") }}
                 </div>
@@ -41,13 +36,13 @@
                         :value="config.banished_color"
                         type="color"
                         class="color-fill-input w-12 h-10 rounded-xl border border-sem-border cursor-pointer"
-                        @input="$emit('color-change', $event.target.value)"
+                        @input="onColorInput"
                     />
                     <input
                         :value="config.banished_color"
                         type="text"
                         class="input-field monospace-field"
-                        @input="$emit('color-change', $event.target.value)"
+                        @input="onColorInput"
                     />
                 </div>
                 <div class="text-xs text-sem-fg-muted">
@@ -58,26 +53,31 @@
     </SettingsSectionBlock>
 </template>
 
-<script>
+<script setup lang="ts">
 import SettingsSectionBlock from "../SettingsSectionBlock.vue";
 import SettingToggleRow from "../SettingToggleRow.vue";
 
-export default {
-    name: "BanishmentSettingsSection",
-    components: {
-        SettingsSectionBlock,
-        SettingToggleRow,
-    },
-    props: {
-        visible: {
-            type: Boolean,
-            default: true,
-        },
-        config: {
-            type: Object,
-            required: true,
-        },
-    },
-    emits: ["enabled-change", "text-change", "color-change"],
-};
+withDefaults(
+    defineProps<{
+        visible?: boolean;
+        config: Record<string, any>;
+    }>(),
+    {
+        visible: true,
+    }
+);
+
+const emit = defineEmits<{
+    "enabled-change": [value: boolean];
+    "text-change": [value: string];
+    "color-change": [value: string];
+}>();
+
+function onTextInput(event: Event) {
+    emit("text-change", (event.target as HTMLInputElement).value);
+}
+
+function onColorInput(event: Event) {
+    emit("color-change", (event.target as HTMLInputElement).value);
+}
 </script>
