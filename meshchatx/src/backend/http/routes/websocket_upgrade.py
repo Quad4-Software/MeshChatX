@@ -9,7 +9,6 @@ import logging
 from typing import cast
 
 from aiohttp import (
-    WSMessage,
     WSMsgType,
     web,
 )

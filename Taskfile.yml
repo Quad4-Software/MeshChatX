@@ -245,12 +245,21 @@ tasks:
 
     lint:backend:
         aliases: [lint:be]
-        desc: Lint Python code (Ruff + basedpyright)
+        desc: Lint Python code (Ruff + basedpyright + vulture dead-code scan)
         cmds:
             - uv run python scripts/ci/check_schema_migrations.py
             - uv run ruff check .
             - uv run ruff format --check .
             - uv run basedpyright -p pyrightconfig.json --level error
+            - uv run vulture meshchatx/ scripts/ci/vulture_whitelist.py --min-confidence 80
+
+    lint:deadcode:
+        desc: Scan for dead code across Python, JS and Go (vulture, knip, deadcode). Informational; Go findings may include platform-specific false positives
+        cmds:
+            - uv run vulture meshchatx/ scripts/ci/vulture_whitelist.py --min-confidence 80
+            - "{{.NPM}} exec knip"
+            - cmd: cd desktop && go run golang.org/x/tools/cmd/deadcode@latest ./...
+              ignore_error: true
 
     schema-fixtures:
         desc: Regenerate schema_v{N}.db migration test fixtures when LATEST_VERSION bumps

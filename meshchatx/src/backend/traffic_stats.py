@@ -257,7 +257,7 @@ class TrafficStats:
                     "started_at": time.time(),
                 }
                 self._transfers[transfer_id] = entry
-                self._prune_transfers_locked(now)
+                self._prune_transfers_locked()
             if peer:
                 entry["peer"] = peer
             if label:
@@ -307,7 +307,7 @@ class TrafficStats:
 
     def _active_transfers_locked(self) -> list[dict]:
         """Caller holds _lock. snapshot() also builds payloads under it."""
-        self._prune_transfers_locked(time.monotonic())
+        self._prune_transfers_locked()
         entries = [self._transfer_row(entry) for entry in self._transfers.values()]
         entries.sort(key=lambda e: e.get("started_at") or 0.0, reverse=True)
         return entries
@@ -327,7 +327,7 @@ class TrafficStats:
             "started_at": entry.get("started_at"),
         }
 
-    def _prune_transfers_locked(self, now_monotonic: float) -> None:
+    def _prune_transfers_locked(self) -> None:
         """Caller holds _lock. Drop stale entries, then cap the registry."""
         cutoff = time.time() - TRANSFER_STALE_S
         stale = [
