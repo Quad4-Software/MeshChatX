@@ -3,6 +3,7 @@ import pluginVue from "eslint-plugin-vue";
 import pluginPrettier from "eslint-plugin-prettier/recommended";
 import pluginSecurity from "eslint-plugin-security";
 import globals from "globals";
+import tsParser from "@typescript-eslint/parser";
 
 export default [
     {
@@ -42,8 +43,11 @@ export default [
         ],
     },
     {
-        files: ["**/*.{js,mjs,cjs,vue}"],
+        files: ["**/*.{js,mjs,cjs,ts,vue}"],
         languageOptions: {
+            parserOptions: {
+                parser: tsParser,
+            },
             globals: {
                 ...globals.browser,
                 ...globals.node,
@@ -69,12 +73,18 @@ export default [
             },
         },
     },
+    {
+        files: ["**/*.ts"],
+        languageOptions: {
+            parser: tsParser,
+        },
+    },
     js.configs.recommended,
     ...pluginVue.configs["flat/recommended"],
     pluginPrettier,
     pluginSecurity.configs.recommended,
     {
-        files: ["**/*.{js,mjs,cjs,vue}"],
+        files: ["**/*.{js,mjs,cjs,ts,vue}"],
         rules: {
             "vue/multi-word-component-names": "off",
             "vue/no-v-html": "error",

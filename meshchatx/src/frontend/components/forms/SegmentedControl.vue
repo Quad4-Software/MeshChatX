@@ -19,10 +19,7 @@
                     : 'text-sem-fg-muted hover:text-sem-fg'
             "
             :title="opt.hint ? $t(opt.hint) : undefined"
-            @click="
-                $emit('update:modelValue', opt.value);
-                $emit('change', opt.value);
-            "
+            @click="select(opt.value)"
         >
             <MaterialDesignIcon v-if="opt.icon" :icon-name="opt.icon" class="size-4 shrink-0" />
             <span>{{ $t(opt.label) }}</span>
@@ -30,17 +27,29 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
-export default {
-    name: "SegmentedControl",
-    components: { MaterialDesignIcon },
-    props: {
-        modelValue: { type: String, required: true },
-        options: { type: Array, required: true },
-        label: { type: String, default: "" },
-    },
-    emits: ["update:modelValue", "change"],
-};
+interface SegmentOption {
+    value: string;
+    label: string;
+    icon?: string;
+    hint?: string;
+}
+
+defineProps<{
+    modelValue: string;
+    options: SegmentOption[];
+    label?: string;
+}>();
+
+const emit = defineEmits<{
+    "update:modelValue": [value: string];
+    change: [value: string];
+}>();
+
+function select(value: string) {
+    emit("update:modelValue", value);
+    emit("change", value);
+}
 </script>
