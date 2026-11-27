@@ -12,39 +12,21 @@
             <div class="grid grid-cols-2 gap-3">
                 <div class="space-y-1">
                     <label class="rnf-input-label">{{ $t("tools.rnode_flasher.frequency") }}</label>
-                    <input
-                        :value="frequency"
-                        type="number"
-                        class="rnf-config-input"
-                        @input="$emit('update:frequency', Number($event.target.value))"
-                    />
+                    <input :value="frequency" type="number" class="rnf-config-input" @input="onUpdateFrequency" />
                 </div>
                 <div class="space-y-1">
                     <label class="rnf-input-label">{{ $t("tools.rnode_flasher.tx_power") }}</label>
-                    <input
-                        :value="txPower"
-                        type="number"
-                        class="rnf-config-input"
-                        @input="$emit('update:txPower', Number($event.target.value))"
-                    />
+                    <input :value="txPower" type="number" class="rnf-config-input" @input="onUpdateTxPower" />
                 </div>
                 <div class="space-y-1">
                     <label class="rnf-input-label">{{ $t("tools.rnode_flasher.bandwidth") }}</label>
-                    <select
-                        :value="bandwidth"
-                        class="rnf-config-input"
-                        @change="$emit('update:bandwidth', Number($event.target.value))"
-                    >
+                    <select :value="bandwidth" class="rnf-config-input" @change="onUpdateBandwidth">
                         <option v-for="bw in bandwidths" :key="bw" :value="bw">{{ bw / 1000 }} KHz</option>
                     </select>
                 </div>
                 <div class="space-y-1">
                     <label class="rnf-input-label">{{ $t("tools.rnode_flasher.spreading_factor") }}</label>
-                    <select
-                        :value="spreadingFactor"
-                        class="rnf-config-input"
-                        @change="$emit('update:spreadingFactor', Number($event.target.value))"
-                    >
+                    <select :value="spreadingFactor" class="rnf-config-input" @change="onUpdateSpreadingFactor">
                         <option v-for="sf in spreadingFactors" :key="sf" :value="sf">
                             {{ sf }}
                         </option>
@@ -54,11 +36,11 @@
             <div class="grid grid-cols-2 gap-2">
                 <button
                     class="rnf-action-btn bg-sem-action-primary text-sem-action-primary-text! border-none! hover:bg-sem-action-primary-hover"
-                    @click="$emit('action', 'enable-tnc')"
+                    @click="emit('action', 'enable-tnc')"
                 >
                     {{ $t("tools.rnode_flasher.enable") }}
                 </button>
-                <button class="rnf-action-btn" @click="$emit('action', 'disable-tnc')">
+                <button class="rnf-action-btn" @click="emit('action', 'disable-tnc')">
                     {{ $t("tools.rnode_flasher.disable") }}
                 </button>
             </div>
@@ -66,29 +48,57 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 const BANDWIDTHS = [7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000];
 const SPREADING_FACTORS = [7, 8, 9, 10, 11, 12];
 
-export default {
-    name: "RNodeTncPanel",
-    components: { MaterialDesignIcon },
-    props: {
-        frequency: { type: Number, default: 917375000 },
-        bandwidth: { type: Number, default: 250000 },
-        txPower: { type: Number, default: 22 },
-        spreadingFactor: { type: Number, default: 11 },
-    },
-    emits: ["update:frequency", "update:bandwidth", "update:txPower", "update:spreadingFactor", "action"],
-    data() {
-        return {
-            bandwidths: BANDWIDTHS,
-            spreadingFactors: SPREADING_FACTORS,
-        };
-    },
-};
+withDefaults(
+    defineProps<{
+        frequency?: number;
+        bandwidth?: number;
+        txPower?: number;
+        spreadingFactor?: number;
+    }>(),
+    {
+        frequency: 917375000,
+        bandwidth: 250000,
+        txPower: 22,
+        spreadingFactor: 11,
+    }
+);
+
+const emit = defineEmits<{
+    "update:frequency": [value: number];
+    "update:bandwidth": [value: number];
+    "update:txPower": [value: number];
+    "update:spreadingFactor": [value: number];
+    action: [action: string];
+}>();
+
+const bandwidths = BANDWIDTHS;
+const spreadingFactors = SPREADING_FACTORS;
+
+function numValue(event: Event) {
+    return Number((event.target as HTMLInputElement).value);
+}
+
+function onUpdateFrequency(event: Event) {
+    emit("update:frequency", numValue(event));
+}
+
+function onUpdateTxPower(event: Event) {
+    emit("update:txPower", numValue(event));
+}
+
+function onUpdateBandwidth(event: Event) {
+    emit("update:bandwidth", numValue(event));
+}
+
+function onUpdateSpreadingFactor(event: Event) {
+    emit("update:spreadingFactor", numValue(event));
+}
 </script>
 
 <style scoped>

@@ -14,24 +14,24 @@
             ref="imageModalOverlay"
             tabindex="0"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 dark:bg-black/90 backdrop-blur-xs p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] outline-hidden"
-            @click="$emit('close')"
-            @keydown.left.prevent="$emit('navigate', -1)"
-            @keydown.right.prevent="$emit('navigate', 1)"
-            @keydown.escape.prevent="$emit('close')"
+            @click="emit('close')"
+            @keydown.left.prevent="emit('navigate', -1)"
+            @keydown.right.prevent="emit('navigate', 1)"
+            @keydown.escape.prevent="emit('close')"
         >
             <div class="relative max-w-7xl max-h-full group/image-modal" @click.stop>
                 <button
                     type="button"
                     class="absolute -top-12 left-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 dark:bg-sem-surface hover:bg-white/20 dark:hover:bg-sem-surface text-white transition-colors opacity-0 group-hover/image-modal:opacity-100 focus:opacity-100"
                     :title="$t('messages.save_image_to_device')"
-                    @click="$emit('download')"
+                    @click="emit('download')"
                 >
                     <MaterialDesignIcon icon-name="download" class="size-5" />
                 </button>
                 <button
                     type="button"
                     class="absolute -top-12 right-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 dark:bg-sem-surface hover:bg-white/20 dark:hover:bg-sem-surface text-white transition-colors"
-                    @click="$emit('close')"
+                    @click="emit('close')"
                 >
                     <MaterialDesignIcon icon-name="close" class="size-5" />
                 </button>
@@ -40,7 +40,7 @@
                     type="button"
                     class="absolute left-0 top-1/2 z-10 -translate-y-1/2 inline-flex items-center justify-center w-11 h-11 rounded-full bg-black/40 hover:bg-black/55 text-white transition-colors"
                     aria-label="Previous image"
-                    @click.stop="$emit('navigate', -1)"
+                    @click.stop="emit('navigate', -1)"
                 >
                     <MaterialDesignIcon icon-name="chevron-left" class="size-7" />
                 </button>
@@ -49,7 +49,7 @@
                     type="button"
                     class="absolute right-0 top-1/2 z-10 -translate-y-1/2 inline-flex items-center justify-center w-11 h-11 rounded-full bg-black/40 hover:bg-black/55 text-white transition-colors"
                     aria-label="Next image"
-                    @click.stop="$emit('navigate', 1)"
+                    @click.stop="emit('navigate', 1)"
                 >
                     <MaterialDesignIcon icon-name="chevron-right" class="size-7" />
                 </button>
@@ -63,42 +63,44 @@
                     :src="url"
                     class="max-w-full max-h-[90vh] rounded-xl shadow-2xl"
                     alt="Image preview"
-                    @contextmenu.stop="$emit('contextmenu', $event)"
+                    @contextmenu.stop="emit('contextmenu', $event)"
                 />
             </div>
         </div>
     </Transition>
 </template>
 
-<script>
+<script setup lang="ts">
+import { nextTick, ref } from "vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 
-export default {
-    name: "ConversationImageModal",
-    components: {
-        MaterialDesignIcon,
-    },
-    props: {
-        url: {
-            type: String,
-            default: "",
-        },
-        gallery: {
-            type: Array,
-            default: null,
-        },
-        index: {
-            type: Number,
-            default: 0,
-        },
-    },
-    emits: ["close", "navigate", "download", "contextmenu"],
-    methods: {
-        focusOverlay() {
-            this.$nextTick(() => {
-                this.$refs.imageModalOverlay?.focus?.();
-            });
-        },
-    },
-};
+withDefaults(
+    defineProps<{
+        url?: string;
+        gallery?: any[] | null;
+        index?: number;
+    }>(),
+    {
+        url: "",
+        gallery: null,
+        index: 0,
+    }
+);
+
+const emit = defineEmits<{
+    close: [];
+    navigate: [direction: number];
+    download: [];
+    contextmenu: [event: MouseEvent];
+}>();
+
+const imageModalOverlay = ref<HTMLElement | null>(null);
+
+function focusOverlay() {
+    nextTick(() => {
+        imageModalOverlay.value?.focus?.();
+    });
+}
+
+defineExpose({ focusOverlay });
 </script>

@@ -43,64 +43,64 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
-export default {
-    name: "RNodeDiagnosticsPanel",
-    components: { MaterialDesignIcon },
-    props: {
-        diagnostics: { type: Object, default: null },
-    },
-    computed: {
-        hasIssues() {
-            return Array.isArray(this.diagnostics?.issues) && this.diagnostics.issues.length > 0;
+const props = withDefaults(
+    defineProps<{
+        diagnostics?: Record<string, any> | null;
+    }>(),
+    {
+        diagnostics: null,
+    }
+);
+
+const hasIssues = computed(() => Array.isArray(props.diagnostics?.issues) && props.diagnostics.issues.length > 0);
+
+const summaryRows = computed(() => {
+    const s = props.diagnostics?.summary || {};
+    return [
+        {
+            key: "firmware_version",
+            labelKey: "tools.rnode_flasher.diagnostics.firmware_version",
+            value: s.firmware_version,
         },
-        summaryRows() {
-            const s = this.diagnostics?.summary || {};
-            return [
-                {
-                    key: "firmware_version",
-                    labelKey: "tools.rnode_flasher.diagnostics.firmware_version",
-                    value: s.firmware_version,
-                },
-                {
-                    key: "platform",
-                    labelKey: "tools.rnode_flasher.diagnostics.platform",
-                    value: s.platform != null ? `0x${s.platform.toString(16).padStart(2, "0")}` : null,
-                },
-                {
-                    key: "board",
-                    labelKey: "tools.rnode_flasher.diagnostics.board",
-                    value: s.board != null ? `0x${s.board.toString(16).padStart(2, "0")}` : null,
-                },
-                {
-                    key: "is_provisioned",
-                    labelKey: "tools.rnode_flasher.diagnostics.provisioned",
-                    value: s.is_provisioned ? "yes" : "no",
-                },
-                {
-                    key: "product",
-                    labelKey: "tools.rnode_flasher.diagnostics.product",
-                    value: s.product != null ? `0x${s.product.toString(16).padStart(2, "0")}` : null,
-                },
-                {
-                    key: "model",
-                    labelKey: "tools.rnode_flasher.diagnostics.model",
-                    value: s.model != null ? `0x${s.model.toString(16).padStart(2, "0")}` : null,
-                },
-                {
-                    key: "fw_hash",
-                    labelKey: "tools.rnode_flasher.diagnostics.firmware_hash",
-                    value: s.firmware_hash ? s.firmware_hash.slice(0, 16) : null,
-                },
-                {
-                    key: "target_hash",
-                    labelKey: "tools.rnode_flasher.diagnostics.target_hash",
-                    value: s.target_firmware_hash ? s.target_firmware_hash.slice(0, 16) : null,
-                },
-            ];
+        {
+            key: "platform",
+            labelKey: "tools.rnode_flasher.diagnostics.platform",
+            value: s.platform != null ? `0x${s.platform.toString(16).padStart(2, "0")}` : null,
         },
-    },
-};
+        {
+            key: "board",
+            labelKey: "tools.rnode_flasher.diagnostics.board",
+            value: s.board != null ? `0x${s.board.toString(16).padStart(2, "0")}` : null,
+        },
+        {
+            key: "is_provisioned",
+            labelKey: "tools.rnode_flasher.diagnostics.provisioned",
+            value: s.is_provisioned ? "yes" : "no",
+        },
+        {
+            key: "product",
+            labelKey: "tools.rnode_flasher.diagnostics.product",
+            value: s.product != null ? `0x${s.product.toString(16).padStart(2, "0")}` : null,
+        },
+        {
+            key: "model",
+            labelKey: "tools.rnode_flasher.diagnostics.model",
+            value: s.model != null ? `0x${s.model.toString(16).padStart(2, "0")}` : null,
+        },
+        {
+            key: "fw_hash",
+            labelKey: "tools.rnode_flasher.diagnostics.firmware_hash",
+            value: s.firmware_hash ? s.firmware_hash.slice(0, 16) : null,
+        },
+        {
+            key: "target_hash",
+            labelKey: "tools.rnode_flasher.diagnostics.target_hash",
+            value: s.target_firmware_hash ? s.target_firmware_hash.slice(0, 16) : null,
+        },
+    ];
+});
 </script>

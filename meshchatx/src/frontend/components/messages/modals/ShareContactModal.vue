@@ -4,7 +4,7 @@
     <div
         v-if="show"
         class="fixed inset-0 z-100 flex items-center justify-center p-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-black/50 backdrop-blur-xs"
-        @click.self="$emit('close')"
+        @click.self="emit('close')"
     >
         <div
             class="w-full max-w-md bg-sem-surface rounded-2xl shadow-2xl overflow-hidden max-h-[min(90dvh,40rem)] flex flex-col"
@@ -16,7 +16,7 @@
                 <button
                     type="button"
                     class="text-sem-fg-muted hover:text-sem-fg-muted dark:hover:text-sem-fg-secondary transition-colors"
-                    @click="$emit('close')"
+                    @click="emit('close')"
                 >
                     <MaterialDesignIcon icon-name="close" class="size-6" />
                 </button>
@@ -26,7 +26,7 @@
                     <SearchInput
                         :model-value="search"
                         :placeholder="$t('messages.share_contact_search_placeholder')"
-                        @update:model-value="$emit('update:search', $event)"
+                        @update:model-value="emit('update:search', $event)"
                     />
                 </div>
                 <div class="max-h-64 overflow-y-auto space-y-2">
@@ -35,7 +35,7 @@
                         :key="contact.id"
                         type="button"
                         class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-sem-surface-muted transition-colors text-left"
-                        @click="$emit('share', contact)"
+                        @click="emit('share', contact)"
                     >
                         <div class="shrink-0">
                             <LxmfUserIcon
@@ -67,40 +67,29 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import SearchInput from "../../SearchInput.vue";
 import LxmfUserIcon from "../../LxmfUserIcon.vue";
 
-export default {
-    name: "ShareContactModal",
-    components: {
-        MaterialDesignIcon,
-        SearchInput,
-        LxmfUserIcon,
-    },
-    props: {
-        show: {
-            type: Boolean,
-            default: false,
-        },
-        search: {
-            type: String,
-            default: "",
-        },
-        contacts: {
-            type: Array,
-            default: () => [],
-        },
-        resolveIcon: {
-            type: Function,
-            required: true,
-        },
-        destinationHex: {
-            type: Function,
-            required: true,
-        },
-    },
-    emits: ["close", "share", "update:search"],
-};
+withDefaults(
+    defineProps<{
+        show?: boolean;
+        search?: string;
+        contacts?: any[];
+        resolveIcon: (...args: any[]) => any;
+        destinationHex: (...args: any[]) => any;
+    }>(),
+    {
+        show: false,
+        search: "",
+        contacts: () => [],
+    }
+);
+
+const emit = defineEmits<{
+    close: [];
+    share: [contact: any];
+    "update:search": [value: string];
+}>();
 </script>
