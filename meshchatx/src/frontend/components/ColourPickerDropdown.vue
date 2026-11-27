@@ -50,7 +50,9 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, ref } from "vue";
+
 const DEFAULT_SWATCHES = [
     "#ef4444",
     "#f97316",
@@ -66,63 +68,7 @@ const DEFAULT_SWATCHES = [
     "#14b8a6",
 ];
 
-export default {
-    name: "ColourPickerDropdown",
-    props: {
-        colour: {
-            type: String,
-            default: "",
-        },
-    },
-    emits: ["update:colour"],
-    data() {
-        return {
-            isShowingMenu: false,
-            swatches: DEFAULT_SWATCHES,
-        };
-    },
-    computed: {
-        normalizedColour() {
-            return normalizeHexColour(this.colour) || "#3b82f6";
-        },
-    },
-    methods: {
-        toggleMenu() {
-            if (this.isShowingMenu) {
-                this.hideMenu();
-            } else {
-                this.showMenu();
-            }
-        },
-        showMenu() {
-            this.isShowingMenu = true;
-        },
-        hideMenu() {
-            this.isShowingMenu = false;
-        },
-        onClickOutsideMenu(event) {
-            if (this.isShowingMenu) {
-                // Do not suppress contextmenu: right-click outside the picker
-                // should dismiss it without killing the native context menu.
-                if (event.type === "click") {
-                    event.preventDefault();
-                }
-                this.hideMenu();
-            }
-        },
-        onNativeColorInput(event) {
-            const value = event?.target?.value;
-            if (typeof value === "string" && value) {
-                this.$emit("update:colour", normalizeHexColour(value));
-            }
-        },
-        selectSwatch(value) {
-            this.$emit("update:colour", normalizeHexColour(value));
-        },
-    },
-};
-
-function normalizeHexColour(value) {
+function normalizeHexColour(value: unknown): string {
     if (typeof value !== "string") {
         return "";
     }
@@ -134,5 +80,61 @@ function normalizeHexColour(value) {
         return hex.toLowerCase();
     }
     return "";
+}
+
+const props = withDefaults(
+    defineProps<{
+        colour?: string;
+    }>(),
+    {
+        colour: "",
+    }
+);
+
+const emit = defineEmits<{
+    "update:colour": [value: string];
+}>();
+
+const isShowingMenu = ref(false);
+const swatches = DEFAULT_SWATCHES;
+
+const normalizedColour = computed(() => normalizeHexColour(props.colour) || "#3b82f6");
+
+function toggleMenu() {
+    if (isShowingMenu.value) {
+        hideMenu();
+    } else {
+        showMenu();
+    }
+}
+
+function showMenu() {
+    isShowingMenu.value = true;
+}
+
+function hideMenu() {
+    isShowingMenu.value = false;
+}
+
+function onClickOutsideMenu(event: Event) {
+    if (isShowingMenu.value) {
+        // Do not suppress contextmenu: right-click outside the picker
+        // should dismiss it without killing the native context menu.
+        if (event.type === "click") {
+            event.preventDefault();
+        }
+        hideMenu();
+    }
+}
+
+function onNativeColorInput(event: Event) {
+    const value = (event?.target as HTMLInputElement)?.value;
+    if (typeof value === "string" && value) {
+        emit("update:colour", normalizeHexColour(value));
+    }
+}
+
+function selectSwatch(value: string) {
+    emit("update:colour", normalizeHexColour(value));
 }
 </script>

@@ -42,7 +42,8 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from "vue";
 import ThemePresetSwatch from "./ThemePresetSwatch.vue";
 import {
     THEME_PRESET_CATALOG,
@@ -54,86 +55,78 @@ import {
     systemPrefersDark,
 } from "../../theme/themeEngine.js";
 
-export default {
-    name: "ThemePresetPicker",
-    components: {
-        ThemePresetSwatch,
-    },
-    props: {
-        value: {
-            type: String,
-            default: "default",
-        },
-        config: {
-            type: Object,
-            required: true,
-        },
-    },
-    emits: ["update:value", "change"],
-    data() {
-        return {
-            catalog: THEME_PRESET_CATALOG,
-        };
-    },
-    computed: {
-        normalizedValue() {
-            return normalizeThemePreset(this.value);
-        },
-        previewMode() {
-            return resolveEffectiveTheme(this.config?.theme, systemPrefersDark());
-        },
-        selectedPreviewColors() {
-            return this.previewColorsForPreset(this.normalizedValue);
-        },
-        selectedPresetLabelKey() {
-            const found = this.catalog.find((p) => p.id === this.normalizedValue);
-            return found ? found.labelKey : "app.theme_preset_default";
-        },
-    },
-    methods: {
-        previewConfigForPreset(presetId) {
-            const next = {
-                ...this.config,
-                theme: normalizeThemePreference(this.config?.theme),
-                theme_preset: presetId,
-                accent_color: null,
-            };
-            if (presetId !== "custom") {
-                next.custom_canvas_color = null;
-                next.custom_surface_color = null;
-            }
-            return next;
-        },
-        previewColorsForPreset(presetId) {
-            return getThemePresetPreviewColors(this.previewConfigForPreset(presetId), this.previewMode);
-        },
-        onSelectChange(event) {
-            this.clearPreview();
-            this.selectPreset(event.target.value);
-        },
-        previewPreset(presetId) {
-            if (normalizeThemePreset(presetId) === this.normalizedValue) {
-                return;
-            }
-            this._previewActive = true;
-            applyAppearanceTheme(this.previewConfigForPreset(presetId));
-        },
-        clearPreview() {
-            if (!this._previewActive) {
-                return;
-            }
-            this._previewActive = false;
-            applyAppearanceTheme(this.config);
-        },
-        selectPreset(presetId) {
-            const next = normalizeThemePreset(presetId);
-            if (next === this.normalizedValue) {
-                return;
-            }
-            this._previewActive = false;
-            this.$emit("update:value", next);
-            this.$emit("change", next);
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        value?: string;
+        config: Record<string, any>;
+    }>(),
+    {
+        value: "default",
+    }
+);
+
+const emit = defineEmits<{
+    "update:value": [value: string];
+    change: [value: string];
+}>();
+
+const catalog = THEME_PRESET_CATALOG;
+
+let previewActive = false;
+
+const normalizedValue = computed(() => normalizeThemePreset(props.value));
+
+const previewMode = computed(() => resolveEffectiveTheme(props.config?.theme, systemPrefersDark()));
+
+const selectedPreviewColors = computed(() => previewColorsForPreset(normalizedValue.value));
+
+const selectedPresetLabelKey = computed(() => {
+    const found = (catalog as any[]).find((p) => p.id === normalizedValue.value);
+    return found ? found.labelKey : "app.theme_preset_default";
+});
+
+function previewConfigForPreset(presetId: string) {
+    const next: Record<string, any> = {
+        ...props.config,
+        theme: normalizeThemePreference(props.config?.theme),
+        theme_preset: presetId,
+        accent_color: null,
+    };
+    if (presetId !== "custom") {
+        next.custom_canvas_color = null;
+        next.custom_surface_color = null;
+    }
+    return next;
+}
+
+function previewColorsForPreset(presetId: string) {
+    return getThemePresetPreviewColors(previewConfigForPreset(presetId), previewMode.value);
+}
+
+
+function previewPreset(presetId: string) {
+    if (normalizeThemePreset(presetId) === normalizedValue.value) {
+        return;
+    }
+    previewActive = true;
+    applyAppearanceTheme(previewConfigForPreset(presetId));
+}
+
+function clearPreview() {
+    if (!previewActive) {
+        return;
+    }
+    previewActive = false;
+    applyAppearanceTheme(props.config);
+}
+
+function selectPreset(presetId: string) {
+    const next = normalizeThemePreset(presetId);
+    if (next === normalizedValue.value) {
+        return;
+    }
+    previewActive = false;
+    emit("update:value", next);
+    emit("change", next);
+}
 </script>
