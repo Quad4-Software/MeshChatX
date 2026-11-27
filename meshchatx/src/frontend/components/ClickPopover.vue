@@ -30,6 +30,8 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
+defineOptions({ name: "ClickPopover" });
+
 const props = withDefaults(
     defineProps<{
         modelValue?: boolean;
