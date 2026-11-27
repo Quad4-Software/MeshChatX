@@ -45,21 +45,30 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
-export default {
-    name: "ToolListRow",
-    components: {
-        MaterialDesignIcon,
-    },
-    props: {
-        tool: {
-            type: Object,
-            required: true,
-        },
-    },
-};
+interface ToolEntry {
+    icon?: string;
+    iconBg?: string;
+    image?: string;
+    imageClass?: string;
+    imageAlt?: string;
+    title: string;
+    description?: string;
+    alpha?: boolean;
+    beta?: boolean;
+    comingSoon?: boolean;
+    extraAction?: {
+        href: string;
+        target?: string;
+        icon: string;
+    };
+}
+
+defineProps<{
+    tool: ToolEntry;
+}>();
 </script>
 
 <style scoped>

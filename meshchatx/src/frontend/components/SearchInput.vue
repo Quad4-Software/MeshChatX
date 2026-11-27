@@ -13,7 +13,7 @@
             :placeholder="placeholder"
             :class="compact ? 'search-input search-input-compact' : 'search-input'"
             v-bind="$attrs"
-            @input="$emit('update:modelValue', $event.target.value)"
+            @input="onInput"
             @keydown.esc="clear"
         />
         <div v-if="loading" class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
@@ -34,47 +34,41 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
-export default {
-    name: "SearchInput",
-    components: {
-        MaterialDesignIcon,
-    },
-    inheritAttrs: false,
-    props: {
-        modelValue: {
-            type: String,
-            default: "",
-        },
-        placeholder: {
-            type: String,
-            default: "",
-        },
-        icon: {
-            type: String,
-            default: "magnify",
-        },
-        compact: {
-            type: Boolean,
-            default: false,
-        },
-        clearTitle: {
-            type: String,
-            default: "",
-        },
-        loading: {
-            type: Boolean,
-            default: false,
-        },
-    },
-    emits: ["update:modelValue", "clear"],
-    methods: {
-        clear() {
-            this.$emit("update:modelValue", "");
-            this.$emit("clear");
-        },
-    },
-};
+defineOptions({ inheritAttrs: false });
+
+withDefaults(
+    defineProps<{
+        modelValue?: string;
+        placeholder?: string;
+        icon?: string;
+        compact?: boolean;
+        clearTitle?: string;
+        loading?: boolean;
+    }>(),
+    {
+        modelValue: "",
+        placeholder: "",
+        icon: "magnify",
+        compact: false,
+        clearTitle: "",
+        loading: false,
+    }
+);
+
+const emit = defineEmits<{
+    "update:modelValue": [value: string];
+    clear: [];
+}>();
+
+function onInput(event: Event) {
+    emit("update:modelValue", (event.target as HTMLInputElement).value);
+}
+
+function clear() {
+    emit("update:modelValue", "");
+    emit("clear");
+}
 </script>

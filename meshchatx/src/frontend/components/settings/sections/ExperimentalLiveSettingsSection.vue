@@ -14,7 +14,7 @@
                 <Toggle
                     id="settings-wt-sidecar-enabled"
                     :model-value="sidecarEnabled"
-                    @update:model-value="$emit('sidecar-change', $event)"
+                    @update:model-value="emit('sidecar-change', $event)"
                 />
                 <span class="setting-toggle__label">
                     <span class="setting-toggle__title">{{ $t("settings.experimental.webtransport_sidecar") }}</span>
@@ -34,41 +34,42 @@
                 <SegmentedControl
                     :model-value="liveTransportMode"
                     :options="liveTransportOptions"
-                    @change="$emit('mode-change', $event)"
+                    @change="emit('mode-change', $event)"
                 />
             </div>
         </div>
     </section>
 </template>
 
-<script>
+<script setup lang="ts">
 import Toggle from "../../forms/Toggle.vue";
 import SegmentedControl from "../../forms/SegmentedControl.vue";
 
-export default {
-    name: "ExperimentalLiveSettingsSection",
-    components: {
-        SegmentedControl,
-        Toggle,
+withDefaults(
+    defineProps<{
+        visible?: boolean;
+        liveTransportMode?: string;
+        sidecarEnabled?: boolean;
+    }>(),
+    {
+        visible: false,
+        liveTransportMode: "auto",
+        sidecarEnabled: false,
+    }
+);
+
+const emit = defineEmits<{
+    "mode-change": [mode: string];
+    "sidecar-change": [enabled: boolean];
+}>();
+
+const liveTransportOptions = [
+    { value: "auto", icon: "auto-fix", label: "settings.experimental.mode_auto" },
+    { value: "websocket", icon: "web", label: "settings.experimental.mode_websocket" },
+    {
+        value: "webtransport",
+        icon: "rocket-launch-outline",
+        label: "settings.experimental.mode_webtransport",
     },
-    props: {
-        visible: { type: Boolean, default: false },
-        liveTransportMode: { type: String, default: "auto" },
-        sidecarEnabled: { type: Boolean, default: false },
-    },
-    emits: ["mode-change", "sidecar-change"],
-    computed: {
-        liveTransportOptions() {
-            return [
-                { value: "auto", icon: "auto-fix", label: "settings.experimental.mode_auto" },
-                { value: "websocket", icon: "web", label: "settings.experimental.mode_websocket" },
-                {
-                    value: "webtransport",
-                    icon: "rocket-launch-outline",
-                    label: "settings.experimental.mode_webtransport",
-                },
-            ];
-        },
-    },
-};
+];
 </script>
