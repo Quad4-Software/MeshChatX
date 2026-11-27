@@ -42,10 +42,21 @@ describe("bughunt: LinkUtils.splitTrailingPunctuation complexity", () => {
     });
 
     it("scales superlinearly: 4k->8k->16k growth ratio", () => {
-        const t = (n) => timeMs(() => LinkUtils.splitTrailingPunctuation(`http://a.com/${")".repeat(n)}`));
+        // Min-of-several samples: a single sub-millisecond measurement is
+        // dominated by scheduler noise on shared CI runners.
+        const t = (n) => {
+            let best = Infinity;
+            for (let i = 0; i < 7; i += 1) {
+                best = Math.min(
+                    best,
+                    timeMs(() => LinkUtils.splitTrailingPunctuation(`http://a.com/${")".repeat(n)}`))
+                );
+            }
+            return best;
+        };
         const a = t(4000);
         const b = t(8000);
         // Pure O(n) => ~2x; O(n^2) => ~4x. Require clearly sub-quadratic.
-        expect(b / Math.max(a, 0.5), `4000=${a.toFixed(0)}ms 8000=${b.toFixed(0)}ms`).toBeLessThan(3.2);
+        expect(b / Math.max(a, 0.5), `4000=${a.toFixed(2)}ms 8000=${b.toFixed(2)}ms`).toBeLessThan(3.2);
     });
 });
