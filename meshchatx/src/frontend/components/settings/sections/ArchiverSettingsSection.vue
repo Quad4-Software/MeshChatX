@@ -14,7 +14,7 @@
                 <Toggle
                     id="page-archiver-enabled"
                     :model-value="config.page_archiver_enabled"
-                    @update:model-value="$emit('enabled-change', $event)"
+                    @update:model-value="emit('enabled-change', $event)"
                 />
                 <span class="setting-toggle__label">
                     <span class="setting-toggle__title">Enable Archiver</span>
@@ -32,11 +32,7 @@
                         min="1"
                         max="50"
                         class="input-field"
-                        @input="
-                            $emit('config-change', {
-                                page_archiver_max_versions: Number($event.target.value),
-                            })
-                        "
+                        @input="onMaxVersionsInput"
                     />
                     <div class="text-xs text-sem-fg-muted">How many versions of each page to keep.</div>
                 </div>
@@ -47,11 +43,7 @@
                         type="number"
                         min="1"
                         class="input-field"
-                        @input="
-                            $emit('config-change', {
-                                archives_max_storage_gb: Number($event.target.value),
-                            })
-                        "
+                        @input="onMaxStorageInput"
                     />
                     <div class="text-xs text-sem-fg-muted">Total storage for all archived pages.</div>
                 </div>
@@ -59,7 +51,7 @@
             <button
                 type="button"
                 class="w-full flex items-center justify-center gap-2 rounded-xl border border-sem-danger dark:border-sem-danger bg-sem-danger/15 px-4 py-2 text-sm font-semibold text-sem-danger hover:bg-sem-danger/15 dark:hover:bg-sem-danger/15 transition"
-                @click="$emit('flush')"
+                @click="emit('flush')"
             >
                 <MaterialDesignIcon icon-name="delete-sweep" class="w-4 h-4" />
                 Flush All Archived Pages
@@ -68,26 +60,35 @@
     </section>
 </template>
 
-<script>
+<script setup lang="ts">
 import Toggle from "../../forms/Toggle.vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 
-export default {
-    name: "ArchiverSettingsSection",
-    components: {
-        Toggle,
-        MaterialDesignIcon,
-    },
-    props: {
-        visible: {
-            type: Boolean,
-            default: true,
-        },
-        config: {
-            type: Object,
-            required: true,
-        },
-    },
-    emits: ["enabled-change", "config-change", "flush"],
-};
+withDefaults(
+    defineProps<{
+        visible?: boolean;
+        config: Record<string, any>;
+    }>(),
+    {
+        visible: true,
+    }
+);
+
+const emit = defineEmits<{
+    "enabled-change": [value: boolean];
+    "config-change": [config: Record<string, any>];
+    flush: [];
+}>();
+
+function onMaxVersionsInput(event: Event) {
+    emit("config-change", {
+        page_archiver_max_versions: Number((event.target as HTMLInputElement).value),
+    });
+}
+
+function onMaxStorageInput(event: Event) {
+    emit("config-change", {
+        archives_max_storage_gb: Number((event.target as HTMLInputElement).value),
+    });
+}
 </script>
