@@ -41,88 +41,98 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, onMounted, ref, watch } from "vue";
 import DialogUtils from "../../js/DialogUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import { apiPath } from "../../js/constants";
+import { translateUi } from "../../js/localeLoader.js";
 
-export default {
-    name: "ManagementIdentityPicker",
-    components: { MaterialDesignIcon },
-    props: {
-        modelValue: { type: String, default: "" },
-        disabled: { type: Boolean, default: false },
-        defaultName: { type: String, default: "mgmt" },
-    },
-    emits: ["update:modelValue", "update:identityHash", "loaded"],
-    data() {
-        return {
-            identities: [],
-            loading: false,
-            creating: false,
-        };
-    },
-    computed: {
-        selectedHash() {
-            const match = this.identities.find((item) => item.path === this.modelValue);
-            return match?.hash || "";
-        },
-    },
-    watch: {
-        selectedHash(value) {
-            this.$emit("update:identityHash", value || "");
-        },
-    },
-    async mounted() {
-        await this.loadIdentities();
-    },
-    methods: {
-        shortHash(hash) {
-            if (!hash || hash.length < 10) return hash || "";
-            return `${hash.slice(0, 8)}…`;
-        },
-        onSelect(value) {
-            this.$emit("update:modelValue", value || "");
-        },
-        async loadIdentities() {
-            this.loading = true;
-            try {
-                const response = await window.api.get(apiPath("/reticulum/management-identities"));
-                this.identities = Array.isArray(response.data?.identities) ? response.data.identities : [];
-                this.$emit("loaded", this.identities);
-                if (this.modelValue && !this.identities.some((item) => item.path === this.modelValue)) {
-                    this.$emit("update:modelValue", "");
-                }
-            } catch (error) {
-                ToastUtils.error(error?.response?.data?.message || this.$t("remote_mgmt.failed_load_identities"));
-            } finally {
-                this.loading = false;
-            }
-        },
-        async createIdentity() {
-            const suggested = this.defaultName || "mgmt";
-            const name = await DialogUtils.prompt(this.$t("remote_mgmt.create_identity_prompt"), suggested);
-            if (!name || !String(name).trim()) {
-                return;
-            }
-            this.creating = true;
-            try {
-                const response = await window.api.post(apiPath("/reticulum/management-identities"), {
-                    name: String(name).trim(),
-                });
-                const identity = response.data?.identity;
-                await this.loadIdentities();
-                if (identity?.path) {
-                    this.$emit("update:modelValue", identity.path);
-                }
-                ToastUtils.success(this.$t("remote_mgmt.identity_created"));
-            } catch (error) {
-                ToastUtils.error(error?.response?.data?.message || this.$t("remote_mgmt.failed_create_identity"));
-            } finally {
-                this.creating = false;
-            }
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        modelValue?: string;
+        disabled?: boolean;
+        defaultName?: string;
+    }>(),
+    {
+        modelValue: "",
+        disabled: false,
+        defaultName: "mgmt",
+    }
+);
+
+const emit = defineEmits<{
+    "update:modelValue": [value: string];
+    "update:identityHash": [value: string];
+    loaded: [identities: any[]];
+}>();
+
+const identities = ref<any[]>([]);
+const loading = ref(false);
+const creating = ref(false);
+
+const selectedHash = computed(() => {
+    const match = identities.value.find((item) => item.path === props.modelValue);
+    return match?.hash || "";
+});
+
+watch(selectedHash, (value) => {
+    emit("update:identityHash", value || "");
+});
+
+onMounted(async () => {
+    await loadIdentities();
+});
+
+function shortHash(hash: string) {
+    if (!hash || hash.length < 10) return hash || "";
+    return `${hash.slice(0, 8)}…`;
+}
+
+function onSelect(value: string) {
+    emit("update:modelValue", value || "");
+}
+
+async function loadIdentities() {
+    loading.value = true;
+    try {
+        const response = await (window as any).api.get(apiPath("/reticulum/management-identities"));
+        identities.value = Array.isArray(response.data?.identities) ? response.data.identities : [];
+        emit("loaded", identities.value);
+        if (props.modelValue && !identities.value.some((item) => item.path === props.modelValue)) {
+            emit("update:modelValue", "");
+        }
+    } catch (error: any) {
+        ToastUtils.error(error?.response?.data?.message || translateUi("remote_mgmt.failed_load_identities"));
+    } finally {
+        loading.value = false;
+    }
+}
+
+async function createIdentity() {
+    const suggested = props.defaultName || "mgmt";
+    const name = await DialogUtils.prompt(translateUi("remote_mgmt.create_identity_prompt"), suggested);
+    if (!name || !String(name).trim()) {
+        return;
+    }
+    creating.value = true;
+    try {
+        const response = await (window as any).api.post(apiPath("/reticulum/management-identities"), {
+            name: String(name).trim(),
+        });
+        const identity = response.data?.identity;
+        await loadIdentities();
+        if (identity?.path) {
+            emit("update:modelValue", identity.path);
+        }
+        ToastUtils.success(translateUi("remote_mgmt.identity_created"));
+    } catch (error: any) {
+        ToastUtils.error(error?.response?.data?.message || translateUi("remote_mgmt.failed_create_identity"));
+    } finally {
+        creating.value = false;
+    }
+}
+
+defineExpose({ loadIdentities });
 </script>

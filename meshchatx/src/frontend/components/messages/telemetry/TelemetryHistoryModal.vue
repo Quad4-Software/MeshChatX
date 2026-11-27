@@ -34,7 +34,7 @@
                         :key="item.lxmf_message.hash"
                         :item="item"
                         :format-time-ago="formatTimeAgo"
-                        @location-click="$emit('location-click', $event)"
+                        @location-click="emit('location-click', $event)"
                     />
                 </div>
                 <div
@@ -76,54 +76,42 @@
     </Teleport>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from "vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import TelemetryBatteryChart from "./TelemetryBatteryChart.vue";
 import TelemetryHistoryListItem from "./TelemetryHistoryListItem.vue";
 import { batteryHistoryFromTelemetryItems } from "../../../js/telemetryBatteryChartSpec.js";
 
-export default {
-    name: "TelemetryHistoryModal",
-    components: {
-        MaterialDesignIcon,
-        TelemetryBatteryChart,
-        TelemetryHistoryListItem,
-    },
-    props: {
-        modelValue: {
-            type: Boolean,
-            default: false,
-        },
-        telemetryItems: {
-            type: Array,
-            default: () => [],
-        },
-        showTelemetryInChat: {
-            type: Boolean,
-            default: false,
-        },
-        formatTimeAgo: {
-            type: Function,
-            required: true,
-        },
-        gradientIdSuffix: {
-            type: String,
-            default: "peer",
-        },
-    },
-    emits: ["update:modelValue", "update:showTelemetryInChat", "location-click"],
-    computed: {
-        batteryHistory() {
-            return batteryHistoryFromTelemetryItems(this.telemetryItems);
-        },
-    },
-    methods: {
-        close() {
-            this.$emit("update:modelValue", false);
-        },
-        onShowTelemetryChange(e) {
-            this.$emit("update:showTelemetryInChat", e.target.checked);
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        modelValue?: boolean;
+        telemetryItems?: any[];
+        showTelemetryInChat?: boolean;
+        formatTimeAgo: (...args: any[]) => any;
+        gradientIdSuffix?: string;
+    }>(),
+    {
+        modelValue: false,
+        telemetryItems: () => [],
+        showTelemetryInChat: false,
+        gradientIdSuffix: "peer",
+    }
+);
+
+const emit = defineEmits<{
+    "update:modelValue": [value: boolean];
+    "update:showTelemetryInChat": [value: boolean];
+    "location-click": [item: any];
+}>();
+
+const batteryHistory = computed(() => batteryHistoryFromTelemetryItems(props.telemetryItems));
+
+function close() {
+    emit("update:modelValue", false);
+}
+
+function onShowTelemetryChange(e: Event) {
+    emit("update:showTelemetryInChat", (e.target as HTMLInputElement).checked);
+}
 </script>

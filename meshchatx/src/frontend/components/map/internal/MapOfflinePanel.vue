@@ -9,7 +9,7 @@
                 :class="
                     !offlineEnabled ? 'bg-sem-surface dark:bg-sem-surface-muted text-sem-info' : 'text-sem-fg-muted'
                 "
-                @click="$emit('toggle-offline', false)"
+                @click="emit('toggle-offline', false)"
             >
                 {{ $t("map.online_mode") }}
             </button>
@@ -17,19 +17,19 @@
                 type="button"
                 class="flex-1 px-2 py-1.5 text-[11px] font-medium rounded-md"
                 :class="offlineEnabled ? 'bg-sem-surface dark:bg-sem-surface-muted text-sem-info' : 'text-sem-fg-muted'"
-                @click="$emit('toggle-offline', true)"
+                @click="emit('toggle-offline', true)"
             >
                 {{ $t("map.offline_mode") }}
             </button>
         </div>
         <label class="flex items-center justify-between text-[11px] text-sem-fg-muted">
             <span>{{ $t("map.caching_enabled") }}</span>
-            <input :checked="cachingEnabled" type="checkbox" @change="$emit('toggle-caching', $event.target.checked)" />
+            <input :checked="cachingEnabled" type="checkbox" @change="onToggleCaching" />
         </label>
         <button
             type="button"
             class="w-full py-2 text-[10px] font-semibold uppercase rounded-lg bg-sem-action-primary text-sem-action-primary-text"
-            @click="$emit('upload')"
+            @click="emit('upload')"
         >
             {{ $t("map.upload_offline_map") }}
         </button>
@@ -41,7 +41,7 @@
             <button
                 type="button"
                 class="w-full py-1.5 text-[10px] font-semibold uppercase rounded-lg border border-sem-border"
-                @click="$emit('restore-starter')"
+                @click="emit('restore-starter')"
             >
                 {{ $t("map.restore_starter_tiles") }}
             </button>
@@ -52,14 +52,14 @@
         <button
             type="button"
             class="w-full py-2 text-[10px] font-semibold uppercase rounded-lg border border-sem-border"
-            @click="$emit('export-region')"
+            @click="emit('export-region')"
         >
             {{ $t("map.data_export_region") }}
         </button>
         <button
             type="button"
             class="w-full py-2 text-[10px] font-semibold uppercase rounded-lg border border-sem-border"
-            @click="$emit('clear-cache')"
+            @click="emit('clear-cache')"
         >
             {{ $t("map.clear_cache") }}
         </button>
@@ -69,7 +69,7 @@
                 :value="mbtilesDir"
                 type="text"
                 class="w-full rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-[11px] font-mono"
-                @blur="$emit('save-dir', $event.target.value)"
+                @blur="onSaveDir"
             />
         </label>
         <div
@@ -92,11 +92,11 @@
                     v-if="!file.is_active"
                     type="button"
                     class="p-1 text-sem-info"
-                    @click="$emit('set-active', file.name)"
+                    @click="emit('set-active', file.name)"
                 >
                     {{ $t("map.set_active") }}
                 </button>
-                <button type="button" class="p-1 text-sem-danger" @click="$emit('delete-file', file.name)">
+                <button type="button" class="p-1 text-sem-danger" @click="emit('delete-file', file.name)">
                     {{ $t("map.delete") }}
                 </button>
             </div>
@@ -104,26 +104,41 @@
     </div>
 </template>
 
-<script>
-export default {
-    name: "MapOfflinePanel",
-    props: {
-        offlineEnabled: { type: Boolean, default: false },
-        cachingEnabled: { type: Boolean, default: true },
-        mbtilesList: { type: Array, default: () => [] },
-        mbtilesDir: { type: String, default: "" },
-        hasOfflineMap: { type: Boolean, default: false },
-    },
-    emits: [
-        "toggle-offline",
-        "toggle-caching",
-        "upload",
-        "set-active",
-        "delete-file",
-        "save-dir",
-        "clear-cache",
-        "export-region",
-        "restore-starter",
-    ],
-};
+<script setup lang="ts">
+withDefaults(
+    defineProps<{
+        offlineEnabled?: boolean;
+        cachingEnabled?: boolean;
+        mbtilesList?: any[];
+        mbtilesDir?: string;
+        hasOfflineMap?: boolean;
+    }>(),
+    {
+        offlineEnabled: false,
+        cachingEnabled: true,
+        mbtilesList: () => [],
+        mbtilesDir: "",
+        hasOfflineMap: false,
+    }
+);
+
+const emit = defineEmits<{
+    "toggle-offline": [value: boolean];
+    "toggle-caching": [value: boolean];
+    upload: [];
+    "set-active": [name: string];
+    "delete-file": [name: string];
+    "save-dir": [value: string];
+    "clear-cache": [];
+    "export-region": [];
+    "restore-starter": [];
+}>();
+
+function onToggleCaching(event: Event) {
+    emit("toggle-caching", (event.target as HTMLInputElement).checked);
+}
+
+function onSaveDir(event: Event) {
+    emit("save-dir", (event.target as HTMLInputElement).value);
+}
 </script>

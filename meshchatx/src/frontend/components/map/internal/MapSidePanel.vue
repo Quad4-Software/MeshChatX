@@ -22,8 +22,8 @@
             <MapDiscoverPanel
                 v-show="activeTab === 'discover'"
                 :listen-enabled="announceListenEnabled"
-                @overlays-changed="$emit('overlays-changed')"
-                @enable-listen="$emit('toggle-announce-listen', true)"
+                @overlays-changed="emit('overlays-changed')"
+                @enable-listen="emit('toggle-announce-listen', true)"
             />
             <MapPublishPanel v-if="activeTab === 'publish'" :draw-source="drawSource" />
             <MapLayersPanel
@@ -33,17 +33,17 @@
                 :map-ready="mapReady"
                 :announce-listen-enabled="announceListenEnabled"
                 :announce-listen-busy="announceListenBusy"
-                @import-features="$emit('import-features', $event)"
-                @import-error="$emit('import-error', $event)"
-                @export-geojson="$emit('export-geojson')"
-                @export-kml="$emit('export-kml')"
-                @export-kmz="$emit('export-kmz')"
-                @export-gpx="$emit('export-gpx')"
-                @overlays-changed="$emit('overlays-changed')"
-                @export-overlay="$emit('export-overlay', $event)"
-                @copy-overlay-to-drawings="$emit('copy-overlay-to-drawings', $event)"
-                @error="$emit('overlay-error', $event)"
-                @toggle-announce-listen="$emit('toggle-announce-listen', $event)"
+                @import-features="emit('import-features', $event)"
+                @import-error="emit('import-error', $event)"
+                @export-geojson="emit('export-geojson')"
+                @export-kml="emit('export-kml')"
+                @export-kmz="emit('export-kmz')"
+                @export-gpx="emit('export-gpx')"
+                @overlays-changed="emit('overlays-changed')"
+                @export-overlay="emit('export-overlay', $event)"
+                @copy-overlay-to-drawings="emit('copy-overlay-to-drawings', $event)"
+                @error="emit('overlay-error', $event)"
+                @toggle-announce-listen="emit('toggle-announce-listen', $event)"
             />
             <MapOfflinePanel
                 v-else-if="activeTab === 'offline'"
@@ -52,79 +52,84 @@
                 :mbtiles-list="mbtilesList"
                 :mbtiles-dir="mbtilesDir"
                 :has-offline-map="hasOfflineMap"
-                @toggle-offline="$emit('toggle-offline', $event)"
-                @toggle-caching="$emit('toggle-caching', $event)"
-                @upload="$emit('upload-mbtiles')"
-                @set-active="$emit('set-active-mbtiles', $event)"
-                @delete-file="$emit('delete-mbtiles', $event)"
-                @save-dir="$emit('save-mbtiles-dir', $event)"
-                @clear-cache="$emit('clear-cache')"
-                @export-region="$emit('export-region')"
-                @restore-starter="$emit('restore-starter')"
+                @toggle-offline="emit('toggle-offline', $event)"
+                @toggle-caching="emit('toggle-caching', $event)"
+                @upload="emit('upload-mbtiles')"
+                @set-active="emit('set-active-mbtiles', $event)"
+                @delete-file="emit('delete-mbtiles', $event)"
+                @save-dir="emit('save-mbtiles-dir', $event)"
+                @clear-cache="emit('clear-cache')"
+                @export-region="emit('export-region')"
+                @restore-starter="emit('restore-starter')"
             />
         </div>
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref } from "vue";
 import MapDiscoverPanel from "./MapDiscoverPanel.vue";
 import MapPublishPanel from "./MapPublishPanel.vue";
 import MapLayersPanel from "./MapLayersPanel.vue";
 import MapOfflinePanel from "./MapOfflinePanel.vue";
 
-export default {
-    name: "MapSidePanel",
-    components: {
-        MapDiscoverPanel,
-        MapPublishPanel,
-        MapLayersPanel,
-        MapOfflinePanel,
-    },
-    props: {
-        drawSource: { type: Object, default: null },
-        hasVectorDrawFeatures: { type: Boolean, default: false },
-        mapReady: { type: Boolean, default: false },
-        offlineEnabled: { type: Boolean, default: false },
-        cachingEnabled: { type: Boolean, default: true },
-        mbtilesList: { type: Array, default: () => [] },
-        mbtilesDir: { type: String, default: "" },
-        hasOfflineMap: { type: Boolean, default: false },
-        initialTab: { type: String, default: "discover" },
-        announceListenEnabled: { type: Boolean, default: false },
-        announceListenBusy: { type: Boolean, default: false },
-    },
-    emits: [
-        "overlays-changed",
-        "import-features",
-        "import-error",
-        "export-geojson",
-        "export-kml",
-        "export-kmz",
-        "export-gpx",
-        "export-overlay",
-        "copy-overlay-to-drawings",
-        "overlay-error",
-        "toggle-offline",
-        "toggle-caching",
-        "upload-mbtiles",
-        "set-active-mbtiles",
-        "delete-mbtiles",
-        "save-mbtiles-dir",
-        "clear-cache",
-        "export-region",
-        "restore-starter",
-        "toggle-announce-listen",
-    ],
-    data() {
-        return {
-            activeTab: this.initialTab || "discover",
-            tabs: [
-                { id: "discover", labelKey: "map.tab_discover" },
-                { id: "publish", labelKey: "map.tab_publish" },
-                { id: "layers", labelKey: "map.tab_layers" },
-                { id: "offline", labelKey: "map.tab_offline" },
-            ],
-        };
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        drawSource?: Record<string, any> | null;
+        hasVectorDrawFeatures?: boolean;
+        mapReady?: boolean;
+        offlineEnabled?: boolean;
+        cachingEnabled?: boolean;
+        mbtilesList?: any[];
+        mbtilesDir?: string;
+        hasOfflineMap?: boolean;
+        initialTab?: string;
+        announceListenEnabled?: boolean;
+        announceListenBusy?: boolean;
+    }>(),
+    {
+        drawSource: null,
+        hasVectorDrawFeatures: false,
+        mapReady: false,
+        offlineEnabled: false,
+        cachingEnabled: true,
+        mbtilesList: () => [],
+        mbtilesDir: "",
+        hasOfflineMap: false,
+        initialTab: "discover",
+        announceListenEnabled: false,
+        announceListenBusy: false,
+    }
+);
+
+const emit = defineEmits<{
+    "overlays-changed": [...args: any[]];
+    "import-features": [...args: any[]];
+    "import-error": [...args: any[]];
+    "export-geojson": [...args: any[]];
+    "export-kml": [...args: any[]];
+    "export-kmz": [...args: any[]];
+    "export-gpx": [...args: any[]];
+    "export-overlay": [...args: any[]];
+    "copy-overlay-to-drawings": [...args: any[]];
+    "overlay-error": [...args: any[]];
+    "toggle-offline": [value: boolean];
+    "toggle-caching": [value: boolean];
+    "upload-mbtiles": [];
+    "set-active-mbtiles": [name: string];
+    "delete-mbtiles": [name: string];
+    "save-mbtiles-dir": [value: string];
+    "clear-cache": [];
+    "export-region": [];
+    "restore-starter": [];
+    "toggle-announce-listen": [...args: any[]];
+}>();
+
+const activeTab = ref(props.initialTab || "discover");
+const tabs = [
+    { id: "discover", labelKey: "map.tab_discover" },
+    { id: "publish", labelKey: "map.tab_publish" },
+    { id: "layers", labelKey: "map.tab_layers" },
+    { id: "offline", labelKey: "map.tab_offline" },
+];
 </script>
