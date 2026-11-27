@@ -37,7 +37,7 @@
                     :key="i"
                     type="button"
                     class="flex w-full flex-col gap-0.5 border-b border-sem-border px-3 py-2.5 text-left transition-colors hover:bg-sem-surface-muted sm:px-4"
-                    @click="$emit('open-room', { hubHash: hit.hub_hash, room: hit.room })"
+                    @click="emit('open-room', { hubHash: hit.hub_hash, room: hit.room })"
                 >
                     <span class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-sem-fg-muted">
                         <span class="font-medium text-sem-fg">{{ hit.hub_name || formatHash(hit.hub_hash) }}</span>
@@ -55,7 +55,8 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { onBeforeUnmount, ref } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SearchInput from "../SearchInput.vue";
 import MarkdownRenderer from "../../js/MarkdownRenderer.js";
@@ -64,67 +65,67 @@ import * as rrcApi from "../../js/api/rrc.js";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
-export default {
-    name: "RelaySearchPage",
-    components: { MaterialDesignIcon, SearchInput },
-    emits: ["open-room"],
-    data() {
-        return {
-            query: "",
-            results: [],
-            searching: false,
-            searchTimer: null,
-            searchGen: 0,
-        };
-    },
-    beforeUnmount() {
-        if (this.searchTimer) clearTimeout(this.searchTimer);
-    },
-    methods: {
-        formatHash(h) {
-            const s = String(h || "");
-            return s.length > 16 ? `${s.slice(0, 8)}…${s.slice(-6)}` : s;
-        },
-        timeAgo(ts) {
-            return Utils.formatTimeAgoForI18n(ts);
-        },
-        renderHit(text) {
-            return MarkdownRenderer.renderBasic(text);
-        },
-        scheduleSearch() {
-            if (this.searchTimer) clearTimeout(this.searchTimer);
-            this.searchTimer = setTimeout(() => this.runSearch(), SEARCH_DEBOUNCE_MS);
-        },
-        clearSearch() {
-            this.query = "";
-            this.results = [];
-            // Invalidate any in-flight search so a stale response cannot
-            // repopulate results under the empty query.
-            this.searchGen += 1;
-            this.searching = false;
-        },
-        async runSearch() {
-            const q = this.query.trim();
-            if (!q) {
-                this.searchGen += 1;
-                this.results = [];
-                this.searching = false;
-                return;
-            }
-            const gen = ++this.searchGen;
-            this.searching = true;
-            try {
-                const res = await rrcApi.getSearch({
-                    params: { q, limit: 100 },
-                });
-                if (gen !== this.searchGen) return;
-                this.results = res?.data?.results || [];
-            } catch {
-                if (gen === this.searchGen) this.results = [];
-            } finally {
-                if (gen === this.searchGen) this.searching = false;
-            }
-        },
-    },
-};
+const emit = defineEmits<{
+    "open-room": [room: any];
+}>();
+
+const query = ref("");
+const results = ref<any[]>([]);
+const searching = ref(false);
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+let searchGen = 0;
+
+onBeforeUnmount(() => {
+    if (searchTimer) clearTimeout(searchTimer);
+});
+
+function formatHash(h: string) {
+    const s = String(h || "");
+    return s.length > 16 ? `${s.slice(0, 8)}…${s.slice(-6)}` : s;
+}
+
+function timeAgo(ts: number) {
+    return Utils.formatTimeAgoForI18n(ts);
+}
+
+function renderHit(text: string) {
+    return MarkdownRenderer.renderBasic(text);
+}
+
+function scheduleSearch() {
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => runSearch(), SEARCH_DEBOUNCE_MS);
+}
+
+function clearSearch() {
+    query.value = "";
+    results.value = [];
+    // Invalidate any in-flight search so a stale response cannot
+    // repopulate results under the empty query.
+    searchGen += 1;
+    searching.value = false;
+}
+
+async function runSearch() {
+    const q = query.value.trim();
+    if (!q) {
+        searchGen += 1;
+        results.value = [];
+        searching.value = false;
+        return;
+    }
+    const gen = ++searchGen;
+    searching.value = true;
+    try {
+        const res = await rrcApi.getSearch({
+            params: { q, limit: 100 },
+        });
+        if (gen !== searchGen) return;
+        results.value = res?.data?.results || [];
+    } catch {
+        if (gen === searchGen) results.value = [];
+    } finally {
+        if (gen === searchGen) searching.value = false;
+    }
+}
 </script>

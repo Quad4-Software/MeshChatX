@@ -4,7 +4,7 @@
     <div
         v-if="open"
         class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
-        @click.self="$emit('close')"
+        @click.self="emit('close')"
     >
         <div
             class="flex w-full max-w-lg max-h-[min(36rem,90vh)] flex-col rounded-2xl border border-sem-border-card bg-sem-surface shadow-xl"
@@ -17,7 +17,7 @@
                     type="button"
                     class="rounded-lg p-1 text-sem-fg-muted hover:bg-sem-surface/60"
                     :title="$t('common.close')"
-                    @click="$emit('close')"
+                    @click="emit('close')"
                 >
                     <MaterialDesignIcon icon-name="close" class="size-5" />
                 </button>
@@ -58,7 +58,7 @@
                 <button type="button" :class="btnSecondary" @click="pick(null)">
                     {{ $t("relay_chat.hub_icon_reset_default") }}
                 </button>
-                <button type="button" :class="btnSecondary" @click="$emit('close')">
+                <button type="button" :class="btnSecondary" @click="emit('close')">
                     {{ $t("common.cancel") }}
                 </button>
             </div>
@@ -66,8 +66,8 @@
     </div>
 </template>
 
-<script>
-import { nextTick } from "vue";
+<script setup lang="ts">
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import SearchInput from "./SearchInput.vue";
 import { buildMdiIconNames } from "../js/mdiIconNames.js";
@@ -75,61 +75,55 @@ import { buildMdiIconNames } from "../js/mdiIconNames.js";
 const BTN_SECONDARY =
     "inline-flex items-center justify-center gap-1.5 rounded-lg border border-sem-border bg-sem-surface-muted px-3 py-2 text-sm font-medium text-sem-fg transition hover:bg-sem-surface-raised";
 
-export default {
-    name: "MdiIconPickerModal",
-    components: { MaterialDesignIcon, SearchInput },
-    props: {
-        open: {
-            type: Boolean,
-            default: false,
-        },
-        selectedIcon: {
-            type: String,
-            default: null,
-        },
-        previewIconClass: {
-            type: String,
-            default: "text-sem-fg-secondary",
-        },
-    },
-    emits: ["close", "select"],
-    data() {
-        return {
-            search: "",
-            maxSearchResults: 200,
-            iconNames: [],
-            btnSecondary: BTN_SECONDARY,
-        };
-    },
-    computed: {
-        searchedIconNames() {
-            const q = this.search.trim().toLowerCase();
-            const list = q ? this.iconNames.filter((name) => name.includes(q)) : this.iconNames;
-            return list.slice(0, this.maxSearchResults);
-        },
-    },
-    watch: {
-        open(isOpen) {
-            if (isOpen) {
-                this.search = "";
-                nextTick(() => {
-                    const root = this.$refs.searchInput?.$el;
-                    const el = root?.querySelector ? root.querySelector("input") : null;
-                    if (el && typeof el.focus === "function") {
-                        el.focus();
-                    }
-                });
-            }
-        },
-    },
-    mounted() {
-        this.iconNames = buildMdiIconNames();
-    },
-    methods: {
-        pick(iconName) {
-            this.$emit("select", iconName);
-            this.$emit("close");
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        open?: boolean;
+        selectedIcon?: string | null;
+        previewIconClass?: string;
+    }>(),
+    {
+        open: false,
+        selectedIcon: null,
+        previewIconClass: "text-sem-fg-secondary",
+    }
+);
+
+const emit = defineEmits<{
+    close: [];
+    select: [iconName: string];
+}>();
+
+const search = ref("");
+const maxSearchResults = 200;
+const iconNames = ref<string[]>([]);
+const btnSecondary = BTN_SECONDARY;
+
+const searchInput = ref<InstanceType<typeof SearchInput> | null>(null);
+
+const searchedIconNames = computed(() => {
+    const q = search.value.trim().toLowerCase();
+    const list = q ? iconNames.value.filter((name) => name.includes(q)) : iconNames.value;
+    return list.slice(0, maxSearchResults);
+});
+
+watch(
+    () => props.open,
+    (isOpen) => {
+        if (isOpen) {
+            search.value = "";
+            nextTick(() => {
+                searchInput.value?.focus?.();
+            });
+        }
+    }
+);
+
+onMounted(() => {
+    iconNames.value = buildMdiIconNames();
+});
+
+function pick(iconName: string) {
+    emit("select", iconName);
+    emit("close");
+}
 </script>

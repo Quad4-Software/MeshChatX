@@ -8,6 +8,7 @@
             :class="compact ? 'size-4' : 'size-5'"
         />
         <input
+            ref="inputRef"
             :value="modelValue"
             type="text"
             :placeholder="placeholder"
@@ -35,6 +36,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from "vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
 defineOptions({ inheritAttrs: false });
@@ -71,4 +73,12 @@ function clear() {
     emit("update:modelValue", "");
     emit("clear");
 }
+
+const inputRef = ref<HTMLInputElement | null>(null);
+
+function focus() {
+    inputRef.value?.focus();
+}
+
+defineExpose({ focus });
 </script>

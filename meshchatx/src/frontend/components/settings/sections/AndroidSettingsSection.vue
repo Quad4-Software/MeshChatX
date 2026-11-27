@@ -15,7 +15,7 @@
                     :checked="androidShellPrivacy.blockScreenshots"
                     type="checkbox"
                     class="rounded-sm"
-                    @change="$emit('update:blockScreenshots', $event.target.checked)"
+                    @change="emit('update:blockScreenshots', $event.target.checked)"
                 />
                 <span class="setting-toggle__label">
                     <span class="setting-toggle__title">{{ $t("settings.android_block_screenshots") }}</span>
@@ -27,7 +27,7 @@
                     :checked="androidShellPrivacy.clearClipboardOnBackground"
                     type="checkbox"
                     class="rounded-sm"
-                    @change="$emit('update:clearClipboardOnBackground', $event.target.checked)"
+                    @change="emit('update:clearClipboardOnBackground', $event.target.checked)"
                 />
                 <span class="setting-toggle__label">
                     <span class="setting-toggle__title">{{
@@ -50,7 +50,7 @@
                     spellcheck="false"
                     class="w-full rounded-sm border border-sem-border bg-sem-surface px-3 py-2 text-sm"
                     :placeholder="$t('settings.android_remote_backend_placeholder')"
-                    @input="$emit('update:remoteBackendUrl', $event.target.value)"
+                    @input="emit('update:remoteBackendUrl', $event.target.value)"
                 />
                 <p v-if="remoteBackendActive" class="text-xs text-sem-success">
                     {{ $t("settings.android_remote_backend_active", { url: effectiveBackendUrl }) }}
@@ -59,7 +59,7 @@
                     <button
                         type="button"
                         class="btn-maintenance border-sem-info dark:border-sem-info text-sem-info bg-sem-info/15 hover:bg-sem-info/15 dark:hover:bg-sem-info/15"
-                        @click="$emit('apply-remote-backend')"
+                        @click="emit('apply-remote-backend')"
                     >
                         {{ $t("settings.android_remote_backend_apply") }}
                     </button>
@@ -67,7 +67,7 @@
                         type="button"
                         class="btn-maintenance border-sem-border text-sem-fg bg-sem-surface-muted/40 hover:bg-gray-100 dark:hover:bg-sem-surface"
                         :disabled="!remoteBackendActive && !(remoteBackendUrl || '').trim()"
-                        @click="$emit('clear-remote-backend')"
+                        @click="emit('clear-remote-backend')"
                     >
                         {{ $t("settings.android_remote_backend_use_local") }}
                     </button>
@@ -77,7 +77,7 @@
             <button
                 type="button"
                 class="btn-maintenance border-sem-info dark:border-sem-info text-sem-info bg-sem-info/15 hover:bg-sem-info/15 dark:hover:bg-sem-info/15"
-                @click="$emit('share-apk')"
+                @click="emit('share-apk')"
             >
                 <div class="flex flex-col items-start text-left">
                     <div class="font-bold flex items-center gap-2">
@@ -93,43 +93,31 @@
     </section>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 
-export default {
-    name: "AndroidSettingsSection",
-    components: {
-        MaterialDesignIcon,
-    },
-    props: {
-        visible: {
-            type: Boolean,
-            default: true,
-        },
-        androidShellPrivacy: {
-            type: Object,
-            required: true,
-        },
-        remoteBackendUrl: {
-            type: String,
-            default: "",
-        },
-        effectiveBackendUrl: {
-            type: String,
-            default: "",
-        },
-        remoteBackendActive: {
-            type: Boolean,
-            default: false,
-        },
-    },
-    emits: [
-        "update:blockScreenshots",
-        "update:clearClipboardOnBackground",
-        "update:remoteBackendUrl",
-        "apply-remote-backend",
-        "clear-remote-backend",
-        "share-apk",
-    ],
-};
+withDefaults(
+    defineProps<{
+        visible?: boolean;
+        androidShellPrivacy: Record<string, any>;
+        remoteBackendUrl?: string;
+        effectiveBackendUrl?: string;
+        remoteBackendActive?: boolean;
+    }>(),
+    {
+        visible: true,
+        remoteBackendUrl: "",
+        effectiveBackendUrl: "",
+        remoteBackendActive: false,
+    }
+);
+
+const emit = defineEmits<{
+    "update:blockScreenshots": [value: boolean];
+    "update:clearClipboardOnBackground": [value: boolean];
+    "update:remoteBackendUrl": [value: string];
+    "apply-remote-backend": [];
+    "clear-remote-backend": [];
+    "share-apk": [];
+}>();
 </script>
