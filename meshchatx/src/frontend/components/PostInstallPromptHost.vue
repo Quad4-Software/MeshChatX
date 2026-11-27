@@ -19,7 +19,7 @@ import { computed, ref } from "vue";
 import AppUpdatePrompt from "./AppUpdatePrompt.vue";
 import { listPostInstallPromptsByPriority } from "../js/registries/postInstallPromptRegistry";
 import { markPromptSeen, shouldShowPrompt } from "../js/postInstallPromptState.js";
-import { translateUi } from "../js/localeLoader.js";
+import { useTranslateUi } from "../js/localeLoader.js";
 
 const emit = defineEmits<{
     completed: [result: { id: string | undefined; revision: number | undefined }];
@@ -30,30 +30,32 @@ const visible = ref(false);
 const busy = ref(false);
 const activeEntry = ref<Record<string, any> | null>(null);
 
+const t = useTranslateUi();
+
 const resolvedTitle = computed(() => {
     if (!activeEntry.value?.titleKey) {
         return "";
     }
-    return translateUi(activeEntry.value.titleKey);
+    return t(activeEntry.value.titleKey);
 });
 
 const resolvedDescription = computed(() => {
     if (!activeEntry.value?.descriptionKey) {
         return "";
     }
-    return translateUi(activeEntry.value.descriptionKey);
+    return t(activeEntry.value.descriptionKey);
 });
 
 const resolvedPrimaryLabel = computed(() => {
     const key = activeEntry.value?.primaryLabelKey || "common.continue";
-    return translateUi(key);
+    return t(key);
 });
 
 const resolvedSecondaryLabel = computed(() => {
     if (!activeEntry.value?.secondaryLabelKey) {
         return "";
     }
-    return translateUi(activeEntry.value.secondaryLabelKey);
+    return t(activeEntry.value.secondaryLabelKey);
 });
 
 /**
@@ -159,5 +161,18 @@ function onSecondary() {
     return runAction("secondary");
 }
 
-defineExpose({ showNext });
+defineExpose({
+    showNext,
+    visible,
+    busy,
+    activeEntry,
+    resolvedTitle,
+    resolvedDescription,
+    resolvedPrimaryLabel,
+    resolvedSecondaryLabel,
+    dismissActive,
+    onVisibleUpdate,
+    onPrimary,
+    onSecondary,
+});
 </script>

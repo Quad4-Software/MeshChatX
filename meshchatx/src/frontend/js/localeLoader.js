@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import { getCurrentInstance } from "vue";
+
 const localeModules = import.meta.glob("../locales/*.json");
 
 /**
@@ -79,6 +81,24 @@ function resolveComposer(i18nOrComposer) {
  * Access the registered app i18n composer for use outside Options API.
  * @returns {import("vue-i18n").Composer | null}
  */
+/**
+ * Resolve a translation function inside component setup. Prefers the instance
+ * proxy $t so global-test mocks and the real vue-i18n global injection both
+ * work, falling back to the registered composer when no instance is present.
+ * Must be called synchronously during setup.
+ * @returns {(key: string, params?: Record<string, unknown>) => string}
+ */
+export function useTranslateUi() {
+    const instance = getCurrentInstance();
+    return (key, params) => {
+        const proxyT = instance?.proxy?.$t;
+        if (typeof proxyT === "function") {
+            return proxyT(key, params);
+        }
+        return translateUi(key, params);
+    };
+}
+
 export function getUiI18n() {
     return registeredComposer;
 }
