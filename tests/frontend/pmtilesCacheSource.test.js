@@ -238,6 +238,98 @@ describe("CachedPmtilesSource", () => {
         expect(fakeCaches.cache.delete).toHaveBeenCalled();
     });
 
+    it("updates stored validators when revalidation detects a change", async () => {
+        const src = new CachedPmtilesSource(ARCHIVE);
+        const meta = {
+            etag: '"v1"',
+            lastModified: "Wed, 01 Jan 2025 00:00:00 GMT",
+            maxAge: 0,
+            fingerprint: '"v1"',
+            fetchedAt: 0,
+        };
+        fetchImpl = vi.fn(async () =>
+            makeResp(bytes(127), 206, {
+                etag: '"v2"',
+                "last-modified": "Thu, 02 Jan 2025 00:00:00 GMT",
+                "cache-control": "public, max-age=60",
+            })
+        );
+        const invalidate = vi.spyOn(src, "_persistInvalidate").mockResolvedValue();
+        await src._freshen(meta, true);
+        expect(invalidate).toHaveBeenCalledTimes(1);
+        expect(meta.fingerprint).toBe('"v2"');
+        expect(meta.etag).toBe('"v2"');
+        expect(meta.lastModified).toBe("Thu, 02 Jan 2025 00:00:00 GMT");
+        expect(meta.maxAge).toBe(60000);
+
+        // Same new headers on the next probe must not invalidate again.
+        meta.fetchedAt = 0;
+        await src._freshen(meta, true);
+        expect(invalidate).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the stored etag on an unchanged 304 without an etag header", async () => {
+        const src = new CachedPmtilesSource(ARCHIVE);
+        const meta = {
+            etag: '"v1"',
+            lastModified: "Wed, 01 Jan 2025 00:00:00 GMT",
+            maxAge: 0,
+            fingerprint: '"v1"',
+            fetchedAt: Date.now(),
+        };
+        fetchImpl = vi.fn(async () => ({
+            status: 304,
+            ok: true,
+            headers: new Headers({ "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT" }),
+            body: { cancel: vi.fn() },
+            arrayBuffer: () => Promise.resolve(null),
+        }));
+        const r = await src._revalidate(meta);
+        expect(r.changed).toBe(false);
+        expect(meta.etag).toBe('"v1"');
+    });
+
+    it("never produces lm:null for a weak etag change without last-modified", async () => {
+        const src = new CachedPmtilesSource(ARCHIVE);
+        const meta = {
+            etag: '"v1"',
+            lastModified: null,
+            maxAge: 0,
+            fingerprint: '"v1"',
+            fetchedAt: Date.now(),
+        };
+        const body = new Uint8Array([1, 2, 3]);
+        fetchImpl = vi.fn(async () => makeResp(body.buffer.slice(0), 206, { etag: 'W/"v2"' }));
+        const r = await src._revalidate(meta);
+        expect(r.changed).toBe(true);
+        expect(r.newFp).not.toBe("lm:null");
+        expect(typeof r.newFp).toBe("string");
+        expect(meta.etag).toBe(null);
+    });
+
+    it("hashes Uint8Array probe bodies without throwing", async () => {
+        const src = new CachedPmtilesSource(ARCHIVE);
+        const meta = {
+            etag: null,
+            lastModified: null,
+            maxAge: 0,
+            fingerprint: "old-fp",
+            fetchedAt: Date.now(),
+        };
+        const u8 = new Uint8Array([9, 8, 7, 6, 5]);
+        fetchImpl = vi.fn(async () => ({
+            status: 206,
+            ok: true,
+            headers: new Headers({}),
+            body: { cancel: vi.fn() },
+            arrayBuffer: () => Promise.resolve(u8),
+        }));
+        const r = await src._revalidate(meta);
+        expect(r.changed).toBe(true);
+        expect(typeof r.newFp).toBe("string");
+        expect(r.newFp).not.toBe("old-fp");
+    });
+
     it("shares one source instance per archive URL", () => {
         expect(getCachedPmtilesSource(ARCHIVE)).toBe(getCachedPmtilesSource(ARCHIVE));
         expect(getCachedPmtilesSource("https://other.example/a.pmtiles")).not.toBe(getCachedPmtilesSource(ARCHIVE));

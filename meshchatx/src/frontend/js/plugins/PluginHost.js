@@ -99,6 +99,8 @@ export class PluginHost {
     constructor() {
         /** @type {Map<string, { worker: Worker, cleanup: Array<() => void>, manifest: PluginManifest, lastDescriptor: object | null, lastUiError: string, apiClient: ReturnType<import('../apiClient.js').createApiClient> | null, allowHtmlFrame: boolean, canWriteClipboard: boolean, allowedWidgets: string[], routeName: string | null }>} */
         this.instances = new Map();
+        /** @type {Map<string, { promise: Promise<void>, cancelled: boolean, worker: Worker | null }>} */
+        this._loadingPlugins = new Map();
         /** @type {import('vue-router').Router | null} */
         this.router = null;
         this._themeListener = null;
@@ -155,6 +157,20 @@ export class PluginHost {
         if (this.instances.has(pluginId)) {
             return;
         }
+        const loading = this._loadingPlugins.get(pluginId);
+        if (loading) {
+            return loading.promise;
+        }
+        const state = { cancelled: false, worker: null, promise: null };
+        state.promise = this._loadPlugin(plugin, apiClient, locale, state).finally(() => {
+            this._loadingPlugins.delete(pluginId);
+        });
+        this._loadingPlugins.set(pluginId, state);
+        return state.promise;
+    }
+
+    async _loadPlugin(plugin, apiClient, locale, state) {
+        const pluginId = plugin.id;
         const manifest = validatePluginManifest(plugin.manifest);
         if (!manifest.frontend) {
             return;
@@ -170,6 +186,11 @@ export class PluginHost {
         const source =
             typeof sourceResponse.data === "string" ? sourceResponse.data : String(sourceResponse.data ?? "");
         const worker = new Worker(new URL("./pluginWorker.js", import.meta.url), { type: "module" });
+        state.worker = worker;
+        if (state.cancelled) {
+            worker.terminate();
+            return;
+        }
         const cleanup = [];
 
         const ui = manifest.ui || {};
@@ -350,6 +371,11 @@ export class PluginHost {
             void requestHandler(event.data);
         });
 
+        if (state.cancelled || this.instances.has(pluginId)) {
+            worker.terminate();
+            for (const fn of cleanup) fn();
+            return;
+        }
         this.instances.set(pluginId, {
             worker,
             cleanup,
@@ -574,6 +600,13 @@ export class PluginHost {
     }
 
     unloadPlugin(pluginId) {
+        const loading = this._loadingPlugins.get(pluginId);
+        if (loading) {
+            loading.cancelled = true;
+            if (loading.worker) {
+                loading.worker.terminate();
+            }
+        }
         const instance = this.instances.get(pluginId);
         if (!instance) {
             return;

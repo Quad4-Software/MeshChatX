@@ -38,7 +38,9 @@ function storageKey(url, offset, length) {
 }
 
 function fastHash(data) {
-    const v = new DataView(data.buffer ? data : new Uint8Array(data).buffer);
+    const v = ArrayBuffer.isView(data)
+        ? new DataView(data.buffer, data.byteOffset, data.byteLength)
+        : new DataView(data);
     let h = 0x811c9dc5;
     const n = v.byteLength;
     for (let i = 0; i < n; i++) {
@@ -325,23 +327,34 @@ export class CachedPmtilesSource {
             const rEtag = resp.headers.get("etag");
             const rLm = resp.headers.get("last-modified");
             const data = resp.status === 206 ? await resp.arrayBuffer() : null;
+            const strongEtag = rEtag && !rEtag.startsWith("W/") ? rEtag : null;
+            // Keep validators in sync with what the server now reports so the
+            // next probe compares against the new values instead of
+            // re-triggering invalidation on every revalidation.
+            const applyHeaders = (changed) => {
+                if (changed || strongEtag) meta.etag = strongEtag;
+                if (rLm) meta.lastModified = rLm;
+                const maxAge = parseMaxAge(resp.headers.get("cache-control"));
+                if (maxAge !== null) meta.maxAge = maxAge;
+            };
+            const changedFp = () => strongEtag || (rLm ? `lm:${rLm}` : data ? fastHash(data) : `changed:${Date.now()}`);
             if (rEtag && meta.etag && rEtag !== meta.etag) {
-                return { changed: true, newFp: rEtag };
+                applyHeaders(true);
+                return { changed: true, newFp: changedFp() };
             }
             if (rLm && meta.lastModified && rLm !== meta.lastModified) {
-                return { changed: true, newFp: (rEtag && !rEtag.startsWith("W/")) || `lm:${rLm}` };
+                applyHeaders(true);
+                return { changed: true, newFp: changedFp() };
             }
             if (!meta.etag && data) {
                 const newFp = fastHash(data);
-                if (newFp !== meta.fingerprint) return { changed: true, newFp };
+                if (newFp !== meta.fingerprint) {
+                    applyHeaders(true);
+                    return { changed: true, newFp };
+                }
             }
-            if (rEtag && !rEtag.startsWith("W/")) {
-                meta.etag = rEtag;
-                meta.fingerprint = rEtag;
-            }
-            if (rLm) meta.lastModified = rLm;
-            const maxAge = parseMaxAge(resp.headers.get("cache-control"));
-            if (maxAge !== null) meta.maxAge = maxAge;
+            applyHeaders(false);
+            if (strongEtag) meta.fingerprint = strongEtag;
             return { changed: false };
         } catch {
             return { changed: false }; // probe failed: keep serving stale
@@ -486,5 +499,11 @@ export function getCachedPmtilesSource(url) {
 
 /** Test hook: drop all shared sources and their caches. */
 export function resetCachedPmtilesSourcesForTests() {
+    for (const src of sources.values()) {
+        if (src._indexFlushTimer) {
+            clearTimeout(src._indexFlushTimer);
+            src._indexFlushTimer = null;
+        }
+    }
     sources.clear();
 }
