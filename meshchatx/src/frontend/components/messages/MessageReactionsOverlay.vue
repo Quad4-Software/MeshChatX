@@ -69,7 +69,7 @@ const visibleReactions = computed(() => validReactions.value.slice(0, MAX_VISIBL
 const hiddenReactionCount = computed(() => Math.max(0, validReactions.value.length - MAX_VISIBLE_REACTIONS));
 
 const reactionChips = computed(() => {
-    const chips = visibleReactions.value.map((r, idx) => ({
+    const chips: { kind: string; key: string; reaction?: any }[] = visibleReactions.value.map((r, idx) => ({
         kind: "reaction",
         key: r.reactionHash || `reaction-${idx}-${r.emoji || ""}-${r.sender || ""}`,
         reaction: r,

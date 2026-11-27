@@ -2,6 +2,7 @@
 
 <template>
     <div
+        :id="id"
         class="inline-flex gap-1 rounded-xl border border-sem-border bg-sem-surface-muted p-1"
         role="radiogroup"
         :aria-label="label"
@@ -38,6 +39,7 @@ interface SegmentOption {
 }
 
 defineProps<{
+    id?: string;
     modelValue: string;
     options: SegmentOption[];
     label?: string;

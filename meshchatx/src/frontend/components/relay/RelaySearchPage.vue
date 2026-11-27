@@ -7,7 +7,7 @@
                 v-model="query"
                 :loading="searching"
                 :placeholder="$t('relay_chat.search_global_placeholder')"
-                @input="scheduleSearch"
+                @update:model-value="scheduleSearch"
                 @clear="clearSearch"
             />
             <p class="mt-1.5 text-xs text-sem-fg-muted">{{ $t("relay_chat.search_global_hint") }}</p>

@@ -97,7 +97,7 @@ function onReload() {
 }
 
 async function onCopy() {
-    const report = formatFatalErrorReport(props.error);
+    const report = formatFatalErrorReport(props.error as any);
     const ok = await copyTextToClipboard(report);
     if (ok) {
         ToastUtils.success(translateUi("common.copied"));

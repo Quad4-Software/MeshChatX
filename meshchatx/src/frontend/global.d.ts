@@ -18,4 +18,11 @@ declare global {
     const Codec2Lib: any;
 }
 
+declare module "vue" {
+    interface GlobalDirectives {
+        vClickOutside: any;
+        vEscapeClose: any;
+    }
+}
+
 export {};

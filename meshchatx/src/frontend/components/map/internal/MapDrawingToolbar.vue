@@ -129,11 +129,11 @@ withDefaults(
 );
 
 const emit = defineEmits<{
-    "toggle-draw": [...args: any[]];
+    "toggle-draw": [type: string];
     "toggle-measure": [];
     "toggle-bearing": [];
     clear: [];
-    "edit-note": [];
+    "edit-note": [feature: any];
     "delete-feature": [];
     save: [];
     load: [];

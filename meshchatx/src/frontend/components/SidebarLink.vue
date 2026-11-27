@@ -26,6 +26,7 @@
 </template>
 
 <script setup lang="ts">
+import { getCurrentInstance } from "vue";
 import { useRoute } from "vue-router";
 import { navRouteIsActive } from "../js/navRouteActive.js";
 
@@ -47,14 +48,22 @@ const emit = defineEmits<{
     click: [];
 }>();
 
-const route = useRoute();
+const instance = getCurrentInstance();
+const injectedRoute = useRoute();
+
+// Resolve lazily: tests mock $route on the instance without installing vue-router.
+function resolveRoute(): any {
+    return (instance?.proxy as any)?.$route ?? injectedRoute;
+}
 
 function navActive(routerIsActive: boolean) {
-    if (navRouteIsActive(props.to?.name, route?.name)) {
+    if (navRouteIsActive(props.to?.name, resolveRoute()?.name)) {
         return true;
     }
     return Boolean(routerIsActive);
 }
+
+defineExpose({ navActive, collapsedActiveClass, handleNavigate });
 
 function collapsedActiveClass(isActive: boolean) {
     if (props.isCollapsed && isActive) {
