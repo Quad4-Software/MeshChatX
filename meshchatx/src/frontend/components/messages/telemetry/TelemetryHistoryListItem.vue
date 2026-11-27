@@ -18,7 +18,7 @@
             <button
                 type="button"
                 class="flex items-center gap-2 text-xs font-mono text-sem-accent hover:underline"
-                @click="$emit('location-click', item.lxmf_message.fields.telemetry.location)"
+                @click="emit('location-click', item.lxmf_message.fields.telemetry.location)"
             >
                 <MaterialDesignIcon icon-name="map-marker" class="size-4" />
                 {{ formatTelemetryLocationCoords(item.lxmf_message.fields.telemetry.location) }}
@@ -53,27 +53,16 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import { formatTelemetryLocationCoords, telemetryLocationCoords } from "../../../js/lxmfTelemetryLocation.js";
 
-export default {
-    name: "TelemetryHistoryListItem",
-    components: { MaterialDesignIcon },
-    props: {
-        item: {
-            type: Object,
-            required: true,
-        },
-        formatTimeAgo: {
-            type: Function,
-            required: true,
-        },
-    },
-    emits: ["location-click"],
-    methods: {
-        telemetryLocationCoords,
-        formatTelemetryLocationCoords,
-    },
-};
+defineProps<{
+    item: Record<string, any>;
+    formatTimeAgo: (...args: any[]) => string;
+}>();
+
+const emit = defineEmits<{
+    "location-click": [location: any];
+}>();
 </script>

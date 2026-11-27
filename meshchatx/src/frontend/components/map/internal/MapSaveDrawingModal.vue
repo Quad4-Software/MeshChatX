@@ -22,8 +22,8 @@
                         type="text"
                         class="w-full px-4 py-3 bg-sem-surface-muted border-none rounded-xl text-sm focus:ring-2 focus:ring-sem-accent transition-all dark:text-white"
                         :placeholder="$t('map.drawing_name_placeholder')"
-                        @input="$emit('update:name', $event.target.value)"
-                        @keyup.enter="$emit('save')"
+                        @input="onNameInput"
+                        @keyup.enter="emit('save')"
                     />
                 </div>
 
@@ -31,7 +31,7 @@
                     <button
                         type="button"
                         class="flex-1 px-4 py-2.5 rounded-xl border border-sem-border text-sm font-semibold text-sem-fg hover:bg-sem-surface-muted transition"
-                        @click="$emit('close')"
+                        @click="emit('close')"
                     >
                         {{ $t("common.close") }}
                     </button>
@@ -39,7 +39,7 @@
                         type="button"
                         class="flex-1 px-4 py-2.5 rounded-xl bg-sem-action-primary text-sem-action-primary-text text-sm font-semibold shadow-lg shadow-sem-action-primary/25 hover:bg-sem-info transition active:scale-95 disabled:opacity-50"
                         :disabled="!String(name || '').trim()"
-                        @click="$emit('save')"
+                        @click="emit('save')"
                     >
                         {{ $t("common.save") }}
                     </button>
@@ -49,31 +49,38 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { nextTick, ref } from "vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 
-export default {
-    name: "MapSaveDrawingModal",
-    components: {
-        MaterialDesignIcon,
-    },
-    props: {
-        show: {
-            type: Boolean,
-            default: false,
-        },
-        name: {
-            type: String,
-            default: "",
-        },
-    },
-    emits: ["close", "save", "update:name"],
-    methods: {
-        focusNameInput() {
-            this.$nextTick(() => {
-                this.$refs.newDrawingNameInput?.focus?.();
-            });
-        },
-    },
-};
+withDefaults(
+    defineProps<{
+        show?: boolean;
+        name?: string;
+    }>(),
+    {
+        show: false,
+        name: "",
+    }
+);
+
+const emit = defineEmits<{
+    close: [];
+    save: [];
+    "update:name": [name: string];
+}>();
+
+const newDrawingNameInput = ref<HTMLInputElement | null>(null);
+
+function focusNameInput() {
+    nextTick(() => {
+        newDrawingNameInput.value?.focus?.();
+    });
+}
+
+function onNameInput(event: Event) {
+    emit("update:name", (event.target as HTMLInputElement).value);
+}
+
+defineExpose({ focusNameInput });
 </script>

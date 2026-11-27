@@ -4,6 +4,7 @@ import pluginPrettier from "eslint-plugin-prettier/recommended";
 import pluginSecurity from "eslint-plugin-security";
 import globals from "globals";
 import tsParser from "@typescript-eslint/parser";
+import tsPlugin from "@typescript-eslint/eslint-plugin";
 
 export default [
     {
@@ -92,6 +93,18 @@ export default [
             "no-console": "off",
             "security/detect-object-injection": "off",
             "security/detect-non-literal-fs-filename": "off",
+        },
+    },
+    {
+        // After the catch-all rules block so the TS-aware rule wins for TS
+        // sources: the base rule flags parameter names in TS type positions.
+        files: ["**/*.ts", "**/*.vue"],
+        plugins: {
+            "@typescript-eslint": tsPlugin,
+        },
+        rules: {
+            "no-unused-vars": "off",
+            "@typescript-eslint/no-unused-vars": "warn",
         },
     },
 ];

@@ -7,7 +7,15 @@
         <div
             class="bg-sem-surface dark:bg-sem-surface backdrop-blur-sm border border-sem-border rounded-xl shadow-lg px-3 py-2 text-xs text-sem-fg"
         >
-            <p class="font-medium text-center" :class="showFromHere ? 'mb-2' : ''">{{ instructionText }}</p>
+            <p class="font-medium text-center" :class="showFromHere ? 'mb-2' : ''">
+                {{
+                    fromGpsActive
+                        ? $t("map.bearing_hint_destination")
+                        : awaitingSecondTap
+                          ? $t("map.bearing_hint_second")
+                          : $t("map.bearing_hint_first")
+                }}
+            </p>
             <button
                 v-if="showFromHere"
                 type="button"
@@ -22,28 +30,21 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { useI18n } from "vue-i18n";
 
-const props = defineProps<{
-    fromGpsActive?: boolean;
-    awaitingSecondTap?: boolean;
-}>();
+const props = withDefaults(
+    defineProps<{
+        fromGpsActive?: boolean;
+        awaitingSecondTap?: boolean;
+    }>(),
+    {
+        fromGpsActive: false,
+        awaitingSecondTap: false,
+    }
+);
 
 const emit = defineEmits<{
     "use-my-location": [];
 }>();
-
-const { t } = useI18n();
-
-const instructionText = computed(() => {
-    if (props.fromGpsActive) {
-        return t("map.bearing_hint_destination");
-    }
-    if (props.awaitingSecondTap) {
-        return t("map.bearing_hint_second");
-    }
-    return t("map.bearing_hint_first");
-});
 
 const showFromHere = computed(() => !props.fromGpsActive);
 </script>
