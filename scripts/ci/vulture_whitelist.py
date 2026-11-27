@@ -9,6 +9,10 @@ only counts name occurrences, so referencing the names here marks them as
 used project-wide.
 """
 
+from aiohttp import WSMessage
+
 
 def _whitelist_protocol_names() -> list:
-    return [requested_at, exc_type, exc_val, exc_tb, security_type]  # noqa: F821
+    # WSMessage is only referenced through string-literal forward references
+    # in cast() calls, which vulture does not count as usage.
+    return [requested_at, exc_type, exc_val, exc_tb, security_type, WSMessage]  # noqa: F821

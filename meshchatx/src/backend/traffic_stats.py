@@ -240,7 +240,6 @@ class TrafficStats:
         """
         if not transfer_id or not kind:
             return
-        now = time.monotonic()
         delta = 0
         with self._lock:
             entry = self._transfers.get(transfer_id)

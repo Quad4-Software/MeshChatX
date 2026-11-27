@@ -6,12 +6,15 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from aiohttp import (
     WSMsgType,
     web,
 )
+
+if TYPE_CHECKING:
+    from aiohttp import WSMessage
 from aiohttp_session import get_session
 
 from meshchatx.src.backend.app_security_settings import get_trusted_proxy_cidrs
