@@ -33,9 +33,9 @@
                         data-testid="sidebar-display-name"
                         :placeholder="$t('app.display_name_placeholder')"
                         class="input-field w-full"
-                        @input="$emit('update:displayName', $event.target.value)"
-                        @keydown.enter.prevent="$emit('save-identity')"
-                        @blur="$emit('save-identity')"
+                        @input="emit('update:displayName', $event.target.value)"
+                        @keydown.enter.prevent="emit('save-identity')"
+                        @blur="emit('save-identity')"
                     />
                 </div>
                 <div class="p-2 dark:border-sem-border overflow-hidden text-xs">
@@ -43,7 +43,7 @@
                     <div
                         class="text-[10px] text-sem-fg-muted truncate font-mono cursor-pointer"
                         :title="config.identity_hash"
-                        @click="$emit('copy-value', config.identity_hash, $t('app.identity_hash'))"
+                        @click="emit('copy-value', config.identity_hash, $t('app.identity_hash'))"
                     >
                         {{ config.identity_hash }}
                     </div>
@@ -54,7 +54,7 @@
                         <div
                             class="min-w-0 flex-1 text-[10px] text-sem-fg-muted truncate font-mono cursor-pointer"
                             :title="config.lxmf_address_hash"
-                            @click="$emit('copy-value', config.lxmf_address_hash, $t('app.lxmf_address'))"
+                            @click="emit('copy-value', config.lxmf_address_hash, $t('app.lxmf_address'))"
                         >
                             {{ config.lxmf_address_hash }}
                         </div>
@@ -62,7 +62,7 @@
                             type="button"
                             class="shrink-0 rounded-lg p-1 text-sem-fg-muted hover:text-sem-info dark:hover:text-sem-info transition-colors"
                             :title="$t('app.show_qr')"
-                            @click.stop="$emit('open-lxmf-qr')"
+                            @click.stop="emit('open-lxmf-qr')"
                         >
                             <MaterialDesignIcon icon-name="qrcode" class="size-4" />
                         </button>
@@ -84,7 +84,7 @@
                     :class="isCollapsed ? '' : 'my-auto mr-2'"
                     :title="$t('app.announce_now')"
                     data-testid="sidebar-announce-radio"
-                    @click.stop="$emit('send-announce')"
+                    @click.stop="emit('send-announce')"
                 >
                     <MaterialDesignIcon icon-name="radio" class="size-6" />
                 </button>
@@ -95,7 +95,7 @@
                     <button
                         type="button"
                         class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-xs hover:bg-gray-400 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 bg-sem-surface dark:text-white hover:bg-sem-surface-muted dark:focus-visible:outline-zinc-500"
-                        @click.stop="$emit('send-announce')"
+                        @click.stop="emit('send-announce')"
                     >
                         {{ $t("app.announce_now") }}
                     </button>
@@ -109,7 +109,7 @@
                     <select
                         :value="config.auto_announce_interval_seconds"
                         class="bg-sem-surface-muted border border-sem-border text-sem-fg text-sm rounded-lg focus:ring-sem-accent focus:border-sem-accent block w-full p-2.5 bg-sem-surface dark:border-sem-border text-sem-fg dark:focus:ring-sem-info dark:focus:border-sem-info"
-                        @change="$emit('announce-interval-change', Number($event.target.value))"
+                        @change="emit('announce-interval-change', Number($event.target.value))"
                     >
                         <option :value="0">{{ $t("app.disabled") }}</option>
                         <option :value="900">{{ $t("app.announce_interval_15m") }}</option>
@@ -135,59 +135,45 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, watch } from "vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 
-export default {
-    name: "AppSidebarClassicFooter",
-    components: {
-        MaterialDesignIcon,
-        LxmfUserIcon,
-    },
-    props: {
-        config: {
-            type: Object,
-            required: true,
-        },
-        displayName: {
-            type: String,
-            default: "",
-        },
-        identityLabel: {
-            type: String,
-            required: true,
-        },
-        lastAnnouncedLabel: {
-            type: String,
-            default: "",
-        },
-        isCollapsed: {
-            type: Boolean,
-            default: false,
-        },
-    },
-    emits: [
-        "update:displayName",
-        "save-identity",
-        "send-announce",
-        "announce-interval-change",
-        "copy-value",
-        "open-lxmf-qr",
-    ],
-    data() {
-        return {
-            isShowingMyIdentitySection: true,
-            isShowingAnnounceSection: true,
-        };
-    },
-    watch: {
-        isCollapsed(collapsed) {
-            if (collapsed) {
-                this.isShowingMyIdentitySection = false;
-                this.isShowingAnnounceSection = false;
-            }
-        },
-    },
-};
+const props = withDefaults(
+    defineProps<{
+        config: Record<string, any>;
+        displayName?: string;
+        identityLabel: string;
+        lastAnnouncedLabel?: string;
+        isCollapsed?: boolean;
+    }>(),
+    {
+        displayName: "",
+        lastAnnouncedLabel: "",
+        isCollapsed: false,
+    }
+);
+
+const emit = defineEmits<{
+    "update:displayName": [value: string];
+    "save-identity": [];
+    "send-announce": [];
+    "announce-interval-change": [...args: any[]];
+    "copy-value": [...args: any[]];
+    "open-lxmf-qr": [];
+}>();
+
+const isShowingMyIdentitySection = ref(true);
+const isShowingAnnounceSection = ref(true);
+
+watch(
+    () => props.isCollapsed,
+    (collapsed) => {
+        if (collapsed) {
+            isShowingMyIdentitySection.value = false;
+            isShowingAnnounceSection.value = false;
+        }
+    }
+);
 </script>

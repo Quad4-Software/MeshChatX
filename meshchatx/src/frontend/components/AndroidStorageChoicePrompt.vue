@@ -58,142 +58,151 @@
     </AppUpdatePrompt>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, ref } from "vue";
 import AppUpdatePrompt from "./AppUpdatePrompt.vue";
 import AndroidStorageBridge from "../js/AndroidStorageBridge.js";
 import ToastUtils from "../js/ToastUtils.js";
+import { useTranslateUi } from "../js/localeLoader.js";
 
-export default {
-    name: "AndroidStorageChoicePrompt",
-    components: { AppUpdatePrompt },
-    props: {
-        variant: {
-            type: String,
-            default: "upgrade",
-            validator: (v) => v === "setup" || v === "upgrade",
-        },
-    },
-    emits: ["completed", "dismissed"],
-    data() {
-        return {
-            visible: false,
-            busy: false,
-            status: null,
-            selectedSetupMode: "external",
-            storageBridge: null,
-        };
-    },
-    computed: {
-        setupMode() {
-            return this.variant === "setup";
-        },
-        promptTitle() {
-            return this.setupMode ? this.$t("android_storage.setup_title") : this.$t("android_storage.upgrade_title");
-        },
-        promptDescription() {
-            return this.setupMode ? this.$t("android_storage.setup_desc") : this.$t("android_storage.upgrade_desc");
-        },
-        primaryLabel() {
-            return this.setupMode ? this.$t("android_storage.setup_continue") : this.$t("android_storage.upgrade_copy");
-        },
-        secondaryLabel() {
-            return this.setupMode ? "" : this.$t("android_storage.upgrade_stay_internal");
-        },
-    },
-    created() {
-        this.storageBridge = new AndroidStorageBridge();
-    },
-    methods: {
-        ensureStorageBridge() {
-            if (!this.storageBridge) {
-                this.storageBridge = new AndroidStorageBridge();
+const props = withDefaults(
+    defineProps<{
+        variant?: string;
+    }>(),
+    {
+        variant: "upgrade",
+    }
+);
+
+const emit = defineEmits<{
+    completed: [result: Record<string, any>];
+    dismissed: [];
+}>();
+
+const t = useTranslateUi();
+
+const visible = ref(false);
+const busy = ref(false);
+const status = ref<Record<string, any> | null>(null);
+const selectedSetupMode = ref("external");
+
+let storageBridge: any = null;
+
+const setupMode = computed(() => props.variant === "setup");
+
+const promptTitle = computed(() =>
+    setupMode.value ? t("android_storage.setup_title") : t("android_storage.upgrade_title")
+);
+
+const promptDescription = computed(() =>
+    setupMode.value ? t("android_storage.setup_desc") : t("android_storage.upgrade_desc")
+);
+
+const primaryLabel = computed(() =>
+    setupMode.value ? t("android_storage.setup_continue") : t("android_storage.upgrade_copy")
+);
+
+const secondaryLabel = computed(() => (setupMode.value ? "" : t("android_storage.upgrade_stay_internal")));
+
+function ensureStorageBridge() {
+    if (!storageBridge) {
+        storageBridge = new AndroidStorageBridge();
+    }
+    return storageBridge;
+}
+
+function refreshStatus() {
+    status.value = ensureStorageBridge().getStatus();
+    return status.value;
+}
+
+function shouldShowSetup() {
+    const s = refreshStatus();
+    return Boolean(s?.needs_setup_choice);
+}
+
+function shouldShowUpgrade() {
+    const s = refreshStatus();
+    return Boolean(s?.needs_upgrade_prompt);
+}
+
+function showSetup() {
+    if (!shouldShowSetup()) {
+        return false;
+    }
+    selectedSetupMode.value = "external";
+    visible.value = true;
+    return true;
+}
+
+function showUpgrade() {
+    if (!shouldShowUpgrade()) {
+        return false;
+    }
+    visible.value = true;
+    return true;
+}
+
+function hide() {
+    visible.value = false;
+}
+
+function onVisibleUpdate(val: boolean) {
+    visible.value = val;
+    if (!val) {
+        emit("dismissed");
+    }
+}
+
+async function onPrimary() {
+    if (busy.value) {
+        return;
+    }
+    busy.value = true;
+    try {
+        if (setupMode.value) {
+            const mode = selectedSetupMode.value || "external";
+            const result = ensureStorageBridge().applySetupChoice(mode, status.value);
+            hide();
+            emit("completed", { action: "setup", mode, restarted: result.restarted });
+            if (result.restarted) {
+                ToastUtils.success(t("android_storage.restart_to_apply"));
             }
-            return this.storageBridge;
-        },
-        refreshStatus() {
-            this.status = this.ensureStorageBridge().getStatus();
-            return this.status;
-        },
-        shouldShowSetup() {
-            const s = this.refreshStatus();
-            return Boolean(s?.needs_setup_choice);
-        },
-        shouldShowUpgrade() {
-            const s = this.refreshStatus();
-            return Boolean(s?.needs_upgrade_prompt);
-        },
-        showSetup() {
-            if (!this.shouldShowSetup()) {
-                return false;
-            }
-            this.selectedSetupMode = "external";
-            this.visible = true;
-            return true;
-        },
-        showUpgrade() {
-            if (!this.shouldShowUpgrade()) {
-                return false;
-            }
-            this.visible = true;
-            return true;
-        },
-        hide() {
-            this.visible = false;
-        },
-        onVisibleUpdate(val) {
-            this.visible = val;
-            if (!val) {
-                this.$emit("dismissed");
-            }
-        },
-        async onPrimary() {
-            if (this.busy) {
-                return;
-            }
-            this.busy = true;
-            try {
-                if (this.setupMode) {
-                    const mode = this.selectedSetupMode || "external";
-                    const result = this.ensureStorageBridge().applySetupChoice(mode, this.status);
-                    this.hide();
-                    this.$emit("completed", { action: "setup", mode, restarted: result.restarted });
-                    if (result.restarted) {
-                        ToastUtils.success(this.$t("android_storage.restart_to_apply"));
-                    }
-                    return;
-                }
-                if (!this.ensureStorageBridge().scheduleCopyToExternalAndRestart()) {
-                    ToastUtils.error(this.$t("android_storage.failed"));
-                    return;
-                }
-                ToastUtils.success(this.$t("android_storage.copy_restart_hint"));
-                this.ensureStorageBridge().restartApp();
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(this.$t("android_storage.failed"));
-            } finally {
-                this.busy = false;
-            }
-        },
-        async onSecondary() {
-            if (this.busy || this.setupMode) {
-                return;
-            }
-            this.busy = true;
-            try {
-                if (!this.ensureStorageBridge().keepInternalAndDismiss()) {
-                    ToastUtils.error(this.$t("android_storage.failed"));
-                    return;
-                }
-                this.hide();
-                this.$emit("completed", { action: "stay_internal" });
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(this.$t("android_storage.failed"));
-            } finally {
-                this.busy = false;
-            }
-        },
-    },
-};
+            return;
+        }
+        if (!ensureStorageBridge().scheduleCopyToExternalAndRestart()) {
+            ToastUtils.error(t("android_storage.failed"));
+            return;
+        }
+        ToastUtils.success(t("android_storage.copy_restart_hint"));
+        ensureStorageBridge().restartApp();
+    } catch (e) {
+        console.error(e);
+        ToastUtils.error(t("android_storage.failed"));
+    } finally {
+        busy.value = false;
+    }
+}
+
+async function onSecondary() {
+    if (busy.value || setupMode.value) {
+        return;
+    }
+    busy.value = true;
+    try {
+        if (!ensureStorageBridge().keepInternalAndDismiss()) {
+            ToastUtils.error(t("android_storage.failed"));
+            return;
+        }
+        hide();
+        emit("completed", { action: "stay_internal" });
+    } catch (e) {
+        console.error(e);
+        ToastUtils.error(t("android_storage.failed"));
+    } finally {
+        busy.value = false;
+    }
+}
+
+defineExpose({ showSetup, showUpgrade, shouldShowSetup, shouldShowUpgrade, refreshStatus, visible });
 </script>
